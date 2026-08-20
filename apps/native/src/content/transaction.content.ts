@@ -112,8 +112,8 @@ const transaction = {
             es: "Guardar cambios",
         }),
         "transaction.edit.title": t({
-            en: "Edit Transaction",
-            es: "Editar transacción",
+            en: "Edit",
+            es: "Editar",
         }),
         "transaction.field.account": t({
             en: "Account",
@@ -131,17 +131,9 @@ const transaction = {
             en: "Date",
             es: "Fecha",
         }),
-        "transaction.field.endDate": t({
-            en: "End Date",
-            es: "Fecha de fin",
-        }),
         "transaction.field.ends": t({
             en: "Ends",
             es: "Termina el",
-        }),
-        "transaction.field.firstPayment": t({
-            en: "First Payment",
-            es: "Primer pago",
         }),
         "transaction.field.name": t({
             en: "Name",
@@ -170,10 +162,6 @@ const transaction = {
         "transaction.field.tags": t({
             en: "Tags",
             es: "Etiquetas",
-        }),
-        "transaction.field.time": t({
-            en: "Time",
-            es: "Hora",
         }),
         "transaction.field.type": t({
             en: "Type",
@@ -335,17 +323,28 @@ const transaction = {
             en: "Unlock",
             es: "Desbloquear",
         }),
+        // Spelled out rather than reusing `transaction.field.name`: the sentence's
+        // inline field already carries that label, and while the step is open both
+        // are on screen — one label on two inputs is an ambiguous target.
+        "transaction.merchant.field": t({
+            en: "Merchant name",
+            es: "Nombre del comercio",
+        }),
+        // Not "Recent merchants": the step's own title already names the fact, so
+        // the cluster only has to say which of its two rows this is.
+        "transaction.merchant.recent": t({
+            en: "Recently",
+            es: "Recientes",
+        }),
+        // The bar is meant to be quiet: the sentence below already says what the
+        // screen is for, so the title states the mode and nothing more.
         "transaction.new.title": t({
-            en: "Create Transaction",
-            es: "Crear transacción",
+            en: "New",
+            es: "Nueva",
         }),
         "transaction.numpad.delete": t({
             en: "Delete",
             es: "Borrar",
-        }),
-        "transaction.rate.conversion": t({
-            en: "That is {amount}",
-            es: "Eso es {amount}",
         }),
         "transaction.rate.custom": t({
             en: "Custom",
@@ -355,9 +354,17 @@ const transaction = {
             en: "Edit custom rate",
             es: "Editar tasa personalizada",
         }),
+        "transaction.rate.eurReferenceRequiresVes": t({
+            en: "EUR reference is only available for VES",
+            es: "La referencia EUR solo está disponible para VES",
+        }),
         "transaction.rate.eur_reference": t({
             en: "EUR reference",
             es: "Referencia EUR",
+        }),
+        "transaction.rate.notConverted": t({
+            en: "Not converted",
+            es: "Sin convertir",
         }),
         "transaction.rate.official": t({
             en: "Official",
@@ -366,10 +373,6 @@ const transaction = {
         "transaction.rate.pendingBody": t({
             en: "The native amount remains recorded. Cross-currency totals wait for your confirmation.",
             es: "El monto en su moneda original permanece registrado. Los totales entre monedas esperan tu confirmación.",
-        }),
-        "transaction.rate.pendingTitle": t({
-            en: "Rate confirmation needed",
-            es: "Se necesita confirmar la tasa",
         }),
         "transaction.rate.perUsd": t({
             en: "{currency} per USD",
@@ -387,9 +390,17 @@ const transaction = {
             en: "Set",
             es: "Definir",
         }),
+        "transaction.rate.setRate": t({
+            en: "Set a rate",
+            es: "Definir una tasa",
+        }),
         "transaction.rate.title": t({
             en: "Entry rate",
             es: "Tasa de la transacción",
+        }),
+        "transaction.rate.unavailable": t({
+            en: "Unavailable",
+            es: "No disponible",
         }),
         "transaction.remind.dayBefore": t({
             en: "1 day before",
@@ -431,6 +442,12 @@ const transaction = {
             en: "Custom Schedule",
             es: "Programación personalizada",
         }),
+        // Lowercase: it reads mid-sentence on the stage's schedule line, between
+        // the cadence options and the end date it introduces.
+        "transaction.schedule.ending": t({
+            en: "ending",
+            es: "hasta el",
+        }),
         "transaction.schedule.every": t({
             en: "Every {interval}",
             es: "Cada {interval}",
@@ -469,9 +486,164 @@ const transaction = {
             en: "short month",
             es: "mes corto",
         }),
+        // Lowercase, and paired with `transaction.schedule.ending`: the two words
+        // the stage's schedule line reads around its dates.
+        "transaction.schedule.starting": t({
+            en: "starting",
+            es: "desde el",
+        }),
+        "transaction.schedule.stopRepeat": t({
+            en: "Stop repeating",
+            es: "Dejar de repetir",
+        }),
         "transaction.schedule.unit": t({
             en: "Unit",
             es: "Unidad",
+        }),
+        "transaction.sentence.add.icon": t({
+            en: "icon",
+            es: "ícono",
+        }),
+        "transaction.sentence.add.note": t({
+            en: "note",
+            es: "nota",
+        }),
+        "transaction.sentence.add.repeat": t({
+            en: "repeat",
+            es: "repetir",
+        }),
+        "transaction.sentence.add.split": t({
+            en: "split",
+            es: "dividir",
+        }),
+        "transaction.sentence.add.tags": t({
+            en: "tags",
+            es: "etiquetas",
+        }),
+        // A chip that holds a fact states the fact. The unset chips are lowercase
+        // nouns; these are values, so a cadence keeps its own capitalisation.
+        // Nouns, not questions. The template supplies the preposition, so "at
+        // {merchant}" has to read as a phrase with the blank in place — "at a
+        // merchant" does, "at where?" does not. The Spanish article carries the
+        // gender its noun needs, which is why these are not one shared word.
+        "transaction.sentence.blank.account": t({
+            en: "an account",
+            es: "una cuenta",
+        }),
+        "transaction.sentence.blank.category": t({
+            en: "a category",
+            es: "una categoría",
+        }),
+        "transaction.sentence.blank.merchant": t({
+            en: "a merchant",
+            es: "un comercio",
+        }),
+        // The form's layout, not just its copy: `parseSentence` reads the slot
+        // order straight out of these, so a language that puts the account
+        // before the category only has to say so here.
+        "transaction.sentence.coach": t({
+            en: "Every underlined word is yours to change. Tap one, or just keep going below.",
+            es: "Cada palabra subrayada es tuya para cambiarla. Toca una, o sigue abajo.",
+        }),
+        "transaction.sentence.coachDismiss": t({
+            en: "Got it",
+            es: "Entendido",
+        }),
+        "transaction.sentence.currency": t({
+            en: "Change the amount's currency",
+            es: "Cambiar la moneda del monto",
+        }),
+        "transaction.sentence.expense": t({
+            en: "{kind} {amount} at {merchant} for {category} from {account} {when}.",
+            es: "{kind} {amount} en {merchant} para {category} con {account} {when}.",
+        }),
+        "transaction.sentence.extra.note": t({
+            en: "Note: {note}",
+            es: "Nota: {note}",
+        }),
+        "transaction.sentence.extra.split": t({
+            en: "Split across {parts}.",
+            es: "Dividido en {parts}.",
+        }),
+        "transaction.sentence.extra.tags": t({
+            en: "Tagged {tags}.",
+            es: "Etiquetado {tags}.",
+        }),
+        "transaction.sentence.income": t({
+            en: "{kind} {amount} from {merchant} for {category} into {account} {when}.",
+            es: "{kind} {amount} de {merchant} para {category} en {account} {when}.",
+        }),
+        // The sentence's opening verb, and the control that used to be an
+        // Expense/Income segment above it. First person past: the entry is a thing
+        // the user did, and Spanish has to pick a person to conjugate for anyway.
+        "transaction.sentence.kind.expense": t({
+            en: "Spent",
+            es: "Gasté",
+        }),
+        "transaction.sentence.kind.income": t({
+            en: "Received",
+            es: "Recibí",
+        }),
+        "transaction.sentence.kind.switch": t({
+            en: "Expense or income",
+            es: "Gasto o ingreso",
+        }),
+        // The chips are lowercase, and `transaction.cadence.*` is title-case because
+        // it heads a row elsewhere. Lowercasing that at the call site would be right
+        // in Spanish and wrong in the first locale where case carries meaning.
+        "transaction.sentence.set.repeatDaily": t({
+            en: "daily",
+            es: "diario",
+        }),
+        "transaction.sentence.set.repeatMonthly": t({
+            en: "monthly",
+            es: "mensual",
+        }),
+        "transaction.sentence.set.repeatWeekly": t({
+            en: "weekly",
+            es: "semanal",
+        }),
+        "transaction.sentence.set.repeatYearly": t({
+            en: "yearly",
+            es: "anual",
+        }),
+        "transaction.sentence.set.splitOne": t({
+            en: "1 way",
+            es: "1 parte",
+        }),
+        "transaction.sentence.set.splitWays": t({
+            en: "{count} ways",
+            es: "{count} partes",
+        }),
+        "transaction.sentence.set.tagMany": t({
+            en: "{count} tags",
+            es: "{count} etiquetas",
+        }),
+        "transaction.sentence.set.tagOne": t({
+            en: "1 tag",
+            es: "1 etiqueta",
+        }),
+        "transaction.sentence.when.on": t({
+            en: "on {date}",
+            es: "el {date}",
+        }),
+        // The stage's own option, beside "today" and "yesterday": "Date" alone
+        // reads as a label rather than as the third way to answer the question.
+        "transaction.sentence.when.pick": t({
+            en: "Pick a date",
+            es: "Elegir fecha",
+        }),
+        "transaction.sentence.when.repeating": t({
+            en: "every {interval} from {date}",
+            es: "cada {interval} desde el {date}",
+        }),
+        "transaction.sentence.when.today": t({
+            en: "today",
+            es: "hoy",
+        }),
+        "transaction.sentence.when.yesterday": t({
+            en: "yesterday",
+            es: "ayer",
         }),
         "transaction.split.addCategory": t({
             en: "Add category",

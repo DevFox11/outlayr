@@ -10,27 +10,26 @@ name: Creating a transaction writes it to the Log
       visible: "Create Transaction"
       timeout: 30000
 
-# canSave gates on amountNumber > 0, so nothing else enables the CTA. The numpad
-# is a sheet and the form stays in the hierarchy behind it, so wait for it to go
-# before touching anything else.
-- tapOn:
-      text: "Amount.*"
+# canSave gates on amountNumber > 0, so nothing else enables the CTA. Create
+# mode opens the native numpad sheet immediately.
 - extendedWaitUntil:
-      visible: "Done"
+      visible: "Sheet Grabber"
       timeout: 15000
 - tapOn: "7"
 - tapOn: "5"
-- tapOn: "Done"
+- swipe:
+      start: 50%, 62%
+      end: 50%, 95%
 - extendedWaitUntil:
-      notVisible: "Done"
+      notVisible: "Sheet Grabber"
       timeout: 15000
 
-# The row label and the field are separate elements; the field carries the
-# placeholder as its value, which is the only handle that reaches it.
-- tapOn: "Netflix, Groceries…"
+# The name is a plain TextInput sitting inside the sentence. Its accessibility
+# label is the localized field name, which remains stable as its value changes.
+- tapOn: "Name"
 - inputText: "Maestro Probe"
-# hideKeyboard does not dismiss this SwiftUI-hosted field. The CTA sits under
-# the keyboard, so tapping it while up lands on the space bar instead.
+# The CTA sits under the keyboard, so tapping it while up lands on the space bar
+# instead.
 - pressKey: Enter
 - extendedWaitUntil:
       notVisible: "space"

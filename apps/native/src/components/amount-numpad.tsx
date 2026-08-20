@@ -1,4 +1,4 @@
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
+import { GlassContainer, GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import { SymbolView } from "expo-symbols";
 import { NumberFlow } from "number-flow-react-native";
 import { useRef } from "react";
@@ -15,6 +15,10 @@ import { useColors } from "@/theme/use-colors";
 import { Text } from "./text";
 
 const GLASS = isLiquidGlassAvailable();
+
+/** `GlassContainer` is third-party, so it takes a style rather than a class —
+    the same reason `GlassView` is never wrapped by uniwind (see `styled.ts`). */
+const GRID_GAP = { gap: 8 } as const;
 
 const ROWS: NumpadTileKey[][] = [
     ["1", "2", "3"],
@@ -109,9 +113,14 @@ export function AmountNumpad({
                     </View>
                 </>
             ) : null}
-            <View className="gap-[9px]">
+            {/* Grouped: remounting twelve loose `GlassView`s — which the stage does
+                every time it swaps back to this step — leaves most of them without
+                an effect, and only the first column and "0" draw. Inside a
+                container they attach as one set. `spacing` stays default so they
+                do not merge into each other. */}
+            <GlassContainer style={GRID_GAP}>
                 {ROWS.map((row) => (
-                    <View className="flex-row gap-[9px]" key={row.join(",")}>
+                    <View className="flex-row gap-2" key={row.join(",")}>
                         {row.map((key) => (
                             <NumpadKeyTile
                                 fg={colors.foreground}
@@ -125,7 +134,7 @@ export function AmountNumpad({
                         ))}
                     </View>
                 ))}
-            </View>
+            </GlassContainer>
         </View>
     );
 }
@@ -147,14 +156,16 @@ function NumpadKeyTile({
     onLongPress?: () => void;
 }) {
     const t = useTranslation();
+    // Holds the separator's cell open so "0" stays centred under "8" when the
+    // entry model has no use for a separator — see `applyNumpadKey`.
     if (hidden) {
-        return <View className="h-16 flex-1" />;
+        return <View className="h-12 flex-1" />;
     }
     return (
         <Pressable
             accessibilityLabel={label === "back" ? t("transaction.numpad.delete") : glyph}
             accessibilityRole="button"
-            className="h-16 flex-1 items-center justify-center overflow-hidden rounded-2xl active:scale-[0.96] active:opacity-65"
+            className="h-12 flex-1 items-center justify-center overflow-hidden rounded-xl active:scale-[0.96] active:opacity-65"
             onLongPress={onLongPress}
             onPress={onPress}
         >
@@ -164,9 +175,9 @@ function NumpadKeyTile({
                 <View className="bg-surface absolute inset-0" />
             )}
             {label === "back" ? (
-                <SymbolView name="delete.left" size={26} tintColor={fg} type="monochrome" weight="medium" />
+                <SymbolView name="delete.left" size={20} tintColor={fg} type="monochrome" weight="medium" />
             ) : (
-                <Text className="font-sans-medium text-foreground text-[30px]">{glyph}</Text>
+                <Text className="font-sans-medium text-foreground text-[23px]">{glyph}</Text>
             )}
         </Pressable>
     );

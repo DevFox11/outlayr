@@ -1,56 +1,44 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
-import {
-    Button,
-    Divider,
-    Host,
-    HStack,
-    Image,
-    RNHostView,
-    ScrollView,
-    Spacer,
-    Text as SwiftText,
-    TextField,
-    Toggle,
-    useNativeState,
-    VStack,
-} from "@expo/ui/swift-ui";
-import {
-    animation,
-    blur,
-    buttonStyle,
-    foregroundStyle,
-    labelsHidden,
-    multilineTextAlignment,
-    offset,
-    overlay,
-    padding,
-    strokeBorder,
-    tint,
-} from "@expo/ui/swift-ui/modifiers";
-import { PieChartIcon, RepeatIcon, Tag01Icon, TagsIcon, TextIcon } from "@hugeicons-pro/core-stroke-rounded";
+import { Host, RNHostView, ScrollView, VStack } from "@expo/ui/swift-ui";
+import { animation, blur, padding } from "@expo/ui/swift-ui/modifiers";
 import { ENTRY_RATE_TYPES } from "@outlayr/money/rates";
 import type { EntryRateType } from "@outlayr/money/rates";
 import { useField, useForm, useSelector } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { PortalHost, PortalProvider } from "panelui-native";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Alert, StyleSheet, useColorScheme, useWindowDimensions, View } from "react-native";
+import {
+    Alert,
+    Keyboard,
+    KeyboardAvoidingView,
+    Pressable,
+    StyleSheet,
+    TextInput,
+    View,
+    useColorScheme,
+    useWindowDimensions,
+} from "react-native";
 import Animated, { FadeInDown, FadeOutDown, useDerivedValue, useSharedValue } from "react-native-reanimated";
 
 import { Confetti } from "@/components/confetti";
 import { HEADER_HEIGHT } from "@/components/editor-style";
-import { useCategoryPickerField } from "@/components/form/category-picker-field";
 import { InlineFailure } from "@/components/form/inline-failure";
 import { shallowEqual } from "@/components/form/shallow-equal";
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { SubscribeFields } from "@/components/form/subscribe-fields";
-import { useAppSettings } from "@/contexts/display-settings-context";
+import { useAppSettings, useSettingBool } from "@/contexts/display-settings-context";
 import { useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
+import { useAccounts } from "@/data/accounts";
 import { getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useCategoriesByNamespace } from "@/data/categories";
 import { ensureCategoryByName, getCategoryById } from "@/data/categories-core";
+import type { Category } from "@/data/categories-core";
+import { useFavouriteCurrencies } from "@/data/favourite-currencies";
+import { toggleFavouriteCurrency } from "@/data/favourite-currencies-core";
+import { useRecentMerchants } from "@/data/merchant-history";
 import { rememberedCategoryFor } from "@/data/merchant-history-core";
 import { ratesRevision, subscribeRatesRevision } from "@/data/rates-revision";
 import { backfillRecurring } from "@/data/recurrence-backfill";
@@ -62,21 +50,22 @@ import { transactionRateSuggestions } from "@/data/transaction-entry-rates";
 import { transactionsRepo } from "@/data/transactions-core";
 import type { Transaction, TransactionInput } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
-import { firstAvailableColor } from "@/domain/category-color";
-import { FALLBACK_EXPENSE_ICON, FALLBACK_INCOME_ICON, iconKeysMatching } from "@/domain/category-icon-catalog";
 import { CONFETTI_FLIGHT_MS } from "@/domain/confetti";
 import { computeCurtainHues } from "@/domain/curtain-hues";
-import { amountParts, formatAmount, minorUnitsFor } from "@/domain/money";
+import { formatSentenceDate } from "@/domain/dates";
+import { isFavourite } from "@/domain/favourite-currencies";
+import { suggestMerchants } from "@/domain/merchant-suggest";
+import { formatAmount, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
-import { ensureRecurringType, RECURRING_TYPE, SELECTABLE_RECURRING_TYPES } from "@/domain/recurrence";
+import { ensureRecurringType, RECURRING_TYPE } from "@/domain/recurrence";
 import { enableReminderStep } from "@/domain/reminder";
-import type { Allocation } from "@/domain/split";
 import { isRealSplit } from "@/domain/split-draft";
-import { normalizeLead, REMINDER_LEAD_OPTIONS, resolveLeadSelection } from "@/domain/subscription-reminder";
+import { normalizeLead } from "@/domain/subscription-reminder";
 import { findTagByName, normalizeTagName } from "@/domain/tags";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
-import { effectiveEntryRate, isTransactionRateNeeded, transactionRateError } from "@/domain/transaction-entry-rate";
-import { cadenceLabel, ctaKey, leadLabel } from "@/domain/transaction-form-labels";
+import { effectiveEntryRate, transactionRateOptions } from "@/domain/transaction-entry-rate";
+import type { TransactionEntryRate } from "@/domain/transaction-entry-rate";
+import { ctaKey, transactionWhenLabel } from "@/domain/transaction-form-labels";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
 import { isMissingCategory, transactionFormErrors } from "@/domain/transaction-form-validate";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
@@ -93,26 +82,33 @@ import { glowFromEmoji, glowFromImage } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
-import { AccountPickerSheet } from "../account-picker-sheet";
+import { AmountNumpad } from "../amount-numpad";
 import { CategoryIcon } from "../category-icon";
 import { CategoryIconTile } from "../category-icon-tile";
-import { CategoryPickerSheet } from "../category-picker-sheet";
-import { CurrencyPickerSheet } from "../currency-picker-sheet";
 import { CustomScheduleSheet, intervalPhrase } from "../custom-schedule-sheet";
 import { CURTAIN_LAYER_SIZE, curtainGradient } from "../identity-curtain";
 import { IdentityFlyUpLayer } from "../identity-fly-up";
+import { revealEntering } from "../sentence/sentence-motion";
 import { SplitSheet } from "../split-sheet";
 import { TagPickerSheet } from "../tag-picker-sheet";
 import { Text } from "../text";
-import { TransactionFormAmountHero } from "./amount-hero";
 import { TransactionFormAmountPad } from "./amount-pad";
 import { TransactionFormCta } from "./cta";
-import { TransactionFormDetailsSection } from "./details-section";
-import { TransactionFormIdentitySection } from "./identity-section";
-import { TransactionFormRateSection } from "./rate-section";
-import { TransactionFormRowIcon } from "./row-icon";
-import { TransactionFormScheduleSection } from "./schedule-section";
-import { BODY, CAPTION, ENRICHING, FLY_BACK, FLY_UP, FORM_BLUR_RADIUS, ROW, rowLabel, SHAKE, TAP_ROW } from "./style";
+import { TransactionSentenceBody } from "./sentence/sentence-body";
+import type { TransactionSentenceSlot } from "./sentence/slots";
+import { ConversionStrip } from "./stage/conversion-strip";
+import { MetaLine } from "./stage/meta-line";
+import { TransactionStage } from "./stage/stage";
+import type { StageAction, StageFooter } from "./stage/stage";
+import { StepAccount } from "./stage/step-account";
+import { StepCategory } from "./stage/step-category";
+import { StepCurrency } from "./stage/step-currency";
+import { StepDate } from "./stage/step-date";
+import { StepMerchant } from "./stage/step-merchant";
+import { StepRate } from "./stage/step-rate";
+import { StepRepeat } from "./stage/step-repeat";
+import { StepWhen } from "./stage/step-when";
+import { FLY_BACK, FLY_UP, FORM_BLUR_RADIUS } from "./style";
 import { useSplitDraft } from "./use-split-draft";
 
 /**
@@ -122,16 +118,105 @@ import { useSplitDraft } from "./use-split-draft";
  */
 const HERO_REST_TOP_FALLBACK = 88;
 
-/**
- * A SwiftUI `tag()` set has to be one type, and Off is the absence of a lead
- * rather than a count of days — so it rides along as a sentinel and is turned
- * back into `null` the instant the selection arrives. A -1 that escaped that
- * boundary would reach `normalizeLead`, which clamps it to 0 and so arms a
- * reminder on the due day for the owner who just switched reminders off.
- */
-const LEAD_OFF_TAG = -1;
-
 const RATE_DISPLAY_DECIMALS = 4;
+
+/**
+ * Floor for the currency step's virtualised list. A stage body has no intrinsic
+ * height and an auto-sized list measures to zero for the frames the stage is
+ * swapping, so the list needs a size from the first one. A fraction of the
+ * window rather than a constant: the stage still has the sentence above it.
+ */
+const CURRENCY_LIST_FRACTION = 0.34;
+
+/** One row of pills beside the remembered ones, which come first. */
+const MERCHANT_SUGGESTION_LIMIT = 4;
+
+/** Names the policy a stated conversion was produced by. */
+const RATE_SOURCE_KEYS = {
+    custom: "transaction.rate.custom",
+    eur_reference: "transaction.rate.eur_reference",
+    official: "transaction.rate.official",
+} as const satisfies Record<EntryRateType, string>;
+
+/**
+ * What the stage at the bottom of the form is showing. One value rather than a
+ * flag per surface: the stage is a single surface, so no two of these can be
+ * true at once, and the sentence's washed word reads straight off it.
+ *
+ * There is no "closed": the stage is always occupied. A form whose bottom is
+ * empty leaves no way forward except knowing that a word in the sentence is
+ * tappable, which is the whole defect the stage replaced.
+ */
+type StageStep =
+    | "account"
+    | "amount"
+    | "category"
+    | "currency"
+    | "date"
+    | "endDate"
+    | "merchant"
+    | "rate"
+    | "repeat"
+    | "when";
+
+/**
+ * Where the stage is, and which way it just travelled. One value rather than two
+ * pieces of state: the body animates in from the side it came from, so a step
+ * and its direction have to change in the same commit or a return slides in as
+ * a forward move.
+ */
+interface StagePosition {
+    forward: boolean;
+    step: StageStep;
+}
+
+/**
+ * The facts the footer button walks, in the order the sentence states them, so a
+ * user who never realises a word is tappable still reaches a saveable entry.
+ */
+const GUIDED_STEPS = ["amount", "merchant", "category", "account"] as const;
+
+type GuidedStep = (typeof GUIDED_STEPS)[number];
+
+/**
+ * A rung the ladder offers but never holds the save for. The merchant is what
+ * drives enrichment rather than what makes the row valid, so an entry that never
+ * names one is whole — pressing the footer on that step IS the skip.
+ */
+const OPTIONAL_STEPS: ReadonlySet<GuidedStep> = new Set(["merchant"]);
+
+const GUIDED_POSITIONS = new Map<StageStep, number>(GUIDED_STEPS.map((step, index) => [step, index]));
+
+/** Where a step sits on the guided ladder; -1 for one that is not on it. */
+function guidedIndex(step: StageStep): number {
+    return GUIDED_POSITIONS.get(step) ?? -1;
+}
+
+/**
+ * The word the stage is editing, so the sentence can wash it. The rate and
+ * currency steps both report the amount: each is setting something the amount
+ * carries, and neither has a sentence word of its own to mark.
+ */
+const STEP_SLOTS = {
+    account: "account",
+    amount: "amount",
+    category: "category",
+    currency: "amount",
+    date: "when",
+    endDate: "when",
+    merchant: "merchant",
+    rate: "amount",
+    repeat: "when",
+    when: "when",
+} as const satisfies Record<StageStep, TransactionSentenceSlot>;
+
+/** One step's body and the header it sits under, before the stage draws them. */
+interface StageStepContent {
+    body: ReactNode;
+    /** Trailing meta the step needs and its body cannot state. */
+    rightAction?: StageAction;
+    title: string;
+}
 
 function rateToEntryText(rate: number | null | undefined): string {
     return rate != null && Number.isFinite(rate) && rate > 0 ? String(rate) : "";
@@ -243,32 +328,15 @@ function initialEntryRateType(currency: string, rateType: string | null | undefi
     return normalized ?? "official";
 }
 
-function selectedRateError(currency: string, exchangeRate: number | null, exchangeRateType: EntryRateType | null) {
-    if (currency === "USD" || exchangeRateType == null) {
-        return null;
-    }
-    return transactionRateError(currency, { exchangeRate, exchangeRateType });
-}
-
-function transactionRateViewState({
-    currency,
-    exchangeRateText,
-    exchangeRateType,
-    amountUsd,
-    requiredLabel,
-}: {
-    amountUsd: number | null | undefined;
-    currency: string;
-    exchangeRateText: string;
-    exchangeRateType: EntryRateType | null;
-    requiredLabel: string;
-}) {
-    const exchangeRate = exchangeRateText === "" ? null : numpadToNumber(exchangeRateText);
-    const error = selectedRateError(currency, exchangeRate, exchangeRateType) === null ? null : requiredLabel;
+/**
+ * The rate policy in force, in the shape the rate step and the conversion strip
+ * both read. `official` stands in for an absent type because that is what an
+ * unanswered non-USD entry records.
+ */
+function rateSelectionOf(exchangeRateText: string, exchangeRateType: EntryRateType | null): TransactionEntryRate {
     return {
-        error,
-        pending: isTransactionRateNeeded({ amountUsd, exchangeRate, exchangeRateType }),
-        selection: { exchangeRate, exchangeRateType: exchangeRateType ?? "official" },
+        exchangeRate: exchangeRateText === "" ? null : numpadToNumber(exchangeRateText),
+        exchangeRateType: exchangeRateType ?? "official",
     };
 }
 
@@ -277,11 +345,13 @@ interface TransactionRateControlsOptions {
     date: Date;
     exchangeRateType: EntryRateType | null;
     initialRateFromProvider: boolean;
-    setAmountPadOpen: (open: boolean) => void;
+    /** Moves the stage. `forward` is the direction the arriving body travels in. */
+    onStage: (step: StageStep, forward: boolean) => void;
     setCurrency: (currency: string) => void;
     setDate: (date: Date) => void;
     setRateText: (rateText: string) => void;
     setRateType: (rateType: EntryRateType | null) => void;
+    stageStep: StageStep;
 }
 
 function useTransactionRateControls({
@@ -289,28 +359,35 @@ function useTransactionRateControls({
     date,
     exchangeRateType,
     initialRateFromProvider,
-    setAmountPadOpen,
+    onStage,
     setCurrency,
     setDate,
     setRateText,
     setRateType,
+    stageStep,
 }: TransactionRateControlsOptions) {
     const rateFromSuggestion = useRef(initialRateFromProvider);
-    const [ratePadOpen, setRatePadOpen] = useState(false);
+    /** The rate step is only ever on screen because it was asked for. */
+    const leaveRateStep = () => {
+        if (stageStep === "rate") {
+            onStage("amount", false);
+        }
+    };
 
     const handleRateTypeChange = (next: EntryRateType) => {
-        setAmountPadOpen(false);
         rateFromSuggestion.current = false;
         setRateType(next);
         setRateText("");
-        setRatePadOpen(next === "custom");
+        // Stays on the rate step: choosing a policy with nothing to apply is what
+        // the custom keypad appears under, and leaving would hide the choice.
+        onStage("rate", true);
     };
 
     const handleRateSuggestion = (rate: number, type: EntryRateType) => {
         rateFromSuggestion.current = true;
         setRateType(type);
         setRateText(rateToEntryText(rate));
-        setRatePadOpen(false);
+        leaveRateStep();
     };
 
     const handleCurrencyChange = (next: string) => {
@@ -322,7 +399,7 @@ function useTransactionRateControls({
         if (next === "USD") {
             setRateType(null);
             setRateText("");
-            setRatePadOpen(false);
+            leaveRateStep();
             return;
         }
         if (exchangeRateType == null || (exchangeRateType === "eur_reference" && next !== "VES")) {
@@ -344,10 +421,7 @@ function useTransactionRateControls({
         setRateText(next);
     };
 
-    const openCustomRatePad = () => {
-        setAmountPadOpen(false);
-        setRatePadOpen(true);
-    };
+    const openRateStep = () => onStage("rate", true);
 
     return {
         handleCurrencyChange,
@@ -355,126 +429,8 @@ function useTransactionRateControls({
         handleRateSuggestion,
         handleRateTextChange,
         handleRateTypeChange,
-        openCustomRatePad,
-        ratePadOpen,
-        setRatePadOpen,
+        openRateStep,
     };
-}
-
-interface CategoryRowProps {
-    category: ReturnType<typeof getCategoryById>;
-    enriching: boolean;
-    error: boolean;
-    glyphTint: string;
-    labelTint: string;
-    onPress: () => void;
-    pendingCategory: PendingCategory | null;
-    shake: boolean;
-}
-
-/**
- * Sits beside Tags rather than inside the Category row: the Category row is a
- * SwiftUI tree, and a variable number of parts inside it would fight the Host's
- * sizing for no gain the user can see.
- */
-function TransactionFormSplitRow({
-    allocations,
-    onPress,
-}: {
-    allocations: readonly Allocation[];
-    onPress: () => void;
-}) {
-    const colors = useColors();
-    const t = useTranslation();
-    const split = isRealSplit(allocations);
-
-    return (
-        <Button modifiers={[buttonStyle("plain")]} onPress={onPress}>
-            <HStack modifiers={TAP_ROW} spacing={12}>
-                <TransactionFormRowIcon color={colors.muted} icon={PieChartIcon} />
-                <SwiftText modifiers={[BODY, rowLabel]}>{t("transaction.split.row")}</SwiftText>
-                <Spacer />
-                <HStack spacing={5}>
-                    <SwiftText modifiers={[BODY, foregroundStyle(split ? colors.foreground : colors.muted)]}>
-                        {split
-                            ? t("transaction.split.count", { count: allocations.length })
-                            : t("transaction.tags.none")}
-                    </SwiftText>
-                    <Image color={colors.muted} size={12} systemName="chevron.up.chevron.down" />
-                </HStack>
-            </HStack>
-        </Button>
-    );
-}
-
-function TransactionFormCategoryRow({
-    category,
-    enriching,
-    error,
-    glyphTint,
-    labelTint,
-    onPress,
-    pendingCategory,
-    shake,
-}: CategoryRowProps) {
-    const colors = useColors();
-    const t = useTranslation();
-    const errorBorder = error
-        ? [
-              strokeBorder({
-                  color: colors.danger,
-                  cornerRadius: 12,
-                  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- the key is @expo/ui's strokeBorder option name
-                  shape: "roundedRectangle",
-                  style: { lineWidth: 1.5 },
-              }),
-          ]
-        : [];
-    const chosen = category ?? pendingCategory;
-    const label = chosen ? chosen.name : t("transaction.category.choose");
-    const pendingNote = pendingCategory?.parentName
-        ? t("transaction.category.willBeCreatedUnder", { parent: pendingCategory.parentName })
-        : t("transaction.category.willBeCreated");
-
-    return (
-        <Button
-            modifiers={[buttonStyle("plain"), ...errorBorder, offset({ x: shake ? -5 : 0 }), animation(SHAKE, shake)]}
-            onPress={onPress}
-        >
-            <VStack spacing={0}>
-                <HStack modifiers={TAP_ROW} spacing={12}>
-                    <TransactionFormRowIcon color={error ? colors.danger : colors.muted} icon={Tag01Icon} />
-                    <SwiftText modifiers={[BODY, error ? foregroundStyle(colors.danger) : rowLabel]}>
-                        {t("transaction.field.category")}
-                    </SwiftText>
-                    <Spacer />
-                    <HStack spacing={5}>
-                        {category || pendingCategory ? (
-                            <RNHostView matchContents>
-                                <View style={{ height: 18, width: 18 }}>
-                                    <CategoryIcon
-                                        color={glyphTint}
-                                        name={category ? category.icon : pendingCategory?.icon}
-                                        size={18}
-                                    />
-                                </View>
-                            </RNHostView>
-                        ) : null}
-                        <SwiftText modifiers={[BODY, foregroundStyle(labelTint), animation(ENRICHING, enriching)]}>
-                            {label}
-                        </SwiftText>
-                        <Image color={colors.muted} size={12} systemName="chevron.up.chevron.down" />
-                    </HStack>
-                </HStack>
-                {pendingCategory ? (
-                    <HStack modifiers={[padding({ bottom: 10 })]} spacing={0}>
-                        <Spacer />
-                        <SwiftText modifiers={[CAPTION, foregroundStyle(colors.muted)]}>{pendingNote}</SwiftText>
-                    </HStack>
-                ) : null}
-            </VStack>
-        </Button>
-    );
 }
 
 /**
@@ -493,14 +449,20 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const { width: windowWidth, height: windowHeight } = useWindowDimensions();
     /** Swift's `.padding(.horizontal, 20)` content box. */
     const contentWidth = windowWidth - 40;
+    const currencyListHeight = Math.round(windowHeight * CURRENCY_LIST_FRACTION);
     const globalCurrency = useGlobalCurrency(db);
 
-    const name = useNativeState(initial?.note ?? copyOf?.note ?? seed?.note ?? "");
-    const notes = useNativeState(initial?.details ?? copyOf?.details ?? "");
+    const [nameSeed] = useState(initial?.note ?? copyOf?.note ?? seed?.note ?? "");
+    const [notesSeed] = useState(initial?.details ?? copyOf?.details ?? "");
+    // The note is held in a ref, not state: it feeds a plain RN input, and
+    // lifting the string would re-render the SwiftUI `Host` below on every
+    // keystroke. The merchant name cannot be — two surfaces edit it — so it is a
+    // form field instead, read only through `Subscribe` for the same reason.
+    const notesRef = useRef(notesSeed);
 
     const { draft: identity, setDraft: setIdentity } = useIdentityDraft();
     const [identitySource, setIdentitySource] = useState<FieldSource>("initial");
-    const { pickerOpen, setPickerOpen, floatProgress } = useIdentityFlyUp();
+    const { pickerOpen, setPickerOpen } = useIdentityFlyUp();
     /** A failed write, held until the next attempt: this sheet stays up under it. */
     const [saveFailure, setSaveFailure] = useState<string | null>(null);
     /**
@@ -542,6 +504,13 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             // charging.
             isSubscription: (initial?.recurringType ?? RECURRING_TYPE.none) !== RECURRING_TYPE.none,
             leadDays: normalizeLead(initial?.reminderLeadDays ?? null),
+            merchant: nameSeed,
+            // What the sentence's inline field is seeded WITH, which is not the
+            // same thing as what the entry is called. That field is uncontrolled
+            // — it has to be, or the caret would jump on every keystroke — so the
+            // only way the stage's merchant step can move it is to re-seed it,
+            // and only the stage ever writes this.
+            merchantSeed: nameSeed,
             pendingCategory: null as PendingCategory | null,
             pendingTagNames: [] as readonly string[],
             recurringType:
@@ -597,7 +566,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 currency: value.txCurrency,
                 customColor: identity.color,
                 date: value.date,
-                details: notes.value,
+                details: notesRef.current,
                 emoji: identity.emoji,
                 endDate: value.endDate,
                 exchangeRate:
@@ -612,7 +581,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 income: value.income,
                 isSubscription: value.isSubscription,
                 leadDays: value.leadDays,
-                note: name.value,
+                note: value.merchant,
                 recurringType: value.recurringType,
             });
             let savedId: string;
@@ -716,8 +685,24 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         // The CTA stays lit on amount alone, so a tap with no category lands here
         // rather than on a dimmed button that explains nothing.
         onSubmitInvalid: ({ value }) => {
+            // The amount flags where the category already does: the stage's
+            // footer reaches this with nothing entered, and a submit that
+            // silently did nothing would read as a missed button.
+            const noAmount = numpadToNumber(value.amount) <= 0;
+            if (noAmount) {
+                flagMissingAmount();
+            }
             if (isMissingCategory(value)) {
                 flagMissingCategory();
+            }
+            // Marking the sentence alone leaves the answer further away than the
+            // question, and the stage is where every other fact is answered. Only
+            // for a fact the sentence states, though: a save rejected for a blank
+            // rate must stay on the rate step, which is already showing why.
+            if (noAmount) {
+                enterStep("amount");
+            } else if (isMissingCategory(value)) {
+                enterStep("category");
             }
         },
         validators: {
@@ -742,6 +727,9 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         coefficient,
         account,
         date,
+        endDate,
+        hasEndDate,
+        leadDays,
         exchangeRateText,
         exchangeRateType,
     } = useSelector(
@@ -751,10 +739,13 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             category: s.values.category,
             coefficient: s.values.coefficient,
             date: s.values.date,
+            endDate: s.values.endDate,
             exchangeRateText: s.values.exchangeRateText,
             exchangeRateType: s.values.exchangeRateType,
+            hasEndDate: s.values.hasEndDate,
             income: s.values.income,
             isSubscription: s.values.isSubscription,
+            leadDays: s.values.leadDays,
             pendingCategory: s.values.pendingCategory,
             recurringType: s.values.recurringType,
             txCurrency: s.values.txCurrency,
@@ -770,23 +761,31 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         // oxlint-disable-next-line react/exhaustive-deps -- ratesVersion invalidates this SQLite read after cache replacement.
         [db, currency, date, ratesVersion]
     );
-    const rateViewState = transactionRateViewState({
-        amountUsd: initial?.amountUsd,
-        currency,
-        exchangeRateText,
-        exchangeRateType,
-        requiredLabel: t("transaction.rate.required"),
-    });
+    const rateSelection = rateSelectionOf(exchangeRateText, exchangeRateType);
+    /**
+     * Whether this entry converts at all. `transactionRateOptions` is the single
+     * answer: it is empty for USD, which has no rate to state and so no strip and
+     * no rate step.
+     */
+    const converts = transactionRateOptions(currency).length > 0;
+    const rateInForce = effectiveEntryRate(rateSelection, rateSuggestions);
+    const rateSourceLabel = t(RATE_SOURCE_KEYS[rateSelection.exchangeRateType]);
 
-    // What the entered amount comes to in USD at the selected rate. Stays silent on an
-    // empty amount or an unresolved rate, so a blank form says nothing.
-    const rateConversionLabel = (amountText: string): string | null => {
-        const amount = numpadToNumber(amountText);
-        const rate = effectiveEntryRate(rateViewState.selection, rateSuggestions);
-        if (amount <= 0 || rate === null || rate <= 0) {
+    /**
+     * What the entered amount comes to in USD at the rate in force, or null while
+     * nothing honest can be stated. `eur_reference` is two-legged — its rate is
+     * this currency per EUR — so the EUR-official leg divides in as well, exactly
+     * as `computeAmountUSD` does at save time.
+     */
+    const amountInUsd = (amount: number): number | null => {
+        if (amount <= 0 || rateInForce === null || rateInForce <= 0) {
             return null;
         }
-        return t("transaction.rate.conversion", { amount: formatAmount(amount / rate, "USD", true, language) });
+        if (rateSelection.exchangeRateType !== "eur_reference") {
+            return amount / rateInForce;
+        }
+        const eurLeg = rateSuggestions.eurOfficial;
+        return eurLeg === null || eurLeg <= 0 ? null : amount / rateInForce / eurLeg;
     };
 
     // A category carried in from `copyOf` is a deliberate choice, not a blank
@@ -802,6 +801,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 
     const [categoryError, setCategoryError] = useState(false);
     const [categoryShake, setCategoryShake] = useState(false);
+    const [amountError, setAmountError] = useState(false);
+    const [amountShake, setAmountShake] = useState(false);
     const [showToast, setShowToast] = useState(false);
     const celebrate = useAppSettings().state.bool("confetti");
     const aiEnrichment = useAppSettings().state.bool("aiEnrichment");
@@ -834,65 +835,61 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const isDark = scheme === "dark";
     const router = useRouter();
 
-    // Open on arrival for a new entry: the amount is the first thing a create is
-    // for. An edit already has one, so it starts closed and the rest is visible.
-    const [padOpen, setPadOpen] = useState(mode === "create");
+    /**
+     * The one bottom surface. It rests on the keypad — the amount is the first
+     * thing a create is for, and the first thing a returning user reaches for on
+     * an edit — and every other step is entered from it and returns to it.
+     */
+    const [stage, setStage] = useState<StagePosition>({ forward: true, step: "amount" });
+    const stageStep = stage.step;
+    const goStage = (step: StageStep, forward: boolean) => {
+        // The merchant step is the only one that lifts clear of the software
+        // keyboard, and the sentence's own field can be what raised it. Leaving
+        // with that field still focused would drop the arriving step behind it.
+        if (stageStep === "merchant" && step !== "merchant") {
+            Keyboard.dismiss();
+        }
+        setStage({ forward, step });
+    };
+    /** Opens a step. The arriving body travels in from the right. */
+    const enterStep = (step: StageStep) => goStage(step, true);
+    /** Returns to a step already behind us, which travels the other way. */
+    const leaveTo = (step: StageStep) => goStage(step, false);
     const {
         handleCurrencyChange,
         handleDateChange,
         handleRateSuggestion,
         handleRateTextChange,
         handleRateTypeChange,
-        openCustomRatePad,
-        ratePadOpen,
-        setRatePadOpen,
+        openRateStep,
     } = useTransactionRateControls({
         currency,
         date,
         exchangeRateType,
         initialRateFromProvider: isProviderRate(initial?.exchangeRate, exchangeRateType),
-        setAmountPadOpen: setPadOpen,
+        onStage: goStage,
         setCurrency: (next) => form.setFieldValue("txCurrency", next),
         setDate: (next) => form.setFieldValue("date", next),
         setRateText: (next) => form.setFieldValue("exchangeRateText", next),
         setRateType: (next) => form.setFieldValue("exchangeRateType", next),
+        stageStep,
     });
-    const currencySheetRef = useRef<BottomSheetModal>(null);
-    const {
-        present: presentCategoryPicker,
-        ref: categoryPickerRef,
-        select: selectCategory,
-    } = useCategoryPickerField((picked) => {
+    const favouriteCurrencies = useFavouriteCurrencies(db);
+    // Read off the list the write produced, not off the array at press time:
+    // toggles are serialised, so a row rendered a tick before another landed
+    // would otherwise mis-read the cap.
+    const toggleFavourite = (code: string, favourite: boolean) => {
+        toggleFavouriteCurrency(db, code).then((next) => {
+            // oxlint-disable-next-line promise/no-callback-in-promise -- a press handler is not a promise chain, so the haptic has nowhere else to be sequenced from
+            haptics(favourite || isFavourite(next, code) ? "light" : "warning");
+        });
+    };
+    const selectCategory = (picked: Category) => {
         form.setFieldValue("category", picked);
         form.setFieldValue("pendingCategory", null);
         setCategorySource("user");
         setCategoryError(false);
-    });
-    const createCategoryNamed = useCallback(
-        async (categoryName: string) => {
-            const siblings = latest.current.categories;
-            const used = new Set(
-                siblings.map((sibling) => sibling.color).filter((color): color is string => color != null)
-            );
-            const fallbackIcon = income ? FALLBACK_INCOME_ICON : FALLBACK_EXPENSE_ICON;
-            try {
-                const id = await ensureCategoryByName(
-                    db,
-                    categoryName,
-                    income,
-                    iconKeysMatching(categoryName)[0] ?? fallbackIcon,
-                    firstAvailableColor(used)
-                );
-                const created = getCategoryById(db, id);
-                if (created != null) {
-                    selectCategory(created);
-                }
-            } catch (error) {
-                console.error("Failed to create the category", error);
-            }
-        },
-        [db, income, selectCategory]
-    );
+    };
     const tagSheetRef = useRef<BottomSheetModal>(null);
     const splitSheetRef = useRef<BottomSheetModal>(null);
     const {
@@ -900,7 +897,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         openSplit,
         setAllocations: setSplitAllocations,
     } = useSplitDraft(db, mode, initial);
-    const accountSheetRef = useRef<BottomSheetModal>(null);
+    const allAccounts = useAccounts(db);
+    const recentNames = useRecentMerchants(db, income);
     const allTags = useTags(db);
     const savedTagIds = useTagIdsFor(db, initial?.id ?? null);
     const [tagsSource, setTagsSource] = useState<FieldSource>("initial");
@@ -914,8 +912,29 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         ];
         return labels.length > 0 ? labels.join(", ") : null;
     };
+    const tagCountOf = (tagIds: readonly string[], pendingTagNames: readonly string[]) =>
+        allTags.filter((tag) => effectiveTagIdsOf(tagIds).includes(tag.id)).length + pendingTagNames.length;
+    // No ICU plurals in this catalogue, so the singular is its own key rather than
+    // a "1 tags" the interpolation would otherwise produce.
+    const tagLabel = (count: number) =>
+        count === 1 ? t("transaction.sentence.set.tagOne") : t("transaction.sentence.set.tagMany", { count });
+    const splitLabel = (count: number) =>
+        count === 1 ? t("transaction.sentence.set.splitOne") : t("transaction.sentence.set.splitWays", { count });
+    const repeatChipLabel = () => {
+        if (recurringType === RECURRING_TYPE.daily) {
+            return t("transaction.sentence.set.repeatDaily");
+        }
+        if (recurringType === RECURRING_TYPE.weekly) {
+            return t("transaction.sentence.set.repeatWeekly");
+        }
+        if (recurringType === RECURRING_TYPE.yearly) {
+            return t("transaction.sentence.set.repeatYearly");
+        }
+        return t("transaction.sentence.set.repeatMonthly");
+    };
     const [scheduleSheetOpen, setScheduleSheetOpen] = useState(false);
     const shakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const amountShakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const categoriesForNamespace = useCategoriesByNamespace(db, income);
@@ -1017,7 +1036,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 
             const outcome = await fetchMerchantImage({
                 domain,
-                name: name.value,
+                name: form.store.state.values.merchant,
             });
             if (stale()) {
                 return;
@@ -1061,7 +1080,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 photoUri,
             }));
         },
-        [name, setIdentity]
+        [form, setIdentity]
     );
 
     /*
@@ -1125,12 +1144,14 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     // A field the user has already edited is theirs — it never dims, because
     // nothing arriving can change it.
     const categoryEnriching = enriching && categorySource !== "user";
-    const tagsEnriching = enriching && tagsSource !== "user";
 
     useEffect(
         () => () => {
             if (shakeTimer.current != null) {
                 clearTimeout(shakeTimer.current);
+            }
+            if (amountShakeTimer.current != null) {
+                clearTimeout(amountShakeTimer.current);
             }
             if (doneTimer.current != null) {
                 clearTimeout(doneTimer.current);
@@ -1184,10 +1205,15 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         }
     };
 
-    // Custom intervals come from the stepper sheet, not from this menu.
-    const handleScheduleChange = (type: number) => {
+    /**
+     * Naming a cadence IS the choice to repeat: the repeat step is the only place
+     * a one-off becomes a subscription now, so the flag follows the cadence
+     * rather than waiting for a switch that no longer exists.
+     */
+    const handleCadenceChange = (type: number) => {
         form.setFieldValue("recurringType", type);
         form.setFieldValue("coefficient", 1);
+        form.setFieldValue("isSubscription", true);
     };
 
     // The same ladder the notifications setting runs, for the same reason: a lead
@@ -1225,8 +1251,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         form.setFieldValue("leadDays", null);
     };
 
-    const handleLeadChange = (next: number) => {
-        const lead = resolveLeadSelection(next, LEAD_OFF_TAG);
+    const handleLeadChange = (lead: number | null) => {
         form.setFieldValue("leadDays", lead);
         if (lead !== null) {
             confirmRemindersAllowed().catch((error) => {
@@ -1242,6 +1267,20 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         shakeTimer.current = setTimeout(() => setCategoryShake(false), 500);
     };
 
+    /**
+     * Save is never `disabled`. A greyed-out button that swallows the tap leaves
+     * the screen with no way to ask what is missing, so pressing it while the
+     * entry is incomplete answers instead. Flagging only marks the word; the
+     * caller decides where to land, because a save rejected for two reasons
+     * must open the FIRST of them rather than whichever flagged last.
+     */
+    const flagMissingAmount = () => {
+        haptics("error");
+        setAmountError(true);
+        setAmountShake(true);
+        amountShakeTimer.current = setTimeout(() => setAmountShake(false), 500);
+    };
+
     // The spring starts here, not from the picker route's mount effect, so the
     // hero launches on the tap frame instead of waiting for navigation to commit
     // the new screen.
@@ -1252,13 +1291,6 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     };
 
     const ctaLabel = t(ctaKey(mode, isSubscription));
-
-    const amountColorFor = (amountNumber: number) => {
-        if (amountNumber <= 0) {
-            return colors.muted;
-        }
-        return income ? colors.income : colors.foreground;
-    };
 
     const curtainHues = computeCurtainHues(
         {
@@ -1272,20 +1304,416 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     );
     const toastLabel = t(isSubscription ? "transaction.toast.subscriptionAdded" : "transaction.toast.added");
 
-    const hairline = [overlay({ color: withAlpha(colors.foreground, 0.08) })];
     const chosenCategoryTint = category?.income ? colors.income : (category?.color ?? colors.foreground);
     const categoryGlyphTint = category ? chosenCategoryTint : (pendingCategory?.color ?? colors.muted);
-    const settledCategoryLabelTint = category || pendingCategory ? colors.foreground : colors.muted;
-    const categoryLabelTint = categoryEnriching ? withAlpha(colors.muted, 0.45) : settledCategoryLabelTint;
 
-    const cadenceOptions = SELECTABLE_RECURRING_TYPES.map((type) => ({
-        label: cadenceLabel(t, type),
-        type,
-    }));
-    const leadOptions = REMINDER_LEAD_OPTIONS.map((lead) => ({
-        label: leadLabel(t, lead),
-        lead,
-    }));
+    const [noteOpen, setNoteOpen] = useState(notesSeed.length > 0);
+    const [noteSummary, setNoteSummary] = useState(notesSeed);
+
+    // Narrow subscription: reading this through `useAppSettings().state` would
+    // re-render the whole form on every unrelated setting write.
+    const coachSeen = useSettingBool("sentenceCoachSeen");
+    const setSetting = useAppSettings().actions.setBool;
+    // Editing an entry is not a first run: everything is already answered, so the
+    // line would be teaching a screen the user is not being led through.
+    const showCoach = mode === "create" && !coachSeen;
+    const dismissCoach = () => setSetting("sentenceCoachSeen", true);
+
+    const answered = (step: GuidedStep, amountNumber: number, merchant: string): boolean => {
+        if (step === "amount") {
+            return amountNumber > 0;
+        }
+        if (step === "merchant") {
+            return merchant.trim() !== "";
+        }
+        if (step === "category") {
+            return categoryLabel !== null;
+        }
+        return account != null;
+    };
+
+    /** The first fact still missing from `from` onwards, or null once none is. */
+    const nextMissing = (amountNumber: number, merchant: string, from: number): GuidedStep | null =>
+        GUIDED_STEPS.slice(from).find((step) => !answered(step, amountNumber, merchant)) ?? null;
+
+    /** Every fact the entry cannot be saved without is answered. */
+    const entryWhole = (amountNumber: number, merchant: string): boolean =>
+        GUIDED_STEPS.every((step) => OPTIONAL_STEPS.has(step) || answered(step, amountNumber, merchant));
+
+    /**
+     * Where a resolved step hands over: the next fact the entry needs, and the
+     * resting keypad once it needs none. Never nothing — a stage that closed on
+     * its own answer is the empty bottom the whole surface replaced.
+     */
+    const advanceFrom = (step: StageStep, amountNumber: number, merchant: string): StageStep =>
+        nextMissing(amountNumber, merchant, guidedIndex(step) + 1) ?? "amount";
+
+    /** Hands a resolved step over. Falling back to the keypad is a return, not an advance. */
+    const advance = (step: StageStep, amountNumber: number, merchant: string) => {
+        const next = advanceFrom(step, amountNumber, merchant);
+        goStage(next, next !== "amount");
+    };
+
+    /**
+     * The stage's one button. It reads Save once the entry is whole, and walks
+     * FORWARD from the step on screen otherwise — pressing it on the step it is
+     * asking for IS the skip, so a backward target would put the ladder in a
+     * loop between two unanswered facts.
+     *
+     * Running out of ladder submits rather than doing nothing: the button is
+     * never disabled, and a submit is what makes a still-missing fact say so.
+     */
+    const stageFooter = (amountNumber: number, merchant: string): StageFooter => {
+        const whole = entryWhole(amountNumber, merchant);
+        // An unnamed merchant leaves a rung on the ladder that the label has
+        // already declared unnecessary, so a whole entry submits from wherever it
+        // is standing rather than walking on to an optional step.
+        const onward = whole ? null : nextMissing(amountNumber, merchant, guidedIndex(stageStep) + 1);
+        return {
+            label: whole ? ctaLabel : t("common.next"),
+            onPress: () => {
+                if (onward === null) {
+                    pressSubmit(form);
+                    return;
+                }
+                enterStep(onward);
+            },
+            tone: "primary",
+        };
+    };
+
+    const activeSlot: TransactionSentenceSlot = STEP_SLOTS[stageStep];
+
+    /**
+     * The name changing from the sentence's own inline field. `merchantSeed` is
+     * deliberately left alone: it re-seeds that field, and re-seeding it
+     * mid-keystroke would take the caret with it.
+     */
+    const handleMerchantChange = (next: string) => {
+        form.setFieldValue("merchant", next);
+        onNameChange(next);
+    };
+
+    /**
+     * The name changing from the stage's merchant step — typed there, or taken
+     * off one of its rows. The sentence's field is uncontrolled, so moving it
+     * means re-seeding it.
+     */
+    const handleStageMerchantChange = (next: string) => {
+        form.setFieldValue("merchantSeed", next);
+        handleMerchantChange(next);
+    };
+
+    const sentenceLabels = {
+        account: { blank: t("transaction.sentence.blank.account"), field: t("transaction.field.account") },
+        // A zero in the entry's own currency rather than a noun: it states that a
+        // number belongs here and what shape it takes, which "an amount" does not.
+        amount: { blank: formatAmount(0, currency, true, language), field: t("transaction.field.amount") },
+        category: { blank: t("transaction.sentence.blank.category"), field: t("transaction.field.category") },
+        currency: { code: currency, field: t("transaction.sentence.currency") },
+        kind: {
+            switchLabel: t("transaction.sentence.kind.switch"),
+            verb: t(income ? "transaction.sentence.kind.income" : "transaction.sentence.kind.expense"),
+        },
+        merchant: { field: t("transaction.field.name"), placeholder: t("transaction.sentence.blank.merchant") },
+        // Uninterpolated on purpose: with no params `t` hands back the template
+        // itself, which is what `parseSentence` reads the slot order out of.
+        template: t(income ? "transaction.sentence.income" : "transaction.sentence.expense"),
+        when: { field: t("transaction.field.date") },
+    };
+
+    const whenLabel = transactionWhenLabel(t, {
+        date,
+        interval: isSubscription ? intervalPhrase(t, recurringType, coefficient) : null,
+        language,
+        now: new Date(),
+    });
+
+    const categoryLabel = category?.name ?? pendingCategory?.name ?? null;
+    const categoryTile =
+        category || pendingCategory ? (
+            <CategoryIcon color={categoryGlyphTint} name={category ? category.icon : pendingCategory?.icon} size={20} />
+        ) : undefined;
+    const accountTile = account ? (
+        <CategoryIconTile
+            color={account.imageColor ?? account.customColor ?? colors.foreground}
+            emoji={account.emoji}
+            icon={account.icon}
+            imageUri={account.imageUri}
+            size={20}
+            type="solid"
+        />
+    ) : undefined;
+    const hasIdentityMark = Boolean(identity.photoUri ?? identity.emoji ?? identity.icon);
+    const merchantTile = hasIdentityMark ? (
+        <CategoryIconTile
+            color={identity.photoColor ?? identity.color ?? colors.foreground}
+            emoji={identity.emoji}
+            icon={identity.icon}
+            imageUri={identity.photoUri}
+            size={20}
+            type="solid"
+        />
+    ) : undefined;
+
+    /**
+     * The stage's body for every step that is not the keypad, with the header it
+     * sits under. Split from {@link renderStage} so each stays readable; the
+     * container itself is written once.
+     */
+    // oxlint-disable-next-line complexity -- one branch per step of a single surface; splitting it per step would hide the fact that they are alternatives.
+    const stageStepContent = (amountNumber: number, merchant: string): StageStepContent => {
+        if (stageStep === "merchant") {
+            return {
+                body: (
+                    <StepMerchant
+                        accessibilityLabel={t("transaction.merchant.field")}
+                        onChange={handleStageMerchantChange}
+                        placeholder={t("transaction.field.namePlaceholder")}
+                        recent={recentNames}
+                        recentLabel={t("transaction.merchant.recent")}
+                        // The remembered names are passed as the exclusion too: a
+                        // merchant on both rows is one merchant, and the row the
+                        // user has actually used is the one worth keeping.
+                        suggestions={suggestMerchants(merchant, MERCHANT_SUGGESTION_LIMIT, recentNames)}
+                        value={merchant}
+                    />
+                ),
+                title: t("transaction.field.name"),
+            };
+        }
+        if (stageStep === "category") {
+            return {
+                body: (
+                    <StepCategory
+                        categories={categoriesForNamespace}
+                        onCreate={() => router.push("/settings/categories/create")}
+                        onSelect={(picked) => {
+                            selectCategory(picked);
+                            advance("category", amountNumber, merchant);
+                        }}
+                        selectedId={category?.id ?? null}
+                    />
+                ),
+                title: t("transaction.field.category"),
+            };
+        }
+        if (stageStep === "account") {
+            return {
+                body: (
+                    <StepAccount
+                        accounts={allAccounts}
+                        onSelect={(picked) => {
+                            form.setFieldValue("account", picked);
+                            advance("account", amountNumber, merchant);
+                        }}
+                        selectedId={account?.id ?? null}
+                    />
+                ),
+                title: t("transaction.field.account"),
+            };
+        }
+        if (stageStep === "currency") {
+            return {
+                body: (
+                    <StepCurrency
+                        favourites={favouriteCurrencies}
+                        listMinHeight={currencyListHeight}
+                        onSelect={(next) => {
+                            handleCurrencyChange(next);
+                            leaveTo("amount");
+                        }}
+                        onToggleFavourite={toggleFavourite}
+                        searchPlaceholder={t("onboarding.currency.picker.searchPlaceholder")}
+                        selected={currency}
+                    />
+                ),
+                title: t("onboarding.currency.picker.title"),
+            };
+        }
+        if (stageStep === "rate") {
+            return {
+                body: (
+                    <StepRate
+                        currency={currency}
+                        labels={{
+                            custom: t("transaction.rate.custom"),
+                            editCustom: t("transaction.rate.editCustom"),
+                            error: {
+                                customRateRequired: t("transaction.rate.required"),
+                                eurReferenceRequiresVes: t("transaction.rate.eurReferenceRequiresVes"),
+                            },
+                            eurReference: t("transaction.rate.eur_reference"),
+                            official: t("transaction.rate.official"),
+                            perUsd: t("transaction.rate.perUsd", { currency }),
+                            requiredHint: t("transaction.rate.requiredHint"),
+                            set: t("transaction.rate.set"),
+                            title: t("transaction.rate.title"),
+                            unavailable: t("transaction.rate.unavailable"),
+                        }}
+                        onEditCustom={openRateStep}
+                        onSelectType={handleRateTypeChange}
+                        onUseSuggestion={handleRateSuggestion}
+                        resolvedOn={formatSentenceDate(date, language)}
+                        selection={rateSelection}
+                        suggestions={rateSuggestions}
+                    >
+                        {/* The rate is not money, so the keys are the entry's own
+                            separator rather than the money preference's implied cents. */}
+                        <AmountNumpad
+                            code={`${currency}/USD`}
+                            minorUnits={RATE_DISPLAY_DECIMALS}
+                            mode="explicitSeparator"
+                            onChange={handleRateTextChange}
+                            showDisplay={false}
+                            value={exchangeRateText}
+                        />
+                    </StepRate>
+                ),
+                title: t("transaction.rate.title"),
+            };
+        }
+        if (stageStep === "when") {
+            return {
+                body: (
+                    <StepWhen
+                        date={date}
+                        now={new Date()}
+                        onPick={() => enterStep("date")}
+                        onSelect={(next) => {
+                            handleDateChange(next);
+                            advance("when", amountNumber, merchant);
+                        }}
+                        pickLabel={t("transaction.sentence.when.pick")}
+                    />
+                ),
+                title: t("transaction.field.date"),
+            };
+        }
+        if (stageStep === "date") {
+            // The wheel is continuous, so it does not hand over on a change the
+            // way a named day does — the footer is the way on.
+            return {
+                body: <StepDate date={date} onChange={handleDateChange} withTime />,
+                title: t("transaction.field.date"),
+            };
+        }
+        if (stageStep === "endDate") {
+            return {
+                body: (
+                    <StepDate
+                        date={endDate}
+                        onChange={(next) => {
+                            form.setFieldValue("endDate", next);
+                            form.setFieldValue("hasEndDate", true);
+                        }}
+                    />
+                ),
+                // The only way back to a schedule that never ends: a wheel can
+                // name a day and nothing else.
+                rightAction: {
+                    label: t("common.never"),
+                    onPress: () => {
+                        form.setFieldValue("hasEndDate", false);
+                        leaveTo("repeat");
+                    },
+                },
+                title: t("transaction.field.ends"),
+            };
+        }
+        return {
+            body: (
+                <StepRepeat
+                    cadence={isSubscription ? recurringType : RECURRING_TYPE.none}
+                    custom={coefficient !== 1}
+                    customLabel={
+                        coefficient === 1
+                            ? undefined
+                            : t("transaction.schedule.every", {
+                                  interval: intervalPhrase(t, recurringType, coefficient),
+                              })
+                    }
+                    endDate={hasEndDate ? endDate : null}
+                    labels={{
+                        ending: t("transaction.schedule.ending"),
+                        starting: t("transaction.schedule.starting"),
+                    }}
+                    leadDays={leadDays}
+                    onCadenceChange={handleCadenceChange}
+                    onCustomPress={() => setScheduleSheetOpen(true)}
+                    onEndDatePress={() => enterStep("endDate")}
+                    onLeadChange={handleLeadChange}
+                    onStartDatePress={() => enterStep("date")}
+                    startDate={date}
+                />
+            ),
+            title: t("transaction.field.schedule"),
+        };
+    };
+
+    /**
+     * The one surface pinned to the bottom, and the only thing that decides what
+     * it shows. The amount step IS the keypad, which composes the stage itself;
+     * every other step is a body inside one — including the rate step, which
+     * renders the same keys as its own child once a custom rate is chosen.
+     */
+    const renderStage = (amountText: string, merchant: string) => {
+        const amountNumber = numpadToNumber(amountText);
+        if (stageStep === "amount") {
+            return (
+                <TransactionFormAmountPad
+                    code={currency}
+                    footer={stageFooter(amountNumber, merchant)}
+                    forward={stage.forward}
+                    income={income}
+                    label={t("transaction.field.amount")}
+                    minorUnits={minorUnits}
+                    onChange={(next) => {
+                        form.setFieldValue("amount", next);
+                        setAmountError(false);
+                    }}
+                    onCodePress={() => enterStep("currency")}
+                    stepKey="amount"
+                    value={amountText}
+                />
+            );
+        }
+        const { body, rightAction, title } = stageStepContent(amountNumber, merchant);
+        return (
+            <TransactionStage
+                backLabel={t("common.back")}
+                // A ledger with no account to pick has nothing this step can
+                // answer, so the button leaves for the editor that mints one.
+                footer={
+                    stageStep === "account" && allAccounts.length === 0
+                        ? {
+                              label: t("transaction.account.create"),
+                              onPress: () => router.push("/settings/accounts/create"),
+                              tone: "primary",
+                          }
+                        : stageFooter(amountNumber, merchant)
+                }
+                forward={stage.forward}
+                onBack={() => leaveTo("amount")}
+                rightAction={rightAction}
+                stepKey={stageStep}
+                title={title}
+            >
+                {body}
+            </TransactionStage>
+        );
+    };
+
+    const clearIdentity = () => {
+        setIdentitySource("user");
+        setIdentity({
+            color: null,
+            emoji: null,
+            icon: null,
+            photoColor: null,
+            photoUri: null,
+        });
+    };
 
     return (
         /**
@@ -1334,281 +1762,185 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                             ]}
                             spacing={16}
                         >
-                            <TransactionFormIdentitySection
-                                color={identity.color}
-                                contentWidth={contentWidth}
-                                emoji={identity.emoji}
-                                floatProgress={floatProgress}
-                                heroWinY={heroWinY}
-                                icon={identity.icon}
-                                income={income}
-                                onPress={() => {
-                                    setPadOpen(false);
-                                    openPicker();
-                                }}
-                                onReset={() => {
-                                    setIdentitySource("user");
-                                    setIdentity({
-                                        color: null,
-                                        emoji: null,
-                                        icon: null,
-                                        photoColor: null,
-                                        photoUri: null,
-                                    });
-                                }}
-                                photoUri={identity.photoUri}
-                            />
-
-                            <form.Subscribe selector={(s) => s.values.amount}>
-                                {(amount) => {
+                            <SubscribeFields
+                                selector={(s) => ({
+                                    amount: s.values.amount,
+                                    merchantSeed: s.values.merchantSeed,
+                                    pendingTagNames: s.values.pendingTagNames,
+                                    tagIds: s.values.tagIds,
+                                })}
+                                store={form.store}
+                            >
+                                {({ amount, merchantSeed, pendingTagNames, tagIds }) => {
                                     const amountNumber = numpadToNumber(amount);
+                                    const tagLabels = tagLabelsOf(tagIds, pendingTagNames);
+                                    const tagCount = tagCountOf(tagIds, pendingTagNames);
                                     return (
-                                        <TransactionFormAmountHero
-                                            amount={amountNumber}
-                                            amountColor={amountColorFor(amountNumber)}
-                                            chipColor={withAlpha(colors.foreground, 0.08)}
-                                            contentWidth={contentWidth}
-                                            currency={currency}
-                                            expenseLabel={t("common.expense")}
-                                            income={income}
-                                            incomeLabel={t("common.income")}
-                                            minorUnits={minorUnits}
-                                            mutedColor={colors.muted}
-                                            onCurrencyPress={() => currencySheetRef.current?.present()}
-                                            onPress={() => setPadOpen(true)}
-                                            onTypeChange={handleTypeChange}
-                                            symbol={amountParts(amountNumber, currency, true, language).symbol}
-                                        />
+                                        <RNHostView matchContents>
+                                            <TransactionSentenceBody
+                                                account={account?.name ?? null}
+                                                accountTile={accountTile}
+                                                amount={
+                                                    amountNumber <= 0
+                                                        ? null
+                                                        : formatAmount(amountNumber, currency, true, language)
+                                                }
+                                                category={categoryLabel}
+                                                categoryFlagged={categoryError}
+                                                categoryPending={categoryEnriching}
+                                                categoryShake={categoryShake}
+                                                categoryTile={categoryTile}
+                                                coach={
+                                                    showCoach ? (
+                                                        <Pressable
+                                                            accessibilityLabel={t("transaction.sentence.coachDismiss")}
+                                                            accessibilityRole="button"
+                                                            onPress={dismissCoach}
+                                                        >
+                                                            <MetaLine
+                                                                qualifier={t("transaction.sentence.coachDismiss")}
+                                                                qualifierIsAction
+                                                                statement={t("transaction.sentence.coach")}
+                                                            />
+                                                        </Pressable>
+                                                    ) : undefined
+                                                }
+                                                contentWidth={contentWidth}
+                                                activeSlot={activeSlot}
+                                                // Gated on an amount as well as on the
+                                                // currency: with nothing entered there is
+                                                // nothing to convert, and the strip would
+                                                // warn that a resolved rate had not been set.
+                                                conversion={
+                                                    converts && amountNumber > 0 ? (
+                                                        <ConversionStrip
+                                                            amount={amountNumber}
+                                                            amountUsd={amountInUsd(amountNumber)}
+                                                            currency={currency}
+                                                            labels={{
+                                                                notConverted: t("transaction.rate.notConverted"),
+                                                                pendingBody: t("transaction.rate.pendingBody"),
+                                                                setRate: t("transaction.rate.setRate"),
+                                                            }}
+                                                            language={language}
+                                                            onPress={openRateStep}
+                                                            rate={
+                                                                rateInForce === null
+                                                                    ? null
+                                                                    : { source: rateSourceLabel, value: rateInForce }
+                                                            }
+                                                        />
+                                                    ) : undefined
+                                                }
+                                                amountFlagged={amountError}
+                                                amountShake={amountShake}
+                                                extras={[
+                                                    tagLabels === null
+                                                        ? null
+                                                        : t("transaction.sentence.extra.tags", { tags: tagLabels }),
+                                                    splitAllocations.length === 0
+                                                        ? null
+                                                        : t("transaction.sentence.extra.split", {
+                                                              parts: t("transaction.split.count", {
+                                                                  count: splitAllocations.length,
+                                                              }),
+                                                          }),
+                                                    noteSummary.length === 0
+                                                        ? null
+                                                        : t("transaction.sentence.extra.note", { note: noteSummary }),
+                                                ].filter((line) => line !== null)}
+                                                labels={sentenceLabels}
+                                                merchant={merchantSeed.length === 0 ? null : merchantSeed}
+                                                merchantTile={merchantTile}
+                                                onAccountPress={() => enterStep("account")}
+                                                onAmountPress={() => leaveTo("amount")}
+                                                onCategoryPress={() => enterStep("category")}
+                                                onCurrencyPress={() => enterStep("currency")}
+                                                onKindPress={() => handleTypeChange(income ? "expense" : "income")}
+                                                // The word is a way into its step as much as the
+                                                // other facts are, and the step is what carries the
+                                                // names this ledger already knows.
+                                                onMerchantPress={() => enterStep("merchant")}
+                                                onWhenPress={() => enterStep("when")}
+                                                verbs={[
+                                                    {
+                                                        active: hasIdentityMark,
+                                                        key: "icon",
+                                                        label: t("transaction.sentence.add.icon"),
+                                                        onPress: openPicker,
+                                                        onRemove: clearIdentity,
+                                                        removeAccessibilityLabel: t(
+                                                            "transaction.identity.hero.removeLogo"
+                                                        ),
+                                                    },
+                                                    {
+                                                        active: tagLabels !== null,
+                                                        key: "tags",
+                                                        label:
+                                                            tagCount === 0
+                                                                ? t("transaction.sentence.add.tags")
+                                                                : tagLabel(tagCount),
+                                                        onPress: () => tagSheetRef.current?.present(),
+                                                    },
+                                                    {
+                                                        active: splitAllocations.length > 0,
+                                                        disabled: amountNumber <= 0,
+                                                        key: "split",
+                                                        label:
+                                                            splitAllocations.length === 0
+                                                                ? t("transaction.sentence.add.split")
+                                                                : splitLabel(splitAllocations.length),
+                                                        onPress: () => {
+                                                            openSplit(amountNumber, category?.id ?? null);
+                                                            splitSheetRef.current?.present();
+                                                        },
+                                                    },
+                                                    {
+                                                        active: isSubscription,
+                                                        key: "repeat",
+                                                        label: isSubscription
+                                                            ? repeatChipLabel()
+                                                            : t("transaction.sentence.add.repeat"),
+                                                        onPress: () => enterStep("repeat"),
+                                                        // The step names cadences, not "never": the
+                                                        // way back off a schedule is the chip's own
+                                                        // ✕, which only a set chip draws.
+                                                        onRemove: () => handleKindChange("once"),
+                                                        removeAccessibilityLabel: t("transaction.schedule.stopRepeat"),
+                                                    },
+                                                    {
+                                                        active: noteOpen || noteSummary.length > 0,
+                                                        key: "note",
+                                                        label: t("transaction.sentence.add.note"),
+                                                        onPress: () => setNoteOpen((open) => !open),
+                                                    },
+                                                ]}
+                                                when={whenLabel}
+                                            />
+                                        </RNHostView>
                                     );
                                 }}
-                            </form.Subscribe>
+                            </SubscribeFields>
 
-                            <form.Subscribe selector={(s) => s.values.amount}>
-                                {(amount) => (
-                                    <TransactionFormRateSection
-                                        contentWidth={contentWidth}
-                                        currency={currency}
-                                        error={rateViewState.error}
-                                        labels={{
-                                            conversion: rateConversionLabel(amount),
-                                            custom: t("transaction.rate.custom"),
-                                            editCustom: t("transaction.rate.editCustom"),
-                                            eurReference: t("transaction.rate.eur_reference"),
-                                            official: t("transaction.rate.official"),
-                                            pendingBody: t("transaction.rate.pendingBody"),
-                                            pendingTitle: t("transaction.rate.pendingTitle"),
-                                            perUsd: t("transaction.rate.perUsd", { currency }),
-                                            required: t("transaction.rate.required"),
-                                            requiredHint: t("transaction.rate.requiredHint"),
-                                            set: t("transaction.rate.set"),
-                                            title: t("transaction.rate.title"),
-                                        }}
-                                        onEditCustom={openCustomRatePad}
-                                        onSelectType={handleRateTypeChange}
-                                        onUseSuggestion={handleRateSuggestion}
-                                        pending={rateViewState.pending}
-                                        selection={rateViewState.selection}
-                                        suggestions={rateSuggestions}
-                                    />
-                                )}
-                            </form.Subscribe>
-
-                            <VStack spacing={0}>
-                                <HStack modifiers={ROW} spacing={12}>
-                                    <TransactionFormRowIcon color={colors.muted} icon={RepeatIcon} />
-                                    <SwiftText modifiers={[BODY, rowLabel]}>
-                                        {t("transaction.kind.subscription")}
-                                    </SwiftText>
-                                    <Spacer />
-                                    <Toggle
-                                        isOn={isSubscription}
-                                        modifiers={[tint(colors.income), labelsHidden()]}
-                                        onIsOnChange={(next) => handleKindChange(next ? "subscription" : "once")}
-                                    />
-                                </HStack>
-
-                                <Divider modifiers={hairline} />
-
-                                <HStack modifiers={ROW} spacing={12}>
-                                    <TransactionFormRowIcon color={colors.muted} icon={TextIcon} />
-                                    <SwiftText modifiers={[BODY, rowLabel]}>{t("transaction.field.name")}</SwiftText>
-                                    <TextField
-                                        maxLength={50}
-                                        modifiers={[BODY, multilineTextAlignment("trailing")]}
-                                        onFocusChange={(focused) => focused && setPadOpen(false)}
-                                        onTextChange={onNameChange}
-                                        placeholder={t("transaction.field.namePlaceholder")}
-                                        text={name}
-                                    />
-                                </HStack>
-
-                                <Divider modifiers={hairline} />
-
-                                <TransactionFormCategoryRow
-                                    category={category}
-                                    enriching={categoryEnriching}
-                                    error={categoryError}
-                                    glyphTint={categoryGlyphTint}
-                                    labelTint={categoryLabelTint}
-                                    onPress={() => {
-                                        setPadOpen(false);
-                                        presentCategoryPicker();
-                                    }}
-                                    pendingCategory={pendingCategory}
-                                    shake={categoryShake}
-                                />
-
-                                <Divider modifiers={hairline} />
-
-                                <Button
-                                    modifiers={[buttonStyle("plain")]}
-                                    onPress={() => {
-                                        setPadOpen(false);
-                                        tagSheetRef.current?.present();
-                                    }}
-                                >
-                                    <HStack modifiers={TAP_ROW} spacing={12}>
-                                        <TransactionFormRowIcon color={colors.muted} icon={TagsIcon} />
-                                        <SwiftText modifiers={[BODY, rowLabel]}>
-                                            {t("transaction.field.tags")}
-                                        </SwiftText>
-                                        <Spacer />
-                                        <HStack spacing={5}>
-                                            <SubscribeFields
-                                                selector={(s) => ({
-                                                    pendingTagNames: s.values.pendingTagNames,
-                                                    tagIds: s.values.tagIds,
-                                                })}
-                                                store={form.store}
-                                            >
-                                                {({ tagIds, pendingTagNames }) => {
-                                                    const selectedTagNames = tagLabelsOf(tagIds, pendingTagNames);
-                                                    const settledTagsLabelTint = selectedTagNames
-                                                        ? colors.foreground
-                                                        : colors.muted;
-                                                    return (
-                                                        <SwiftText
-                                                            modifiers={[
-                                                                BODY,
-                                                                foregroundStyle(
-                                                                    tagsEnriching
-                                                                        ? withAlpha(colors.muted, 0.45)
-                                                                        : settledTagsLabelTint
-                                                                ),
-                                                                animation(ENRICHING, tagsEnriching),
-                                                            ]}
-                                                        >
-                                                            {selectedTagNames ?? t("transaction.tags.none")}
-                                                        </SwiftText>
-                                                    );
-                                                }}
-                                            </SubscribeFields>
-                                            <Image
-                                                color={colors.muted}
-                                                size={12}
-                                                systemName="chevron.up.chevron.down"
-                                            />
-                                        </HStack>
-                                    </HStack>
-                                </Button>
-
-                                <Divider modifiers={hairline} />
-
-                                <TransactionFormSplitRow
-                                    allocations={splitAllocations}
-                                    onPress={() => {
-                                        setPadOpen(false);
-                                        openSplit(numpadToNumber(form.store.state.values.amount), category?.id ?? null);
-                                        splitSheetRef.current?.present();
-                                    }}
-                                />
-
-                                <Divider modifiers={hairline} />
-
-                                <SubscribeFields
-                                    selector={(s) => ({
-                                        date: s.values.date,
-                                        endDate: s.values.endDate,
-                                        hasEndDate: s.values.hasEndDate,
-                                        leadDays: s.values.leadDays,
-                                    })}
-                                    store={form.store}
-                                >
-                                    {({ date: scheduleDate, endDate, hasEndDate, leadDays }) => (
-                                        <TransactionFormScheduleSection
-                                            cadenceOptions={cadenceOptions}
-                                            card={[]}
-                                            customScheduleLabel={t("transaction.schedule.customOption")}
-                                            date={scheduleDate}
-                                            dateLabel={t("transaction.field.date")}
-                                            endDate={endDate}
-                                            endDateLabel={t("transaction.field.endDate")}
-                                            endsLabel={t("transaction.field.ends")}
-                                            firstPaymentLabel={t("transaction.field.firstPayment")}
-                                            foregroundColor={colors.foreground}
-                                            hairline={hairline}
-                                            hasEndDate={hasEndDate}
-                                            incomeColor={colors.income}
-                                            isSubscription={isSubscription}
-                                            leadDays={leadDays}
-                                            leadOffLabel={t("transaction.remind.off")}
-                                            leadOffTag={LEAD_OFF_TAG}
-                                            leadOptions={leadOptions}
-                                            mutedColor={colors.muted}
-                                            onDateChange={handleDateChange}
-                                            onEndDateChange={(next) => form.setFieldValue("endDate", next)}
-                                            onHasEndDateChange={(next) => form.setFieldValue("hasEndDate", next)}
-                                            onLeadChange={handleLeadChange}
-                                            onOpenCustomSchedule={() => setScheduleSheetOpen(true)}
-                                            onScheduleChange={handleScheduleChange}
-                                            recurringType={recurringType}
-                                            remindLabel={t("transaction.field.remind")}
-                                            remindMenuLabel={leadLabel(t, leadDays)}
-                                            scheduleLabel={t("transaction.field.schedule")}
-                                            scheduleMenuLabel={t("transaction.schedule.every", {
-                                                interval: intervalPhrase(t, recurringType, coefficient),
-                                            })}
-                                            timeLabel={t("transaction.field.time")}
+                            {noteOpen ? (
+                                <RNHostView matchContents>
+                                    <Animated.View entering={revealEntering()} style={{ width: contentWidth }}>
+                                        <TextInput
+                                            accessibilityLabel={t("transaction.field.notes")}
+                                            className="text-body text-foreground min-h-24"
+                                            defaultValue={notesSeed}
+                                            multiline
+                                            onChangeText={(next) => {
+                                                notesRef.current = next;
+                                            }}
+                                            onEndEditing={() => setNoteSummary(notesRef.current)}
+                                            placeholder={t("transaction.field.notesPlaceholder")}
+                                            placeholderTextColor={colors.muted}
+                                            textAlignVertical="top"
                                         />
-                                    )}
-                                </SubscribeFields>
-
-                                <Divider modifiers={hairline} />
-
-                                <TransactionFormDetailsSection
-                                    accountLabel={t("transaction.field.account")}
-                                    accountName={account?.name ?? null}
-                                    accountNoneLabel={t("transaction.account.none")}
-                                    accountTile={
-                                        account ? (
-                                            <RNHostView matchContents>
-                                                <View style={{ height: 18, width: 18 }}>
-                                                    <CategoryIconTile
-                                                        color={
-                                                            account.imageColor ??
-                                                            account.customColor ??
-                                                            colors.foreground
-                                                        }
-                                                        emoji={account.emoji}
-                                                        icon={account.icon}
-                                                        imageUri={account.imageUri}
-                                                        size={18}
-                                                        type="solid"
-                                                    />
-                                                </View>
-                                            </RNHostView>
-                                        ) : undefined
-                                    }
-                                    card={[]}
-                                    foregroundColor={colors.foreground}
-                                    hairline={hairline}
-                                    mutedColor={colors.muted}
-                                    notes={notes}
-                                    notesLabel={t("transaction.field.notes")}
-                                    notesPlaceholder={t("transaction.field.notesPlaceholder")}
-                                    onAccountPress={() => accountSheetRef.current?.present()}
-                                />
-                            </VStack>
+                                    </Animated.View>
+                                </RNHostView>
+                            ) : null}
                         </VStack>
                     </ScrollView>
                 </Host>
@@ -1630,14 +1962,28 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     <InlineFailure message={saveFailure} />
                 </View>
 
-                <form.Subscribe selector={(s) => numpadToNumber(s.values.amount) > 0 && !s.isSubmitting}>
-                    {(canSave) => (
+                <form.Subscribe
+                    selector={(s) => ({
+                        busy: s.isSubmitting,
+                        complete: numpadToNumber(s.values.amount) > 0,
+                    })}
+                >
+                    {({ busy, complete }) => (
                         <TransactionFormCta
-                            canSave={canSave}
+                            blockedTint={colors.subtle}
+                            busy={busy}
+                            canSave={complete && !busy}
                             deleteLabel={t("common.delete")}
                             deleteTint={colors.danger}
                             onDelete={onDelete}
-                            onPress={() => pressSubmit(form)}
+                            onPress={() => {
+                                if (complete) {
+                                    pressSubmit(form);
+                                    return;
+                                }
+                                flagMissingAmount();
+                                leaveTo("amount");
+                            }}
                             saveLabel={ctaLabel}
                         />
                     )}
@@ -1682,43 +2028,19 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     <Confetti height={windowHeight} seed={burstSeed} width={windowWidth} />
                 ) : null}
 
-                <form.Subscribe selector={(s) => s.values.amount}>
-                    {(amount) => (
-                        <TransactionFormAmountPad
-                            code={currency}
-                            income={income}
-                            minorUnits={minorUnits}
-                            onChange={(next) => form.setFieldValue("amount", next)}
-                            onOpenChange={setPadOpen}
-                            open={padOpen}
-                            value={amount}
-                        />
-                    )}
-                </form.Subscribe>
+                {/* The stage's merchant step edits the same string the sentence
+				    does, and the software keyboard covers a surface docked to the
+				    bottom of the screen. Only that step lifts: every other one is
+				    what the keyboard is meant to uncover. */}
+                <KeyboardAvoidingView behavior="padding" enabled={stageStep === "merchant"}>
+                    <SubscribeFields
+                        selector={(s) => ({ amount: s.values.amount, merchant: s.values.merchant })}
+                        store={form.store}
+                    >
+                        {({ amount, merchant }) => renderStage(amount, merchant)}
+                    </SubscribeFields>
+                </KeyboardAvoidingView>
 
-                <form.Subscribe selector={(s) => s.values.exchangeRateText}>
-                    {(rateText) => (
-                        <TransactionFormAmountPad
-                            code={`${currency}/USD`}
-                            income={false}
-                            minorUnits={RATE_DISPLAY_DECIMALS}
-                            mode="explicitSeparator"
-                            onChange={handleRateTextChange}
-                            onOpenChange={setRatePadOpen}
-                            open={ratePadOpen}
-                            value={rateText}
-                        />
-                    )}
-                </form.Subscribe>
-
-                <CurrencyPickerSheet
-                    onSelect={(next) => {
-                        handleCurrencyChange(next);
-                        currencySheetRef.current?.dismiss();
-                    }}
-                    ref={currencySheetRef}
-                    selected={currency}
-                />
                 <SplitSheet
                     allocations={splitAllocations}
                     code={currency}
@@ -1767,26 +2089,6 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     )}
                 </SubscribeFields>
 
-                <AccountPickerSheet
-                    db={db}
-                    onCreate={() => {
-                        accountSheetRef.current?.dismiss();
-                        router.push("/settings/accounts/create");
-                    }}
-                    onSelect={(picked) => form.setFieldValue("account", picked)}
-                    ref={accountSheetRef}
-                    selectedId={account?.id ?? null}
-                />
-
-                <CategoryPickerSheet
-                    db={db}
-                    income={income}
-                    onCreate={createCategoryNamed}
-                    onSelect={selectCategory}
-                    pendingCategory={pendingCategory}
-                    ref={categoryPickerRef}
-                    selectedId={category?.id ?? null}
-                />
                 <SubscribeFields selector={(s) => ({ date: s.values.date })} store={form.store}>
                     {({ date: firstPaymentDate }) => (
                         <CustomScheduleSheet
@@ -1794,6 +2096,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                             onDone={(type, every) => {
                                 form.setFieldValue("recurringType", type);
                                 form.setFieldValue("coefficient", every);
+                                form.setFieldValue("isSubscription", true);
                             }}
                             onOpenChange={setScheduleSheetOpen}
                             open={scheduleSheetOpen}

@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, waitFor, within } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { Alert } from "react-native";
@@ -60,6 +60,36 @@ jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
         }),
 }));
 jest.mock<Partial<typeof import("expo-router")>>("expo-router", () => require("../../../jest/expo-router-stub"));
+// Overrides `jest/i18n-key-stub.js` for the handful of keys whose TEXT is the
+// thing under test, and keeps key-as-copy for every other one. The sentence
+// template is the form's layout — `parseSentence` reads the slot order out of
+// it — so handing back the key would render a sentence with no slots at all and
+// there would be nothing left to drive. The extras line is here for the same
+// reason its tags are asserted by name.
+jest.mock("@/i18n/context", () => {
+    // Read out of the catalog rather than restated here: a copy of the template
+    // silently stops matching the shipped one the moment a slot is added, and
+    // then every assertion below is driving a sentence the app does not render.
+    const catalog = require("@/i18n/catalog") as typeof import("@/i18n/catalog");
+    const TRANSLATED: Record<string, string> = {
+        "transaction.sentence.expense": catalog.EN["transaction.sentence.expense"] ?? "",
+        "transaction.sentence.extra.tags": catalog.EN["transaction.sentence.extra.tags"] ?? "",
+        "transaction.sentence.income": catalog.EN["transaction.sentence.income"] ?? "",
+    };
+    return {
+        LanguageProvider: ({ children }: { children: unknown }) => children,
+        useLanguage: () => ({ language: "en" }),
+        useTranslation: () => (key: string, params?: Record<string, unknown>) => {
+            const template = TRANSLATED[key];
+            if (template === undefined) {
+                return key;
+            }
+            return template.replaceAll(/\{(\w+)\}/g, (match, name: string) =>
+                params && name in params ? String(params[name]) : match
+            );
+        },
+    };
+});
 jest.mock("number-flow-react-native", () => {
     const react = require("react") as typeof import("react");
     return {
@@ -69,11 +99,14 @@ jest.mock("number-flow-react-native", () => {
 jest.mock<Partial<typeof import("react-native-safe-area-context")>>("react-native-safe-area-context", () => ({
     useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
-jest.mock<Partial<typeof import("../currency-picker-sheet")>>("../currency-picker-sheet", () => {
+// The virtualised list is shipped code with its own suite, and mounting it here
+// would drive Legend List's layout rather than the form's. What this file owns
+// is the step around it and the code it hands back.
+jest.mock<Partial<typeof import("../currency-picker-list")>>("../currency-picker-list", () => {
     const React = require("react");
     const { Pressable } = require("react-native");
     return {
-        CurrencyPickerSheet: ({ onSelect }: { onSelect: (currency: string) => void }) =>
+        CurrencyPickerList: ({ onSelect }: { onSelect: (currency: string) => void }) =>
             React.createElement(Pressable, {
                 accessibilityLabel: "test.selectCurrency.EUR",
                 accessibilityRole: "button",
@@ -196,55 +229,178 @@ const mockedPersistLogoBytes = jest.mocked(
     (require("@/lib/photo-storage") as typeof import("@/lib/photo-storage")).persistLogoBytes
 );
 
-function expoImageUri(node: JsonNode | JsonNode[] | null): string | null {
-    if (node == null) {
-        return null;
-    }
-    if (Array.isArray(node)) {
-        for (const child of node) {
-            const uri = expoImageUri(child);
-            if (uri != null) {
-                return uri;
-            }
-        }
-        return null;
-    }
-    if (node.type === "ViewManagerAdapter_ExpoImage") {
-        const source = node.props?.source;
-        if (Array.isArray(source)) {
-            for (const candidate of source) {
-                if (
-                    typeof candidate === "object" &&
-                    candidate != null &&
-                    "uri" in candidate &&
-                    typeof candidate.uri === "string"
-                ) {
-                    return candidate.uri;
-                }
-            }
-        }
-        if (typeof source === "object" && source != null && "uri" in source && typeof source.uri === "string") {
-            return source.uri;
-        }
+type Screen = Awaited<ReturnType<typeof render>>;
+
+/**
+ * The merchant slot draws its glyphs as a `Text` and overlays a transparent
+ * `TextInput`, so the input carries no placeholder to find it by — its
+ * accessibility label is the handle, and the same one Maestro uses.
+ */
+const MERCHANT_FIELD = "transaction.field.name";
+
+/** The verb that flips the entry between a one-off and a subscription. */
+const REPEAT_VERB = "transaction.sentence.add.repeat";
+// A set chip states its value rather than its noun, so it is labelled by the
+// cadence it is repeating at.
+const REPEAT_VERB_SET = "transaction.sentence.set.repeatMonthly";
+
+/** The set chip's own ✕, which is the only way back off a schedule. */
+const REPEAT_OFF = "transaction.schedule.stopRepeat";
+
+/** The verb that opens the identity picker. */
+const IDENTITY_VERB = "transaction.sentence.add.icon";
+
+/** The extras line the sentence adds for tags, as the catalog phrases it. */
+function taggedLine(names: string): string {
+    return `Tagged ${names}.`;
+}
+
+/**
+ * The identity mark rides inline on the merchant slot now rather than on a hero
+ * of its own, so it is read out of that slot: the nearest ancestor of the
+ * merchant input that draws a tile.
+ *
+ * Scoped rather than searched tree-wide on purpose — the fly-up twin stacked
+ * over the form draws the same photo through `expo-image`, so a whole-tree
+ * search would still find a logo after the in-sentence one had gone.
+ */
+function findImageSource(node: JsonNode): unknown {
+    if (node.type === "Image") {
+        return node.props?.source;
     }
     for (const child of node.children ?? []) {
         if (typeof child === "string") {
             continue;
         }
-        const uri = expoImageUri(child);
-        if (uri != null) {
-            return uri;
+        const found = findImageSource(child);
+        if (found != null) {
+            return found;
         }
     }
     return null;
 }
 
-function renderedHeroImageUri(tree: JsonNode): string | null {
-    const hero = findByProp(tree, "accessibilityLabel", "transaction.identity.hero.logo");
-    if (hero == null || hero.props.accessibilityRole !== "button" || hero.props.accessible !== true) {
-        throw new Error("Could not find the accessible in-form identity hero.");
+function renderedMerchantImageUri(tree: JsonNode): string | null {
+    const slot = findByProp(tree, "accessibilityLabel", MERCHANT_FIELD);
+    if (slot == null) {
+        throw new Error("Could not find the merchant slot in the render tree.");
     }
-    return expoImageUri(hero);
+    // Searched downwards, not up: the tile is the slot's own leading child now
+    // that the merchant is an ordinary sentence value rather than an inline field
+    // with the logo drawn beside it.
+    const source = findImageSource(slot);
+    if (typeof source === "object" && source != null && "uri" in source && typeof source.uri === "string") {
+        return source.uri;
+    }
+    return null;
+}
+
+/** One fact of the sentence — filled or blank — by the field it states. */
+function sentenceSlot(tree: JsonNode, field: string): JsonNode {
+    const slot = findByProp(tree, "accessibilityLabel", field);
+    if (slot == null || slot.props.accessibilityRole !== "button") {
+        throw new Error(`Could not find the sentence's ${field} slot.`);
+    }
+    return slot;
+}
+
+/** Every Tailwind class a subtree carries, one per entry. */
+function classesIn(node: JsonNode | JsonNode[] | null): string[] {
+    if (node == null) {
+        return [];
+    }
+    if (Array.isArray(node)) {
+        return node.flatMap((child) => classesIn(child));
+    }
+    const own = typeof node.props?.className === "string" ? node.props.className.split(" ") : [];
+    return [...own, ...(node.children ?? []).flatMap((child) => (typeof child === "string" ? [] : classesIn(child)))];
+}
+
+/** A flagged slot is the one holding the save back: danger ink and danger rule. */
+function slotFlagged(tree: JsonNode, field: string): boolean {
+    const classes = classesIn(sentenceSlot(tree, field));
+    return classes.includes("text-danger") || classes.includes("bg-danger");
+}
+
+/**
+ * Names the merchant and lets the enrichment debounce fire. The sentence states
+ * the name but no longer takes it — the stage's merchant step owns typing — so
+ * this opens that step first, which is what a user does.
+ */
+async function changeMerchant(screen: Screen, value: string): Promise<void> {
+    // Owns its own `act`, so callers must not wrap it in one: an act nested
+    // inside another does not flush until the outer finishes, and the step would
+    // not have mounted by the time this went to type into it.
+    if (screen.queryByTestId("stage-merchant-field") === null) {
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText(MERCHANT_FIELD));
+        });
+    }
+    await act(async () => {
+        fireEvent.changeText(screen.getByTestId("stage-merchant-field"), value);
+        await jest.advanceTimersByTimeAsync(600);
+    });
+}
+
+/**
+ * Presses one of the sentence's chips. The chip's shape carries whether its fact
+ * is set, so the label is the same either way.
+ */
+function pressVerb(screen: Screen, label: string): void {
+    fireEvent.press(screen.getByText(label));
+}
+
+/** Presses one of the stage's option pills by the word on it. */
+function pickOption(screen: Screen, label: string): void {
+    fireEvent.press(screen.getByRole("button", { name: label }));
+}
+
+/**
+ * Walks to the date wheel: the sentence's closing phrase opens the stage's
+ * "when" step, whose picker option is the only thing that mounts a calendar.
+ * Nothing presents over the form any more, so both taps land on the stage.
+ */
+async function openDateWheel(screen: Screen): Promise<void> {
+    await act(async () => {
+        fireEvent.press(screen.getByLabelText("transaction.field.date"));
+    });
+    await act(async () => {
+        pickOption(screen, "transaction.sentence.when.pick");
+    });
+}
+
+/**
+ * Walks to the currency list: the sentence's currency word opens the stage's
+ * currency step. Nothing presents over the form, so both taps land on it.
+ */
+async function pickEuro(screen: Screen): Promise<void> {
+    await act(async () => {
+        fireEvent.press(screen.getByLabelText("transaction.sentence.currency"));
+    });
+    await act(async () => {
+        fireEvent.press(screen.getByLabelText("test.selectCurrency.EUR"));
+    });
+}
+
+/** Opens the stage's rate step, whose one way in is the strip under the sentence. */
+async function openRateStep(screen: Screen): Promise<void> {
+    await act(async () => {
+        fireEvent.press(screen.getByTestId("conversion-strip"));
+    });
+}
+
+/**
+ * Turns a one-off into a subscription the way the form now allows: the repeat
+ * chip opens the stage's repeat step, and naming a cadence there IS the choice
+ * to repeat.
+ */
+async function repeatMonthly(screen: Screen): Promise<void> {
+    await act(async () => {
+        pressVerb(screen, REPEAT_VERB);
+    });
+    await act(async () => {
+        pickOption(screen, "transaction.cadence.monthly");
+    });
 }
 
 function renderedFormHost(node: JsonNode | JsonNode[] | null): JsonNode | null {
@@ -310,24 +466,6 @@ function renderedFormBlurRadius(tree: JsonNode): number | null {
         }
     }
     return null;
-}
-
-async function changeMerchant(tree: JsonNode, value: string): Promise<void> {
-    const field = findByProp(tree, "placeholder", "transaction.field.namePlaceholder") as
-        | (JsonNode & {
-              props: {
-                  onTextChange: (event: { nativeEvent: { value: string } }) => void;
-                  text: ObservableStateDouble;
-              };
-          })
-        | null;
-    if (field == null || field.type !== "SwiftUITextField") {
-        throw new Error("Could not find the name TextField in the render tree.");
-    }
-    field.props.text.value = value;
-    field.props.onTextChange({ nativeEvent: { value } });
-    jest.advanceTimersByTime(600);
-    await Promise.resolve();
 }
 
 function findByProp(node: JsonNode | JsonNode[] | null, key: string, value: unknown): JsonNode | null {
@@ -450,19 +588,20 @@ function hasSwiftText(tree: JsonNode, value: string): boolean {
     return findByProp(tree, "text", value) !== null;
 }
 
-function countSwiftText(node: JsonNode | JsonNode[] | null, value: string): number {
+function countText(node: JsonNode | JsonNode[] | null, value: string): number {
     if (node == null) {
         return 0;
     }
     if (Array.isArray(node)) {
-        return node.reduce((sum, child) => sum + countSwiftText(child, value), 0);
+        return node.reduce((sum, child) => sum + countText(child, value), 0);
     }
-    let count = node.props?.text === value ? 1 : 0;
+    let count = 0;
     for (const child of node.children ?? []) {
         if (typeof child === "string") {
+            count += child === value ? 1 : 0;
             continue;
         }
-        count += countSwiftText(child, value);
+        count += countText(child, value);
     }
     return count;
 }
@@ -530,20 +669,6 @@ function findFunctionProp(node: JsonNode | JsonNode[] | null, key: string): ((va
     return null;
 }
 
-function findTextChangeHandler(tree: JsonNode): (text: string) => void {
-    const node = findByProp(tree, "placeholder", "transaction.field.namePlaceholder") as
-        | (JsonNode & {
-              props: {
-                  onTextChange: (event: { nativeEvent: { value: string } }) => void;
-              };
-          })
-        | null;
-    if (node == null) {
-        throw new Error("Could not find the name TextField in the render tree.");
-    }
-    return (text: string) => node.props.onTextChange({ nativeEvent: { value: text } });
-}
-
 const dbHolder: { current: Database | null } = { current: null };
 let closePickerForTest: (() => void) | null = null;
 
@@ -576,12 +701,20 @@ beforeEach(() => {
 describe("transactionForm", () => {
     it("renders create mode without crashing", async () => {
         const db = dbHolder.current as Database;
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
-        expect(toJSON()).toBeTruthy();
+        expect(screen.toJSON()).toBeTruthy();
+        // The expense/income segment is gone: direction is the sentence's opening
+        // verb now, and the currency rides the amount rather than a bar above it.
+        expect(screen.getByLabelText("transaction.sentence.kind.switch").props.accessibilityValue).toMatchObject({
+            text: "transaction.sentence.kind.expense",
+        });
+        expect(screen.getByLabelText("transaction.sentence.currency").props.accessibilityValue).toMatchObject({
+            text: "USD",
+        });
     });
 
     it("renders edit mode without crashing once a subscription row loads", async () => {
@@ -638,15 +771,66 @@ describe("transactionForm", () => {
             recurringType: 0,
             reminderLeadDays: null,
         };
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm db={db} initial={initial as any} mode="edit" onDone={() => {}} />
             </Providers>
         );
-        expect(containsText(toJSON() as JsonNode, "🎸")).toBe(true);
+        expect(containsText(screen.toJSON() as JsonNode, "🎸")).toBe(true);
+        expect(screen.getByLabelText("transaction.identity.hero.removeLogo")).toBeTruthy();
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.identity.hero.removeLogo"));
+        });
+
+        expect(containsText(screen.toJSON() as JsonNode, "🎸")).toBe(false);
+        expect(screen.queryByLabelText("transaction.identity.hero.removeLogo")).toBeNull();
     });
 
-    it("plumbs the seeded amount into the amount hero", async () => {
+    it("keeps a saved note marked as set after its editor closes", async () => {
+        const db = dbHolder.current as Database;
+        const categoryId = await seedCategory(db);
+        const initial = {
+            amount: 12.5,
+            categoryId,
+            currency: null,
+            customColor: null,
+            date: new Date(),
+            details: "Bring the receipt",
+            emoji: null,
+            icon: null,
+            id: "noted-transaction",
+            imageColor: null,
+            imageUri: null,
+            income: false,
+            note: "Concert",
+            onceRecurring: false,
+            recurringCoefficient: 1,
+            recurringEndDate: null,
+            recurringType: 0,
+            reminderLeadDays: null,
+        } as Transaction;
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+            </Providers>
+        );
+
+        expect(screen.getByLabelText("transaction.field.notes")).toBeTruthy();
+        expect(screen.getByText("transaction.sentence.add.note")).toBeTruthy();
+        await act(async () => {
+            pressVerb(screen, "transaction.sentence.add.note");
+        });
+        expect(screen.queryByLabelText("transaction.field.notes")).toBeNull();
+        // The editor is closed but the note is still on the entry, so the chip has
+        // to keep reading as set — otherwise closing the editor looks like it
+        // discarded what was typed.
+        expect(
+            screen.getByRole("button", { name: "transaction.sentence.add.note" }).props.accessibilityState
+        ).toMatchObject({ selected: true });
+    });
+
+    it("plumbs the seeded amount into the sentence's amount slot", async () => {
         const db = dbHolder.current as Database;
         const categoryId = await seedCategory(db);
         const initial: Partial<Transaction> = {
@@ -675,34 +859,35 @@ describe("transactionForm", () => {
             </Providers>
         );
         const tree = toJSON() as JsonNode;
-        expect(JSON.stringify(tree)).toContain("$");
-        expect(findByProp(tree, "value", 42)).not.toBeNull();
+        expect(containsText(sentenceSlot(tree, "transaction.field.amount"), "$42.00")).toBe(true);
     });
 
     it("holds hook order across the real once -> subscription -> once toggle", async () => {
         const db = dbHolder.current as Database;
         const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
 
-        // In once mode the repeat switch is the only toggle on screen; End Date's
-        // appears alongside it only after this one is on.
-        const repeats = findByProp(toJSON() as JsonNode, "isOn", false) as
-            | (JsonNode & {
-                  props: { onIsOnChange: (event: unknown) => void };
-              })
-            | null;
-        expect(repeats).not.toBeNull();
-
-        await act(async () => {
-            repeats?.props.onIsOnChange({ nativeEvent: { isOn: true } } as never);
+        // In once mode the sentence's `repeat` chip is the only once/subscription
+        // control on screen, and it is offered rather than set.
+        expect(screen.getByRole("button", { name: REPEAT_VERB }).props.accessibilityState).toMatchObject({
+            selected: false,
         });
+
+        await repeatMonthly(screen);
+        // A set chip states its cadence rather than the noun that offered it.
+        expect(screen.getByText(REPEAT_VERB_SET)).toBeTruthy();
+        // The chip's own ✕ is the way back off a schedule: the repeat step names
+        // cadences, and "never" is not one of them.
         await act(async () => {
-            repeats?.props.onIsOnChange({ nativeEvent: { isOn: false } } as never);
+            fireEvent.press(screen.getByLabelText(REPEAT_OFF));
+        });
+        expect(screen.getByRole("button", { name: REPEAT_VERB }).props.accessibilityState).toMatchObject({
+            selected: false,
         });
 
         const hookOrderViolations = errorSpy.mock.calls.filter(([message]) =>
@@ -712,23 +897,28 @@ describe("transactionForm", () => {
         errorSpy.mockRestore();
     });
 
-    it("shows the schedule section's subscription rows once toggled to subscription", async () => {
+    it("states the whole schedule on the stage's repeat step, not in the form", async () => {
         const db = dbHolder.current as Database;
-        const { toJSON, rerender } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
+        const { toJSON, rerender } = screen;
 
+        // The form itself carries no schedule rows any more: the whole of it —
+        // cadence, dates, reminder — is one step of the bottom stage.
         expect(containsText(toJSON() as JsonNode, "transaction.field.remind")).toBe(false);
 
-        const repeats = findByProp(toJSON() as JsonNode, "isOn", false) as
-            | (JsonNode & { props: { onIsOnChange: (event: unknown) => void } })
-            | null;
+        await repeatMonthly(screen);
 
-        await act(async () => {
-            repeats?.props.onIsOnChange({ nativeEvent: { isOn: true } } as never);
-        });
+        expect(containsText(toJSON() as JsonNode, "transaction.field.remind")).toBe(true);
+        // The running "starting <date>, ending <date>." line, which is the whole
+        // of what the first-payment and end-date rows used to be.
+        expect(screen.getByTestId("stage-repeat-line")).toBeTruthy();
+        expect(
+            screen.getByRole("button", { name: "transaction.cadence.monthly" }).props.accessibilityState
+        ).toMatchObject({ selected: true });
 
         await act(async () => {
             rerender(
@@ -783,6 +973,397 @@ describe("transactionForm", () => {
         );
         expect(hookOrderViolations).toHaveLength(0);
         errorSpy.mockRestore();
+    });
+});
+
+/**
+ * The surface at the bottom is never absent. Before it existed, resolving a
+ * picker left the form with an empty bottom and no way forward except knowing
+ * that a word in the sentence is tappable — which is the whole defect the stage
+ * replaced, and it came back once through a step that closed on its own answer.
+ */
+describe("transactionForm stage", () => {
+    async function seedAccountRow(db: Database, id: string, name: string) {
+        await db.insert(accounts).values({
+            currency: "USD",
+            dateCreated: new Date(),
+            id,
+            initialBalance: 0,
+            initialBalanceDate: new Date(),
+            initialBalanceUsd: 0,
+            name,
+            sortOrder: 0,
+            updatedAt: new Date(),
+        });
+    }
+
+    it("rests on the keypad, which is the one step with no way back", async () => {
+        const db = dbHolder.current as Database;
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+
+        expect(screen.getByTestId("stage-footer")).toBeTruthy();
+        expect(screen.queryByLabelText("common.back")).toBeNull();
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.field.category"));
+        });
+        expect(screen.getByLabelText("common.back")).toBeTruthy();
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("common.back"));
+        });
+        expect(screen.getByTestId("stage-footer")).toBeTruthy();
+        expect(screen.queryByLabelText("common.back")).toBeNull();
+    });
+
+    it("leaves a stage on screen after each step resolves", async () => {
+        const db = dbHolder.current as Database;
+        await seedCategory(db);
+        await seedAccountRow(db, "acc-1", "Checking");
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.field.category"));
+        });
+        await act(async () => {
+            pickOption(screen, "Groceries");
+        });
+        expect(screen.getByTestId("stage-footer")).toBeTruthy();
+        expect(containsText(sentenceSlot(screen.toJSON() as JsonNode, "transaction.field.category"), "Groceries")).toBe(
+            true
+        );
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.field.account"));
+        });
+        await act(async () => {
+            pickOption(screen, "Checking");
+        });
+        expect(screen.getByTestId("stage-footer")).toBeTruthy();
+        expect(containsText(sentenceSlot(screen.toJSON() as JsonNode, "transaction.field.account"), "Checking")).toBe(
+            true
+        );
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.field.date"));
+        });
+        await act(async () => {
+            pickOption(screen, "transaction.sentence.when.today");
+        });
+        expect(screen.getByTestId("stage-footer")).toBeTruthy();
+
+        await repeatMonthly(screen);
+        expect(screen.getByTestId("stage-footer")).toBeTruthy();
+    });
+
+    // The guided button is the way on for a user who never realises the
+    // sentence is tappable, so pressing it on the step it is asking for has to
+    // walk past that fact rather than reopening what is already on screen.
+    it("walks the missing facts in the order the sentence states them", async () => {
+        const db = dbHolder.current as Database;
+        await seedCategory(db);
+        await seedAccountRow(db, "acc-1", "Checking");
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+
+        // Amount, then merchant, then category, then account — the sentence's own
+        // order. The keypad is already on screen, so the press skips past it.
+        expect(screen.getByTestId("stage-footer")).toHaveTextContent("common.next");
+        await act(async () => {
+            fireEvent.press(screen.getByTestId("stage-footer"));
+        });
+        expect(screen.getByTestId("stage-merchant-field")).toBeTruthy();
+
+        // Nothing typed, and the press still moves on: the merchant is optional,
+        // so asking for it and being answered with nothing IS the skip.
+        await act(async () => {
+            fireEvent.press(screen.getByTestId("stage-footer"));
+        });
+        expect(screen.getByTestId("stage-categories")).toBeTruthy();
+
+        await act(async () => {
+            fireEvent.press(screen.getByTestId("stage-footer"));
+        });
+        expect(screen.getByTestId("stage-accounts")).toBeTruthy();
+    });
+
+    // The currency picker was the last native BottomSheet the form presented, and
+    // `transactions/create` is itself a modal: a sheet over it insets and dims the
+    // parent and drops it out of the accessibility tree.
+    it("picks a currency on the stage rather than in a sheet over the form", async () => {
+        const db = dbHolder.current as Database;
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+
+        expect(screen.queryByLabelText("test.selectCurrency.EUR")).toBeNull();
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.sentence.currency"));
+        });
+        expect(screen.getByLabelText("test.selectCurrency.EUR")).toBeTruthy();
+
+        // Backing out lands on the keypad, never on nothing.
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("common.back"));
+        });
+        expect(screen.queryByLabelText("test.selectCurrency.EUR")).toBeNull();
+        expect(screen.getByLabelText("transaction.amount.changeCurrency")).toBeTruthy();
+    });
+
+    it("takes the picked currency into the sentence and closes the step", async () => {
+        const db = dbHolder.current as Database;
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.sentence.currency"));
+        });
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("test.selectCurrency.EUR"));
+        });
+
+        expect(screen.getByLabelText("transaction.sentence.currency").props.accessibilityValue).toMatchObject({
+            text: "EUR",
+        });
+        expect(screen.getByLabelText("transaction.amount.changeCurrency")).toBeTruthy();
+    });
+
+    it("names the save once nothing is missing", async () => {
+        const db = dbHolder.current as Database;
+        const categoryId = await seedCategory(db);
+        await seedAccountRow(db, "acc-1", "Checking");
+        const copyOf: LogAgainDraft = {
+            amount: 25,
+            categoryId,
+            currency: null,
+            customColor: null,
+            details: null,
+            emoji: null,
+            icon: null,
+            income: false,
+            note: "",
+        };
+        const screen = await render(
+            <Providers>
+                <TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.field.account"));
+        });
+        await act(async () => {
+            pickOption(screen, "Checking");
+        });
+
+        expect(screen.getByTestId("stage-footer")).toHaveTextContent("transaction.cta.add");
+    });
+});
+
+/**
+ * The sentence names the merchant second and the ladder used to skip it. The
+ * step is an additional way in, not a replacement: the sentence keeps its own
+ * inline field, and both edit the same string.
+ */
+describe("transactionForm merchant step", () => {
+    beforeEach(() => {
+        jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    async function seedFiled(db: Database, note: string, at: Date, categoryId: string | null = null) {
+        await db.insert(transactions).values({
+            amount: 10,
+            categoryId,
+            date: at,
+            day: at,
+            id: `tx-${note}-${at.getTime()}`,
+            income: false,
+            month: at,
+            note,
+            updatedAt: at,
+        });
+    }
+
+    /** The name as the sentence itself is rendering it. */
+    function sentenceMerchant(screen: Screen): string {
+        return String(screen.getByLabelText(MERCHANT_FIELD).props.accessibilityValue.text);
+    }
+
+    // The word is a tap target like every other slot now — the sentence states
+    // the name and the stage takes it.
+    it("opens from the sentence's own merchant word", async () => {
+        const db = dbHolder.current as Database;
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+
+        expect(screen.queryByTestId("stage-merchant-field")).toBeNull();
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText(MERCHANT_FIELD));
+        });
+
+        expect(screen.getByTestId("stage-merchant-field")).toBeTruthy();
+    });
+
+    it("offers the merchants this ledger has already filed, most recent first", async () => {
+        const db = dbHolder.current as Database;
+        await seedFiled(db, "Panaderia", new Date("2026-08-01T00:00:00.000Z"));
+        await seedFiled(db, "Rio Supermercado", new Date("2026-08-10T00:00:00.000Z"));
+        // The same merchant spelled two ways is one merchant, and the spelling
+        // kept is the one it was last written with.
+        await seedFiled(db, "PANADERIA", new Date("2026-08-12T00:00:00.000Z"));
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText(MERCHANT_FIELD));
+        });
+
+        const remembered = within(screen.getByTestId("stage-merchant-recent"));
+        expect(remembered.getAllByRole("button").map((node) => String(node.props.accessibilityLabel))).toStrictEqual([
+            "PANADERIA",
+            "Rio Supermercado",
+        ]);
+    });
+
+    // The step fills the same string the inline field does, so a chosen name has
+    // to reach the enrichment pipeline exactly as a typed one does.
+    it("takes a remembered merchant into the sentence and enriches from it", async () => {
+        const db = dbHolder.current as Database;
+        await seedCategory(db, "c-entertainment", "Entertainment");
+        await seedFiled(db, "Netflix", new Date("2026-08-12T00:00:00.000Z"));
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText(MERCHANT_FIELD));
+        });
+        await act(async () => {
+            pickOption(screen, "Netflix");
+            await jest.advanceTimersByTimeAsync(600);
+        });
+
+        expect(sentenceMerchant(screen)).toBe("Netflix");
+        expect(
+            containsText(sentenceSlot(screen.toJSON() as JsonNode, "transaction.field.category"), "Entertainment")
+        ).toBe(true);
+    });
+
+    it("enriches from the step's own field the way the sentence's does", async () => {
+        const db = dbHolder.current as Database;
+        await seedCategory(db, "c-entertainment", "Entertainment");
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText(MERCHANT_FIELD));
+        });
+        await act(async () => {
+            fireEvent.changeText(screen.getByTestId("stage-merchant-field"), "Netflix");
+            await jest.advanceTimersByTimeAsync(600);
+        });
+
+        expect(sentenceMerchant(screen)).toBe("Netflix");
+        expect(
+            containsText(sentenceSlot(screen.toJSON() as JsonNode, "transaction.field.category"), "Entertainment")
+        ).toBe(true);
+    });
+
+    // Typing in the sentence is still the way it was; the step only adds a
+    // second one. The inline field is uncontrolled, so this is also the check
+    // that re-seeding it never happens under a caret.
+    it("keeps the sentence's own field typing into the same name", async () => {
+        const db = dbHolder.current as Database;
+        await seedCategory(db, "c-entertainment", "Entertainment");
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+
+        await changeMerchant(screen, "Netflix");
+
+        expect(sentenceMerchant(screen)).toBe("Netflix");
+        expect(
+            containsText(sentenceSlot(screen.toJSON() as JsonNode, "transaction.field.category"), "Entertainment")
+        ).toBe(true);
+    });
+
+    // The merchant drives enrichment, not validity: an entry that never names one
+    // is whole, and the button has to say so rather than asking for it forever.
+    it("does not hold the save for a merchant nobody named", async () => {
+        const db = dbHolder.current as Database;
+        const categoryId = await seedCategory(db);
+        await db.insert(accounts).values({
+            currency: "USD",
+            dateCreated: new Date(),
+            id: "acc-1",
+            initialBalance: 0,
+            initialBalanceDate: new Date(),
+            initialBalanceUsd: 0,
+            name: "Checking",
+            sortOrder: 0,
+            updatedAt: new Date(),
+        });
+        const copyOf: LogAgainDraft = {
+            amount: 25,
+            categoryId,
+            currency: null,
+            customColor: null,
+            details: null,
+            emoji: null,
+            icon: null,
+            income: false,
+            note: "",
+        };
+        const screen = await render(
+            <Providers>
+                <TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.field.account"));
+        });
+        await act(async () => {
+            pickOption(screen, "Checking");
+        });
+
+        expect(sentenceMerchant(screen)).toBe("transaction.sentence.blank.merchant");
+        expect(screen.getByTestId("stage-footer")).toHaveTextContent("transaction.cta.add");
     });
 });
 
@@ -843,19 +1424,17 @@ describe("transactionForm submit re-entrancy", () => {
                 })
         );
 
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
+        const { toJSON } = screen;
 
-        const repeats = findByProp(toJSON() as JsonNode, "isOn", false) as
-            | (JsonNode & { props: { onIsOnChange: (event: unknown) => void } })
-            | null;
-        expect(repeats).not.toBeNull();
-        await act(async () => {
-            repeats?.props.onIsOnChange({ nativeEvent: { isOn: true } });
+        expect(screen.getByRole("button", { name: REPEAT_VERB }).props.accessibilityState).toMatchObject({
+            selected: false,
         });
+        await repeatMonthly(screen);
 
         const saveButton = findButtonWithText(toJSON() as JsonNode, "transaction.cta.addSubscription");
         expect(saveButton).not.toBeNull();
@@ -897,21 +1476,17 @@ describe("transactionForm enrichment", () => {
         await seedTag(db, "tag-streaming", "Streaming");
         await seedTag(db, "tag-subscription", "Subscription");
 
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
 
-        const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
-        await act(async () => {
-            onTextChange("netflix");
-            jest.advanceTimersByTime(600);
-        });
+        await changeMerchant(screen, "netflix");
 
-        const tree = toJSON() as JsonNode;
-        expect(hasSwiftText(tree, "Entertainment")).toBe(true);
-        expect(hasSwiftText(tree, "Streaming, Subscription")).toBe(true);
+        const tree = screen.toJSON() as JsonNode;
+        expect(containsText(sentenceSlot(tree, "transaction.field.category"), "Entertainment")).toBe(true);
+        expect(containsText(tree, taggedLine("Streaming, Subscription"))).toBe(true);
     });
 
     it("does not let a later suggestion overwrite a category the form already carries", async () => {
@@ -930,21 +1505,17 @@ describe("transactionForm enrichment", () => {
             note: "",
         };
 
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
 
-        const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
-        await act(async () => {
-            onTextChange("netflix");
-            jest.advanceTimersByTime(600);
-        });
+        await changeMerchant(screen, "netflix");
 
-        const tree = toJSON() as JsonNode;
-        expect(hasSwiftText(tree, "Groceries")).toBe(true);
-        expect(hasSwiftText(tree, "Entertainment")).toBe(false);
+        const tree = screen.toJSON() as JsonNode;
+        expect(containsText(sentenceSlot(tree, "transaction.field.category"), "Groceries")).toBe(true);
+        expect(containsText(tree, "Entertainment")).toBe(false);
     });
 
     it("replaces an earlier suggestion when the name changes to another merchant", async () => {
@@ -955,29 +1526,24 @@ describe("transactionForm enrichment", () => {
         await seedTag(db, "tag-subscription", "Subscription");
         await seedTag(db, "tag-rideshare", "Rideshare");
 
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
 
-        const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
-        await act(async () => {
-            onTextChange("netflix");
-            jest.advanceTimersByTime(600);
-        });
-        expect(hasSwiftText(toJSON() as JsonNode, "Entertainment")).toBe(true);
+        await changeMerchant(screen, "netflix");
+        expect(
+            containsText(sentenceSlot(screen.toJSON() as JsonNode, "transaction.field.category"), "Entertainment")
+        ).toBe(true);
 
-        await act(async () => {
-            onTextChange("uber");
-            jest.advanceTimersByTime(600);
-        });
+        await changeMerchant(screen, "uber");
 
-        const tree = toJSON() as JsonNode;
-        expect(hasSwiftText(tree, "Transport")).toBe(true);
-        expect(hasSwiftText(tree, "Entertainment")).toBe(false);
-        expect(hasSwiftText(tree, "Rideshare")).toBe(true);
-        expect(hasSwiftText(tree, "Streaming, Subscription")).toBe(false);
+        const tree = screen.toJSON() as JsonNode;
+        expect(containsText(sentenceSlot(tree, "transaction.field.category"), "Transport")).toBe(true);
+        expect(containsText(tree, "Entertainment")).toBe(false);
+        expect(containsText(tree, taggedLine("Rideshare"))).toBe(true);
+        expect(containsText(tree, taggedLine("Streaming, Subscription"))).toBe(false);
     });
 
     it("issues no enrichment call in edit mode", async () => {
@@ -1005,21 +1571,17 @@ describe("transactionForm enrichment", () => {
             reminderLeadDays: null,
         };
 
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm db={db} initial={initial as any} mode="edit" onDone={() => {}} />
             </Providers>
         );
 
-        const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
-        await act(async () => {
-            onTextChange("netflix");
-            jest.advanceTimersByTime(600);
-        });
+        await changeMerchant(screen, "netflix");
 
-        const tree = toJSON() as JsonNode;
-        expect(hasSwiftText(tree, "Groceries")).toBe(true);
-        expect(hasSwiftText(tree, "Entertainment")).toBe(false);
+        const tree = screen.toJSON() as JsonNode;
+        expect(containsText(sentenceSlot(tree, "transaction.field.category"), "Groceries")).toBe(true);
+        expect(containsText(tree, "Entertainment")).toBe(false);
     });
 });
 
@@ -1042,18 +1604,17 @@ describe("transactionForm logo attachment", () => {
         mockedPersistLogoBytes.mockResolvedValue("file:///logos/netflix.png");
         mockedGlowFromImage.mockResolvedValue(["#123456"]);
 
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm db={dbHolder.current as Database} mode="create" onDone={() => {}} />
             </Providers>
         );
+        const { toJSON } = screen;
 
-        await act(async () => {
-            await changeMerchant(toJSON() as JsonNode, "netflix");
-        });
+        await changeMerchant(screen, "netflix");
 
         const tree = toJSON() as JsonNode;
-        expect(renderedHeroImageUri(tree)).toBe("file:///logos/netflix.png");
+        expect(renderedMerchantImageUri(tree)).toBe("file:///logos/netflix.png");
         expect(renderedCurtain(tree)).toStrictEqual(curtainGradient(["#123456"], false));
         expect(mockedFetchMerchantImage).toHaveBeenCalledWith({ domain: "netflix.com", name: "netflix" });
         expect(mockedPersistLogoBytes).toHaveBeenCalledWith(bytes);
@@ -1072,11 +1633,9 @@ describe("transactionForm logo attachment", () => {
             </Providers>
         );
 
+        await changeMerchant(renderResult, "netflix");
         await act(async () => {
-            await changeMerchant(renderResult.toJSON() as JsonNode, "netflix");
-        });
-        await act(async () => {
-            fireEvent.press(renderResult.getByLabelText("transaction.identity.hero.logo"));
+            pressVerb(renderResult, IDENTITY_VERB);
         });
         expect(renderedFormBlurRadius(renderResult.toJSON() as JsonNode)).toBeGreaterThan(0);
         const closePicker = closePickerForTest;
@@ -1088,12 +1647,10 @@ describe("transactionForm logo attachment", () => {
             closePicker();
         });
         expect(renderedFormBlurRadius(renderResult.toJSON() as JsonNode)).toBe(0);
-        await act(async () => {
-            await changeMerchant(renderResult.toJSON() as JsonNode, "uber");
-        });
+        await changeMerchant(renderResult, "uber");
 
         const tree = renderResult.toJSON() as JsonNode;
-        expect(renderedHeroImageUri(tree)).toBe("file:///logos/netflix.png");
+        expect(renderedMerchantImageUri(tree)).toBe("file:///logos/netflix.png");
         expect(renderedCurtain(tree)).toStrictEqual(curtainGradient(["#123456"], false));
         expect(mockedFetchMerchantImage).toHaveBeenCalledTimes(1);
     });
@@ -1145,19 +1702,18 @@ describe("transactionForm logo attachment", () => {
             uri: null,
         },
     ])("preserves a nonempty $label identity", async ({ emoji, props, uri }) => {
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm {...props} db={dbHolder.current as Database} mode="create" onDone={() => {}} />
             </Providers>
         );
+        const { toJSON } = screen;
 
-        await act(async () => {
-            await changeMerchant(toJSON() as JsonNode, "netflix");
-        });
+        await changeMerchant(screen, "netflix");
 
         const tree = toJSON() as JsonNode;
         if (uri != null) {
-            expect(renderedHeroImageUri(tree)).toBe(uri);
+            expect(renderedMerchantImageUri(tree)).toBe(uri);
         }
         if (emoji != null) {
             expect(containsText(tree, emoji)).toBe(true);
@@ -1178,11 +1734,9 @@ describe("transactionForm logo attachment", () => {
             </Providers>
         );
 
+        await changeMerchant(renderResult, "netflix");
         await act(async () => {
-            await changeMerchant(renderResult.toJSON() as JsonNode, "netflix");
-        });
-        await act(async () => {
-            fireEvent.press(renderResult.getByLabelText("transaction.identity.hero.logo"));
+            pressVerb(renderResult, IDENTITY_VERB);
         });
         expect(renderedFormBlurRadius(renderResult.toJSON() as JsonNode)).toBeGreaterThan(0);
         await act(async () => {
@@ -1190,7 +1744,7 @@ describe("transactionForm logo attachment", () => {
             await Promise.resolve();
         });
 
-        expect(renderedHeroImageUri(renderResult.toJSON() as JsonNode)).toBeNull();
+        expect(renderedMerchantImageUri(renderResult.toJSON() as JsonNode)).toBeNull();
         expect(mockedPersistLogoBytes).not.toHaveBeenCalled();
         expect(mockedGlowFromImage).not.toHaveBeenCalled();
     });
@@ -1201,23 +1755,20 @@ describe("transactionForm logo attachment", () => {
         mockedPersistLogoBytes.mockResolvedValue("file:///logos/netflix.png");
         mockedGlowFromImage.mockResolvedValue(["#123456"]);
 
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm db={dbHolder.current as Database} mode="create" onDone={() => {}} />
             </Providers>
         );
+        const { toJSON } = screen;
 
-        await act(async () => {
-            await changeMerchant(toJSON() as JsonNode, "netflix");
-        });
-        expect(renderedHeroImageUri(toJSON() as JsonNode)).toBe("file:///logos/netflix.png");
+        await changeMerchant(screen, "netflix");
+        expect(renderedMerchantImageUri(toJSON() as JsonNode)).toBe("file:///logos/netflix.png");
 
-        await act(async () => {
-            await changeMerchant(toJSON() as JsonNode, "uber");
-        });
+        await changeMerchant(screen, "uber");
 
         const tree = toJSON() as JsonNode;
-        expect(renderedHeroImageUri(tree)).toBeNull();
+        expect(renderedMerchantImageUri(tree)).toBeNull();
         expect(renderedCurtain(tree)).toBeNull();
     });
 
@@ -1233,11 +1784,9 @@ describe("transactionForm logo attachment", () => {
             </Providers>
         );
 
+        await changeMerchant(renderResult, "netflix");
         await act(async () => {
-            await changeMerchant(renderResult.toJSON() as JsonNode, "netflix");
-        });
-        await act(async () => {
-            fireEvent.press(renderResult.getByLabelText("transaction.identity.hero.logo"));
+            pressVerb(renderResult, IDENTITY_VERB);
         });
         expect(renderedFormBlurRadius(renderResult.toJSON() as JsonNode)).toBeGreaterThan(0);
         const closePicker = closePickerForTest;
@@ -1249,12 +1798,10 @@ describe("transactionForm logo attachment", () => {
             closePicker();
         });
         expect(renderedFormBlurRadius(renderResult.toJSON() as JsonNode)).toBe(0);
-        await act(async () => {
-            await changeMerchant(renderResult.toJSON() as JsonNode, "unknown merchant");
-        });
+        await changeMerchant(renderResult, "unknown merchant");
 
         const tree = renderResult.toJSON() as JsonNode;
-        expect(renderedHeroImageUri(tree)).toBe("file:///logos/netflix.png");
+        expect(renderedMerchantImageUri(tree)).toBe("file:///logos/netflix.png");
         expect(renderedCurtain(tree)).toStrictEqual(curtainGradient(["#123456"], false));
         expect(mockedFetchMerchantImage).toHaveBeenCalledTimes(1);
     });
@@ -1272,25 +1819,22 @@ describe("transactionForm logo attachment", () => {
             Promise.resolve(uri === "file:///logos/uber.png" ? ["#654321"] : ["#123456"])
         );
 
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm db={dbHolder.current as Database} mode="create" onDone={() => {}} />
             </Providers>
         );
+        const { toJSON } = screen;
 
-        await act(async () => {
-            await changeMerchant(toJSON() as JsonNode, "netflix");
-        });
-        await act(async () => {
-            await changeMerchant(toJSON() as JsonNode, "uber");
-        });
+        await changeMerchant(screen, "netflix");
+        await changeMerchant(screen, "uber");
         await act(async () => {
             uber.resolve({ bytes: uberBytes, kind: "logo" });
             await Promise.resolve();
             await Promise.resolve();
         });
 
-        expect(renderedHeroImageUri(toJSON() as JsonNode)).toBe("file:///logos/uber.png");
+        expect(renderedMerchantImageUri(toJSON() as JsonNode)).toBe("file:///logos/uber.png");
         expect(renderedCurtain(toJSON() as JsonNode)).toStrictEqual(curtainGradient(["#654321"], false));
 
         await act(async () => {
@@ -1298,7 +1842,7 @@ describe("transactionForm logo attachment", () => {
             await Promise.resolve();
         });
 
-        expect(renderedHeroImageUri(toJSON() as JsonNode)).toBe("file:///logos/uber.png");
+        expect(renderedMerchantImageUri(toJSON() as JsonNode)).toBe("file:///logos/uber.png");
         expect(renderedCurtain(toJSON() as JsonNode)).toStrictEqual(curtainGradient(["#654321"], false));
         expect(mockedPersistLogoBytes).toHaveBeenCalledTimes(1);
         expect(mockedPersistLogoBytes).toHaveBeenCalledWith(uberBytes);
@@ -1319,22 +1863,22 @@ describe("transactionForm pending category and tag materialization", () => {
         const db = dbHolder.current as Database;
         const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
 
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm db={db} mode="create" onDone={() => {}} seed={{ amount: 25 }} />
             </Providers>
         );
+        const { toJSON } = screen;
 
-        const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
-        await act(async () => {
-            onTextChange("netflix");
-            jest.advanceTimersByTime(600);
-        });
+        await changeMerchant(screen, "netflix");
 
         let tree = toJSON() as JsonNode;
-        expect(hasSwiftText(tree, "Entertainment")).toBe(true);
-        expect(hasSwiftText(tree, "transaction.category.willBeCreated")).toBe(true);
-        expect(JSON.stringify(tree)).not.toContain('"$type":"strokeBorder"');
+        expect(containsText(sentenceSlot(tree, "transaction.field.category"), "Entertainment")).toBe(true);
+        // What the row's "will be created" caption used to say, asserted against
+        // the ledger instead: the caption lives in the picker now, and the fact it
+        // stated is that no such category exists yet.
+        await expect(db.select().from(categories).where(eq(categories.name, "Entertainment"))).resolves.toHaveLength(0);
+        expect(slotFlagged(tree, "transaction.field.category")).toBe(false);
 
         const saveButton = findButtonWithText(tree, "transaction.cta.add");
         expect(saveButton).not.toBeNull();
@@ -1351,7 +1895,9 @@ describe("transactionForm pending category and tag materialization", () => {
         expect(savedTx[0].categoryId).toBe(created[0].id);
 
         tree = toJSON() as JsonNode;
-        expect(hasSwiftText(tree, "transaction.category.choose")).toBe(false);
+        expect(
+            containsText(sentenceSlot(tree, "transaction.field.category"), "transaction.sentence.blank.category")
+        ).toBe(false);
 
         alertSpy.mockRestore();
     });
@@ -1360,20 +1906,17 @@ describe("transactionForm pending category and tag materialization", () => {
         const db = dbHolder.current as Database;
         const setTagsSpy = jest.spyOn(tagsRepo, "setTagsFor");
 
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm db={db} mode="create" onDone={() => {}} seed={{ amount: 25 }} />
             </Providers>
         );
+        const { toJSON } = screen;
 
-        const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
-        await act(async () => {
-            onTextChange("netflix");
-            jest.advanceTimersByTime(600);
-        });
+        await changeMerchant(screen, "netflix");
 
         const tree = toJSON() as JsonNode;
-        expect(hasSwiftText(tree, "Streaming, Subscription")).toBe(true);
+        expect(containsText(tree, taggedLine("Streaming, Subscription"))).toBe(true);
 
         const saveButton = findButtonWithText(tree, "transaction.cta.add");
         await act(async () => {
@@ -1390,45 +1933,41 @@ describe("transactionForm pending category and tag materialization", () => {
         setTagsSpy.mockRestore();
     });
 
-    it("renders the pending-category caption exactly once and it does not grow while typing continues", async () => {
+    // The caption this used to count is in the category picker now, so the
+    // suggestion is counted where it is stated: once in the sentence, and still
+    // once after the same name is re-typed and enriched again.
+    it("states the pending category exactly once and it does not grow while typing continues", async () => {
         const db = dbHolder.current as Database;
 
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
+        const { toJSON } = screen;
 
-        const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
-        await act(async () => {
-            onTextChange("netflix");
-            jest.advanceTimersByTime(600);
-        });
-        expect(countSwiftText(toJSON() as JsonNode, "transaction.category.willBeCreated")).toBe(1);
+        await changeMerchant(screen, "netflix");
+        expect(countText(toJSON() as JsonNode, "Entertainment")).toBe(1);
 
-        await act(async () => {
-            onTextChange("netflix");
-            jest.advanceTimersByTime(600);
-        });
-        expect(countSwiftText(toJSON() as JsonNode, "transaction.category.willBeCreated")).toBe(1);
+        await changeMerchant(screen, "netflix");
+        expect(countText(toJSON() as JsonNode, "Entertainment")).toBe(1);
     });
 
     it("aborts before writing any transaction row when the pending category fails to materialize", async () => {
         const db = dbHolder.current as Database;
         const createSpy = jest.spyOn(categoriesRepo, "create").mockRejectedValueOnce(new Error("boom"));
 
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm db={db} mode="create" onDone={() => {}} seed={{ amount: 25 }} />
             </Providers>
         );
+        const { toJSON } = screen;
 
-        const onTextChange = findTextChangeHandler(toJSON() as JsonNode);
-        await act(async () => {
-            onTextChange("netflix");
-            jest.advanceTimersByTime(600);
-        });
-        expect(hasSwiftText(toJSON() as JsonNode, "Entertainment")).toBe(true);
+        await changeMerchant(screen, "netflix");
+        expect(containsText(sentenceSlot(toJSON() as JsonNode, "transaction.field.category"), "Entertainment")).toBe(
+            true
+        );
         expect(createSpy).not.toHaveBeenCalled();
 
         const saveButton = findButtonWithText(toJSON() as JsonNode, "transaction.cta.add");
@@ -1438,7 +1977,9 @@ describe("transactionForm pending category and tag materialization", () => {
 
         expect(createSpy).toHaveBeenCalledTimes(1);
         await expect(db.select().from(transactions)).resolves.toHaveLength(0);
-        expect(JSON.stringify(toJSON())).toContain('"$type":"strokeBorder"');
+        // The save was rejected for the category, so the category has to say so —
+        // the CTA re-lighting in silence is indistinguishable from a missed tap.
+        expect(slotFlagged(toJSON() as JsonNode, "transaction.field.category")).toBe(true);
 
         createSpy.mockRestore();
     });
@@ -1460,7 +2001,7 @@ describe("transactionForm account attachment", () => {
         return id;
     }
 
-    it("shows None while nothing was ever attached", async () => {
+    it("shows the account blank while nothing was ever attached", async () => {
         const db = dbHolder.current as Database;
         const { toJSON } = await render(
             <Providers>
@@ -1468,8 +2009,9 @@ describe("transactionForm account attachment", () => {
             </Providers>
         );
         const tree = toJSON() as JsonNode;
-        expect(hasSwiftText(tree, "transaction.field.account")).toBe(true);
-        expect(hasSwiftText(tree, "transaction.account.none")).toBe(true);
+        expect(
+            containsText(sentenceSlot(tree, "transaction.field.account"), "transaction.sentence.blank.account")
+        ).toBe(true);
     });
 
     it("seeds a create with the last-used account", async () => {
@@ -1483,7 +2025,7 @@ describe("transactionForm account attachment", () => {
             </Providers>
         );
 
-        expect(hasSwiftText(toJSON() as JsonNode, "Checking")).toBe(true);
+        expect(containsText(sentenceSlot(toJSON() as JsonNode, "transaction.field.account"), "Checking")).toBe(true);
     });
 
     it("seeds an edit from the row's own attachment, not the sticky default", async () => {
@@ -1521,8 +2063,8 @@ describe("transactionForm account attachment", () => {
         );
 
         const tree = toJSON() as JsonNode;
-        expect(hasSwiftText(tree, "Savings")).toBe(true);
-        expect(hasSwiftText(tree, "Checking")).toBe(false);
+        expect(containsText(sentenceSlot(tree, "transaction.field.account"), "Savings")).toBe(true);
+        expect(containsText(tree, "Checking")).toBe(false);
     });
 
     it("carries the attachment onto the saved row and remembers it", async () => {
@@ -1570,13 +2112,17 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        expect(screen.getByText("transaction.rate.title · transaction.rate.custom")).toBeTruthy();
+        // The strip under the sentence states the conversion the frozen rate produced.
+        expect(screen.getByText("Bs.100.00 = $1.80")).toBeTruthy();
+        expect(screen.getByText("transaction.rate.custom · 55.5")).toBeTruthy();
+
+        await openRateStep(screen);
         expect(
             screen.getByLabelText("transaction.rate.title · transaction.rate.custom").props.accessibilityValue
         ).toMatchObject({ text: "55.5 transaction.rate.perUsd" });
     });
 
-    it("opens a custom pending occurrence with the rate-needed confirmation visible", async () => {
+    it("opens a custom pending occurrence saying the entry is recorded but not converted", async () => {
         const db = dbHolder.current as Database;
         const initial = await seedStoredTransaction(db, {
             amountUsd: null,
@@ -1589,8 +2135,11 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        expect(screen.getByText("transaction.rate.pendingTitle")).toBeTruthy();
-        expect(screen.getByText("transaction.rate.pendingBody").props.accessibilityLiveRegion).toBe("polite");
+        expect(screen.getByText("transaction.rate.notConverted")).toBeTruthy();
+        expect(screen.getByText("transaction.rate.setRate")).toBeTruthy();
+        // The strip collapses its own alert role, so the reassurance has to reach
+        // assistive technology as the button's hint.
+        expect(screen.getByTestId("conversion-strip").props.accessibilityHint).toBe("transaction.rate.pendingBody");
     });
 
     it("defaults a new non-USD entry to official and a USD entry to no rate type", async () => {
@@ -1612,7 +2161,8 @@ describe("transactionForm entry-rate confirmation", () => {
                 <TransactionForm copyOf={vesCopy} db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
-        expect(ves.getByText("transaction.rate.title · transaction.rate.official")).toBeTruthy();
+        await openRateStep(ves);
+        expect(ves.getByLabelText("transaction.rate.title · transaction.rate.official")).toBeTruthy();
         await ves.unmount();
 
         const usd = await render(
@@ -1620,7 +2170,8 @@ describe("transactionForm entry-rate confirmation", () => {
                 <TransactionForm copyOf={{ ...vesCopy, currency: "USD" }} db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
-        expect(usd.queryByText("transaction.rate.title")).toBeNull();
+        // No strip at all, so there is no way into a rate step either.
+        expect(usd.queryByTestId("conversion-strip")).toBeNull();
     });
 
     it("removes EUR-reference when currency changes away from VES", async () => {
@@ -1643,14 +2194,16 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
+        await openRateStep(screen);
         await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.eur_reference" }));
         await waitFor(() => {
-            expect(screen.getByText("transaction.rate.title · transaction.rate.eur_reference")).toBeTruthy();
+            expect(screen.getByLabelText("transaction.rate.title · transaction.rate.eur_reference")).toBeTruthy();
         });
-        await fireEvent.press(screen.getByRole("button", { name: "test.selectCurrency.EUR" }));
+        await pickEuro(screen);
 
+        await openRateStep(screen);
         await waitFor(() => {
-            expect(screen.getByText("transaction.rate.title · transaction.rate.official")).toBeTruthy();
+            expect(screen.getByLabelText("transaction.rate.title · transaction.rate.official")).toBeTruthy();
             expect(screen.queryByRole("button", { name: "transaction.rate.eur_reference" })).toBeNull();
         });
     });
@@ -1668,13 +2221,15 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
+        await openRateStep(screen);
         expect(
             screen.getByLabelText("transaction.rate.title · transaction.rate.custom").props.accessibilityValue
         ).toMatchObject({ text: "55.5 transaction.rate.perUsd" });
-        await fireEvent.press(screen.getByRole("button", { name: "test.selectCurrency.EUR" }));
+        await pickEuro(screen);
 
+        await openRateStep(screen);
         await waitFor(() => {
-            expect(screen.getByText("transaction.rate.title · transaction.rate.custom")).toBeTruthy();
+            expect(screen.getByLabelText("transaction.rate.editCustom")).toBeTruthy();
             expect(screen.queryByText("55.5")).toBeNull();
         });
     });
@@ -1699,6 +2254,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
+        await openRateStep(screen);
         await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.custom" }));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
@@ -1727,6 +2283,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
+        await openRateStep(screen);
         await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.custom" }));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
@@ -1763,6 +2320,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
+        await openRateStep(screen);
         await fireEvent.press(screen.getByLabelText("transaction.rate.title · transaction.rate.official"));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
@@ -1797,6 +2355,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
+        await openRateStep(screen);
         await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.eur_reference" }));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
@@ -1827,6 +2386,7 @@ describe("transactionForm entry-rate confirmation", () => {
                 <TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
+        await openRateStep(screen);
         expect(
             screen.getByLabelText("transaction.rate.title · transaction.rate.official").props.accessibilityValue?.text
         ).toBeUndefined();
@@ -1869,6 +2429,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
+        await openRateStep(screen);
         await fireEvent.press(screen.getByLabelText("transaction.rate.title · transaction.rate.custom"));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
         await act(async () => saveButton?.props.onButtonPress());
@@ -1897,7 +2458,8 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        expect(screen.getByText("transaction.rate.title · transaction.rate.official")).toBeTruthy();
+        await openRateStep(screen);
+        expect(screen.getByLabelText("transaction.rate.title · transaction.rate.official")).toBeTruthy();
         expect(screen.getByRole("button", { name: "transaction.rate.custom" }).props.accessibilityValue).toMatchObject({
             text: "55.5 transaction.rate.perUsd",
         });
@@ -1931,8 +2493,9 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
+        await openRateStep(screen);
         await fireEvent.press(screen.getByLabelText("transaction.rate.title · transaction.rate.official"));
-        await fireEvent.press(screen.getByRole("button", { name: "test.selectCurrency.EUR" }));
+        await pickEuro(screen);
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -1966,13 +2529,18 @@ describe("transactionForm entry-rate confirmation", () => {
                 />
             </Providers>
         );
+        await openRateStep(screen);
         await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.custom" }));
+        await openDateWheel(screen);
         const changeDate = findFunctionProp(screen.toJSON() as JsonNode, "onDateChange");
+        expect(changeDate).not.toBeNull();
         await act(async () => changeDate?.({ nativeEvent: { date: new Date("2026-07-31T12:00:00.000Z").getTime() } }));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
 
         expect((await db.select().from(transactions)).map((row) => row.id)).toStrictEqual([prior.id]);
+        expect(screen.getByText("transaction.rate.notConverted")).toBeTruthy();
+        await openRateStep(screen);
         expect(screen.getByText("transaction.rate.required")).toBeTruthy();
     });
 
@@ -1984,7 +2552,9 @@ describe("transactionForm entry-rate confirmation", () => {
                 <TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
             </Providers>
         );
+        await openDateWheel(screen);
         const changeDate = findFunctionProp(screen.toJSON() as JsonNode, "onDateChange");
+        expect(changeDate).not.toBeNull();
         await act(async () => changeDate?.({ nativeEvent: { date: new Date("2026-07-31T12:00:00.000Z").getTime() } }));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
         await act(async () => saveButton?.props.onButtonPress());
@@ -2017,7 +2587,9 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
+        await openDateWheel(screen);
         const changeDate = findFunctionProp(screen.toJSON() as JsonNode, "onDateChange");
+        expect(changeDate).not.toBeNull();
         await act(async () => changeDate?.({ nativeEvent: { date: new Date("2026-08-09T12:00:00.000Z").getTime() } }));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
         await act(async () => saveButton?.props.onButtonPress());
@@ -2050,7 +2622,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        await fireEvent.press(screen.getByRole("button", { name: "test.selectCurrency.EUR" }));
+        await pickEuro(screen);
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -2086,7 +2658,9 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
+        await openDateWheel(screen);
         const changeDate = findFunctionProp(screen.toJSON() as JsonNode, "onDateChange");
+        expect(changeDate).not.toBeNull();
         await act(async () => changeDate?.({ nativeEvent: { date: new Date("2026-08-09T12:00:00.000Z").getTime() } }));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
         await act(async () => saveButton?.props.onButtonPress());
@@ -2125,6 +2699,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
+        await openRateStep(screen);
         await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.custom" }));
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());

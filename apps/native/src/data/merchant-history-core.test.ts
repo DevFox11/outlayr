@@ -9,7 +9,13 @@ import { categories, transactions } from "@/db/schema";
 import { testDatabase } from "@/db/test-database";
 import { merchantKey } from "@/domain/merchant-resolver";
 
-import { HISTORY_WINDOW, rememberedCategoryFor } from "./merchant-history-core";
+import {
+    HISTORY_WINDOW,
+    RECENT_MERCHANT_WINDOW,
+    recentMerchantNotesQuery,
+    recentMerchants,
+    rememberedCategoryFor,
+} from "./merchant-history-core";
 
 const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
 
@@ -115,5 +121,58 @@ describe("reading a merchant's category back out of the ledger", () => {
             log(`Filler ${filler}`, "other");
         }
         await expect(remembered("Panaderia La Mejor")).resolves.toBeNull();
+    });
+});
+
+/** The names the "recently" cluster would offer, most recent first. */
+async function recent(limit = 6, income = false): Promise<string[]> {
+    return recentMerchants(await recentMerchantNotesQuery(db, income), limit);
+}
+
+describe("reading the merchants this ledger already knows", () => {
+    it("answers with the merchants filed, most recent first", async () => {
+        log("Panaderia", "food");
+        log("Rio Supermercado", "groceries");
+        await expect(recent()).resolves.toStrictEqual(["Rio Supermercado", "Panaderia"]);
+    });
+
+    it("counts a merchant once however it was spelled, keeping the newest spelling", async () => {
+        log("panaderia la mejor", "food");
+        log("Panadería La Mejor", "food");
+        await expect(recent()).resolves.toStrictEqual(["Panadería La Mejor"]);
+    });
+
+    it("stays on one side of the ledger", async () => {
+        log("Acme", "salary", { income: true });
+        log("Rio Supermercado", "groceries");
+        await expect(recent()).resolves.toStrictEqual(["Rio Supermercado"]);
+        await expect(recent(6, true)).resolves.toStrictEqual(["Acme"]);
+    });
+
+    it("ignores deleted entries", async () => {
+        log("Netflix", "entertainment", { deleted: true });
+        await expect(recent()).resolves.toStrictEqual([]);
+    });
+
+    // Uncategorised is not unnamed: a merchant the user never filed under
+    // anything is still one they have bought from.
+    it("offers a merchant the user never categorised", async () => {
+        log("Netflix", null);
+        await expect(recent()).resolves.toStrictEqual(["Netflix"]);
+    });
+
+    it("stops at the limit it was given", async () => {
+        for (const name of ["A shop", "B shop", "C shop"]) {
+            log(name, "other");
+        }
+        await expect(recent(2)).resolves.toStrictEqual(["C shop", "B shop"]);
+    });
+
+    it("forgets a merchant pushed out of the recency window", async () => {
+        log("Panaderia", "food");
+        for (let filler = 0; filler < RECENT_MERCHANT_WINDOW; filler += 1) {
+            log(`Filler ${filler}`, "other");
+        }
+        await expect(recent()).resolves.not.toContain("Panaderia");
     });
 });

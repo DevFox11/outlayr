@@ -231,8 +231,8 @@ importers:
         specifier: ^0.4.2
         version: 0.4.2(1f492459e0f6db9f30ebcb04e9400f16)
       panelui-native:
-        specifier: ^0.46.0
-        version: 0.46.0(29e5505fd4e841eecfea0aa18ba0b849)
+        specifier: ^0.75.1
+        version: 0.75.1(29e5505fd4e841eecfea0aa18ba0b849)
       react:
         specifier: 19.2.3
         version: 19.2.3
@@ -6798,8 +6798,8 @@ packages:
   package-json-from-dist@1.0.1:
     resolution: {integrity: sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==}
 
-  panelui-native@0.46.0:
-    resolution: {integrity: sha512-8YWisHbHCYLxajNmLmc9w7xCOvy3kVt2hP1jUvSRjXJs4tfBHjMdJExniID3TuwJBCNH1ZcSLTPbqHcGjkRFIQ==}
+  panelui-native@0.75.1:
+    resolution: {integrity: sha512-lmgks9hxfVxHVxmsZ7Vx97jPnlh8NqVC4PMp4papMGUpFmLnIyc9PIfbLXveYj0iZeHXhbQhWQLfIxcFWvFVtg==}
     peerDependencies:
       '@expo/ui': '*'
       '@maplibre/maplibre-react-native': '>=11.0.0'
@@ -15988,7 +15988,7 @@ snapshots:
 
   package-json-from-dist@1.0.1: {}
 
-  panelui-native@0.46.0(29e5505fd4e841eecfea0aa18ba0b849):
+  panelui-native@0.75.1(29e5505fd4e841eecfea0aa18ba0b849):
     dependencies:
       '@react-native-masked-view/masked-view': 0.3.2(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.17)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       clsx: 2.1.1

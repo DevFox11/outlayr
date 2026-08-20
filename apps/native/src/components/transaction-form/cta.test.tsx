@@ -32,25 +32,40 @@ describe("transactionFormCtaActions", () => {
         expect(actions.map((a) => a.icon)).toStrictEqual(["delete", "done"]);
     });
 
-    it("disables save when the form cannot be saved", () => {
+    // Never disabled: pressing a blocked save is how the form is asked what is missing.
+    it("keeps save pressable but unprominent when the form cannot be saved", () => {
         const [save] = transactionFormCtaActions({ ...BASE, canSave: false });
+        expect(save?.disabled).toBe(false);
+        expect(save?.variant).toBeUndefined();
+    });
+
+    it("promotes save when the form can be saved", () => {
+        const [save] = transactionFormCtaActions({ ...BASE, canSave: true });
+        expect(save?.disabled).toBe(false);
+        expect(save?.variant).toBe("done");
+    });
+
+    // The one state that refuses the press: a second tap mid-flight re-enters submit.
+    it("disables save only while a submit is in flight", () => {
+        const [save] = transactionFormCtaActions({ ...BASE, busy: true, canSave: false });
         expect(save?.disabled).toBe(true);
     });
 
-    it("enables save when the form can be saved", () => {
-        const [save] = transactionFormCtaActions({ ...BASE, canSave: true });
-        expect(save?.disabled).toBe(false);
+    it("dims a blocked save with the tint it is given", () => {
+        const [save] = transactionFormCtaActions({ ...BASE, blockedTint: "#8b8377", canSave: false });
+        expect(save?.tintColor).toBe("#8b8377");
     });
 
     // An unsaveable draft is still deletable — only save is ever dimmed.
-    it("leaves delete enabled while save is disabled", () => {
+    it("leaves delete alone while save is blocked", () => {
         const [remove, save] = transactionFormCtaActions({
             ...BASE,
             canSave: false,
             onDelete: () => {},
         });
         expect(remove?.disabled).toBe(false);
-        expect(save?.disabled).toBe(true);
+        expect(save?.disabled).toBe(false);
+        expect(save?.variant).toBeUndefined();
     });
 
     it("wires each action to its own handler", () => {

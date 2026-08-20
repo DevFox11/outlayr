@@ -151,6 +151,11 @@ export function formatUpcomingDate(date: Date, language: Language = runtimeLangu
     return `${date.getDate()} ${monthAbbrev(date, language)}`;
 }
 
+/** "24 Jul" — {@link formatUpcomingDate} for somewhere a shout would be read as one. */
+export function formatSentenceDate(date: Date, language: Language = runtimeLanguage()): string {
+    return `${date.getDate()} ${monthAbbrevTitle(date, language)}`;
+}
+
 /**
  * "9:04 PM" on a 12-hour clock, "21:04" on a 24-hour one. The 24-hour form pads
  * the hour because that is how every locale that uses it writes the small hours;

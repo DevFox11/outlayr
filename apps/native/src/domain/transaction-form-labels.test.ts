@@ -5,7 +5,7 @@ import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";
 
 import { RECURRING_TYPE } from "./recurrence";
-import { cadenceLabel, ctaKey, leadLabel } from "./transaction-form-labels";
+import { cadenceLabel, ctaKey, leadLabel, transactionWhenLabel } from "./transaction-form-labels";
 
 const en: TranslateFn = (key, params) => translate(key, { catalog: EN, fallback: EN, params });
 
@@ -65,5 +65,58 @@ describe("cadenceLabel", () => {
     it("falls back to the monthly phrasing for a cadence the picker never offers", () => {
         expect(cadenceLabel(en, RECURRING_TYPE.none)).toBe("Monthly");
         expect(cadenceLabel(en, 99)).toBe("Monthly");
+    });
+});
+
+describe("transactionWhenLabel", () => {
+    const now = new Date(2026, 7, 18, 14, 30);
+
+    it("says today for any time on the current day", () => {
+        expect(transactionWhenLabel(en, { date: new Date(2026, 7, 18, 1), interval: null, language: "en", now })).toBe(
+            "today"
+        );
+    });
+
+    it("says yesterday for the day before", () => {
+        expect(transactionWhenLabel(en, { date: new Date(2026, 7, 17, 23), interval: null, language: "en", now })).toBe(
+            "yesterday"
+        );
+    });
+
+    it("says yesterday across a daylight-saving boundary", () => {
+        const originalTimezone = process.env.TZ;
+        process.env.TZ = "America/New_York";
+        try {
+            expect(
+                transactionWhenLabel(en, {
+                    date: new Date(2026, 2, 8, 23),
+                    interval: null,
+                    language: "en",
+                    now: new Date(2026, 2, 9, 14),
+                })
+            ).toBe("yesterday");
+        } finally {
+            process.env.TZ = originalTimezone;
+        }
+    });
+
+    it("names the date once it is older than yesterday", () => {
+        expect(transactionWhenLabel(en, { date: new Date(2026, 7, 15), interval: null, language: "en", now })).toBe(
+            "on 15 Aug"
+        );
+    });
+
+    it("names a future date the same way", () => {
+        expect(transactionWhenLabel(en, { date: new Date(2026, 8, 2), interval: null, language: "en", now })).toBe(
+            "on 2 Sep"
+        );
+    });
+
+    // A subscription's timing is its cadence, so the phrase replaces the day
+    // rather than sitting beside it.
+    it("states the cadence instead of the day for a subscription", () => {
+        expect(transactionWhenLabel(en, { date: new Date(2026, 7, 18), interval: "month", language: "en", now })).toBe(
+            "every month from 18 Aug"
+        );
     });
 });

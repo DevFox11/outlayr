@@ -2,10 +2,12 @@ import { describe, expect, it, jest } from "@jest/globals";
 
 import { faviconUrl, fetchMerchantImage, logoDevUrl } from "./logo-fetch";
 
+const mockWriteCachedLogo = jest.fn();
+
 jest.mock("@/lib/logo-cache", () => ({
     logoCacheKey: () => "test-key",
     readCachedLogo: () => ({ kind: "unknown" }),
-    writeCachedLogo: () => {},
+    writeCachedLogo: (...args: unknown[]) => mockWriteCachedLogo(...args),
 }));
 
 jest.mock<Partial<typeof import("@outlayr/env/native")>>("@outlayr/env/native", () => ({
@@ -121,5 +123,23 @@ describe("fetchMerchantImage", () => {
         expect(calls).toHaveLength(1);
         expect(calls[0]).toContain("s2/favicons");
         jest.dontMock("@outlayr/env/native");
+    });
+
+    // Regression: enrichment calls this for partial spellings, which carry no
+    // domain, and the cache key is folded from whatever is in the field when the
+    // call resolves. Filing that as a miss left the finished name unable to take
+    // a logo — a `netflix.miss` sitting beside a perfectly good Netflix logo.
+    it("does not remember a miss for a request that queried nothing", async () => {
+        mockWriteCachedLogo.mockClear();
+        const fetchImpl = jest.fn();
+
+        const outcome = await fetchMerchantImage(
+            { domain: null, name: "Netflix" },
+            fetchImpl as unknown as typeof fetch
+        );
+
+        expect(outcome.kind).toBe("none");
+        expect(fetchImpl).not.toHaveBeenCalled();
+        expect(mockWriteCachedLogo).not.toHaveBeenCalled();
     });
 });

@@ -49,6 +49,7 @@ describe("seeding the curated merchant map", () => {
             categoryName: "Education",
             domain: "duolingo.com",
             id: "duolingo",
+            label: "Duolingo",
             patterns: ["duolingo", "duolingo super", "duolingo plus"],
             tags: ["Learning", "Subscription"],
         });
@@ -56,6 +57,7 @@ describe("seeding the curated merchant map", () => {
             categoryName: "Entertainment",
             domain: "netflix.com",
             id: "netflix",
+            label: "Netflix",
             patterns: ["netflix"],
             tags: ["Streaming", "Subscription"],
         });
@@ -63,6 +65,7 @@ describe("seeding the curated merchant map", () => {
             categoryName: "Shopping",
             domain: "apple.com",
             id: "apple",
+            label: "Apple",
             patterns: ["apple", "apple store", "apple com bill"],
             tags: ["Apple"],
         });
@@ -70,6 +73,7 @@ describe("seeding the curated merchant map", () => {
             categoryName: "Entertainment",
             domain: "music.apple.com",
             id: "apple-music",
+            label: "Apple Music",
             patterns: ["apple music", "itunes music"],
             tags: ["Music", "Streaming", "Subscription"],
         });
@@ -77,6 +81,7 @@ describe("seeding the curated merchant map", () => {
             categoryName: "Entertainment",
             domain: "youtube.com",
             id: "youtube",
+            label: "YouTube",
             patterns: ["youtube", "youtube premium"],
             tags: ["Streaming", "Subscription"],
         });
@@ -84,6 +89,7 @@ describe("seeding the curated merchant map", () => {
             categoryName: "Entertainment",
             domain: "music.youtube.com",
             id: "youtube-music",
+            label: "YouTube Music",
             patterns: ["youtube music", "yt music"],
             tags: ["Music", "Streaming", "Subscription"],
         });

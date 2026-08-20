@@ -127,6 +127,7 @@ describe("transactionRateSuggestions", () => {
             .run();
 
         expect(transactionRateSuggestions(db, "VES", SELECTED_DATE)).toStrictEqual({
+            eurOfficial: 0.8,
             eurReference: 50,
             official: 42,
             priorCustom: null,

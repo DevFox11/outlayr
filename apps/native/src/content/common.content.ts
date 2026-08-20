@@ -67,6 +67,10 @@ const common = {
             en: "Never",
             es: "Nunca",
         }),
+        "common.next": t({
+            en: "Next",
+            es: "Siguiente",
+        }),
         "common.off": t({
             en: "Off",
             es: "Desactivado",

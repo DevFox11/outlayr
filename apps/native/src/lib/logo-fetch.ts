@@ -78,9 +78,18 @@ export async function fetchMerchantImage(
         return NONE;
     }
 
+    // A request with no domain asks nothing of any tier, so its "miss" is not an
+    // answer — it is the absence of a question. Remembering it poisons the name:
+    // enrichment calls this for partial spellings too, and the key is folded from
+    // whatever is in the field WHEN THE CALL RESOLVES, so typing "Netflix" one
+    // letter at a time could file a miss under the finished name and leave that
+    // merchant unable to take a logo ever again.
+    if (request.domain == null || request.domain.length === 0) {
+        return NONE;
+    }
     const outcome = await resolveMerchantImage(request, fetchImpl);
-    // Misses are remembered too: without that, every merchant these three tiers
-    // cannot answer for is re-queried on every form, forever.
+    // A real miss IS remembered: without that, every merchant these tiers cannot
+    // answer for is re-queried on every form, forever.
     cache?.writeCachedLogo(key, outcome.kind === "logo" ? outcome.bytes : null);
     return outcome;
 }

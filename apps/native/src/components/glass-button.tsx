@@ -1,6 +1,7 @@
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import type { AccessibilityValue } from "react-native";
 
 import { cn } from "./tw";
 
@@ -9,9 +10,12 @@ const GLASS = isLiquidGlassAvailable();
 export function GlassButton({
     onPress,
     accessibilityLabel,
+    accessibilityValue,
     className,
     children,
 }: {
+    /** What the button currently reads — a label alone cannot carry a value. */
+    accessibilityValue?: AccessibilityValue;
     onPress: () => void;
     accessibilityLabel: string;
     className: string;
@@ -21,6 +25,7 @@ export function GlassButton({
         <Pressable
             accessibilityLabel={accessibilityLabel}
             accessibilityRole="button"
+            accessibilityValue={accessibilityValue}
             className="active:opacity-70"
             onPress={onPress}
         >

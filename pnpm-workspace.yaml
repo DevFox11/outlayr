@@ -36,3 +36,4 @@ catalog:
     typescript: ~6.0.3
 minimumReleaseAgeExclude:
     - ultracite@7.10.4
+    - panelui-native@0.75.1

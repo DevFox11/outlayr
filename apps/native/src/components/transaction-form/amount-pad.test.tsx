@@ -1,16 +1,14 @@
 import { describe, expect, it, jest } from "@jest/globals";
-import { render } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 
 import { TransactionFormAmountPad } from "./amount-pad";
 
-jest.mock("panelui-native", () => {
-    const react = require("react") as typeof import("react");
-    const Content = ({ children, ...rest }: Record<string, unknown>) =>
-        react.createElement("SheetContent", rest, children as never);
-    const Root = ({ children, ...rest }: Record<string, unknown>) =>
-        react.createElement("Sheet", rest, children as never);
-    return { BottomSheet: Object.assign(Root, { Content }) };
-});
+jest.mock("react-native-safe-area-context", () => ({
+    useSafeAreaInsets: () => ({ bottom: 34, left: 0, right: 0, top: 59 }),
+}));
+jest.mock("@/i18n/context", () => ({
+    useTranslation: () => (key: string) => key,
+}));
 jest.mock("../amount-numpad", () => {
     const react = require("react") as typeof import("react");
     return {
@@ -21,10 +19,10 @@ jest.mock("../amount-numpad", () => {
 const BASE = {
     code: "USD",
     income: false,
+    label: "Amount",
     minorUnits: 2,
     onChange: () => {},
-    onOpenChange: () => {},
-    open: true,
+    stepKey: "amount",
     value: "4500",
 };
 
@@ -61,8 +59,18 @@ function findByType(node: JsonNode | JsonNode[] | null, type: string): JsonNode 
     return null;
 }
 
+const texts = (node: JsonNode | string | null): string[] => {
+    if (node === null) {
+        return [];
+    }
+    if (typeof node === "string") {
+        return [node];
+    }
+    return (node.children ?? []).flatMap(texts);
+};
+
 describe("transactionFormAmountPad", () => {
-    // The hero above the pad already shows the figure; letting the keypad draw
+    // The sentence above the pad already shows the figure; letting the keypad draw
     // its own puts two different amounts on screen at once.
     it("suppresses the keypad's own amount readout", async () => {
         const { toJSON } = await render(<TransactionFormAmountPad {...BASE} />);
@@ -94,23 +102,47 @@ describe("transactionFormAmountPad", () => {
         expect(pad?.props.toneClass).not.toContain("income");
     });
 
-    // A swipe-down closes the sheet without going through the button, and the
-    // form's `padOpen` has to follow or the sheet can never be reopened.
-    it("reports a swipe-down dismissal back to the form", async () => {
-        const onOpenChange = jest.fn();
-        const { toJSON } = await render(<TransactionFormAmountPad {...BASE} onOpenChange={onOpenChange} />);
-        const sheet = findByType(toJSON() as JsonNode, "Sheet");
-        expect(sheet?.props.open).toBe(true);
-        const change = sheet?.props.onOpenChange as (next: boolean) => void;
-        change(false);
-        expect(onOpenChange).toHaveBeenCalledWith(false);
+    // Docked, the pad has no sheet chrome to say what it is entering, and the
+    // form can be showing either an amount or an exchange rate.
+    it("names what it is entering", async () => {
+        const { toJSON } = await render(<TransactionFormAmountPad {...BASE} code="VES/USD" label="Entry rate" />);
+        expect(texts(toJSON() as JsonNode)).toStrictEqual(expect.arrayContaining(["Entry rate", "VES/USD"]));
     });
 
-    // The platform sheet brings its own drag indicator and swipe-to-dismiss, so
-    // there is no in-content close button to render or suppress.
-    it("presents the platform's own sheet", async () => {
+    it("opens the currency picker from the code", async () => {
+        const onCodePress = jest.fn();
+        await render(<TransactionFormAmountPad {...BASE} onCodePress={onCodePress} />);
+
+        // `Pressable`'s host view carries `onClick`, not `onPress` — see `amount-numpad.test.tsx`.
+        await act(async () => {
+            fireEvent(screen.getByLabelText("transaction.amount.changeCurrency"), "click");
+        });
+
+        expect(onCodePress).toHaveBeenCalledTimes(1);
+    });
+
+    // The rate pad's "VES/USD" is a pair, not a currency the picker can swap.
+    it("leaves the code inert when nothing can be opened from it", async () => {
+        await render(<TransactionFormAmountPad {...BASE} code="VES/USD" label="Entry rate" />);
+
+        expect(screen.queryByLabelText("transaction.amount.changeCurrency")).toBeNull();
+    });
+
+    // The sentence directly above already states the amount, so naming the field
+    // again is the one redundant word on the surface.
+    it("drops the field name once the code is a control", async () => {
+        const { toJSON } = await render(<TransactionFormAmountPad {...BASE} onCodePress={() => {}} />);
+        const rendered = texts(toJSON() as JsonNode);
+
+        expect(rendered).not.toStrictEqual(expect.arrayContaining(["Amount"]));
+        expect(rendered).toStrictEqual(expect.arrayContaining(["USD"]));
+    });
+
+    // Nothing presents it any more, so it sits on the home indicator unless it
+    // carries the inset itself.
+    it("clears the home indicator", async () => {
         const { toJSON } = await render(<TransactionFormAmountPad {...BASE} />);
-        const sheet = findByType(toJSON() as JsonNode, "Sheet");
-        expect(sheet?.props.native).toBe(true);
+        const root = toJSON() as JsonNode;
+        expect(root.props.style).toStrictEqual(expect.objectContaining({ paddingBottom: 34 }));
     });
 });

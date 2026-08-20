@@ -34,6 +34,11 @@ export type BoolSettingKey =
     // Swift's `DefaultsKey.confetti`: throws confetti over a newly created
     // transaction.
     | "confetti"
+    // Set the first time the transaction form's coaching line is dismissed. The
+    // sentence carries no instructional copy of its own, which works from the
+    // second entry on; this is the one line that says a word can be tapped, and
+    // it is never shown again.
+    | "sentenceCoachSeen"
     // Swift's `DefaultsKey.budgetViewStyle`: true lists the budgets as rows,
     // false as a two-up card grid. Swift defaulted to the grid; the Grid design
     // pass made rows the shipped list here, so the default is inverted.
@@ -102,6 +107,7 @@ export const SETTING_DEFAULTS = {
     notificationMinute: 0,
     notificationOption: 1,
     numberEntryType: 2,
+    sentenceCoachSeen: false,
     showCents: true,
     showNotifications: false,
     showUpcoming: true,

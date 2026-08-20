@@ -23,6 +23,15 @@
             --muted: #6b6557;
             --subtle: #6d6657;
 
+            /* The connector words of the transaction sentence — "at", "for",
+               "from" — which carry no fact and must not compete with the ones
+               that do. The AA floor binds on `--surface-secondary`, the darkest
+               plane paper paints, and `--muted` already sits at 4.91:1 there:
+               the entire band between it and 4.5:1 is five RGB levels wide, so
+               on paper this is as dim as a token is allowed to be. Dark has the
+               room paper does not. */
+            --grammar: #706a5c;
+
             --surface: #f8f6f1;
             --surface-foreground: #17150f;
             /* The one plane that goes darker than paper, and only as far as the
@@ -33,6 +42,12 @@
 
             --border: #dcd8cc;
             --separator: #dcd8cc;
+
+            /* The dashed rule under an unfilled slot in the transaction sentence.
+               It cannot be `--separator`: that is a hairline drawn between rows
+               and it vanishes under a 26px word. 30% of the ink is a rule that
+               reads as waiting for something without reading as already filled. */
+            --blank-rule: rgba(23, 21, 15, 0.3);
 
             /* Was a hex mirror of iOS `systemGroupedBackground`. A grouped list on
 			   paper takes the paper itself and lets its cells float lighter on
@@ -97,6 +112,15 @@
 			   paper. */
             --rail-over: rgba(189, 28, 30, 0.2);
             --rail-track: rgba(23, 21, 15, 0.13);
+
+            /* panelui reads this one at RUNTIME through `useCSSVariable`, to tint
+			   the icons and the ✕ inside a selected Chip, and its own theme.css
+			   already sets it. The inline bridge further down only generates
+			   utility classes, so without declaring the variable here the ✕ came
+			   out #262626 beside a paper label on the same pill. Same value as
+			   `--accent-foreground`: measured on `--tint`, 4.78:1 light and
+			   5.48:1 dark. */
+            --color-accent-foreground: #f2f0ea;
 
             --color-card: #f8f6f1;
             --color-card-foreground: #17150f;
@@ -163,6 +187,12 @@
             --muted: #a8a093;
             --subtle: #968e80;
 
+            /* See the light-mode note. The floor binds on `--surface` #2a251b,
+               the brightest plane the dark face paints, where 4.5:1 lands at
+               #938b7e — the design's #6f6960 measures 2.80:1 there and is not
+               available. */
+            --grammar: #948c7f;
+
             --surface: #2a251b;
             --surface-foreground: #f2efe8;
             --surface-secondary: #201d15;
@@ -170,6 +200,9 @@
 
             --border: #353026;
             --separator: #353026;
+
+            /* See the light-mode note. */
+            --blank-rule: rgba(242, 239, 232, 0.3);
 
             /* See the light-mode note. */
             --grouped-background: #0e0c08;
@@ -205,6 +238,9 @@
             /* See the light-mode note. */
             --rail-over: rgba(241, 120, 121, 0.22);
             --rail-track: rgba(242, 239, 232, 0.14);
+
+            /* See the light-mode note. */
+            --color-accent-foreground: #17150f;
 
             --color-card: #201d15;
             --color-card-foreground: #f2efe8;
@@ -262,12 +298,14 @@
     --color-foreground: var(--foreground);
     --color-muted: var(--muted);
     --color-subtle: var(--subtle);
+    --color-grammar: var(--grammar);
     --color-surface: var(--surface);
     --color-surface-foreground: var(--surface-foreground);
     --color-surface-secondary: var(--surface-secondary);
     --color-surface-secondary-foreground: var(--surface-secondary-foreground);
     --color-border: var(--border);
     --color-separator: var(--separator);
+    --color-blank-rule: var(--blank-rule);
     --color-grouped-background: var(--grouped-background);
     --color-accent: var(--accent);
     --color-accent-foreground: var(--accent-foreground);
