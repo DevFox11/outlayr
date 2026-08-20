@@ -1,14 +1,24 @@
 import { and, asc, desc, eq, getTableColumns, gte, inArray, isNull, lte } from "drizzle-orm";
 import { useEffect, useMemo } from "react";
 
+import { useSettingNumber } from "@/contexts/display-settings-context";
 import type { Database } from "@/db/client";
 import { budgets, mainBudget, transactions } from "@/db/schema";
 import { buildBurndown } from "@/domain/budget-burndown";
 import type { Burndown } from "@/domain/budget-burndown";
-import { advanceBudgetWindow, periodsBackTo, shiftWindow } from "@/domain/budget-math";
+import {
+    advanceBudgetWindow,
+    BUDGET_TYPE,
+    periodEnd,
+    periodsBackTo,
+    shiftWindow,
+    startOfPeriod,
+} from "@/domain/budget-math";
 import type { BudgetWindow } from "@/domain/budget-math";
 import { effectiveLimit, rolloverCarry } from "@/domain/budget-rollover";
+import { closedWindowsBefore, EVERY_SCOPE, spendPerWindow, typicalOf } from "@/domain/budget-typical";
 import { limitIn, sumValuedIn, valueDatedRowsIn } from "@/domain/valuation";
+import { translateNow } from "@/i18n/runtime";
 
 import { expenseContributionQuery, spentForCategory, spentForMain } from "./budget-spent";
 import type { ExpenseContribution } from "./budget-spent";
@@ -27,10 +37,18 @@ export type MainBudget = typeof mainBudget.$inferSelect;
 export interface CategoryBudgetView {
     /** The target this window actually runs on: `limit` plus any carry, floored at zero. */
     amount: number;
+    /** Where the budget counts from. The editor writes this, and windows advance from it. */
+    anchor: Date;
     /** Signed: unspent allowance inherited, or an overspend still being paid off. */
     carry: number;
     categoryId: string | null;
     color: string;
+    /** The stored currency, which is not today's when the ledger's has since changed. */
+    currency: string | null;
+    /** The name as stored: null means the category's own name is standing in. */
+    customName: string | null;
+    /** Storage is icon XOR emoji, so a category with an emoji has no icon. */
+    emoji: string | null;
     icon: string | null;
     id: string;
     leftover: number;
@@ -47,8 +65,14 @@ export interface CategoryBudgetView {
 export interface MainBudgetView {
     /** The target this window runs on: `limit` plus any carry, floored at zero. */
     amount: number;
+    /** Where the budget counts from. The editor writes this, and windows advance from it. */
+    anchor: Date;
     /** Signed: unspent allowance inherited, or an overspend still being paid off. */
     carry: number;
+    /** The stored currency, which is not today's when the ledger's has since changed. */
+    currency: string | null;
+    /** The name as stored: null means the standing-in label is what is on screen. */
+    customName: string | null;
     id: string;
     leftover: number;
     /** The target as set, before anything carried into it. */
@@ -68,7 +92,8 @@ export function windowEndMs(window: BudgetWindow, nowMs: number): number {
     return Math.min(window.end.getTime() - 1, nowMs);
 }
 
-function earliestDate(rows: readonly { date: Date }[]): Date | null {
+/** The first day the ledger holds anything, or null while it holds nothing. */
+export function earliestDate(rows: readonly { date: Date }[]): Date | null {
     let earliest: Date | null = null;
     for (const row of rows) {
         if (earliest === null || row.date.getTime() < earliest.getTime()) {
@@ -167,11 +192,14 @@ export function useMainBudget(
         const amount = effectiveLimit(limit, carry);
         return {
             amount,
+            anchor: row.startDate ?? window.start,
             carry,
+            currency: row.currency,
+            customName: row.name?.trim() ? row.name.trim() : null,
             id: row.id,
             leftover: amount - spent,
             limit,
-            name: row.name?.trim() ? row.name.trim() : "Overall Budget",
+            name: row.name?.trim() ? row.name.trim() : translateNow("budgets.scope.everything"),
             overBudget: spent > amount,
             periodsBack: periodsBackTo(current.start, row.type, earliestDate(contributions)),
             rollover: row.rollover,
@@ -283,9 +311,13 @@ export function usePerCategoryBudgets(
             const amount = effectiveLimit(limit, carry);
             return {
                 amount,
+                anchor: row.startDate ?? window.start,
                 carry,
                 categoryId: row.categoryId,
                 color: meta?.color ?? "#767676",
+                currency: row.currency,
+                customName: row.name?.trim() ? row.name.trim() : null,
+                emoji: meta?.emoji ?? null,
                 icon: meta?.icon ?? null,
                 id: row.id,
                 leftover: amount - spent,
@@ -310,6 +342,12 @@ export function useOverBudgetCount(db: Database, nowMs: number): number {
 export interface CategoryBudgetDetail {
     /** `null` once the budget is gone. */
     budget: CategoryBudgetView | null;
+    /**
+     * The ledger the carry was summed from, handed back so the screen's limit
+     * sheet can draw its curve without opening a second listener over the same
+     * rows — see {@link useExpenseContributions}.
+     */
+    contributions: readonly ExpenseContribution[];
     /** Whole closed periods behind the current window that hold spending. */
     periodsBack: number;
     /** Newest first. */
@@ -395,9 +433,13 @@ export function useCategoryBudget(db: Database, id: string, nowMs: number, perio
         const amount = effectiveLimit(limit, carry);
         return {
             amount,
+            anchor: row.startDate ?? window.start,
             carry,
             categoryId: row.categoryId,
             color: meta?.color ?? "#767676",
+            currency: row.currency,
+            customName: row.name?.trim() ? row.name.trim() : null,
+            emoji: meta?.emoji ?? null,
             icon: meta?.icon ?? null,
             id: row.id,
             leftover: amount - spent,
@@ -413,7 +455,7 @@ export function useCategoryBudget(db: Database, id: string, nowMs: number, perio
 
     const periodsBack = current && row ? periodsBackTo(current.start, row.type, earliest) : 0;
 
-    return { budget, periodsBack, transactions: windowTransactions };
+    return { budget, contributions, periodsBack, transactions: windowTransactions };
 }
 
 /**
@@ -535,4 +577,79 @@ export function useBudgetContributions(
             }),
         [data, categoryMeta]
     );
+}
+
+export interface UnbudgetedScope {
+    categoryId: string;
+    color: string;
+    emoji: string | null;
+    icon: string | null;
+    name: string;
+    /** Median spend per closed window. Only scopes that have one are listed. */
+    typical: number;
+}
+
+export interface UnbudgetedRail {
+    /** Median spend for the whole ledger, for the Everything row. */
+    everything: number | null;
+    /** Ordered by what they cost, heaviest first. */
+    scopes: UnbudgetedScope[];
+    /** The window a limit set from the rail would run on. */
+    window: BudgetWindow;
+}
+
+/**
+ * What you spend on and have not budgeted.
+ *
+ * Top-level categories only: a subcategory's spend already counts toward its
+ * parent, so offering both would ask for the same money twice. A category with
+ * nothing spent in the sampled windows is never listed — the rail is ordered by
+ * cost, and a row with no figure has nothing to sort on. Reach those through the
+ * picker instead.
+ */
+export function useUnbudgetedScopes(
+    db: Database,
+    nowMs: number,
+    contributions: readonly ExpenseContribution[],
+    type: number = BUDGET_TYPE.month
+): UnbudgetedRail {
+    const rows = useLiveQuery(budgets, () =>
+        db.select({ categoryId: budgets.categoryId }).from(budgets).where(isNull(budgets.deletedAt))
+    );
+    const categoryMeta = useCategoryMeta(db);
+    const firstDayOfMonth = useSettingNumber("firstDayOfMonth");
+    const firstWeekday = useSettingNumber("firstWeekday");
+
+    return useMemo(() => {
+        const now = new Date(nowMs);
+        const start = startOfPeriod(now, type, { firstDayOfMonth, firstWeekday });
+        const window = { end: periodEnd(start, type), start };
+        const totals = spendPerWindow(
+            contributions,
+            closedWindowsBefore({ current: window, since: earliestDate(contributions), type })
+        );
+        const budgeted = new Set(rows.map((row) => row.categoryId));
+
+        const scopes: UnbudgetedScope[] = [];
+        for (const [categoryId, meta] of categoryMeta) {
+            if (meta.parentId || budgeted.has(categoryId)) {
+                continue;
+            }
+            const typical = typicalOf(totals.get(categoryId) ?? []);
+            if (typical === null) {
+                continue;
+            }
+            scopes.push({
+                categoryId,
+                color: meta.color ?? "#767676",
+                emoji: meta.emoji,
+                icon: meta.icon,
+                name: meta.name ?? translateNow("budgets.name.default"),
+                typical,
+            });
+        }
+        scopes.sort((left, right) => right.typical - left.typical);
+
+        return { everything: typicalOf(totals.get(EVERY_SCOPE) ?? []), scopes, window };
+    }, [rows, categoryMeta, contributions, nowMs, type, firstDayOfMonth, firstWeekday]);
 }

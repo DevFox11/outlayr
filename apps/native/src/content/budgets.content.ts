@@ -7,6 +7,10 @@ const budgets = {
             en: "Cancel",
             es: "Cancelar",
         }),
+        "budgets.action.changeLimit": t({
+            en: "Change limit",
+            es: "Cambiar límite",
+        }),
         "budgets.action.close": t({
             en: "Close",
             es: "Cerrar",
@@ -87,9 +91,57 @@ const budgets = {
             en: "unspent",
             es: "sin gastar",
         }),
-        "budgets.edit.title": t({
-            en: "Edit Budget",
-            es: "Editar presupuesto",
+        "budgets.editor.carry": t({
+            en: "Carry over what's left",
+            es: "Arrastrar lo que quede",
+        }),
+        "budgets.editor.carryNote": t({
+            en: "What you don't spend is added to the next period, and what you overspend is taken off it.",
+            es: "Lo que no gastes se suma al período siguiente, y lo que te pases se le resta.",
+        }),
+        "budgets.editor.closedWindow": t({
+            en: "Editing changes the current window, not this one.",
+            es: "Editar cambia la ventana actual, no esta.",
+        }),
+        "budgets.editor.currency": t({
+            en: "Set in {from}. Saving restates it in {to}.",
+            es: "Definido en {from}. Al guardar se expresa en {to}.",
+        }),
+        "budgets.editor.dropCarry": t({
+            en: "Turning this off drops the {carry} carried in.",
+            es: "Al desactivarlo se pierde el {carry} arrastrado.",
+        }),
+        "budgets.editor.every": t({
+            en: "Every",
+            es: "Cada",
+        }),
+        "budgets.editor.from": t({
+            en: "From",
+            es: "Desde",
+        }),
+        "budgets.editor.limit": t({
+            en: "Limit",
+            es: "Límite",
+        }),
+        "budgets.editor.limitCarry": t({
+            en: "{amount} this window, with {carry} carried in",
+            es: "{amount} esta ventana, con {carry} arrastrado",
+        }),
+        "budgets.editor.name": t({
+            en: "Name",
+            es: "Nombre",
+        }),
+        "budgets.editor.nameNote": t({
+            en: "Leave it blank to keep the category's own name.",
+            es: "Déjalo vacío para conservar el nombre de la categoría.",
+        }),
+        "budgets.editor.reslice": t({
+            en: "This window becomes {window}. What was spent before it stays where it was spent.",
+            es: "Esta ventana pasa a ser {window}. Lo gastado antes se queda donde se gastó.",
+        }),
+        "budgets.editor.title": t({
+            en: "THE BUDGET",
+            es: "EL PRESUPUESTO",
         }),
         "budgets.empty.action": t({
             en: "Add a Transaction",
@@ -111,78 +163,6 @@ const budgets = {
             en: "{count} expenses",
             es: "{count} gastos",
         }),
-        "budgets.form.amountA11y": t({
-            en: "Edit amount",
-            es: "Editar monto",
-        }),
-        "budgets.form.category": t({
-            en: "CATEGORY",
-            es: "CATEGORÍA",
-        }),
-        "budgets.form.create": t({
-            en: "Create budget",
-            es: "Crear presupuesto",
-        }),
-        "budgets.form.defaultName": t({
-            en: "Budget",
-            es: "Presupuesto",
-        }),
-        "budgets.form.defaultOverall": t({
-            en: "Overall Budget",
-            es: "Presupuesto general",
-        }),
-        "budgets.form.kindCategory": t({
-            en: "Category",
-            es: "Categoría",
-        }),
-        "budgets.form.kindOverall": t({
-            en: "Overall",
-            es: "General",
-        }),
-        "budgets.form.name": t({
-            en: "NAME",
-            es: "NOMBRE",
-        }),
-        "budgets.form.period": t({
-            en: "PERIOD",
-            es: "PERÍODO",
-        }),
-        "budgets.form.periodDay": t({
-            en: "Day",
-            es: "Día",
-        }),
-        "budgets.form.periodMonth": t({
-            en: "Month",
-            es: "Mes",
-        }),
-        "budgets.form.periodWeek": t({
-            en: "Week",
-            es: "Semana",
-        }),
-        "budgets.form.periodYear": t({
-            en: "Year",
-            es: "Año",
-        }),
-        "budgets.form.rollover": t({
-            en: "Carry over",
-            es: "Arrastrar saldo",
-        }),
-        "budgets.form.rolloverNote": t({
-            en: "What you don't spend is added to the next period, and what you overspend is taken off it.",
-            es: "Lo que no gastes se suma al período siguiente, y lo que te pases se le resta.",
-        }),
-        "budgets.form.save": t({
-            en: "Save changes",
-            es: "Guardar cambios",
-        }),
-        "budgets.form.selectCategory": t({
-            en: "Select a category",
-            es: "Elige una categoría",
-        }),
-        "budgets.form.starts": t({
-            en: "STARTS",
-            es: "EMPIEZA",
-        }),
         "budgets.hero.a11yLeft": t({
             en: "{name}, {amount} left {period}",
             es: "{name}, {amount} restante {period}",
@@ -196,8 +176,8 @@ const budgets = {
             es: "FALTARÁN {amount}",
         }),
         "budgets.hero.eyebrow": t({
-            en: "OVERALL · {period}",
-            es: "GENERAL · {period}",
+            en: "EVERYTHING · {period}",
+            es: "TODO · {period}",
         }),
         "budgets.hero.leftPeriod": t({
             en: "left {period}",
@@ -250,17 +230,25 @@ const budgets = {
             en: "{over} OF {total} OVER",
             es: "{over} DE {total} EXCEDIDOS",
         }),
+        "budgets.measure.limit": t({
+            en: "LIMIT",
+            es: "LÍMITE",
+        }),
+        "budgets.measure.perDay": t({
+            en: "A DAY",
+            es: "AL DÍA",
+        }),
+        "budgets.measure.spent": t({
+            en: "SPENT",
+            es: "GASTADO",
+        }),
+        "budgets.name.default": t({
+            en: "Budget",
+            es: "Presupuesto",
+        }),
         "budgets.new.a11y": t({
             en: "New budget",
             es: "Nuevo presupuesto",
-        }),
-        "budgets.new.title": t({
-            en: "New Budget",
-            es: "Nuevo presupuesto",
-        }),
-        "budgets.overall.title": t({
-            en: "Overall Budget",
-            es: "Presupuesto general",
         }),
         "budgets.perDay": t({
             en: "{amount}/day",
@@ -286,49 +274,95 @@ const budgets = {
             en: "this year",
             es: "este año",
         }),
-        "budgets.picker.cadence": t({
+        // The chips in the period step. Title case because a chip is a label, not
+        // part of a sentence — `budgets.periodPhrase.*` is the mid-sentence form.
+        "budgets.periodName.day": t({
+            en: "Day",
+            es: "Día",
+        }),
+        "budgets.periodName.month": t({
+            en: "Month",
+            es: "Mes",
+        }),
+        "budgets.periodName.week": t({
+            en: "Week",
+            es: "Semana",
+        }),
+        "budgets.periodName.year": t({
+            en: "Year",
+            es: "Año",
+        }),
+        "budgets.periodPhrase.day": t({
+            en: "a day",
+            es: "al día",
+        }),
+        "budgets.periodPhrase.month": t({
             en: "a month",
             es: "al mes",
         }),
+        "budgets.periodPhrase.week": t({
+            en: "a week",
+            es: "a la semana",
+        }),
+        "budgets.periodPhrase.year": t({
+            en: "a year",
+            es: "al año",
+        }),
         "budgets.picker.commit": t({
-            en: "Use {amount} a month",
-            es: "Usar {amount} al mes",
+            en: "Keep it under {amount}",
+            es: "Mantenlo bajo {amount}",
         }),
         "budgets.picker.drag": t({
             en: "DRAG TO SET A LIMIT",
             es: "ARRASTRA PARA FIJAR UN LÍMITE",
         }),
         "budgets.picker.dragA11y": t({
-            en: "Monthly limit {amount}. Drag up or down to change it.",
-            es: "Límite mensual {amount}. Arrastra hacia arriba o abajo para cambiarlo.",
-        }),
-        "budgets.picker.eyebrow": t({
-            en: "{month} · NO BUDGET YET",
-            es: "{month} · AÚN SIN PRESUPUESTO",
+            en: "Limit {amount} {period}. Drag up or down to change it.",
+            es: "Límite {amount} {period}. Arrastra hacia arriba o abajo para cambiarlo.",
         }),
         "budgets.picker.held": t({
-            en: "{month} would have held — {amount} to spare.",
-            es: "{month} habría alcanzado — te sobraban {amount}.",
+            en: "{window} would have held — {amount} to spare.",
+            es: "{window} habría alcanzado — te sobraban {amount}.",
+        }),
+        "budgets.picker.nothingYet": t({
+            en: "Nothing spent in {window} yet.",
+            es: "Aún no has gastado en {window}.",
         }),
         "budgets.picker.ranOutEarly": t({
             en: "You would have run out on {date}, {days} early.",
             es: "Te habrías quedado sin fondos el {date}, {days} antes.",
         }),
         "budgets.picker.ranOutFinal": t({
-            en: "You would have run out on {date}, the month's final day.",
-            es: "Te habrías quedado sin fondos el {date}, el último día del mes.",
+            en: "You would have run out on {date}, the final day.",
+            es: "Te habrías quedado sin fondos el {date}, el último día.",
         }),
         "budgets.picker.sparseDays": t({
-            en: "Only {days} into {month} — too early to say how it would have gone.",
-            es: "Solo {days} de {month} — muy pronto para saber cómo habría ido.",
+            en: "Only {days} into {window} — too early to say how it would have gone.",
+            es: "Solo {days} de {window} — muy pronto para saber cómo habría ido.",
         }),
         "budgets.picker.sparseExpenses": t({
-            en: "Only {expenses} so far — too little to say how {month} would have gone.",
-            es: "Solo {expenses} hasta ahora — muy poco para saber cómo habría ido {month}.",
+            en: "Only {expenses} so far — too little to say how {window} would have gone.",
+            es: "Solo {expenses} hasta ahora — muy poco para saber cómo habría ido {window}.",
         }),
         "budgets.picker.spent": t({
             en: "SPENT {amount}",
             es: "GASTADO {amount}",
+        }),
+        "budgets.rail.another": t({
+            en: "Budget another category",
+            es: "Presupuestar otra categoría",
+        }),
+        "budgets.rail.set": t({
+            en: "Set a limit",
+            es: "Poner un límite",
+        }),
+        "budgets.rail.title": t({
+            en: "NOT BUDGETED YET",
+            es: "SIN PRESUPUESTO AÚN",
+        }),
+        "budgets.rail.typical": t({
+            en: "{amount} {period}, typically",
+            es: "{amount} {period}, normalmente",
         }),
         "budgets.rings.heading": t({
             en: "Category progress",
@@ -365,6 +399,50 @@ const budgets = {
         "budgets.save.failedTitle": t({
             en: "Not saved",
             es: "No se guardó",
+        }),
+        // The overall budget, named for what it covers rather than for its rank.
+        // The same word heads the tab, the sheet and the widget.
+        "budgets.scope.everything": t({
+            en: "Everything",
+            es: "Todo",
+        }),
+        "budgets.sheet.alreadySpent": t({
+            en: "Already {amount} spent. This starts you {over} over.",
+            es: "Ya llevas {amount} gastado. Esto te deja {over} por encima.",
+        }),
+        "budgets.sheet.editLimitA11y": t({
+            en: "Edit the limit",
+            es: "Editar el límite",
+        }),
+        "budgets.sheet.lastWindows": t({
+            en: "{over} of the last {total} went over",
+            es: "{over} de los últimos {total} se excedieron",
+        }),
+        "budgets.sheet.noHistory": t({
+            en: "Nothing spent on {scope} yet.",
+            es: "Aún no has gastado en {scope}.",
+        }),
+        "budgets.sheet.perDay": t({
+            en: "{amount} a day for the {days} left",
+            es: "{amount} al día por los {days} que quedan",
+        }),
+        "budgets.sheet.singleton": t({
+            en: "One overall budget at a time. This changes the one you have.",
+            es: "Solo hay un presupuesto general. Esto cambia el que ya tienes.",
+        }),
+        // The sheet's head. Word order is the translator's: `{scope}` is a category
+        // name or "everything", `{period}` is `budgets.periodPhrase.*`.
+        "budgets.sheet.stated": t({
+            en: "Keep {scope} under {period}",
+            es: "Mantén {scope} bajo {period}",
+        }),
+        "budgets.sheet.tapToType": t({
+            en: "tap to type",
+            es: "toca para escribir",
+        }),
+        "budgets.sheet.typical": t({
+            en: "typical {amount}",
+            es: "típico {amount}",
         }),
         "budgets.spentOfLimit": t({
             en: "{spent} of {limit}",

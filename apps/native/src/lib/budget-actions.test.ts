@@ -8,22 +8,22 @@ import { budgetMenuItems } from "./budget-actions";
 const t: TranslateFn = (key) => key;
 
 describe("budgetMenuItems", () => {
-    it("offers Edit then a destructive Delete", () => {
-        const menu = budgetMenuItems({ onDelete: jest.fn(), onEdit: jest.fn(), t });
+    it("offers the limit then a destructive Delete", () => {
+        const menu = budgetMenuItems({ onChangeLimit: jest.fn(), onDelete: jest.fn(), t });
 
-        expect(menu.map((item) => item.id)).toStrictEqual(["edit", "delete"]);
+        expect(menu.map((item) => item.id)).toStrictEqual(["limit", "delete"]);
         expect(menu.map((item) => item.destructive)).toStrictEqual([undefined, true]);
     });
 
-    it("edits without asking", () => {
-        const onEdit = jest.fn();
+    it("opens the limit without asking", () => {
+        const onChangeLimit = jest.fn();
         const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
 
-        budgetMenuItems({ onDelete: jest.fn(), onEdit, t })
-            .find((item) => item.id === "edit")
+        budgetMenuItems({ onChangeLimit, onDelete: jest.fn(), t })
+            .find((item) => item.id === "limit")
             ?.onPress();
 
-        expect(onEdit).toHaveBeenCalledTimes(1);
+        expect(onChangeLimit).toHaveBeenCalledTimes(1);
         expect(alertSpy).not.toHaveBeenCalled();
         alertSpy.mockRestore();
     });
@@ -32,7 +32,7 @@ describe("budgetMenuItems", () => {
         const onDelete = jest.fn();
         const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
 
-        budgetMenuItems({ onDelete, onEdit: jest.fn(), t })
+        budgetMenuItems({ onChangeLimit: jest.fn(), onDelete, t })
             .find((item) => item.id === "delete")
             ?.onPress();
 

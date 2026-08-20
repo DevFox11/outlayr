@@ -37,6 +37,12 @@ const PENDING_CATEGORY_ID = "__pending__";
 
 interface CategoryPickerSheetProps {
     db: Database;
+    /**
+     * Categories the caller cannot accept. A budgeted category is one:
+     * `budgets.categoryId` is unique, so picking it would fail on the constraint
+     * at save time with nothing on screen to explain why.
+     */
+    excludeIds?: readonly string[];
     income: boolean;
     /** Omitted by hosts that cannot mint a category, which also hides the create action. */
     onCreate?: (name: string) => void;
@@ -55,6 +61,7 @@ export type CategoryPickerSheetRef = BottomSheetModal;
 export function CategoryPickerSheet({
     onDismiss,
     db,
+    excludeIds,
     income,
     selectedId,
     pendingCategory,
@@ -64,7 +71,26 @@ export function CategoryPickerSheet({
 }: CategoryPickerSheetProps) {
     const t = useTranslation();
     const colors = useColors();
-    const categories = useCategoriesByNamespace(db, income);
+    const offered = useCategoriesByNamespace(db, income);
+    const blocked = useMemo(() => new Set(excludeIds), [excludeIds]);
+    /**
+     * A blocked category is not a choice, but it may still hold children that are:
+     * a budget on a parent does not stop one on a subcategory, since the schema is
+     * unique per exact id. So a blocked parent stays as a container its children
+     * hang off, and only a blocked category with nothing left under it goes.
+     */
+    const categories = useMemo(() => {
+        if (blocked.size === 0) {
+            return offered;
+        }
+        return offered
+            .map((parent) =>
+                parent.children.some((child) => blocked.has(child.id))
+                    ? { ...parent, children: parent.children.filter((child) => !blocked.has(child.id)) }
+                    : parent
+            )
+            .filter((parent) => !blocked.has(parent.id) || parent.children.length > 0);
+    }, [offered, blocked]);
     const recentIds = useRecentCategoryIds(db, income);
     const sheetRef = useRef<BottomSheetModal>(null);
     const [query, setQuery] = useState("");
@@ -116,7 +142,10 @@ export function CategoryPickerSheet({
 
     const trimmed = query.trim();
     const searching = trimmed.length > 0;
-    const matches = useMemo(() => searchCategoryTree(categories, query), [categories, query]);
+    const matches = useMemo(
+        () => searchCategoryTree(categories, query).filter((match) => !blocked.has(match.category.id)),
+        [categories, query, blocked]
+    );
 
     const recents = useMemo(() => {
         if (recentIds.length === 0) {
@@ -129,8 +158,10 @@ export function CategoryPickerSheet({
                 byId.set(child.id, child);
             }
         }
-        return recentIds.map((id) => byId.get(id)).filter((category): category is Category => category != null);
-    }, [categories, recentIds]);
+        return recentIds
+            .map((id) => byId.get(id))
+            .filter((category): category is Category => category != null && !blocked.has(category.id));
+    }, [categories, recentIds, blocked]);
 
     const create = useCallback(() => onCreate?.(trimmed), [onCreate, trimmed]);
     const clearQuery = useCallback(() => setQuery(""), []);
@@ -302,6 +333,7 @@ export function CategoryPickerSheet({
                                             category={parent}
                                             childCount={parent.children.length}
                                             divided={index > 0}
+                                            excluded={blocked.has(parent.id)}
                                             expanded={isExpanded}
                                             onSelect={onSelect}
                                             onToggle={toggle}
@@ -370,6 +402,7 @@ const CategoryRow = memo(
         indented = false,
         divided = false,
         childCount = 0,
+        excluded = false,
         expanded = false,
         caption,
         crumb = null,
@@ -382,6 +415,8 @@ const CategoryRow = memo(
         indented?: boolean;
         divided?: boolean;
         childCount?: number;
+        /** Present as a container for its children, but not a choice of its own. */
+        excluded?: boolean;
         expanded?: boolean;
         caption?: string;
         crumb?: string | null;
@@ -408,8 +443,12 @@ const CategoryRow = memo(
                 <View className={cn("flex-row items-center gap-3 pr-3.5", indented ? "py-2 pl-11" : "py-2.5 pl-3.5")}>
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityState={{ selected }}
-                        className="flex-1 flex-row items-center gap-3 active:opacity-60"
+                        accessibilityState={{ disabled: excluded, selected }}
+                        className={cn(
+                            "flex-1 flex-row items-center gap-3",
+                            excluded ? "opacity-45" : "active:opacity-60"
+                        )}
+                        disabled={excluded}
                         onPress={() => onSelect(category)}
                         testID={`category-row-${category.id}`}
                     >

@@ -203,6 +203,47 @@ export function budgetPeriodPhrase(type: number): TranslationKey {
     }
 }
 
+/**
+ * The cadence as a chip's label, title-cased. `budgetPeriodPhrase` is the same
+ * span as a phrase inside a sentence; a chip is neither, so the two are separate
+ * keys rather than one string cased at the call site — the first locale where
+ * case carries meaning would break that.
+ */
+export function budgetPeriodName(type: number): TranslationKey {
+    switch (type) {
+        case BUDGET_TYPE.day: {
+            return "budgets.periodName.day";
+        }
+        case BUDGET_TYPE.week: {
+            return "budgets.periodName.week";
+        }
+        case BUDGET_TYPE.year: {
+            return "budgets.periodName.year";
+        }
+        default: {
+            return "budgets.periodName.month";
+        }
+    }
+}
+
+/** The cadence mid-sentence: "a month", "al mes". */
+export function budgetPeriodCadence(type: number): TranslationKey {
+    switch (type) {
+        case BUDGET_TYPE.day: {
+            return "budgets.periodPhrase.day";
+        }
+        case BUDGET_TYPE.week: {
+            return "budgets.periodPhrase.week";
+        }
+        case BUDGET_TYPE.year: {
+            return "budgets.periodPhrase.year";
+        }
+        default: {
+            return "budgets.periodPhrase.month";
+        }
+    }
+}
+
 const DAY_MS = 86_400_000;
 const HOUR_MS = 3_600_000;
 

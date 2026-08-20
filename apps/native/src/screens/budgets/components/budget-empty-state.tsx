@@ -5,43 +5,60 @@ import Svg, { Path } from "react-native-svg";
 import { EmptyState, useMark } from "@/components/empty-state";
 import { Arrive } from "@/components/mark-motion";
 import { Text } from "@/components/text";
-import type { Burndown } from "@/domain/budget-burndown";
+import type { ExpenseContribution } from "@/data/budget-spent";
+import { BUDGET_TYPE } from "@/domain/budget-math";
 import { useTranslation } from "@/i18n/context";
 import { MARK_CEILING } from "@/theme/empty-state-ink";
 import { useColors } from "@/theme/use-colors";
 
-import { BudgetLimitPicker } from "./budget-limit-picker";
+import { BudgetLimitBody } from "./budget-limit-body";
+import type { LimitCommit } from "./budget-limit-body";
 
 interface BudgetEmptyStateProps {
-    /** Month-to-date burn-down built with `limit: 0` — the curve to place a limit on. */
-    burndown: Burndown;
+    calendar: { firstDayOfMonth: number; firstWeekday: number };
+    contributions: readonly ExpenseContribution[];
     currency: string;
+    nowMs: number;
     onAddTransaction: () => void;
-    onCommit: (limit: number) => void;
-    /** How many expenses are behind the curve. */
-    sampleSize: number;
-    windowStart: Date;
+    onCommit: (commit: LimitCommit) => void;
 }
 
+/**
+ * The first budget.
+ *
+ * It is the same surface every later one is set on, with the scope already
+ * known: everything. Only the cadence choice is withheld — a first budget is a
+ * monthly one, and offering four cadences before there is anything to compare
+ * them against is a decision made too early.
+ */
 export function BudgetEmptyState({
-    burndown,
-    sampleSize,
+    contributions,
     currency,
-    windowStart,
+    nowMs,
+    calendar,
     onAddTransaction,
     onCommit,
 }: BudgetEmptyStateProps) {
-    if (sampleSize === 0) {
+    const t = useTranslation();
+
+    if (contributions.length === 0) {
         return <NothingToBudget onAddTransaction={onAddTransaction} />;
     }
 
     return (
-        <BudgetLimitPicker
-            burndown={burndown}
+        <BudgetLimitBody
+            calendar={calendar}
+            contributions={contributions}
             currency={currency}
+            nowMs={nowMs}
             onCommit={onCommit}
-            sampleSize={sampleSize}
-            windowStart={windowStart}
+            periodChoice={false}
+            target={{
+                categoryId: null,
+                limit: null,
+                name: t("budgets.scope.everything").toLocaleLowerCase(),
+                type: BUDGET_TYPE.month,
+            }}
         />
     );
 }

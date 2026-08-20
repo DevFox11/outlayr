@@ -19,10 +19,17 @@ import { DEFAULT_CURRENCY } from "@/domain/money";
 async function budgetLimit(
     db: Database,
     amount: number,
-    at: Date
+    at: Date,
+    /**
+     * The currency `amount` is already denominated in. Passed when the number is
+     * the one the row already holds — re-anchoring must not re-read it as today's
+     * ledger currency, which would turn a EUR 100 budget into a USD 100 one
+     * without the figure on screen ever changing.
+     */
+    storedCurrency?: string | null
 ): Promise<{ amount: number; currency: string; amountUsd: number | null }> {
     const magnitude = Math.abs(amount);
-    const currency = (await getMeta(db, META_KEYS.currency)) ?? DEFAULT_CURRENCY;
+    const currency = storedCurrency ?? (await getMeta(db, META_KEYS.currency)) ?? DEFAULT_CURRENCY;
     const { amountUsd } = await canonicalUsd(localRateLookup(db), {
         amount: magnitude,
         currency,
@@ -59,6 +66,23 @@ export interface CreateMainBudgetInput {
     rollover?: boolean;
     startDate?: Date | null;
     type: number;
+}
+
+/**
+ * One fact of a budget, changed on its own.
+ *
+ * Every field is optional and an omitted one is left alone, because the editor
+ * commits a single row at a time: the limit sheet writes `amount` and must not
+ * decide anything about `rollover`, and the name field must not restate the
+ * limit. Passing a whole record instead is what let the old form silently clear
+ * a name and turn carry-over off on every save.
+ */
+export interface PatchBudgetInput {
+    amount?: number;
+    name?: string | null;
+    rollover?: boolean;
+    startDate?: Date | null;
+    type?: number;
 }
 
 /** Blank names are stored as null so the views keep their own fallback label. */
@@ -212,23 +236,117 @@ export const budgetsRepo = {
             .where(and(eq(mainBudget.id, id), isNull(mainBudget.deletedAt)));
     },
 
-    async updateBudget(db: Database, id: string, input: CreateBudgetInput): Promise<void> {
+    /** See {@link PatchBudgetInput}. A budget that is gone is left alone. */
+    async patchBudget(db: Database, id: string, input: PatchBudgetInput): Promise<void> {
         const now = new Date();
-        const start = await anchorFor(db, input.startDate, input.type, now);
+        const rows = await db
+            .select({
+                amount: budgets.amount,
+                currency: budgets.currency,
+                startDate: budgets.startDate,
+                type: budgets.type,
+            })
+            .from(budgets)
+            .where(and(eq(budgets.id, id), isNull(budgets.deletedAt)))
+            .limit(1);
+        const [row] = rows;
+        if (!row) {
+            return;
+        }
         await db
             .update(budgets)
-            .set({
-                name: customName(input.name),
-                ...(await budgetLimit(db, input.amount, start)),
-                categoryId: input.categoryId,
-                rollover: input.rollover ?? false,
-                startDate: start,
-                type: input.type,
-                updatedAt: now,
-            })
+            .set(await budgetPatch(db, row, input, now))
             .where(eq(budgets.id, id));
     },
+
+    /**
+     * See {@link PatchBudgetInput}.
+     *
+     * The overall budget had no field-level write at all: the only way in was
+     * `createMainBudget`, which preserves `name` and `rollover` only when the
+     * caller passes `undefined` — something the old form never did.
+     */
+    async patchMainBudget(db: Database, id: string, input: PatchBudgetInput): Promise<void> {
+        const now = new Date();
+        const rows = await db
+            .select({
+                amount: mainBudget.amount,
+                currency: mainBudget.currency,
+                startDate: mainBudget.startDate,
+                type: mainBudget.type,
+            })
+            .from(mainBudget)
+            .where(and(eq(mainBudget.id, id), isNull(mainBudget.deletedAt)))
+            .limit(1);
+        const [row] = rows;
+        if (!row) {
+            return;
+        }
+        await db
+            .update(mainBudget)
+            .set(await budgetPatch(db, row, input, now))
+            .where(eq(mainBudget.id, id));
+    },
 };
+
+/** The columns one changed fact writes. Shared by both budget tables. */
+interface BudgetPatch {
+    amount?: number;
+    amountUsd?: number | null;
+    currency?: string;
+    name?: string | null;
+    rollover?: boolean;
+    startDate?: Date;
+    type?: number;
+    updatedAt: Date;
+}
+
+/**
+ * Turns one changed fact into the columns it touches, and only those.
+ *
+ * `startDate` and `type` are written together, and re-freeze the limit's USD
+ * value with them: that value is read against the day the window opens
+ * (see {@link budgetLimit}), so an anchor that moves under an unchanged number
+ * would leave the two disagreeing.
+ */
+async function budgetPatch(
+    db: Database,
+    row: { amount: number; currency: string | null; startDate: Date | null; type: number },
+    input: PatchBudgetInput,
+    now: Date
+): Promise<BudgetPatch> {
+    const type = input.type ?? row.type;
+    // A cadence *change* re-anchors to the current window of the new cadence
+    // unless the caller named a date: keeping the old anchor leaves a monthly
+    // budget running the 15th to the 14th after a detour through Week, a cycle
+    // nobody chose. A cadence merely restated is not a change — the limit sheet
+    // sends the type it opened on whether or not it was touched, and re-anchoring
+    // on that would quietly throw away a start date the user set by hand.
+    const cadenceChanged = input.type !== undefined && input.type !== row.type;
+    const anchor = await anchorFor(db, input.startDate ?? (cadenceChanged ? null : row.startDate), type, now);
+    const patch: BudgetPatch = { updatedAt: now };
+    const reAnchored = cadenceChanged || input.startDate !== undefined;
+
+    if (reAnchored) {
+        patch.startDate = anchor;
+        patch.type = type;
+    }
+    if (input.amount !== undefined) {
+        Object.assign(patch, await budgetLimit(db, input.amount, anchor));
+    } else if (reAnchored) {
+        // Only the window moved. The limit is the same money in the same currency;
+        // what has to be re-read is the USD value frozen against the day the
+        // window opens.
+        Object.assign(patch, await budgetLimit(db, row.amount, anchor, row.currency));
+    }
+    if (input.name !== undefined) {
+        patch.name = customName(input.name);
+    }
+    if (input.rollover !== undefined) {
+        patch.rollover = input.rollover;
+    }
+    return patch;
+}
 
 /**
  * Synchronous on purpose: the expo-sqlite driver executes on the JS thread, so

@@ -12,9 +12,13 @@ function budget(
 ): CategoryBudgetView {
     return {
         amount,
+        anchor: new Date(2026, 0, 1),
         carry: 0,
         categoryId: `category-${id}`,
         color: `#00000${id}`,
+        currency: null,
+        customName: null,
+        emoji: null,
         icon: null,
         id,
         leftover: amount - spent,

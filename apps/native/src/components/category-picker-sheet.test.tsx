@@ -111,6 +111,7 @@ function addTransaction(db: Database, categoryId: string, at: number): void {
 
 interface SheetOptions {
     db: Database;
+    excludeIds?: readonly string[];
     onCreate?: (name: string) => void;
     onSelect?: (category: { id: string; name: string | null }) => void;
     pendingCategory?: {
@@ -128,6 +129,7 @@ async function mount(options: SheetOptions) {
     const view = await render(
         <CategoryPickerSheet
             db={options.db}
+            excludeIds={options.excludeIds}
             income={false}
             onCreate={options.onCreate}
             onSelect={options.onSelect ?? (() => {})}
@@ -193,6 +195,36 @@ describe("categoryPickerSheet", () => {
         await mount({ db, selectedId: GROCERIES });
 
         expect(screen.queryByText("Organic")).toBeNull();
+    });
+
+    it("drops an excluded category from the list", async () => {
+        const db = await seededDb();
+        await mount({ db, excludeIds: [GROCERIES] });
+
+        expect(screen.queryByText("Groceries")).toBeNull();
+    });
+
+    it("keeps an excluded parent as a container, so its children stay reachable", async () => {
+        // A budget on a parent does not rule one out on a subcategory: the schema
+        // is unique per exact id, so removing the whole branch took a real choice
+        // away.
+        const db = await seededDb();
+        addChild(db, "organic", "Organic", GROCERIES);
+        await mount({ db, excludeIds: [GROCERIES] });
+
+        expect(screen.getByText("Groceries")).toBeTruthy();
+        await act(async () => {
+            fireEvent(screen.getByLabelText(/a11yExpand/), "click");
+        });
+        expect(screen.getByText("Organic")).toBeTruthy();
+    });
+
+    it("does not offer an excluded category from the search results", async () => {
+        const db = await seededDb();
+        await mount({ db, excludeIds: [GROCERIES] });
+        await type("groc");
+
+        expect(screen.queryByText("Groceries")).toBeNull();
     });
 
     it("filters the list down to the categories that match", async () => {

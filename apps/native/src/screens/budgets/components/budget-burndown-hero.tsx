@@ -5,13 +5,15 @@ import { GestureDetector } from "react-native-gesture-handler";
 import { scheduleOnRN } from "react-native-worklets";
 
 import { HeroNumber } from "@/components/amount-text";
+import { MeasureRow } from "@/components/measure-row";
+import type { Measure } from "@/components/measure-row";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { ExpenseContribution } from "@/data/budget-spent";
 import type { MainBudgetView } from "@/data/budgets";
 import type { Burndown } from "@/domain/budget-burndown";
-import { BUDGET_TYPE, budgetPeriodPhrase, budgetTimeLeftLabel } from "@/domain/budget-math";
+import { BUDGET_TYPE, budgetPeriodPhrase, budgetTimeLeftLabel, leftPerDay } from "@/domain/budget-math";
 import { monthAbbrev } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -79,21 +81,31 @@ export function BudgetBurndownHero({
     // Already crossed zero is not the same question as will it, so both are asked.
     const projected = burndown?.projectedBalance ?? null;
     const endsShort = projected != null && projected < 0;
-    let runwayLabel: string | null = null;
-    if (!isDay) {
-        runwayLabel = t("budgets.hero.onTrack");
-        if (burndown?.runwayDate != null) {
-            runwayLabel = t("budgets.hero.ranOut", {
-                date: formatDayMonth(burndown.runwayDate, language).toUpperCase(),
-            });
-        } else if (endsShort && projected != null) {
-            runwayLabel = t("budgets.hero.endsShort", {
-                amount: formatAmount(Math.abs(projected), currency, false, language),
-            });
-        }
+    const balanceLabel = formatAmount(Math.abs(balance), currency, showCents, language);
+    // A day's allowance while the window still holds one. Over budget the hero is
+    // already stating the overage, and a third cell repeating it is a figure
+    // twice rather than a measure more.
+    const perDay = budget.leftover < 0 ? null : leftPerDay(budget.leftover, budget.window, now);
+    const measures: Measure[] = [
+        {
+            key: "limit",
+            label: t("budgets.measure.limit"),
+            value: formatAmount(budget.limit, currency, false, language),
+        },
+        {
+            key: "spent",
+            label: t("budgets.measure.spent"),
+            value: formatAmount(budget.spent, currency, false, language),
+        },
+    ];
+    if (perDay !== null) {
+        measures.push({
+            key: "perDay",
+            label: t("budgets.measure.perDay"),
+            value: formatAmount(perDay, currency, perDay < 10, language),
+        });
     }
 
-    const balanceLabel = formatAmount(Math.abs(balance), currency, showCents, language);
     const status = over ? t("budgets.hero.overBudget") : t("budgets.hero.leftPeriod", { period });
     const footnote = scrubLabel ? t("budgets.hero.onDate", { date: scrubLabel, label: status }) : status;
 
@@ -181,9 +193,12 @@ export function BudgetBurndownHero({
                         />
                     ) : null}
 
-                    <View className="flex-row items-baseline justify-between pt-2.5">
-                        <MonoLabel>{formatAmount(budget.amount, currency, false, language)}</MonoLabel>
-                        {runwayLabel ? <MonoLabel>{runwayLabel}</MonoLabel> : null}
+                    {/* The head's measures. What the limit is, what the window has taken
+					    and what a day still holds, ruled like the Log's own head. The
+					    runway used to sit here as a second mono label; the verdict below
+					    already says it in a sentence. */}
+                    <View className="pt-3.5">
+                        <MeasureRow measures={measures} />
                     </View>
                 </View>
             </GestureDetector>

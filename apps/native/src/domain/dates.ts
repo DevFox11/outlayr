@@ -173,7 +173,12 @@ export function formatTime(date: Date, use24Hour = false, language: Language = r
     return `${hour12}:${mm} ${meridiem}`;
 }
 
+/** The full month as the language writes it, e.g. "July" / "julio". */
+export function monthLongTitle(date: Date, language: Language = runtimeLanguage()): string {
+    return dateName(`dates.monthLong.${date.getMonth()}`, language);
+}
+
 /** The shouted full month a budget's limit picker names, e.g. "JULY". */
 export function formatMonthLabel(date: Date, language: Language = runtimeLanguage()): string {
-    return dateName(`dates.monthLong.${date.getMonth()}`, language).toUpperCase();
+    return monthLongTitle(date, language).toUpperCase();
 }

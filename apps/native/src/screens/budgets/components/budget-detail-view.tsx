@@ -31,6 +31,8 @@ interface BudgetDetailViewProps {
     /** The window has ended: nothing about it is still in play. */
     closed?: boolean;
     currency: string;
+    /** The budget's own facts, editable in place. Absent on a closed window. */
+    editor?: ReactNode;
     leftover: number;
     leftPerDayAmount?: number | null;
     onPressTransaction: (id: string) => void;
@@ -56,6 +58,7 @@ export function BudgetDetailView({
     period,
     spent,
     amount,
+    editor,
     leftover,
     overBudget,
     currency,
@@ -89,6 +92,9 @@ export function BudgetDetailView({
 
     return (
         <SectionList
+            // The editor's name field lives in the list header, and without this the
+            // keyboard covers the field it just opened.
+            automaticallyAdjustKeyboardInsets
             className="bg-background flex-1"
             contentInsetAdjustmentBehavior="automatic"
             sections={sections}
@@ -98,6 +104,7 @@ export function BudgetDetailView({
             contentContainerClassName="px-5 pt-2 pb-safe-offset-10"
             ListHeaderComponent={
                 <BudgetSummary
+                    editor={editor}
                     period={period}
                     spent={spent}
                     amount={amount}
@@ -140,6 +147,7 @@ function BudgetSummary({
     period,
     spent,
     amount,
+    editor,
     leftover,
     overBudget,
     currency,
@@ -161,6 +169,7 @@ function BudgetSummary({
     paceBehind: boolean;
     leftPerDayAmount: number | null;
     closed: boolean;
+    editor: ReactNode;
     note: string | null;
     stepper: ReactNode;
     tint: string | null;
@@ -231,6 +240,8 @@ function BudgetSummary({
             {note ? <Text className="text-footnote text-muted pt-3">{note}</Text> : null}
 
             {stepper ? <View className="border-border mt-6 border-t pt-3">{stepper}</View> : null}
+
+            {editor}
 
             <View className="pt-7">
                 <MonoLabel>{t("budgets.detail.transactions")}</MonoLabel>

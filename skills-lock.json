@@ -7,6 +7,12 @@
       "skillPath": "skills/use-ai-sdk/SKILL.md",
       "computedHash": "0883204d11b055e968dee697c5858e68064c27dfd4deb6310212895daa65c5ad"
     },
+    "animate-expo": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/animate-expo/SKILL.md",
+      "computedHash": "c9eaf6603b97ca61b05c7561e1045b2f58b6d84cdf8d67565bff23a9ff94ce8a"
+    },
     "apple-targets": {
       "source": "EvanBacon/expo-apple-targets",
       "sourceType": "github",

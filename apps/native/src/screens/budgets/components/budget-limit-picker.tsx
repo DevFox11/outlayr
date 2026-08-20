@@ -8,19 +8,22 @@ import {
     vec,
 } from "@shopify/react-native-skia";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, useWindowDimensions, View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import type { LayoutChangeEvent } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import { HeroNumber } from "@/components/amount-text";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { Burndown, BurndownPoint } from "@/domain/budget-burndown";
 import { crossingDay } from "@/domain/budget-limit-crossing";
-import { formatMonthLabel, monthAbbrev } from "@/domain/dates";
+import { LIMIT_STEP } from "@/domain/budget-limit-step";
+import { daysLeftInWindow, leftPerDay } from "@/domain/budget-math";
+import type { BudgetWindow } from "@/domain/budget-math";
+import { windowsOver } from "@/domain/budget-typical";
+import { monthAbbrev } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
@@ -31,16 +34,24 @@ import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
 interface BudgetLimitPickerProps {
-    /** Month-to-date burn-down built with `limit: 0`, so `points[].spent` is the curve. */
+    /** Window-to-date burn-down built with `limit: 0`, so `points[].spent` is the curve. */
     burndown: Burndown;
     currency: string;
-    onCommit: (limit: number) => void;
+    /** Spend per closed window behind this one, newest first. See `budget-typical`. */
+    history?: readonly number[];
+    /** The limit on the line, in the ledger's currency. Owned by the caller. */
+    limit: number;
+    nowMs: number;
+    /** Fires as the drag crosses each step, not per frame. */
+    onLimit: (next: number) => void;
+    /** Mid-sentence period, e.g. "a month". Spoken, not drawn. */
+    periodPhrase: string;
     /** How many expenses are behind the curve. */
     sampleSize: number;
-    windowStart: Date;
+    window: BudgetWindow;
+    /** The window named, e.g. "August" or "15 Aug - 22 Aug". */
+    windowLabel: string;
 }
-
-const LIMIT_STEP = 25;
 
 /** Below this many expenses the crossing lands wherever the largest charge happened to. */
 const SPARSE_HISTORY = 10;
@@ -59,11 +70,6 @@ const PLOT_HEIGHT = CHART_HEIGHT - PAD.top - PAD.bottom;
 
 function yForLimit(value: number, axisTop: number): number {
     return PLOT_TOP + (1 - value / axisTop) * PLOT_HEIGHT;
-}
-
-function snapToStep(value: number, max: number): number {
-    const stepped = Math.round(value / LIMIT_STEP) * LIMIT_STEP;
-    return Math.min(max, Math.max(LIMIT_STEP, stepped));
 }
 
 function curvePathD(
@@ -86,7 +92,24 @@ function formatDayMonth(date: Date, language: Language): string {
     return `${date.getDate()} ${month[0]}${month.slice(1).toLowerCase()}`;
 }
 
-export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart, onCommit }: BudgetLimitPickerProps) {
+/**
+ * The instrument: a window's spending, and the limit as a line you drag across
+ * it. Controlled, because the figure above it is the same number and a second
+ * copy of it here is how the two drift apart.
+ */
+export function BudgetLimitPicker({
+    burndown,
+    sampleSize,
+    currency,
+    window: budgetWindow,
+    windowLabel,
+    periodPhrase,
+    history,
+    limit,
+    nowMs,
+    onLimit,
+}: BudgetLimitPickerProps) {
+    const windowStart = budgetWindow.start;
     const { showCents } = useDisplaySettings().state;
     const colors = useColors();
     const haptics = useHaptics();
@@ -98,20 +121,16 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
 
     const cumulative = useMemo(() => burndown.points.map((point) => point.spent), [burndown]);
     const total = cumulative.at(-1) ?? 0;
-    const axisTop = Math.max(LIMIT_STEP * 4, total * 1.35);
+    // Frozen at mount, so the plot does not rescale under a finger that is
+    // dragging it. The caller remounts this when the period changes, which is the
+    // only time the curve underneath it becomes a different curve.
+    const [axisTop] = useState(() => Math.max(LIMIT_STEP * 4, total * 1.35, limit * 1.2));
     const maxLimit = Math.floor(axisTop / LIMIT_STEP) * LIMIT_STEP;
     const elapsedFraction = burndown.points.length / burndown.totalDays;
     const sparse = sampleSize < SPARSE_HISTORY || elapsedFraction < ELAPSED_FLOOR;
 
-    // Opens under the month's total so the curve already crosses it.
-    const suggested = useMemo(() => snapToStep(total * 0.8, maxLimit), [total, maxLimit]);
-    // Null until the user drags, so the picker keeps following the suggestion as
-    // the month's total moves rather than needing an effect to re-sync it.
-    const [picked, setPicked] = useState<number | null>(null);
-    const limit = picked ?? suggested;
-
-    const limitY = useSharedValue(yForLimit(suggested, axisTop));
-    const snapped = useSharedValue(suggested);
+    const limitY = useSharedValue(yForLimit(limit, axisTop));
+    const snapped = useSharedValue(limit);
     const dragging = useSharedValue(false);
     // Shared rather than a ref because the drag mutates it: a ref written from
     // the gesture closure is state the compiler cannot follow, and it bailed out
@@ -125,9 +144,11 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
         if (dragging.get()) {
             return;
         }
-        limitY.set(yForLimit(limit, axisTop));
+        // Clamped: a figure typed above the axis pins the line to the ceiling
+        // rather than drawing it off the canvas.
+        limitY.set(yForLimit(Math.min(limit, maxLimit), axisTop));
         snapped.set(limit);
-    }, [limit, axisTop, cumulative, limitY, snapped, dragging, lastCrossing]);
+    }, [limit, axisTop, maxLimit, cumulative, limitY, snapped, dragging, lastCrossing]);
 
     const applyLimit = useCallback(
         (next: number) => {
@@ -141,9 +162,9 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
                     lastCrossing.set(crossing);
                 }
             }
-            setPicked(next);
+            onLimit(next);
         },
-        [cumulative, sparse, haptics, lastCrossing]
+        [cumulative, sparse, haptics, lastCrossing, onLimit]
     );
 
     const pan = useMemo(() => {
@@ -213,20 +234,51 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
         crossing == null
             ? null
             : new Date(windowStart.getFullYear(), windowStart.getMonth(), windowStart.getDate() + crossing - 1);
-    const monthName = formatMonthLabel(windowStart, language);
     const limitLabel = formatAmount(limit, currency, false, language);
+    // Only over a whole sample, and only where the sample holds something: "1 of
+    // the last 1" is a sample size wearing a verdict, and "0 of the last 6 went
+    // over" says nothing about a scope that has never been spent on.
+    const sampled = history ?? [];
+    const overCount = sampled.length >= 3 && sampled.some((spent) => spent > 0) ? windowsOver(sampled, limit) : null;
+    const now = new Date(nowMs);
+    const perDay = leftPerDay(limit - total, budgetWindow, now);
+    // A limit of nothing is a limit not typed yet, and neither an allowance nor an
+    // overage describes it.
+    const perDayLine = () => {
+        // A limit of nothing is a limit not typed yet, and neither an allowance nor
+        // an overage describes it.
+        if (limit <= 0) {
+            return null;
+        }
+        if (limit > total) {
+            return t("budgets.sheet.perDay", {
+                // Cents below ten, or a day's allowance of $0.42 reads as "$0" —
+                // which is the one figure this line must never state wrongly.
+                amount: formatAmount(perDay, currency, perDay < 10, language),
+                days: t("budgets.days", { count: daysLeftInWindow(budgetWindow, now) }),
+            });
+        }
+        return t("budgets.sheet.alreadySpent", {
+            amount: formatAmount(total, currency, false, language),
+            over: formatAmount(total - limit, currency, false, language),
+        });
+    };
 
     let readout: string;
-    if (sparse) {
+    if (sampleSize === 0) {
+        // "Only 0 expenses so far" is a sentence about nothing, written as though
+        // it were about something.
+        readout = t("budgets.picker.nothingYet", { window: windowLabel });
+    } else if (sparse) {
         readout =
             sampleSize < SPARSE_HISTORY
                 ? t("budgets.picker.sparseExpenses", {
                       expenses: t("budgets.expenses", { count: sampleSize }),
-                      month: monthName,
+                      window: windowLabel,
                   })
                 : t("budgets.picker.sparseDays", {
                       days: t("budgets.days", { count: burndown.points.length }),
-                      month: monthName,
+                      window: windowLabel,
                   });
     } else if (crossingDate && crossing != null) {
         const early = burndown.totalDays - crossing;
@@ -242,7 +294,7 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
     } else {
         readout = t("budgets.picker.held", {
             amount: formatAmount(limit - total, currency, showCents, language),
-            month: monthName,
+            window: windowLabel,
         });
     }
 
@@ -252,25 +304,16 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
 
     // The clips are plain props, so they read the committed React value while the
     // line reads the shared one. They agree except for a frame mid-drag.
-    const limitYCommitted = yForLimit(limit, axisTop);
+    const limitYCommitted = yForLimit(Math.min(limit, maxLimit), axisTop);
 
     return (
         <View onLayout={onLayout} style={{ paddingHorizontal: GUTTER, width: "100%" }}>
-            <View className="flex-row items-baseline justify-between">
-                <MonoLabel>{t("budgets.picker.eyebrow", { month: monthName.toUpperCase() })}</MonoLabel>
-                <MonoLabel>{t("budgets.expenses", { count: sampleSize }).toUpperCase()}</MonoLabel>
-            </View>
-
-            <View className="pt-2">
-                <HeroNumber amount={limit} code={currency} showCents={false} sign="" size={40} />
-            </View>
-            <Text className="text-footnote text-muted pt-0.5">{t("budgets.picker.cadence")}</Text>
-
-            <View className="pt-4">
+            <View>
                 <GestureDetector gesture={pan}>
                     <View
                         accessibilityLabel={t("budgets.picker.dragA11y", {
                             amount: limitLabel,
+                            period: periodPhrase,
                         })}
                         collapsable={false}
                         style={{ height: CHART_HEIGHT, width }}
@@ -389,16 +432,16 @@ export function BudgetLimitPicker({ burndown, sampleSize, currency, windowStart,
             </View>
 
             <Text className="text-footnote text-muted pt-2.5">{readout}</Text>
-
-            <Pressable
-                accessibilityRole="button"
-                className="bg-accent mt-6 items-center rounded-full px-7 py-3.5 active:opacity-80"
-                onPress={() => onCommit(limit)}
-            >
-                <Text className="font-sans-semibold text-accent-foreground text-body">
-                    {t("budgets.picker.commit", { amount: limitLabel })}
+            {overCount === null ? null : (
+                <Text className="text-footnote text-muted pt-0.5">
+                    {t("budgets.sheet.lastWindows", { over: overCount, total: sampled.length })}
                 </Text>
-            </Pressable>
+            )}
+            {perDayLine() ? (
+                <Text className="text-footnote text-muted pt-0.5" style={{ fontVariant: ["tabular-nums"] }}>
+                    {perDayLine()}
+                </Text>
+            ) : null}
         </View>
     );
 }

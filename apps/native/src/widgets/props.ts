@@ -345,7 +345,7 @@ async function buildBudget(
         name: translateNow("budgets.widget.none"),
         over: false,
         percent: "",
-        periodLabel: translateNow("budgets.form.defaultName").toUpperCase(),
+        periodLabel: translateNow("budgets.name.default").toUpperCase(),
         present: false,
         rangeLabel: "",
         remaining: "",
@@ -361,7 +361,7 @@ async function buildBudget(
     if (main) {
         const window = advanceBudgetWindow(main.startDate ?? now, main.type, now);
         overall = present(
-            main.name?.trim() ? main.name.trim() : translateNow("budgets.form.defaultOverall"),
+            main.name?.trim() ? main.name.trim() : translateNow("budgets.scope.everything"),
             true,
             limitIn(main, window.start, valuation.displayCurrency, valuation.rates),
             sumExpenses(contributions, window.start, now, null),
@@ -395,7 +395,7 @@ async function buildBudget(
         worst = present(
             ranked.row.name?.trim()
                 ? ranked.row.name.trim()
-                : (rankedCategory?.name ?? translateNow("budgets.form.defaultName")),
+                : (rankedCategory?.name ?? translateNow("budgets.name.default")),
             false,
             ranked.limit,
             ranked.spent,
@@ -471,7 +471,7 @@ async function buildIntentBudgets(
         out.push(
             view(
                 OVERALL_BUDGET_ID,
-                main.name?.trim() ? main.name.trim() : translateNow("budgets.form.kindOverall"),
+                main.name?.trim() ? main.name.trim() : translateNow("budgets.scope.everything"),
                 limitIn(main, window.start, valuation.displayCurrency, valuation.rates),
                 sumExpenses(contributions, window.start, now, null),
                 main.type
@@ -490,7 +490,7 @@ async function buildIntentBudgets(
         out.push(
             view(
                 row.id,
-                row.name?.trim() ? row.name.trim() : (meta?.name ?? translateNow("budgets.form.defaultName")),
+                row.name?.trim() ? row.name.trim() : (meta?.name ?? translateNow("budgets.name.default")),
                 limitIn(row, window.start, valuation.displayCurrency, valuation.rates),
                 sumExpenses(contributions, window.start, now, row.categoryId),
                 row.type

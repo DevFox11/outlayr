@@ -301,8 +301,8 @@ describe("getBudgetById", () => {
     });
 });
 
-describe("budgetsRepo.updateBudget", () => {
-    it("keeps the anchor an edit did not touch", async () => {
+describe("budgetsRepo.patchBudget", () => {
+    it("changes the limit and leaves the anchor where it was", async () => {
         // The whole point of editing rather than delete-and-recreate: a mistyped
         // target must not cost the user the window the budget has been running in.
         const db = makeDb();
@@ -313,44 +313,175 @@ describe("budgetsRepo.updateBudget", () => {
             type: BUDGET_TYPE.month,
         });
 
-        const existing = getBudgetById(db, id);
-        await budgetsRepo.updateBudget(db, id, {
-            amount: 300,
-            categoryId: existing?.categoryId ?? "cat-1",
-            name: existing?.name,
-            startDate: existing?.startDate,
-            type: existing?.type ?? BUDGET_TYPE.month,
-        });
+        await budgetsRepo.patchBudget(db, id, { amount: 300 });
 
         const row = getBudgetById(db, id);
         expect(row?.amount).toBe(300);
         expect(row?.startDate?.getTime()).toBe(BACKDATE.getTime());
     });
 
-    it("honours an explicit start date and falls back to the period start", async () => {
+    it("leaves every fact the caller did not name", async () => {
+        // The defect this replaced: the old form passed a whole record on every
+        // save, so changing the limit cleared the name and turned carry-over off.
         const db = makeDb();
         const id = await budgetsRepo.createBudget(db, {
             amount: 250,
             categoryId: "cat-1",
+            name: "Coffee run",
+            rollover: true,
             type: BUDGET_TYPE.month,
         });
 
-        await budgetsRepo.updateBudget(db, id, {
-            amount: 300,
+        await budgetsRepo.patchBudget(db, id, { amount: 300 });
+
+        const row = getBudgetById(db, id);
+        expect(row?.name).toBe("Coffee run");
+        expect(row?.rollover).toBe(true);
+    });
+
+    it("writes an explicit anchor, and re-freezes the limit against it", async () => {
+        const db = makeDb();
+        await db.insert(appMeta).values({ key: "currency", value: "EUR" });
+        await db.insert(exchangeRates).values({
+            date: "2020-01-01",
+            fetchedAt: 0,
+            quote: "EUR",
+            rate: 0.9,
+            rateType: "official",
+            source: "frankfurter",
+        });
+        const id = await budgetsRepo.createBudget(db, {
+            amount: 450,
+            categoryId: "cat-1",
+            type: BUDGET_TYPE.month,
+        });
+
+        await budgetsRepo.patchBudget(db, id, { startDate: BACKDATE });
+
+        const row = getBudgetById(db, id);
+        expect(row?.startDate?.getTime()).toBe(BACKDATE.getTime());
+        // Unchanged in the ledger's own currency, and re-stamped in USD against
+        // the day the moved window opens.
+        expect(row?.amount).toBe(450);
+        expect(row?.amountUsd).toBe(500);
+    });
+
+    it("re-anchors a cadence change to the current window of the new cadence", async () => {
+        // Keeping the old anchor is what leaves a monthly budget running the 15th
+        // to the 14th after a detour through Week.
+        const db = makeDb();
+        const id = await budgetsRepo.createBudget(db, {
+            amount: 250,
             categoryId: "cat-1",
             startDate: BACKDATE,
             type: BUDGET_TYPE.month,
         });
-        let [row] = await db.select().from(budgets).where(eq(budgets.id, id));
-        expect(row?.startDate?.getTime()).toBe(BACKDATE.getTime());
 
-        await budgetsRepo.updateBudget(db, id, {
-            amount: 300,
+        await budgetsRepo.patchBudget(db, id, { type: BUDGET_TYPE.week });
+
+        const row = getBudgetById(db, id);
+        expect(row?.type).toBe(BUDGET_TYPE.week);
+        expect(row?.startDate?.getTime()).toBe(startOfPeriod(new Date(), BUDGET_TYPE.week).getTime());
+    });
+
+    it("keeps a hand-set anchor when the cadence is restated rather than changed", async () => {
+        // The limit sheet sends the cadence it opened on whether or not it was
+        // touched, so treating its presence as a change threw away a start date
+        // the user had set by hand every time they adjusted the amount.
+        const db = makeDb();
+        const id = await budgetsRepo.createBudget(db, {
+            amount: 250,
+            categoryId: "cat-1",
+            startDate: BACKDATE,
+            type: BUDGET_TYPE.month,
+        });
+
+        await budgetsRepo.patchBudget(db, id, { amount: 300, type: BUDGET_TYPE.month });
+
+        const row = getBudgetById(db, id);
+        expect(row?.amount).toBe(300);
+        expect(row?.startDate?.getTime()).toBe(BACKDATE.getTime());
+    });
+
+    it("keeps a date the caller named even while changing the cadence", async () => {
+        const db = makeDb();
+        const id = await budgetsRepo.createBudget(db, { amount: 250, categoryId: "cat-1", type: BUDGET_TYPE.month });
+
+        await budgetsRepo.patchBudget(db, id, { startDate: BACKDATE, type: BUDGET_TYPE.week });
+
+        const row = getBudgetById(db, id);
+        expect(row?.startDate?.getTime()).toBe(BACKDATE.getTime());
+    });
+
+    it("keeps the currency the limit was set in when only the window moves", async () => {
+        // A EUR 100 budget shown as roughly USD 110 must not become a USD 100 one
+        // because the cadence changed: the number is the row's own, and reading it
+        // as today's ledger currency silently restates the target.
+        const db = makeDb();
+        await db.insert(appMeta).values({ key: "currency", value: "EUR" });
+        await db.insert(exchangeRates).values({
+            date: "2020-01-01",
+            fetchedAt: 0,
+            quote: "EUR",
+            rate: 0.9,
+            rateType: "official",
+            source: "frankfurter",
+        });
+        const id = await budgetsRepo.createBudget(db, {
+            amount: 450,
             categoryId: "cat-1",
             type: BUDGET_TYPE.month,
         });
-        [row] = await db.select().from(budgets).where(eq(budgets.id, id));
-        expect(row?.startDate?.getTime()).toBe(startOfPeriod(new Date(), BUDGET_TYPE.month).getTime());
+        // The ledger moves to USD after the budget was set.
+        await db.update(appMeta).set({ value: "USD" }).where(eq(appMeta.key, "currency"));
+
+        await budgetsRepo.patchBudget(db, id, { type: BUDGET_TYPE.week });
+
+        const row = getBudgetById(db, id);
+        expect(row?.currency).toBe("EUR");
+        expect(row?.amount).toBe(450);
+        expect(row?.amountUsd).toBe(500);
+    });
+
+    it("does nothing for a budget that is already gone", async () => {
+        const db = makeDb();
+        await expect(budgetsRepo.patchBudget(db, "gone", { amount: 10 })).resolves.toBeUndefined();
+    });
+});
+
+describe("budgetsRepo.patchMainBudget", () => {
+    it("changes the limit without clearing the name or carry-over", async () => {
+        // The overall budget had no field-level write at all: the only way in was
+        // `createMainBudget`, and going through it from the form wiped both.
+        const db = makeDb();
+        const id = await budgetsRepo.createMainBudget(db, {
+            amount: 2000,
+            name: "Household",
+            rollover: true,
+            type: BUDGET_TYPE.month,
+        });
+
+        await budgetsRepo.patchMainBudget(db, id, { amount: 2400 });
+
+        const [row] = await db.select().from(mainBudget).where(eq(mainBudget.id, id));
+        expect(row?.amount).toBe(2400);
+        expect(row?.name).toBe("Household");
+        expect(row?.rollover).toBe(true);
+    });
+
+    it("writes one fact at a time", async () => {
+        const db = makeDb();
+        const id = await budgetsRepo.createMainBudget(db, { amount: 2000, type: BUDGET_TYPE.month });
+
+        await budgetsRepo.patchMainBudget(db, id, { rollover: true });
+        await budgetsRepo.patchMainBudget(db, id, { name: "   " });
+        await budgetsRepo.patchMainBudget(db, id, { type: BUDGET_TYPE.week });
+
+        const [row] = await db.select().from(mainBudget).where(eq(mainBudget.id, id));
+        expect(row?.amount).toBe(2000);
+        expect(row?.rollover).toBe(true);
+        expect(row?.name).toBeNull();
+        expect(row?.type).toBe(BUDGET_TYPE.week);
     });
 });
 
@@ -389,13 +520,7 @@ describe("an edited budget stays coherent", () => {
         expect(created.amountUsd).toBe(500);
         expect(limitIn(created, anchor, "USD", rates)).toBe(500);
 
-        await budgetsRepo.updateBudget(db, id, {
-            amount: 900,
-            categoryId: created.categoryId ?? "cat-1",
-            name: created.name,
-            startDate: created.startDate,
-            type: created.type,
-        });
+        await budgetsRepo.patchBudget(db, id, { amount: 900 });
 
         const edited = getBudgetById(db, id);
         if (!edited) {
