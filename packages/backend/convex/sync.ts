@@ -316,9 +316,31 @@ async function upsert(
             return await writeRow(ctx, "transfers", existing, { ...envelope, ...fieldsFor<"transfers">(row) });
         }
         case "savingsGoals": {
+            const fields = fieldsFor<"savingsGoals">(row);
+            // A client that predates `exchangeRate` omits it while sending a target
+            // it valued at the EDIT date. Keeping the stored rate beside that pair
+            // would leave the two describing different days, and every later
+            // restatement would divide by a rate the target was never valued at.
+            // Cleared instead, so readers fall back to the pair the editing client
+            // actually used — which is the only consistent basis left.
+            //
+            // Only when that pair actually MOVED, though. The same client sends the
+            // whole row to rename a goal or shift its deadline, and discarding a
+            // precise rate over an edit that did not touch the target would give
+            // away the precision this column exists to keep.
+            // SAFETY: `existing` is the stored `savingsGoals` doc for this row when
+            // there is one, and this branch is reached only for that table, so both
+            // target fields are declared on it by `savingsGoalFields`.
+            const priced = existing as { targetAmount?: number; targetAmountUsd?: number | null } | null;
+            const targetMoved =
+                priced == null ||
+                priced.targetAmount !== fields.targetAmount ||
+                priced.targetAmountUsd !== fields.targetAmountUsd;
+            const rateless = !("exchangeRate" in row.fields) && fields.targetAmountUsd != null && targetMoved;
             return await writeRow(ctx, "savingsGoals", existing, {
                 ...envelope,
-                ...fieldsFor<"savingsGoals">(row),
+                ...fields,
+                ...(rateless && { exchangeRate: null }),
             });
         }
         case "appMeta": {

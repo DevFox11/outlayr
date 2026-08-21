@@ -3,85 +3,211 @@ import type { Dictionary } from "intlayer";
 
 const goals = {
     content: {
+        "goals.a11y.card": t({
+            en: "{name}. {saved} of {target}, {percent} percent. {standing}.",
+            es: "{name}. {saved} de {target}, {percent} por ciento. {standing}.",
+        }),
+        "goals.a11y.chart": t({
+            en: "Balance against the pace this date demands. {standing}.",
+            es: "Saldo frente al ritmo que exige esta fecha. {standing}.",
+        }),
+        "goals.a11y.noStanding": t({
+            en: "no pace to measure",
+            es: "sin ritmo que medir",
+        }),
         "goals.a11y.openHint": t({
             en: "Opens the goal",
             es: "Abre la meta",
         }),
-        "goals.a11y.row": t({
-            en: "{name}. {saved} of {target}, {percent} percent.",
-            es: "{name}. {saved} de {target}, {percent} por ciento.",
+        "goals.a11y.unvalued": t({
+            en: "{name}. No exchange rate for this account yet, so its progress cannot be stated.",
+            es: "{name}. Aún no hay tasa de cambio para esta cuenta, así que no se puede indicar su progreso.",
         }),
         "goals.add": t({
-            en: "Add goal",
-            es: "Agregar meta",
+            en: "New goal",
+            es: "Nueva meta",
         }),
-        "goals.edit.title": t({
-            en: "Edit Goal",
-            es: "Editar meta",
+        "goals.ahead": t({
+            en: "ahead",
+            es: "adelantada",
         }),
-        "goals.form.account": t({
+        "goals.behind": t({
+            en: "behind",
+            es: "atrasada",
+        }),
+        "goals.card.unvalued": t({
+            en: "No rate yet",
+            es: "Sin tasa aún",
+        }),
+        "goals.currencyMoved.body": t({
+            en: "The ledger's currency changed while you were setting this goal, so the amount no longer means what it did. Set it again.",
+            es: "La moneda del libro cambió mientras creabas esta meta, así que el monto ya no significa lo mismo. Créala de nuevo.",
+        }),
+        "goals.currencyMoved.title": t({
+            en: "No goal yet",
+            es: "Meta no creada",
+        }),
+        "goals.detail.monthsLeft": t({
+            en: "Months left",
+            es: "Meses restantes",
+        }),
+        "goals.detail.of": t({
+            en: "of {amount} · {percent}%",
+            es: "de {amount} · {percent}%",
+        }),
+        "goals.detail.pace": t({
+            en: "Pace",
+            es: "Ritmo",
+        }),
+        "goals.detail.perMonth": t({
+            en: "Per month",
+            es: "Al mes",
+        }),
+        "goals.detail.unvalued": t({
+            en: "No exchange rate for this account yet, so there is nothing to plot against the target.",
+            es: "Aún no hay tasa de cambio para esta cuenta, así que no hay nada que trazar frente al objetivo.",
+        }),
+        // States the standing in words, because the three figures above it are the
+        // measure and this is the reading of it.
+        "goals.detail.verdictAhead": t({
+            en: "You're {amount} ahead of where the date needs you.",
+            es: "Vas {amount} por delante de donde la fecha te necesita.",
+        }),
+        "goals.detail.verdictBehind": t({
+            en: "You're {amount} short of where the date needs you.",
+            es: "Te faltan {amount} para donde la fecha te necesita.",
+        }),
+        "goals.detail.verdictOnPace": t({
+            en: "You're on pace for {date}.",
+            es: "Vas a buen ritmo para {date}.",
+        }),
+        // Deliberately dateless: the goal records a deadline, never the day the
+        // balance actually crossed the target, so naming `targetDate` here would
+        // claim a goal reached early has been held since a date still to come.
+        "goals.detail.verdictReached": t({
+            en: "Reached. There's nothing left to put aside.",
+            es: "Alcanzada. No queda nada por apartar.",
+        }),
+        "goals.editor.account": t({
             en: "Account",
             es: "Cuenta",
         }),
-        "goals.form.accountLocked": t({
-            en: "Progress is this account's balance, so it cannot be swapped later.",
-            es: "El progreso es el saldo de esta cuenta, así que no se puede cambiar después.",
+        "goals.editor.accountNote": t({
+            en: "Progress is this account's balance, so it can't be swapped.",
+            es: "El progreso es el saldo de esta cuenta, así que no se puede cambiar.",
         }),
-        "goals.form.by": t({
-            en: "By a date",
-            es: "Para una fecha",
+        "goals.editor.by": t({
+            en: "By",
+            es: "Para",
         }),
-        "goals.form.chooseAccount": t({
-            en: "Choose account",
-            es: "Elegir cuenta",
+        "goals.editor.currency": t({
+            en: "Set in {from}, read here in {to} at the rate on the day it was set.",
+            es: "Definida en {from}, mostrada en {to} con la tasa del día en que se creó.",
         }),
-        "goals.form.create": t({
-            en: "Create Goal",
-            es: "Crear meta",
+        "goals.editor.delete": t({
+            en: "Delete goal",
+            es: "Eliminar meta",
+        }),
+        "goals.editor.name": t({
+            en: "Name",
+            es: "Nombre",
+        }),
+        "goals.editor.target": t({
+            en: "Target",
+            es: "Objetivo",
+        }),
+        "goals.editor.targetNote": t({
+            en: "Committing {amount} a month",
+            es: "Comprometes {amount} al mes",
+        }),
+        "goals.editor.title": t({
+            en: "Edit",
+            es: "Editar",
+        }),
+        "goals.empty.body": t({
+            en: "A goal names an amount, an account and a date, then tells you what that costs a month.",
+            es: "Una meta define un monto, una cuenta y una fecha, y te dice cuánto cuesta al mes.",
+        }),
+        "goals.failedBody": t({
+            en: "Something went wrong saving this goal. Try again.",
+            es: "Algo salió mal al guardar esta meta. Inténtalo de nuevo.",
+        }),
+        "goals.failedTitle": t({
+            en: "Goal not saved",
+            es: "Meta no guardada",
         }),
         "goals.form.defaultName": t({
             en: "Savings goal",
             es: "Meta de ahorro",
         }),
-        "goals.form.failedBody": t({
-            en: "Something went wrong saving this goal. Try again.",
-            es: "Algo salió mal al guardar esta meta. Inténtalo de nuevo.",
-        }),
-        "goals.form.name": t({
-            en: "Name",
-            es: "Nombre",
-        }),
-        "goals.form.noDateNote": t({
-            en: "Without a date there is no monthly pace to hold to.",
-            es: "Sin fecha no hay un ritmo mensual que mantener.",
-        }),
-        "goals.form.save": t({
-            en: "Save Goal",
-            es: "Guardar meta",
-        }),
-        "goals.form.targetA11y": t({
-            en: "Edit target amount",
-            es: "Editar monto objetivo",
-        }),
         "goals.heading": t({
             en: "Goals",
             es: "Metas",
         }),
-        "goals.new.title": t({
-            en: "New Goal",
-            es: "Nueva meta",
+        "goals.onPace": t({
+            en: "on pace",
+            es: "a buen ritmo",
         }),
         "goals.pace": t({
-            en: "{amount} a month to stay on track",
-            es: "{amount} al mes para llegar a tiempo",
+            en: "{amount}/mo",
+            es: "{amount}/mes",
         }),
         "goals.reached": t({
             en: "Reached",
             es: "Alcanzada",
         }),
-        "goals.remaining": t({
+        "goals.sheet.amountBlank": t({
+            en: "an amount",
+            es: "un monto",
+        }),
+        "goals.sheet.commit": t({
+            en: "Set goal",
+            es: "Crear meta",
+        }),
+        "goals.sheet.demands": t({
+            en: "Demands {amount} a month for {months} months",
+            es: "Exige {amount} al mes durante {months} meses",
+        }),
+        "goals.sheet.demandsNow": t({
+            en: "That date is here — the whole {amount} is due now",
+            es: "Esa fecha ya llegó: los {amount} se deben ahora",
+        }),
+        "goals.sheet.editTargetA11y": t({
+            en: "Edit target amount",
+            es: "Editar monto objetivo",
+        }),
+        "goals.sheet.holds": t({
+            en: "Holds {amount} today",
+            es: "Tiene {amount} hoy",
+        }),
+        // Word order is the translator's: the template owns it, not the tree.
+        "goals.sheet.save": t({
+            en: "Save goal",
+            es: "Guardar meta",
+        }),
+        "goals.sheet.stated": t({
+            en: "Put {amount} in {account} by {date}",
+            es: "Junta {amount} en {account} para {date}",
+        }),
+        "goals.summary.toGo": t({
             en: "{amount} to go",
-            es: "Faltan {amount}",
+            es: "faltan {amount}",
+        }),
+        "goals.toGo": t({
+            en: "to go",
+            es: "por juntar",
+        }),
+        "goals.undo.deleted": t({
+            en: "Goal deleted",
+            es: "Meta eliminada",
+        }),
+        "goals.unvalued.body": t({
+            en: "{account}'s balance can't be converted yet, and a goal freezes it as its starting point. Try again once its exchange rate is available.",
+            es: "El saldo de {account} aún no se puede convertir, y una meta lo congela como punto de partida. Inténtalo cuando haya tasa de cambio.",
+        }),
+        "goals.unvalued.title": t({
+            en: "No goal yet",
+            es: "Meta no creada",
         }),
     },
     key: "goals" as const,

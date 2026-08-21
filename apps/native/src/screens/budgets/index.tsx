@@ -3,12 +3,14 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
 
+import { AccountPickerSheet } from "@/components/account-picker-sheet";
 import { CategoryPickerSheet } from "@/components/category-picker-sheet";
 import { useCategoryPickerField } from "@/components/form/category-picker-field";
 import { MonoLabel } from "@/components/mono-label";
 import { toolbarIcon } from "@/components/toolbar-icons";
-import { useDisplaySettings, useSettingBool, useSettingNumber } from "@/contexts/display-settings-context";
+import { useSettingBool, useSettingNumber } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
+import { settledBalanceAt, useAccountBalances, useAccounts } from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
 import type { ExpenseContribution } from "@/data/budget-spent";
 import type { CategoryBudgetView } from "@/data/budgets";
@@ -24,8 +26,10 @@ import {
 } from "@/data/budgets";
 import { useCategoryMeta } from "@/data/categories";
 import { useSavingsGoals } from "@/data/savings-goals";
+import { GoalValuationError, savingsGoalsRepo } from "@/data/savings-goals-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
+import { useValuation } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
 import { dominantCategory } from "@/domain/budget-dominant";
 import { BUDGET_TYPE } from "@/domain/budget-math";
@@ -41,6 +45,8 @@ import type { LimitCommit, LimitTarget } from "./components/budget-limit-body";
 import { BudgetLimitSheet } from "./components/budget-limit-sheet";
 import { BudgetRings } from "./components/budget-rings";
 import { BudgetRow } from "./components/budget-row";
+import { GoalTargetSheet } from "./components/goal-target-sheet";
+import type { GoalCommit, GoalTarget } from "./components/goal-target-sheet";
 import { SavingsGoalsSection } from "./components/savings-goals-section";
 import { UnbudgetedRail } from "./components/unbudgeted-rail";
 
@@ -67,14 +73,21 @@ function BudgetContent({ db }: { db: Database }) {
     const haptics = useHaptics();
     const currency = useGlobalCurrency(db);
     const asRows = useSettingBool("budgetViewStyle");
-    const { showCents } = useDisplaySettings().state;
     const nowMs = useNow();
-    const goals = useSavingsGoals(db);
+    const allGoals = useSavingsGoals(db, nowMs);
+    // Read here rather than inside the picker: the balance the goal freezes has to
+    // be the same figure the tab is showing, not one re-derived a frame later.
+    const balances = useAccountBalances(db, nowMs);
+    const accounts = useAccounts(db);
+    const valuation = useValuation(db);
 
     // One transactions subscription for the screen: every hook below derives from
     // this list rather than opening its own listener.
     const contributions = useExpenseContributions(db, nowMs);
     const { pendingId, requestDelete } = useDeferredDelete("budget");
+    // Goals hold their own undo window, so a goal inside one is off the grid while
+    // its toast is up — the same contract the budget list keeps.
+    const { pendingId: pendingGoalId } = useDeferredDelete("goal");
     const mainRow = useMainBudget(db, nowMs, contributions);
     // `main` is what the screen draws: a budget inside its undo window is gone as
     // far as the reader is concerned. `mainRow` is what still exists, and it is
@@ -88,6 +101,7 @@ function BudgetContent({ db }: { db: Database }) {
     const dominant = useDominant(db, contributions, main, nowMs);
     const burndowns = useBurndowns(contributions, nowMs, budgets);
 
+    const goals = useMemo(() => allGoals.filter((entry) => entry.goal.id !== pendingGoalId), [allGoals, pendingGoalId]);
     const ranked = useMemo(() => [...budgets].sort(compareBudgetSeverity), [budgets]);
     // A category holds at most one budget (`budgets.categoryId` is unique), so the
     // picker must not offer one that already has it — the save would fail on the
@@ -104,7 +118,12 @@ function BudgetContent({ db }: { db: Database }) {
     // budgets — the pitch screen can be shown on it without flashing. Rows still
     // inside an undo window count as budgets: they exist, they can be undone, and
     // the first-run takeover has no business appearing over one.
-    const isEmpty = mainRow === null && allBudgets.length === 0;
+    //
+    // Goals count too. The takeover returns before the section below it, so a
+    // ledger holding goals and no budget — the last budget deleted, or goals
+    // arriving by sync — would put every goal, its detail screen and the add tile
+    // behind a pitch for a different feature.
+    const isEmpty = mainRow === null && allBudgets.length === 0 && allGoals.length === 0;
 
     const firstDayOfMonth = useSettingNumber("firstDayOfMonth");
     const firstWeekday = useSettingNumber("firstWeekday");
@@ -113,6 +132,9 @@ function BudgetContent({ db }: { db: Database }) {
 
     const limitSheetRef = useRef<BottomSheetModal>(null);
     const [limitTarget, setLimitTarget] = useState<LimitTarget | null>(null);
+    const accountSheetRef = useRef<BottomSheetModal>(null);
+    const goalSheetRef = useRef<BottomSheetModal>(null);
+    const [goalTarget, setGoalTarget] = useState<GoalTarget | null>(null);
 
     // Presenting from an effect rather than from `openLimit` itself: `menuItems`
     // runs during render to build each card's context menu, so a closure that
@@ -124,6 +146,71 @@ function BudgetContent({ db }: { db: Database }) {
             limitSheetRef.current?.present();
         }
     }, [limitTarget]);
+
+    // The account is chosen first because it is the one fact a goal cannot change
+    // later: progress IS that account's balance. Presented from an effect for the
+    // same reason the limit sheet is — see the note above.
+    useEffect(() => {
+        if (goalTarget) {
+            goalSheetRef.current?.present();
+        }
+    }, [goalTarget]);
+
+    const commitGoal = async ({ targetAmount, targetDate }: GoalCommit) => {
+        const target = goalTarget;
+        if (!target) {
+            return;
+        }
+        // The draft was composed against the currency the ledger was showing when
+        // the account was picked. A synced settings change can move that while the
+        // sheet is open, and `balances` would then be denominated in the new one —
+        // so committing would file a figure in one currency under the name of
+        // another, permanently. The typed target no longer means what it said
+        // either, so the draft is refused rather than reinterpreted.
+        if (target.currency !== currency) {
+            goalSheetRef.current?.dismiss();
+            notifyFailure({ body: t("goals.currencyMoved.body"), title: t("goals.currencyMoved.title") });
+            return;
+        }
+        // Read from the database at this instant, not from the map above. That map
+        // is bounded by `useNow()`, which does not tick when a scheduled row simply
+        // becomes due — so it can still be excluding money that settled an hour
+        // ago, and `dateCreated` is now. An anchor is frozen once and read forever,
+        // so it has to be the balance as it actually stands.
+        const account = accounts.find((candidate) => candidate.id === target.accountId);
+        const balance = account && (await settledBalanceAt(db, account, valuation, new Date()));
+        if (!balance?.exact) {
+            notifyFailure({
+                body: t("goals.unvalued.body", { account: target.name }),
+                title: t("goals.unvalued.title"),
+            });
+            return;
+        }
+        goalSheetRef.current?.dismiss();
+        try {
+            await savingsGoalsRepo.create(db, {
+                accountId: target.accountId,
+                currency: target.currency,
+                // The account it is held in, not a generic "Savings goal": two
+                // unnamed goals must not read as the same thing in a grid whose
+                // whole job is telling them apart. Renamed on the detail screen.
+                name: target.name,
+                startAmount: balance.value,
+                targetAmount,
+                targetDate,
+            });
+            haptics("success");
+        } catch (error) {
+            console.error("Failed to save the goal", error);
+            // The repo refuses a goal it cannot canonicalise, which is a different
+            // thing from a write that went wrong, and says so.
+            notifyFailure(
+                error instanceof GoalValuationError
+                    ? { body: t("goals.unvalued.body", { account: target.name }), title: t("goals.unvalued.title") }
+                    : { body: t("goals.failedBody"), title: t("goals.failedTitle") }
+            );
+        }
+    };
 
     const {
         present: presentCategoryPicker,
@@ -203,18 +290,68 @@ function BudgetContent({ db }: { db: Database }) {
             t,
         });
 
+    /**
+     * Mounted by BOTH branches: the first-run takeover renders instead of the
+     * goals section and still offers to set one, so its button needs these here.
+     */
+    const goalSheets = (
+        <>
+            <AccountPickerSheet
+                allowNone={false}
+                db={db}
+                onCreate={() => {
+                    accountSheetRef.current?.dismiss();
+                    router.push("/settings/accounts/create");
+                }}
+                onSelect={(picked) => {
+                    accountSheetRef.current?.dismiss();
+                    if (!picked) {
+                        return;
+                    }
+                    const balance = balances.get(picked.id);
+                    // A goal freezes this balance as the line every later figure is
+                    // measured against, so an approximate one cannot be accepted: the
+                    // live balance would correct itself once the rates arrive and the
+                    // frozen anchor never would, inventing a gap that is pure
+                    // arithmetic. Refused with the reason rather than stored.
+                    if (balance === undefined || !balance.exact) {
+                        notifyFailure({
+                            body: t("goals.unvalued.body", { account: picked.name }),
+                            title: t("goals.unvalued.title"),
+                        });
+                        return;
+                    }
+                    setGoalTarget({
+                        accountId: picked.id,
+                        balance: balance.value,
+                        currency,
+                        name: picked.name,
+                    });
+                }}
+                ref={accountSheetRef}
+                selectedId={null}
+            />
+            <GoalTargetSheet onCommit={commitGoal} ref={goalSheetRef} target={goalTarget} />
+        </>
+    );
+
     if (isEmpty) {
         return (
-            <View className="bg-background flex-1 justify-center">
-                <BudgetEmptyState
-                    calendar={calendar}
-                    contributions={contributions}
-                    currency={currency}
-                    nowMs={nowMs}
-                    onAddTransaction={() => router.push("/transactions/create")}
-                    onCommit={commitEverything}
-                />
-            </View>
+            <>
+                <View className="bg-background flex-1 justify-center">
+                    <BudgetEmptyState
+                        calendar={calendar}
+                        contributions={contributions}
+                        currency={currency}
+                        nowMs={nowMs}
+                        onAddGoal={() => accountSheetRef.current?.present()}
+                        onAddTransaction={() => router.push("/transactions/create")}
+                        onCommit={commitEverything}
+                    />
+                </View>
+                {/* The takeover's goal action opens these, so they mount with it. */}
+                {goalSheets}
+            </>
         );
     }
 
@@ -348,9 +485,8 @@ function BudgetContent({ db }: { db: Database }) {
                 <SavingsGoalsSection
                     currency={currency}
                     goals={goals}
-                    onAdd={() => router.push("/(tabs)/budgets/goals/create")}
+                    onAdd={() => accountSheetRef.current?.present()}
                     onPress={(id) => router.push(`/budgets/goals/${id}`)}
-                    showCents={showCents}
                 />
             </ScrollView>
 
@@ -379,6 +515,7 @@ function BudgetContent({ db }: { db: Database }) {
                 ref={categoryPickerRef}
                 selectedId={null}
             />
+            {goalSheets}
         </>
     );
 }

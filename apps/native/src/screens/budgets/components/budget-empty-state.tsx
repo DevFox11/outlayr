@@ -19,6 +19,8 @@ interface BudgetEmptyStateProps {
     contributions: readonly ExpenseContribution[];
     currency: string;
     nowMs: number;
+    /** Goals live below the budgets, and this takeover renders instead of them. */
+    onAddGoal: () => void;
     onAddTransaction: () => void;
     onCommit: (commit: LimitCommit) => void;
 }
@@ -36,47 +38,70 @@ export function BudgetEmptyState({
     currency,
     nowMs,
     calendar,
+    onAddGoal,
     onAddTransaction,
     onCommit,
 }: BudgetEmptyStateProps) {
     const t = useTranslation();
 
     if (contributions.length === 0) {
-        return <NothingToBudget onAddTransaction={onAddTransaction} />;
+        return <NothingToBudget onAddGoal={onAddGoal} onAddTransaction={onAddTransaction} />;
     }
 
     return (
-        <BudgetLimitBody
-            calendar={calendar}
-            contributions={contributions}
-            currency={currency}
-            nowMs={nowMs}
-            onCommit={onCommit}
-            periodChoice={false}
-            target={{
-                categoryId: null,
-                limit: null,
-                name: t("budgets.scope.everything").toLocaleLowerCase(),
-                type: BUDGET_TYPE.month,
-            }}
-        />
+        <>
+            <BudgetLimitBody
+                calendar={calendar}
+                contributions={contributions}
+                currency={currency}
+                nowMs={nowMs}
+                onCommit={onCommit}
+                periodChoice={false}
+                target={{
+                    categoryId: null,
+                    limit: null,
+                    name: t("budgets.scope.everything").toLocaleLowerCase(),
+                    type: BUDGET_TYPE.month,
+                }}
+            />
+            <GoalWayOut onPress={onAddGoal} />
+        </>
     );
 }
 
-function NothingToBudget({ onAddTransaction }: { onAddTransaction: () => void }) {
+/**
+ * The one door to goals while this takeover is up.
+ *
+ * It renders INSTEAD of the section goals normally live in, so without this a
+ * reader holding a savings account and no budget could not set their first goal
+ * without first setting a budget they did not want.
+ */
+function GoalWayOut({ onPress }: { onPress: () => void }) {
+    const t = useTranslation();
+    return (
+        <Pressable accessibilityRole="button" className="items-center px-5 pt-4 active:opacity-60" onPress={onPress}>
+            <Text className="text-tint text-subtitle">{t("goals.add")}</Text>
+        </Pressable>
+    );
+}
+
+function NothingToBudget({ onAddGoal, onAddTransaction }: { onAddGoal: () => void; onAddTransaction: () => void }) {
     const t = useTranslation();
     return (
         <EmptyState
             action={
-                <Pressable
-                    accessibilityRole="button"
-                    className="bg-accent rounded-full px-7 py-3.5 active:opacity-80"
-                    onPress={onAddTransaction}
-                >
-                    <Text className="font-sans-semibold text-accent-foreground text-body">
-                        {t("budgets.empty.action")}
-                    </Text>
-                </Pressable>
+                <View className="items-center gap-1">
+                    <Pressable
+                        accessibilityRole="button"
+                        className="bg-accent rounded-full px-7 py-3.5 active:opacity-80"
+                        onPress={onAddTransaction}
+                    >
+                        <Text className="font-sans-semibold text-accent-foreground text-body">
+                            {t("budgets.empty.action")}
+                        </Text>
+                    </Pressable>
+                    <GoalWayOut onPress={onAddGoal} />
+                </View>
             }
             body={t("budgets.empty.body")}
             mark={<PlotUnset />}

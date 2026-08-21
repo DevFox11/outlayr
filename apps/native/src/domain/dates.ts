@@ -182,3 +182,18 @@ export function monthLongTitle(date: Date, language: Language = runtimeLanguage(
 export function formatMonthLabel(date: Date, language: Language = runtimeLanguage()): string {
     return monthLongTitle(date, language).toUpperCase();
 }
+
+/**
+ * "Jun 2027" — a goal's deadline, which is months or years out.
+ *
+ * The year is not optional the way it is on a transaction date: a target is
+ * chosen precisely because it is far away, and "24 Jun" would read as this year.
+ */
+export function formatTargetMonth(date: Date, language: Language = runtimeLanguage()): string {
+    return `${monthAbbrevTitle(date, language)} ${date.getFullYear()}`;
+}
+
+/** "30 Jun 2027" — {@link formatTargetMonth} where the chosen day itself matters. */
+export function formatTargetDate(date: Date, language: Language = runtimeLanguage()): string {
+    return `${date.getDate()} ${formatTargetMonth(date, language)}`;
+}

@@ -6,7 +6,7 @@ import BetterSqlite3 from "better-sqlite3";
 import { eq, getTableColumns } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
-import { accounts, budgets, categories, mainBudget, outbox, transactions } from "@/db/schema";
+import { accounts, budgets, categories, mainBudget, outbox, savingsGoals, transactions } from "@/db/schema";
 import { testDatabase } from "@/db/test-database";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
@@ -1107,6 +1107,105 @@ describe("two devices against one account", () => {
         });
 
         expect(calls).toBe(0);
+    });
+});
+
+describe("a savings goal from a build that predates the start anchor", () => {
+    /** What `0021`-era clients put on the wire: no start columns, nullable date. */
+    function legacyGoal(overrides: { deletedAt?: number | null; targetDate?: number | null } = {}): PulledRow {
+        return {
+            deletedAt: overrides.deletedAt ?? null,
+            deviceId: "device-b",
+            fields: {
+                accountId: "acct-1",
+                currency: "USD",
+                dateCreated: 1000,
+                name: "Emergency fund",
+                sortOrder: 0,
+                targetAmount: 5000,
+                targetAmountUsd: 5000,
+                targetDate: overrides.targetDate === undefined ? 9000 : overrides.targetDate,
+            },
+            localId: "goal-1",
+            seq: 1,
+            table: "savingsGoals",
+            updatedAt: 5000,
+        };
+    }
+
+    async function withAccount(db: Database): Promise<void> {
+        await db.insert(accounts).values({
+            currency: "USD",
+            dateCreated: AT(1000),
+            id: "acct-1",
+            initialBalance: 0,
+            initialBalanceDate: AT(1000),
+            name: "Savings",
+            updatedAt: AT(1000),
+        });
+    }
+
+    it("lands with the start anchor defaulted rather than nulled", async () => {
+        // `toLocalFields` writes an explicit null for a field the wire omits, and
+        // `startAmount` is NOT NULL — without a default this rejects the whole page.
+        const db = makeDb();
+        await withAccount(db);
+
+        await applyPulledRows(db, { cursor: 1, rows: [legacyGoal()] });
+
+        const [row] = await db.select().from(savingsGoals);
+        expect(row.startAmount).toBe(0);
+        // Zero, not null: null is how an unconvertible figure is spelled, and it
+        // would withhold this goal's progress and chart for as long as the display
+        // currency differed from its own.
+        expect(row.startAmountUsd).toBe(0);
+        expect(row.targetDate.getTime()).toBe(9000);
+    });
+
+    it("tombstones a dateless goal rather than keeping a copy the server has lost", async () => {
+        // A peer on an older build can clear a deadline. Skipping the row would
+        // leave this device showing its dated copy for good while the server held
+        // the dateless one, so it is written deleted and pushed back — both sides
+        // converge on gone. The unrelated row in the same page must survive, since
+        // a constraint failure here would take it down too.
+        const db = makeDb();
+        await withAccount(db);
+
+        const applied = await applyPulledRows(db, {
+            cursor: 1,
+            rows: [legacyGoal({ targetDate: null }), txRow("t-live", 2, 5000, { fields: { note: "kept" } })],
+        });
+
+        const [goal] = await db.select().from(savingsGoals);
+        expect(goal.deletedAt).not.toBeNull();
+        expect(applied.applied).toBe(2);
+        const [kept] = await db.select().from(transactions);
+        expect(kept.note).toBe("kept");
+    });
+
+    it("survives the migration when it was deleted before upgrading", async () => {
+        // The rebuild drops LIVE dateless goals. A deleted one is kept, because its
+        // row exists only to carry the tombstone: dropping it strands the outbox
+        // entry for an offline delete, `drainOutbox` clears that entry without
+        // pushing it, and every other device keeps a goal the owner deleted.
+        const db = makeDb();
+        await withAccount(db);
+        await applyPulledRows(db, { cursor: 1, rows: [legacyGoal({ deletedAt: 6000, targetDate: null })] });
+
+        const [row] = await db.select().from(savingsGoals);
+        expect(row.deletedAt).not.toBeNull();
+        expect(row.targetDate).not.toBeNull();
+    });
+
+    it("still applies a dateless goal's tombstone, so a delete is never lost", async () => {
+        const db = makeDb();
+        await withAccount(db);
+        await applyPulledRows(db, { cursor: 1, rows: [legacyGoal()] });
+
+        await applyPulledRows(db, { cursor: 2, rows: [legacyGoal({ deletedAt: 6000, targetDate: null })] });
+
+        const [row] = await db.select().from(savingsGoals);
+        expect(row.deletedAt).not.toBeNull();
     });
 });
 

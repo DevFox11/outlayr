@@ -21,8 +21,12 @@ export default function BudgetsLayout() {
                 <Stack.Header transparent />
                 <Stack.Screen.BackButton displayMode="minimal" />
             </Stack.Screen>
-            <Stack.Screen name="goals/create" options={{ presentation: "modal" }} />
-            <Stack.Screen name="goals/[id]" options={{ presentation: "modal" }} />
+            {/* Pushed, not presented: a goal is read here, and the facts under the
+			    chart are edited in place rather than in a modal over it. */}
+            <Stack.Screen name="goals/[id]">
+                <Stack.Header transparent />
+                <Stack.Screen.BackButton displayMode="minimal" />
+            </Stack.Screen>
         </Stack>
     );
 }
