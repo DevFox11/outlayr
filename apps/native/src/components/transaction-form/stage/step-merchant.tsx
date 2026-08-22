@@ -68,7 +68,9 @@ export function StepMerchant({
                     onChangeText={onChange}
                     placeholder={placeholder}
                     placeholderTextColor={colors.muted}
-                    returnKeyType="next"
+                    // Nothing follows it: the key ends the entry and puts the keyboard
+                    // away, and "next" promised a field that is not there.
+                    returnKeyType="done"
                     style={{
                         color: colors.foreground,
                         fontFamily: "SFProRounded-Regular",

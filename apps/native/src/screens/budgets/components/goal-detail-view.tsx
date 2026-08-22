@@ -110,9 +110,15 @@ export function GoalDetailView({ currency, editor, entry, nowMs }: GoalDetailVie
 
     return (
         <ScrollView
+            // The editor's name field is the last thing in this scroller, so without
+            // this the keyboard covers the field it just opened. `keyboardDismissMode`
+            // is the way back out of it, and `keyboardShouldPersistTaps` is left at its
+            // default so a tap outside is the blur that commits the name.
+            automaticallyAdjustKeyboardInsets
             className="bg-background flex-1"
             contentContainerStyle={{ paddingBottom: 48, paddingHorizontal: 20 }}
             contentInsetAdjustmentBehavior="automatic"
+            keyboardDismissMode="on-drag"
         >
             <View className="pt-1 pb-5">
                 <Text className={cn(STATED, "text-foreground")}>

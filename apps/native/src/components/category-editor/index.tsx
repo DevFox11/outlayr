@@ -1,7 +1,14 @@
 import { Host } from "@expo/ui";
 import { Form, useNativeState } from "@expo/ui/swift-ui";
 import type { TextFieldRef } from "@expo/ui/swift-ui";
-import { animation, blur, listStyle, opacity, scrollContentBackground } from "@expo/ui/swift-ui/modifiers";
+import {
+    animation,
+    blur,
+    listStyle,
+    opacity,
+    scrollContentBackground,
+    scrollDismissesKeyboard,
+} from "@expo/ui/swift-ui/modifiers";
 import { useForm, useSelector } from "@tanstack/react-form";
 import { useNavigation, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -447,7 +454,16 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
                 }}
             >
                 <Host style={{ flex: 1 }}>
-                    <Form modifiers={[listStyle("insetGrouped"), scrollContentBackground("hidden"), ...underPicker]}>
+                    <Form
+                        modifiers={[
+                            listStyle("insetGrouped"),
+                            scrollContentBackground("hidden"),
+                            // The CTA sits under the keyboard, so a drag has to be able to
+                            // put it away — the same way the account editor's form does.
+                            scrollDismissesKeyboard("immediately"),
+                            ...underPicker,
+                        ]}
+                    >
                         <CategoryEditorDetailsSection
                             caption={caption}
                             dangerColor={colors.danger}

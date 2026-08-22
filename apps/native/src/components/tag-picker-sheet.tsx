@@ -148,6 +148,7 @@ export function TagPickerSheet({
                 <BottomSheetFlatList
                     contentContainerStyle={{ paddingBottom: 32, paddingHorizontal: 20 }}
                     data={results}
+                    keyboardDismissMode="on-drag"
                     keyboardShouldPersistTaps="handled"
                     keyExtractor={(tag: TagRow) => tag.id}
                     ListEmptyComponent={
