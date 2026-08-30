@@ -297,6 +297,44 @@ describe("tier 1.5: domain-less curated fallthrough", () => {
     });
 });
 
+describe("tier 1.75: the caller's own on-device domain tier", () => {
+    it("answers before the model and merges onto a domain-less curated hit", async () => {
+        const { fn } = deferredTransport();
+        const onSuggest = jest.fn<(suggestion: EnrichmentSuggestion) => void>();
+        const { result } = await renderHook(() =>
+            useTransactionEnrichment(
+                baseArgs({
+                    onSuggest,
+                    resolveDomain: (key) => (key === merchantKey(UNKNOWN) ? "example.com" : null),
+                    transport: fn,
+                })
+            )
+        );
+
+        result.current.onNameChange(UNKNOWN);
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS + GROUNDED_IDLE_MS);
+        });
+
+        expect(onSuggest).toHaveBeenLastCalledWith(expect.objectContaining({ domain: "example.com" }));
+        expect(fn).not.toHaveBeenCalled();
+    });
+
+    // The transaction form passes no `resolveDomain`, so its tiers must be
+    // exactly what they were before the account editor needed one.
+    it("is absent by default, leaving the remote tier to answer", async () => {
+        const { fn } = deferredTransport();
+        const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
+
+        result.current.onNameChange(UNKNOWN);
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
+});
+
 describe("tier 2: remote fallback", () => {
     it("never calls the transport when tier 1 already answered", async () => {
         const { fn } = deferredTransport();

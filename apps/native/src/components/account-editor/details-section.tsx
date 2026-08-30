@@ -1,5 +1,16 @@
-import { Button, HStack, Image, Section, Spacer, Text as SwiftText, TextField, Toggle } from "@expo/ui/swift-ui";
+import {
+    Button,
+    Divider,
+    HStack,
+    Image,
+    Spacer,
+    Text as SwiftText,
+    TextField,
+    Toggle,
+    VStack,
+} from "@expo/ui/swift-ui";
 import type { TextFieldRef, useNativeState } from "@expo/ui/swift-ui";
+import type { ViewModifier } from "@expo/ui/swift-ui/modifiers";
 import {
     accessibilityLabel,
     buttonStyle,
@@ -7,23 +18,19 @@ import {
     foregroundStyle,
     frame,
     labelsHidden,
-    listSectionMargins,
     multilineTextAlignment,
     onSubmit,
     onTapGesture,
+    padding,
     submitLabel,
     textInputAutocapitalization,
     tint,
 } from "@expo/ui/swift-ui/modifiers";
 import type { RefObject } from "react";
 
-import { FORM_TOP_MARGIN } from "@/components/editor-style";
+import { BODY, CAPTION, ROW, rowLabel } from "@/components/transaction-form/style";
 import { hitArea, outline } from "@/lib/swift-ui-geometry";
 
-const ROW_LABEL = foregroundStyle({
-    style: "secondary",
-    type: "hierarchical",
-} as const);
 const SIGN_FONT = font({
     design: "rounded",
     textStyle: "body",
@@ -40,6 +47,8 @@ interface AccountEditorDetailsSectionProps {
     caption: string | null;
     currencyCode: string;
     currencyLabel: string;
+    /** `overlay` in the rule colour — supplied by the editor, which owns the theme. */
+    hairline: ViewModifier[];
     kindLabel: string;
     /** True when this account is money owed rather than money held. */
     liability: boolean;
@@ -58,6 +67,12 @@ interface AccountEditorDetailsSectionProps {
     tintColor: string;
 }
 
+/**
+ * Hairline-ruled rows on the page, the anatomy settings and the transfer editor
+ * already use — not an inset-grouped card. Every `Text` names `BODY`
+ * explicitly: outside a `Form` nothing applies the rounded face, so an
+ * unmodified label falls back to the system font.
+ */
 export function AccountEditorDetailsSection({
     caption,
     currencyCode,
@@ -66,6 +81,7 @@ export function AccountEditorDetailsSection({
     balanceSignA11y,
     balanceEditA11y,
     balanceValue,
+    hairline,
     mutedColor,
     nameFieldRef,
     nameLabel,
@@ -83,15 +99,16 @@ export function AccountEditorDetailsSection({
     tintColor,
 }: AccountEditorDetailsSectionProps) {
     return (
-        <Section
-            footer={caption ? <SwiftText>{caption}</SwiftText> : undefined}
-            modifiers={[listSectionMargins({ edges: "top", length: FORM_TOP_MARGIN })]}
-        >
-            <HStack>
-                <SwiftText modifiers={[ROW_LABEL]}>{nameLabel}</SwiftText>
+        <VStack spacing={0}>
+            <Divider modifiers={hairline} />
+
+            <HStack modifiers={ROW}>
+                <SwiftText modifiers={[BODY, rowLabel]}>{nameLabel}</SwiftText>
                 <Spacer />
                 <TextField
                     modifiers={[
+                        BODY,
+                        foregroundStyle(tintColor),
                         multilineTextAlignment("trailing"),
                         textInputAutocapitalization("words"),
                         submitLabel("done"),
@@ -104,10 +121,12 @@ export function AccountEditorDetailsSection({
                 />
             </HStack>
 
-            <HStack modifiers={[hitArea(outline.rectangle()), onTapGesture(onCurrencyPress)]}>
-                <SwiftText modifiers={[ROW_LABEL]}>{currencyLabel}</SwiftText>
+            <Divider modifiers={hairline} />
+
+            <HStack modifiers={[...ROW, hitArea(outline.rectangle()), onTapGesture(onCurrencyPress)]}>
+                <SwiftText modifiers={[BODY, rowLabel]}>{currencyLabel}</SwiftText>
                 <Spacer />
-                <SwiftText modifiers={[foregroundStyle(tintColor)]}>{currencyCode}</SwiftText>
+                <SwiftText modifiers={[BODY, foregroundStyle(tintColor)]}>{currencyCode}</SwiftText>
                 <Image
                     color={mutedColor}
                     modifiers={[
@@ -121,10 +140,12 @@ export function AccountEditorDetailsSection({
                 />
             </HStack>
 
+            <Divider modifiers={hairline} />
+
             {/* A card and an overdrawn current account both read as a negative
 			    balance; this is the only thing that tells them apart. */}
-            <HStack>
-                <SwiftText modifiers={[ROW_LABEL]}>{kindLabel}</SwiftText>
+            <HStack modifiers={ROW}>
+                <SwiftText modifiers={[BODY, rowLabel]}>{kindLabel}</SwiftText>
                 <Spacer />
                 <Toggle
                     isOn={liability}
@@ -133,8 +154,10 @@ export function AccountEditorDetailsSection({
                 />
             </HStack>
 
-            <HStack>
-                <SwiftText modifiers={[ROW_LABEL]}>{balanceLabel}</SwiftText>
+            <Divider modifiers={hairline} />
+
+            <HStack modifiers={ROW}>
+                <SwiftText modifiers={[BODY, rowLabel]}>{balanceLabel}</SwiftText>
                 <Spacer />
                 <Button modifiers={[buttonStyle("plain"), accessibilityLabel(balanceSignA11y)]} onPress={onToggleSign}>
                     <SwiftText
@@ -153,9 +176,17 @@ export function AccountEditorDetailsSection({
                     modifiers={[buttonStyle("plain"), accessibilityLabel(balanceEditA11y)]}
                     onPress={onBalancePress}
                 >
-                    <SwiftText modifiers={[foregroundStyle(tintColor)]}>{balanceValue}</SwiftText>
+                    <SwiftText modifiers={[BODY, foregroundStyle(tintColor)]}>{balanceValue}</SwiftText>
                 </Button>
             </HStack>
-        </Section>
+
+            <Divider modifiers={hairline} />
+
+            {caption ? (
+                <SwiftText modifiers={[CAPTION, foregroundStyle(mutedColor), padding({ top: 10 })]}>
+                    {caption}
+                </SwiftText>
+            ) : null}
+        </VStack>
     );
 }

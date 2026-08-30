@@ -1,15 +1,8 @@
 import { Host } from "@expo/ui";
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
-import { Form, useNativeState } from "@expo/ui/swift-ui";
+import { ScrollView, useNativeState, VStack } from "@expo/ui/swift-ui";
 import type { TextFieldRef } from "@expo/ui/swift-ui";
-import {
-    animation,
-    blur,
-    listStyle,
-    opacity,
-    scrollContentBackground,
-    scrollDismissesKeyboard,
-} from "@expo/ui/swift-ui/modifiers";
+import { animation, blur, opacity, overlay, padding, scrollDismissesKeyboard } from "@expo/ui/swift-ui/modifiers";
 import { useForm, useSelector } from "@tanstack/react-form";
 import { Stack, useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -19,12 +12,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AmountEntrySheet } from "@/components/amount-entry-sheet";
 import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
+import { EditorCta } from "@/components/editor-cta";
 import {
     CTA_BOTTOM_PADDING,
     CTA_HEIGHT,
     FLY_BACK,
     FLY_UP,
     FORM_BLUR_RADIUS,
+    FORM_TOP_MARGIN,
     HEADER_HEIGHT,
     HERO_BOTTOM_PADDING,
     HERO_TOP_PADDING,
@@ -52,9 +47,9 @@ import type { TranslateFn } from "@/i18n/context";
 import { ACCOUNT_DETENT, LARGE_ONLY } from "@/lib/sheet-detents";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
+import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
-import { AccountEditorCta } from "./cta";
 import { AccountEditorDetailsSection } from "./details-section";
 import { AccountEditorHeroBand } from "./hero-band";
 
@@ -68,10 +63,10 @@ export default function AccountEditor(props: AccountEditorProps) {
 }
 
 /**
- * The add/edit account form: a FIXED hero header over a scrolling `Form`, the
- * exact shape of the category editor. The hero, the CTA and the mesh curtain
- * are RN views around the `Host`, because the `Form` inside it has to be its
- * only child.
+ * The add/edit account form: a FIXED hero header over a scrolling `ScrollView`
+ * of hairline-ruled rows, the exact shape of the category editor. The hero, the
+ * CTA and the mesh curtain are RN views around the `Host`, because the scroller
+ * inside it has to be its only child.
  */
 function curtainHuesFor(photoUri: string | null, emoji: string | null, tint: string): string[] {
     if (photoUri) {
@@ -354,10 +349,8 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                 }}
             >
                 <Host style={{ flex: 1 }}>
-                    <Form
+                    <ScrollView
                         modifiers={[
-                            listStyle("insetGrouped"),
-                            scrollContentBackground("hidden"),
                             // The decimal pad has no return key and the CTA sits under it,
                             // so a drag has to be able to put the keyboard away without
                             // collapsing the sheet out from under the form.
@@ -365,31 +358,34 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                             ...underPicker,
                         ]}
                     >
-                        <AccountEditorDetailsSection
-                            balanceEditA11y={t("accounts.a11y.editBalance")}
-                            balanceLabel={t("accounts.field.initialBalance")}
-                            balanceSignA11y={t("accounts.a11y.balanceSign")}
-                            balanceValue={formatAmount(numpadToNumber(balanceText), currency, true, language)}
-                            caption={mode === "edit" ? t("accounts.rebaseNote") : null}
-                            currencyCode={currency}
-                            currencyLabel={t("accounts.field.currency")}
-                            kindLabel={t("accounts.field.kind")}
-                            liability={liability}
-                            mutedColor={colors.muted}
-                            nameFieldRef={nameRef}
-                            nameLabel={t("accounts.field.name")}
-                            namePlaceholder={t("accounts.namePlaceholder")}
-                            nameState={nameState}
-                            negative={negative}
-                            onBalancePress={openBalancePad}
-                            onCurrencyPress={openCurrencyPicker}
-                            onNameChange={onNameChange}
-                            onSubmitName={() => pressSubmit(form)}
-                            onToggleLiability={(next) => form.setFieldValue("liability", next)}
-                            onToggleSign={() => form.setFieldValue("negative", !negative)}
-                            tintColor={colors.foreground}
-                        />
-                    </Form>
+                        <VStack modifiers={[padding({ horizontal: 20, top: FORM_TOP_MARGIN })]} spacing={0}>
+                            <AccountEditorDetailsSection
+                                balanceEditA11y={t("accounts.a11y.editBalance")}
+                                balanceLabel={t("accounts.field.initialBalance")}
+                                balanceSignA11y={t("accounts.a11y.balanceSign")}
+                                balanceValue={formatAmount(numpadToNumber(balanceText), currency, true, language)}
+                                caption={mode === "edit" ? t("accounts.rebaseNote") : null}
+                                currencyCode={currency}
+                                currencyLabel={t("accounts.field.currency")}
+                                hairline={[overlay({ color: withAlpha(colors.foreground, 0.08) })]}
+                                kindLabel={t("accounts.field.kind")}
+                                liability={liability}
+                                mutedColor={colors.muted}
+                                nameFieldRef={nameRef}
+                                nameLabel={t("accounts.field.name")}
+                                namePlaceholder={t("accounts.namePlaceholder")}
+                                nameState={nameState}
+                                negative={negative}
+                                onBalancePress={openBalancePad}
+                                onCurrencyPress={openCurrencyPicker}
+                                onNameChange={onNameChange}
+                                onSubmitName={() => pressSubmit(form)}
+                                onToggleLiability={(next) => form.setFieldValue("liability", next)}
+                                onToggleSign={() => form.setFieldValue("negative", !negative)}
+                                tintColor={colors.foreground}
+                            />
+                        </VStack>
+                    </ScrollView>
                 </Host>
             </View>
 
@@ -414,19 +410,21 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                 photoUri={draft.photoUri}
             />
 
+            {/* The CTA is an RN view now, so the picker's SwiftUI blur/opacity
+			    modifiers cannot reach it — it hides the way the transfer editor's
+			    does, on the wrapper. */}
             <Animated.View
                 className="bottom-safe-offset-2 absolute right-0 left-0 px-5"
-                pointerEvents="box-none"
-                style={ctaStyle}
+                pointerEvents={pickerOpen ? "none" : "box-none"}
+                style={[ctaStyle, { opacity: pickerOpen ? 0 : 1 }]}
             >
                 <InlineFailure message={failure} />
 
-                <AccountEditorCta
+                <EditorCta
+                    busy={isSubmitting}
                     canSave={canSave}
                     label={t(mode === "create" ? "accounts.addAccount" : "accounts.saveAccount")}
                     onPress={() => pressSubmit(form)}
-                    tintColor={colors.foreground}
-                    underPicker={underPicker}
                 />
             </Animated.View>
 

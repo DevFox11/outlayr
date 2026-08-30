@@ -11,7 +11,12 @@ import { describe, expect, it } from "@jest/globals";
  */
 const SRC = join(import.meta.dirname, "..", "..");
 
-const RENDERS_SWIFTUI_LIST = /<List[\s>]/;
+/**
+ * `Form` as well as `List`: a SwiftUI `Form` IS a `List` underneath and paints
+ * the same two grounds. Matching only `<List` is what let the account and
+ * category editors ship on iOS's own grey for months.
+ */
+const RENDERS_SWIFTUI_LIST = /<(?:List|Form)[\s>]/;
 const GROUND = /\bgroupedList\(/;
 const ROW_GROUND = /\bgroupedRows\(/;
 /** A value import, so the `useRef<BottomSheetModal>` type-only files are skipped. */
@@ -43,7 +48,7 @@ function offenders(renders: RegExp, ground: RegExp[]): string[] {
 }
 
 describe("no screen keeps an iOS ground", () => {
-    it("every SwiftUI List names both the ground it stands on and the one its rows float on", () => {
+    it("every SwiftUI List or Form names both the ground it stands on and the one its rows float on", () => {
         expect(offenders(RENDERS_SWIFTUI_LIST, [GROUND, ROW_GROUND])).toStrictEqual([]);
     });
 

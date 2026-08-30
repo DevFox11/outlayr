@@ -118,6 +118,164 @@ describe("debounce and domain consumption", () => {
         expect(onLogo).toHaveBeenCalledWith(PERSISTED);
     });
 
+    it("resolves a bank on-device and never asks the model", async () => {
+        const { fn } = deferredTransport();
+        const fetchImage = jest.fn(async () => LOGO);
+        const onLogo = jest.fn();
+        const { result } = await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, onLogo, transport: fn })));
+
+        result.current.onNameChange("Chase");
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS + GROUNDED_IDLE_MS);
+        });
+
+        expect(fetchImage).toHaveBeenCalledWith({
+            domain: "chase.com",
+            name: "Chase",
+        });
+        expect(onLogo).toHaveBeenCalledWith(PERSISTED);
+        // The point of the institution tier: no round trip, so it also works
+        // signed out and offline.
+        expect(fn).not.toHaveBeenCalled();
+    });
+
+    it("still resolves a bank when aiEnrichment is off", async () => {
+        const { fn } = deferredTransport();
+        const fetchImage = jest.fn(async () => LOGO);
+        const onLogo = jest.fn();
+        const { result } = await renderHook(() =>
+            useAccountIdentity(baseArgs({ fetchImage, onLogo, remoteEnabled: false, transport: fn }))
+        );
+
+        result.current.onNameChange("Banesco");
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+
+        expect(fetchImage).toHaveBeenCalledWith({
+            domain: "banesco.com",
+            name: "Banesco",
+        });
+        expect(onLogo).toHaveBeenCalledWith(PERSISTED);
+        expect(fn).not.toHaveBeenCalled();
+    });
+
+    /**
+     * The race Codex found on #486: an outstanding remote lookup for the
+     * PREVIOUS name settling after a bank resolved locally. Nothing bumped the
+     * request ticket on the local answer, so the late result still counted as
+     * current and its logo landed on this account.
+     */
+    it("drops an older remote result that settles after a bank resolved locally", async () => {
+        const { fn, calls } = deferredTransport();
+        const fetchImage = jest.fn(async () => LOGO);
+        const onLogo = jest.fn();
+        const { result } = await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, onLogo, transport: fn })));
+
+        result.current.onNameChange(UNKNOWN);
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+        expect(fn).toHaveBeenCalledTimes(1);
+
+        // The field moves to a bank, which the institution map answers on device.
+        result.current.onNameChange("Chase");
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+        expect(fetchImage).toHaveBeenCalledWith({ domain: "chase.com", name: "Chase" });
+
+        fetchImage.mockClear();
+        await act(async () => {
+            calls[0].settle(domainResult("zzq-unresolvable.example"));
+        });
+
+        // The stale answer must not reach the tile at all.
+        expect(fetchImage).not.toHaveBeenCalled();
+    });
+
+    /**
+     * The follow-on Codex found: superseding the ticket left the abandoned key
+     * in the dedupe set, so returning to that name before its call settled made
+     * `run` refuse to start a replacement — and the discarded result meant
+     * nothing ever answered, stranding the bank's logo on the wrong name.
+     */
+    it("re-asks for a name whose earlier lookup was superseded and abandoned", async () => {
+        const { fn, calls } = deferredTransport();
+        const { result } = await renderHook(() => useAccountIdentity(baseArgs({ transport: fn })));
+
+        result.current.onNameChange(UNKNOWN);
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+        expect(fn).toHaveBeenCalledTimes(1);
+
+        // A local answer supersedes that outstanding request.
+        result.current.onNameChange("Chase");
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+
+        // Back to the first name while its abandoned call is still pending.
+        result.current.onNameChange(UNKNOWN);
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+
+        expect(fn).toHaveBeenCalledTimes(2);
+        expect(calls).toHaveLength(2);
+    });
+
+    /**
+     * A superseded request still settles. It must not delete the dedupe entry a
+     * later request for the same key now owns, or `run` starts a third lookup;
+     * and it must not record its outcome, or `runGroundedFollowUp` answers for a
+     * name the user has left — suppressing the grounded pass the live result
+     * deserves, or spending one it does not.
+     */
+    it("lets a superseded request settle without disturbing the live one", async () => {
+        const { fn, calls } = deferredTransport();
+        const { result } = await renderHook(() => useAccountIdentity(baseArgs({ transport: fn })));
+
+        result.current.onNameChange(UNKNOWN);
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+        result.current.onNameChange("Chase");
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+        result.current.onNameChange(UNKNOWN);
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+        expect(fn).toHaveBeenCalledTimes(2);
+
+        // The abandoned first call lands, claiming a domain.
+        await act(async () => {
+            calls[0].settle(domainResult("zzq-superseded.example"));
+        });
+
+        // Its entry is not the live request's, so nothing was freed: another
+        // pass for the same name must not open a third request.
+        result.current.onNameChange(UNKNOWN);
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+        expect(fn).toHaveBeenCalledTimes(2);
+
+        // And its outcome was not recorded, so the live domain-less result still
+        // earns its grounded follow-up.
+        await act(async () => {
+            calls[1].settle(domainResult(null));
+        });
+        await act(async () => {
+            jest.advanceTimersByTime(GROUNDED_IDLE_MS);
+        });
+        expect(fn).toHaveBeenCalledTimes(3);
+        expect(fn.mock.calls[2][0].groundedLookup).toBe(true);
+    });
+
     it("clears instead of fetching when the name resolves to no domain", async () => {
         const { fn, calls } = deferredTransport();
         const fetchImage = jest.fn(async () => LOGO);

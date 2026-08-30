@@ -1,14 +1,7 @@
 import { Host } from "@expo/ui";
-import { Form, useNativeState } from "@expo/ui/swift-ui";
+import { ScrollView, useNativeState, VStack } from "@expo/ui/swift-ui";
 import type { TextFieldRef } from "@expo/ui/swift-ui";
-import {
-    animation,
-    blur,
-    listStyle,
-    opacity,
-    scrollContentBackground,
-    scrollDismissesKeyboard,
-} from "@expo/ui/swift-ui/modifiers";
+import { animation, blur, opacity, overlay, padding, scrollDismissesKeyboard } from "@expo/ui/swift-ui/modifiers";
 import { useForm, useSelector } from "@tanstack/react-form";
 import { useNavigation, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -17,6 +10,7 @@ import { Keyboard, View } from "react-native";
 import Animated, { FadeInDown, FadeOutDown, useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { EditorCta } from "@/components/editor-cta";
 import {
     CAPTION_CLEARANCE,
     CTA_BOTTOM_PADDING,
@@ -24,6 +18,7 @@ import {
     FLY_BACK,
     FLY_UP,
     FORM_BLUR_RADIUS,
+    FORM_TOP_MARGIN,
     HEADER_HEIGHT,
     HERO_BOTTOM_PADDING,
     HERO_TOP_PADDING,
@@ -47,7 +42,6 @@ import { glowFromEmoji } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
-import { CategoryEditorCta } from "./cta";
 import { CategoryEditorDetailsSection } from "./details-section";
 import { CategoryEditorHeroBand } from "./hero-band";
 
@@ -109,10 +103,11 @@ export default function CategoryEditor(props: CategoryEditorProps) {
 }
 
 /**
- * The add/edit category form: a FIXED hero header over a scrolling `Form`.
+ * The add/edit category form: a FIXED hero header over a scrolling `ScrollView`
+ * of hairline-ruled rows.
  *
  * The hero, the CTA and the mesh curtain are RN views around the `Host`, because
- * the `Form` inside it has to be its only child.
+ * the scroller inside it has to be its only child.
  */
 function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/client").Database }) {
     // Stable per-instance primitives: the parent spreads a fresh `props` object
@@ -454,38 +449,40 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
                 }}
             >
                 <Host style={{ flex: 1 }}>
-                    <Form
+                    <ScrollView
                         modifiers={[
-                            listStyle("insetGrouped"),
-                            scrollContentBackground("hidden"),
                             // The CTA sits under the keyboard, so a drag has to be able to
                             // put it away — the same way the account editor's form does.
                             scrollDismissesKeyboard("immediately"),
                             ...underPicker,
                         ]}
                     >
-                        <CategoryEditorDetailsSection
-                            caption={caption}
-                            dangerColor={colors.danger}
-                            expenseLabel={t("common.expense")}
-                            failure={failure}
-                            income={income}
-                            incomeLabel={t("common.income")}
-                            nameFieldRef={nameRef}
-                            nameLabel={t("categories.field.name")}
-                            namePlaceholder={namePlaceholder}
-                            nameState={nameState}
-                            onIncomeChange={(next) => form.setFieldValue("income", next)}
-                            onNameChange={(next) => {
-                                setFailure(null);
-                                form.setFieldValue("name", next);
-                            }}
-                            onSubmitName={() => pressSubmit(form)}
-                            tintColor={colors.foreground}
-                            typeLabel={t("categories.field.type")}
-                            typePickerVisible={typePickerVisible}
-                        />
-                    </Form>
+                        <VStack modifiers={[padding({ horizontal: 20, top: FORM_TOP_MARGIN })]} spacing={0}>
+                            <CategoryEditorDetailsSection
+                                caption={caption}
+                                dangerColor={colors.danger}
+                                expenseLabel={t("common.expense")}
+                                failure={failure}
+                                hairline={[overlay({ color: withAlpha(colors.foreground, 0.08) })]}
+                                income={income}
+                                incomeLabel={t("common.income")}
+                                mutedColor={colors.muted}
+                                nameFieldRef={nameRef}
+                                nameLabel={t("categories.field.name")}
+                                namePlaceholder={namePlaceholder}
+                                nameState={nameState}
+                                onIncomeChange={(next) => form.setFieldValue("income", next)}
+                                onNameChange={(next) => {
+                                    setFailure(null);
+                                    form.setFieldValue("name", next);
+                                }}
+                                onSubmitName={() => pressSubmit(form)}
+                                tintColor={colors.foreground}
+                                typeLabel={t("categories.field.type")}
+                                typePickerVisible={typePickerVisible}
+                            />
+                        </VStack>
+                    </ScrollView>
                 </Host>
             </View>
 
@@ -511,14 +508,14 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
                 }
             />
 
-            <View className="bottom-safe-offset-2 absolute right-0 left-0 px-5" pointerEvents="box-none">
-                <CategoryEditorCta
-                    canSave={canSave}
-                    label={ctaLabel}
-                    onPress={() => pressSubmit(form)}
-                    tintColor={colors.foreground}
-                    underPicker={underPicker}
-                />
+            {/* The CTA is an RN view now, so the picker's SwiftUI blur/opacity
+			    modifiers cannot reach it — it hides on the wrapper instead. */}
+            <View
+                className="bottom-safe-offset-2 absolute right-0 left-0 px-5"
+                pointerEvents={pickerOpen ? "none" : "box-none"}
+                style={{ opacity: pickerOpen ? 0 : 1 }}
+            >
+                <EditorCta busy={isSubmitting} canSave={canSave} label={ctaLabel} onPress={() => pressSubmit(form)} />
             </View>
 
             {showToast ? (
