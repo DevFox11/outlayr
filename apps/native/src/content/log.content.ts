@@ -3,21 +3,39 @@ import type { Dictionary } from "intlayer";
 
 const log = {
     content: {
+        // Verb-led and parallel across the dial, so the column reads as a descent
+        // from the thing you do daily to the thing you do once. The importer is
+        // CSV-only (`csv-import-context`, `pickCsvFile`), so it says so.
         "log.add.import": t({
-            en: "Import transactions",
-            es: "Importar transacciones",
+            en: "Import a CSV",
+            es: "Importar un CSV",
         }),
         "log.add.menu": t({
             en: "Add",
             es: "Agregar",
         }),
-        "log.add.transaction": t({
-            en: "Create transaction",
-            es: "Crear transacción",
+        "log.add.scan": t({
+            en: "Scan a receipt",
+            es: "Escanear un recibo",
         }),
+        // Marks an action the dial shows but cannot run yet.
+        "log.add.soon": t({
+            en: "Soon",
+            es: "Pronto",
+        }),
+        "log.add.transaction": t({
+            en: "Add a transaction",
+            es: "Agregar una transacción",
+        }),
+        // Not "Transfer": beside "Add a transaction" the noun reads as another
+        // kind of record rather than as moving what is already there.
         "log.add.transfer": t({
-            en: "New Transfer",
-            es: "Nueva transferencia",
+            en: "Move money",
+            es: "Mover dinero",
+        }),
+        "log.add.voice": t({
+            en: "Speak an entry",
+            es: "Dictar un registro",
         }),
         "log.chip.earlier": t({
             en: "Earlier",
