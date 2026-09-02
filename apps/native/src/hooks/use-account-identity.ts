@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 
+import { resolveInstitutionDomain } from "@/domain/institution-map";
 import type { EnrichmentFn } from "@/lib/convex";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
 
@@ -52,6 +53,10 @@ async function persistDefault(bytes: Uint8Array): Promise<AccountLogo> {
  * same debounce rhythm, consent gates, caches and grounded follow-up, consumed
  * only for the logo an account's name resolves to. Category and tag
  * suggestions never reach the caller.
+ *
+ * Its one addition is the institution tier — accounts are named after banks and
+ * wallets, which the curated merchant map does not cover and which resolve
+ * on-device here rather than costing a model call.
  */
 export function useAccountIdentity(args: UseAccountIdentityArgs): UseAccountIdentityResult {
     const {
@@ -136,6 +141,9 @@ export function useAccountIdentity(args: UseAccountIdentityArgs): UseAccountIden
         onSuggest,
         regionCode,
         remoteEnabled,
+        // Banks and wallets are what accounts are named after, and the curated
+        // merchant map has no opinion about any of them.
+        resolveDomain: resolveInstitutionDomain,
         resolveLocal,
         transport,
     });

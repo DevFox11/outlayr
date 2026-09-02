@@ -172,10 +172,27 @@ export const savingsGoalFields = {
     accountId: v.string(),
     currency: v.string(),
     dateCreated: v.number(),
+    /** The rate both frozen figures were valued at — see the local schema. */
+    exchangeRate: v.optional(v.union(v.number(), v.null())),
     name: v.string(),
     sortOrder: v.number(),
+    /**
+     * The account's balance when the goal was set — see the local schema.
+     *
+     * Optional on the wire although the local column is NOT NULL: `pushRow` is
+     * this mutation's ARGUMENT validator, so one row from a build that predates
+     * these columns would reject the whole 500-row batch, unrelated tables and
+     * all. The client always sends them; the server tolerates their absence.
+     */
+    startAmount: v.optional(v.number()),
+    startAmountUsd: v.optional(v.union(v.number(), v.null())),
     targetAmount: v.number(),
     targetAmountUsd: v.union(v.number(), v.null()),
+    /**
+     * Still nullable on the wire for the same reason, even though a goal now
+     * carries a date by definition. A dateless row that arrives is refused by
+     * `isReplicated` on the way in rather than rejected on arrival.
+     */
     targetDate: v.union(v.number(), v.null()),
 };
 

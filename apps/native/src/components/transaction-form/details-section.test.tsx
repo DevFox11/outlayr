@@ -110,7 +110,9 @@ describe("transactionFormDetailsSection", () => {
 
     it("carries the foreground color into the text field's modifiers", async () => {
         const { toJSON } = await renderSection({ foregroundColor: "#ABCDEF" });
-        expect(JSON.stringify(toJSON())).toContain('"$type":"foregroundStyle","styleType":"color","color":"#ABCDEF"');
+        expect(JSON.stringify(toJSON())).toContain(
+            '"$type":"foregroundStyle","style":{"type":"color","color":"#ABCDEF"}'
+        );
     });
 
     it("applies the caller's card modifiers to the section root", async () => {

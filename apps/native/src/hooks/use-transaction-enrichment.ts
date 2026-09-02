@@ -73,6 +73,15 @@ export interface UseTransactionEnrichmentArgs {
      */
     resolveHistory?: (key: string, income: boolean) => Promise<string | null>;
     resolveLocal: (suggestion: EnrichmentSuggestion) => EnrichmentSuggestion;
+    /**
+     * An on-device tier consulted between the curated map and the model, for a
+     * domain the curated map has no opinion about. Answering here skips the
+     * remote call entirely.
+     *
+     * The account editor passes the institution map; the transaction form
+     * passes nothing, so its tiers are unchanged.
+     */
+    resolveDomain?: (key: string) => string | null;
     /** Injected in tests; production resolves the real Convex call. */
     transport?: EnrichmentFn | null;
 }
@@ -175,6 +184,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         categoryTree,
         resolveLocal,
         resolveHistory,
+        resolveDomain,
         onSuggest,
         remoteEnabled = true,
         locale,
@@ -190,7 +200,13 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
     const groundedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const recheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const requestIdRef = useRef(0);
-    const inFlightRef = useRef<Set<string>>(new Set());
+    /**
+     * Key -> the request ticket that owns it. Ticketed rather than a bare set
+     * because a superseded request still settles: it must not delete an entry a
+     * LATER request for the same key now owns, or a third lookup starts and the
+     * dedupe stops meaning anything.
+     */
+    const inFlightRef = useRef<Map<string, number>>(new Map());
     const lastRemoteOutcomeRef = useRef<{
         key: string;
         hasDomain: boolean;
@@ -230,6 +246,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         onSuggest,
         regionCode,
         remoteEnabled,
+        resolveDomain,
         resolveHistory,
         resolveLocal,
         transport,
@@ -244,6 +261,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             onSuggest,
             regionCode,
             remoteEnabled,
+            resolveDomain,
             resolveHistory,
             resolveLocal,
             transport,
@@ -368,7 +386,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             }
             requestIdRef.current += 1;
             const id = requestIdRef.current;
-            inFlightRef.current.add(key);
+            inFlightRef.current.set(key, id);
             setPending(true);
             let result: RemoteEnrichmentResult | null = null;
             try {
@@ -383,11 +401,20 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             } catch {
                 result = null;
             }
-            inFlightRef.current.delete(key);
-            lastRemoteOutcomeRef.current = { hasDomain: result?.domain != null, key };
+            // Only if this request still owns the entry — see `inFlightRef`.
+            if (inFlightRef.current.get(key) === id) {
+                inFlightRef.current.delete(key);
+            }
             if (id !== requestIdRef.current) {
                 return;
             }
+            // Below the ticket check: `runGroundedFollowUp` reads this to decide
+            // whether the fast pass for the name ON SCREEN already found a
+            // domain. A superseded request recording its outcome here would
+            // answer for a name the user has left, and either suppress the
+            // grounded follow-up the current result deserves or spend one it
+            // does not.
+            lastRemoteOutcomeRef.current = { hasDomain: result?.domain != null, key };
             setPending(false);
             if (result?.grounding !== true) {
                 setCachedEnrichment(key, result);
@@ -447,9 +474,37 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         scheduleRecheck(GROUNDED_RECHECK_MS, 1);
     }, [resolveTransport, buildRequest, emitDomainResult]);
 
+    /**
+     * An answer `run` reaches without asking the model is final, so anything
+     * still outstanding has to stop counting as current.
+     *
+     * `runRemote` bumps this ticket itself, which is what used to invalidate an
+     * earlier request — every lookup ended there. Now that several tiers answer
+     * and return first, a settling older request would otherwise pass
+     * `runRemote`'s own `id !== requestIdRef.current` check and emit the
+     * PREVIOUS name's suggestion over the one on screen: in the account editor
+     * that is the last merchant's logo landing on this account.
+     *
+     * The in-flight-dedupe return is deliberately not a caller — a request for
+     * THIS key is the answer being waited on, not a stale one.
+     */
+    const supersedeInFlight = useCallback(() => {
+        requestIdRef.current += 1;
+        // The dedupe set goes with the ticket. A superseded request's result is
+        // discarded when it settles, so leaving its key here would make `run`
+        // refuse to start the replacement the user actually needs — return to
+        // that name before the abandoned call finishes and nothing would answer
+        // it, stranding the previous tier's logo on screen. At most one
+        // un-superseded request exists at a time, because `runRemote` bumps the
+        // ticket as it starts, so clearing cannot drop a live one.
+        inFlightRef.current.clear();
+        setPending(false);
+    }, []);
+
     const run = useCallback(async () => {
         const key = merchantKey(nameRef.current);
         if (key.length < MIN_KEY_LENGTH) {
+            supersedeInFlight();
             rememberedRef.current = null;
             emitNothing();
             return;
@@ -464,27 +519,39 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             const curatedSuggestion = toCuratedSuggestion(match);
             emit(curatedSuggestion);
             if (match.domain != null) {
+                supersedeInFlight();
                 return;
             }
             curatedFallback = true;
             curatedFallbackRef.current = { key, suggestion: curatedSuggestion };
         }
+        // On-device and exact, so it answers before the model is asked at all —
+        // an account named after a bank costs no round trip and works offline.
+        const localDomain = latest.current.resolveDomain?.(key) ?? null;
+        if (localDomain != null) {
+            const base = curatedFallback ? curatedFallbackRef.current?.suggestion : undefined;
+            emit({ ...(base ?? NOTHING), domain: localDomain });
+            supersedeInFlight();
+            return;
+        }
         if (!latest.current.remoteEnabled) {
             if (!curatedFallback) {
                 emitNothing();
             }
+            supersedeInFlight();
             return;
         }
         const cached = getCachedEnrichment(key);
         if (cached.hit) {
             emitRemoteResult(key, cached.value);
+            supersedeInFlight();
             return;
         }
         if (inFlightRef.current.has(key)) {
             return;
         }
         await runRemote(key);
-    }, [emit, emitNothing, emitRemoteResult, recallFromLedger, runRemote]);
+    }, [emit, emitNothing, emitRemoteResult, recallFromLedger, runRemote, supersedeInFlight]);
 
     const onNameChange = useCallback(
         (next: string) => {

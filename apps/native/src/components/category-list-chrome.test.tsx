@@ -19,8 +19,7 @@ describe("eyebrow", () => {
                 expect.objectContaining({ $type: "textCase", value: "uppercase" }),
                 expect.objectContaining({
                     $type: "foregroundStyle",
-                    color: "#666666",
-                    styleType: "color",
+                    style: { color: "#666666", type: "color" },
                 }),
             ])
         );

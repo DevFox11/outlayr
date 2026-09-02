@@ -97,6 +97,11 @@ export function BudgetDetailView({
             automaticallyAdjustKeyboardInsets
             className="bg-background flex-1"
             contentInsetAdjustmentBehavior="automatic"
+            // The name field is in that same header, and a drag over the rows below
+            // has to be able to put its keyboard away. `keyboardShouldPersistTaps` is
+            // left at its default so a tap outside the field does too — the editor's
+            // rows read that tap as the blur that commits the name.
+            keyboardDismissMode="on-drag"
             sections={sections}
             keyExtractor={(item) => item.id}
             stickySectionHeadersEnabled={false}

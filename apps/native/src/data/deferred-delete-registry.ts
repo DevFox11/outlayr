@@ -11,6 +11,7 @@ import { dismissNotice, notifyFailure, notifyUndoable } from "@/lib/notify";
 import { accountsRepo } from "./accounts-core";
 import { budgetsRepo } from "./budgets-core";
 import { categoriesRepo } from "./categories-core";
+import { savingsGoalsRepo } from "./savings-goals-core";
 import { transactionsRepo } from "./transactions-core";
 import { transfersRepo } from "./transfers-core";
 
@@ -25,7 +26,7 @@ export const UNDO_WINDOW_MS = 10_000;
  * but it is destructive, irreversible once written, and wants the same window,
  * so it rides the same machinery.
  */
-export type DeferredDeleteKind = "account" | "budget" | "category" | "recurring" | "row";
+export type DeferredDeleteKind = "account" | "budget" | "category" | "goal" | "recurring" | "row";
 
 interface KindSpec {
     commit: (db: Database, id: string) => Promise<void>;
@@ -70,6 +71,12 @@ const SPECS = {
         failedBody: "categories.error.generic",
         failedTitle: "categories.error.deleteTitle",
         undoTitle: "categories.undo.deleted",
+    },
+    goal: {
+        commit: (db, id) => savingsGoalsRepo.remove(db, id),
+        failedBody: "goals.failedBody",
+        failedTitle: "goals.failedTitle",
+        undoTitle: "goals.undo.deleted",
     },
     recurring: {
         commit: (db, id) => transactionsRepo.stopRecurring(db, id),

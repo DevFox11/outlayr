@@ -23,6 +23,7 @@ import {
     multilineTextAlignment,
     padding,
     pickerStyle,
+    scrollDismissesKeyboard,
     tag,
     textCase,
     textInputAutocapitalization,
@@ -366,7 +367,11 @@ export function IdentityPickerContent({
                 <ColorRail onSelect={pickColor} selected={value.color} usedColors={usedColors} />
             ) : null}
 
-            <ScrollView showsIndicators={false}>{panel}</ScrollView>
+            {/* The icon search sits above this panel with nothing else to tap, so a
+			    drag over the glyphs is the way to put its keyboard away. */}
+            <ScrollView modifiers={[scrollDismissesKeyboard("immediately")]} showsIndicators={false}>
+                {panel}
+            </ScrollView>
         </VStack>
     );
 }

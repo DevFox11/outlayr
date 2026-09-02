@@ -1,7 +1,7 @@
 import { SectionList } from "@legendapp/list/section-list";
 import { Stack, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { View } from "react-native";
+import { ScrollView, View } from "react-native";
 
 import { MeasureCellAmount } from "@/components/amount-text";
 import { DaySectionHeader } from "@/components/day-section-header";
@@ -69,7 +69,18 @@ function SearchContent({ db }: { db: Database }) {
                 placeholder={t("search.placeholder")}
             />
             {empty ? (
-                <View className="bg-background flex-1">{empty}</View>
+                // A scroller rather than a plain box: the field arrives focused, so
+                // without something to drag there is nothing on this screen that
+                // puts the keyboard away except Cancel, which closes the search.
+                <ScrollView
+                    className="bg-background flex-1"
+                    contentContainerStyle={{ flexGrow: 1 }}
+                    contentInsetAdjustmentBehavior="automatic"
+                    keyboardDismissMode="on-drag"
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {empty}
+                </ScrollView>
             ) : (
                 <SectionList
                     className="bg-background"

@@ -74,6 +74,13 @@ interface TableSpec {
     /** Stored as `Date` locally and as epoch milliseconds on the wire. */
     dates: readonly string[];
     /**
+     * What a column falls back to when the wire omits it, for columns added after
+     * a table began replicating. Without one `toLocalFields` writes an explicit
+     * null, which a NOT NULL column rejects — taking the whole pull transaction
+     * with it, not just the row.
+     */
+    defaults?: Readonly<Record<string, WireValue>>;
+    /**
      * The replicated payload, which must name exactly the columns the Convex
      * table declares in `packages/backend/convex/lib/syncTables.ts`. A column
      * missing here replicates as permanently absent rather than as an error, so
@@ -143,9 +150,21 @@ const SPECS = {
     },
     savingsGoals: {
         dates: ["targetDate", "dateCreated"],
+        // `startAmount`/`startAmountUsd` arrived in `0024` and an older build sends
+        // neither. Both default to ZERO, never null: null is how an unconvertible
+        // figure is spelled, and a goal carrying one would withhold its progress
+        // and chart for as long as the display currency differed from its own —
+        // for a figure that is exactly zero in every currency. Same pair the
+        // migration writes. `targetDate` is defaulted only so a dateless TOMBSTONE can be
+        // written — a live dateless goal never gets this far (`isReplicated`
+        // refuses it), and the epoch it lands on is on a row nothing reads.
+        defaults: { startAmount: 0, startAmountUsd: 0, targetDate: 0 },
         fields: [
             "name",
             "accountId",
+            "startAmount",
+            "startAmountUsd",
+            "exchangeRate",
             "targetAmount",
             "targetAmountUsd",
             "currency",
@@ -313,7 +332,7 @@ function toLocalDate(value: WireValue): Date | null {
 function toLocalFields(spec: TableSpec, fields: WireFields): Row {
     return Object.fromEntries(
         spec.fields.map((name) => {
-            const value = fields[name] ?? null;
+            const value = fields[name] ?? spec.defaults?.[name] ?? null;
             return [name, spec.dates.includes(name) ? toLocalDate(value) : value];
         })
     );
@@ -700,12 +719,21 @@ async function writeRow(db: Database, row: PulledRow, now: Date): Promise<boolea
     }
 
     const lostCategory = row.table === "budgets" && (await resolveBudgetCategory(db, row, now));
+    // A peer running an older build can clear a goal's deadline, and a goal with
+    // no date cannot exist here — the column is NOT NULL and there is no pace to
+    // keep. Skipping the row would leave this device showing its dated copy
+    // forever while the server held the dateless one, so the winner is written as
+    // a TOMBSTONE instead and pushed back, converging both sides on deleted. Same
+    // shape as `resolveBudgetCategory` above: a row this device rewrote is not
+    // what the server holds, so it stays queued.
+    const datelessGoal = row.table === "savingsGoals" && row.deletedAt === null && row.fields.targetDate == null;
+    const rewritten = lostCategory || datelessGoal;
 
     const values = {
         ...toLocalFields(spec, row.fields),
         [spec.id.name]: row.localId,
-        deletedAt: lostCategory ? now : toLocalDate(row.deletedAt),
-        updatedAt: lostCategory ? now : new Date(row.updatedAt),
+        deletedAt: rewritten ? now : toLocalDate(row.deletedAt),
+        updatedAt: rewritten ? now : new Date(row.updatedAt),
     } satisfies Row;
     if (lostCategory) {
         values.categoryId = null;
@@ -720,7 +748,7 @@ async function writeRow(db: Database, row: PulledRow, now: Date): Promise<boolea
     }
 
     await anyWriter(db).insert(spec.table).values(values).onConflictDoUpdate({ set: values, target: spec.id });
-    return !lostCategory;
+    return !rewritten;
 }
 
 /**

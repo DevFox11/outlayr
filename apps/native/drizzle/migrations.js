@@ -25,6 +25,7 @@ import m0020 from './0020_account_kind.sql';
 import m0021 from './0021_savings_goals.sql';
 import m0022 from './0022_accent_color_synced.sql';
 import m0023 from './0023_number_entry_device_local.sql';
+import m0024 from './0024_goal_start_and_required_date.sql';
 
   export default {
     journal,
@@ -52,7 +53,8 @@ m0019,
 m0020,
 m0021,
 m0022,
-m0023
+m0023,
+m0024
     }
   }
   

@@ -356,14 +356,35 @@ export const savingsGoals = sqliteTable(
         currency: text("currency").notNull(),
         dateCreated: integer("dateCreated", { mode: "timestamp_ms" }).notNull(),
         deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+        /**
+         * The rate both frozen figures were valued at, currency PER USD.
+         *
+         * Stored rather than re-derived because neither basis survives: the rate
+         * history is pruned to one row per month outside the 90-day window, so a
+         * later lookup can land on a different day's rate, and dividing the stored
+         * amount pair recovers only as much precision as those rounded amounts
+         * kept. Null for a goal already in USD, and for one written before this
+         * column existed.
+         */
+        exchangeRate: real("exchangeRate"),
         id: text("id").primaryKey(),
         name: text("name").notNull(),
         sortOrder: integer("sortOrder").notNull().default(0),
+        /**
+         * The account's balance when the goal was set, frozen at that write.
+         *
+         * Derived history would answer this for a recent goal and not for an old
+         * one — `accountBalanceSeries` only walks the last 182 days — and the
+         * anchor is what makes "ahead of the date" measurable for the whole life
+         * of the goal. Frozen for the same reason every other figure here is.
+         */
+        startAmount: real("startAmount").notNull().default(0),
+        startAmountUsd: real("startAmountUsd"),
         targetAmount: real("targetAmount").notNull(),
         /** Frozen at write, like every other cross-currency figure in the ledger. */
         targetAmountUsd: real("targetAmountUsd"),
-        /** Null is a target with no deadline, which has no pace. */
-        targetDate: integer("targetDate", { mode: "timestamp_ms" }),
+        /** Required: a target with no deadline has no pace, and the pace is the point. */
+        targetDate: integer("targetDate", { mode: "timestamp_ms" }).notNull(),
         updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
     },
     (table) => [

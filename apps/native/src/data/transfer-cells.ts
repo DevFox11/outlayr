@@ -1,4 +1,4 @@
-import { and, count, eq, isNull, sql, sum } from "drizzle-orm";
+import { and, count, eq, isNull, lte, sql, sum } from "drizzle-orm";
 
 import type { SpendDb } from "@/data/budget-spent";
 import { transfers } from "@/db/schema";
@@ -7,6 +7,9 @@ import type { CurrencyCell } from "@/domain/currency-totals";
 import type { CellRow } from "./cell-query";
 
 const TRANSFER_UTC_DAY = sql<string>`strftime('%Y-%m-%d', ${transfers.date} / 1000, 'unixepoch')`;
+
+/** Where a transfer leg is PLOTTED, never where it is valued — see `LOCAL_DAY`. */
+const TRANSFER_LOCAL_DAY = sql<string>`strftime('%Y-%m-%d', ${transfers.date} / 1000, 'unixepoch', 'localtime')`;
 
 /**
  * `income` is absent from both column sets on purpose: a transfer row has no
@@ -55,6 +58,44 @@ export function transfersOutboundQuery(db: SpendDb) {
         .from(transfers)
         .where(isNull(transfers.deletedAt))
         .groupBy(transfers.fromAccountId, transfers.fromCurrency, TRANSFER_UTC_DAY);
+}
+
+/** Single-account settled legs, for a chart that draws one account's history. */
+export function settledTransferOutboundQuery(db: SpendDb, accountId: string, now: Date) {
+    return db
+        .select({ ...OUTBOUND_COLUMNS, plotDay: TRANSFER_LOCAL_DAY })
+        .from(transfers)
+        .where(and(isNull(transfers.deletedAt), eq(transfers.fromAccountId, accountId), lte(transfers.date, now)))
+        .groupBy(transfers.fromCurrency, TRANSFER_UTC_DAY, TRANSFER_LOCAL_DAY);
+}
+
+export function settledTransferInboundQuery(db: SpendDb, accountId: string, now: Date) {
+    return db
+        .select({ ...INBOUND_COLUMNS, plotDay: TRANSFER_LOCAL_DAY })
+        .from(transfers)
+        .where(and(isNull(transfers.deletedAt), eq(transfers.toAccountId, accountId), lte(transfers.date, now)))
+        .groupBy(transfers.toCurrency, TRANSFER_UTC_DAY, TRANSFER_LOCAL_DAY);
+}
+
+/**
+ * {@link transfersOutboundQuery} and {@link transfersInboundQuery} bounded at
+ * `now` by the row's own timestamp — see `settledAccountsCellQuery` for why the
+ * bound cannot be applied to the cells afterwards.
+ */
+export function settledTransfersOutboundQuery(db: SpendDb, now: Date) {
+    return db
+        .select({ accountId: transfers.fromAccountId, ...OUTBOUND_COLUMNS })
+        .from(transfers)
+        .where(and(isNull(transfers.deletedAt), lte(transfers.date, now)))
+        .groupBy(transfers.fromAccountId, transfers.fromCurrency, TRANSFER_UTC_DAY);
+}
+
+export function settledTransfersInboundQuery(db: SpendDb, now: Date) {
+    return db
+        .select({ accountId: transfers.toAccountId, ...INBOUND_COLUMNS })
+        .from(transfers)
+        .where(and(isNull(transfers.deletedAt), lte(transfers.date, now)))
+        .groupBy(transfers.toAccountId, transfers.toCurrency, TRANSFER_UTC_DAY);
 }
 
 export function transfersInboundQuery(db: SpendDb) {

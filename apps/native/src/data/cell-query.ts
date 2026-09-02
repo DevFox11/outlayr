@@ -12,6 +12,19 @@ import type { CurrencyCell } from "@/domain/currency-totals";
 export const UTC_DAY = sql<string>`strftime('%Y-%m-%d', ${transactions.date} / 1000, 'unixepoch')`;
 
 /**
+ * Where a row is PLOTTED, on the reader's calendar. Never where it is VALUED.
+ *
+ * A goal is measured in local days throughout — `useNow` ticks at local midnight
+ * and the picker hands back one — so its history has to be bucketed on them, or
+ * a Friday evening entry lands in Saturday's bucket and is drawn before itself.
+ *
+ * It travels beside `dateKey` rather than replacing it: that key is the date the
+ * rate is looked up at, so re-cutting it would value a row on a day whose rate
+ * may not exist, or may not be the one it was frozen against.
+ */
+export const LOCAL_DAY = sql<string>`strftime('%Y-%m-%d', ${transactions.date} / 1000, 'unixepoch', 'localtime')`;
+
+/**
  * Any query selecting these must group by `currency`, `income` and
  * {@link UTC_DAY}, or the row it returns is not a cell: conversion needs one
  * currency and one day's rate, and a group spanning either cannot supply them.
@@ -109,6 +122,32 @@ export function accountsCellQuery(db: SpendDb) {
         .select({ accountId: transactions.accountId, ...CELL_COLUMNS })
         .from(transactions)
         .where(and(isNull(transactions.deletedAt), isNotNull(transactions.accountId)))
+        .groupBy(transactions.accountId, transactions.currency, transactions.income, UTC_DAY);
+}
+
+/** {@link accountCellQuery} bounded at `now` — see {@link settledAccountsCellQuery}. */
+export function settledAccountCellQuery(db: SpendDb, accountId: string, now: Date) {
+    return db
+        .select({ ...CELL_COLUMNS, plotDay: LOCAL_DAY })
+        .from(transactions)
+        .where(and(isNull(transactions.deletedAt), eq(transactions.accountId, accountId), lte(transactions.date, now)))
+        .groupBy(transactions.currency, transactions.income, UTC_DAY, LOCAL_DAY);
+}
+
+/**
+ * {@link accountsCellQuery} bounded at `now`, by the row's own timestamp.
+ *
+ * A goal asks what has been put aside SO FAR, so it cannot count money dated
+ * later. Filtering the cells afterwards is not equivalent: a cell carries only a
+ * `YYYY-MM-DD` key, so an entry scheduled for 23:00 today is indistinguishable
+ * from one already made at 09:00 and reads as saved. The bound has to be applied
+ * to the rows before they are grouped, which is what this does.
+ */
+export function settledAccountsCellQuery(db: SpendDb, now: Date) {
+    return db
+        .select({ accountId: transactions.accountId, ...CELL_COLUMNS })
+        .from(transactions)
+        .where(and(isNull(transactions.deletedAt), isNotNull(transactions.accountId), lte(transactions.date, now)))
         .groupBy(transactions.accountId, transactions.currency, transactions.income, UTC_DAY);
 }
 

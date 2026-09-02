@@ -1,6 +1,6 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import { Host, RNHostView, ScrollView, VStack } from "@expo/ui/swift-ui";
-import { animation, blur, padding } from "@expo/ui/swift-ui/modifiers";
+import { animation, blur, padding, scrollDismissesKeyboard } from "@expo/ui/swift-ui/modifiers";
 import { ENTRY_RATE_TYPES } from "@outlayr/money/rates";
 import type { EntryRateType } from "@outlayr/money/rates";
 import { useField, useForm, useSelector } from "@tanstack/react-form";
@@ -843,12 +843,10 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const [stage, setStage] = useState<StagePosition>({ forward: true, step: "amount" });
     const stageStep = stage.step;
     const goStage = (step: StageStep, forward: boolean) => {
-        // The merchant step is the only one that lifts clear of the software
-        // keyboard, and the sentence's own field can be what raised it. Leaving
-        // with that field still focused would drop the arriving step behind it.
-        if (stageStep === "merchant" && step !== "merchant") {
-            Keyboard.dismiss();
-        }
+        // Unconditional: no step arrives focused, so a keyboard still standing here
+        // was raised by the step or the note field being left behind, and it would
+        // cover the one arriving. A no-op when nothing is focused.
+        Keyboard.dismiss();
         setStage({ forward, step });
     };
     /** Opens a step. The arriving body travels in from the right. */
@@ -1285,6 +1283,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     // hero launches on the tap frame instead of waiting for navigation to commit
     // the new screen.
     const openPicker = () => {
+        // Or the note's keyboard is left standing over the picker about to be pushed.
+        Keyboard.dismiss();
         setIdentitySource("user");
         setPickerOpen(true);
         router.push("/transactions/identity");
@@ -1750,6 +1750,10 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                         modifiers={[
                             blur(pickerOpen ? FORM_BLUR_RADIUS : 0),
                             animation(pickerOpen ? FLY_UP : FLY_BACK, pickerOpen),
+                            // The note is the one multiline field on this screen, so its
+                            // return key writes a newline and cannot also put the keyboard
+                            // away. A drag is the way out.
+                            scrollDismissesKeyboard("immediately"),
                         ]}
                     >
                         <VStack
@@ -1880,7 +1884,10 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                             tagCount === 0
                                                                 ? t("transaction.sentence.add.tags")
                                                                 : tagLabel(tagCount),
-                                                        onPress: () => tagSheetRef.current?.present(),
+                                                        onPress: () => {
+                                                            Keyboard.dismiss();
+                                                            tagSheetRef.current?.present();
+                                                        },
                                                     },
                                                     {
                                                         active: splitAllocations.length > 0,
@@ -1891,6 +1898,10 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                                 ? t("transaction.sentence.add.split")
                                                                 : splitLabel(splitAllocations.length),
                                                         onPress: () => {
+                                                            // A sheet presents over the note's keyboard rather
+                                                            // than under it, and the field it belongs to is gone
+                                                            // from the screen by then.
+                                                            Keyboard.dismiss();
                                                             openSplit(amountNumber, category?.id ?? null);
                                                             splitSheetRef.current?.present();
                                                         },

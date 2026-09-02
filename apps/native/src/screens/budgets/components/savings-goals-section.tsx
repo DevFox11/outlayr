@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { MonoLabel } from "@/components/mono-label";
@@ -6,14 +7,16 @@ import type { SavingsGoalWithProgress } from "@/data/savings-goals";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
-const TABULAR = { fontVariant: ["tabular-nums" as const] };
+import { GoalCard } from "./goal-card";
+
+/** `gap-3` between the two columns, matching the budget card grid above it. */
+const CARD_GUTTER = 12;
 
 interface SavingsGoalsSectionProps {
     currency: string;
     goals: readonly SavingsGoalWithProgress[];
     onAdd: () => void;
     onPress: (id: string) => void;
-    showCents: boolean;
 }
 
 /**
@@ -21,71 +24,137 @@ interface SavingsGoalsSectionProps {
  *
  * A budget is a ceiling for this month and a goal is a floor for some later
  * month; they are the two things on the tab that state a number the ledger is
- * measured against, so they belong together rather than on a screen of their
- * own that would hold one list.
+ * measured against, so they belong together rather than on a screen of their own
+ * that would hold one list.
+ *
+ * No horizontal padding of its own: the tab's scroll view owns the 20pt inset
+ * every other section on it sits at.
  */
-export function SavingsGoalsSection({ goals, currency, showCents, onPress, onAdd }: SavingsGoalsSectionProps) {
+export function SavingsGoalsSection({ goals, currency, onPress, onAdd }: SavingsGoalsSectionProps) {
     const t = useTranslation();
     const { language } = useLanguage();
+    const [gridWidth, setGridWidth] = useState<number | null>(null);
+
+    // Reached goals fall to the end: they are a record, not a commitment, and a
+    // finished goal holding the top of the grid is the tab's least useful tile.
+    // `exact &&`, because a goal whose figures cannot be compared has not been
+    // shown to have reached anything — sinking it to the end would file it under a
+    // verdict the card itself declines to give.
+    const ordered = [...goals].sort(
+        (left, right) => Number(left.exact && left.progress.reached) - Number(right.exact && right.progress.reached)
+    );
+    const outstanding = stillToFind(goals);
+    const cardWidth = gridWidth === null ? null : (gridWidth - CARD_GUTTER) / 2;
 
     return (
-        <View className="gap-2 px-5 pt-8">
-            <MonoLabel>{t("goals.heading")}</MonoLabel>
-            {goals.map(({ goal, progress, saved, target }) => {
-                const pace = progress.pace
-                    ? t("goals.pace", {
-                          amount: formatAmount(progress.pace.perMonth, currency, showCents, language),
-                      })
-                    : t("goals.remaining", {
-                          amount: formatAmount(progress.remaining, currency, showCents, language),
-                      });
-                return (
-                    <Pressable
-                        accessibilityHint={t("goals.a11y.openHint")}
-                        accessibilityLabel={t("goals.a11y.row", {
-                            name: goal.name,
-                            percent: String(Math.round(progress.fraction * 100)),
-                            saved: formatAmount(saved, currency, showCents, language),
-                            target: formatAmount(target, currency, showCents, language),
-                        })}
-                        accessibilityRole="button"
-                        className="border-border gap-1.5 border-t py-3 active:opacity-70"
-                        key={goal.id}
-                        onPress={() => onPress(goal.id)}
-                    >
-                        <View className="flex-row items-baseline justify-between gap-3">
-                            <Text className="text-body text-foreground flex-1" numberOfLines={1}>
-                                {goal.name}
-                            </Text>
-                            <Text className="text-body text-foreground font-mono tabular-nums" style={TABULAR}>
-                                {formatAmount(saved, currency, showCents, language)}
-                            </Text>
-                            <Text className="text-label text-muted font-mono tabular-nums" style={TABULAR}>
-                                {`/ ${formatAmount(target, currency, showCents, language)}`}
-                            </Text>
-                        </View>
+        <View className="pt-6">
+            <View className="flex-row items-baseline justify-between pb-2.5">
+                <MonoLabel>{t("goals.heading")}</MonoLabel>
+                {outstanding > 0 ? (
+                    <MonoLabel>
+                        {t("goals.summary.toGo", { amount: formatAmount(outstanding, currency, false, language) })}
+                    </MonoLabel>
+                ) : null}
+            </View>
 
-                        <View className="bg-surface h-1.5 overflow-hidden rounded-sm">
-                            <View
-                                className={progress.reached ? "bg-income h-full" : "bg-foreground h-full"}
-                                style={{
-                                    width: `${Math.max(progress.fraction * 100, progress.fraction > 0 ? 2 : 0)}%`,
-                                }}
-                            />
-                        </View>
+            <View className="gap-3" onLayout={(event) => setGridWidth(event.nativeEvent.layout.width)}>
+                {pairs(ordered).map(([left, right]) => (
+                    <View className="flex-row gap-3" key={left.key}>
+                        <Tile currency={currency} onAdd={onAdd} onPress={onPress} tile={left} width={cardWidth} />
+                        {right ? (
+                            <Tile currency={currency} onAdd={onAdd} onPress={onPress} tile={right} width={cardWidth} />
+                        ) : (
+                            // Holds the odd tile to one column rather than letting it
+                            // stretch across the grid.
+                            <View className="flex-1" />
+                        )}
+                    </View>
+                ))}
+            </View>
 
-                        <Text className="text-footnote text-muted">{progress.reached ? t("goals.reached") : pace}</Text>
-                    </Pressable>
-                );
-            })}
-
-            <Pressable
-                accessibilityRole="button"
-                className="border-border border-t py-3 active:opacity-70"
-                onPress={onAdd}
-            >
-                <Text className="text-accent text-body">{t("goals.add")}</Text>
-            </Pressable>
+            {goals.length === 0 ? (
+                <Text className="text-footnote text-muted pt-2.5 leading-snug">{t("goals.empty.body")}</Text>
+            ) : null}
         </View>
     );
+}
+
+/**
+ * What the whole grid still needs, counting each account once and each comparable.
+ *
+ * Two goals can track the same account, and their `remaining` figures are both
+ * measured from that one balance — so summing them counts the money already
+ * saved once per goal. A $1,000 account carrying a $2,000 and a $3,000 goal
+ * needs $2,000 more, not $3,000: filling the larger fills the smaller on the way
+ * past, which is what taking the account's largest shortfall says.
+ */
+function stillToFind(goals: readonly SavingsGoalWithProgress[]): number {
+    const byAccount = new Map<string, number>();
+    for (const entry of goals) {
+        // A goal whose figures cannot be compared has no shortfall to state: its
+        // `remaining` was read off a balance and a target in different currencies.
+        // The cards withhold it, and this total must not publish it back.
+        if (!entry.exact) {
+            continue;
+        }
+        const held = byAccount.get(entry.goal.accountId) ?? 0;
+        byAccount.set(entry.goal.accountId, Math.max(held, entry.progress.remaining));
+    }
+    let total = 0;
+    for (const shortfall of byAccount.values()) {
+        total += shortfall;
+    }
+    return total;
+}
+
+/** A goal, or the add tile that closes the grid. */
+function Tile({
+    currency,
+    onAdd,
+    onPress,
+    tile,
+    width,
+}: {
+    currency: string;
+    onAdd: () => void;
+    onPress: (id: string) => void;
+    tile: GridTile;
+    width: number | null;
+}) {
+    return tile.entry ? (
+        <GoalCard currency={currency} entry={tile.entry} onPress={onPress} width={width} />
+    ) : (
+        <AddGoalCard onPress={onAdd} width={width} />
+    );
+}
+
+/** The dashed tile that opens the target sheet. Always last in the grid. */
+function AddGoalCard({ onPress, width }: { onPress: () => void; width: number | null }) {
+    const t = useTranslation();
+    return (
+        <Pressable
+            accessibilityRole="button"
+            className="border-border items-center justify-center gap-1.5 rounded-2xl border border-dashed py-6 active:opacity-70"
+            onPress={onPress}
+            style={width === null ? { flex: 1 } : { width }}
+        >
+            <Text className="text-muted text-[22px] leading-[26px]">+</Text>
+            <MonoLabel>{t("goals.add")}</MonoLabel>
+        </Pressable>
+    );
+}
+
+interface GridTile {
+    entry: SavingsGoalWithProgress | null;
+    key: string;
+}
+
+/** The goals plus the add tile, in rows of two. */
+function pairs(goals: readonly SavingsGoalWithProgress[]): [GridTile, GridTile | undefined][] {
+    const tiles: GridTile[] = [...goals.map((entry) => ({ entry, key: entry.goal.id })), { entry: null, key: "add" }];
+    const rows: [GridTile, GridTile | undefined][] = [];
+    for (let index = 0; index < tiles.length; index += 2) {
+        rows.push([tiles[index], tiles[index + 1]]);
+    }
+    return rows;
 }
