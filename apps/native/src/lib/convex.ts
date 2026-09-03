@@ -1,3 +1,6 @@
+import type { StreamArgs, SyncStreamsReturnValue, UIMessage } from "@convex-dev/agent";
+import { makeFunctionReference } from "convex/server";
+import type { PaginationOptions, PaginationResult } from "convex/server";
 import { z } from "zod";
 
 import type { PhotoTransport } from "@/data/photo-sync-core";
@@ -184,6 +187,112 @@ export type CsvImportFn = (args: CsvImportRequest) => Promise<CsvImportResult>;
  */
 export function csvImportTransport(): CsvImportFn {
     return async (args) => cloudAction("csvImport:csvImport", args);
+}
+
+interface VoiceDraftBase {
+    amount: number;
+    /** ISO 4217; null is the ledger's own currency. */
+    currency: string | null;
+    /** `YYYY-MM-DD` on the device's calendar, as it was sent. */
+    date: string;
+    details: string | null;
+}
+
+export type VoiceRecurrenceUnit = "day" | "week" | "month" | "year";
+
+/** "Every month", "every 2 weeks": the cadence a subscription repeats on. */
+export interface VoiceRecurrence {
+    every: number;
+    unit: VoiceRecurrenceUnit;
+}
+
+export interface VoiceEntryDraft extends VoiceDraftBase {
+    accountName: string | null;
+    categoryName: string | null;
+    /** The merchant's web domain when the model knew it; the logo lookup's long tail. */
+    domain: string | null;
+    income: boolean;
+    kind: "entry";
+    merchant: string;
+    /** Null for a one-off; a transfer never repeats. */
+    recurrence: VoiceRecurrence | null;
+}
+
+/** Money moved between two of the person's own accounts; names only, as spoken. */
+export interface VoiceTransferDraft extends VoiceDraftBase {
+    fromAccountName: string | null;
+    kind: "transfer";
+    toAccountName: string | null;
+}
+
+export type VoiceDraft = VoiceEntryDraft | VoiceTransferDraft;
+
+/** What the agent's `proposeDraft` tool answered; a null draft is "no transaction in those words". */
+export interface ProposedDraft {
+    draft: VoiceDraft | null;
+}
+
+export type SpeakStatus =
+    | "ok"
+    | "unauthenticated"
+    | "notConfigured"
+    | "rateLimited"
+    | "invalid"
+    | "providerError"
+    | "unclear";
+
+export interface SpeakResult {
+    /** The turn the words landed on; the draft answers at the same order. */
+    order: number | null;
+    status: SpeakStatus;
+    transcript: string | null;
+}
+
+export interface SpeakRequest {
+    accounts: string[];
+    /** AAC in an MP4 container, under `MAX_AUDIO_BYTES` on the server. */
+    audio: ArrayBuffer;
+    categoryTree: CategoryBranch[];
+    currency: string;
+    language?: string;
+    threadId: string;
+    today: string;
+}
+
+/** The name the server registers the draft tool under; its UI part is `tool-${name}`. */
+export const PROPOSE_DRAFT_TOOL = "proposeDraft";
+
+/** The turns query `useUIMessages` subscribes to, addressed by path like every other call here. */
+export const VOICE_TURNS_QUERY = makeFunctionReference<
+    "query",
+    { paginationOpts: PaginationOptions; streamArgs?: StreamArgs; threadId: string },
+    PaginationResult<UIMessage> & { streams: SyncStreamsReturnValue }
+>("voiceEntry:listTurns");
+
+export interface StartThreadResult {
+    status: "ok" | "unauthenticated" | "rateLimited";
+    threadId: string | null;
+}
+
+export interface VoiceThreadTransport {
+    /** The screen closed; the thread's sentences go with it. */
+    end: (threadId: string) => Promise<null>;
+    /** One clip on the thread. The draft it produces arrives through `VOICE_TURNS_QUERY`. */
+    speak: (args: SpeakRequest) => Promise<SpeakResult>;
+    start: () => Promise<StartThreadResult>;
+}
+
+/**
+ * The clip plus names only — no ids, no history — the boundary
+ * `packages/backend/convex/voiceEntry.ts` asserts. Authentication rides on
+ * `convex` itself, exactly as it does for `csvImportTransport`.
+ */
+export function voiceThreadTransport(): VoiceThreadTransport {
+    return {
+        end: async (threadId) => cloudMutation("voiceEntry:endThread", { threadId }),
+        speak: async (args) => cloudAction("voiceEntry:speak", args),
+        start: async () => cloudMutation("voiceEntry:startThread", {}),
+    };
 }
 
 /** Convex file storage answers the PUT with the id it allocated; R2 sends nothing. */

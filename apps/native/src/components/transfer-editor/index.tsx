@@ -36,10 +36,17 @@ import { TransferEditorHero } from "./hero";
 import { blockPrompt, formatRate, gapPrompt } from "./prompts";
 import { TransferEditorSlip } from "./slip";
 import { RATE_DISPLAY_DECIMALS, useTransferDraft } from "./use-transfer-draft";
+import type { TransferSeed } from "./use-transfer-draft";
 
 const KICKER = font({ family: "GeistMono-Regular", size: 11, textStyle: "caption2" });
 
-export default function TransferEditor({ onDone }: { onDone: () => void }) {
+interface TransferEditorProps {
+    onDone: () => void;
+    /** Whatever the voice screen already knows; see `TransferSeed`. */
+    seed?: TransferSeed & { note?: string };
+}
+
+export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
     const db = useDatabase();
     const router = useRouter();
     const navigation = useNavigation();
@@ -49,8 +56,8 @@ export default function TransferEditor({ onDone }: { onDone: () => void }) {
     const insets = useSafeAreaInsets();
     const { width: windowWidth } = useWindowDimensions();
     const contentWidth = windowWidth - 40;
-    const draft = useTransferDraft(db);
-    const noteState = useNativeState("");
+    const draft = useTransferDraft(db, seed);
+    const noteState = useNativeState(seed?.note ?? "");
     const [saving, setSaving] = useState(false);
     /** This editor is a `modal` and stays up on failure, so the notice is inline. */
     const [saveFailure, setSaveFailure] = useState<string | null>(null);

@@ -14,16 +14,36 @@ export function NewTransaction({
     amount,
     note,
     from,
+    categoryId,
+    accountId,
+    accountUnresolved,
+    currency,
+    date,
+    details,
+    recurringCoefficient,
+    recurringType,
 }: {
     income?: string;
     amount?: string;
     note?: string;
     from?: string;
+    categoryId?: string;
+    accountId?: string;
+    accountUnresolved?: string;
+    currency?: string;
+    /** Epoch milliseconds. */
+    date?: string;
+    details?: string;
+    recurringCoefficient?: string;
+    recurringType?: string;
 }) {
     const router = useRouter();
     const db = useDatabase();
     const t = useTranslation();
     const seededAmount = amount == null ? Number.NaN : Number.parseFloat(amount);
+    const seededDate = date == null ? Number.NaN : Number.parseInt(date, 10);
+    const seededType = recurringType == null ? Number.NaN : Number.parseInt(recurringType, 10);
+    const seededCoefficient = recurringCoefficient == null ? 1 : Number.parseInt(recurringCoefficient, 10);
     // Read once while mounting, as the edit route does: the driver runs on the JS
     // thread, so the copy is in hand for the first render. A row that no longer
     // resolves opens an empty form rather than bouncing — the id came from a menu
@@ -51,9 +71,22 @@ export function NewTransaction({
                 mode="create"
                 onDone={() => router.back()}
                 seed={{
+                    accountId,
+                    accountUnresolved: accountUnresolved === "1",
                     amount: Number.isFinite(seededAmount) ? seededAmount : undefined,
+                    categoryId,
+                    currency,
+                    date: Number.isFinite(seededDate) ? new Date(seededDate) : undefined,
+                    details,
                     income: income === "1",
                     note,
+                    recurrence:
+                        Number.isFinite(seededType) && seededType > 0
+                            ? {
+                                  coefficient: Number.isFinite(seededCoefficient) ? seededCoefficient : 1,
+                                  type: seededType,
+                              }
+                            : undefined,
                 }}
             />
         </>

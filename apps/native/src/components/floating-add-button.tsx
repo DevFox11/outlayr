@@ -235,12 +235,8 @@ export function FloatingAddButton() {
     }, []);
     const canTransfer = useAccounts(useDatabase()).length >= 2;
 
-    // Shown but not wired yet, so they carry no handler and no ref with it.
-    // In render order, which is bottom-up: voice sits above scan.
-    const pendingActions: AddAction[] = [
-        { icon: Mic01Icon, key: "voice", label: t("log.add.voice"), pending: true },
-        { icon: ScanIcon, key: "scan", label: t("log.add.scan"), pending: true },
-    ];
+    // Shown but not wired yet, so it carries no handler and no ref with it.
+    const pendingActions: AddAction[] = [{ icon: ScanIcon, key: "scan", label: t("log.add.scan"), pending: true }];
 
     // The dial unfolds upward and cannot scroll, so when the column outgrows the
     // window its top lands off-screen and cannot be reached. Two things cause
@@ -255,17 +251,20 @@ export function FloatingAddButton() {
     // holds the sheet's ref, so every array derived from that list reads as a
     // ref access during render and the React Compiler rejects it.
     const room = windowHeight - insets.top - insets.bottom - DIAL_BOTTOM_INSET;
-    const runnableCount = canTransfer ? 3 : 2;
+    const runnableCount = canTransfer ? 4 : 3;
     const { keptRunnable, lines, showPending } = fitDial(runnableCount, pendingActions.length, room, fontScale);
     const showTransfer = canTransfer && keptRunnable >= 2;
-    // The import is the last of the runnable set to keep, so it needs all of it.
+    // Voice and import are the last of the runnable set to keep: voice needs
+    // everything but the import, and the import needs all of it.
+    const showVoice = keptRunnable >= runnableCount - 1;
     const showImport = keptRunnable >= runnableCount;
 
     // Written in the order the column renders, which is bottom-up: the dial grows
     // upward from the trigger, so the LAST entry is the one nearest the thumb and
     // therefore the most wanted. Reading up from there: recording what you just
-    // spent, then moving money you already have, then the two ways of recording
-    // that are still coming, then the one-off that seeds a ledger.
+    // spent, then moving money you already have, then saying it instead of
+    // typing it, then the way of recording that is still coming, then the
+    // one-off that seeds a ledger.
     //
     // Nothing here closes the dial. `Fab.Action` does that itself before running.
     const actions: AddAction[] = [
@@ -273,6 +272,16 @@ export function FloatingAddButton() {
             ? [{ icon: FileImportIcon, key: "import", label: t("log.add.import"), onPress: presentImport }]
             : []),
         ...(showPending ? pendingActions : []),
+        ...(showVoice
+            ? [
+                  {
+                      icon: Mic01Icon,
+                      key: "voice",
+                      label: t("log.add.voice"),
+                      onPress: () => router.push("/transactions/voice"),
+                  },
+              ]
+            : []),
         ...(showTransfer
             ? [
                   {

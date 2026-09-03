@@ -231,14 +231,32 @@ function isProviderRate(rate: number | null | undefined, rateType: EntryRateType
 type FieldSource = "initial" | "suggested" | "user";
 
 /**
- * What an outside surface — a quick action, a widget, an App Intent — can put in
- * the form before the user sees it: a suggestion the user still confirms, never
- * identity, recurrence or category.
+ * What another surface can put in the form before the user sees it: a
+ * suggestion the user still confirms, never identity or recurrence.
+ *
+ * A quick action, a widget or an App Intent may set only amount, direction and
+ * note. The five below them are for the voice screen, whose draft the user has
+ * already read on a review line — a category or account it names is one this
+ * ledger resolved by name, never one guessed from outside the app.
  */
 export interface TransactionSeed {
+    accountId?: string;
+    /**
+     * The person named an account the ledger could not place, so the form
+     * opens with none selected rather than the last used one: choosing is the
+     * point of coming here.
+     */
+    accountUnresolved?: boolean;
     amount?: number;
+    categoryId?: string;
+    currency?: string;
+    date?: Date;
+    /** The notes field; what the voice draft heard beyond the merchant. */
+    details?: string;
     income?: boolean;
     note?: string;
+    /** Opens the form in subscription mode on this cadence; the voice screen's "every month". */
+    recurrence?: { coefficient: number; type: number };
 }
 
 interface TransactionFormProps {
@@ -261,11 +279,14 @@ interface TransactionFormProps {
     seed?: TransactionSeed;
 }
 
-function seedAccount(db: Database, initial: Transaction | undefined) {
-    if (!initial) {
-        return getLastUsedAccount(db);
+function seedAccount(db: Database, initial: Transaction | undefined, seed: TransactionSeed | undefined) {
+    if (initial) {
+        return initial.accountId ? getAccountById(db, initial.accountId) : null;
     }
-    return initial.accountId ? getAccountById(db, initial.accountId) : null;
+    if (seed?.accountUnresolved) {
+        return null;
+    }
+    return (seed?.accountId ? getAccountById(db, seed.accountId) : null) ?? getLastUsedAccount(db);
 }
 
 /**
@@ -453,7 +474,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const globalCurrency = useGlobalCurrency(db);
 
     const [nameSeed] = useState(initial?.note ?? copyOf?.note ?? seed?.note ?? "");
-    const [notesSeed] = useState(initial?.details ?? copyOf?.details ?? "");
+    const [notesSeed] = useState(initial?.details ?? copyOf?.details ?? seed?.details ?? "");
     // The note is held in a ref, not state: it feeds a plain RN input, and
     // lifting the string would re-render the SwiftUI `Host` below on every
     // keystroke. The merchant name cannot be — two surfaces edit it — so it is a
@@ -477,20 +498,20 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     // inline object would silently re-seed both to "now" every render.
     // oxlint-disable-next-line complexity -- the seed has to reconcile initial, copyOf and seed across category, currency and rate in one pass, because `useForm` only reads it once
     const [initialValues] = useState(() => {
-        const sourceId = initial?.categoryId ?? copyOf?.categoryId;
+        const sourceId = initial?.categoryId ?? copyOf?.categoryId ?? seed?.categoryId;
         const seedCategory = sourceId ? getCategoryById(db, sourceId) : null;
-        const currencySeed = initial?.currency ?? copyOf?.currency ?? null;
+        const currencySeed = initial?.currency ?? copyOf?.currency ?? seed?.currency ?? null;
         const amountSeed = initial?.amount ?? copyOf?.amount ?? seed?.amount;
         const effectiveCurrency = currencySeed ?? globalCurrency;
         // SAFETY: three of the fields below start empty and are filled as the form
         // is used, so each initial literal has to carry the type the field will end
         // up holding rather than the empty one it starts as.
         return {
-            account: seedAccount(db, initial),
+            account: seedAccount(db, initial, seed),
             amount: amountSeed == null ? "" : numberToNumpad(amountSeed, minorUnitsFor(currencySeed ?? globalCurrency)),
             category: seedCategory,
-            coefficient: initial?.recurringCoefficient ?? 1,
-            date: initial ? new Date(initial.date) : new Date(),
+            coefficient: initial?.recurringCoefficient ?? seed?.recurrence?.coefficient ?? 1,
+            date: initial ? new Date(initial.date) : (seed?.date ?? new Date()),
             endDate: initial?.recurringEndDate ? new Date(initial.recurringEndDate) : oneYearFrom(new Date()),
             exchangeRateText: rateToEntryText(initial?.exchangeRate),
             exchangeRateType: initialEntryRateType(effectiveCurrency, initial?.exchangeRateType),
@@ -502,7 +523,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             // re-projects the whole schedule on save. Exactly one row in a chain
             // carries `recurringType > 0` — the one that is genuinely still
             // charging.
-            isSubscription: (initial?.recurringType ?? RECURRING_TYPE.none) !== RECURRING_TYPE.none,
+            isSubscription:
+                (initial?.recurringType ?? RECURRING_TYPE.none) !== RECURRING_TYPE.none || seed?.recurrence != null,
             leadDays: normalizeLead(initial?.reminderLeadDays ?? null),
             merchant: nameSeed,
             // What the sentence's inline field is seeded WITH, which is not the
@@ -516,7 +538,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             recurringType:
                 initial?.recurringType && initial.recurringType !== RECURRING_TYPE.none
                     ? initial.recurringType
-                    : RECURRING_TYPE.monthly,
+                    : (seed?.recurrence?.type ?? RECURRING_TYPE.monthly),
             tagIds: [] as string[],
             txCurrency: currencySeed,
         };

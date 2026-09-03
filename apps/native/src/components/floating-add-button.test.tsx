@@ -122,8 +122,8 @@ describe("floatingAddButton", () => {
         // the trigger, so this list is the priority order read backwards.
         expect(screen.getAllByText(/^log\.add\./).map((chip) => chip.props.children)).toStrictEqual([
             "log.add.import",
-            pending("log.add.voice"),
             pending("log.add.scan"),
+            "log.add.voice",
             "log.add.transfer",
             "log.add.transaction",
         ]);
@@ -203,7 +203,7 @@ describe("floatingAddButton", () => {
         await openDial();
 
         expect(screen.getAllByText(/^log\.add\./).map((chip) => chip.props.children)).toStrictEqual([
-            "log.add.import",
+            "log.add.voice",
             "log.add.transfer",
             "log.add.transaction",
         ]);
@@ -252,6 +252,7 @@ describe("floatingAddButton", () => {
 
         expect(screen.getAllByText(/^log\.add\./).map((chip) => chip.props.children)).toStrictEqual([
             "log.add.import",
+            "log.add.voice",
             "log.add.transfer",
             "log.add.transaction",
         ]);
@@ -259,9 +260,9 @@ describe("floatingAddButton", () => {
 
     it("clamps the labels rather than dropping a working action", async () => {
         // An iPhone in landscape at an accessibility text size: ~331pt of room for
-        // a column the three runnable actions want ~710pt for at full height. The
-        // second and third label lines are given up before any command is, so all
-        // three survive.
+        // a column the four runnable actions want ~940pt for at full height. The
+        // second and third label lines are given up before any command is, and
+        // only then the import, so the three most-wanted commands survive.
         mockWindowHeight.mockReturnValue(440);
         mockFontScale.mockReturnValue(3.1);
 
@@ -269,26 +270,33 @@ describe("floatingAddButton", () => {
         await openDial();
 
         expect(screen.getAllByText(/^log\.add\./).map((chip) => chip.props.children)).toStrictEqual([
-            "log.add.import",
+            "log.add.voice",
             "log.add.transfer",
             "log.add.transaction",
         ]);
     });
 
-    it("marks the unbuilt actions rather than hiding them", async () => {
+    it("pushes /transactions/voice when the voice action is pressed", async () => {
+        await render(<FloatingAddButton />);
+        await openDial();
+
+        await pressAction("log.add.voice");
+
+        expect(mockPush).toHaveBeenCalledWith("/transactions/voice");
+    });
+
+    it("marks the unbuilt action rather than hiding it", async () => {
         await render(<FloatingAddButton />);
         await openDial();
 
         expect(screen.getByLabelText(pending("log.add.scan"))).toBeTruthy();
-        expect(screen.getByLabelText(pending("log.add.voice"))).toBeTruthy();
     });
 
-    it("leaves the unbuilt actions inert, so pressing one is not a choice that registered", async () => {
+    it("leaves the unbuilt action inert, so pressing it is not a choice that registered", async () => {
         await render(<FloatingAddButton />);
         await openDial();
 
         await pressAction(pending("log.add.scan"));
-        await pressAction(pending("log.add.voice"));
 
         expect(mockPush).not.toHaveBeenCalled();
         expect(mockPresent).not.toHaveBeenCalled();

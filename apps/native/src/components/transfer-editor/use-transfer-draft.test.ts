@@ -11,6 +11,7 @@ const mockAccounts = [
     { currency: "USD", id: "usd", initialBalance: 0, name: "Zinli" } as Account,
     { currency: "VES", id: "ves", initialBalance: 0, name: "Banesco" } as Account,
     { currency: "EUR", id: "eur", initialBalance: 0, name: "Wise" } as Account,
+    { currency: "USD", id: "usd-2", initialBalance: 0, name: "Mercantil" } as Account,
 ];
 
 const mockRates = new Map<string, number>();
@@ -272,5 +273,90 @@ describe("changing the destination under a custom rate", () => {
             result.current.chooseTo(mockAccounts[2] ?? null);
         });
         expect(result.current.legs).toStrictEqual({ exchangeRate: 0.9, fromAmount: 100, toAmount: 90 });
+    });
+});
+
+describe("useTransferDraft seed", () => {
+    it("lands the amount on the leg whose currency it was spoken in, and nowhere when neither matches", async () => {
+        const seededSent = await renderHook(() =>
+            useTransferDraft({} as Database, { amount: 100, currency: "EUR", fromAccountId: "eur", toAccountId: "usd" })
+        );
+        expect(seededSent.result.current.sentText).toBe("100");
+        expect(seededSent.result.current.arrivedText).toBe("");
+
+        const seededArrival = await renderHook(() =>
+            useTransferDraft({} as Database, { amount: 100, currency: "USD", fromAccountId: "eur", toAccountId: "usd" })
+        );
+        expect(seededArrival.result.current.sentText).toBe("");
+        expect(seededArrival.result.current.arrivedText).toBe("100");
+        expect(seededArrival.result.current.arrived).toBe(100);
+
+        const seededNeither = await renderHook(() =>
+            useTransferDraft({} as Database, { amount: 100, currency: "GBP", fromAccountId: "eur", toAccountId: "usd" })
+        );
+        expect(seededNeither.result.current.sentText).toBe("");
+        expect(seededNeither.result.current.arrivedText).toBe("");
+    });
+
+    it("fills the leg the seed left open with an account other than the resolved one", async () => {
+        const onlyFrom = await renderHook(() => useTransferDraft({} as Database, { fromAccountId: "usd" }));
+        expect(onlyFrom.result.current.from?.id).toBe("usd");
+        expect(onlyFrom.result.current.to?.id).toBe("ves");
+
+        const onlyTo = await renderHook(() => useTransferDraft({} as Database, { toAccountId: "usd" }));
+        expect(onlyTo.result.current.to?.id).toBe("usd");
+        expect(onlyTo.result.current.from?.id).toBe("ves");
+    });
+
+    it("keeps a pinned arrival when the source is chosen afterwards, and drops it when the destination changes", async () => {
+        const { result } = await renderHook(() =>
+            useTransferDraft({} as Database, { amount: 100, currency: "USD", fromUnresolved: true, toAccountId: "usd" })
+        );
+        expect(result.current.from).toBeNull();
+        expect(result.current.arrivedText).toBe("100");
+        await act(async () => {
+            result.current.chooseFrom(mockAccounts[1] ?? null);
+        });
+        expect(result.current.from?.id).toBe("ves");
+        expect(result.current.arrivedText).toBe("100");
+        expect(result.current.arrived).toBe(100);
+        await act(async () => {
+            result.current.chooseTo(mockAccounts[0] ?? null);
+        });
+        expect(result.current.arrived).toBe(100);
+        await act(async () => {
+            result.current.chooseTo(mockAccounts[2] ?? null);
+        });
+        expect(result.current.to?.id).toBe("eur");
+        expect(result.current.arrived).not.toBe(100);
+    });
+
+    it("fills the sent side from a pinned arrival when the chosen source shares the destination's currency", async () => {
+        const { result } = await renderHook(() =>
+            useTransferDraft({} as Database, { amount: 100, currency: "USD", fromUnresolved: true, toAccountId: "usd" })
+        );
+        expect(result.current.canSave).toBeFalsy();
+        await act(async () => {
+            result.current.chooseFrom(mockAccounts[3] ?? null);
+        });
+        expect(result.current.from?.id).toBe("usd-2");
+        expect(result.current.sentText).toBe("100");
+        expect(result.current.arrived).toBe(100);
+        expect(result.current.canSave).toBeTruthy();
+    });
+
+    it("leaves a leg empty when it was named but could not be placed", async () => {
+        const missedSource = await renderHook(() =>
+            useTransferDraft({} as Database, { fromUnresolved: true, toAccountId: "usd" })
+        );
+        expect(missedSource.result.current.from).toBeNull();
+        expect(missedSource.result.current.to?.id).toBe("usd");
+        expect(missedSource.result.current.canSave).toBeFalsy();
+
+        const missedDestination = await renderHook(() =>
+            useTransferDraft({} as Database, { fromAccountId: "usd", toUnresolved: true })
+        );
+        expect(missedDestination.result.current.from?.id).toBe("usd");
+        expect(missedDestination.result.current.to).toBeNull();
     });
 });

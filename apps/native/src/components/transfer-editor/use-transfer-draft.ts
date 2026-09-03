@@ -146,20 +146,73 @@ export interface TransferDraft {
     toggleFeeSide: () => void;
 }
 
-export function useTransferDraft(db: Database): TransferDraft {
+/**
+ * What the voice screen hands the editor when a spoken transfer needs the
+ * pieces nobody speaks (a rate, a fee) or an account it could not resolve.
+ * Every field is optional; a missing one falls back to the editor's own default.
+ */
+export interface TransferSeed {
+    amount?: number;
+    /**
+     * The currency `amount` was spoken in. It lands on whichever leg holds that
+     * currency: the sent side when it is the source account's, the pinned
+     * arrival when it is the destination's, and nowhere when it is neither —
+     * a number in the wrong currency is worse than an empty field.
+     */
+    currency?: string;
+    date?: Date;
+    fromAccountId?: string;
+    /**
+     * The source was named but the ledger could not place it, so that leg opens
+     * empty for the person to choose rather than falling back to any account.
+     */
+    fromUnresolved?: boolean;
+    toAccountId?: string;
+    /** Likewise for the destination. */
+    toUnresolved?: boolean;
+}
+
+/** The editor's opening state: the seed where it speaks, the first two accounts where it does not. */
+function openingState(accounts: readonly Account[], seed: TransferSeed | undefined) {
+    const from = accounts.find((account) => account.id === seed?.fromAccountId);
+    const to = accounts.find((account) => account.id === seed?.toAccountId);
+    const amount = seed?.amount;
+    const spokenIn = seed?.currency;
+    const onSent = amount !== undefined && from !== undefined && (spokenIn === undefined || spokenIn === from.currency);
+    const onArrival = amount !== undefined && !onSent && to !== undefined && spokenIn === to.currency;
+    // A leg the seed left unnamed takes the first account that is not the
+    // other leg, so a half-resolved move never opens as an account paying
+    // itself. A leg that was named and missed stays empty: guessing a balance
+    // the person never named is worse than asking.
+    const fallbackFrom = seed?.fromUnresolved ? null : accounts.find((account) => account.id !== to?.id)?.id;
+    const fromId = from?.id ?? fallbackFrom ?? null;
+    const fallbackTo = seed?.toUnresolved ? null : accounts.find((account) => account.id !== fromId)?.id;
+    const toId = to?.id ?? fallbackTo ?? null;
+    return {
+        arrivalPinned: onArrival,
+        arrivedText: onArrival ? numberToNumpad(amount, minorUnitsFor(to.currency)) : "",
+        date: seed?.date ?? new Date(),
+        fromId,
+        sentText: onSent ? numberToNumpad(amount, minorUnitsFor(from.currency)) : "",
+        toId,
+    };
+}
+
+export function useTransferDraft(db: Database, seed?: TransferSeed): TransferDraft {
     const accounts = useAccounts(db);
-    const [fromId, setFromId] = useState<string | null>(accounts[0]?.id ?? null);
-    const [toId, setToId] = useState<string | null>(accounts[1]?.id ?? null);
-    const [sentText, setSentText] = useState("");
-    const [arrivedText, setArrivedText] = useState("");
-    const [arrivalPinned, setArrivalPinned] = useState(false);
+    const [opening] = useState(() => openingState(accounts, seed));
+    const [fromId, setFromId] = useState<string | null>(opening.fromId);
+    const [toId, setToId] = useState<string | null>(opening.toId);
+    const [sentText, setSentText] = useState(opening.sentText);
+    const [arrivedText, setArrivedText] = useState(opening.arrivedText);
+    const [arrivalPinned, setArrivalPinned] = useState(opening.arrivalPinned);
     const [rateType, setRateTypeState] = useState<EntryRateType>("official");
     const [marketType, setMarketType] = useState<EntryRateType>("official");
     const [customRates, setCustomRates] = useState<Record<string, string>>({});
     const [feeText, setFeeText] = useState("");
     const [feeSide, setFeeSide] = useState<FeeSide>("source");
     const [feeCategoryId, setFeeCategoryId] = useState<string | null>(() => lastFeeCategoryId(db));
-    const [date, setDate] = useState(() => new Date());
+    const [date, setDate] = useState(opening.date);
 
     const from = accounts.find((account) => account.id === fromId) ?? null;
     const to = accounts.find((account) => account.id === toId) ?? null;
@@ -219,18 +272,29 @@ export function useTransferDraft(db: Database): TransferDraft {
             setArrivalPinned(false);
         };
 
+    /**
+     * Picks one leg. Choosing the account the other leg holds swaps them. A
+     * pinned arrival is in the destination's currency, so it survives a new
+     * source and is dropped only when the destination actually changes — which
+     * includes a swap, since the old source becomes the destination.
+     */
     function pick(
         nextId: string,
         otherId: string | null,
         setSelf: (id: string) => void,
         setOther: (id: string | null) => void,
-        selfId: string | null
+        selfId: string | null,
+        leg: "from" | "to"
     ) {
-        if (nextId === otherId) {
+        const swapped = nextId === otherId;
+        if (swapped) {
             setOther(selfId);
         }
         setSelf(nextId);
-        setArrivalPinned(false);
+        // Re-tapping the selected destination changes nothing, and keeps the pin.
+        if ((leg === "to" && nextId !== selfId) || swapped) {
+            setArrivalPinned(false);
+        }
     }
 
     return {
@@ -241,12 +305,18 @@ export function useTransferDraft(db: Database): TransferDraft {
         canSave: from !== null && to !== null && from.id !== to.id && sent > 0 && math.legs !== null,
         chooseFrom: (account) => {
             if (account) {
-                pick(account.id, toId, setFromId, setToId, fromId);
+                pick(account.id, toId, setFromId, setToId, fromId, "from");
+                // A pinned arrival with nothing sent yet, and a source in the
+                // destination's currency: the legs are equal, so the sent side
+                // is the arrival, not a number to type again.
+                if (arrivalPinned && sent === 0 && account.id !== toId && account.currency === toCurrency) {
+                    setSentText(arrivedText);
+                }
             }
         },
         chooseTo: (account) => {
             if (account) {
-                pick(account.id, fromId, setToId, setFromId, toId);
+                pick(account.id, fromId, setToId, setFromId, toId, "to");
             }
         },
         crossCurrency,

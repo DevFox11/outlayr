@@ -386,6 +386,7 @@ function RootStack() {
                     <Stack.Screen.BackButton displayMode="minimal" />
                     <Stack.Screen.Title>{t("nav.newTransaction")}</Stack.Screen.Title>
                 </Stack.Screen>
+                <Stack.Screen name="transactions/voice" options={{ headerShown: false, presentation: "modal" }} />
                 <Stack.Screen name="transactions/[id]" options={{ presentation: "modal" }}>
                     <Stack.Header transparent />
                     <Stack.Screen.BackButton displayMode="minimal" />

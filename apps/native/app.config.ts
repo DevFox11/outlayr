@@ -264,6 +264,13 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
             },
         ],
         [
+            "expo-audio",
+            {
+                microphonePermission: "Outlayr listens while you speak an entry, then writes it down for you.",
+                recordAudioAndroid: true,
+            },
+        ],
+        [
             "./plugins/with-alternate-icons.ts",
             {
                 icons: ALTERNATE_ICONS.map((name) => `./assets/${name}.icon`),

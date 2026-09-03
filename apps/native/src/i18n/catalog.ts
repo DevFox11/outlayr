@@ -28,6 +28,7 @@ type Search = typeof import("@/content/search.content").default;
 type Settings = typeof import("@/content/settings.content").default;
 type Transaction = typeof import("@/content/transaction.content").default;
 type Transfers = typeof import("@/content/transfers.content").default;
+type Voice = typeof import("@/content/voice.content").default;
 
 /**
  * Every dictionary Intlayer builds, by key. The flat map below and the parity
@@ -52,6 +53,7 @@ export const DICTIONARY_KEYS = [
     "settings",
     "transaction",
     "transfers",
+    "voice",
 ] as const;
 
 type Content =
@@ -71,7 +73,8 @@ type Content =
     | Search["content"]
     | Settings["content"]
     | Transaction["content"]
-    | Transfers["content"];
+    | Transfers["content"]
+    | Voice["content"];
 
 /**
  * Keys stay fully qualified inside their dictionary (`log.empty.title` lives in

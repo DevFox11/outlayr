@@ -33,6 +33,7 @@ import type * as merchantKnowledge from "../merchantKnowledge.js";
 import type * as photos from "../photos.js";
 import type * as providerLifecycle from "../providerLifecycle.js";
 import type * as sync from "../sync.js";
+import type * as voiceEntry from "../voiceEntry.js";
 
 import type {
   ApiFromModules,
@@ -66,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   photos: typeof photos;
   providerLifecycle: typeof providerLifecycle;
   sync: typeof sync;
+  voiceEntry: typeof voiceEntry;
 }>;
 
 /**
@@ -98,4 +100,5 @@ export declare const components: {
   betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
   r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+  agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
 };
