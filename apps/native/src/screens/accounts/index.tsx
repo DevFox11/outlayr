@@ -82,7 +82,7 @@ function AccountsReady({ db }: { db: Database }) {
         (id: string) => {
             router.push({
                 params: { accountId: id },
-                pathname: "/settings/accounts/[accountId]",
+                pathname: "/accounts/[accountId]",
             });
         },
         [router]
@@ -108,7 +108,7 @@ function AccountsReady({ db }: { db: Database }) {
                     {...toolbarIcon("reorder")}
                     accessibilityLabel={t("accounts.a11y.reorder")}
                     hidden={rows.length <= 1}
-                    onPress={() => router.push("/settings/accounts/reorder")}
+                    onPress={() => router.push("/accounts/reorder")}
                 />
             </Stack.Toolbar>
             {rows.length === 0 ? (

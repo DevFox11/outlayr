@@ -63,6 +63,15 @@ describe("isMultiCurrency", () => {
     });
 });
 
+/** The headline figures alone; the per-account rows have their own cases below. */
+function summary(result: ReturnType<typeof accountsOverview>) {
+    if (result === null) {
+        return null;
+    }
+    const { rows: _rows, ...rest } = result;
+    return rest;
+}
+
 describe("accountsOverview", () => {
     const rates = buildRateTable([{ date: "2026-01-01", quote: "EUR", rate: 2 }]);
 
@@ -80,7 +89,7 @@ describe("accountsOverview", () => {
             "USD",
             rates
         );
-        expect(result).toStrictEqual({
+        expect(summary(result)).toStrictEqual({
             count: 2,
             exact: true,
             owe: 0,
@@ -96,7 +105,7 @@ describe("accountsOverview", () => {
             "USD",
             rates
         );
-        expect(result).toStrictEqual({ count: 1, exact: true, owe: 0, own: 40, total: 40 });
+        expect(summary(result)).toStrictEqual({ count: 1, exact: true, owe: 0, own: 40, total: 40 });
     });
 
     it("falls back to face value and marks approximate when no rate reaches", () => {
@@ -112,7 +121,7 @@ describe("accountsOverview", () => {
             "USD",
             rates
         );
-        expect(result).toStrictEqual({ count: 1, exact: false, owe: 0, own: 80, total: 80 });
+        expect(summary(result)).toStrictEqual({ count: 1, exact: false, owe: 0, own: 80, total: 80 });
     });
 
     it("marks approximate when a cell cannot convert", () => {
@@ -141,7 +150,7 @@ describe("accountsOverview", () => {
             "USD",
             rates
         );
-        expect(result).toStrictEqual({ count: 1, exact: true, owe: 0, own: 5, total: 5 });
+        expect(summary(result)).toStrictEqual({ count: 1, exact: true, owe: 0, own: 5, total: 5 });
     });
 
     it("values a whole foreign account into the display currency", () => {
@@ -152,7 +161,7 @@ describe("accountsOverview", () => {
             "USD",
             rates
         );
-        expect(result).toStrictEqual({ count: 2, exact: true, owe: 0, own: 10, total: 10 });
+        expect(summary(result)).toStrictEqual({ count: 2, exact: true, owe: 0, own: 10, total: 10 });
     });
 
     it("tells a card apart from an overdrawn current account", () => {
@@ -167,7 +176,7 @@ describe("accountsOverview", () => {
             "USD",
             rates
         );
-        expect(result).toStrictEqual({ count: 2, exact: true, owe: 200, own: -50, total: -250 });
+        expect(summary(result)).toStrictEqual({ count: 2, exact: true, owe: 200, own: -50, total: -250 });
     });
 
     it("leaves the total untouched by the kind split", () => {
@@ -184,5 +193,51 @@ describe("accountsOverview", () => {
             rates
         );
         expect(debts?.total).toBe(assets?.total);
+    });
+});
+
+describe("accountsOverview rows", () => {
+    const rates = buildRateTable([{ date: "2026-01-01", quote: "EUR", rate: 2 }]);
+
+    it("states every account in the ledger's order, valued and kinded", () => {
+        const result = accountsOverview(
+            [
+                account({ id: "card", initialBalance: -200, kind: "liability" }),
+                account({ currency: "EUR", id: "eur", initialBalance: 80, initialBalanceUsd: 40 }),
+                account({ id: "cash", initialBalance: 30 }),
+            ],
+            [cell({ accountId: "cash", amount: 5, amountUsd: 5 })],
+            "USD",
+            rates
+        );
+        expect(result?.rows).toStrictEqual([
+            { balance: -200, exact: true, id: "card", kind: "liability", multiCurrency: false },
+            { balance: 40, exact: true, id: "eur", kind: "asset", multiCurrency: false },
+            { balance: 25, exact: true, id: "cash", kind: "asset", multiCurrency: false },
+        ]);
+    });
+
+    it("marks only the row that could not be valued", () => {
+        const result = accountsOverview(
+            [
+                account({ currency: "GBP", id: "gbp", initialBalance: 80, initialBalanceUsd: null }),
+                account({ id: "usd" }),
+            ],
+            [],
+            "USD",
+            rates
+        );
+        expect(result?.rows.map((row) => row.exact)).toStrictEqual([false, true]);
+        expect(result?.exact).toBe(false);
+    });
+
+    it("flags an account holding a currency other than its own", () => {
+        const result = accountsOverview(
+            [account({ id: "a1" })],
+            [cell({ accountId: "a1", amount: 10, amountUsd: 20, currencyCode: "EUR" })],
+            "USD",
+            rates
+        );
+        expect(result?.rows[0]?.multiCurrency).toBe(true);
     });
 });

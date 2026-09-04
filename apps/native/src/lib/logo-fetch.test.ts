@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 import { faviconUrl, fetchMerchantImage, logoDevUrl } from "./logo-fetch";
 
@@ -140,6 +140,109 @@ describe("fetchMerchantImage", () => {
 
         expect(outcome.kind).toBe("none");
         expect(fetchImpl).not.toHaveBeenCalled();
+        expect(mockWriteCachedLogo).not.toHaveBeenCalled();
+    });
+});
+
+describe("what a miss remembers", () => {
+    beforeEach(() => {
+        mockWriteCachedLogo.mockClear();
+    });
+
+    it("remembers a miss when logo.dev served a placeholder and the favicon was not found", async () => {
+        await fetchMerchantImage({ domain: "zzqq-nothing.example", name: "zzqq nothing" }, (async (url: string) =>
+            String(url).includes("img.logo.dev")
+                ? imageResponse(200, new Uint8Array(16))
+                : notFound) as unknown as typeof fetch);
+        expect(mockWriteCachedLogo).toHaveBeenCalledWith("test-key", null);
+    });
+
+    it("remembers a miss when every tier answered and refused", async () => {
+        await fetchMerchantImage(
+            { domain: "zzqq-nothing.example", name: "zzqq nothing" },
+            (async () => notFound) as unknown as typeof fetch
+        );
+        expect(mockWriteCachedLogo).toHaveBeenCalledWith("test-key", null);
+    });
+
+    it("does not remember a miss for a thrown request", async () => {
+        const result = await fetchMerchantImage({ domain: "zinli.com", name: "Zinli" }, (async () => {
+            throw new Error("offline");
+        }) as unknown as typeof fetch);
+        expect(result).toStrictEqual({ kind: "none" });
+        expect(mockWriteCachedLogo).not.toHaveBeenCalled();
+    });
+
+    it("does not remember a miss for an auth, timeout, rate-limit or server status", async () => {
+        for (const status of [401, 403, 408, 429, 503]) {
+            // oxlint-disable-next-line no-await-in-loop -- each status is its own request
+            await fetchMerchantImage({ domain: "zinli.com", name: "Zinli" }, (async () =>
+                imageResponse(status, new Uint8Array(0))) as unknown as typeof fetch);
+        }
+        expect(mockWriteCachedLogo).not.toHaveBeenCalled();
+    });
+
+    it("does not remember a miss when logo.dev refused but the favicon never answered", async () => {
+        await fetchMerchantImage({ domain: "zinli.com", name: "Zinli" }, (async (url: string) => {
+            if (String(url).includes("img.logo.dev")) {
+                return notFound;
+            }
+            throw new Error("offline");
+        }) as unknown as typeof fetch);
+        expect(mockWriteCachedLogo).not.toHaveBeenCalled();
+    });
+});
+
+describe("timeouts", () => {
+    beforeEach(() => {
+        jest.useFakeTimers();
+        mockWriteCachedLogo.mockClear();
+    });
+
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    /** A request that only settles when its signal aborts, like a stalled socket. */
+    function stalled(signal: AbortSignal): Promise<Response> {
+        return new Promise((_resolve, reject) => {
+            signal.addEventListener("abort", () => reject(new Error("aborted")));
+        });
+    }
+
+    it("tries logo.dev once more after a timeout, then takes the logo", async () => {
+        const branded = png(900);
+        let attempts = 0;
+        const fetchImpl = async (url: string, init?: RequestInit) => {
+            attempts += 1;
+            if (attempts === 1) {
+                return stalled(init?.signal as AbortSignal);
+            }
+            return String(url).includes("img.logo.dev") ? imageResponse(200, branded) : notFound;
+        };
+        const pending = fetchMerchantImage(
+            { domain: "zinli.com", name: "Zinli" },
+            fetchImpl as unknown as typeof fetch
+        );
+        await jest.advanceTimersByTimeAsync(3000);
+        await expect(pending).resolves.toStrictEqual({ bytes: branded, kind: "logo" });
+        expect(attempts).toBe(2);
+    });
+
+    it("gives up after the second timeout without remembering a miss", async () => {
+        let attempts = 0;
+        const fetchImpl = async (_url: string, init?: RequestInit) => {
+            attempts += 1;
+            return stalled(init?.signal as AbortSignal);
+        };
+        const pending = fetchMerchantImage(
+            { domain: "zinli.com", name: "Zinli" },
+            fetchImpl as unknown as typeof fetch
+        );
+        // Two attempts for logo.dev, two for the favicon.
+        await jest.advanceTimersByTimeAsync(3000 * 4);
+        await expect(pending).resolves.toStrictEqual({ kind: "none" });
+        expect(attempts).toBe(4);
         expect(mockWriteCachedLogo).not.toHaveBeenCalled();
     });
 });

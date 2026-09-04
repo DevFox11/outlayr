@@ -441,3 +441,60 @@ describe("acceptance and gating", () => {
         expect(onLogo).not.toHaveBeenCalled();
     });
 });
+
+describe("a name the editor opens with", () => {
+    it("is looked up on mount as if it had been typed", async () => {
+        const fetchImage = jest.fn(async () => LOGO);
+        const onLogo = jest.fn();
+        await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, initialName: "Banesco", onLogo })));
+
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+
+        expect(fetchImage).toHaveBeenCalledWith({ domain: "banesco.com", name: "Banesco" });
+        await act(async () => {});
+        expect(onLogo).toHaveBeenCalledWith(PERSISTED);
+    });
+
+    it("asks nothing for an empty or disabled opening name", async () => {
+        const fetchImage = jest.fn(async () => LOGO);
+        await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, initialName: "  " })));
+        await renderHook(() => useAccountIdentity(baseArgs({ enabled: false, fetchImage, initialName: "Banesco" })));
+
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+
+        expect(fetchImage).not.toHaveBeenCalled();
+    });
+});
+
+describe("an editor that closes mid-lookup", () => {
+    it("drops a logo that lands after the hook unmounted", async () => {
+        let settleFetch: (outcome: LogoOutcome) => void = () => {};
+        const fetchImage = jest.fn(
+            () =>
+                new Promise<LogoOutcome>((resolve) => {
+                    settleFetch = resolve;
+                })
+        );
+        const onLogo = jest.fn();
+        const onClear = jest.fn();
+        const { unmount } = await renderHook(() =>
+            useAccountIdentity(baseArgs({ fetchImage, initialName: "Banesco", onClear, onLogo }))
+        );
+
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+        expect(fetchImage).toHaveBeenCalledTimes(1);
+
+        unmount();
+        await act(async () => {
+            settleFetch(LOGO);
+        });
+        expect(onLogo).not.toHaveBeenCalled();
+        expect(onClear).not.toHaveBeenCalled();
+    });
+});

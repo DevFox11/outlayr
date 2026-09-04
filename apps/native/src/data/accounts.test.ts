@@ -5,8 +5,9 @@ import BetterSqlite3 from "better-sqlite3";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { testDatabase } from "@/db/test-database";
+import { buildRateTable } from "@/domain/valuation";
 
-import { useAccountCells } from "./accounts";
+import { useAccountCells, useAccountsOverviewIn } from "./accounts";
 import { accountsCellQuery, toCurrencyCell } from "./cell-query";
 import type { CellRow } from "./cell-query";
 
@@ -190,5 +191,49 @@ describe("useAccountCells", () => {
                 unconvertedCount: 0,
             },
         ]);
+    });
+});
+
+describe("useAccountsOverviewIn", () => {
+    beforeEach(() => {
+        mockUseLiveQuery.mockReset();
+    });
+
+    const valuation = { displayCurrency: "USD", rates: buildRateTable([]) };
+    const account = (id: string, initialBalance: number) => ({
+        currency: "USD",
+        id,
+        initialBalance,
+        initialBalanceDate: JUNE_1,
+        initialBalanceUsd: initialBalance,
+        kind: "asset",
+    });
+
+    it("drops an account inside its undo window, cells and all", async () => {
+        // `useAccounts`, then the transaction cells, then outbound and inbound transfers.
+        mockUseLiveQuery
+            .mockReturnValueOnce([account("keep", 100), account("going", 50)])
+            .mockReturnValueOnce([{ ...liveRow({ income: false, total: 5, totalUsd: 5 }), accountId: "going" }])
+            .mockReturnValueOnce([])
+            .mockReturnValueOnce([]);
+
+        const { result } = await renderHook(() => useAccountsOverviewIn({} as Database, valuation, "going"));
+
+        expect(result.current?.count).toBe(1);
+        expect(result.current?.total).toBe(100);
+        expect(result.current?.rows.map((row) => row.id)).toStrictEqual(["keep"]);
+    });
+
+    it("keeps every account when nothing is pending", async () => {
+        mockUseLiveQuery
+            .mockReturnValueOnce([account("keep", 100), account("going", 50)])
+            .mockReturnValueOnce([])
+            .mockReturnValueOnce([])
+            .mockReturnValueOnce([]);
+
+        const { result } = await renderHook(() => useAccountsOverviewIn({} as Database, valuation, null));
+
+        expect(result.current?.count).toBe(2);
+        expect(result.current?.total).toBe(150);
     });
 });

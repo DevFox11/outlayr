@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 jest.mock("expo-file-system", () => {
     const existing = new Set<string>();
+    const writtenAt = new Map<string, number>();
     class Directory {
         get exists() {
             return true;
@@ -19,14 +20,21 @@ jest.mock("expo-file-system", () => {
         get uri() {
             return `file:///cache/merchant-logos/${this.name}`;
         }
+        get modificationTime() {
+            return writtenAt.get(this.name);
+        }
+        delete() {
+            existing.delete(this.name);
+        }
     }
-    return { Directory, File, Paths: { cache: "/cache" }, __existing: existing };
+    return { Directory, File, Paths: { cache: "/cache" }, __existing: existing, __writtenAt: writtenAt };
 });
 
-import { cachedLogoUri, logoCacheKey } from "./logo-cache";
+import { cachedLogoUri, logoCacheKey, readCachedLogo } from "./logo-cache";
 
-const { __existing } = jest.requireMock("expo-file-system") as {
+const { __existing, __writtenAt } = jest.requireMock("expo-file-system") as {
     __existing: Set<string>;
+    __writtenAt: Map<string, number>;
 };
 
 describe("logoCacheKey", () => {
@@ -64,5 +72,33 @@ describe("cachedLogoUri", () => {
     it("returns null for a remembered miss, even though the marker file exists", () => {
         __existing.add("netflix.miss");
         expect(cachedLogoUri("netflix")).toBeNull();
+    });
+});
+
+describe("a miss expires", () => {
+    const WEEK = 7 * 24 * 60 * 60 * 1000;
+
+    beforeEach(() => {
+        __existing.clear();
+        __writtenAt.clear();
+    });
+
+    it("is still a miss inside the week", async () => {
+        __existing.add("zinli.miss");
+        __writtenAt.set("zinli.miss", 1000);
+        await expect(readCachedLogo("zinli", 1000 + WEEK - 1)).resolves.toStrictEqual({ kind: "miss" });
+        expect(cachedLogoUri("zinli", 1000 + WEEK - 1)).toBeNull();
+    });
+
+    it("is forgotten, and its marker removed, once the week is up", async () => {
+        __existing.add("zinli.miss");
+        __writtenAt.set("zinli.miss", 1000);
+        await expect(readCachedLogo("zinli", 1000 + WEEK + 1)).resolves.toStrictEqual({ kind: "unknown" });
+        expect(__existing.has("zinli.miss")).toBe(false);
+    });
+
+    it("keeps a marker with no readable time, rather than guessing", async () => {
+        __existing.add("zinli.miss");
+        await expect(readCachedLogo("zinli", Number.MAX_SAFE_INTEGER)).resolves.toStrictEqual({ kind: "miss" });
     });
 });

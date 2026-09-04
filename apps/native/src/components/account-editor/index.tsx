@@ -109,6 +109,10 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
      */
     const [failure, setFailure] = useState<string | null>(null);
 
+    // `imageKey` counts on its own: a synced photo can be known before the photo
+    // pass has downloaded it into `imageUri`, and a lookup started in that gap
+    // would save a suggestion over the user's own picture.
+    const hasStoredIdentity = Boolean(loaded?.emoji || loaded?.icon || loaded?.imageUri || loaded?.imageKey);
     const nameState = useNativeState(loaded?.name ?? "");
     const nameRef = useRef<TextFieldRef>(null);
     const currencySheetRef = useRef<BottomSheetModal>(null);
@@ -258,8 +262,12 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
             // An identity carried in from the stored row is a choice already made;
             // only an empty well or an earlier suggestion moves.
             !(latest.current.identitySource === "initial" && latest.current.hasIdentity),
-        enabled: mode === "create",
+        // A stored identity is a choice already made, so editing such an account
+        // never looks anything up. An account saved without one is still owed a
+        // logo: its name is looked up on open, and again as it is retyped.
+        enabled: mode === "create" || !hasStoredIdentity,
         groundedLookup,
+        initialName: initialValues.name,
         locale,
         onClear: () => {
             if (latest.current.identitySource !== "suggested") {

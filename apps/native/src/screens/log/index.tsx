@@ -7,7 +7,7 @@ import { DaySectionHeader } from "@/components/day-section-header";
 import { FloatingAddButton } from "@/components/floating-add-button";
 import { useDisplaySettings, useSettingBool, useSettingNumber } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useAccountsOverviewIn } from "@/data/accounts";
+import { useAccounts, useAccountsOverviewIn } from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useCategoryMeta } from "@/data/categories";
 import { useFavouriteCurrencies } from "@/data/favourite-currencies";
@@ -41,7 +41,7 @@ import { useTranslation } from "@/i18n/context";
 import { useDayCardShare } from "@/lib/use-day-card-share";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 
-import { AccountsOverviewCard } from "./components/accounts-overview-card";
+import { AccountsBlock } from "./components/accounts-block";
 import { LogEmptyState } from "./components/log-empty-state";
 import { LogFilterChip } from "./components/log-filter-chip";
 import type { SparklineData } from "./components/log-insights";
@@ -111,7 +111,11 @@ function LogContent({ db }: { db: Database }) {
     const favouriteCurrencies = useFavouriteCurrencies(db);
     const valuation = useValuationIn(db, displayOverride ?? globalCurrency);
     const { displayCurrency: currency, rates } = valuation;
-    const accountsOverview = useAccountsOverviewIn(db, valuation);
+    // An account inside its undo window is already gone from the accounts screen;
+    // it must not linger here as a row that can still be opened.
+    const { pendingId: pendingAccountId } = useDeferredDelete("account");
+    const accountsOverview = useAccountsOverviewIn(db, valuation, pendingAccountId);
+    const accountRows = useAccounts(db);
     const valued = useValuedCurrencies(db);
     const { showCents, swapTimeLabel, use24Hour } = useDisplaySettings().state;
     const showUpcoming = useSettingBool("showUpcoming");
@@ -208,6 +212,8 @@ function LogContent({ db }: { db: Database }) {
     );
 
     const openRowActions = useTransactionRowActions(nowMs, requestDelete);
+    const openAccount = (accountId: string) =>
+        router.push({ params: { accountId }, pathname: "/accounts/[accountId]" });
     // A transfer id is not a transaction id: routing it to `transactions/[id]`
     // opens a screen with nothing behind it.
     const openRow = (rowId: string) =>
@@ -260,18 +266,20 @@ function LogContent({ db }: { db: Database }) {
         return (
             <>
                 {accountsOverview ? (
-                    // The card rides a scroll view purely for its automatic inset: the
-                    // header is transparent, so anything laid out flat here starts under
-                    // the large title.
+                    // The block rides a scroll view for its automatic inset: the header
+                    // is transparent, so anything laid out flat here starts under the
+                    // large title. It scrolls, because four account rows plus the empty
+                    // state outgrow a landscape or large-type viewport.
                     <ScrollView
                         className="bg-background"
                         contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20 }}
                         contentInsetAdjustmentBehavior="automatic"
-                        scrollEnabled={false}
                     >
-                        <AccountsOverviewCard
+                        <AccountsBlock
+                            accounts={accountRows}
                             currency={currency}
-                            onPress={() => router.push("/settings/accounts")}
+                            onOpen={openAccount}
+                            onOpenAll={() => router.push("/accounts")}
                             overview={accountsOverview}
                             showCents={showCents}
                         />
@@ -354,9 +362,11 @@ function LogContent({ db }: { db: Database }) {
                             />
                         )}
                         {filter === "all" ? (
-                            <AccountsOverviewCard
+                            <AccountsBlock
+                                accounts={accountRows}
                                 currency={currency}
-                                onPress={() => router.push("/settings/accounts")}
+                                onOpen={openAccount}
+                                onOpenAll={() => router.push("/accounts")}
                                 overview={accountsOverview}
                                 showCents={showCents}
                             />

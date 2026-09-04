@@ -1710,7 +1710,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     stageStep === "account" && allAccounts.length === 0
                         ? {
                               label: t("transaction.account.create"),
-                              onPress: () => router.push("/settings/accounts/create"),
+                              onPress: () => router.push("/accounts/create"),
                               tone: "primary",
                           }
                         : stageFooter(amountNumber, merchant)

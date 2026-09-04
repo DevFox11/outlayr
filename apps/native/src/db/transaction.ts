@@ -18,11 +18,41 @@ import type { Database } from "./client";
  * concurrent async queries can interleave, which is acceptable for the short,
  * user-initiated writes this wraps.
  *
+ * Callers are serialised through one queue. expo-sqlite's `withTransactionAsync`
+ * is `BEGIN` / task / `COMMIT` with a `ROLLBACK` in its catch, all on the shared
+ * connection, so two overlapping calls do more than interleave: the second
+ * `BEGIN` fails ("cannot start a transaction within a transaction"), its catch
+ * then rolls back the FIRST caller's open transaction, and that caller goes on
+ * writing with no boundary at all until its own `COMMIT` fails. The sync engine
+ * and the rate refresh both fire on mount and on foreground, which is exactly
+ * that overlap.
+ *
  * The import above is type-only on purpose: `-core.ts` modules are React-free
  * and run under `node --test` against better-sqlite3, so this file must never
  * pull `expo-sqlite` into their runtime graph.
  */
 export async function withTransaction(db: Database, task: () => Promise<void>): Promise<void> {
+    const previous = queue.get(db) ?? Promise.resolve();
+    const run = previous.then(() => runTransaction(db, task));
+    // The queue holds only settled links: a failed transaction must not block
+    // every later one, and each caller still sees its own rejection through `run`.
+    const settled = run.then(noop, noop);
+    queue.set(db, settled);
+    try {
+        await run;
+    } finally {
+        if (queue.get(db) === settled) {
+            queue.delete(db);
+        }
+    }
+}
+
+/** One chain per database, so a test's better-sqlite3 client never waits on the app's. */
+const queue = new WeakMap<object, Promise<void>>();
+
+const noop = () => undefined;
+
+async function runTransaction(db: Database, task: () => Promise<void>): Promise<void> {
     // SAFETY: drizzle types `$client` per driver, and this file is shared by the
     // expo-sqlite and better-sqlite3 ones. Only the optional method below is read,
     // and its absence is the branch immediately after.

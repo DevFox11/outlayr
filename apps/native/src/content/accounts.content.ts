@@ -120,9 +120,17 @@ const accounts = {
             en: "Accounts",
             es: "Cuentas",
         }),
+        "accounts.overview.more": t({
+            en: "and {count} more",
+            es: "y {count} más",
+        }),
         "accounts.overview.owe": t({
             en: "Owe",
             es: "Debo",
+        }),
+        "accounts.overview.owed": t({
+            en: "Owed",
+            es: "Deuda",
         }),
         "accounts.overview.own": t({
             en: "Own",

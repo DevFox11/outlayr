@@ -3,6 +3,25 @@ import { Directory, File, Paths } from "expo-file-system";
 const CACHE_DIRECTORY = "merchant-logos";
 /** Written for a merchant that resolved to nothing, so the miss is remembered. */
 const MISS_MARKER = ".miss";
+/**
+ * How long a miss is believed. A merchant can gain a logo, and a miss that
+ * slipped through on a bad day must not brand a name forever.
+ */
+const MISS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** The marker's file if it is still current; an expired one is removed on the way. */
+function currentMiss(dir: Directory, key: string, now: number): File | null {
+    const miss = new File(dir, `${key}${MISS_MARKER}`);
+    if (!miss.exists) {
+        return null;
+    }
+    const { modificationTime } = miss;
+    if (modificationTime != null && now - modificationTime > MISS_TTL_MS) {
+        miss.delete();
+        return null;
+    }
+    return miss;
+}
 
 export type CachedLogo = { kind: "logo"; bytes: Uint8Array } | { kind: "miss" } | { kind: "unknown" };
 
@@ -34,13 +53,12 @@ export function logoCacheKey(name: string, domain: string | null): string {
  * they never count against the user's own photo storage. A cached entry is
  * only ever an optimisation — a cleared cache costs one request.
  */
-export async function readCachedLogo(key: string): Promise<CachedLogo> {
+export async function readCachedLogo(key: string, now = Date.now()): Promise<CachedLogo> {
     if (key.length === 0) {
         return { kind: "unknown" };
     }
     try {
-        const miss = new File(directory(), `${key}${MISS_MARKER}`);
-        if (miss.exists) {
+        if (currentMiss(directory(), key, now) != null) {
             return { kind: "miss" };
         }
         const hit = new File(directory(), key);
@@ -58,13 +76,13 @@ export async function readCachedLogo(key: string): Promise<CachedLogo> {
  * `Image` straight at it. Cached-only by design: a missing entry answers null
  * rather than triggering a fetch.
  */
-export function cachedLogoUri(key: string): string | null {
+export function cachedLogoUri(key: string, now = Date.now()): string | null {
     if (key.length === 0) {
         return null;
     }
     try {
         const dir = directory();
-        if (new File(dir, `${key}${MISS_MARKER}`).exists) {
+        if (currentMiss(dir, key, now) != null) {
             return null;
         }
         const hit = new File(dir, key);

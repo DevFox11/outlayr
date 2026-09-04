@@ -125,8 +125,22 @@ export function useAccountBalance(
  * Total across every account valued into `valuation`'s display currency. Null
  * with no accounts, so the overview card can hide entirely.
  */
-export function useAccountsOverviewIn(db: Database, valuation: Valuation): AccountsOverview | null {
-    const rows = useAccounts(db);
+/**
+ * Every account valued into `valuation`'s currency, with the per-account rows
+ * the Log draws. `excludeId` drops an account whose deletion is pending its
+ * undo window: its cells are ignored with it, so the total moves as the row
+ * leaves rather than after the write lands.
+ */
+export function useAccountsOverviewIn(
+    db: Database,
+    valuation: Valuation,
+    excludeId: string | null = null
+): AccountsOverview | null {
+    const all = useAccounts(db);
+    const rows = useMemo(
+        () => (excludeId == null ? all : all.filter((account) => account.id !== excludeId)),
+        [all, excludeId]
+    );
     const cellRows = useLiveQuery(transactions, () => accountsCellQuery(db));
     const outbound = useLiveQuery(transfers, () => transfersOutboundQuery(db));
     const inbound = useLiveQuery(transfers, () => transfersInboundQuery(db));

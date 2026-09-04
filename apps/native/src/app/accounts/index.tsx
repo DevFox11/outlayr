@@ -18,7 +18,7 @@ export default function AccountsScreen() {
                 <Stack.Toolbar.Button
                     {...addIcon}
                     accessibilityLabel={t("accounts.a11y.new")}
-                    onPress={() => router.push("/settings/accounts/create")}
+                    onPress={() => router.push("/accounts/create")}
                 >
                     <Stack.Toolbar.Label>{t("accounts.a11y.new")}</Stack.Toolbar.Label>
                 </Stack.Toolbar.Button>

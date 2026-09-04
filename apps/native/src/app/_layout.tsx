@@ -298,15 +298,15 @@ function RootStack() {
                         <Stack.Screen.Title>{t(screen.titleKey)}</Stack.Screen.Title>
                     </Stack.Screen>
                 ))}
-                <Stack.Screen name="settings/accounts/index">
+                <Stack.Screen name="accounts/index">
                     <Stack.Header transparent />
                     <Stack.Screen.BackButton displayMode="minimal" />
                     <Stack.Screen.Title>{t("accounts.title")}</Stack.Screen.Title>
                 </Stack.Screen>
-                <Stack.Screen name="settings/accounts/reorder" />
-                <Stack.Screen name="settings/accounts/[accountId]/index" />
+                <Stack.Screen name="accounts/reorder" />
+                <Stack.Screen name="accounts/[accountId]/index" />
                 <Stack.Screen
-                    name="settings/accounts/create"
+                    name="accounts/create"
                     options={{
                         presentation: "formSheet",
                         sheetAllowedDetents: [ACCOUNT_DETENT, 1],
@@ -319,7 +319,7 @@ function RootStack() {
                     <Stack.Screen.Title>{t("accounts.nav.new")}</Stack.Screen.Title>
                 </Stack.Screen>
                 <Stack.Screen
-                    name="settings/accounts/[accountId]/edit"
+                    name="accounts/[accountId]/edit"
                     options={{
                         presentation: "formSheet",
                         sheetAllowedDetents: [ACCOUNT_DETENT, 1],

@@ -301,7 +301,7 @@ function BudgetContent({ db }: { db: Database }) {
                 db={db}
                 onCreate={() => {
                     accountSheetRef.current?.dismiss();
-                    router.push("/settings/accounts/create");
+                    router.push("/accounts/create");
                 }}
                 onSelect={(picked) => {
                     accountSheetRef.current?.dismiss();

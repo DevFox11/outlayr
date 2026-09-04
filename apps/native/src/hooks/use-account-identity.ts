@@ -19,6 +19,11 @@ export interface UseAccountIdentityArgs {
     fetchImage?: typeof fetchMerchantImage;
     /** The `groundedLookup` setting. */
     groundedLookup?: boolean;
+    /**
+     * A name the editor opens with. It is looked up once on mount as if it had
+     * just been typed, so a carried-over draft is not left with an empty tile.
+     */
+    initialName?: string;
     locale?: string;
     /** The name resolved to nothing — a previously suggested logo must go. */
     onClear: () => void;
@@ -154,6 +159,26 @@ export function useAccountIdentity(args: UseAccountIdentityArgs): UseAccountIden
             enrich(next);
         },
         [enrich]
+    );
+
+    const { initialName } = args;
+    useEffect(() => {
+        if (enabled && initialName != null && initialName.trim().length > 0) {
+            onNameChange(initialName);
+        }
+        // Once, for the name the editor opened with; later names arrive by typing.
+        // oxlint-disable-next-line react/exhaustive-deps -- deliberately mount-only
+    }, []);
+
+    // The enrichment teardown cancels its own timers and requests, but not an
+    // `attach` already past them: a fetch or persist still pending when the sheet
+    // closes would land its logo in the draft the next editor is reading. Taking
+    // the ticket on the way out makes every step after an await see it as stale.
+    useEffect(
+        () => () => {
+            ticketRef.current += 1;
+        },
+        []
     );
 
     return { onNameChange, pending };

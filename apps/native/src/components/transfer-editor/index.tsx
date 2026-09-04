@@ -307,7 +307,7 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
             <AccountPickerSheet
                 allowNone={false}
                 db={db}
-                onCreate={() => router.push("/settings/accounts/create")}
+                onCreate={() => router.push("/accounts/create")}
                 onDismiss={() => setListOpen(false)}
                 onSelect={(account) => {
                     draft.chooseFrom(account);
@@ -319,7 +319,7 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
             <AccountPickerSheet
                 allowNone={false}
                 db={db}
-                onCreate={() => router.push("/settings/accounts/create")}
+                onCreate={() => router.push("/accounts/create")}
                 onDismiss={() => setListOpen(false)}
                 onSelect={(account) => {
                     draft.chooseTo(account);

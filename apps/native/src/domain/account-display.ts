@@ -6,7 +6,7 @@ import { runtimeLanguage } from "@/i18n/runtime";
 import { accountBalance } from "./account-balance";
 import type { AccountCompositionEntry } from "./account-balance";
 import { netWorth, toAccountKind } from "./account-kind";
-import type { Balanced } from "./account-kind";
+import type { AccountKind, Balanced } from "./account-kind";
 import type { CurrencyCell } from "./currency-totals";
 import { formatAmount } from "./money";
 import { convertUsdSum } from "./valuation";
@@ -37,6 +37,17 @@ export interface OverviewAccount {
     kind?: string | null;
 }
 
+/** One account's standing in the display currency, in the ledger's own order. */
+export interface OverviewRow {
+    balance: number;
+    /** False when the opening figure or any cell fell back to face value. */
+    exact: boolean;
+    id: string;
+    kind: AccountKind;
+    /** Holds money in a currency other than its own, so its own code is not the whole story. */
+    multiCurrency: boolean;
+}
+
 export interface AccountsOverview {
     count: number;
     /** False when any part fell back to face value instead of converting. */
@@ -50,6 +61,7 @@ export interface AccountsOverview {
      * this is the same figure the card has always printed.
      */
     total: number;
+    rows: OverviewRow[];
 }
 
 export type AccountCellRow = CurrencyCell & { accountId: string | null };
@@ -82,18 +94,24 @@ export function accountsOverview(
 
     let exact = true;
     const balances: Balanced[] = [];
+    const rows: OverviewRow[] = [];
     for (const account of accounts) {
         const start = initialInDisplay(account, displayCurrency, rates);
-        const flow = accountBalance(
-            { currency: displayCurrency, initialBalance: 0 },
-            byAccount.get(account.id) ?? [],
-            rates
-        );
-        balances.push({ balance: start.value + flow.total, kind: toAccountKind(account.kind) });
-        exact &&= start.exact && flow.exact;
+        const own = byAccount.get(account.id) ?? [];
+        const flow = accountBalance({ currency: displayCurrency, initialBalance: 0 }, own, rates);
+        const row: OverviewRow = {
+            balance: start.value + flow.total,
+            exact: start.exact && flow.exact,
+            id: account.id,
+            kind: toAccountKind(account.kind),
+            multiCurrency: isMultiCurrency(flow.composition, account.currency),
+        };
+        rows.push(row);
+        balances.push({ balance: row.balance, kind: row.kind });
+        exact &&= row.exact;
     }
     const worth = netWorth(balances);
-    return { count: accounts.length, exact, owe: worth.owe, own: worth.own, total: worth.net };
+    return { count: accounts.length, exact, owe: worth.owe, own: worth.own, rows, total: worth.net };
 }
 
 /** `exact` is false when no rate reached the display currency and the figure is the raw one. */

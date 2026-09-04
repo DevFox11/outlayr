@@ -89,7 +89,7 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
                     onPress={() =>
                         router.push({
                             params: { accountId: account.id },
-                            pathname: "/settings/accounts/[accountId]/edit",
+                            pathname: "/accounts/[accountId]/edit",
                         })
                     }
                 />

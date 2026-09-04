@@ -3,10 +3,42 @@ import { env } from "@outlayr/env/native";
 import { isRealLogo } from "@/domain/logo-acceptance";
 
 const REQUEST_TIMEOUT_MS = 3000;
+/**
+ * One more try after a timeout. A cold TLS handshake from the simulator can
+ * alone exceed the budget, and the second attempt reuses the connection.
+ */
+const TIMEOUT_ATTEMPTS = 2;
 
 export type LogoOutcome = { kind: "logo"; bytes: Uint8Array } | { kind: "none" };
 
 const NONE: LogoOutcome = { kind: "none" };
+
+/**
+ * A tier's answer, and whether "none" is an answer at all. A server that
+ * looked and said no is definitive; a timeout, a thrown request, a rate limit
+ * or a server error says nothing about the merchant and must not be remembered
+ * as if it had — that is how two banks with perfectly good logos ended up
+ * unable to take one, from a single bad minute.
+ */
+type TierOutcome = { kind: "logo"; bytes: Uint8Array } | { definitive: boolean; kind: "none" };
+
+const INDETERMINATE: TierOutcome = { definitive: false, kind: "none" };
+const REFUSED: TierOutcome = { definitive: true, kind: "none" };
+
+const NOT_FOUND = 404;
+const OK_MIN = 200;
+const OK_MAX = 299;
+
+/**
+ * Whether a status is the server's verdict on the merchant rather than on the
+ * request. Not-found is; so is a 2xx whose body the acceptance filter turned
+ * down, since the host looked and served a placeholder. Everything else — auth,
+ * timeouts the host reports, rate limits, server errors — says nothing about
+ * the logo and must not be remembered as if it did.
+ */
+function refused(status: number): boolean {
+    return status === NOT_FOUND || (status >= OK_MIN && status <= OK_MAX);
+}
 
 /**
  * Brand logos by domain — covers a utility, a supermarket, or any merchant
@@ -26,19 +58,33 @@ export function faviconUrl(domain: string): string {
     return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
 }
 
-async function fetchAccepted(url: string, fetchImpl: typeof fetch): Promise<LogoOutcome> {
+async function fetchOnce(url: string, fetchImpl: typeof fetch): Promise<TierOutcome | "timeout"> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
         const response = await fetchImpl(url, { signal: controller.signal });
         const bytes = new Uint8Array(await response.arrayBuffer());
         const verdict = isRealLogo(response.status, response.headers.get("content-type"), bytes);
-        return verdict.ok ? { bytes, kind: "logo" } : NONE;
+        if (verdict.ok) {
+            return { bytes, kind: "logo" };
+        }
+        return refused(response.status) ? REFUSED : INDETERMINATE;
     } catch {
-        return NONE;
+        return controller.signal.aborted ? "timeout" : INDETERMINATE;
     } finally {
         clearTimeout(timer);
     }
+}
+
+async function fetchAccepted(url: string, fetchImpl: typeof fetch): Promise<TierOutcome> {
+    for (let attempt = 1; attempt <= TIMEOUT_ATTEMPTS; attempt += 1) {
+        // oxlint-disable-next-line no-await-in-loop -- a retry only makes sense once the first attempt has timed out
+        const outcome = await fetchOnce(url, fetchImpl);
+        if (outcome !== "timeout") {
+            return outcome;
+        }
+    }
+    return INDETERMINATE;
 }
 
 export interface MerchantImageRequest {
@@ -88,10 +134,18 @@ export async function fetchMerchantImage(
         return NONE;
     }
     const outcome = await resolveMerchantImage(request, fetchImpl);
+    if (outcome.kind === "logo") {
+        cache?.writeCachedLogo(key, outcome.bytes);
+        return outcome;
+    }
     // A real miss IS remembered: without that, every merchant these tiers cannot
-    // answer for is re-queried on every form, forever.
-    cache?.writeCachedLogo(key, outcome.kind === "logo" ? outcome.bytes : null);
-    return outcome;
+    // answer for is re-queried on every form, forever. Only a real one, though —
+    // a tier that never answered leaves the key unknown, so the next keystroke
+    // asks again.
+    if (outcome.definitive) {
+        cache?.writeCachedLogo(key, null);
+    }
+    return NONE;
 }
 
 /**
@@ -100,19 +154,26 @@ export async function fetchMerchantImage(
  * never to promote other goods or services, which is what a merchant logo
  * row on a transaction would be doing. Do not reintroduce it.
  */
-async function resolveMerchantImage(request: MerchantImageRequest, fetchImpl: typeof fetch): Promise<LogoOutcome> {
+async function resolveMerchantImage(request: MerchantImageRequest, fetchImpl: typeof fetch): Promise<TierOutcome> {
     const { domain } = request;
     if (domain == null || domain.length === 0) {
-        return NONE;
+        return INDETERMINATE;
     }
 
+    let definitive = true;
     const token = env.EXPO_PUBLIC_LOGO_DEV_TOKEN;
     if (token) {
         const branded = await fetchAccepted(logoDevUrl(domain, token), fetchImpl);
         if (branded.kind === "logo") {
             return branded;
         }
+        ({ definitive } = branded);
     }
 
-    return fetchAccepted(faviconUrl(domain), fetchImpl);
+    const favicon = await fetchAccepted(faviconUrl(domain), fetchImpl);
+    if (favicon.kind === "logo") {
+        return favicon;
+    }
+    // Every tier has to have actually said no before the name is written off.
+    return definitive && favicon.definitive ? REFUSED : INDETERMINATE;
 }
