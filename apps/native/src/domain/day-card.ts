@@ -26,7 +26,7 @@ const AVERAGE_GLYPH = 0.55;
 export type CardWeight = "mono" | "regular" | "medium" | "semibold";
 export type CardTone = "ink" | "muted";
 
-export interface CardText {
+interface CardText {
     align: "left" | "right";
     size: number;
     text: string;
@@ -37,14 +37,14 @@ export interface CardText {
     y: number;
 }
 
-export interface CardRule {
+interface CardRule {
     height: number;
     width: number;
     x: number;
     y: number;
 }
 
-export interface DayCardRow {
+interface DayCardRow {
     amount: string;
     /** Time, or the category name when "Swap Time Label" is on. */
     meta: string;

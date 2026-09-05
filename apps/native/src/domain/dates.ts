@@ -95,6 +95,15 @@ export function addMonths(date: Date, n: number): Date {
     return d;
 }
 
+/**
+ * A chart tick for a `YYYY-MM-DD` key, e.g. "7 Jul". Noon keeps the key's
+ * calendar day whatever the zone offset.
+ */
+export function formatDayMonth(dateKey: string, language: Language = runtimeLanguage()): string {
+    const date = new Date(`${dateKey}T12:00:00`);
+    return `${date.getDate()} ${monthAbbrevTitle(date, language)}`;
+}
+
 /** Short month as the language writes it, e.g. "Jul" / "jul". */
 export function monthAbbrevTitle(date: Date, language: Language = runtimeLanguage()): string {
     return dateName(`dates.month.${date.getMonth()}`, language);

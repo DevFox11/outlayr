@@ -1,6 +1,6 @@
 import type { ColumnMapping } from "@/data/transfer-core";
 
-export type LabelSource = "categoryColumn" | "descriptionColumn";
+type LabelSource = "categoryColumn" | "descriptionColumn";
 export type MappingGap = "noLabelColumn" | "noDate" | "noAmount";
 export type MappingDraft = Record<keyof ColumnMapping, number | null>;
 

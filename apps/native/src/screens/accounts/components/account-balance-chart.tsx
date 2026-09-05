@@ -8,7 +8,7 @@ import { useSettingBool } from "@/contexts/display-settings-context";
 import { accountBalanceSeries } from "@/domain/account-balance-series";
 import { formatSignedAmount } from "@/domain/account-display";
 import type { CurrencyCell } from "@/domain/currency-totals";
-import { monthAbbrevTitle } from "@/domain/dates";
+import { formatDayMonth } from "@/domain/dates";
 import type { RateTable } from "@/domain/valuation";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { CHART_DRAW, compactMagnitude } from "@/theme/chart";
@@ -24,15 +24,6 @@ interface AccountBalanceChartProps {
     now?: Date;
     rates: RateTable;
     showCents: boolean;
-}
-
-function dateFromKey(dateKey: string): Date {
-    return new Date(`${dateKey}T12:00:00`);
-}
-
-function formatDate(dateKey: string, language: "en" | "es"): string {
-    const date = dateFromKey(dateKey);
-    return `${date.getDate()} ${monthAbbrevTitle(date, language)}`;
 }
 
 function balanceDomain(values: readonly number[]): [number, number] {
@@ -75,10 +66,10 @@ export function AccountBalanceChart({ account, cells, now = new Date(), rates, s
     const latest = data.at(-1) ?? { date: "", exact: 1, value: 0 };
     const summary = t(latest.exact === 1 ? "accounts.chart.summary" : "accounts.chart.summaryApproximate", {
         amount: formatSignedAmount(latest.value, account.currency, showCents, language),
-        date: formatDate(latest.date, language),
+        date: formatDayMonth(latest.date, language),
     });
     const tooltipDate = (datum: { date?: string | number | null; exact?: string | number | null }): string => {
-        const date = formatDate(String(datum.date ?? ""), language);
+        const date = formatDayMonth(String(datum.date ?? ""), language);
         return datum.exact === 0 ? `${date} · ${t("accounts.chart.approximate")}` : date;
     };
 

@@ -82,7 +82,7 @@ function claimNames(files: QueueFiles): string[] {
  * The next name in sequence, so claimed files sort in the order they were taken
  * and a drain interrupted halfway still replays oldest first.
  */
-export function claimName(files: QueueFiles): string {
+function claimName(files: QueueFiles): string {
     const highest = claimNames(files).reduce((top, name) => Math.max(top, claimOrder(name)), 0);
     return `claimed-${highest + 1}.jsonl`;
 }
@@ -141,7 +141,7 @@ export function parseQueue(text: string): PendingWrite[] {
     return jobs;
 }
 
-export function toQueueText(jobs: PendingWrite[]): string {
+function toQueueText(jobs: PendingWrite[]): string {
     return jobs.map((job) => JSON.stringify(job)).join("\n");
 }
 

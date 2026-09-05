@@ -570,9 +570,6 @@ const REGISTRY = new Map<string, IconPair>([
     ["Yoga01", { solid: Yoga01Solid, stroke: Yoga01Icon }],
 ]);
 
-/** Registry keys offered by the category icon picker, in display order. */
-export const CATEGORY_ICON_NAMES = [...REGISTRY.keys()];
-
 const FALLBACK: IconPair = { solid: MoreHorizontalCircle01Solid, stroke: MoreHorizontalCircle01Icon };
 
 function resolve(name: string | null | undefined): IconPair {

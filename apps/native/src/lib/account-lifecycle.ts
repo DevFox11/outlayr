@@ -1,5 +1,5 @@
 export type AccountLifecycleAction = "deleteAll" | "deleteCloud" | "signOut";
-export type AccountLifecycleStage = "deleteAccount" | "resetDevice" | "revokeProvider" | "signOut";
+type AccountLifecycleStage = "deleteAccount" | "resetDevice" | "revokeProvider" | "signOut";
 
 type DeletionPhase = "authDeleting" | "complete" | "prepared" | "providersRevoked" | "purged";
 
@@ -27,7 +27,7 @@ export interface AccountLifecycleDependencies {
     signOut?: () => Promise<void>;
 }
 
-export class AccountLifecycleError extends Error {
+class AccountLifecycleError extends Error {
     readonly stage: AccountLifecycleStage;
 
     constructor(stage: AccountLifecycleStage, options: ErrorOptions) {

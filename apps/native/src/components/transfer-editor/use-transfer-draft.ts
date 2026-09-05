@@ -16,7 +16,7 @@ import type { FeeSide, TransferLegs, TransferValues } from "@/domain/transfer-re
 export const RATE_DISPLAY_DECIMALS = 4;
 
 /** `shortfall` is signed, in the fee's own currency: how far the fee overruns its side. */
-export type TransferBlock = { kind: "fee"; shortfall: number } | { kind: "rate" };
+type TransferBlock = { kind: "fee"; shortfall: number } | { kind: "rate" };
 
 /** Everything the user has entered — the arrival is solved from it, never typed. */
 type EnteredTransfer = Omit<TransferValues, "arrived">;

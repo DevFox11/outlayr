@@ -18,8 +18,8 @@ export const CSV_HEADER = [
     "Exchange Rate",
 ] as const;
 
-export const CSV_TYPE_INCOME = "Income";
-export const CSV_TYPE_EXPENSE = "Expense";
+const CSV_TYPE_INCOME = "Income";
+const CSV_TYPE_EXPENSE = "Expense";
 
 export interface ExportableTransaction {
     amount: number;
@@ -148,7 +148,7 @@ export function formatCsvDate(date: Date): string {
 }
 
 /** `ISO` means "parse as an ISO 8601 instant", which keeps the exact moment. */
-export const DATE_FORMATS = [
+const DATE_FORMATS = [
     "ISO",
     "yyyy-MM-dd HH:mm:ss",
     "yyyy-MM-dd",

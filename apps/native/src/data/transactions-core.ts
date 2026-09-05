@@ -87,7 +87,7 @@ export function ledgerSizeQuery(db: SpendDb) {
  * list answers "what was this and when did it go", not "what did it look like":
  * nothing here draws the identity artwork.
  */
-export const DELETED_COLUMNS = {
+const DELETED_COLUMNS = {
     amount: transactions.amount,
     currency: transactions.currency,
     date: transactions.date,

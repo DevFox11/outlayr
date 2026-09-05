@@ -148,7 +148,7 @@ export interface IdentityPickerContentProps {
  */
 const NO_USED_COLORS: string[] = [];
 
-export function IdentityPickerContent({
+function IdentityPickerContent({
     value,
     onChange,
     tabs = TRANSACTION_TABS,

@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 
-export type MetaTone = "danger" | "info" | "muted" | "warning";
+type MetaTone = "danger" | "info" | "muted" | "warning";
 
 /**
  * The two panelui tones take their `-foreground` pairs, which is that library's

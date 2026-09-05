@@ -21,7 +21,7 @@ interface CategoryEditorHeroBandProps {
  * `IdentityHero` imports `react-native-reanimated`, which crashes jest at
  * module-load time (see `src/domain/curtain-hues.ts`) — the same reason the
  * whole editor can't render there. This component inherits that gap rather
- * than introducing it; Maestro (`category-editor.yaml`) is its only coverage.
+ * than introducing it, so it has no automated coverage.
  */
 export function CategoryEditorHeroBand({
     captionClearance,

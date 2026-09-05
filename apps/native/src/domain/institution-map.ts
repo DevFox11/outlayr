@@ -14,7 +14,7 @@
  * curated tier answer for a transaction named "Chase" and suppress the model
  * call that currently classifies it.
  */
-export interface InstitutionEntry {
+interface InstitutionEntry {
     readonly domain: string;
     readonly id: string;
     /** The brand's own name, spelled and cased the way the brand spells it. */
@@ -27,7 +27,7 @@ export interface InstitutionEntry {
     readonly patterns: readonly string[];
 }
 
-export const INSTITUTIONS: readonly InstitutionEntry[] = [
+const INSTITUTIONS: readonly InstitutionEntry[] = [
     // United States
     {
         domain: "chase.com",
@@ -235,7 +235,7 @@ function buildInstitutionIndex(institutions: readonly InstitutionEntry[]): Reado
     return index;
 }
 
-export const INSTITUTION_INDEX: ReadonlyMap<string, InstitutionEntry> = buildInstitutionIndex(INSTITUTIONS);
+const INSTITUTION_INDEX: ReadonlyMap<string, InstitutionEntry> = buildInstitutionIndex(INSTITUTIONS);
 
 function containsTokenSequence(haystack: readonly string[], needle: readonly string[]): boolean {
     if (needle.length === 0 || needle.length > haystack.length) {

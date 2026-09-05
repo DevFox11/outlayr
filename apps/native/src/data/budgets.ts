@@ -32,7 +32,6 @@ export { type BudgetSeverity, compareBudgetSeverity } from "@/domain/budget-seve
 export * from "./budgets-core";
 
 export type Budget = typeof budgets.$inferSelect;
-export type MainBudget = typeof mainBudget.$inferSelect;
 
 export interface CategoryBudgetView {
     /** The target this window actually runs on: `limit` plus any carry, floored at zero. */
@@ -135,17 +134,6 @@ export function useExpenseContributions(db: Database, nowMs: number): ExpenseCon
  * Only the current window is ever written back — browsing must not move the
  * anchor the budget is actually running on.
  */
-/**
- * The bare ceiling figure, without the period maths `useMainBudget` runs. First
- * run has no contributions to weigh it against yet — it only needs the number it
- * just drew on the page.
- */
-export function useMainBudgetAmount(db: Database): number | null {
-    const rows = useLiveQuery(mainBudget, () =>
-        db.select().from(mainBudget).where(isNull(mainBudget.deletedAt)).limit(1)
-    );
-    return rows[0]?.amount ?? null;
-}
 
 export function useMainBudget(
     db: Database,
@@ -466,7 +454,7 @@ export function useCategoryBudget(db: Database, id: string, nowMs: number, perio
  * a `min()` aggregate, which comes back as a raw column value the driver does
  * not map to a Date.
  */
-export function useEarliestContribution(db: Database, categoryId: string | null): Date | null {
+function useEarliestContribution(db: Database, categoryId: string | null): Date | null {
     const categoryMeta = useCategoryMeta(db);
 
     const contributingIds = useMemo(

@@ -15,9 +15,9 @@ import { useColors } from "@/theme/use-colors";
 export const SYMBOL_COLUMNS = 6;
 export const SYMBOL_GAP = 10;
 export const SYMBOL_MARGIN = 20;
-export const SYMBOL_CELL_RADIUS = 10;
+const SYMBOL_CELL_RADIUS = 10;
 /** The tint wash under a selected cell. */
-export const SYMBOL_SELECTED_WASH = 0.18;
+const SYMBOL_SELECTED_WASH = 0.18;
 const EMOJI_SIZE = 26;
 const GLYPH_SIZE = 20;
 
@@ -88,7 +88,7 @@ export function SymbolEmojiCell({ emoji, tint, selected, size, onPress }: Symbol
 
 const SWATCH = 34;
 const RING_INSET = 3;
-export const SWATCH_BOX = SWATCH + RING_INSET * 2;
+const SWATCH_BOX = SWATCH + RING_INSET * 2;
 
 /**
  * `used` dims the swatch and disables it: a colour another expense category

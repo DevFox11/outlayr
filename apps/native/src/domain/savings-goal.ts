@@ -13,7 +13,7 @@
 
 import { addLocalDays, daysBetween, startOfLocalDay } from "./local-day";
 
-export interface GoalPace {
+interface GoalPace {
     /** Whole months left, floored at zero on or after the target date. */
     monthsLeft: number;
     /** What to set aside each month to land on the target date. */
@@ -35,7 +35,7 @@ function onPaceBand(target: number, startAmount: number, totalDays: number): num
     return round(Math.max(1, Math.abs(target - startAmount) / totalDays));
 }
 
-export interface GoalStanding {
+interface GoalStanding {
     /**
      * Signed distance from the line the date demands: positive is ahead.
      *

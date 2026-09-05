@@ -61,7 +61,7 @@ const BACK_GLYPH = 19;
  * bottom-pinned container would hold the stage at both heights for the length of
  * the fade — the taller one wins and the surface jumps when it finally leaves.
  */
-export function stageBodyEntering(forward: boolean) {
+function stageBodyEntering(forward: boolean) {
     return new Keyframe({
         0: { opacity: 0, transform: [{ translateX: forward ? SLIDE : -SLIDE }] },
         100: { easing: EASE, opacity: 1, transform: [{ translateX: 0 }] },

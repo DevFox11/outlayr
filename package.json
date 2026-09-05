@@ -17,11 +17,6 @@
         "prepare": "[ -n \"$CI$EAS_BUILD\" ] || vp config --no-agent --no-editor",
         "test": "vp run -r --cache test"
     },
-    "dependencies": {
-        "@outlayr/env": "workspace:*",
-        "dotenv": "catalog:",
-        "zod": "catalog:"
-    },
     "devDependencies": {
         "@outlayr/config": "workspace:*",
         "@types/node": "^26.1.2",

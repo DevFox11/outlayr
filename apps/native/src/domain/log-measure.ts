@@ -9,7 +9,7 @@ export type LogMeasure = "net" | "in" | "out";
  * Declaration order, which is also the order the two unpromoted cells render in:
  * the pair under the hero must not reshuffle as the promotion changes.
  */
-export const LOG_MEASURE_ORDER: readonly LogMeasure[] = ["net", "in", "out"];
+const LOG_MEASURE_ORDER: readonly LogMeasure[] = ["net", "in", "out"];
 
 const STORED = { in: 2, net: 1, out: 3 } satisfies Record<LogMeasure, number>;
 
@@ -20,13 +20,6 @@ export function logMeasureFromStored(value: number): LogMeasure {
 export function storedLogMeasure(measure: LogMeasure): number {
     return STORED[measure];
 }
-
-/** One short word, so all three fit across the narrowest phone. */
-export const LOG_MEASURE_WORD = {
-    in: "In",
-    net: "Net",
-    out: "Out",
-} satisfies Record<LogMeasure, string>;
 
 export interface LogFigures {
     count: number;

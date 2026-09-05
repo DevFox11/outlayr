@@ -1,7 +1,7 @@
 import type { RateLookup } from "@outlayr/money/rates";
 import { and, desc, eq, lte } from "drizzle-orm";
 
-import { getMeta, setMeta } from "@/data/app-meta-core";
+import { getMeta } from "@/data/app-meta-core";
 import type { SpendDb } from "@/data/budget-spent";
 import { bumpRatesRevision } from "@/data/rates-revision";
 import type { Database } from "@/db/client";
@@ -156,8 +156,4 @@ export function localRateLookup(db: SpendDb): RateLookup {
         const [row] = rows;
         return row ? { date: row.date, rate: row.rate } : null;
     };
-}
-
-export async function setLastRatesPullAt(db: SpendDb, at: number): Promise<void> {
-    await setMeta(db, LAST_PULL_KEY, String(at));
 }

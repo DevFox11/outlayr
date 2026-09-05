@@ -56,15 +56,6 @@ export async function providerBindingFor(betterAuthUserId: string): Promise<Prov
     return parsed.data;
 }
 
-export async function revokeProviderAccess(betterAuthUserId: string): Promise<void> {
-    const binding = await providerBindingFor(betterAuthUserId);
-    if (binding.provider === "google") {
-        await revokeGoogleProviderSubject(binding.providerSubject);
-        return;
-    }
-    throw new Error("Apple provider revocation requires reauthentication");
-}
-
 export async function revokeGoogleProviderSubject(providerSubject: string): Promise<void> {
     const { GoogleOneTapSignIn } = await import("react-native-nitro-google-signin");
     await GoogleOneTapSignIn.revokeAccess(providerSubject);

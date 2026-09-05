@@ -19,11 +19,6 @@ export const CARD_OUTLINE = outline.roundedRectangle({
 });
 
 export const BODY = font({ design: "rounded", textStyle: "body" });
-export const BODY_MEDIUM = font({
-    design: "rounded",
-    textStyle: "body",
-    weight: "medium",
-});
 export const BODY_SEMIBOLD = font({
     design: "rounded",
     textStyle: "body",
@@ -43,15 +38,6 @@ export const rowLabel = foregroundStyle({
     style: "secondary",
     type: "hierarchical",
 });
-export const tertiary = foregroundStyle({
-    style: "tertiary",
-    type: "hierarchical",
-});
-
-export const MORPH = Animation.easeInOut({ duration: 0.25 });
-export const SHAKE = Animation.easeInOut({ duration: 0.1 }).repeat({
-    repeatCount: 5,
-});
 export const FORM_BLUR_RADIUS = 8;
 /**
  * MUST track `LAUNCH_SPRING`/`RETURN_SPRING` in the fly-up context — the hero is
@@ -68,4 +54,3 @@ export const FLY_BACK = Animation.spring({
     dampingFraction: 0.98,
     response: 0.29,
 });
-export const ENRICHING = Animation.easeInOut({ duration: 0.25 });

@@ -11,7 +11,7 @@ import { recentMerchantNotesQuery, recentMerchants } from "./merchant-history-co
  * widths a merchant name takes; past that the row scrolls a list nobody reads
  * to the end of.
  */
-export const RECENT_MERCHANT_LIMIT = 6;
+const RECENT_MERCHANT_LIMIT = 6;
 
 /**
  * The merchants this ledger has filed before on one side of it, most recent

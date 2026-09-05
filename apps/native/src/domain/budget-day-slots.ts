@@ -5,7 +5,7 @@ import type { TranslateFn } from "@/i18n/context";
 import type { BudgetWindow } from "./budget-math";
 import { median } from "./stats";
 
-export interface DayBlock {
+interface DayBlock {
     amount: number;
     /** True once this purchase is the one that carries the day past the limit. */
     over: boolean;
@@ -13,7 +13,7 @@ export interface DayBlock {
     start: number;
 }
 
-export type DayVerdict = "room" | "tight" | "over" | null;
+type DayVerdict = "room" | "tight" | "over" | null;
 
 export interface DaySlots {
     /** Today's purchases in order, left to right. */

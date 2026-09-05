@@ -1,17 +1,8 @@
-import { background, foregroundStyle, listStyle, tint } from "@expo/ui/swift-ui/modifiers";
-import { PlatformColor } from "react-native";
+import { background, listStyle } from "@expo/ui/swift-ui/modifiers";
 
 import type { ThemeColors } from "@/theme/use-colors";
 
 import { listRowBackground, scrollContentBackground } from "./modifiers";
-
-export const secondaryText = foregroundStyle({
-    style: "secondary",
-    type: "hierarchical",
-});
-
-/** Neutral tint for menu-style pickers, in place of the accent colour. */
-export const menuTint = tint(PlatformColor("secondaryLabel"));
 
 /**
  * Every modifier a SwiftUI `List` needs to stand on the app's ground instead of

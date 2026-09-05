@@ -15,7 +15,7 @@ export type UnavailableReason =
     | "overCap"
     | "unauthenticated";
 
-export interface ImportResolution {
+interface ImportResolution {
     fromModel: ReadonlySet<string>;
     links: ReadonlyMap<string, string>;
     outcome: ResolutionOutcome;

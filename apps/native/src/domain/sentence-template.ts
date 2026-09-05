@@ -1,7 +1,7 @@
 const PLACEHOLDER = /\{(\w+)\}/g;
 const WHITESPACE = /(\s+)/;
 
-export interface SentenceAtom {
+interface SentenceAtom {
     readonly kind: "slot" | "text";
     /** The slot's name for `slot`, the literal word for `text`. */
     readonly value: string;

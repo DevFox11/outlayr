@@ -34,7 +34,7 @@ const FIRST_OPEN_DETENT_FRACTION = 0.5;
  * plain number would rebuild the fly-up's animated style mid-flight, jumping the
  * tile.
  */
-export function useFloatOffset({
+function useFloatOffset({
     containerHeight,
     restCenterY,
 }: {

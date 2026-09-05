@@ -104,10 +104,3 @@ export function writeCachedLogo(key: string, bytes: Uint8Array | null): void {
         // A cache that cannot be written is still a working feature.
     }
 }
-
-export function clearLogoCache(): void {
-    const dir = new Directory(Paths.cache, CACHE_DIRECTORY);
-    if (dir.exists) {
-        dir.delete();
-    }
-}

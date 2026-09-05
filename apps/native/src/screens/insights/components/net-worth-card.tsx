@@ -7,7 +7,7 @@ import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import { formatSignedAmount } from "@/domain/account-display";
-import { monthAbbrevTitle } from "@/domain/dates";
+import { formatDayMonth } from "@/domain/dates";
 import type { NetWorthSeriesPoint } from "@/domain/net-worth-series";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { CHART_DRAW, compactMagnitude } from "@/theme/chart";
@@ -18,15 +18,6 @@ interface NetWorthCardProps {
     /** Empty on a ledger with no accounts, which hides the card entirely. */
     series: readonly NetWorthSeriesPoint[];
     showCents: boolean;
-}
-
-function dateFromKey(dateKey: string): Date {
-    return new Date(`${dateKey}T12:00:00`);
-}
-
-function formatDate(dateKey: string, language: "en" | "es"): string {
-    const date = dateFromKey(dateKey);
-    return `${date.getDate()} ${monthAbbrevTitle(date, language)}`;
 }
 
 /**
@@ -82,10 +73,10 @@ export function NetWorthCard({ series, currency, showCents }: NetWorthCardProps)
     const change = latest.value - opening;
     const summary = t(latest.exact === 1 ? "insights.netWorth.summary" : "insights.netWorth.summaryApproximate", {
         amount: formatSignedAmount(latest.value, currency, showCents, language),
-        date: formatDate(latest.date, language),
+        date: formatDayMonth(latest.date, language),
     });
     const tooltipDate = (datum: { date?: string | number | null; exact?: string | number | null }): string => {
-        const date = formatDate(String(datum.date ?? ""), language);
+        const date = formatDayMonth(String(datum.date ?? ""), language);
         return datum.exact === 0 ? `${date} · ${t("accounts.chart.approximate")}` : date;
     };
 

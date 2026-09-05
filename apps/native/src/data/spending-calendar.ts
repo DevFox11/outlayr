@@ -12,7 +12,7 @@ import { UTC_DAY } from "./cell-query";
 import { useLiveQuery } from "./live-query";
 import { useValuation } from "./use-valuation";
 
-export const SPENDING_CALENDAR_DAYS = 182;
+const SPENDING_CALENDAR_DAYS = 182;
 
 export function spendingCalendarStart(now: Date): Date {
     return addDays(startOfDay(now), -(SPENDING_CALENDAR_DAYS - 1));

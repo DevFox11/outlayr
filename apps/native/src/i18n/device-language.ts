@@ -7,7 +7,7 @@ import { AppState } from "react-native";
  * onboarding (§1.7) — deriving it from the locale is the guess that defect
  * exists to remove.
  */
-export function deviceLanguageTag(): string | null {
+function deviceLanguageTag(): string | null {
     try {
         return getLocales()[0]?.languageTag ?? null;
     } catch {

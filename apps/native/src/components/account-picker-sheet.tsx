@@ -24,8 +24,6 @@ interface AccountPickerSheetProps {
     selectedId: string | null;
 }
 
-export type AccountPickerSheetRef = BottomSheetModal;
-
 /** Present via the forwarded ref: `ref.current?.present()`. */
 export function AccountPickerSheet({
     db,

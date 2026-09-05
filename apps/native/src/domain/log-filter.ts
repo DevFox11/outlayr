@@ -20,7 +20,7 @@ export const LOG_FILTER_ORDER: readonly LogFilter[] = [
     "upcoming",
 ];
 
-export const LOG_FILTER_LABEL = {
+const LOG_FILTER_LABEL = {
     all: "all entries",
     category: "by category",
     day: "by day",

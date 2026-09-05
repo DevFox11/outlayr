@@ -1,0 +1,72 @@
+name: Publish an update
+
+# Manual, like the TestFlight workflow. An update reaches every device on the
+# channel at its next launch, so it is a release, not a build artifact.
+on:
+    workflow_dispatch:
+        inputs:
+            channel:
+                type: choice
+                description: Channel to publish to. Also selects the EAS environment.
+                options:
+                    - production
+                    - preview
+                default: preview
+                required: true
+            message:
+                type: string
+                description: What changed, shown in the EAS dashboard.
+                required: true
+
+defaults:
+    image: sdk-57
+
+jobs:
+    # Same stage as testflight.yml, for the same reason: an update can add or
+    # reshape a Convex function, and `src/lib/convex.ts` calls them by name, so
+    # JS must never reach a device before the deployment it talks to.
+    deploy_backend:
+        name: Deploy Convex functions
+        environment: ${{ inputs.channel }}
+        defaults:
+            run:
+                working_directory: /packages/backend
+        steps:
+            - uses: eas/checkout
+            - uses: eas/install_node_modules
+            - name: Resolve the Convex deploy target
+              run: |
+                  if [ -n "$CONVEX_DEPLOY_KEY" ]; then
+                    echo "Convex target: cloud (CONVEX_DEPLOY_KEY)"
+                  elif [ -n "$CONVEX_SELF_HOSTED_URL" ] && [ -n "$CONVEX_SELF_HOSTED_ADMIN_KEY" ]; then
+                    echo "Convex target: self-hosted at $CONVEX_SELF_HOSTED_URL"
+                  else
+                    echo "No Convex deploy credentials on the selected EAS environment." >&2
+                    echo "Set CONVEX_DEPLOY_KEY, or both CONVEX_SELF_HOSTED_URL and CONVEX_SELF_HOSTED_ADMIN_KEY." >&2
+                    exit 1
+                  fi
+            - name: Deploy functions
+              run: npx convex deploy -y
+
+    publish:
+        name: Publish JS to ${{ inputs.channel }}
+        needs: [deploy_backend]
+        environment: ${{ inputs.channel }}
+        steps:
+            - uses: eas/checkout
+            - uses: eas/install_node_modules
+            # `intlayer build` writes the gitignored `.intlayer/` the bundle imports.
+            # Builds run it from `eas-build-post-install`; an update does not.
+            - name: Build the i18n dictionaries
+              run: pnpm exec intlayer build
+            - name: Publish
+              env:
+                  # `app.config.ts` reads this to pick the production icon, and the
+                  # icon is part of the fingerprint. EAS Build sets it; a custom job
+                  # does not, so an unset value here would publish a preview-shaped
+                  # update to production and no binary would ever match it.
+                  EAS_BUILD_PROFILE: ${{ inputs.channel }}
+                  # Through the environment, not inlined into the script, so a
+                  # message with backticks or `$(...)` is text rather than a command.
+                  UPDATE_MESSAGE: ${{ inputs.message }}
+              run: npx eas-cli update --channel "$EAS_BUILD_PROFILE" --message "$UPDATE_MESSAGE" --platform ios --non-interactive

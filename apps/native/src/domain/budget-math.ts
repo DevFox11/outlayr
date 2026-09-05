@@ -3,7 +3,15 @@ import type { TranslateFn } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 import { runtimeLanguage } from "@/i18n/runtime";
 
-import { DEFAULT_CALENDAR, monthAbbrev, monthPeriodStart, startOfDay, startOfWeek, startOfYear } from "./dates";
+import {
+    addDays,
+    DEFAULT_CALENDAR,
+    monthAbbrev,
+    monthPeriodStart,
+    startOfDay,
+    startOfWeek,
+    startOfYear,
+} from "./dates";
 import type { CalendarSettings } from "./dates";
 
 /** Mirrors the Swift `Budget.type` codes. */
@@ -17,13 +25,6 @@ export const BUDGET_TYPE = {
 export interface BudgetWindow {
     end: Date;
     start: Date;
-}
-
-/** Adds `n` days keeping local wall time (DST-tolerant, like Calendar `.day`). */
-function addDays(date: Date, n: number): Date {
-    const d = new Date(date);
-    d.setDate(d.getDate() + n);
-    return d;
 }
 
 /**

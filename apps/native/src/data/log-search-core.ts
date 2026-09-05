@@ -8,7 +8,7 @@ import type { SpendDb } from "./budget-spent";
 import { LOG_COLUMNS } from "./transactions-core";
 
 /** Escapes the wildcards SQLite's LIKE would otherwise read as pattern syntax. */
-export function escapeLike(value: string): string {
+function escapeLike(value: string): string {
     return value.replaceAll(/[\\%_]/g, (match) => `\\${match}`);
 }
 
@@ -27,7 +27,7 @@ function contains(column: SQLiteColumn, query: string): SQL {
  * that matches on the free-text note, and a row has to be able to show why it
  * matched. The Log paints no note, so its own read stays as narrow as it was.
  */
-export const SEARCH_COLUMNS = {
+const SEARCH_COLUMNS = {
     ...LOG_COLUMNS,
     details: transactions.details,
 } as const;

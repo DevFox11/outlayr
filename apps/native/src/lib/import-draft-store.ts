@@ -11,7 +11,7 @@ export type FileStepError =
     | { cause: "noDataRows" }
     | { cause: "tooFewColumns" };
 
-export interface ImportDraftUi {
+interface ImportDraftUi {
     fileError: FileStepError | null;
     /** True only for the first render after a resumed reopen; cleared by any dispatch/setStep. */
     resumed: boolean;

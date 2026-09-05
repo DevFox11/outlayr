@@ -2,6 +2,7 @@ import { contributesTo } from "@/data/budget-spent";
 import type { ExpenseContribution } from "@/data/budget-spent";
 
 import type { BudgetWindow } from "./budget-math";
+import { startOfDay } from "./dates";
 import { median } from "./stats";
 
 const DAY_MS = 86_400_000;
@@ -45,18 +46,13 @@ export interface BurndownOptions {
     window: BudgetWindow;
 }
 
-/** Local midnight, so day arithmetic ignores the clock and any DST shift. */
-function startOfDay(date: Date): number {
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-}
-
 /**
  * Whole calendar days from `start` to `date`. Rounding absorbs the ±1h a DST
  * boundary introduces, which a raw `floor(ms / DAY_MS)` would smear into the
  * neighbouring day.
  */
 function dayOffset(date: Date, start: Date): number {
-    return Math.round((startOfDay(date) - startOfDay(start)) / DAY_MS);
+    return Math.round((startOfDay(date).getTime() - startOfDay(start).getTime()) / DAY_MS);
 }
 
 /**

@@ -20,7 +20,7 @@ export type SignInProvider = "apple" | "google";
  *
  * Null is a dismissed sheet, which is not a failure.
  */
-export type SignInRequest =
+type SignInRequest =
     | { getCredential: () => Promise<AppleSignInCredential | null>; provider: "apple" }
     | { getCredential: () => Promise<string | null>; provider: "google" };
 

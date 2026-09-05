@@ -20,7 +20,7 @@ import type {
 
 export const AI_TIER_MAX_CHARS = 2_000_000;
 export const AI_TIER_MAX_ROWS = 5000;
-export const CLIENT_TIMEOUT_MS = 15_000;
+const CLIENT_TIMEOUT_MS = 15_000;
 
 export interface UseCsvImportArgs {
     aiEnrichment: boolean;

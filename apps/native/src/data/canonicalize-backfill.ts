@@ -226,7 +226,7 @@ export async function hasUncanonicalized(db: SpendDb): Promise<boolean> {
     return rows.length > 0;
 }
 
-export async function canonicalizedCount(db: SpendDb): Promise<number> {
+async function canonicalizedCount(db: SpendDb): Promise<number> {
     const rows = await db
         .select({ total: count() })
         .from(transactions)

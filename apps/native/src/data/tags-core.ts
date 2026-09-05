@@ -17,7 +17,7 @@ export interface TagRow {
  * Blanked the way every other tombstone here is, so a deleted tag carries no
  * name a stale device could still render.
  */
-export const TOMBSTONED_TAG = {
+const TOMBSTONED_TAG = {
     color: null,
     name: "",
     sortOrder: 0,

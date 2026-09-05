@@ -11,7 +11,7 @@ import { median } from "./stats";
  * far that a raise or a new city still counts. The same sample answers "how many
  * of the last six went over", which is why the two are one walk.
  */
-export const TYPICAL_LOOKBACK = 6;
+const TYPICAL_LOOKBACK = 6;
 
 export interface TypicalInput {
     /** The window a limit is being placed on. Everything before it is closed. */

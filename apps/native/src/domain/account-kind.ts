@@ -8,7 +8,7 @@
  * card, loan) would be presentation on top of this, and buys nothing until
  * there is a payoff or forecast feature to hang off it.
  */
-export const ACCOUNT_KINDS = ["asset", "liability"] as const;
+const ACCOUNT_KINDS = ["asset", "liability"] as const;
 
 export type AccountKind = (typeof ACCOUNT_KINDS)[number];
 

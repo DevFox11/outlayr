@@ -3,7 +3,7 @@
  * driven off a hand-cranked clock. `Handle` is whatever the host's scheduler
  * hands back.
  */
-export interface DeferredDeleteTimers<Handle> {
+interface DeferredDeleteTimers<Handle> {
     clear: (handle: Handle) => void;
     set: (run: () => void, ms: number) => Handle;
 }

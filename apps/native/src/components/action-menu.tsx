@@ -10,7 +10,7 @@ import type { LayoutChangeEvent, StyleProp, ViewStyle } from "react-native";
  * its items through the system menu UI, which takes a symbol name and ignores an
  * image source, so the app's Hugeicons cannot reach one.
  */
-export type ActionMenuSymbol = Extract<MenuAction["image"], string>;
+type ActionMenuSymbol = Extract<MenuAction["image"], string>;
 
 export interface ActionMenuItem {
     /** Draws the row red and marks it destructive to VoiceOver. */

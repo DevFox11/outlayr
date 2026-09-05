@@ -39,7 +39,7 @@ export type ArchiveTable = (typeof ARCHIVE_TABLES)[number];
  * string — every date in the ledger silently becoming text that sorts and
  * compares differently. Naming them is what makes the round trip exact.
  */
-export interface ArchiveDateColumns {
+interface ArchiveDateColumns {
     accounts: readonly string[];
     appMeta: readonly string[];
     budgets: readonly string[];
@@ -49,7 +49,7 @@ export interface ArchiveDateColumns {
     transfers: readonly string[];
 }
 
-export const ARCHIVE_DATE_COLUMNS: ArchiveDateColumns = {
+const ARCHIVE_DATE_COLUMNS: ArchiveDateColumns = {
     accounts: ["initialBalanceDate", "dateCreated", "updatedAt", "deletedAt"],
     appMeta: [],
     budgets: ["startDate", "dateCreated", "updatedAt", "deletedAt"],
@@ -60,7 +60,7 @@ export const ARCHIVE_DATE_COLUMNS: ArchiveDateColumns = {
 };
 
 /** What a column can be once it is JSON. `Date` is encoded away before this. */
-export type ArchiveValue = boolean | number | string | null;
+type ArchiveValue = boolean | number | string | null;
 
 /** A row as the file holds it. */
 export type ArchiveRow = Record<string, ArchiveValue>;

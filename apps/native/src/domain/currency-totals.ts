@@ -12,7 +12,7 @@ export interface CurrencyBucket {
 }
 
 /** Mirrors Swift's `CurrencyTotals.dominanceOrder`. */
-export function dominanceOrder(counts: Map<string, number>, globalCurrency: string): string[] {
+function dominanceOrder(counts: Map<string, number>, globalCurrency: string): string[] {
     return [...counts.keys()].sort((lhs, rhs) => {
         const byCount = (counts.get(rhs) ?? 0) - (counts.get(lhs) ?? 0);
         if (byCount !== 0) {
@@ -113,20 +113,6 @@ export function toCells(entries: readonly CurrencyEntry[]): CurrencyCell[] {
 }
 
 /** A cell's global-currency magnitude, excluding any unresolved foreign amount. */
-/**
- * The cells that have actually happened, on or before `nowMs`.
- *
- * The cell queries are deliberately unbounded by date, because an account's
- * balance counts everything ever attached to it. A goal asks a narrower
- * question — what has been put aside so far, against what the deadline wants
- * today — and money dated next month has not been put aside. The Log tab makes
- * the same distinction visible under its own "upcoming" heading.
- */
-export function settledCells(cells: readonly CurrencyCell[], nowMs: number): CurrencyCell[] {
-    const today = utcDateString(nowMs);
-    return cells.filter((cell) => cell.dateKey <= today);
-}
-
 export function valueCell(cell: CurrencyCell, globalCurrency: string, rates?: RateTable): number {
     if (cell.currencyCode === globalCurrency) {
         return cell.amount;

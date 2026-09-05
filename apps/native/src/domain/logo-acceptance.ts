@@ -1,4 +1,4 @@
-export type LogoRejection = "status" | "content-type" | "too-small" | "too-large" | "not-an-image" | "placeholder";
+type LogoRejection = "status" | "content-type" | "too-small" | "too-large" | "not-an-image" | "placeholder";
 
 export type LogoVerdict = { ok: true } | { ok: false; reason: LogoRejection };
 

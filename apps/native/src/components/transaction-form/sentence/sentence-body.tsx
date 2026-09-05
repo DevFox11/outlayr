@@ -41,7 +41,7 @@ const FACT_GLYPHS = {
 } as const satisfies Record<string, { set: IconSvgElement; unset: IconSvgElement }>;
 
 /** Names a fact, and with it the chip's glyph. */
-export type SentenceFactKey = keyof typeof FACT_GLYPHS;
+type SentenceFactKey = keyof typeof FACT_GLYPHS;
 
 /**
  * A set chip is filled with `--tint` in both themes, so what sits on it is
@@ -51,7 +51,7 @@ const ON_TINT = "#ffffff";
 
 const CHIP_ICON = 15;
 
-export interface SentenceVerb {
+interface SentenceVerb {
     /** Already set, so the chip states the value and reads as a way back to it. */
     active: boolean;
     /** A fact that cannot be set yet — the split has nothing to divide without an amount. */

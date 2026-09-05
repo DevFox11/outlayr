@@ -22,10 +22,12 @@
         "preview": {
             "environment": "preview",
             "distribution": "store",
+            "channel": "preview",
             "autoIncrement": true
         },
         "production": {
             "environment": "production",
+            "channel": "production",
             "autoIncrement": true
         }
     },

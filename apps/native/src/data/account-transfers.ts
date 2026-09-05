@@ -10,7 +10,7 @@ import type { TransferLogRow } from "@/domain/transfer-log-rows";
 import { useAccounts } from "./accounts";
 import { useLiveQuery } from "./live-query";
 
-export function accountTransfersQuery(db: SpendDb, accountId: string) {
+function accountTransfersQuery(db: SpendDb, accountId: string) {
     return db
         .select()
         .from(transfers)

@@ -855,10 +855,6 @@ const settings = {
             en: "Track your money with Outlayr — {url}",
             es: "Controla tu dinero con Outlayr — {url}",
         }),
-        "settings.stub.notAvailable": t({
-            en: "Not available yet",
-            es: "Aún no disponible",
-        }),
         "settings.support.bugSubject": t({
             en: "Support Email",
             es: "Correo de soporte",

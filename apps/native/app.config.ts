@@ -282,8 +282,15 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
         "./plugins/with-extension-pods-root.ts",
         ["./plugins/with-symbolsets.ts", { directory: "./assets/symbols" }],
     ],
+    // Fingerprint, not appVersion: the custom config plugins and Apple targets
+    // change native code without a version bump, and an update served to a
+    // binary whose native side differs is a crash at launch.
+    runtimeVersion: { policy: "fingerprint" },
     scheme: "outlayr",
     slug: "outlayr",
+    updates: {
+        url: "https://u.expo.dev/f076a9e9-ec12-464d-85eb-772c4d0efce5",
+    },
     userInterfaceStyle: "automatic",
     // The marketing version users see. The build number beside it is not here:
     // `eas.json` sets `appVersionSource: "remote"`, so EAS owns and increments

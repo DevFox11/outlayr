@@ -120,13 +120,13 @@ function StageObject({ children, cover }: { children: ReactNode; cover: boolean 
     return <Animated.View style={style}>{children}</Animated.View>;
 }
 
-export interface FirstRunAction {
+interface FirstRunAction {
     disabled?: boolean;
     label: string;
     onPress: () => void;
 }
 
-export interface FirstRunSkip {
+interface FirstRunSkip {
     label: string;
     onPress: () => void;
 }

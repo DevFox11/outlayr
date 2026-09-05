@@ -43,7 +43,7 @@ export function cloudMutation<Args, Result>(path: string, args: Args): Promise<R
     return cloudClient().mutation(path as never, args as never) as Promise<Result>;
 }
 
-export function cloudAction<Args, Result>(path: string, args: Args): Promise<Result> {
+function cloudAction<Args, Result>(path: string, args: Args): Promise<Result> {
     // SAFETY: as in `cloudQuery`.
     return cloudClient().action(path as never, args as never) as Promise<Result>;
 }
@@ -206,7 +206,7 @@ export interface VoiceRecurrence {
     unit: VoiceRecurrenceUnit;
 }
 
-export interface VoiceEntryDraft extends VoiceDraftBase {
+interface VoiceEntryDraft extends VoiceDraftBase {
     accountName: string | null;
     categoryName: string | null;
     /** The merchant's web domain when the model knew it; the logo lookup's long tail. */
@@ -219,7 +219,7 @@ export interface VoiceEntryDraft extends VoiceDraftBase {
 }
 
 /** Money moved between two of the person's own accounts; names only, as spoken. */
-export interface VoiceTransferDraft extends VoiceDraftBase {
+interface VoiceTransferDraft extends VoiceDraftBase {
     fromAccountName: string | null;
     kind: "transfer";
     toAccountName: string | null;
@@ -232,16 +232,9 @@ export interface ProposedDraft {
     draft: VoiceDraft | null;
 }
 
-export type SpeakStatus =
-    | "ok"
-    | "unauthenticated"
-    | "notConfigured"
-    | "rateLimited"
-    | "invalid"
-    | "providerError"
-    | "unclear";
+type SpeakStatus = "ok" | "unauthenticated" | "notConfigured" | "rateLimited" | "invalid" | "providerError" | "unclear";
 
-export interface SpeakResult {
+interface SpeakResult {
     /** The turn the words landed on; the draft answers at the same order. */
     order: number | null;
     status: SpeakStatus;

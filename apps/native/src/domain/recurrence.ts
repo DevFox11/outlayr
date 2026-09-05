@@ -93,9 +93,6 @@ export function nextDate(from: Date, type: number, coefficient: number, anchorDa
     }
 }
 
-/** Alias for {@link nextDate}. */
-export const next = nextDate;
-
 export interface ScheduledCharge {
     /** The target month was too short to hold the anchor day, so this one moved. */
     clamped: boolean;

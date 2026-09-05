@@ -29,7 +29,7 @@ export const LOCAL_DAY = sql<string>`strftime('%Y-%m-%d', ${transactions.date} /
  * {@link UTC_DAY}, or the row it returns is not a cell: conversion needs one
  * currency and one day's rate, and a group spanning either cannot supply them.
  */
-export const CELL_COLUMNS = {
+const CELL_COLUMNS = {
     currency: transactions.currency,
     dateKey: UTC_DAY,
     income: transactions.income,

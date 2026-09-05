@@ -31,7 +31,7 @@ import type { WidgetPalette } from "./palette";
  * layout — so the layout is handed both sides and picks. See `palette.ts` for
  * why the colours travel as data at all.
  */
-export interface WidgetChrome {
+interface WidgetChrome {
     dark: WidgetPalette;
     light: WidgetPalette;
 }
@@ -44,13 +44,13 @@ const LEDGER_LIMIT = 8;
 const SLICE_LIMIT = 4;
 
 /** Which budget a configured tile is pinned to. */
-export type BudgetSelection = "auto" | "overall" | "worst";
+type BudgetSelection = "auto" | "overall" | "worst";
 
 export interface BudgetConfiguration {
     budget: BudgetSelection;
 }
 
-export interface BudgetViewProps {
+interface BudgetViewProps {
     /** How far through the period we are, in [0, 1] — the pace marker. */
     elapsedFraction: number;
     /**
@@ -115,10 +115,10 @@ export interface LedgerEntryProps {
 }
 
 /** What the Ledger's header figure can be pinned to. `"today"` is its default. */
-export type LedgerHeaderPeriod = "today" | InsightsPeriod;
-export type LedgerHeaderMeasure = "spent" | "income" | "net";
+type LedgerHeaderPeriod = "today" | InsightsPeriod;
+type LedgerHeaderMeasure = "spent" | "income" | "net";
 
-export interface LedgerHeaderProps {
+interface LedgerHeaderProps {
     amount: string;
     label: string;
     /** Net can be either way round; the sign is the figure's, not a glyph's. */
@@ -145,13 +145,13 @@ export interface LedgerWidgetProps {
 }
 
 /** `"app"` follows the app's own `insightsTimeFrame`; the rest pin the tile. */
-export type InsightsSelection = "app" | InsightsPeriod;
+type InsightsSelection = "app" | InsightsPeriod;
 
 export interface InsightsConfiguration {
     period: InsightsSelection;
 }
 
-export interface InsightsViewProps {
+interface InsightsViewProps {
     /** `ChartDataPoint` shape, oldest first — spend per bucket. */
     bars: { x: string; y: number }[];
     income: string;
@@ -185,7 +185,7 @@ export interface LogWidgetProps {
  * to resolve a spoken name against every budget, so the list is derived in the
  * same pass and published to the App Group.
  */
-export interface IntentBudgetProps {
+interface IntentBudgetProps {
     id: string;
     limit: string;
     name: string;

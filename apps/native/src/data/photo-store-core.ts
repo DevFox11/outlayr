@@ -45,7 +45,7 @@ export const PHOTO_TABLES: readonly PhotoTable[] = [
  */
 export const PHOTO_PURGE_GRACE_MS = 24 * 60 * 60 * 1000;
 
-export interface StoredPhoto {
+interface StoredPhoto {
     /** Milliseconds since the epoch. */
     modifiedAt: number;
     name: string;

@@ -23,7 +23,7 @@ export interface Accent {
     value: number;
 }
 
-export type AccentKey = "vermilion" | "plum" | "ochre" | "prussian" | "pine";
+type AccentKey = "vermilion" | "plum" | "ochre" | "prussian" | "pine";
 
 /**
  * Vermilion is the icon's own hue and stays the default; it is the only one

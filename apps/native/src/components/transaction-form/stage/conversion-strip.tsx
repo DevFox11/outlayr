@@ -6,7 +6,7 @@ import type { Language } from "@/i18n/languages";
 
 import { MetaLine } from "./meta-line";
 
-export interface ConversionStripLabels {
+interface ConversionStripLabels {
     /** Statement while nothing is converted, e.g. "Not converted". */
     notConverted: string;
     /**
@@ -18,7 +18,7 @@ export interface ConversionStripLabels {
     setRate: string;
 }
 
-export interface ConversionStripRate {
+interface ConversionStripRate {
     /** Display name of what produced the rate: Official, EUR reference, Custom. */
     source: string;
     value: number;

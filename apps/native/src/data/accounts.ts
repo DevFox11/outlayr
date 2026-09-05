@@ -170,7 +170,7 @@ export function useAccountsOverviewIn(
  * Shares the cell set `useAccountsOverviewIn` reads, so the line's last point
  * and the accounts card agree by construction rather than by coincidence.
  */
-export function useNetWorthSeriesIn(db: Database, valuation: Valuation): NetWorthSeriesPoint[] {
+function useNetWorthSeriesIn(db: Database, valuation: Valuation): NetWorthSeriesPoint[] {
     const rows = useAccounts(db);
     const cellRows = useLiveQuery(transactions, () => accountsCellQuery(db));
     const outbound = useLiveQuery(transfers, () => transfersOutboundQuery(db));
@@ -207,11 +207,6 @@ export function useNetWorthSeries(db: Database): NetWorthSeriesPoint[] {
     return useNetWorthSeriesIn(db, useValuation(db));
 }
 
-/** {@link useAccountsOverviewIn} for the ledger's own display currency. */
-export function useAccountsOverview(db: Database): AccountsOverview | null {
-    return useAccountsOverviewIn(db, useValuation(db));
-}
-
 /**
  * The account's attached transactions, newest first and unbounded — a balance
  * counts everything the account ever saw, so its history shows the same set.
@@ -242,7 +237,7 @@ export function useAccountTransactions(db: Database, accountId: string): Transac
  * rows, which is what a screen needs when it is about to freeze one of them —
  * a goal's starting line, for instance.
  */
-export function useAccountBalancesIn(db: Database, valuation: Valuation, nowMs: number): Map<string, DisplayedBalance> {
+function useAccountBalancesIn(db: Database, valuation: Valuation, nowMs: number): Map<string, DisplayedBalance> {
     const rows = useAccounts(db);
     // Bounded at `now` in SQL, not filtered afterwards: a cell carries only a day
     // key, so an entry scheduled for later today is indistinguishable from one

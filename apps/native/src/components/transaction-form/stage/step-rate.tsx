@@ -14,7 +14,7 @@ import type { TransactionEntryRate, TransactionRateError } from "@/domain/transa
 import { Text } from "../../text";
 import { cn } from "../../tw";
 
-export interface StepRateLabels {
+interface StepRateLabels {
     custom: string;
     editCustom: string;
     /** Inline danger copy, one per `transactionRateError` code. */

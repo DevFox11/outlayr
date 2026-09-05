@@ -11,7 +11,7 @@ import type { FeeSide } from "@/domain/transfer-reconcile";
 import { getMetaSync, META_KEYS, setMeta } from "./app-meta-core";
 import { localRateLookup } from "./rates";
 
-export interface TransferFeeInput {
+interface TransferFeeInput {
     amount: number;
     categoryId: string | null;
     note?: string;

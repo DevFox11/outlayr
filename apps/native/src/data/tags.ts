@@ -1,4 +1,3 @@
-import { isNull } from "drizzle-orm";
 import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
@@ -22,37 +21,4 @@ export function useTags(db: Database): TagRow[] {
 export function useTagIdsFor(db: Database, transactionId: string | null): string[] {
     const rows = useLiveQuery(transactionTags, () => tagIdsForQuery(db, transactionId ?? ""), [transactionId]);
     return useMemo(() => (transactionId ? rows.map((row) => row.tagId) : []), [rows, transactionId]);
-}
-
-/**
- * Tag ids by transaction id, for a list that paints them per row.
- *
- * One query for the whole screen rather than one per row: the Log renders a
- * page of entries at a time, and a hook per row would register a listener per
- * row against the same table.
- */
-export function useTagIdsByTransaction(db: Database): Map<string, string[]> {
-    const rows = useLiveQuery(transactionTags, () =>
-        db
-            .select({
-                tagId: transactionTags.tagId,
-                transactionId: transactionTags.transactionId,
-            })
-            .from(transactionTags)
-            // Tombstones stay in the table so the deletion replicates; painting one
-            // would show a tag the owner removed.
-            .where(isNull(transactionTags.deletedAt))
-    );
-    return useMemo(() => {
-        const byTransaction = new Map<string, string[]>();
-        for (const row of rows) {
-            const existing = byTransaction.get(row.transactionId);
-            if (existing) {
-                existing.push(row.tagId);
-            } else {
-                byTransaction.set(row.transactionId, [row.tagId]);
-            }
-        }
-        return byTransaction;
-    }, [rows]);
 }

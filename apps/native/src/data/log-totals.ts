@@ -36,22 +36,6 @@ export function storedLogPeriod(period: LogPeriod): number {
     return STORED[period];
 }
 
-/**
- * Mid-sentence fragments on purpose: the eyebrow uppercases them and the period
- * menu shows them as-is.
- */
-export const LOG_PERIOD_PHRASE = {
-    all: "all time",
-    day: "today",
-    month: "this month",
-    week: "this week",
-    year: "this year",
-} satisfies Record<LogPeriod, string>;
-
-export function sentenceCased(value: string): string {
-    return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
 /** `null` for all-time, which has no lower bound. */
 function periodStart(period: LogPeriod, now: Date): Date | null {
     switch (period) {

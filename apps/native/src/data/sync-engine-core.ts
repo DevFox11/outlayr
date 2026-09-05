@@ -42,10 +42,10 @@ const ID_CHUNK = 300;
  * spec's `dates` to epoch milliseconds first, and letting a `Date` through here
  * would put an ISO string on the wire that reads back as text.
  */
-export type WireValue = boolean | number | string | null;
+type WireValue = boolean | number | string | null;
 
 /** A replicated row's payload, keyed by column name. */
-export type WireFields = Record<string, WireValue>;
+type WireFields = Record<string, WireValue>;
 
 export interface WireRow {
     deletedAt: number | null;

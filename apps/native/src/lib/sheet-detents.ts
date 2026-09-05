@@ -1,5 +1,3 @@
-import type { ImportStep } from "@/domain/import-flow";
-
 /**
  * How tall the category sheets open, as react-native-screens detent fractions.
  *
@@ -51,18 +49,3 @@ export function identityPickerDetent(windowHeight: number): number {
  * re-declare which detents exist at all.
  */
 export const LARGE_ONLY = [1];
-
-/**
- * The height each import step opens at, as the import sheet's first snap
- * point (fraction of the window). The sheet cannot size to its content
- * (`enableDynamicSizing` is off so children survive the zero-measure frames
- * while it presents), so each step declares the height it wants and the
- * sheet re-snaps when the step changes.
- */
-export const IMPORT_STEP_SNAP_FRACTION = {
-    done: 0.55,
-    file: 0.65,
-    resolve: 0.7,
-    review: 0.85,
-    source: 0.5,
-} satisfies Record<ImportStep, number>;

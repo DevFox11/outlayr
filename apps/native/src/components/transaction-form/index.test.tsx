@@ -234,7 +234,7 @@ type Screen = Awaited<ReturnType<typeof render>>;
 /**
  * The merchant slot draws its glyphs as a `Text` and overlays a transparent
  * `TextInput`, so the input carries no placeholder to find it by — its
- * accessibility label is the handle, and the same one Maestro uses.
+ * accessibility label is the handle.
  */
 const MERCHANT_FIELD = "transaction.field.name";
 

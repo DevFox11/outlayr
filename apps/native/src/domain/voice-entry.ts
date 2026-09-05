@@ -233,7 +233,7 @@ export function meterToLevel(metering: number | undefined): number {
 }
 
 /** A level this loud is the person, not the room. */
-export const SPEECH_LEVEL = 0.22;
+const SPEECH_LEVEL = 0.22;
 /** How long after the last word the entry is taken as finished. */
 export const TRAILING_SILENCE_MS = 1400;
 /** A listener with nothing said into it stops asking after this. */
@@ -247,7 +247,7 @@ export interface SilenceWatch {
     startedAt: number;
 }
 
-export type SilenceVerdict = "keep" | "finished" | "nothingSaid" | "tooLong";
+type SilenceVerdict = "keep" | "finished" | "nothingSaid" | "tooLong";
 
 export interface SilenceJudgement {
     verdict: SilenceVerdict;

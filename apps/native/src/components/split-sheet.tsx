@@ -36,8 +36,6 @@ interface SplitSheetProps {
     total: number;
 }
 
-export type SplitSheetRef = BottomSheetModal;
-
 /**
  * Editing which categories an entry's amount is attributed to.
  *

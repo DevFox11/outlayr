@@ -23,8 +23,7 @@ interface TransactionFormIdentitySectionProps {
  * `IdentityHero` imports `react-native-reanimated`, which crashes jest at
  * module-load time (see `src/domain/curtain-hues.ts`) — the same reason the
  * whole form can't render there. This component inherits that gap rather
- * than introducing it; Maestro (`transaction-form.yaml`) is its only
- * coverage.
+ * than introducing it, so it has no automated coverage.
  */
 export function TransactionFormIdentitySection({
     contentWidth,

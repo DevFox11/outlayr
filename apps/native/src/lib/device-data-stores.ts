@@ -62,13 +62,6 @@ export interface DeviceDataStores {
     widget: () => Promise<void>;
 }
 
-export const NON_ERASABLE_DEVICE_STATE = [
-    "biometricEnrollment",
-    "notificationPermission",
-    "photoPermission",
-    "widgetPlacement",
-] as const;
-
 export interface NativeDeviceDataStoreDependencies {
     closeDatabase: () => Promise<void>;
 }

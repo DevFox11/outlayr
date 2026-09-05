@@ -3,7 +3,7 @@ import { formatDayHeader, formatTime } from "./dates";
 import type { DayCardInput } from "./day-card";
 import { amountDigits, amountParts, withCurrencySymbol } from "./money";
 
-export interface CardableTransaction {
+interface CardableTransaction {
     amount: number;
     categoryName: string | null;
     currency: string | null;

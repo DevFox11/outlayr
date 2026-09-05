@@ -31,7 +31,7 @@ const RADIUS = 20;
 
 /** The tile edge the picker animates the hero up to. */
 export const FLOAT_TILE = 164;
-export const FLOAT_SCALE = FLOAT_TILE / TILE;
+const FLOAT_SCALE = FLOAT_TILE / TILE;
 
 /** Response 0.25, dampingFraction 0.7, converted to stiffness/damping. */
 const PRESS_SPRING = { damping: 35, mass: 1, stiffness: 631 } as const;

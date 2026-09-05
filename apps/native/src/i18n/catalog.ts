@@ -103,7 +103,7 @@ export type TranslatableKey = TranslationKey | PluralStem<TranslationKey & strin
 intlayerPolyfill();
 
 /** Flattens Intlayer's per-dictionary resolution into one lookup. */
-export function catalogFor(locale: Language): Catalog {
+function catalogFor(locale: Language): Catalog {
     const flat: Record<string, string> = {};
     for (const key of DICTIONARY_KEYS) {
         Object.assign(flat, getIntlayer(key, locale));

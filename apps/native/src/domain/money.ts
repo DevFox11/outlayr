@@ -7,7 +7,7 @@ import { runtimeLanguage } from "@/i18n/runtime";
 
 export const DEFAULT_CURRENCY = "USD";
 
-export type SymbolPlacement = "prefix" | "suffix";
+type SymbolPlacement = "prefix" | "suffix";
 
 export interface NumberLocale {
     decimal: string;

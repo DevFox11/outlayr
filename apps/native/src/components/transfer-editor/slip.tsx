@@ -33,7 +33,7 @@ export interface TransferGapPrompt {
     rateLabel: string | null;
 }
 
-export interface TransferLegView {
+interface TransferLegView {
     balance: string;
     currency: string;
     emoji: string | null;

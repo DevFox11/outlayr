@@ -86,7 +86,7 @@ function draw(canvas: SkCanvas, input: DayCardInput): void {
     }
 }
 
-export function renderDayCard(input: DayCardInput): Uint8Array | null {
+function renderDayCard(input: DayCardInput): Uint8Array | null {
     const layout = layoutDayCard(input);
     const surface = Skia.Surface.MakeOffscreen(Math.ceil(layout.width * SCALE), Math.ceil(layout.height * SCALE));
     if (surface == null) {

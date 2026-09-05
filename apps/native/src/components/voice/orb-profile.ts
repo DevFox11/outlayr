@@ -23,7 +23,7 @@ export interface OrbProfile {
 export type Rgb = readonly [number, number, number];
 
 /** `#rrggbb` → linear-ish 0–1 triple, the form the shader's `float3` wants. */
-export function rgb(hex: string): Rgb {
+function rgb(hex: string): Rgb {
     const channel = (at: number) => Number.parseInt(hex.slice(at, at + 2), 16) / 255;
     return [channel(1), channel(3), channel(5)];
 }
@@ -34,7 +34,7 @@ export function rgb(hex: string): Rgb {
  * fire, and the deep ember closes the set. Every one is a token the ledger
  * already paints with (`--tint`, `--warning`, `--transfer`, light `--tint`).
  */
-export const ACTIVE_PROFILE: OrbProfile = {
+const ACTIVE_PROFILE: OrbProfile = {
     colorA: rgb("#EC603B"),
     colorB: rgb("#65B3EE"),
     colorC: rgb("#FDCC41"),
@@ -50,7 +50,7 @@ export const ACTIVE_PROFILE: OrbProfile = {
 };
 
 /** The same bands with the saturation and the light turned down: awake, not talking. */
-export const IDLE_PROFILE: OrbProfile = {
+const IDLE_PROFILE: OrbProfile = {
     colorA: rgb("#B07660"),
     colorB: rgb("#6C8CA0"),
     colorC: rgb("#B8A472"),
