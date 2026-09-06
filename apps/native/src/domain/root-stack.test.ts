@@ -90,7 +90,29 @@ function collectRouteNames(dir: string, prefix: string): string[] {
     return names;
 }
 
+/**
+ * Every route leaf under app/, layouts included, without collapsing a
+ * directory to its owner: `collectRouteNames` folds `(tabs)/…` into `(tabs)`
+ * for the partition, but expo-router still registers each nested file.
+ */
+function collectLeafRoutes(dir: string, prefix: string): string[] {
+    const names: string[] = [];
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const nested = prefix ? `${prefix}/${entry.name}` : entry.name;
+        if (entry.isDirectory()) {
+            names.push(...collectLeafRoutes(join(dir, entry.name), nested));
+            continue;
+        }
+        const base = routeBasename(entry.name);
+        if (base !== null) {
+            names.push(prefix ? `${prefix}/${base}` : base);
+        }
+    }
+    return names;
+}
+
 const ROUTE_FILES_ON_DISK = collectRouteNames(APP_DIR, "");
+const ROUTE_LEAVES_ON_DISK = collectLeafRoutes(APP_DIR, "");
 const PARTITIONABLE_ROUTES = ROUTE_FILES_ON_DISK.filter((name) => name !== UNGUARDED_CATCH_ALL);
 
 describe("routes derived from the app directory", () => {
@@ -102,6 +124,14 @@ describe("routes derived from the app directory", () => {
     it("finds +not-found on disk and holds it out of the partition", () => {
         expect(ROUTE_FILES_ON_DISK).toContain(UNGUARDED_CATCH_ALL);
         expect(PARTITIONABLE_ROUTES).not.toContain(UNGUARDED_CATCH_ALL);
+    });
+
+    // The import flow is one BottomSheetModal presented over the Log, never a
+    // route: a stray app/import screen would re-grow the nested-navigator sheet
+    // it replaced. Checked on disk here and in the rendered layout below.
+    it("registers no import route on disk, at any depth", () => {
+        expect(ROUTE_LEAVES_ON_DISK.length).toBeGreaterThan(ROUTE_FILES_ON_DISK.length);
+        expect(ROUTE_LEAVES_ON_DISK.filter((name) => /(^|\/)import(\/|$)/.test(name))).toStrictEqual([]);
     });
 });
 
@@ -274,6 +304,10 @@ describe("guard partition written in app/_layout.tsx", () => {
     it("reads back the screens the layout actually renders", () => {
         expect(rendered.map((screen) => screen.name)).toContain("(tabs)");
         expect(rendered).toHaveLength(GROUPS.flatMap((group) => ROOT_STACK_SCREEN_NAMES[group]).length);
+    });
+
+    it("renders no import screen", () => {
+        expect(rendered.map((screen) => screen.name)).not.toContain("import");
     });
 
     it("renders no Stack.Screen outside every Stack.Protected block", () => {

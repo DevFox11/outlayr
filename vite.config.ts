@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 import type { OxlintOverride } from "oxlint";
 import ultraciteFmt from "ultracite/oxfmt";
 import antiSlop from "ultracite/oxlint/anti-slop";
@@ -41,6 +43,36 @@ const projectIgnores = [
 const formatOnlyIgnores = ["**/*.html", "**/*.md"];
 
 const NATIVE_SOURCE = "apps/native/src/**";
+// Code that runs on node rather than in the app: the suites, the fixtures they
+// share, the jest setup stubs, and the build scripts.
+const NODE_SIDE_FILES = [
+    "**/*.test.{ts,tsx}",
+    "**/*.spec.{ts,tsx}",
+    "**/test-*.ts",
+    "**/test.helpers.ts",
+    "apps/native/jest/**",
+    "**/scripts/**",
+];
+
+// Imports every file under apps/native/src answers for. Each override that
+// touches `no-restricted-imports` restates this list, because an override
+// replaces the rule's options rather than merging them; the two wrapper
+// modules drop only the entry they exist to wrap.
+const LIVE_QUERY_IMPORT = {
+    importNames: ["useLiveQuery"],
+    message:
+        "Drizzle's useLiveQuery renders one empty frame before its query answers. Import useLiveQuery from @/data/live-query, which reads in render.",
+    name: "drizzle-orm/expo-sqlite",
+};
+const HAPTICS_IMPORT = {
+    message: "A direct call fires whatever the Haptics setting says. Use useHaptics from @/lib/use-haptics.",
+    name: "expo-haptics",
+};
+const ICON_BARREL_IMPORTS = ["solid", "stroke"].map((weight) => ({
+    message: `The pack barrel is 6-12MB and Metro ships all of it. Import the icon by path: @hugeicons-pro/core-${weight}-rounded/<Name>Icon.`,
+    name: `@hugeicons-pro/core-${weight}-rounded`,
+}));
+const NATIVE_RESTRICTED_IMPORTS = [LIVE_QUERY_IMPORT, HAPTICS_IMPORT, ...ICON_BARREL_IMPORTS];
 
 // Rules that describe the shape of someone else's test rather than whether it
 // holds. `max-expects` reported 128 times and its worst file is `erase-core`,
@@ -114,7 +146,15 @@ export default defineConfig({
         },
         ignorePatterns: [...core.ignorePatterns, ...projectIgnores],
         // anti-slop registers its own plugin entry through the preset above.
-        jsPlugins: ["oxlint-tailwindcss"],
+        // `outlayr` holds the design rules that used to be jest suites reading
+        // source as text; see packages/config/oxlint/plugin.mjs.
+        jsPlugins: [
+            "oxlint-tailwindcss",
+            {
+                name: "outlayr",
+                specifier: fileURLToPath(new URL("packages/config/oxlint/plugin.mjs", import.meta.url)),
+            },
+        ],
         overrides: [
             ...scopeTo("apps/native", "jest", JEST_ONLY_OPT_OUT, jest),
             ...scopeTo("packages", "vitest", VITEST_ONLY_OPT_OUT, vitest),
@@ -152,14 +192,7 @@ export default defineConfig({
                 // fixtures they share, the jest setup stubs, and the build
                 // scripts. The counts below are what each rule reported over the
                 // whole tree with every carve-out removed.
-                files: [
-                    "**/*.test.{ts,tsx}",
-                    "**/*.spec.{ts,tsx}",
-                    "**/test-*.ts",
-                    "**/test.helpers.ts",
-                    "apps/native/jest/**",
-                    "**/scripts/**",
-                ],
+                files: NODE_SIDE_FILES,
                 rules: {
                     // anti-slop's evidence rules, 248 between them. A test
                     // declares its own doubles, so there is nothing here for them
@@ -247,8 +280,8 @@ export default defineConfig({
                 // A widget body is stringified and evaluated in the extension's own
                 // bare JSContext, so a helper hoisted to module scope resolves to
                 // nothing and paints a ReferenceError on the tile.
-                // `widget-scope.test.ts` enforces the inverse rule: nothing at
-                // module scope but the component itself.
+                // `outlayr/widget-module-scope` enforces the inverse rule:
+                // nothing at module scope but the component itself.
                 files: ["apps/native/src/widgets/**"],
                 rules: {
                     "unicorn/consistent-function-scoping": "off",
@@ -272,31 +305,83 @@ export default defineConfig({
             {
                 files: [NATIVE_SOURCE],
                 rules: {
+                    "no-restricted-imports": ["error", { paths: NATIVE_RESTRICTED_IMPORTS }],
+                    // The repo's own design rules, each with its reason in the
+                    // plugin. Native only: they read SwiftUI hosts, widget bodies
+                    // and drizzle-orm/expo-sqlite, none of which the packages have.
+                    "outlayr/bottom-sheet-background": "error",
+                    "outlayr/editor-cta-busy": "error",
+                    "outlayr/no-drizzle-transaction": "error",
+                    "outlayr/swiftui-list-grounds": "error",
+                    "outlayr/widget-module-scope": "error",
+                },
+            },
+            {
+                // The module the useLiveQuery restriction points at; every other ban holds.
+                files: ["apps/native/src/data/live-query.ts"],
+                rules: {
+                    "no-restricted-imports": ["error", { paths: [HAPTICS_IMPORT, ...ICON_BARREL_IMPORTS] }],
+                },
+            },
+            {
+                // Likewise for the haptics wrapper.
+                files: ["apps/native/src/lib/use-haptics.ts"],
+                rules: {
+                    "no-restricted-imports": ["error", { paths: [LIVE_QUERY_IMPORT, ...ICON_BARREL_IMPORTS] }],
+                },
+            },
+            {
+                // The import flow is one BottomSheetModal presented over the Log,
+                // never an expo-router route: steps navigate through the draft
+                // store, and only the sheet root (carved out below) touches the
+                // router. Content under it sits on the root's `backgroundStyle`
+                // paper, so no step paints its own ground. An override replaces
+                // the rule's options rather than merging them, so the native
+                // paths are restated here and in the carve-out.
+                files: ["apps/native/src/components/import-sheet/**"],
+                rules: {
                     "no-restricted-imports": [
                         "error",
                         {
                             paths: [
-                                {
-                                    importNames: ["useLiveQuery"],
-                                    message:
-                                        "Drizzle's useLiveQuery renders one empty frame before its query answers. Import useLiveQuery from @/data/live-query, which reads in render.",
-                                    name: "drizzle-orm/expo-sqlite",
-                                },
+                                ...NATIVE_RESTRICTED_IMPORTS,
                                 {
                                     message:
-                                        "A direct call fires whatever the Haptics setting says. Use useHaptics from @/lib/use-haptics.",
-                                    name: "expo-haptics",
+                                        "Import steps navigate through the draft store; only import-sheet.tsx touches expo-router.",
+                                    name: "expo-router",
                                 },
                             ],
                         },
                     ],
+                    "outlayr/no-sheet-repaint": "error",
                 },
             },
             {
-                // The two modules the restriction above points at.
-                files: ["apps/native/src/data/live-query.ts", "apps/native/src/lib/use-haptics.ts"],
+                files: ["apps/native/src/components/import-sheet/import-sheet.tsx"],
                 rules: {
-                    "no-restricted-imports": "off",
+                    "no-restricted-imports": ["error", { paths: NATIVE_RESTRICTED_IMPORTS }],
+                },
+            },
+            {
+                // Where the ban is implemented, so it necessarily calls the API it bans.
+                files: ["apps/native/src/db/transaction.ts"],
+                rules: {
+                    "outlayr/no-drizzle-transaction": "off",
+                },
+            },
+            {
+                // The design rules read shipped screens; a suite rendering a
+                // `<List>` fixture, a `db.transaction` double or a `bg-card`
+                // expectation is not one. Same file set as the node-side block
+                // above, and after the import-sheet override so it wins there.
+                files: NODE_SIDE_FILES,
+                rules: {
+                    "outlayr/bottom-sheet-background": "off",
+                    "outlayr/editor-cta-busy": "off",
+                    "outlayr/no-drizzle-transaction": "off",
+                    "outlayr/no-sheet-repaint": "off",
+                    "outlayr/swiftui-list-grounds": "off",
+                    "outlayr/widget-module-scope": "off",
                 },
             },
             {

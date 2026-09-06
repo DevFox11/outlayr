@@ -20,7 +20,12 @@ pnpm exec vp check                     # lint + format, repo-wide
 pnpm check-types                       # intlayer build, then tsc --noEmit
 node_modules/.bin/jest src/<area>      # the suites next to what you touched, ~22s for all of them
 pnpm --filter @outlayr/backend test    # only when packages/backend changed, ~1s
+pnpm bench:bundle                      # only when a dependency or import style changed, ~40s
 ```
+
+`bench:bundle` attributes every bundled byte to its package. Metro ships a
+barrel whole, so a new import from a big package shows up here first; keep a
+`--out` baseline and pass it as `--baseline` to see the delta.
 
 `jest` builds the intlayer dictionaries itself when `.intlayer/` is absent, so
 a raw `jest` in a fresh worktree is safe. A hundred failing suites that all

@@ -1,4 +1,4 @@
-import { RefreshIcon } from "@hugeicons-pro/core-stroke-rounded";
+import RefreshIcon from "@hugeicons-pro/core-stroke-rounded/RefreshIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { utcDateString } from "@outlayr/money/dates";
 import { Pressable, View } from "react-native";

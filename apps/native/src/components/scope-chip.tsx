@@ -1,6 +1,7 @@
 import { MenuView } from "@expo/ui/community/menu";
 import type { MenuAction } from "@expo/ui/community/menu";
-import { ArrowDown01Icon, Cancel01Icon } from "@hugeicons-pro/core-solid-rounded";
+import ArrowDown01Icon from "@hugeicons-pro/core-solid-rounded/ArrowDown01Icon";
+import Cancel01Icon from "@hugeicons-pro/core-solid-rounded/Cancel01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";

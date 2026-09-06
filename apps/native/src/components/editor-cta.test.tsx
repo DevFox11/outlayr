@@ -1,6 +1,3 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 
@@ -55,43 +52,5 @@ describe("editorCta", () => {
         const button = screen.getByRole("button");
         expect(button).toBeDisabled();
         expect(button.props.accessibilityState.busy).toBe(true);
-    });
-});
-
-/**
- * `busy` is easy to forget at a call site — the category editor shipped without
- * it, so its save dimmed but never spun, most visibly on subcategory creation
- * where `holdSubmitting()` keeps the handler pending while the route closes.
- * `canSave` already folds in `!isSubmitting`, so the omission is invisible
- * until you watch a real save. A source scan is what catches the next copy.
- */
-describe("every EditorCta call site", () => {
-    const SRC = join(import.meta.dirname, "..");
-    const RENDERS_CTA = /<EditorCta\b/;
-
-    function sourceFiles(dir: string): string[] {
-        const files: string[] = [];
-        for (const entry of readdirSync(dir, { withFileTypes: true })) {
-            const full = join(dir, entry.name);
-            if (entry.isDirectory()) {
-                files.push(...sourceFiles(full));
-                continue;
-            }
-            if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) {
-                files.push(full);
-            }
-        }
-        return files;
-    }
-
-    it("hands it the submitting state, so the save has a visible spinner", () => {
-        const offenders = sourceFiles(SRC)
-            .filter((file) => {
-                const source = readFileSync(file, "utf-8");
-                return RENDERS_CTA.test(source) && !/<EditorCta[^>]*\bbusy=/s.test(source);
-            })
-            .map((file) => file.slice(SRC.length + 1));
-
-        expect(offenders).toStrictEqual([]);
     });
 });

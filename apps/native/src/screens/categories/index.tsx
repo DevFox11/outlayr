@@ -29,7 +29,7 @@ import {
     opacity,
     padding,
 } from "@expo/ui/swift-ui/modifiers";
-import { PlusSignIcon } from "@hugeicons-pro/core-stroke-rounded";
+import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";

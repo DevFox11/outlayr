@@ -2,7 +2,8 @@ import { DatePicker, Divider, HStack, Spacer, Text as SwiftText, TextField, VSta
 import type { useNativeState } from "@expo/ui/swift-ui";
 import type { ViewModifier } from "@expo/ui/swift-ui/modifiers";
 import { datePickerStyle, foregroundStyle, labelsHidden, lineLimit, padding } from "@expo/ui/swift-ui/modifiers";
-import { Calendar03Icon, StickyNote01Icon } from "@hugeicons-pro/core-stroke-rounded";
+import Calendar03Icon from "@hugeicons-pro/core-stroke-rounded/Calendar03Icon";
+import StickyNote01Icon from "@hugeicons-pro/core-stroke-rounded/StickyNote01Icon";
 
 import { TransactionFormRowIcon } from "@/components/transaction-form/row-icon";
 import { BODY, ROW, rowLabel } from "@/components/transaction-form/style";

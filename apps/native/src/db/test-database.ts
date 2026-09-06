@@ -42,7 +42,7 @@ export const unusedDatabase = (): Database => ({}) as Database;
 const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
 
 /** The shipped migration files, in the order the app applies them. */
-export const migrationFiles = (): string[] =>
+const migrationFiles = (): string[] =>
     readdirSync(MIGRATIONS)
         .filter((name) => name.endsWith(".sql"))
         .sort();

@@ -376,7 +376,7 @@ export interface ReceiptDraft {
     total: number;
 }
 
-export type ScanStatus =
+type ScanStatus =
     | "ok"
     | "unauthenticated"
     | "notConfigured"
@@ -386,7 +386,7 @@ export type ScanStatus =
     | "invalidResponse"
     | "unclear";
 
-export interface ScanResult {
+interface ScanResult {
     receipt: ReceiptDraft | null;
     status: ScanStatus;
 }

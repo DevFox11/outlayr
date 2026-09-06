@@ -27,7 +27,7 @@ export type ScanFailure =
     | "rateLimited"
     | "provider";
 
-export type ScanSource = "camera" | "library";
+type ScanSource = "camera" | "library";
 
 /** The photo on screen: the picker's own file, at the size it reported. */
 export interface ScanPhoto {
@@ -42,7 +42,7 @@ export interface ScanPhoto {
  * The review carries the snapshot from when the photo left, because the
  * ledger can change underneath a request in flight.
  */
-export type ScanPhase<Context = unknown> =
+type ScanPhase<Context = unknown> =
     /** Nothing picked yet; the screen offers the camera and the library. */
     | { kind: "idle" }
     /** The system camera or library is up; the screen waits behind it. */

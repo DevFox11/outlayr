@@ -1,6 +1,6 @@
 import { DatePicker, Host, HStack, Spacer } from "@expo/ui/swift-ui";
 import { datePickerStyle, labelsHidden } from "@expo/ui/swift-ui/modifiers";
-import { ArrowRight01Icon } from "@hugeicons-pro/core-stroke-rounded";
+import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";

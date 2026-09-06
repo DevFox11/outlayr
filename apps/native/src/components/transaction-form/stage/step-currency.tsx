@@ -1,4 +1,4 @@
-import { Search01Icon } from "@hugeicons-pro/core-stroke-rounded";
+import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useState } from "react";
 import { TextInput, View } from "react-native";

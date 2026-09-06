@@ -1,4 +1,7 @@
-import { Cancel01Icon, CheckIcon, MinusSignIcon, PlusSignIcon } from "@hugeicons-pro/core-stroke-rounded";
+import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
+import CheckIcon from "@hugeicons-pro/core-stroke-rounded/CheckIcon";
+import MinusSignIcon from "@hugeicons-pro/core-stroke-rounded/MinusSignIcon";
+import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { NumberFlow } from "number-flow-react-native";
 import { BottomSheet, Button, cn, Tabs } from "panelui-native";

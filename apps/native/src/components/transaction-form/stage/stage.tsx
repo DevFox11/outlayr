@@ -1,4 +1,4 @@
-import { ArrowLeft01Icon } from "@hugeicons-pro/core-stroke-rounded";
+import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";

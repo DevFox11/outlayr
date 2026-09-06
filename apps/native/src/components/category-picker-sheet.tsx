@@ -1,11 +1,9 @@
 import { BottomSheetModal, BottomSheetScrollView } from "@expo/ui/community/bottom-sheet";
-import {
-    ArrowRight01Icon,
-    Cancel01Icon,
-    PlusSignIcon,
-    Search01Icon,
-    Tick02Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
+import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
+import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
+import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
+import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Button, InputGroup } from "panelui-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";

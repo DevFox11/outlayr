@@ -5,6 +5,7 @@
     "main": "expo-router/entry",
     "scripts": {
         "android": "expo run:android",
+        "bench:bundle": "node --import tsx scripts/bench/bundle.ts",
         "check-types": "intlayer build && tsc --noEmit",
         "db:generate": "drizzle-kit generate",
         "dev": "intlayer build && expo start --dev-client --clear",
@@ -101,6 +102,7 @@
     },
     "devDependencies": {
         "@jest/globals": "29.7.0",
+        "@jridgewell/trace-mapping": "^0.3.31",
         "@outlayr/config": "workspace:*",
         "@testing-library/react-native": "^14.0.1",
         "@types/better-sqlite3": "^9.6.0",

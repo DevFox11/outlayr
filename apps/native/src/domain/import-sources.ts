@@ -1,4 +1,6 @@
-import { ClipboardPasteIcon, File01Icon, Image01Icon } from "@hugeicons-pro/core-stroke-rounded";
+import ClipboardPasteIcon from "@hugeicons-pro/core-stroke-rounded/ClipboardPasteIcon";
+import File01Icon from "@hugeicons-pro/core-stroke-rounded/File01Icon";
+import Image01Icon from "@hugeicons-pro/core-stroke-rounded/Image01Icon";
 import type { IconSvgElement } from "@hugeicons/react-native";
 
 import type { TranslationKey } from "@/i18n/catalog";

@@ -1,4 +1,5 @@
-import { Cancel01Icon, PlusSignIcon } from "@hugeicons-pro/core-stroke-rounded";
+import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
+import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Image } from "expo-image";
 import { SymbolView } from "expo-symbols";

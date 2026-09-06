@@ -1,4 +1,4 @@
-import { ArrowDataTransferVerticalIcon } from "@hugeicons-pro/core-stroke-rounded";
+import ArrowDataTransferVerticalIcon from "@hugeicons-pro/core-stroke-rounded/ArrowDataTransferVerticalIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Pressable, View } from "react-native";
 

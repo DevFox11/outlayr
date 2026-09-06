@@ -5,7 +5,7 @@ import type { SkImage } from "@shopify/react-native-skia";
  * The server accepts 900KB (`receiptScan.ts:MAX_IMAGE_BYTES`); this leaves
  * room for the value's own overhead on the wire.
  */
-export const MAX_UPLOAD_BYTES = 850_000;
+const MAX_UPLOAD_BYTES = 850_000;
 /**
  * A receipt's type is legible to the model at this size on the long edge;
  * a 4000px camera frame is ten times the bytes for nothing.

@@ -1,17 +1,13 @@
-import {
-    DivideSignCircleIcon as DivideSignCircleSolidIcon,
-    NoteEditIcon as NoteEditSolidIcon,
-    RepeatIcon as RepeatSolidIcon,
-    SparklesIcon as SparklesSolidIcon,
-    Tag01Icon as Tag01SolidIcon,
-} from "@hugeicons-pro/core-solid-rounded";
-import {
-    DivideSignCircleIcon,
-    NoteEditIcon,
-    RepeatIcon,
-    SparklesIcon,
-    Tag01Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import DivideSignCircleSolidIcon from "@hugeicons-pro/core-solid-rounded/DivideSignCircleIcon";
+import NoteEditSolidIcon from "@hugeicons-pro/core-solid-rounded/NoteEditIcon";
+import RepeatSolidIcon from "@hugeicons-pro/core-solid-rounded/RepeatIcon";
+import SparklesSolidIcon from "@hugeicons-pro/core-solid-rounded/SparklesIcon";
+import Tag01SolidIcon from "@hugeicons-pro/core-solid-rounded/Tag01Icon";
+import DivideSignCircleIcon from "@hugeicons-pro/core-stroke-rounded/DivideSignCircleIcon";
+import NoteEditIcon from "@hugeicons-pro/core-stroke-rounded/NoteEditIcon";
+import RepeatIcon from "@hugeicons-pro/core-stroke-rounded/RepeatIcon";
+import SparklesIcon from "@hugeicons-pro/core-stroke-rounded/SparklesIcon";
+import Tag01Icon from "@hugeicons-pro/core-stroke-rounded/Tag01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import type { IconSvgElement } from "@hugeicons/react-native";
 import { Chip } from "panelui-native";

@@ -2,7 +2,8 @@ import { Button, Divider, HStack, Image, Spacer, Text as SwiftText, TextField, V
 import type { useNativeState } from "@expo/ui/swift-ui";
 import type { ViewModifier } from "@expo/ui/swift-ui/modifiers";
 import { buttonStyle, foregroundStyle, lineLimit, padding } from "@expo/ui/swift-ui/modifiers";
-import { Note01Icon, Wallet01Icon } from "@hugeicons-pro/core-stroke-rounded";
+import Note01Icon from "@hugeicons-pro/core-stroke-rounded/Note01Icon";
+import Wallet01Icon from "@hugeicons-pro/core-stroke-rounded/Wallet01Icon";
 import type { ReactNode } from "react";
 
 import { TransactionFormRowIcon } from "./row-icon";

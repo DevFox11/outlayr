@@ -125,7 +125,7 @@ export function resolveRecurrence(recurrence: VoiceRecurrence | null): ResolvedR
  * that name are no match at all: the ledger allows duplicate account names,
  * and a draft that could land on either balance is not one to save unasked.
  */
-function uniqueMatch<T>(
+export function uniqueMatch<T>(
     candidates: readonly T[],
     name: string | null,
     nameOf: (candidate: T) => string | null

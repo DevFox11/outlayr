@@ -1,4 +1,4 @@
-import { Tag01Icon } from "@hugeicons-pro/core-stroke-rounded";
+import Tag01Icon from "@hugeicons-pro/core-stroke-rounded/Tag01Icon";
 import { describe, expect, it } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 

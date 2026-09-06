@@ -1,4 +1,4 @@
-import { File02Icon } from "@hugeicons-pro/core-stroke-rounded";
+import File02Icon from "@hugeicons-pro/core-stroke-rounded/File02Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Button } from "panelui-native";
 import { useMemo } from "react";

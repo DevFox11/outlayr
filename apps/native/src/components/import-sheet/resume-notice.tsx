@@ -1,4 +1,4 @@
-import { RotateClockwiseIcon } from "@hugeicons-pro/core-stroke-rounded";
+import RotateClockwiseIcon from "@hugeicons-pro/core-stroke-rounded/RotateClockwiseIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Pressable, View } from "react-native";
 

@@ -1,6 +1,7 @@
 import { Host, Text as NativeText, Picker } from "@expo/ui/swift-ui";
 import { pickerStyle, tag, tint } from "@expo/ui/swift-ui/modifiers";
-import { ArrowRight01Icon, Tick02Icon } from "@hugeicons-pro/core-stroke-rounded";
+import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
+import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import type { ReactNode } from "react";
 import { Pressable, Switch, View } from "react-native";

@@ -1,4 +1,4 @@
-import { ArrowDown01Icon } from "@hugeicons-pro/core-stroke-rounded";
+import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 
 import { GlassButton } from "@/components/glass-button";

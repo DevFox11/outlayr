@@ -1,377 +1,373 @@
-import {
-    Agreement01Icon as Agreement01Solid,
-    Airplane01Icon as Airplane01Solid,
-    AlAqsaMosqueIcon as AlAqsaMosqueSolid,
-    AnalyticsUpIcon as AnalyticsUpSolid,
-    AppleIcon as AppleSolid,
-    Baby01Icon as Baby01Solid,
-    BabyBed01Icon as BabyBed01Solid,
-    BalanceScaleIcon as BalanceScaleSolid,
-    BankIcon as BankSolid,
-    Basketball01Icon as Basketball01Solid,
-    Bathtub01Icon as Bathtub01Solid,
-    Beach02Icon as Beach02Solid,
-    BeachIcon as BeachSolid,
-    BedSingle01Icon as BedSingle01Solid,
-    Bicycle01Icon as Bicycle01Solid,
-    BirdIcon as BirdSolid,
-    BirthdayCakeIcon as BirthdayCakeSolid,
-    Bone01Icon as Bone01Solid,
-    Book01Icon as Book01Solid,
-    Book02Icon as Book02Solid,
-    BookOpen01Icon as BookOpen01Solid,
-    BoxingGlove01Icon as BoxingGlove01Solid,
-    BrainIcon as BrainSolid,
-    Bread01Icon as Bread01Solid,
-    Briefcase01Icon as Briefcase01Solid,
-    BubbleTea01Icon as BubbleTea01Solid,
-    Building01Icon as Building01Solid,
-    BulbIcon as BulbSolid,
-    Bus01Icon as Bus01Solid,
-    CakeIcon as CakeSolid,
-    Calculator01Icon as Calculator01Solid,
-    Calendar01Icon as Calendar01Solid,
-    Camera01Icon as Camera01Solid,
-    Camera02Icon as Camera02Solid,
-    Car01Icon as Car01Solid,
-    CargoShipIcon as CargoShipSolid,
-    CashbackIcon as CashbackSolid,
-    CatIcon as CatSolid,
-    ChartUpIcon as ChartUpSolid,
-    CheeseIcon as CheeseSolid,
-    ChefHatIcon as ChefHatSolid,
-    ChurchIcon as ChurchSolid,
-    Clapping01Icon as Clapping01Solid,
-    Clock01Icon as Clock01Solid,
-    Coffee02Icon as Coffee02Solid,
-    Coins01Icon as Coins01Solid,
-    CoinsDollarIcon as CoinsDollarSolid,
-    Compass01Icon as Compass01Solid,
-    ConsoleIcon as ConsoleSolid,
-    Coupon03Icon as Coupon03Solid,
-    CreditCardIcon as CreditCardSolid,
-    Cupcake01Icon as Cupcake01Solid,
-    DartIcon as DartSolid,
-    DentalToothIcon as DentalToothSolid,
-    DeveloperIcon as DeveloperSolid,
-    Diamond01Icon as Diamond01Solid,
-    Dish01Icon as Dish01Solid,
-    Door01Icon as Door01Solid,
-    Dress01Icon as Dress01Solid,
-    DrinkIcon as DrinkSolid,
-    Dumbbell01Icon as Dumbbell01Solid,
-    EarthIcon as EarthSolid,
-    EggFriedIcon as EggFriedSolid,
-    ElectricPlugsIcon as ElectricPlugsSolid,
-    EnergyIcon as EnergySolid,
-    EquipmentGym01Icon as EquipmentGym01Solid,
-    Exchange01Icon as Exchange01Solid,
-    EyeIcon as EyeSolid,
-    FavouriteIcon as FavouriteSolid,
-    Film01Icon as Film01Solid,
-    FilmRoll01Icon as FilmRoll01Solid,
-    FireIcon as FireSolid,
-    FirstAidKitIcon as FirstAidKitSolid,
-    FlashIcon as FlashSolid,
-    FlowerPotIcon as FlowerPotSolid,
-    FootballIcon as FootballSolid,
-    FridgeIcon as FridgeSolid,
-    Fuel01Icon as Fuel01Solid,
-    FuelStationIcon as FuelStationSolid,
-    GameController01Icon as GameController01Solid,
-    GameController03Icon as GameController03Solid,
-    GasPipeIcon as GasPipeSolid,
-    GasStoveIcon as GasStoveSolid,
-    GiftCardIcon as GiftCardSolid,
-    GiftIcon as GiftSolid,
-    GlobeIcon as GlobeSolid,
-    GraduationScrollIcon as GraduationScrollSolid,
-    GymnasticRingsIcon as GymnasticRingsSolid,
-    HairDryerIcon as HairDryerSolid,
-    Hamburger01Icon as Hamburger01Solid,
-    HandBag01Icon as HandBag01Solid,
-    HangerIcon as HangerSolid,
-    HeadphonesIcon as HeadphonesSolid,
-    HealthIcon as HealthSolid,
-    HeartCheckIcon as HeartCheckSolid,
-    HeartIcon as HeartSolid,
-    Home01Icon as Home01Solid,
-    Home03Icon as Home03Solid,
-    IceCream01Icon as IceCream01Solid,
-    InjectionIcon as InjectionSolid,
-    Invoice01Icon as Invoice01Solid,
-    Invoice03Icon as Invoice03Solid,
-    Joystick01Icon as Joystick01Solid,
-    Key01Icon as Key01Solid,
-    KidIcon as KidSolid,
-    KitchenUtensilsIcon as KitchenUtensilsSolid,
-    Lamp01Icon as Lamp01Solid,
-    LaptopIcon as LaptopSolid,
-    Leaf01Icon as Leaf01Solid,
-    Location01Icon as Location01Solid,
-    Luggage01Icon as Luggage01Solid,
-    Mail01Icon as Mail01Solid,
-    Medicine01Icon as Medicine01Solid,
-    Mic01Icon as Mic01Solid,
-    Money01Icon as Money01Solid,
-    MoneyBag01Icon as MoneyBag01Solid,
-    MoneyReceive01Icon as MoneyReceive01Solid,
-    MoneySend01Icon as MoneySend01Solid,
-    MoreHorizontalCircle01Icon as MoreHorizontalCircle01Solid,
-    Mortarboard01Icon as Mortarboard01Solid,
-    Motorbike01Icon as Motorbike01Solid,
-    MountainIcon as MountainSolid,
-    MusicNote01Icon as MusicNote01Solid,
-    NoodlesIcon as NoodlesSolid,
-    PaintBoardIcon as PaintBoardSolid,
-    PaintBrush01Icon as PaintBrush01Solid,
-    ParkingAreaSquareIcon as ParkingAreaSquareSolid,
-    PartyIcon as PartySolid,
-    PencilEdit01Icon as PencilEdit01Solid,
-    PercentCircleIcon as PercentCircleSolid,
-    PerfumeIcon as PerfumeSolid,
-    PiggyBankIcon as PiggyBankSolid,
-    PillIcon as PillSolid,
-    Pizza01Icon as Pizza01Solid,
-    Plant01Icon as Plant01Solid,
-    PuzzleIcon as PuzzleSolid,
-    RepeatIcon as RepeatSolid,
-    Restaurant01Icon as Restaurant01Solid,
-    Restaurant02Icon as Restaurant02Solid,
-    Road01Icon as Road01Solid,
-    RunningShoesIcon as RunningShoesSolid,
-    SafeIcon as SafeSolid,
-    SaleTag01Icon as SaleTag01Solid,
-    SavingsIcon as SavingsSolid,
-    Scooter01Icon as Scooter01Solid,
-    Shield01Icon as Shield01Solid,
-    Shirt01Icon as Shirt01Solid,
-    ShoppingBag01Icon as ShoppingBag01Solid,
-    ShoppingBag03Icon as ShoppingBag03Solid,
-    ShoppingBasket01Icon as ShoppingBasket01Solid,
-    ShoppingBasket03Icon as ShoppingBasket03Solid,
-    ShoppingCart01Icon as ShoppingCart01Solid,
-    Sofa01Icon as Sofa01Solid,
-    SoftDrink01Icon as SoftDrink01Solid,
-    StarIcon as StarSolid,
-    Stethoscope02Icon as Stethoscope02Solid,
-    Store01Icon as Store01Solid,
-    Sun03Icon as Sun03Solid,
-    SunglassesIcon as SunglassesSolid,
-    Sushi01Icon as Sushi01Solid,
-    SwimmingIcon as SwimmingSolid,
-    Tag01Icon as Tag01Solid,
-    Tap01Icon as Tap01Solid,
-    Target01Icon as Target01Solid,
-    TaxesIcon as TaxesSolid,
-    TaxiIcon as TaxiSolid,
-    TeaPodIcon as TeaPodSolid,
-    TennisBallIcon as TennisBallSolid,
-    TentIcon as TentSolid,
-    Ticket01Icon as Ticket01Solid,
-    TipsIcon as TipsSolid,
-    Toilet01Icon as Toilet01Solid,
-    ToolsIcon as ToolsSolid,
-    Train01Icon as Train01Solid,
-    Tree01Icon as Tree01Solid,
-    TShirtIcon as TShirtSolid,
-    Tv01Icon as Tv01Solid,
-    UmbrellaIcon as UmbrellaSolid,
-    Video01Icon as Video01Solid,
-    Wallet01Icon as Wallet01Solid,
-    Wallet03Icon as Wallet03Solid,
-    Watch01Icon as Watch01Solid,
-    Wifi01Icon as Wifi01Solid,
-    Wrench01Icon as Wrench01Solid,
-    Yoga01Icon as Yoga01Solid,
-} from "@hugeicons-pro/core-solid-rounded";
-import {
-    Agreement01Icon,
-    Airplane01Icon,
-    AlAqsaMosqueIcon,
-    AnalyticsUpIcon,
-    AppleIcon,
-    Baby01Icon,
-    BabyBed01Icon,
-    BalanceScaleIcon,
-    BankIcon,
-    Basketball01Icon,
-    Bathtub01Icon,
-    Beach02Icon,
-    BeachIcon,
-    BedSingle01Icon,
-    Bicycle01Icon,
-    BirdIcon,
-    BirthdayCakeIcon,
-    Bone01Icon,
-    Book01Icon,
-    Book02Icon,
-    BookOpen01Icon,
-    BoxingGlove01Icon,
-    BrainIcon,
-    Bread01Icon,
-    Briefcase01Icon,
-    BubbleTea01Icon,
-    Building01Icon,
-    BulbIcon,
-    Bus01Icon,
-    CakeIcon,
-    Calculator01Icon,
-    Calendar01Icon,
-    Camera01Icon,
-    Camera02Icon,
-    Car01Icon,
-    CargoShipIcon,
-    CashbackIcon,
-    CatIcon,
-    ChartUpIcon,
-    CheeseIcon,
-    ChefHatIcon,
-    ChurchIcon,
-    Clapping01Icon,
-    Clock01Icon,
-    Coffee02Icon,
-    Coins01Icon,
-    CoinsDollarIcon,
-    Compass01Icon,
-    ConsoleIcon,
-    Coupon03Icon,
-    CreditCardIcon,
-    Cupcake01Icon,
-    DartIcon,
-    DentalToothIcon,
-    DeveloperIcon,
-    Diamond01Icon,
-    Dish01Icon,
-    Door01Icon,
-    Dress01Icon,
-    DrinkIcon,
-    Dumbbell01Icon,
-    EarthIcon,
-    EggFriedIcon,
-    ElectricPlugsIcon,
-    EnergyIcon,
-    EquipmentGym01Icon,
-    Exchange01Icon,
-    EyeIcon,
-    FavouriteIcon,
-    Film01Icon,
-    FilmRoll01Icon,
-    FireIcon,
-    FirstAidKitIcon,
-    FlashIcon,
-    FlowerPotIcon,
-    FootballIcon,
-    FridgeIcon,
-    Fuel01Icon,
-    FuelStationIcon,
-    GameController01Icon,
-    GameController03Icon,
-    GasPipeIcon,
-    GasStoveIcon,
-    GiftCardIcon,
-    GiftIcon,
-    GlobeIcon,
-    GraduationScrollIcon,
-    GymnasticRingsIcon,
-    HairDryerIcon,
-    Hamburger01Icon,
-    HandBag01Icon,
-    HangerIcon,
-    HeadphonesIcon,
-    HealthIcon,
-    HeartCheckIcon,
-    HeartIcon,
-    Home01Icon,
-    Home03Icon,
-    IceCream01Icon,
-    InjectionIcon,
-    Invoice01Icon,
-    Invoice03Icon,
-    Joystick01Icon,
-    Key01Icon,
-    KidIcon,
-    KitchenUtensilsIcon,
-    Lamp01Icon,
-    LaptopIcon,
-    Leaf01Icon,
-    Location01Icon,
-    Luggage01Icon,
-    Mail01Icon,
-    Medicine01Icon,
-    Mic01Icon,
-    Money01Icon,
-    MoneyBag01Icon,
-    MoneyReceive01Icon,
-    MoneySend01Icon,
-    MoreHorizontalCircle01Icon,
-    Mortarboard01Icon,
-    Motorbike01Icon,
-    MountainIcon,
-    MusicNote01Icon,
-    NoodlesIcon,
-    PaintBoardIcon,
-    PaintBrush01Icon,
-    ParkingAreaSquareIcon,
-    PartyIcon,
-    PencilEdit01Icon,
-    PercentCircleIcon,
-    PerfumeIcon,
-    PiggyBankIcon,
-    PillIcon,
-    Pizza01Icon,
-    Plant01Icon,
-    PuzzleIcon,
-    RepeatIcon,
-    Restaurant01Icon,
-    Restaurant02Icon,
-    Road01Icon,
-    RunningShoesIcon,
-    SafeIcon,
-    SaleTag01Icon,
-    SavingsIcon,
-    Scooter01Icon,
-    Shield01Icon,
-    Shirt01Icon,
-    ShoppingBag01Icon,
-    ShoppingBag03Icon,
-    ShoppingBasket01Icon,
-    ShoppingBasket03Icon,
-    ShoppingCart01Icon,
-    Sofa01Icon,
-    SoftDrink01Icon,
-    StarIcon,
-    Stethoscope02Icon,
-    Store01Icon,
-    Sun03Icon,
-    SunglassesIcon,
-    Sushi01Icon,
-    SwimmingIcon,
-    Tag01Icon,
-    Tap01Icon,
-    Target01Icon,
-    TaxesIcon,
-    TaxiIcon,
-    TeaPodIcon,
-    TennisBallIcon,
-    TentIcon,
-    Ticket01Icon,
-    TipsIcon,
-    Toilet01Icon,
-    ToolsIcon,
-    Train01Icon,
-    Tree01Icon,
-    TShirtIcon,
-    Tv01Icon,
-    UmbrellaIcon,
-    Video01Icon,
-    Wallet01Icon,
-    Wallet03Icon,
-    Watch01Icon,
-    Wifi01Icon,
-    Wrench01Icon,
-    Yoga01Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Agreement01Solid from "@hugeicons-pro/core-solid-rounded/Agreement01Icon";
+import Airplane01Solid from "@hugeicons-pro/core-solid-rounded/Airplane01Icon";
+import AlAqsaMosqueSolid from "@hugeicons-pro/core-solid-rounded/AlAqsaMosqueIcon";
+import AnalyticsUpSolid from "@hugeicons-pro/core-solid-rounded/AnalyticsUpIcon";
+import AppleSolid from "@hugeicons-pro/core-solid-rounded/AppleIcon";
+import Baby01Solid from "@hugeicons-pro/core-solid-rounded/Baby01Icon";
+import BabyBed01Solid from "@hugeicons-pro/core-solid-rounded/BabyBed01Icon";
+import BalanceScaleSolid from "@hugeicons-pro/core-solid-rounded/BalanceScaleIcon";
+import BankSolid from "@hugeicons-pro/core-solid-rounded/BankIcon";
+import Basketball01Solid from "@hugeicons-pro/core-solid-rounded/Basketball01Icon";
+import Bathtub01Solid from "@hugeicons-pro/core-solid-rounded/Bathtub01Icon";
+import Beach02Solid from "@hugeicons-pro/core-solid-rounded/Beach02Icon";
+import BeachSolid from "@hugeicons-pro/core-solid-rounded/BeachIcon";
+import BedSingle01Solid from "@hugeicons-pro/core-solid-rounded/BedSingle01Icon";
+import Bicycle01Solid from "@hugeicons-pro/core-solid-rounded/Bicycle01Icon";
+import BirdSolid from "@hugeicons-pro/core-solid-rounded/BirdIcon";
+import BirthdayCakeSolid from "@hugeicons-pro/core-solid-rounded/BirthdayCakeIcon";
+import Bone01Solid from "@hugeicons-pro/core-solid-rounded/Bone01Icon";
+import Book01Solid from "@hugeicons-pro/core-solid-rounded/Book01Icon";
+import Book02Solid from "@hugeicons-pro/core-solid-rounded/Book02Icon";
+import BookOpen01Solid from "@hugeicons-pro/core-solid-rounded/BookOpen01Icon";
+import BoxingGlove01Solid from "@hugeicons-pro/core-solid-rounded/BoxingGlove01Icon";
+import BrainSolid from "@hugeicons-pro/core-solid-rounded/BrainIcon";
+import Bread01Solid from "@hugeicons-pro/core-solid-rounded/Bread01Icon";
+import Briefcase01Solid from "@hugeicons-pro/core-solid-rounded/Briefcase01Icon";
+import BubbleTea01Solid from "@hugeicons-pro/core-solid-rounded/BubbleTea01Icon";
+import Building01Solid from "@hugeicons-pro/core-solid-rounded/Building01Icon";
+import BulbSolid from "@hugeicons-pro/core-solid-rounded/BulbIcon";
+import Bus01Solid from "@hugeicons-pro/core-solid-rounded/Bus01Icon";
+import CakeSolid from "@hugeicons-pro/core-solid-rounded/CakeIcon";
+import Calculator01Solid from "@hugeicons-pro/core-solid-rounded/Calculator01Icon";
+import Calendar01Solid from "@hugeicons-pro/core-solid-rounded/Calendar01Icon";
+import Camera01Solid from "@hugeicons-pro/core-solid-rounded/Camera01Icon";
+import Camera02Solid from "@hugeicons-pro/core-solid-rounded/Camera02Icon";
+import Car01Solid from "@hugeicons-pro/core-solid-rounded/Car01Icon";
+import CargoShipSolid from "@hugeicons-pro/core-solid-rounded/CargoShipIcon";
+import CashbackSolid from "@hugeicons-pro/core-solid-rounded/CashbackIcon";
+import CatSolid from "@hugeicons-pro/core-solid-rounded/CatIcon";
+import ChartUpSolid from "@hugeicons-pro/core-solid-rounded/ChartUpIcon";
+import CheeseSolid from "@hugeicons-pro/core-solid-rounded/CheeseIcon";
+import ChefHatSolid from "@hugeicons-pro/core-solid-rounded/ChefHatIcon";
+import ChurchSolid from "@hugeicons-pro/core-solid-rounded/ChurchIcon";
+import Clapping01Solid from "@hugeicons-pro/core-solid-rounded/Clapping01Icon";
+import Clock01Solid from "@hugeicons-pro/core-solid-rounded/Clock01Icon";
+import Coffee02Solid from "@hugeicons-pro/core-solid-rounded/Coffee02Icon";
+import Coins01Solid from "@hugeicons-pro/core-solid-rounded/Coins01Icon";
+import CoinsDollarSolid from "@hugeicons-pro/core-solid-rounded/CoinsDollarIcon";
+import Compass01Solid from "@hugeicons-pro/core-solid-rounded/Compass01Icon";
+import ConsoleSolid from "@hugeicons-pro/core-solid-rounded/ConsoleIcon";
+import Coupon03Solid from "@hugeicons-pro/core-solid-rounded/Coupon03Icon";
+import CreditCardSolid from "@hugeicons-pro/core-solid-rounded/CreditCardIcon";
+import Cupcake01Solid from "@hugeicons-pro/core-solid-rounded/Cupcake01Icon";
+import DartSolid from "@hugeicons-pro/core-solid-rounded/DartIcon";
+import DentalToothSolid from "@hugeicons-pro/core-solid-rounded/DentalToothIcon";
+import DeveloperSolid from "@hugeicons-pro/core-solid-rounded/DeveloperIcon";
+import Diamond01Solid from "@hugeicons-pro/core-solid-rounded/Diamond01Icon";
+import Dish01Solid from "@hugeicons-pro/core-solid-rounded/Dish01Icon";
+import Door01Solid from "@hugeicons-pro/core-solid-rounded/Door01Icon";
+import Dress01Solid from "@hugeicons-pro/core-solid-rounded/Dress01Icon";
+import DrinkSolid from "@hugeicons-pro/core-solid-rounded/DrinkIcon";
+import Dumbbell01Solid from "@hugeicons-pro/core-solid-rounded/Dumbbell01Icon";
+import EarthSolid from "@hugeicons-pro/core-solid-rounded/EarthIcon";
+import EggFriedSolid from "@hugeicons-pro/core-solid-rounded/EggFriedIcon";
+import ElectricPlugsSolid from "@hugeicons-pro/core-solid-rounded/ElectricPlugsIcon";
+import EnergySolid from "@hugeicons-pro/core-solid-rounded/EnergyIcon";
+import EquipmentGym01Solid from "@hugeicons-pro/core-solid-rounded/EquipmentGym01Icon";
+import Exchange01Solid from "@hugeicons-pro/core-solid-rounded/Exchange01Icon";
+import EyeSolid from "@hugeicons-pro/core-solid-rounded/EyeIcon";
+import FavouriteSolid from "@hugeicons-pro/core-solid-rounded/FavouriteIcon";
+import Film01Solid from "@hugeicons-pro/core-solid-rounded/Film01Icon";
+import FilmRoll01Solid from "@hugeicons-pro/core-solid-rounded/FilmRoll01Icon";
+import FireSolid from "@hugeicons-pro/core-solid-rounded/FireIcon";
+import FirstAidKitSolid from "@hugeicons-pro/core-solid-rounded/FirstAidKitIcon";
+import FlashSolid from "@hugeicons-pro/core-solid-rounded/FlashIcon";
+import FlowerPotSolid from "@hugeicons-pro/core-solid-rounded/FlowerPotIcon";
+import FootballSolid from "@hugeicons-pro/core-solid-rounded/FootballIcon";
+import FridgeSolid from "@hugeicons-pro/core-solid-rounded/FridgeIcon";
+import Fuel01Solid from "@hugeicons-pro/core-solid-rounded/Fuel01Icon";
+import FuelStationSolid from "@hugeicons-pro/core-solid-rounded/FuelStationIcon";
+import GameController01Solid from "@hugeicons-pro/core-solid-rounded/GameController01Icon";
+import GameController03Solid from "@hugeicons-pro/core-solid-rounded/GameController03Icon";
+import GasPipeSolid from "@hugeicons-pro/core-solid-rounded/GasPipeIcon";
+import GasStoveSolid from "@hugeicons-pro/core-solid-rounded/GasStoveIcon";
+import GiftCardSolid from "@hugeicons-pro/core-solid-rounded/GiftCardIcon";
+import GiftSolid from "@hugeicons-pro/core-solid-rounded/GiftIcon";
+import GlobeSolid from "@hugeicons-pro/core-solid-rounded/GlobeIcon";
+import GraduationScrollSolid from "@hugeicons-pro/core-solid-rounded/GraduationScrollIcon";
+import GymnasticRingsSolid from "@hugeicons-pro/core-solid-rounded/GymnasticRingsIcon";
+import HairDryerSolid from "@hugeicons-pro/core-solid-rounded/HairDryerIcon";
+import Hamburger01Solid from "@hugeicons-pro/core-solid-rounded/Hamburger01Icon";
+import HandBag01Solid from "@hugeicons-pro/core-solid-rounded/HandBag01Icon";
+import HangerSolid from "@hugeicons-pro/core-solid-rounded/HangerIcon";
+import HeadphonesSolid from "@hugeicons-pro/core-solid-rounded/HeadphonesIcon";
+import HealthSolid from "@hugeicons-pro/core-solid-rounded/HealthIcon";
+import HeartCheckSolid from "@hugeicons-pro/core-solid-rounded/HeartCheckIcon";
+import HeartSolid from "@hugeicons-pro/core-solid-rounded/HeartIcon";
+import Home01Solid from "@hugeicons-pro/core-solid-rounded/Home01Icon";
+import Home03Solid from "@hugeicons-pro/core-solid-rounded/Home03Icon";
+import IceCream01Solid from "@hugeicons-pro/core-solid-rounded/IceCream01Icon";
+import InjectionSolid from "@hugeicons-pro/core-solid-rounded/InjectionIcon";
+import Invoice01Solid from "@hugeicons-pro/core-solid-rounded/Invoice01Icon";
+import Invoice03Solid from "@hugeicons-pro/core-solid-rounded/Invoice03Icon";
+import Joystick01Solid from "@hugeicons-pro/core-solid-rounded/Joystick01Icon";
+import Key01Solid from "@hugeicons-pro/core-solid-rounded/Key01Icon";
+import KidSolid from "@hugeicons-pro/core-solid-rounded/KidIcon";
+import KitchenUtensilsSolid from "@hugeicons-pro/core-solid-rounded/KitchenUtensilsIcon";
+import Lamp01Solid from "@hugeicons-pro/core-solid-rounded/Lamp01Icon";
+import LaptopSolid from "@hugeicons-pro/core-solid-rounded/LaptopIcon";
+import Leaf01Solid from "@hugeicons-pro/core-solid-rounded/Leaf01Icon";
+import Location01Solid from "@hugeicons-pro/core-solid-rounded/Location01Icon";
+import Luggage01Solid from "@hugeicons-pro/core-solid-rounded/Luggage01Icon";
+import Mail01Solid from "@hugeicons-pro/core-solid-rounded/Mail01Icon";
+import Medicine01Solid from "@hugeicons-pro/core-solid-rounded/Medicine01Icon";
+import Mic01Solid from "@hugeicons-pro/core-solid-rounded/Mic01Icon";
+import Money01Solid from "@hugeicons-pro/core-solid-rounded/Money01Icon";
+import MoneyBag01Solid from "@hugeicons-pro/core-solid-rounded/MoneyBag01Icon";
+import MoneyReceive01Solid from "@hugeicons-pro/core-solid-rounded/MoneyReceive01Icon";
+import MoneySend01Solid from "@hugeicons-pro/core-solid-rounded/MoneySend01Icon";
+import MoreHorizontalCircle01Solid from "@hugeicons-pro/core-solid-rounded/MoreHorizontalCircle01Icon";
+import Mortarboard01Solid from "@hugeicons-pro/core-solid-rounded/Mortarboard01Icon";
+import Motorbike01Solid from "@hugeicons-pro/core-solid-rounded/Motorbike01Icon";
+import MountainSolid from "@hugeicons-pro/core-solid-rounded/MountainIcon";
+import MusicNote01Solid from "@hugeicons-pro/core-solid-rounded/MusicNote01Icon";
+import NoodlesSolid from "@hugeicons-pro/core-solid-rounded/NoodlesIcon";
+import PaintBoardSolid from "@hugeicons-pro/core-solid-rounded/PaintBoardIcon";
+import PaintBrush01Solid from "@hugeicons-pro/core-solid-rounded/PaintBrush01Icon";
+import ParkingAreaSquareSolid from "@hugeicons-pro/core-solid-rounded/ParkingAreaSquareIcon";
+import PartySolid from "@hugeicons-pro/core-solid-rounded/PartyIcon";
+import PencilEdit01Solid from "@hugeicons-pro/core-solid-rounded/PencilEdit01Icon";
+import PercentCircleSolid from "@hugeicons-pro/core-solid-rounded/PercentCircleIcon";
+import PerfumeSolid from "@hugeicons-pro/core-solid-rounded/PerfumeIcon";
+import PiggyBankSolid from "@hugeicons-pro/core-solid-rounded/PiggyBankIcon";
+import PillSolid from "@hugeicons-pro/core-solid-rounded/PillIcon";
+import Pizza01Solid from "@hugeicons-pro/core-solid-rounded/Pizza01Icon";
+import Plant01Solid from "@hugeicons-pro/core-solid-rounded/Plant01Icon";
+import PuzzleSolid from "@hugeicons-pro/core-solid-rounded/PuzzleIcon";
+import RepeatSolid from "@hugeicons-pro/core-solid-rounded/RepeatIcon";
+import Restaurant01Solid from "@hugeicons-pro/core-solid-rounded/Restaurant01Icon";
+import Restaurant02Solid from "@hugeicons-pro/core-solid-rounded/Restaurant02Icon";
+import Road01Solid from "@hugeicons-pro/core-solid-rounded/Road01Icon";
+import RunningShoesSolid from "@hugeicons-pro/core-solid-rounded/RunningShoesIcon";
+import SafeSolid from "@hugeicons-pro/core-solid-rounded/SafeIcon";
+import SaleTag01Solid from "@hugeicons-pro/core-solid-rounded/SaleTag01Icon";
+import SavingsSolid from "@hugeicons-pro/core-solid-rounded/SavingsIcon";
+import Scooter01Solid from "@hugeicons-pro/core-solid-rounded/Scooter01Icon";
+import Shield01Solid from "@hugeicons-pro/core-solid-rounded/Shield01Icon";
+import Shirt01Solid from "@hugeicons-pro/core-solid-rounded/Shirt01Icon";
+import ShoppingBag01Solid from "@hugeicons-pro/core-solid-rounded/ShoppingBag01Icon";
+import ShoppingBag03Solid from "@hugeicons-pro/core-solid-rounded/ShoppingBag03Icon";
+import ShoppingBasket01Solid from "@hugeicons-pro/core-solid-rounded/ShoppingBasket01Icon";
+import ShoppingBasket03Solid from "@hugeicons-pro/core-solid-rounded/ShoppingBasket03Icon";
+import ShoppingCart01Solid from "@hugeicons-pro/core-solid-rounded/ShoppingCart01Icon";
+import Sofa01Solid from "@hugeicons-pro/core-solid-rounded/Sofa01Icon";
+import SoftDrink01Solid from "@hugeicons-pro/core-solid-rounded/SoftDrink01Icon";
+import StarSolid from "@hugeicons-pro/core-solid-rounded/StarIcon";
+import Stethoscope02Solid from "@hugeicons-pro/core-solid-rounded/Stethoscope02Icon";
+import Store01Solid from "@hugeicons-pro/core-solid-rounded/Store01Icon";
+import Sun03Solid from "@hugeicons-pro/core-solid-rounded/Sun03Icon";
+import SunglassesSolid from "@hugeicons-pro/core-solid-rounded/SunglassesIcon";
+import Sushi01Solid from "@hugeicons-pro/core-solid-rounded/Sushi01Icon";
+import SwimmingSolid from "@hugeicons-pro/core-solid-rounded/SwimmingIcon";
+import Tag01Solid from "@hugeicons-pro/core-solid-rounded/Tag01Icon";
+import Tap01Solid from "@hugeicons-pro/core-solid-rounded/Tap01Icon";
+import Target01Solid from "@hugeicons-pro/core-solid-rounded/Target01Icon";
+import TaxesSolid from "@hugeicons-pro/core-solid-rounded/TaxesIcon";
+import TaxiSolid from "@hugeicons-pro/core-solid-rounded/TaxiIcon";
+import TeaPodSolid from "@hugeicons-pro/core-solid-rounded/TeaPodIcon";
+import TennisBallSolid from "@hugeicons-pro/core-solid-rounded/TennisBallIcon";
+import TentSolid from "@hugeicons-pro/core-solid-rounded/TentIcon";
+import Ticket01Solid from "@hugeicons-pro/core-solid-rounded/Ticket01Icon";
+import TipsSolid from "@hugeicons-pro/core-solid-rounded/TipsIcon";
+import Toilet01Solid from "@hugeicons-pro/core-solid-rounded/Toilet01Icon";
+import ToolsSolid from "@hugeicons-pro/core-solid-rounded/ToolsIcon";
+import Train01Solid from "@hugeicons-pro/core-solid-rounded/Train01Icon";
+import Tree01Solid from "@hugeicons-pro/core-solid-rounded/Tree01Icon";
+import TShirtSolid from "@hugeicons-pro/core-solid-rounded/TShirtIcon";
+import Tv01Solid from "@hugeicons-pro/core-solid-rounded/Tv01Icon";
+import UmbrellaSolid from "@hugeicons-pro/core-solid-rounded/UmbrellaIcon";
+import Video01Solid from "@hugeicons-pro/core-solid-rounded/Video01Icon";
+import Wallet01Solid from "@hugeicons-pro/core-solid-rounded/Wallet01Icon";
+import Wallet03Solid from "@hugeicons-pro/core-solid-rounded/Wallet03Icon";
+import Watch01Solid from "@hugeicons-pro/core-solid-rounded/Watch01Icon";
+import Wifi01Solid from "@hugeicons-pro/core-solid-rounded/Wifi01Icon";
+import Wrench01Solid from "@hugeicons-pro/core-solid-rounded/Wrench01Icon";
+import Yoga01Solid from "@hugeicons-pro/core-solid-rounded/Yoga01Icon";
+import Agreement01Icon from "@hugeicons-pro/core-stroke-rounded/Agreement01Icon";
+import Airplane01Icon from "@hugeicons-pro/core-stroke-rounded/Airplane01Icon";
+import AlAqsaMosqueIcon from "@hugeicons-pro/core-stroke-rounded/AlAqsaMosqueIcon";
+import AnalyticsUpIcon from "@hugeicons-pro/core-stroke-rounded/AnalyticsUpIcon";
+import AppleIcon from "@hugeicons-pro/core-stroke-rounded/AppleIcon";
+import Baby01Icon from "@hugeicons-pro/core-stroke-rounded/Baby01Icon";
+import BabyBed01Icon from "@hugeicons-pro/core-stroke-rounded/BabyBed01Icon";
+import BalanceScaleIcon from "@hugeicons-pro/core-stroke-rounded/BalanceScaleIcon";
+import BankIcon from "@hugeicons-pro/core-stroke-rounded/BankIcon";
+import Basketball01Icon from "@hugeicons-pro/core-stroke-rounded/Basketball01Icon";
+import Bathtub01Icon from "@hugeicons-pro/core-stroke-rounded/Bathtub01Icon";
+import Beach02Icon from "@hugeicons-pro/core-stroke-rounded/Beach02Icon";
+import BeachIcon from "@hugeicons-pro/core-stroke-rounded/BeachIcon";
+import BedSingle01Icon from "@hugeicons-pro/core-stroke-rounded/BedSingle01Icon";
+import Bicycle01Icon from "@hugeicons-pro/core-stroke-rounded/Bicycle01Icon";
+import BirdIcon from "@hugeicons-pro/core-stroke-rounded/BirdIcon";
+import BirthdayCakeIcon from "@hugeicons-pro/core-stroke-rounded/BirthdayCakeIcon";
+import Bone01Icon from "@hugeicons-pro/core-stroke-rounded/Bone01Icon";
+import Book01Icon from "@hugeicons-pro/core-stroke-rounded/Book01Icon";
+import Book02Icon from "@hugeicons-pro/core-stroke-rounded/Book02Icon";
+import BookOpen01Icon from "@hugeicons-pro/core-stroke-rounded/BookOpen01Icon";
+import BoxingGlove01Icon from "@hugeicons-pro/core-stroke-rounded/BoxingGlove01Icon";
+import BrainIcon from "@hugeicons-pro/core-stroke-rounded/BrainIcon";
+import Bread01Icon from "@hugeicons-pro/core-stroke-rounded/Bread01Icon";
+import Briefcase01Icon from "@hugeicons-pro/core-stroke-rounded/Briefcase01Icon";
+import BubbleTea01Icon from "@hugeicons-pro/core-stroke-rounded/BubbleTea01Icon";
+import Building01Icon from "@hugeicons-pro/core-stroke-rounded/Building01Icon";
+import BulbIcon from "@hugeicons-pro/core-stroke-rounded/BulbIcon";
+import Bus01Icon from "@hugeicons-pro/core-stroke-rounded/Bus01Icon";
+import CakeIcon from "@hugeicons-pro/core-stroke-rounded/CakeIcon";
+import Calculator01Icon from "@hugeicons-pro/core-stroke-rounded/Calculator01Icon";
+import Calendar01Icon from "@hugeicons-pro/core-stroke-rounded/Calendar01Icon";
+import Camera01Icon from "@hugeicons-pro/core-stroke-rounded/Camera01Icon";
+import Camera02Icon from "@hugeicons-pro/core-stroke-rounded/Camera02Icon";
+import Car01Icon from "@hugeicons-pro/core-stroke-rounded/Car01Icon";
+import CargoShipIcon from "@hugeicons-pro/core-stroke-rounded/CargoShipIcon";
+import CashbackIcon from "@hugeicons-pro/core-stroke-rounded/CashbackIcon";
+import CatIcon from "@hugeicons-pro/core-stroke-rounded/CatIcon";
+import ChartUpIcon from "@hugeicons-pro/core-stroke-rounded/ChartUpIcon";
+import CheeseIcon from "@hugeicons-pro/core-stroke-rounded/CheeseIcon";
+import ChefHatIcon from "@hugeicons-pro/core-stroke-rounded/ChefHatIcon";
+import ChurchIcon from "@hugeicons-pro/core-stroke-rounded/ChurchIcon";
+import Clapping01Icon from "@hugeicons-pro/core-stroke-rounded/Clapping01Icon";
+import Clock01Icon from "@hugeicons-pro/core-stroke-rounded/Clock01Icon";
+import Coffee02Icon from "@hugeicons-pro/core-stroke-rounded/Coffee02Icon";
+import Coins01Icon from "@hugeicons-pro/core-stroke-rounded/Coins01Icon";
+import CoinsDollarIcon from "@hugeicons-pro/core-stroke-rounded/CoinsDollarIcon";
+import Compass01Icon from "@hugeicons-pro/core-stroke-rounded/Compass01Icon";
+import ConsoleIcon from "@hugeicons-pro/core-stroke-rounded/ConsoleIcon";
+import Coupon03Icon from "@hugeicons-pro/core-stroke-rounded/Coupon03Icon";
+import CreditCardIcon from "@hugeicons-pro/core-stroke-rounded/CreditCardIcon";
+import Cupcake01Icon from "@hugeicons-pro/core-stroke-rounded/Cupcake01Icon";
+import DartIcon from "@hugeicons-pro/core-stroke-rounded/DartIcon";
+import DentalToothIcon from "@hugeicons-pro/core-stroke-rounded/DentalToothIcon";
+import DeveloperIcon from "@hugeicons-pro/core-stroke-rounded/DeveloperIcon";
+import Diamond01Icon from "@hugeicons-pro/core-stroke-rounded/Diamond01Icon";
+import Dish01Icon from "@hugeicons-pro/core-stroke-rounded/Dish01Icon";
+import Door01Icon from "@hugeicons-pro/core-stroke-rounded/Door01Icon";
+import Dress01Icon from "@hugeicons-pro/core-stroke-rounded/Dress01Icon";
+import DrinkIcon from "@hugeicons-pro/core-stroke-rounded/DrinkIcon";
+import Dumbbell01Icon from "@hugeicons-pro/core-stroke-rounded/Dumbbell01Icon";
+import EarthIcon from "@hugeicons-pro/core-stroke-rounded/EarthIcon";
+import EggFriedIcon from "@hugeicons-pro/core-stroke-rounded/EggFriedIcon";
+import ElectricPlugsIcon from "@hugeicons-pro/core-stroke-rounded/ElectricPlugsIcon";
+import EnergyIcon from "@hugeicons-pro/core-stroke-rounded/EnergyIcon";
+import EquipmentGym01Icon from "@hugeicons-pro/core-stroke-rounded/EquipmentGym01Icon";
+import Exchange01Icon from "@hugeicons-pro/core-stroke-rounded/Exchange01Icon";
+import EyeIcon from "@hugeicons-pro/core-stroke-rounded/EyeIcon";
+import FavouriteIcon from "@hugeicons-pro/core-stroke-rounded/FavouriteIcon";
+import Film01Icon from "@hugeicons-pro/core-stroke-rounded/Film01Icon";
+import FilmRoll01Icon from "@hugeicons-pro/core-stroke-rounded/FilmRoll01Icon";
+import FireIcon from "@hugeicons-pro/core-stroke-rounded/FireIcon";
+import FirstAidKitIcon from "@hugeicons-pro/core-stroke-rounded/FirstAidKitIcon";
+import FlashIcon from "@hugeicons-pro/core-stroke-rounded/FlashIcon";
+import FlowerPotIcon from "@hugeicons-pro/core-stroke-rounded/FlowerPotIcon";
+import FootballIcon from "@hugeicons-pro/core-stroke-rounded/FootballIcon";
+import FridgeIcon from "@hugeicons-pro/core-stroke-rounded/FridgeIcon";
+import Fuel01Icon from "@hugeicons-pro/core-stroke-rounded/Fuel01Icon";
+import FuelStationIcon from "@hugeicons-pro/core-stroke-rounded/FuelStationIcon";
+import GameController01Icon from "@hugeicons-pro/core-stroke-rounded/GameController01Icon";
+import GameController03Icon from "@hugeicons-pro/core-stroke-rounded/GameController03Icon";
+import GasPipeIcon from "@hugeicons-pro/core-stroke-rounded/GasPipeIcon";
+import GasStoveIcon from "@hugeicons-pro/core-stroke-rounded/GasStoveIcon";
+import GiftCardIcon from "@hugeicons-pro/core-stroke-rounded/GiftCardIcon";
+import GiftIcon from "@hugeicons-pro/core-stroke-rounded/GiftIcon";
+import GlobeIcon from "@hugeicons-pro/core-stroke-rounded/GlobeIcon";
+import GraduationScrollIcon from "@hugeicons-pro/core-stroke-rounded/GraduationScrollIcon";
+import GymnasticRingsIcon from "@hugeicons-pro/core-stroke-rounded/GymnasticRingsIcon";
+import HairDryerIcon from "@hugeicons-pro/core-stroke-rounded/HairDryerIcon";
+import Hamburger01Icon from "@hugeicons-pro/core-stroke-rounded/Hamburger01Icon";
+import HandBag01Icon from "@hugeicons-pro/core-stroke-rounded/HandBag01Icon";
+import HangerIcon from "@hugeicons-pro/core-stroke-rounded/HangerIcon";
+import HeadphonesIcon from "@hugeicons-pro/core-stroke-rounded/HeadphonesIcon";
+import HealthIcon from "@hugeicons-pro/core-stroke-rounded/HealthIcon";
+import HeartCheckIcon from "@hugeicons-pro/core-stroke-rounded/HeartCheckIcon";
+import HeartIcon from "@hugeicons-pro/core-stroke-rounded/HeartIcon";
+import Home01Icon from "@hugeicons-pro/core-stroke-rounded/Home01Icon";
+import Home03Icon from "@hugeicons-pro/core-stroke-rounded/Home03Icon";
+import IceCream01Icon from "@hugeicons-pro/core-stroke-rounded/IceCream01Icon";
+import InjectionIcon from "@hugeicons-pro/core-stroke-rounded/InjectionIcon";
+import Invoice01Icon from "@hugeicons-pro/core-stroke-rounded/Invoice01Icon";
+import Invoice03Icon from "@hugeicons-pro/core-stroke-rounded/Invoice03Icon";
+import Joystick01Icon from "@hugeicons-pro/core-stroke-rounded/Joystick01Icon";
+import Key01Icon from "@hugeicons-pro/core-stroke-rounded/Key01Icon";
+import KidIcon from "@hugeicons-pro/core-stroke-rounded/KidIcon";
+import KitchenUtensilsIcon from "@hugeicons-pro/core-stroke-rounded/KitchenUtensilsIcon";
+import Lamp01Icon from "@hugeicons-pro/core-stroke-rounded/Lamp01Icon";
+import LaptopIcon from "@hugeicons-pro/core-stroke-rounded/LaptopIcon";
+import Leaf01Icon from "@hugeicons-pro/core-stroke-rounded/Leaf01Icon";
+import Location01Icon from "@hugeicons-pro/core-stroke-rounded/Location01Icon";
+import Luggage01Icon from "@hugeicons-pro/core-stroke-rounded/Luggage01Icon";
+import Mail01Icon from "@hugeicons-pro/core-stroke-rounded/Mail01Icon";
+import Medicine01Icon from "@hugeicons-pro/core-stroke-rounded/Medicine01Icon";
+import Mic01Icon from "@hugeicons-pro/core-stroke-rounded/Mic01Icon";
+import Money01Icon from "@hugeicons-pro/core-stroke-rounded/Money01Icon";
+import MoneyBag01Icon from "@hugeicons-pro/core-stroke-rounded/MoneyBag01Icon";
+import MoneyReceive01Icon from "@hugeicons-pro/core-stroke-rounded/MoneyReceive01Icon";
+import MoneySend01Icon from "@hugeicons-pro/core-stroke-rounded/MoneySend01Icon";
+import MoreHorizontalCircle01Icon from "@hugeicons-pro/core-stroke-rounded/MoreHorizontalCircle01Icon";
+import Mortarboard01Icon from "@hugeicons-pro/core-stroke-rounded/Mortarboard01Icon";
+import Motorbike01Icon from "@hugeicons-pro/core-stroke-rounded/Motorbike01Icon";
+import MountainIcon from "@hugeicons-pro/core-stroke-rounded/MountainIcon";
+import MusicNote01Icon from "@hugeicons-pro/core-stroke-rounded/MusicNote01Icon";
+import NoodlesIcon from "@hugeicons-pro/core-stroke-rounded/NoodlesIcon";
+import PaintBoardIcon from "@hugeicons-pro/core-stroke-rounded/PaintBoardIcon";
+import PaintBrush01Icon from "@hugeicons-pro/core-stroke-rounded/PaintBrush01Icon";
+import ParkingAreaSquareIcon from "@hugeicons-pro/core-stroke-rounded/ParkingAreaSquareIcon";
+import PartyIcon from "@hugeicons-pro/core-stroke-rounded/PartyIcon";
+import PencilEdit01Icon from "@hugeicons-pro/core-stroke-rounded/PencilEdit01Icon";
+import PercentCircleIcon from "@hugeicons-pro/core-stroke-rounded/PercentCircleIcon";
+import PerfumeIcon from "@hugeicons-pro/core-stroke-rounded/PerfumeIcon";
+import PiggyBankIcon from "@hugeicons-pro/core-stroke-rounded/PiggyBankIcon";
+import PillIcon from "@hugeicons-pro/core-stroke-rounded/PillIcon";
+import Pizza01Icon from "@hugeicons-pro/core-stroke-rounded/Pizza01Icon";
+import Plant01Icon from "@hugeicons-pro/core-stroke-rounded/Plant01Icon";
+import PuzzleIcon from "@hugeicons-pro/core-stroke-rounded/PuzzleIcon";
+import RepeatIcon from "@hugeicons-pro/core-stroke-rounded/RepeatIcon";
+import Restaurant01Icon from "@hugeicons-pro/core-stroke-rounded/Restaurant01Icon";
+import Restaurant02Icon from "@hugeicons-pro/core-stroke-rounded/Restaurant02Icon";
+import Road01Icon from "@hugeicons-pro/core-stroke-rounded/Road01Icon";
+import RunningShoesIcon from "@hugeicons-pro/core-stroke-rounded/RunningShoesIcon";
+import SafeIcon from "@hugeicons-pro/core-stroke-rounded/SafeIcon";
+import SaleTag01Icon from "@hugeicons-pro/core-stroke-rounded/SaleTag01Icon";
+import SavingsIcon from "@hugeicons-pro/core-stroke-rounded/SavingsIcon";
+import Scooter01Icon from "@hugeicons-pro/core-stroke-rounded/Scooter01Icon";
+import Shield01Icon from "@hugeicons-pro/core-stroke-rounded/Shield01Icon";
+import Shirt01Icon from "@hugeicons-pro/core-stroke-rounded/Shirt01Icon";
+import ShoppingBag01Icon from "@hugeicons-pro/core-stroke-rounded/ShoppingBag01Icon";
+import ShoppingBag03Icon from "@hugeicons-pro/core-stroke-rounded/ShoppingBag03Icon";
+import ShoppingBasket01Icon from "@hugeicons-pro/core-stroke-rounded/ShoppingBasket01Icon";
+import ShoppingBasket03Icon from "@hugeicons-pro/core-stroke-rounded/ShoppingBasket03Icon";
+import ShoppingCart01Icon from "@hugeicons-pro/core-stroke-rounded/ShoppingCart01Icon";
+import Sofa01Icon from "@hugeicons-pro/core-stroke-rounded/Sofa01Icon";
+import SoftDrink01Icon from "@hugeicons-pro/core-stroke-rounded/SoftDrink01Icon";
+import StarIcon from "@hugeicons-pro/core-stroke-rounded/StarIcon";
+import Stethoscope02Icon from "@hugeicons-pro/core-stroke-rounded/Stethoscope02Icon";
+import Store01Icon from "@hugeicons-pro/core-stroke-rounded/Store01Icon";
+import Sun03Icon from "@hugeicons-pro/core-stroke-rounded/Sun03Icon";
+import SunglassesIcon from "@hugeicons-pro/core-stroke-rounded/SunglassesIcon";
+import Sushi01Icon from "@hugeicons-pro/core-stroke-rounded/Sushi01Icon";
+import SwimmingIcon from "@hugeicons-pro/core-stroke-rounded/SwimmingIcon";
+import Tag01Icon from "@hugeicons-pro/core-stroke-rounded/Tag01Icon";
+import Tap01Icon from "@hugeicons-pro/core-stroke-rounded/Tap01Icon";
+import Target01Icon from "@hugeicons-pro/core-stroke-rounded/Target01Icon";
+import TaxesIcon from "@hugeicons-pro/core-stroke-rounded/TaxesIcon";
+import TaxiIcon from "@hugeicons-pro/core-stroke-rounded/TaxiIcon";
+import TeaPodIcon from "@hugeicons-pro/core-stroke-rounded/TeaPodIcon";
+import TennisBallIcon from "@hugeicons-pro/core-stroke-rounded/TennisBallIcon";
+import TentIcon from "@hugeicons-pro/core-stroke-rounded/TentIcon";
+import Ticket01Icon from "@hugeicons-pro/core-stroke-rounded/Ticket01Icon";
+import TipsIcon from "@hugeicons-pro/core-stroke-rounded/TipsIcon";
+import Toilet01Icon from "@hugeicons-pro/core-stroke-rounded/Toilet01Icon";
+import ToolsIcon from "@hugeicons-pro/core-stroke-rounded/ToolsIcon";
+import Train01Icon from "@hugeicons-pro/core-stroke-rounded/Train01Icon";
+import Tree01Icon from "@hugeicons-pro/core-stroke-rounded/Tree01Icon";
+import TShirtIcon from "@hugeicons-pro/core-stroke-rounded/TShirtIcon";
+import Tv01Icon from "@hugeicons-pro/core-stroke-rounded/Tv01Icon";
+import UmbrellaIcon from "@hugeicons-pro/core-stroke-rounded/UmbrellaIcon";
+import Video01Icon from "@hugeicons-pro/core-stroke-rounded/Video01Icon";
+import Wallet01Icon from "@hugeicons-pro/core-stroke-rounded/Wallet01Icon";
+import Wallet03Icon from "@hugeicons-pro/core-stroke-rounded/Wallet03Icon";
+import Watch01Icon from "@hugeicons-pro/core-stroke-rounded/Watch01Icon";
+import Wifi01Icon from "@hugeicons-pro/core-stroke-rounded/Wifi01Icon";
+import Wrench01Icon from "@hugeicons-pro/core-stroke-rounded/Wrench01Icon";
+import Yoga01Icon from "@hugeicons-pro/core-stroke-rounded/Yoga01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import type { IconSvgElement } from "@hugeicons/react-native";
 

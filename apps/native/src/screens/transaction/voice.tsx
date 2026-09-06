@@ -1,4 +1,4 @@
-import { Cancel01Icon } from "@hugeicons-pro/core-stroke-rounded";
+import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";

@@ -1,45 +1,43 @@
-import {
-    Analytics01Icon,
-    ArchiveRestoreIcon,
-    BadgeCentIcon,
-    BankIcon,
-    BiometricAccessIcon,
-    Bug01Icon,
-    Calculator01Icon,
-    Calendar01Icon,
-    CalendarClockIcon,
-    ChartLineData01Icon,
-    CloudIcon,
-    CurrencyIcon,
-    DarkModeIcon,
-    DashboardSquare01Icon,
-    Delete02Icon,
-    FavouriteIcon,
-    FileExportIcon,
-    FileImportIcon,
-    Idea01Icon,
-    InformationCircleIcon,
-    LanguageSkillIcon,
-    LayoutTable01Icon,
-    LicenseIcon,
-    Logout01Icon,
-    MoneyAdd01Icon,
-    NewTwitterIcon,
-    Notification03Icon,
-    Share08Icon,
-    SmartPhone01Icon,
-    SourceCodeIcon,
-    SparklesIcon,
-    StarIcon,
-    SunriseIcon,
-    SwatchIcon,
-    Tap01Icon,
-    TestTubeIcon,
-    TextFontIcon,
-    UserCircleIcon,
-    UserRemove01Icon,
-    Wallet01Icon,
-} from "@hugeicons-pro/core-stroke-rounded";
+import Analytics01Icon from "@hugeicons-pro/core-stroke-rounded/Analytics01Icon";
+import ArchiveRestoreIcon from "@hugeicons-pro/core-stroke-rounded/ArchiveRestoreIcon";
+import BadgeCentIcon from "@hugeicons-pro/core-stroke-rounded/BadgeCentIcon";
+import BankIcon from "@hugeicons-pro/core-stroke-rounded/BankIcon";
+import BiometricAccessIcon from "@hugeicons-pro/core-stroke-rounded/BiometricAccessIcon";
+import Bug01Icon from "@hugeicons-pro/core-stroke-rounded/Bug01Icon";
+import Calculator01Icon from "@hugeicons-pro/core-stroke-rounded/Calculator01Icon";
+import Calendar01Icon from "@hugeicons-pro/core-stroke-rounded/Calendar01Icon";
+import CalendarClockIcon from "@hugeicons-pro/core-stroke-rounded/CalendarClockIcon";
+import ChartLineData01Icon from "@hugeicons-pro/core-stroke-rounded/ChartLineData01Icon";
+import CloudIcon from "@hugeicons-pro/core-stroke-rounded/CloudIcon";
+import CurrencyIcon from "@hugeicons-pro/core-stroke-rounded/CurrencyIcon";
+import DarkModeIcon from "@hugeicons-pro/core-stroke-rounded/DarkModeIcon";
+import DashboardSquare01Icon from "@hugeicons-pro/core-stroke-rounded/DashboardSquare01Icon";
+import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
+import FavouriteIcon from "@hugeicons-pro/core-stroke-rounded/FavouriteIcon";
+import FileExportIcon from "@hugeicons-pro/core-stroke-rounded/FileExportIcon";
+import FileImportIcon from "@hugeicons-pro/core-stroke-rounded/FileImportIcon";
+import Idea01Icon from "@hugeicons-pro/core-stroke-rounded/Idea01Icon";
+import InformationCircleIcon from "@hugeicons-pro/core-stroke-rounded/InformationCircleIcon";
+import LanguageSkillIcon from "@hugeicons-pro/core-stroke-rounded/LanguageSkillIcon";
+import LayoutTable01Icon from "@hugeicons-pro/core-stroke-rounded/LayoutTable01Icon";
+import LicenseIcon from "@hugeicons-pro/core-stroke-rounded/LicenseIcon";
+import Logout01Icon from "@hugeicons-pro/core-stroke-rounded/Logout01Icon";
+import MoneyAdd01Icon from "@hugeicons-pro/core-stroke-rounded/MoneyAdd01Icon";
+import NewTwitterIcon from "@hugeicons-pro/core-stroke-rounded/NewTwitterIcon";
+import Notification03Icon from "@hugeicons-pro/core-stroke-rounded/Notification03Icon";
+import Share08Icon from "@hugeicons-pro/core-stroke-rounded/Share08Icon";
+import SmartPhone01Icon from "@hugeicons-pro/core-stroke-rounded/SmartPhone01Icon";
+import SourceCodeIcon from "@hugeicons-pro/core-stroke-rounded/SourceCodeIcon";
+import SparklesIcon from "@hugeicons-pro/core-stroke-rounded/SparklesIcon";
+import StarIcon from "@hugeicons-pro/core-stroke-rounded/StarIcon";
+import SunriseIcon from "@hugeicons-pro/core-stroke-rounded/SunriseIcon";
+import SwatchIcon from "@hugeicons-pro/core-stroke-rounded/SwatchIcon";
+import Tap01Icon from "@hugeicons-pro/core-stroke-rounded/Tap01Icon";
+import TestTubeIcon from "@hugeicons-pro/core-stroke-rounded/TestTubeIcon";
+import TextFontIcon from "@hugeicons-pro/core-stroke-rounded/TextFontIcon";
+import UserCircleIcon from "@hugeicons-pro/core-stroke-rounded/UserCircleIcon";
+import UserRemove01Icon from "@hugeicons-pro/core-stroke-rounded/UserRemove01Icon";
+import Wallet01Icon from "@hugeicons-pro/core-stroke-rounded/Wallet01Icon";
 import type { IconSvgElement } from "@hugeicons/react-native";
 
 /**

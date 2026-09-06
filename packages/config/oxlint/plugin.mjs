@@ -1,0 +1,280 @@
+// Design rules that used to live in jest suites reading source files as text
+// (`grounds.test.ts`, `transaction-guard.test.ts`, `widget-scope.test.ts`,
+// `no-background.test.ts`, the EditorCta call-site scan). As lint rules they
+// run on the AST instead of a regex over comments, report at the offending
+// line, and fire in the editor and on `vp check` rather than after a full
+// jest run. Registered from the root `vite.config.ts` as `outlayr/*`.
+
+const isIdentifier = (node, name) => node?.type === "Identifier" && node.name === name;
+const isJsxName = (node, names) => node?.type === "JSXIdentifier" && names.includes(node.name);
+
+/**
+ * `drizzle-orm/expo-sqlite` builds `db.transaction()` in sync mode and never
+ * awaits the callback, so an async body commits an empty `begin; commit;` and
+ * every statement inside runs unprotected. `tsc` cannot see it: the signature
+ * is honest, only the runtime is not. `withTransaction` in `src/db/transaction.ts`
+ * is the one place allowed to call it, by override.
+ */
+const noDrizzleTransaction = {
+    create(context) {
+        return {
+            CallExpression(node) {
+                const { callee } = node;
+                if (
+                    callee.type === "MemberExpression" &&
+                    !callee.computed &&
+                    isIdentifier(callee.property, "transaction")
+                ) {
+                    context.report({ messageId: "banned", node: callee.property });
+                }
+            },
+        };
+    },
+    meta: {
+        docs: {
+            description: "Disallow drizzle's own `.transaction()`; use `withTransaction` from `@/db/transaction`.",
+        },
+        messages: {
+            banned: "drizzle's `.transaction()` commits before an async callback runs. Use `withTransaction` from `@/db/transaction`.",
+        },
+        type: "problem",
+    },
+};
+
+/**
+ * A SwiftUI `List` (and `Form`, which is a `List` underneath) fills itself with
+ * `systemGroupedBackground` below the level any token reaches, and the rows
+ * float on a second system fill. Neither shows in a rendered tree, so a screen
+ * that forgets them ships on iOS's grey. Every file rendering one names both
+ * grounds through `groupedList(...)` and `groupedRows(...)`.
+ */
+const swiftuiListGrounds = {
+    create(context) {
+        let list = null;
+        const seen = new Set();
+        return {
+            CallExpression(node) {
+                if (node.callee.type === "Identifier") {
+                    seen.add(node.callee.name);
+                }
+            },
+            JSXOpeningElement(node) {
+                if (list === null && isJsxName(node.name, ["List", "Form"])) {
+                    list = node;
+                }
+            },
+            "Program:exit"() {
+                if (list === null) {
+                    return;
+                }
+                for (const ground of ["groupedList", "groupedRows"]) {
+                    if (!seen.has(ground)) {
+                        context.report({ data: { element: list.name.name, ground }, messageId: "missing", node: list });
+                    }
+                }
+            },
+        };
+    },
+    meta: {
+        docs: {
+            description: "A file rendering a SwiftUI `List` or `Form` must apply `groupedList()` and `groupedRows()`.",
+        },
+        messages: {
+            missing:
+                "This file renders <{{element}}> but never calls {{ground}}(); the screen keeps iOS's own grey ground.",
+        },
+        type: "problem",
+    },
+};
+
+const BOTTOM_SHEET_MODULE = "@expo/ui/community/bottom-sheet";
+
+/**
+ * A `BottomSheetModal` is painted by the system material unless the sheet
+ * hands it a `backgroundStyle`. Only value imports count: a file that holds a
+ * `useRef<BottomSheetModal>` never presents one.
+ */
+const bottomSheetBackground = {
+    create(context) {
+        let importNode = null;
+        let painted = false;
+        return {
+            ImportDeclaration(node) {
+                if (node.source.value !== BOTTOM_SHEET_MODULE || node.importKind === "type") {
+                    return;
+                }
+                const presents = node.specifiers.some(
+                    (specifier) =>
+                        specifier.type === "ImportSpecifier" &&
+                        specifier.importKind !== "type" &&
+                        isIdentifier(specifier.imported, "BottomSheetModal")
+                );
+                if (presents) {
+                    importNode = node;
+                }
+            },
+            JSXAttribute(node) {
+                if (isJsxName(node.name, ["backgroundStyle"])) {
+                    painted = true;
+                }
+            },
+            "Program:exit"() {
+                if (importNode !== null && !painted) {
+                    context.report({ messageId: "missing", node: importNode });
+                }
+            },
+        };
+    },
+    meta: {
+        docs: { description: "A file presenting a `BottomSheetModal` must pass it a `backgroundStyle`." },
+        messages: {
+            missing:
+                "This file presents a BottomSheetModal but sets no `backgroundStyle`; the sheet keeps the system material.",
+        },
+        type: "problem",
+    },
+};
+
+const SHEET_REPAINT = /\bbg-(?:background|surface|card|foreground\/\d+)\b/;
+
+/**
+ * Scoped by override to `components/import-sheet/**`: the sheet root paints
+ * its ground once through `backgroundStyle`, and step content rules ink onto
+ * that paper. A solid `bg-background` re-paints it; a wash or card class
+ * draws chrome the Grid grammar does not have.
+ */
+const noSheetRepaint = {
+    create(context) {
+        const check = (node, text) => {
+            const match = SHEET_REPAINT.exec(text);
+            if (match) {
+                context.report({ data: { utility: match[0] }, messageId: "repaint", node });
+            }
+        };
+        return {
+            Literal(node) {
+                // oxlint-disable-next-line anti-slop/no-runtime-typeof -- an ESTree Literal is the boundary: its value is a string, number, boolean, null or regex by node shape
+                if (typeof node.value === "string") {
+                    check(node, node.value);
+                }
+            },
+            TemplateElement(node) {
+                check(node, node.value.raw);
+            },
+        };
+    },
+    meta: {
+        docs: { description: "Import-sheet content must not paint a solid background, wash, or card." },
+        messages: {
+            repaint:
+                "`{{utility}}` re-paints the sheet's ground. The root's `backgroundStyle` owns it; content sits on that paper.",
+        },
+        type: "problem",
+    },
+};
+
+const hasWidgetDirective = (fn) =>
+    fn?.body?.type === "BlockStatement" && fn.body.body.some((statement) => statement.directive === "widget");
+
+const DECLARATIONS = new Set(["VariableDeclaration", "FunctionDeclaration", "ClassDeclaration"]);
+const unwrapExport = (statement) =>
+    statement.type === "ExportNamedDeclaration" || statement.type === "ExportDefaultDeclaration"
+        ? statement.declaration
+        : statement;
+const spanOf = (node) => node.range ?? [node.start, node.end];
+const contains = (outer, inner) => {
+    const [outerStart, outerEnd] = spanOf(outer);
+    const [innerStart, innerEnd] = spanOf(inner);
+    return outerStart <= innerStart && innerEnd <= outerEnd;
+};
+
+/**
+ * A `"widget"` body is stringified by babel and evaluated in the widget
+ * extension's bare `JSContext`, where nothing from this module's scope exists.
+ * A module-level constant the body references becomes a `ReferenceError`
+ * painted on the tile, which neither `tsc`, the linter nor the iOS build sees.
+ * So a file declaring a widget declares nothing else at module scope: constants
+ * live inside the body, shared values arrive as props.
+ *
+ * The directive is found wherever the function sits, a standalone declaration
+ * or a callback inline in `createWidget(...)`; the top-level statement holding
+ * the first one is the single exempt statement.
+ */
+const widgetModuleScope = {
+    create(context) {
+        const widgets = [];
+        const collect = (node) => {
+            if (hasWidgetDirective(node)) {
+                widgets.push(node);
+            }
+        };
+        return {
+            ArrowFunctionExpression: collect,
+            FunctionDeclaration: collect,
+            FunctionExpression: collect,
+            "Program:exit"(node) {
+                const [first, ...rest] = widgets;
+                if (first === undefined) {
+                    return;
+                }
+                for (const second of rest) {
+                    context.report({ messageId: "second", node: second });
+                }
+                for (const statement of node.body) {
+                    const declaration = unwrapExport(statement);
+                    if (declaration && DECLARATIONS.has(declaration.type) && !contains(statement, first)) {
+                        context.report({ messageId: "leak", node: declaration });
+                    }
+                }
+            },
+        };
+    },
+    meta: {
+        docs: { description: 'A file with a `"widget"` component declares nothing else at module scope.' },
+        messages: {
+            leak: "Module-scope declarations are out of reach of the widget's JSContext. Move it inside the widget body or pass it as a prop.",
+            second: 'One widget per file: this second "widget" body is module scope to the first one and unreachable from its JSContext.',
+        },
+        type: "problem",
+    },
+};
+
+/**
+ * `canSave` already folds in `!isSubmitting`, so a call site that forgets
+ * `busy` dims its save but never spins, and the omission is invisible until
+ * you watch a real save. The category editor shipped that way once.
+ */
+const editorCtaBusy = {
+    create(context) {
+        return {
+            JSXOpeningElement(node) {
+                if (!isJsxName(node.name, ["EditorCta"])) {
+                    return;
+                }
+                const busy = node.attributes.some((a) => a.type === "JSXAttribute" && isJsxName(a.name, ["busy"]));
+                if (!busy) {
+                    context.report({ messageId: "missing", node });
+                }
+            },
+        };
+    },
+    meta: {
+        docs: { description: "Every `<EditorCta>` passes `busy`, so the save has a visible spinner." },
+        messages: {
+            missing: "<EditorCta> without `busy`: the save dims but never spins. Pass the form's submitting state.",
+        },
+        type: "problem",
+    },
+};
+
+export default {
+    meta: { name: "outlayr" },
+    rules: {
+        "bottom-sheet-background": bottomSheetBackground,
+        "editor-cta-busy": editorCtaBusy,
+        "no-drizzle-transaction": noDrizzleTransaction,
+        "no-sheet-repaint": noSheetRepaint,
+        "swiftui-list-grounds": swiftuiListGrounds,
+        "widget-module-scope": widgetModuleScope,
+    },
+};

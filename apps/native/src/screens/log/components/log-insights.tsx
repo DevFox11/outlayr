@@ -1,5 +1,5 @@
 import { MenuView } from "@expo/ui/community/menu";
-import { ArrowDown01Icon } from "@hugeicons-pro/core-solid-rounded";
+import ArrowDown01Icon from "@hugeicons-pro/core-solid-rounded/ArrowDown01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { View } from "react-native";
 

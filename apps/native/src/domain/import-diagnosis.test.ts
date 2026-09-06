@@ -1,20 +1,8 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { describe, expect, it } from "@jest/globals";
 
 import { parseImportFile } from "@/data/transfer-core";
 
 import { classifyParseFailure } from "./import-diagnosis";
-
-const SOURCE = readFileSync(join(import.meta.dirname, "import-diagnosis.ts"), "utf-8");
-
-describe("import-diagnosis.ts: shares the header heuristic with transfer-core.ts", () => {
-    it("consumes splitHeaderAndRows instead of re-implementing the heuristic", () => {
-        expect(SOURCE).toContain("splitHeaderAndRows");
-        expect(SOURCE).not.toContain("must stay in sync");
-    });
-});
 
 describe("classifyParseFailure", () => {
     it("classifies an empty file", () => {

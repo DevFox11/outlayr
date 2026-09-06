@@ -1,5 +1,5 @@
-import { CheckmarkCircle02Icon as CheckSolid } from "@hugeicons-pro/core-solid-rounded";
-import { CircleIcon } from "@hugeicons-pro/core-stroke-rounded";
+import CheckSolid from "@hugeicons-pro/core-solid-rounded/CheckmarkCircle02Icon";
+import CircleIcon from "@hugeicons-pro/core-stroke-rounded/CircleIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { SectionList } from "@legendapp/list/section-list";
 import { memo, useCallback, useMemo, useState } from "react";

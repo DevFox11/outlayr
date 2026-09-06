@@ -5,7 +5,8 @@ import type { ReceiptDraft, ReceiptItem } from "@/lib/convex";
 
 import { minorUnitsFor } from "./money";
 import type { RateTable } from "./valuation";
-import { spokenDateToLocal } from "./voice-entry";
+import { spokenDateToLocal, uniqueMatch } from "./voice-entry";
+import type { AccountCandidate, CategoryCandidate } from "./voice-entry";
 
 /**
  * A read receipt with the ledger's own ids on it: what the review shows and
@@ -36,18 +37,6 @@ export interface ResolvedReceipt {
     tip: number | null;
 }
 
-export interface CategoryCandidate {
-    id: string;
-    income: boolean;
-    name: string | null;
-}
-
-export interface AccountCandidate {
-    currency: string;
-    id: string;
-    name: string;
-}
-
 interface ResolveArgs {
     accounts: readonly AccountCandidate[];
     /** The prompt did not carry every account, so a draft naming none may name one the model never saw. */
@@ -60,25 +49,6 @@ interface ResolveArgs {
     draft: ReceiptDraft;
     /** The instant the photo was sent — a receipt dated today keeps its time of day. */
     now: Date;
-}
-
-const foldName = (value: string) => value.trim().toLowerCase();
-
-/** The one candidate whose folded name matches; two with that name are no match. */
-function uniqueMatch<T>(
-    candidates: readonly T[],
-    name: string | null,
-    nameOf: (candidate: T) => string | null
-): T | null {
-    if (name == null) {
-        return null;
-    }
-    const wanted = foldName(name);
-    const matches = candidates.filter((candidate) => {
-        const candidateName = nameOf(candidate);
-        return candidateName != null && foldName(candidateName) === wanted;
-    });
-    return matches.length === 1 ? (matches[0] ?? null) : null;
 }
 
 function roundLine(value: number | null, currency: string): number | null {
