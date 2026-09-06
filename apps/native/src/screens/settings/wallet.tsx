@@ -44,17 +44,23 @@ const AUTOMATION_STEPS: readonly Step[] = [
 ];
 
 /**
- * The same automation with the shortcut built by hand, for as long as there is
- * no shared link. Step 4 changes: instead of picking the installed shortcut
- * the user creates one around the intent and binds its three fields.
+ * The same automation built inline, for as long as there is no shared link.
+ * No separate shortcut: the action goes straight into a blank automation, and
+ * the trigger's Wallet transaction is the "Shortcut Input" its three fields
+ * are read from. The action lives in the OutlayrIntents extension, which only
+ * ever surfaces inside the action picker and under Library › Apps; nothing of
+ * Outlayr's appears in All Shortcuts until the user saves one.
  */
 const MANUAL_STEPS: readonly Step[] = [
     ...AUTOMATION_STEPS.slice(0, 3),
     { title: "settings.wallet.manualStep1" },
-    { title: "settings.wallet.manualStep2" },
-    { title: "settings.wallet.manualStep3" },
+    { detail: "settings.wallet.manualStep2Detail", title: "settings.wallet.manualStep2" },
+    { detail: "settings.wallet.manualStep3Detail", title: "settings.wallet.manualStep3" },
     { title: "settings.wallet.step5" },
 ];
+
+/** Whether the one-tap install exists yet; without it the shortcut is never "installed". */
+const HAS_SHARED_SHORTCUT = WALLET_SHORTCUT_URL != null;
 
 export function Wallet() {
     const db = useDatabase();
@@ -76,7 +82,10 @@ function WalletSettings({ db }: { db: Database }) {
     const lastEntry = parseLastWalletEntry(last);
     const [stepsShown, setStepsShown] = useState(false);
     const working = lastEntry != null;
-    const steps = WALLET_SHORTCUT_URL == null ? MANUAL_STEPS : AUTOMATION_STEPS;
+    // What this user's automation actually runs. `added` is only ever set by the
+    // shared link, so a setup built inline before the link shipped stays inline.
+    const linked = HAS_SHARED_SHORTCUT && added;
+    const steps = linked ? AUTOMATION_STEPS : MANUAL_STEPS;
 
     const getShortcut = async () => {
         try {
@@ -88,7 +97,9 @@ function WalletSettings({ db }: { db: Database }) {
         }
     };
 
-    if (!added) {
+    // A working inline setup is done, whatever `added` says: the link may ship
+    // in a later build, and it must not bounce those users back to the Get button.
+    if (HAS_SHARED_SHORTCUT && !added && !working) {
         return (
             <SettingsScreen>
                 <View className="gap-5 pt-6">
@@ -105,12 +116,22 @@ function WalletSettings({ db }: { db: Database }) {
 
     return (
         <SettingsScreen>
-            {working ? <LastEntry db={db} txId={lastEntry.txId} /> : null}
+            {working ? (
+                <LastEntry db={db} txId={lastEntry.txId} />
+            ) : (
+                <Text className="text-muted text-body pt-6 leading-snug">{t("settings.wallet.lead")}</Text>
+            )}
 
             <SettingsSection title={t(working ? "settings.wallet.setupSection" : "settings.wallet.stepsSection")}>
-                <CheckRow detail={t("settings.wallet.shortcutName")} title={t("settings.wallet.installed")} />
+                {linked ? (
+                    <CheckRow detail={t("settings.wallet.shortcutName")} title={t("settings.wallet.installed")} />
+                ) : null}
                 {working ? (
-                    <ToggleStepsRow onPress={() => setStepsShown((shown) => !shown)} shown={stepsShown} />
+                    <ToggleStepsRow
+                        linked={linked}
+                        onPress={() => setStepsShown((shown) => !shown)}
+                        shown={stepsShown}
+                    />
                 ) : null}
                 {working && !stepsShown
                     ? null
@@ -134,7 +155,7 @@ function WalletSettings({ db }: { db: Database }) {
                 >
                     {t("settings.wallet.open")}
                 </Button>
-                {working ? (
+                {working && linked ? (
                     <Button className="rounded-full" fullWidth onPress={getShortcut} size="md" variant="ghost">
                         {t("settings.wallet.getAgain")}
                     </Button>
@@ -263,7 +284,7 @@ function CheckRow({ title, detail }: { detail: string; title: string }) {
     );
 }
 
-function ToggleStepsRow({ shown, onPress }: { onPress: () => void; shown: boolean }) {
+function ToggleStepsRow({ linked, shown, onPress }: { linked: boolean; onPress: () => void; shown: boolean }) {
     const t = useTranslation();
     return (
         <Text
@@ -275,7 +296,9 @@ function ToggleStepsRow({ shown, onPress }: { onPress: () => void; shown: boolea
             {t("settings.wallet.automationRow")}
             <Text className="text-muted">{`  ${t(shown ? "settings.wallet.hide" : "settings.wallet.show")} ›`}</Text>
             {"\n"}
-            <Text className="text-muted text-subtitle">{t("settings.wallet.automationDetail")}</Text>
+            <Text className="text-muted text-subtitle">
+                {t(linked ? "settings.wallet.automationDetail" : "settings.wallet.automationDetailInline")}
+            </Text>
         </Text>
     );
 }

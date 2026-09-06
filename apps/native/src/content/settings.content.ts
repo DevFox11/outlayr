@@ -1031,6 +1031,10 @@ const settings = {
             en: "Wallet trigger runs Outlayr Wallet",
             es: "El disparador de Wallet ejecuta Outlayr Wallet",
         }),
+        "settings.wallet.automationDetailInline": t({
+            en: "Wallet trigger runs Log a Wallet Transaction",
+            es: "El disparador de Wallet ejecuta Registrar una transacción de Wallet",
+        }),
         "settings.wallet.automationRow": t({
             en: "Automation in Shortcuts",
             es: "Automatización en Atajos",
@@ -1064,16 +1068,24 @@ const settings = {
             es: "Cada pago con tarjeta llega al registro, en la cuenta que coincida.",
         }),
         "settings.wallet.manualStep1": t({
-            en: "Create New Shortcut, search Outlayr",
-            es: "Crear nuevo atajo, busca Outlayr",
+            en: "Next, then New Blank Automation",
+            es: "Siguiente, luego Nueva automatización en blanco",
         }),
         "settings.wallet.manualStep2": t({
-            en: "Add Log a Wallet Transaction",
-            es: "Añade Registrar una transacción de Wallet",
+            en: "Add Action, search Outlayr",
+            es: "Añadir acción, busca Outlayr",
+        }),
+        "settings.wallet.manualStep2Detail": t({
+            en: "Pick Log a Wallet Transaction",
+            es: "Elige Registrar una transacción de Wallet",
         }),
         "settings.wallet.manualStep3": t({
-            en: "Amount, Merchant and Card from Shortcut Input",
-            es: "Importe, Comercio y Tarjeta desde Entrada del atajo",
+            en: "Fill Amount, Merchant and Card",
+            es: "Rellena Importe, Comercio y Tarjeta",
+        }),
+        "settings.wallet.manualStep3Detail": t({
+            en: "Tap each, choose Shortcut Input, then the matching field",
+            es: "Toca cada uno, elige Entrada del atajo y luego el campo que corresponde",
         }),
         "settings.wallet.noAccounts": t({
             en: "No accounts yet",
