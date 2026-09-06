@@ -57,17 +57,25 @@ export type VoiceFailure =
     | "rateLimited"
     | "provider";
 
-export type VoicePhase =
+/**
+ * `Context` is whatever the caller needs to read the draft back in the
+ * ledger's terms — the candidates it offered the model, the currency it sent.
+ * It rides from the send to the review, because the ledger can change
+ * underneath a request in flight.
+ */
+export type VoicePhase<Context = unknown> =
     | { kind: "starting" }
     | { kind: "listening" }
     /** The clip is read and on its way; the thread may still be opening. */
     | { clip: ArrayBuffer; kind: "sending" }
     /** The words landed at `order`; the agent's answer at the same order is the draft. */
-    | { kind: "thinking"; order: number }
-    | { draft: VoiceDraft; kind: "review"; order: number }
+    | { context: Context; kind: "thinking"; order: number }
+    | { context: Context; draft: VoiceDraft; kind: "review"; order: number }
     | { kind: "failed"; reason: VoiceFailure; transcript: string | null };
 
-interface UseVoiceEntryArgs {
+interface UseVoiceEntryArgs<Context> {
+    /** Snapshotted with the request; the review phase hands it back. */
+    context: Context;
     /**
      * Everything but the clip, the thread and the date, built fresh by the
      * caller each render. `today` is read when the clip is sent, so a screen
@@ -78,7 +86,7 @@ interface UseVoiceEntryArgs {
     transport?: VoiceThreadTransport;
 }
 
-export interface UseVoiceEntryResult {
+export interface UseVoiceEntryResult<Context> {
     /** Stops listening and discards the clip. Safe in any phase. */
     cancel: () => void;
     /** Ends the clip now and sends it, instead of waiting for the trailing silence. */
@@ -90,7 +98,7 @@ export interface UseVoiceEntryResult {
      * draft, or a second try after a failure. The thread keeps every turn.
      */
     listenAgain: () => void;
-    phase: VoicePhase;
+    phase: VoicePhase<Context>;
     /** The thread so far, for the strip under the draft. */
     turns: VoiceTurn[];
 }
@@ -147,10 +155,14 @@ async function readAndDiscard(uri: string): Promise<ArrayBuffer> {
  * Must render inside the Convex provider, which the root layout mounts only
  * for a signed-in session; the screen gates on that before rendering this.
  */
-export function useVoiceEntry({ request, transport }: UseVoiceEntryArgs): UseVoiceEntryResult {
+export function useVoiceEntry<Context>({
+    context,
+    request,
+    transport,
+}: UseVoiceEntryArgs<Context>): UseVoiceEntryResult<Context> {
     const recorder = useAudioRecorder(RECORDING_OPTIONS);
     const level = useSharedValue(0);
-    const [phase, setPhase] = useState<VoicePhase>({ kind: "starting" });
+    const [phase, setPhase] = useState<VoicePhase<Context>>({ kind: "starting" });
     const [threadId, setThreadId] = useState<string | null>(null);
     /** Bumped by every cancel/listenAgain so a stop racing a start cannot land on the wrong take. */
     const takeRef = useRef(0);
@@ -385,7 +397,7 @@ export function useVoiceEntry({ request, transport }: UseVoiceEntryArgs): UseVoi
                     return;
                 }
                 if (settled.status === "ok" && settled.order !== null) {
-                    setPhase({ kind: "thinking", order: settled.order });
+                    setPhase({ context, kind: "thinking", order: settled.order });
                     return;
                 }
                 if (settled.status === "invalid" && resentRef.current !== clip) {
@@ -406,12 +418,12 @@ export function useVoiceEntry({ request, transport }: UseVoiceEntryArgs): UseVoi
                 }
             }
         })();
-    }, [api, dropThread, openThread, phase, request, threadId]);
+    }, [api, context, dropThread, openThread, phase, request, threadId]);
 
     // The answer to a sent turn is read off the thread, not set by an effect:
     // the phase says which order it is waiting on, and the messages say
     // whether that order has been answered yet.
-    const settledPhase = useMemo<VoicePhase>(() => {
+    const settledPhase = useMemo<VoicePhase<Context>>(() => {
         if (phase.kind !== "thinking") {
             return phase;
         }
@@ -425,7 +437,7 @@ export function useVoiceEntry({ request, transport }: UseVoiceEntryArgs): UseVoi
                 const said = messages.find((message) => message.role === "user" && message.order === phase.order);
                 return { kind: "failed", reason: "unclear", transcript: said?.text ?? null };
             }
-            return { draft: proposed.draft, kind: "review", order: phase.order };
+            return { context: phase.context, draft: proposed.draft, kind: "review", order: phase.order };
         }
         return answer.status === "failed" ? { kind: "failed", reason: "provider", transcript: null } : phase;
     }, [messages, phase]);

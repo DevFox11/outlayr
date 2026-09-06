@@ -253,8 +253,9 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
         [
             "expo-image-picker",
             {
-                cameraPermission: false,
-                photosPermission: "Outlayr uses your photos to set a custom logo for a transaction.",
+                cameraPermission: "Outlayr uses the camera to scan a receipt.",
+                photosPermission:
+                    "Outlayr uses your photos to set a custom logo for a transaction or to scan a receipt.",
             },
         ],
         [

@@ -22,6 +22,8 @@ export interface ResolvedVoiceEntry {
     accountId: string | null;
     /** An account was named but did not resolve to exactly one; the form must ask which. */
     accountUnresolved: boolean;
+    /** The category was picked from an incomplete set; the form must confirm it. */
+    categoryUnresolved: boolean;
     amount: number;
     categoryId: string | null;
     currency: string;
@@ -69,6 +71,10 @@ export interface AccountCandidate {
 
 interface ResolveArgs {
     accounts: readonly AccountCandidate[];
+    /** The prompt did not carry every account, so a draft naming none may name one the model never saw. */
+    accountsOmitted?: boolean;
+    /** The prompt did not carry every category, so the model's pick came from an incomplete set. */
+    categoriesOmitted?: boolean;
     categories: readonly CategoryCandidate[];
     /** The ledger's currency, for a draft that names none. */
     currency: string;
@@ -140,7 +146,15 @@ function uniqueMatch<T>(
  * refund under "Groceries" has named a real category on the wrong side of the
  * ledger, and that is a miss, not a match.
  */
-export function resolveVoiceDraft({ accounts, categories, currency, draft, now }: ResolveArgs): ResolvedVoiceDraft {
+export function resolveVoiceDraft({
+    accounts,
+    accountsOmitted = false,
+    categories,
+    categoriesOmitted = false,
+    currency,
+    draft,
+    now,
+}: ResolveArgs): ResolvedVoiceDraft {
     const findAccount = (name: string | null) => uniqueMatch(accounts, name, (candidate) => candidate.name);
 
     if (draft.kind === "transfer") {
@@ -156,10 +170,10 @@ export function resolveVoiceDraft({ accounts, categories, currency, draft, now }
             date: spokenDateToLocal(draft.date, now),
             details: draft.details,
             fromAccount,
-            fromUnresolved: draft.fromAccountName !== null && fromAccount === null,
+            fromUnresolved: draft.fromAccountName === null ? accountsOmitted : fromAccount === null,
             kind: "transfer",
             toAccount,
-            toUnresolved: draft.toAccountName !== null && toAccount === null,
+            toUnresolved: draft.toAccountName === null ? accountsOmitted : toAccount === null,
         };
     }
 
@@ -175,9 +189,10 @@ export function resolveVoiceDraft({ accounts, categories, currency, draft, now }
     const account = findAccount(draft.accountName);
     return {
         accountId: account?.id ?? null,
-        accountUnresolved: draft.accountName !== null && account === null,
+        accountUnresolved: draft.accountName === null ? accountsOmitted : account === null,
         amount: roundMoney(draft.amount, minorUnitsFor(spent)),
         categoryId: category?.id ?? null,
+        categoryUnresolved: categoriesOmitted,
         currency: spent,
         date: spokenDateToLocal(draft.date, now),
         details: draft.details,
@@ -190,6 +205,30 @@ export function resolveVoiceDraft({ accounts, categories, currency, draft, now }
 }
 
 /**
+ * Whether the ids a draft resolved to are still in the ledger's live lists.
+ * The draft resolves against the snapshot the model saw; sync can tombstone
+ * a category or account before Save is tapped, and the row would then land
+ * on a hidden one.
+ */
+export function stillCurrent(
+    draft: { accountId: string | null; categoryId: string | null },
+    live: { accountIds: ReadonlySet<string>; categoryIds: ReadonlySet<string> }
+): boolean {
+    const categoryCurrent = draft.categoryId === null || live.categoryIds.has(draft.categoryId);
+    const accountCurrent = draft.accountId === null || live.accountIds.has(draft.accountId);
+    return categoryCurrent && accountCurrent;
+}
+
+/** `stillCurrent` for a transfer: both legs, no category. */
+export function transferStillCurrent(
+    transfer: { fromAccount: { id: string } | null; toAccount: { id: string } | null },
+    live: { accountIds: ReadonlySet<string> }
+): boolean {
+    const legs = [transfer.fromAccount, transfer.toAccount];
+    return legs.every((leg) => leg === null || live.accountIds.has(leg.id));
+}
+
+/**
  * An entry the review step may write as-is: a category this ledger has, an
  * amount that survived rounding, a merchant, and no account named that the
  * ledger could not place. "JPY 0.4" rounds to nothing, a blank name would be
@@ -198,7 +237,8 @@ export function resolveVoiceDraft({ accounts, categories, currency, draft, now }
  */
 export function savableEntry(draft: ResolvedVoiceEntry): { categoryId: string } | null {
     const named = draft.merchant.trim().length > 0;
-    const ready = draft.categoryId !== null && draft.amount > 0 && named && !draft.accountUnresolved;
+    const placed = !(draft.accountUnresolved || draft.categoryUnresolved);
+    const ready = draft.categoryId !== null && draft.amount > 0 && named && placed;
     return ready && draft.categoryId !== null ? { categoryId: draft.categoryId } : null;
 }
 

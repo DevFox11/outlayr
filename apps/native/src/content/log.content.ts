@@ -18,11 +18,6 @@ const log = {
             en: "Scan a receipt",
             es: "Escanear un recibo",
         }),
-        // Marks an action the dial shows but cannot run yet.
-        "log.add.soon": t({
-            en: "Soon",
-            es: "Pronto",
-        }),
         "log.add.transaction": t({
             en: "Add a transaction",
             es: "Agregar una transacción",

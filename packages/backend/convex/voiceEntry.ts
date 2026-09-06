@@ -208,8 +208,8 @@ export const modelOutputSchema = z.object({
 export type ModelOutput = z.infer<typeof modelOutputSchema>;
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-/** A BCP-47 tag as the device reports it: a language, then short subtags. Bounded because it lands in the prompt. */
-const LANGUAGE_PATTERN = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{1,8}){0,4}$/;
+/** A BCP-47 tag as the device reports it, extensions included ("sr-Latn-RS-u-ca-gregory"); bounded because it lands in the prompt. */
+export const LANGUAGE_PATTERN = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{1,8}){0,12}$/;
 /** A bare hostname: labels of letters, digits and hyphens, at least one dot, no path. */
 const DOMAIN_PATTERN = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
 const CURRENCY_PATTERN = /^[A-Z]{3}$/;

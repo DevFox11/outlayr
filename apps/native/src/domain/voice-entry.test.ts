@@ -1,6 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
 
 import {
+    stillCurrent,
+    transferStillCurrent,
     judgeSilence,
     localIsoDate,
     MAX_RECORDING_MS,
@@ -160,6 +162,16 @@ describe("resolveVoiceDraft", () => {
             toUnresolved: false,
         });
         expect(resolve({ ...TRANSFER, toAccountName: null })).toMatchObject({ toAccount: null, toUnresolved: false });
+        expect(
+            resolveVoiceDraft({
+                accounts: ACCOUNTS,
+                accountsOmitted: true,
+                categories: CATEGORIES,
+                currency: "USD",
+                draft: { ...TRANSFER, toAccountName: null },
+                now: NOW,
+            })
+        ).toMatchObject({ toAccount: null, toUnresolved: true });
     });
 });
 
@@ -291,5 +303,17 @@ describe("thread turns", () => {
         expect(draftDelta(DRAFT, { ...DRAFT, details: "for the office" })).toStrictEqual(["details"]);
         expect(draftDelta(DRAFT, TRANSFER)).toStrictEqual(["kind", "amount", "date"]);
         expect(draftDelta(TRANSFER, { ...TRANSFER, toAccountName: "Amex" })).toStrictEqual(["account"]);
+    });
+});
+
+describe("stillCurrent", () => {
+    it("is true only while every id the draft resolved to is still in the ledger", () => {
+        const live = { accountIds: new Set(["acc-1"]), categoryIds: new Set(["cat-1"]) };
+        expect(stillCurrent({ accountId: "acc-1", categoryId: "cat-1" }, live)).toBeTruthy();
+        expect(stillCurrent({ accountId: null, categoryId: "cat-1" }, live)).toBeTruthy();
+        expect(stillCurrent({ accountId: "acc-gone", categoryId: "cat-1" }, live)).toBeFalsy();
+        expect(stillCurrent({ accountId: "acc-1", categoryId: "cat-gone" }, live)).toBeFalsy();
+        expect(transferStillCurrent({ fromAccount: { id: "acc-1" }, toAccount: null }, live)).toBeTruthy();
+        expect(transferStillCurrent({ fromAccount: { id: "acc-1" }, toAccount: { id: "acc-gone" } }, live)).toBeFalsy();
     });
 });

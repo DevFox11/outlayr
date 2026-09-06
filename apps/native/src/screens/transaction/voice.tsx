@@ -33,6 +33,7 @@ import { transfersRepo } from "@/data/transfers-core";
 import type { AuthGate } from "@/domain/auth-gate";
 import { formatChargeDate, startOfDay } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
+import { boundedPromptNames } from "@/domain/prompt-budget";
 import {
     draftDelta,
     resolveRecurrence,
@@ -40,6 +41,8 @@ import {
     savableEntry,
     savableTransfer,
     spokenDateToLocal,
+    stillCurrent,
+    transferStillCurrent,
 } from "@/domain/voice-entry";
 import type {
     CategoryCandidate,
@@ -48,6 +51,7 @@ import type {
     VoiceDraftField,
     VoiceTurn,
 } from "@/domain/voice-entry";
+import { useIsMounted } from "@/hooks/use-is-mounted";
 import { useMerchantMark } from "@/hooks/use-merchant-mark";
 import { useVoiceEntry } from "@/hooks/use-voice-entry";
 import type { VoiceFailure, VoicePhase } from "@/hooks/use-voice-entry";
@@ -492,6 +496,7 @@ function VoiceThreadScreen() {
     const expenseCategories = useCategoriesByNamespace(db, false);
     const incomeCategories = useCategoriesByNamespace(db, true);
     const [saving, setSaving] = useState(false);
+    const isMounted = useIsMounted();
 
     const categoryTree = useMemo(
         () =>
@@ -512,38 +517,56 @@ function VoiceThreadScreen() {
             ]),
         [expenseCategories, incomeCategories]
     );
+    const bounded = useMemo(
+        () => boundedPromptNames({ accounts: accounts.map((account) => account.name), categoryTree }),
+        [accounts, categoryTree]
+    );
     const request = useMemo(
         () => ({
-            accounts: accounts.map((account) => account.name),
-            categoryTree,
+            accounts: bounded.accounts,
+            categoryTree: bounded.categoryTree,
             currency,
             language,
         }),
-        [accounts, categoryTree, currency, language]
+        [bounded, currency, language]
     );
 
-    const { phase, level, finish, listenAgain, cancel, turns } = useVoiceEntry({ request });
+    // What the draft is read against travels with the request: the ledger the
+    // model saw, not the ledger as sync may have left it by the time it answers.
+    const context = useMemo(
+        () => ({
+            accounts: accounts.map((account) => ({
+                currency: account.currency,
+                id: account.id,
+                name: account.name,
+            })),
+            accountsOmitted: bounded.accountsOmitted,
+            categories: candidates,
+            categoriesOmitted: bounded.categoriesOmitted,
+            currency,
+        }),
+        [accounts, bounded.accountsOmitted, bounded.categoriesOmitted, candidates, currency]
+    );
+
+    const { phase, level, finish, listenAgain, cancel, turns } = useVoiceEntry({ context, request });
 
     const resolved = useMemo(
         () =>
             phase.kind === "review"
-                ? resolveVoiceDraft({
-                      accounts: accounts.map((account) => ({
-                          currency: account.currency,
-                          id: account.id,
-                          name: account.name,
-                      })),
-                      categories: candidates,
-                      currency,
-                      draft: phase.draft,
-                      now: new Date(),
-                  })
+                ? resolveVoiceDraft({ ...phase.context, draft: phase.draft, now: new Date() })
                 : null,
-        [accounts, candidates, currency, phase]
+        [phase]
     );
     const entry = resolved?.kind === "entry" ? resolved : null;
     const transfer = resolved?.kind === "transfer" ? resolved : null;
-    const savableCategoryId = entry ? (savableEntry(entry)?.categoryId ?? null) : null;
+    const live = useMemo(
+        () => ({
+            accountIds: new Set(accounts.map((account) => account.id)),
+            categoryIds: new Set(candidates.map((candidate) => candidate.id)),
+        }),
+        [accounts, candidates]
+    );
+    const savableCategoryId = entry && stillCurrent(entry, live) ? (savableEntry(entry)?.categoryId ?? null) : null;
     const categoryName = entry?.categoryId ? (getCategoryById(db, entry.categoryId)?.name ?? null) : null;
 
     const close = useCallback(() => {
@@ -553,9 +576,12 @@ function VoiceThreadScreen() {
 
     const openForm = useCallback(
         (draft: ResolvedVoiceEntry) => {
+            // An account sync removed since the draft resolved is a question for
+            // the form, not a seed the form would quietly swap for the last used.
+            const accountLive = draft.accountId === null || live.accountIds.has(draft.accountId);
             const params = {
-                accountId: draft.accountId ?? undefined,
-                accountUnresolved: draft.accountUnresolved ? "1" : undefined,
+                accountId: accountLive ? (draft.accountId ?? undefined) : undefined,
+                accountUnresolved: draft.accountUnresolved || !accountLive ? "1" : undefined,
                 amount: String(draft.amount),
                 categoryId: draft.categoryId ?? undefined,
                 currency: draft.currency,
@@ -568,24 +594,35 @@ function VoiceThreadScreen() {
             };
             router.replace({ params, pathname: "/transactions/create" });
         },
-        [router]
+        [live, router]
     );
 
     const openTransferForm = useCallback(
         (draft: ResolvedVoiceTransfer) => {
+            // A leg sync removed since the draft resolved is a question for the
+            // editor, not a seed it would quietly swap for the first account.
+            const leg = (account: { id: string } | null, unresolved: boolean) => {
+                const current = account !== null && live.accountIds.has(account.id);
+                return {
+                    id: current ? account.id : undefined,
+                    unresolved: unresolved || (account !== null && !current),
+                };
+            };
+            const from = leg(draft.fromAccount, draft.fromUnresolved);
+            const to = leg(draft.toAccount, draft.toUnresolved);
             const params = {
                 amount: String(draft.amount),
                 currency: draft.currency,
                 date: String(draft.date.getTime()),
-                fromAccountId: draft.fromAccount?.id,
-                fromUnresolved: draft.fromUnresolved ? "1" : undefined,
+                fromAccountId: from.id,
+                fromUnresolved: from.unresolved ? "1" : undefined,
                 note: draft.details ?? undefined,
-                toAccountId: draft.toAccount?.id,
-                toUnresolved: draft.toUnresolved ? "1" : undefined,
+                toAccountId: to.id,
+                toUnresolved: to.unresolved ? "1" : undefined,
             };
             router.replace({ params, pathname: "/transactions/transfers/create" });
         },
-        [router]
+        [live, router]
     );
 
     const save = useCallback(
@@ -610,7 +647,9 @@ function VoiceThreadScreen() {
                 } catch {
                     // The row did not land; the form has the failure strip this screen lacks.
                     setSaving(false);
-                    openForm(draft);
+                    if (isMounted()) {
+                        openForm(draft);
+                    }
                     return;
                 }
                 // Past this line the row is committed, so nothing below may send
@@ -633,11 +672,15 @@ function VoiceThreadScreen() {
                     await rememberLastUsedAccount(db, draft.accountId).catch(() => null);
                 }
                 haptics("success");
-                router.back();
+                // A modal gesture can dismiss this screen mid-write; popping again
+                // would take the screen underneath with it.
+                if (isMounted()) {
+                    router.back();
+                }
             };
             void write();
         },
-        [db, haptics, openForm, router]
+        [db, haptics, isMounted, openForm, router]
     );
 
     /** Same-currency legs only, by `savableTransfer`; the rate is 1 and no fee is spoken. */
@@ -660,15 +703,21 @@ function VoiceThreadScreen() {
                     });
                 } catch {
                     setSaving(false);
-                    openTransferForm(draft);
+                    if (isMounted()) {
+                        openTransferForm(draft);
+                    }
                     return;
                 }
                 haptics("success");
-                router.back();
+                // A modal gesture can dismiss this screen mid-write; popping again
+                // would take the screen underneath with it.
+                if (isMounted()) {
+                    router.back();
+                }
             };
             void write();
         },
-        [db, haptics, openTransferForm, router]
+        [db, haptics, isMounted, openTransferForm, router]
     );
 
     const openSettings = useCallback(() => {
@@ -697,7 +746,7 @@ function VoiceThreadScreen() {
     })();
 
     const settled = resolved !== null || phase.kind === "failed";
-    const transferLegs = transfer ? savableTransfer(transfer) : null;
+    const transferLegs = transfer && transferStillCurrent(transfer, live) ? savableTransfer(transfer) : null;
 
     let caption: React.ReactNode = null;
     if (entry) {

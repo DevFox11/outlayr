@@ -32,6 +32,7 @@ import type * as lib_syncTables from "../lib/syncTables.js";
 import type * as merchantKnowledge from "../merchantKnowledge.js";
 import type * as photos from "../photos.js";
 import type * as providerLifecycle from "../providerLifecycle.js";
+import type * as receiptScan from "../receiptScan.js";
 import type * as sync from "../sync.js";
 import type * as voiceEntry from "../voiceEntry.js";
 
@@ -66,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   merchantKnowledge: typeof merchantKnowledge;
   photos: typeof photos;
   providerLifecycle: typeof providerLifecycle;
+  receiptScan: typeof receiptScan;
   sync: typeof sync;
   voiceEntry: typeof voiceEntry;
 }>;

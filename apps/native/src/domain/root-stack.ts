@@ -72,6 +72,7 @@ export const ROOT_STACK_SCREEN_NAMES = {
         "transactions/transfers/[id]",
         "transactions/create",
         "transactions/voice",
+        "transactions/scan",
         "transactions/[id]",
         "transactions/identity",
     ],

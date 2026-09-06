@@ -11,7 +11,7 @@ import type { IconSvgElement } from "@hugeicons/react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Fab } from "panelui-native";
 import { useCallback, useRef, useState } from "react";
-import { useWindowDimensions, View } from "react-native";
+import { useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScopedVariables, useCSSVariable } from "uniwind";
 
@@ -28,7 +28,6 @@ const DIAL_BOTTOM_INSET = 16;
 const DIAL_EDGE_INSET = 20;
 const ACTION_ICON_SIZE = 22;
 const TRIGGER_ICON_SIZE = 26;
-const PENDING_OPACITY = 0.45;
 
 const ACTION_HEIGHT = 56;
 const TRIGGER_HEIGHT = 64;
@@ -74,53 +73,44 @@ function fittingActionCount(candidates: number, room: number, fontScale: number,
 
 interface DialFit {
     lines: LabelLines;
-    keptRunnable: number;
-    showPending: boolean;
+    kept: number;
 }
 
-function fitDial(runnableCount: number, pendingCount: number, room: number, fontScale: number): DialFit {
+/**
+ * Every action at its natural label height when the screen has the room; else
+ * the labels clamp to two lines, then one, and only then do actions drop off
+ * the top of the dial — the last one standing is always "Add a transaction".
+ */
+function fitDial(actionCount: number, room: number, fontScale: number): DialFit {
     const fits = (count: number, lines: LabelLines) => dialHeight(count, fontScale, lines) <= room;
 
-    if (fits(runnableCount + pendingCount, null)) {
-        return { keptRunnable: runnableCount, lines: null, showPending: true };
-    }
     for (const lines of [null, 2, 1] as const) {
-        if (fits(runnableCount, lines)) {
-            return { keptRunnable: runnableCount, lines, showPending: false };
+        if (fits(actionCount, lines)) {
+            return { kept: actionCount, lines };
         }
     }
-    return {
-        keptRunnable: fittingActionCount(runnableCount, room, fontScale, 1),
-        lines: 1,
-        showPending: false,
-    };
+    return { kept: fittingActionCount(actionCount, room, fontScale, 1), lines: 1 };
 }
 
 interface AddAction {
     icon: IconSvgElement;
     key: string;
     label: string;
-    pending?: boolean;
-    onPress?: () => void;
+    onPress: () => void;
 }
 
 function DialAction({ action, lines }: { action: AddAction; lines: LabelLines }) {
-    const t = useTranslation();
     // SAFETY: `--foreground` is declared in global.css for both schemes.
     const foreground = useCSSVariable("--foreground") as string;
-    const pending = action.pending === true;
 
-    const dialAction = (
+    return (
         <Fab.Action
-            disabled={pending}
             icon={<HugeiconsIcon color={foreground} icon={action.icon} size={ACTION_ICON_SIZE} strokeWidth={1.8} />}
-            label={pending ? `${action.label} · ${t("log.add.soon")}` : action.label}
+            label={action.label}
             labelClassName={labelClassName(lines)}
             onPress={action.onPress}
         />
     );
-
-    return pending ? <View style={{ opacity: PENDING_OPACITY }}>{dialAction}</View> : dialAction;
 }
 
 export function FloatingAddButton() {
@@ -146,38 +136,17 @@ export function FloatingAddButton() {
     }, []);
     const canTransfer = useAccounts(useDatabase()).length >= 2;
 
-    const pendingActions: AddAction[] = [{ icon: ScanIcon, key: "scan", label: t("log.add.scan"), pending: true }];
-
     const room = windowHeight - insets.top - insets.bottom - DIAL_BOTTOM_INSET;
-    const runnableCount = canTransfer ? 4 : 3;
-    const { keptRunnable, lines, showPending } = fitDial(runnableCount, pendingActions.length, room, fontScale);
-    const showTransfer = canTransfer && keptRunnable >= 2;
-    const showVoice = keptRunnable >= runnableCount - 1;
-    const showImport = keptRunnable >= runnableCount;
-
-    const actions: AddAction[] = [
-        ...(showImport
-            ? [
-                  {
-                      icon: FileImportIcon,
-                      key: "import",
-                      label: t("log.add.import"),
-                      onPress: presentImport,
-                  },
-              ]
-            : []),
-        ...(showPending ? pendingActions : []),
-        ...(showVoice
-            ? [
-                  {
-                      icon: Mic01Icon,
-                      key: "voice",
-                      label: t("log.add.voice"),
-                      onPress: () => router.push("/transactions/voice"),
-                  },
-              ]
-            : []),
-        ...(showTransfer
+    // Bottom-up by how often each is reached for: the transaction always, then
+    // moving money, speaking, scanning, and a CSV import last.
+    const ranked: AddAction[] = [
+        {
+            icon: ReceiptDollarIcon,
+            key: "transaction",
+            label: t("log.add.transaction"),
+            onPress: () => router.push("/transactions/create"),
+        },
+        ...(canTransfer
             ? [
                   {
                       icon: ArrowDataTransferHorizontalIcon,
@@ -187,13 +156,14 @@ export function FloatingAddButton() {
                   },
               ]
             : []),
-        {
-            icon: ReceiptDollarIcon,
-            key: "transaction",
-            label: t("log.add.transaction"),
-            onPress: () => router.push("/transactions/create"),
-        },
+        { icon: Mic01Icon, key: "voice", label: t("log.add.voice"), onPress: () => router.push("/transactions/voice") },
+        { icon: ScanIcon, key: "scan", label: t("log.add.scan"), onPress: () => router.push("/transactions/scan") },
+        { icon: FileImportIcon, key: "import", label: t("log.add.import"), onPress: presentImport },
     ];
+    const { kept, lines } = fitDial(ranked.length, room, fontScale);
+    // The dial reads top to bottom, so the least-reached-for action sits furthest from the thumb.
+    // oxlint-disable-next-line react/react-compiler -- `presentImport` reads the sheet's ref when it is pressed, never during render; the rule tracks the function value into any array it lands in, and the alternative is not putting the import in the list at all
+    const actions = ranked.slice(0, kept).reverse();
 
     const toggleDial = useCallback(
         (next: boolean) => {
@@ -225,7 +195,6 @@ export function FloatingAddButton() {
                     }
                     style={{ bottom: insets.bottom + DIAL_BOTTOM_INSET, right: DIAL_EDGE_INSET }}
                 >
-                    {/* oxlint-disable-next-line react/react-compiler -- `presentImport` reads the sheet's ref when it is pressed, never during render; the rule tracks the function value into any array it lands in, and the alternative is not putting the import in the list at all */}
                     {actions.map((action) => (
                         <DialAction action={action} key={action.key} lines={lines} />
                     ))}

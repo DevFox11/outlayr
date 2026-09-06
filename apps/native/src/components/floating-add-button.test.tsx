@@ -82,9 +82,6 @@ async function press(element: Parameters<typeof fireEvent.press>[0]) {
 const openDial = () => press(screen.getByLabelText("log.add.menu"));
 const pressAction = (label: string) => press(screen.getByLabelText(label));
 
-/** What an unbuilt action's chip and its accessibility label both read. */
-const pending = (label: string) => `${label} · log.add.soon`;
-
 describe("floatingAddButton", () => {
     beforeEach(() => {
         mockPush.mockClear();
@@ -122,7 +119,7 @@ describe("floatingAddButton", () => {
         // the trigger, so this list is the priority order read backwards.
         expect(screen.getAllByText(/^log\.add\./).map((chip) => chip.props.children)).toStrictEqual([
             "log.add.import",
-            pending("log.add.scan"),
+            "log.add.scan",
             "log.add.voice",
             "log.add.transfer",
             "log.add.transaction",
@@ -194,7 +191,7 @@ describe("floatingAddButton", () => {
         expect(screen.queryByLabelText("log.add.transfer")).toBeNull();
     });
 
-    it("drops the unbuilt actions when the window is too short to reach them", async () => {
+    it("drops the least-reached-for actions when the window is too short to hold them", async () => {
         // An iPhone on its side. Five actions need 404pt above the bottom inset
         // and the dial cannot scroll, so the top of the column would be off-screen.
         mockWindowHeight.mockReturnValue(440);
@@ -215,7 +212,7 @@ describe("floatingAddButton", () => {
         await render(<FloatingAddButton />);
         await openDial();
 
-        expect(screen.getByLabelText(pending("log.add.scan"))).toBeTruthy();
+        expect(screen.getByLabelText("log.add.import")).toBeTruthy();
     });
 
     it("shuts the dial when the Log stops being the tab on screen", async () => {
@@ -242,7 +239,7 @@ describe("floatingAddButton", () => {
         expect(mockHaptics).toHaveBeenCalledWith("selection");
     });
 
-    it("drops the unbuilt actions when Dynamic Type wraps the labels tall", async () => {
+    it("clamps the labels when Dynamic Type wraps them tall, keeping every action", async () => {
         // An accessibility text size wraps each chip to three lines, which makes a
         // row roughly four times its resting height even in portrait.
         mockFontScale.mockReturnValue(3.1);
@@ -252,6 +249,7 @@ describe("floatingAddButton", () => {
 
         expect(screen.getAllByText(/^log\.add\./).map((chip) => chip.props.children)).toStrictEqual([
             "log.add.import",
+            "log.add.scan",
             "log.add.voice",
             "log.add.transfer",
             "log.add.transaction",
@@ -285,21 +283,12 @@ describe("floatingAddButton", () => {
         expect(mockPush).toHaveBeenCalledWith("/transactions/voice");
     });
 
-    it("marks the unbuilt action rather than hiding it", async () => {
+    it("pushes /transactions/scan when the scan action is pressed", async () => {
         await render(<FloatingAddButton />);
         await openDial();
 
-        expect(screen.getByLabelText(pending("log.add.scan"))).toBeTruthy();
-    });
+        await pressAction("log.add.scan");
 
-    it("leaves the unbuilt action inert, so pressing it is not a choice that registered", async () => {
-        await render(<FloatingAddButton />);
-        await openDial();
-
-        await pressAction(pending("log.add.scan"));
-
-        expect(mockPush).not.toHaveBeenCalled();
-        expect(mockPresent).not.toHaveBeenCalled();
-        expect(screen.getByLabelText("log.add.transaction")).toBeTruthy();
+        expect(mockPush).toHaveBeenCalledWith("/transactions/scan");
     });
 });

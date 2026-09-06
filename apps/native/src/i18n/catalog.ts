@@ -24,6 +24,7 @@ type Insights = typeof import("@/content/insights.content").default;
 type LanguageDict = typeof import("@/content/language.content").default;
 type Log = typeof import("@/content/log.content").default;
 type Onboarding = typeof import("@/content/onboarding.content").default;
+type Receipt = typeof import("@/content/receipt.content").default;
 type Search = typeof import("@/content/search.content").default;
 type Settings = typeof import("@/content/settings.content").default;
 type Transaction = typeof import("@/content/transaction.content").default;
@@ -49,6 +50,7 @@ export const DICTIONARY_KEYS = [
     "language",
     "log",
     "onboarding",
+    "receipt",
     "search",
     "settings",
     "transaction",
@@ -70,6 +72,7 @@ type Content =
     | LanguageDict["content"]
     | Log["content"]
     | Onboarding["content"]
+    | Receipt["content"]
     | Search["content"]
     | Settings["content"]
     | Transaction["content"]

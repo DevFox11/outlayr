@@ -343,3 +343,72 @@ export function photoTransport(): PhotoTransport {
         requestUpload: async (name) => cloudMutation("photos:requestUpload", { name }),
     };
 }
+
+export interface ReceiptItem {
+    name: string;
+    /** The line's total in the receipt's currency, quantity included. */
+    price: number;
+    quantity: number;
+}
+
+/** One photographed receipt as `receiptScan:scan` read it; names only, as printed. */
+export interface ReceiptDraft {
+    /** A ledger account the payment line names, in the ledger's spelling. */
+    accountName: string | null;
+    categoryName: string | null;
+    /** ISO 4217; null is the ledger's own currency. */
+    currency: string | null;
+    /** Whether the code was printed, or inferred from a symbol and the device's region. */
+    currencySource: "printed" | "inferred";
+    /** The receipt named a code the ledger cannot price; `currency` is null as a stand-in, never a guess. */
+    currencyUnresolved: boolean;
+    /** `YYYY-MM-DD` on the device's calendar, as it was sent. */
+    date: string;
+    domain: string | null;
+    /** A refund or return slip. */
+    income: boolean;
+    items: ReceiptItem[];
+    merchant: string;
+    paymentMethod: string | null;
+    subtotal: number | null;
+    tax: number | null;
+    tip: number | null;
+    total: number;
+}
+
+export type ScanStatus =
+    | "ok"
+    | "unauthenticated"
+    | "notConfigured"
+    | "rateLimited"
+    | "invalid"
+    | "providerError"
+    | "invalidResponse"
+    | "unclear";
+
+export interface ScanResult {
+    receipt: ReceiptDraft | null;
+    status: ScanStatus;
+}
+
+export interface ScanRequest {
+    accounts: string[];
+    categoryTree: CategoryBranch[];
+    currency: string;
+    /** JPEG, under `MAX_IMAGE_BYTES` on the server. */
+    image: ArrayBuffer;
+    language?: string;
+    regionCode?: string;
+    today: string;
+}
+
+export type ReceiptScanFn = (args: ScanRequest) => Promise<ScanResult>;
+
+/**
+ * The photo plus names only — no ids, no history — the boundary
+ * `packages/backend/convex/receiptScan.ts` asserts. Authentication rides on
+ * `convex` itself, exactly as it does for `voiceThreadTransport`.
+ */
+export function receiptScanTransport(): ReceiptScanFn {
+    return async (args) => cloudAction("receiptScan:scan", args);
+}
