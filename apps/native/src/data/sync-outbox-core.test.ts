@@ -1,12 +1,8 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { accounts, categories, transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import {
@@ -19,24 +15,6 @@ import {
     setSyncCursor,
     setSyncEnabled,
 } from "./sync-outbox-core";
-
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
-
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    const files = readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort();
-    for (const file of files) {
-        const sql = readFileSync(join(MIGRATIONS, file), "utf-8");
-        for (const statement of sql.split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
-    return testDatabase(sqlite);
-}
 
 async function addTransaction(db: Database, id: string): Promise<void> {
     await db.insert(transactions).values({
@@ -54,7 +32,7 @@ describe("sync device identity", () => {
     let db: Database;
 
     beforeEach(() => {
-        db = makeDb();
+        db = migratedDatabase();
     });
 
     it("mints a device id once and keeps it", async () => {
@@ -77,7 +55,7 @@ describe("sync cursor", () => {
     let db: Database;
 
     beforeEach(() => {
-        db = makeDb();
+        db = migratedDatabase();
     });
 
     it("starts at zero", async () => {
@@ -108,7 +86,7 @@ describe("the sync gate", () => {
     let db: Database;
 
     beforeEach(() => {
-        db = makeDb();
+        db = migratedDatabase();
     });
 
     it("is off until something turns it on", async () => {
@@ -147,7 +125,7 @@ describe("enqueueAllForSync", () => {
     let db: Database;
 
     beforeEach(() => {
-        db = makeDb();
+        db = migratedDatabase();
     });
 
     it("queues rows written before the gate opened, tombstones included", async () => {

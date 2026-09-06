@@ -1,13 +1,10 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { eq, getTableColumns, isNull } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { appMeta, budgets, categories, exchangeRates, mainBudget, outbox } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase, testDatabase } from "@/db/test-database";
 import { BUDGET_TYPE, shiftWindow, startOfPeriod } from "@/domain/budget-math";
 import { buildRateTable, limitIn } from "@/domain/valuation";
 
@@ -60,29 +57,6 @@ function makeDb(): Database {
 			deletedAt integer
 		);
 	`);
-    return testDatabase(sqlite);
-}
-
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
-
-/**
- * The shipped migrations, applied in order. The delete tests need the real
- * outbox triggers, which exist only in the migration SQL — re-declaring them
- * above would test a copy of the thing under test.
- */
-function migratedDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    const files = readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort();
-    for (const file of files) {
-        const sql = readFileSync(join(MIGRATIONS, file), "utf-8");
-        for (const statement of sql.split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
     return testDatabase(sqlite);
 }
 
@@ -702,7 +676,7 @@ describe("budgetsRepo.deleteBudget", () => {
     let db: Database;
 
     beforeEach(async () => {
-        db = migratedDb();
+        db = migratedDatabase();
         // Before the gate opens, so the category's own insert queues nothing.
         await db.insert(categories).values({
             id: "cat-1",
@@ -798,7 +772,7 @@ describe("budgetsRepo.deleteMainBudget", () => {
     let db: Database;
 
     beforeEach(async () => {
-        db = migratedDb();
+        db = migratedDatabase();
         await setSyncEnabled(db, true);
     });
 

@@ -15,10 +15,10 @@ import { Platform } from "react-native";
 
 import { QUEUE_DIRECTORY } from "./pending-writes-core";
 import { clearStoredPhotos } from "./photo-storage";
+import { PROVIDER_BINDING_KEY } from "./provider-revocation";
 import { INTENT_SNAPSHOT_KEY, PENDING_WRITES_KEY } from "./widget-bridge";
 
 const DATABASE_NAME = "outlayr.db";
-const PROVIDER_BINDING_KEY = "outlayr.provider-binding";
 const DELETION_SECRET_KEY = "outlayr.account-deletion-resume";
 const BETTER_AUTH_PREFIX = "outlayr";
 const BETTER_AUTH_CHUNK_MARKER = "\u0001ba-chunks:";

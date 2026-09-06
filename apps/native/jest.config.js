@@ -2,7 +2,7 @@ const preset = require("jest-expo/jest-preset");
 
 /** @type {import("jest").Config} */
 module.exports = {
-    globalSetup: "<rootDir>/jest/timezone.js",
+    globalSetup: "<rootDir>/jest/global-setup.js",
     moduleNameMapper: {
         // tsconfig maps `@/assets/*` outside `src/`, but jest-expo only picks up
         // the general `@/*` -> `src/*` rule, so every asset import resolves under

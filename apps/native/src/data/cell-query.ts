@@ -22,7 +22,7 @@ export const UTC_DAY = sql<string>`strftime('%Y-%m-%d', ${transactions.date} / 1
  * rate is looked up at, so re-cutting it would value a row on a day whose rate
  * may not exist, or may not be the one it was frozen against.
  */
-export const LOCAL_DAY = sql<string>`strftime('%Y-%m-%d', ${transactions.date} / 1000, 'unixepoch', 'localtime')`;
+const LOCAL_DAY = sql<string>`strftime('%Y-%m-%d', ${transactions.date} / 1000, 'unixepoch', 'localtime')`;
 
 /**
  * Any query selecting these must group by `currency`, `income` and

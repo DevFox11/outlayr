@@ -1,15 +1,11 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, render } from "@testing-library/react-native";
-import BetterSqlite3 from "better-sqlite3";
 
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
 import { testLocalData as mockTestLocalData } from "@/contexts/test-local-data";
 import type { Database } from "@/db/client";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 import type { EnrichmentSuggestion } from "@/hooks/use-transaction-enrichment";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
@@ -127,22 +123,6 @@ jest.mock<Partial<typeof import("@/lib/logo-fetch")>>("@/lib/logo-fetch", () => 
     fetchMerchantImage: (...args: unknown[]) => mockFetchMerchantImage(...args),
 }));
 
-const MIGRATIONS = join(import.meta.dirname, "../../../drizzle");
-
-function migratedDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    for (const file of readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort()) {
-        for (const statement of readFileSync(join(MIGRATIONS, file), "utf-8").split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
-    return testDatabase(sqlite);
-}
-
 function Providers({ children }: { children: React.ReactNode }) {
     return (
         <AppSettingsProvider>
@@ -152,7 +132,7 @@ function Providers({ children }: { children: React.ReactNode }) {
 }
 
 beforeEach(() => {
-    dbHolder.current = migratedDb();
+    dbHolder.current = migratedDatabase();
     mockUseTransactionEnrichment.mockClear();
     mockFetchMerchantImage.mockClear();
 });

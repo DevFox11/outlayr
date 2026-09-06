@@ -1,34 +1,17 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 import { eq, getTableColumns } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { accounts, budgets, categories, mainBudget, outbox, savingsGoals, transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedSqlite, testDatabase } from "@/db/test-database";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { applyPulledRows, drainOutbox, incomingWinsLocally, pullAndApply, runSync, specFor } from "./sync-engine-core";
 import type { PulledRow, PushFn, WireRow } from "./sync-engine-core";
 import { getSyncCursor, outboxPendingCount, SYNCED_TABLES, setSyncEnabled } from "./sync-outbox-core";
 
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
-
 function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    const files = readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort();
-    for (const file of files) {
-        const sql = readFileSync(join(MIGRATIONS, file), "utf-8");
-        for (const statement of sql.split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
+    const sqlite = migratedSqlite();
     // Matches `db/client.ts` on a store that checks out clean. Without it the
     // applier's `PRAGMA foreign_keys = OFF` would be a no-op here and the
     // out-of-order page below would pass for the wrong reason.

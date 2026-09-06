@@ -1,9 +1,5 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
-import BetterSqlite3 from "better-sqlite3";
 import { Alert } from "react-native";
 
 import { testLocalData as mockTestLocalData } from "@/contexts/test-local-data";
@@ -11,7 +7,7 @@ import type { ImportPlan } from "@/data/transfer-core";
 import * as transferCore from "@/data/transfer-core";
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 import { INITIAL_IMPORT_FLOW_STATE } from "@/domain/import-flow";
 import { importDraftStore } from "@/lib/import-draft-store";
 
@@ -35,22 +31,6 @@ jest.mock("@/contexts/local-data-context", () => ({
     useDatabase: () => dbHolder.current,
     useLocalData: () => mockTestLocalData({ db: dbHolder.current }),
 }));
-
-const MIGRATIONS = join(import.meta.dirname, "../../drizzle");
-
-function migratedDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    for (const file of readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort()) {
-        for (const statement of readFileSync(join(MIGRATIONS, file), "utf-8").split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
-    return testDatabase(sqlite);
-}
 
 const NOW = new Date(2026, 6, 29, 12);
 
@@ -115,7 +95,7 @@ function withReview() {
 }
 
 beforeEach(() => {
-    dbHolder.current = migratedDb();
+    dbHolder.current = migratedDatabase();
     importDraftStore.clear();
     mockGoBack.mockClear();
     mockUseNavigation.mockClear();

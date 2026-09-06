@@ -1,13 +1,10 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { accounts, exchangeRates, outbox, transactions, transfers } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedSqlite, testDatabase } from "@/db/test-database";
 import { groupByDay } from "@/domain/day-sections";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
@@ -74,26 +71,13 @@ function makeDb(): Database {
     return testDatabase(sqlite);
 }
 
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
-
 /**
  * The hand-rolled schema above carries no outbox and no triggers, so anything
  * that has to prove a write reaches the account is run against the shipped
  * migrations instead.
  */
 function syncedDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    const files = readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort();
-    for (const file of files) {
-        const sql = readFileSync(join(MIGRATIONS, file), "utf-8");
-        for (const statement of sql.split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
+    const sqlite = migratedSqlite();
     // The shipped schema enforces the category foreign key the inline one above
     // leaves off, so the category every draft here names has to exist.
     sqlite

@@ -1,37 +1,11 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { accounts, categories, transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 import { parseArchive, serializeArchive } from "@/domain/archive";
 
 import { buildArchive, restoreArchive } from "./archive-core";
-
-const MIGRATIONS = join(import.meta.dirname, "../../drizzle");
-
-/**
- * The real migrations rather than a hand-written schema: an archive claims to
- * carry every column, so a fixture that drifts from the shipped tables would let
- * a dropped column pass.
- */
-function migratedDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    for (const file of readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort()) {
-        const sql = readFileSync(join(MIGRATIONS, file), "utf-8");
-        for (const statement of sql.split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
-    return testDatabase(sqlite);
-}
 
 const CATEGORY = {
     id: "c1",
@@ -61,7 +35,7 @@ describe("archiving a ledger", () => {
     let db: Database;
 
     beforeEach(() => {
-        db = migratedDb();
+        db = migratedDatabase();
     });
 
     it("round-trips a ledger through serialize, parse and restore", async () => {
@@ -74,7 +48,7 @@ describe("archiving a ledger", () => {
             throw new Error("expected the archive to parse");
         }
 
-        const fresh = migratedDb();
+        const fresh = migratedDatabase();
         await restoreArchive(fresh, parsed);
 
         const rows = await fresh.select().from(transactions);
@@ -101,7 +75,7 @@ describe("archiving a ledger", () => {
         if (!parsed) {
             throw new Error("expected the archive to parse");
         }
-        const fresh = migratedDb();
+        const fresh = migratedDatabase();
         await restoreArchive(fresh, parsed);
 
         const [account] = await fresh.select().from(accounts);
@@ -124,7 +98,7 @@ describe("archiving a ledger", () => {
         if (!parsed) {
             throw new Error("expected the archive to parse");
         }
-        const fresh = migratedDb();
+        const fresh = migratedDatabase();
         await restoreArchive(fresh, parsed);
 
         const [row] = await fresh.select().from(transactions);
@@ -142,7 +116,7 @@ describe("archiving a ledger", () => {
         if (!parsed) {
             throw new Error("expected the archive to parse");
         }
-        const fresh = migratedDb();
+        const fresh = migratedDatabase();
         await restoreArchive(fresh, parsed);
 
         const [row] = await fresh.select().from(transactions);
@@ -157,7 +131,7 @@ describe("archiving a ledger", () => {
             throw new Error("expected the archive to parse");
         }
 
-        const target = migratedDb();
+        const target = migratedDatabase();
         await target.insert(categories).values(CATEGORY);
         await target.insert(transactions).values(transactionRow("t2"));
         await restoreArchive(target, parsed);
@@ -176,7 +150,7 @@ describe("archiving a ledger", () => {
         if (!parsed) {
             throw new Error("expected the archive to parse");
         }
-        const fresh = migratedDb();
+        const fresh = migratedDatabase();
         const written = await restoreArchive(fresh, parsed);
 
         expect(written).toBe(251);
@@ -192,7 +166,7 @@ describe("archiving a ledger", () => {
             throw new Error("expected the archive to parse");
         }
 
-        const fresh = migratedDb();
+        const fresh = migratedDatabase();
         await restoreArchive(fresh, parsed);
     });
 });

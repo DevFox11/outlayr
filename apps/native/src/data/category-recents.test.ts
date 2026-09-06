@@ -1,30 +1,10 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 
 import { RECENT_CATEGORY_LIMIT, recentCategoryIdsQuery } from "./category-recents";
-
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
-
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    for (const file of readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort()) {
-        for (const statement of readFileSync(join(MIGRATIONS, file), "utf-8").split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
-    return testDatabase(sqlite);
-}
 
 let clock = 0;
 
@@ -81,11 +61,11 @@ beforeEach(() => {
 
 describe("recentCategoryIdsQuery", () => {
     it("returns nothing on an empty ledger", () => {
-        expect(ids(makeDb(), false)).toStrictEqual([]);
+        expect(ids(migratedDatabase(), false)).toStrictEqual([]);
     });
 
     it("orders by the most recent transaction, newest first", () => {
-        const db = makeDb();
+        const db = migratedDatabase();
         log(db, "rent");
         log(db, "groceries");
         log(db, "transport");
@@ -93,7 +73,7 @@ describe("recentCategoryIdsQuery", () => {
     });
 
     it("lists a category once, ranked by its newest transaction", () => {
-        const db = makeDb();
+        const db = migratedDatabase();
         log(db, "groceries");
         log(db, "rent");
         log(db, "groceries");
@@ -101,21 +81,21 @@ describe("recentCategoryIdsQuery", () => {
     });
 
     it("ignores soft-deleted transactions", () => {
-        const db = makeDb();
+        const db = migratedDatabase();
         log(db, "rent");
         log(db, "groceries", { deleted: true });
         expect(ids(db, false)).toStrictEqual(["rent"]);
     });
 
     it("ignores uncategorised transactions", () => {
-        const db = makeDb();
+        const db = migratedDatabase();
         log(db, null);
         log(db, "rent");
         expect(ids(db, false)).toStrictEqual(["rent"]);
     });
 
     it("keeps the two namespaces apart", () => {
-        const db = makeDb();
+        const db = migratedDatabase();
         log(db, "groceries", { income: false });
         log(db, "paycheck", { income: true });
         expect(ids(db, false)).toStrictEqual(["groceries"]);
@@ -123,7 +103,7 @@ describe("recentCategoryIdsQuery", () => {
     });
 
     it("caps the list at the requested limit", () => {
-        const db = makeDb();
+        const db = migratedDatabase();
         for (const name of ["a", "b", "c", "d", "e", "f", "g"]) {
             log(db, name);
         }

@@ -1,9 +1,5 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, waitFor, within } from "@testing-library/react-native";
-import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { Alert } from "react-native";
 
@@ -18,7 +14,7 @@ import { tagsRepo } from "@/data/tags-core";
 import type { Transaction } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { accounts, categories, exchangeRates, tags, transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
 import type { LogoOutcome } from "@/lib/logo-fetch";
@@ -517,22 +513,6 @@ function containsText(node: JsonNode | JsonNode[] | null, text: string): boolean
     return false;
 }
 
-const MIGRATIONS = join(import.meta.dirname, "../../../drizzle");
-
-function migratedDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    for (const file of readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort()) {
-        for (const statement of readFileSync(join(MIGRATIONS, file), "utf-8").split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
-    return testDatabase(sqlite);
-}
-
 async function seedCategory(db: Database, id = "c1", name = "Groceries") {
     await db.insert(categories).values({
         color: "#3D7A5C",
@@ -695,7 +675,7 @@ function Providers({ children }: { children: React.ReactNode }) {
 }
 
 beforeEach(() => {
-    dbHolder.current = migratedDb();
+    dbHolder.current = migratedDatabase();
 });
 
 describe("transactionForm", () => {

@@ -1,14 +1,10 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { toast } from "panelui-native";
 
 import type { Database } from "@/db/client";
 import { accounts, budgets, categories, mainBudget, transactions, transfers } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 import { BUDGET_TYPE } from "@/domain/budget-math";
 import { firstOfMonth, startOfDay } from "@/domain/dates";
 
@@ -17,24 +13,7 @@ import { budgetsRepo } from "./budgets-core";
 import { createDeferredDeleteRegistry, UNDO_WINDOW_MS } from "./deferred-delete-registry";
 import { transfersRepo } from "./transfers-core";
 
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
 const DAY = new Date(Date.UTC(2026, 7, 9));
-
-/** The shipped migrations, applied in order — five tables and their triggers. */
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    const files = readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort();
-    for (const file of files) {
-        for (const statement of readFileSync(join(MIGRATIONS, file), "utf-8").split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
-    return testDatabase(sqlite);
-}
 
 /** Drains the promise chain a commit runs on; `setImmediate` is left unfaked for it. */
 function settle(): Promise<void> {
@@ -74,7 +53,7 @@ describe("createDeferredDeleteRegistry", () => {
     });
 
     it("holds the write for the undo window, then commits it", async () => {
-        const db = makeDb();
+        const db = migratedDatabase();
         await logRow(db, "tx-1");
         const registry = registryFor(db);
 
@@ -92,7 +71,7 @@ describe("createDeferredDeleteRegistry", () => {
     });
 
     it("writes nothing when the offer is taken up", async () => {
-        const db = makeDb();
+        const db = migratedDatabase();
         await logRow(db, "tx-1");
         const registry = registryFor(db);
         const show = jest.spyOn(toast, "show").mockReturnValue("toast-1");
@@ -111,7 +90,7 @@ describe("createDeferredDeleteRegistry", () => {
     });
 
     it("takes a transfer out through the transfers repo without being told it is one", async () => {
-        const db = makeDb();
+        const db = migratedDatabase();
         const from = await accountsRepo.create(db, { currency: "USD", name: "Zinli" });
         const to = await accountsRepo.create(db, { currency: "USD", name: "Banesco" });
         const id = await transfersRepo.create(db, {
@@ -136,7 +115,7 @@ describe("createDeferredDeleteRegistry", () => {
     });
 
     it("routes the overall budget to its own table and a per-category one to the other", async () => {
-        const db = makeDb();
+        const db = migratedDatabase();
         await db.insert(categories).values({
             dateCreated: DAY,
             id: "cat-1",
@@ -166,7 +145,7 @@ describe("createDeferredDeleteRegistry", () => {
     });
 
     it("keeps each kind's window to itself", async () => {
-        const db = makeDb();
+        const db = migratedDatabase();
         await logRow(db, "tx-1");
         const account = await accountsRepo.create(db, { currency: "USD", name: "Cash" });
         const registry = registryFor(db);
@@ -200,7 +179,7 @@ describe("createDeferredDeleteRegistry", () => {
     });
 
     it("replaces the offer rather than reusing it when a second row goes mid-window", async () => {
-        const db = makeDb();
+        const db = migratedDatabase();
         await logRow(db, "tx-1");
         await logRow(db, "tx-2");
         const registry = registryFor(db);

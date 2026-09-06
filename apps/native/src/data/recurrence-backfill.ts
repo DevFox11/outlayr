@@ -49,7 +49,7 @@ const OCCURRENCE_NAMESPACE = "0f2b9f1e-6d3a-4c58-9a71-2c8f5d6e4b31";
  * The day, not the timestamp: the sweep walks the schedule in whole days, and
  * two devices in different time zones must still land on one id.
  */
-export function occurrenceId(parentLocalId: string, holding: Date): string {
+function occurrenceId(parentLocalId: string, holding: Date): string {
     return uuidV5(`${parentLocalId}:${startOfDay(holding).getTime()}`, OCCURRENCE_NAMESPACE);
 }
 

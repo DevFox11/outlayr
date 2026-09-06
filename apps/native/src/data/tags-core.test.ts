@@ -1,31 +1,11 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 import { isNull } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { categories, tags, transactions, transactionTags } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 
 import { liveTagsQuery, tagIdsForQuery, tagsRepo } from "./tags-core";
-
-const MIGRATIONS = join(import.meta.dirname, "../../drizzle");
-
-function migratedDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    for (const file of readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort()) {
-        for (const statement of readFileSync(join(MIGRATIONS, file), "utf-8").split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
-    return testDatabase(sqlite);
-}
 
 async function seedTransaction(db: Database, id: string) {
     await db.insert(categories).values({
@@ -52,7 +32,7 @@ describe("tagsRepo", () => {
     let db: Database;
 
     beforeEach(async () => {
-        db = migratedDb();
+        db = migratedDatabase();
         await seedTransaction(db, "t1");
     });
 

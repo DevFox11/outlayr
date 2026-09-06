@@ -10,3 +10,22 @@ rather than describing what it should look like.
 
 Never run `serve-sim --kill` while the dev server is up; it kills Metro. That
 trap and the rest of the limits are in `docs/simulator-preview.md`.
+
+# How to verify a change
+
+Run from `apps/native`, in this order. Stop at the first red step.
+
+```sh
+pnpm exec vp check                     # lint + format, repo-wide
+pnpm check-types                       # intlayer build, then tsc --noEmit
+node_modules/.bin/jest src/<area>      # the suites next to what you touched, ~22s for all of them
+pnpm --filter @outlayr/backend test    # only when packages/backend changed, ~1s
+```
+
+`jest` builds the intlayer dictionaries itself when `.intlayer/` is absent, so
+a raw `jest` in a fresh worktree is safe. A hundred failing suites that all
+die in `src/i18n/catalog.ts` means that guard was bypassed, not a regression.
+
+For anything visible, take a screenshot on the simulator URL above after the
+change and compare it against the one before. A passing suite proves the data
+layer; it proves nothing about what the screen shows.

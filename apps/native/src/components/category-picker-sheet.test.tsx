@@ -1,15 +1,11 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
-import BetterSqlite3 from "better-sqlite3";
 import { createRef } from "react";
 
 import { seedCategories, seededCategoryId } from "@/data/categories-core";
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { CategoryPickerSheet } from "./category-picker-sheet";
@@ -53,26 +49,10 @@ jest.mock("@/i18n/context", () => ({
             params == null ? key : `${key}:${Object.values(params).join(",")}`,
 }));
 
-const MIGRATIONS = join(import.meta.dirname, "../../drizzle");
-
-function migratedDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    for (const file of readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort()) {
-        for (const statement of readFileSync(join(MIGRATIONS, file), "utf-8").split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
-    return testDatabase(sqlite);
-}
-
 const GROCERIES = seededCategoryId("Groceries", false);
 
 async function seededDb(): Promise<Database> {
-    const db = migratedDb();
+    const db = migratedDatabase();
     await seedCategories(db);
     return db;
 }
@@ -162,7 +142,7 @@ function press(testID: string): void {
 describe("categoryPickerSheet", () => {
     it("renders a pending category as the top pick, with its willBeCreated caption", async () => {
         const { toJSON } = await mount({
-            db: migratedDb(),
+            db: migratedDatabase(),
             pendingCategory: {
                 color: "#AF52DE",
                 emoji: null,
@@ -177,7 +157,7 @@ describe("categoryPickerSheet", () => {
     });
 
     it("renders no pending row when there is no pending category", async () => {
-        const { toJSON } = await mount({ db: migratedDb() });
+        const { toJSON } = await mount({ db: migratedDatabase() });
         expect(JSON.stringify(toJSON())).not.toContain("transaction.category.willBeCreated");
     });
 

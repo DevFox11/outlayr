@@ -1,13 +1,9 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { accounts, budgets, categories, mainBudget, transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 
 import { getMeta, META_KEYS } from "./app-meta-core";
 import { seedCategories } from "./categories-core";
@@ -31,24 +27,6 @@ import {
     setSyncedAt,
 } from "./sync-outbox-core";
 
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
-
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    const files = readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort();
-    for (const file of files) {
-        const sql = readFileSync(join(MIGRATIONS, file), "utf-8");
-        for (const statement of sql.split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
-    return testDatabase(sqlite);
-}
-
 async function addTransaction(target: Database, id: string, deletedAt: Date | null = null): Promise<void> {
     const now = new Date();
     await target.insert(transactions).values({
@@ -66,7 +44,7 @@ async function addTransaction(target: Database, id: string, deletedAt: Date | nu
 let db: Database;
 
 beforeEach(async () => {
-    db = makeDb();
+    db = migratedDatabase();
     await seedCategories(db);
 });
 
@@ -76,7 +54,7 @@ describe("local ledger state", () => {
     });
 
     it("errs toward populated on an install that was never seeded", async () => {
-        const bare = makeDb();
+        const bare = migratedDatabase();
         await expect(localLedgerState(bare)).resolves.toBe("populated");
     });
 

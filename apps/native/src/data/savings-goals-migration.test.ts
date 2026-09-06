@@ -1,26 +1,9 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
+import { applyMigration, applyMigrations } from "@/db/test-database";
+
 const REBUILD = "0024_goal_start_and_required_date";
-
-/** Every migration file in order, so a phase can stop before a given one. */
-function files(): string[] {
-    return readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort();
-}
-
-function run(sqlite: BetterSqlite3.Database, file: string): void {
-    for (const statement of readFileSync(join(MIGRATIONS, file), "utf-8").split("--> statement-breakpoint")) {
-        if (statement.trim()) {
-            sqlite.exec(statement);
-        }
-    }
-}
 
 /**
  * A ledger as it stood BEFORE the rebuild, so the rebuild's own behaviour can be
@@ -29,12 +12,7 @@ function run(sqlite: BetterSqlite3.Database, file: string): void {
  */
 function beforeRebuild(): BetterSqlite3.Database {
     const sqlite = new BetterSqlite3(":memory:");
-    for (const file of files()) {
-        if (file.startsWith(REBUILD)) {
-            break;
-        }
-        run(sqlite, file);
-    }
+    applyMigrations(sqlite, (file) => file < REBUILD);
     sqlite.exec(
         "INSERT INTO accounts (id, name, currency, initialBalance, initialBalanceDate, dateCreated, updatedAt) VALUES ('acct', 'Savings', 'USD', 0, 0, 0, 0)"
     );
@@ -53,7 +31,7 @@ describe("the rebuild that made a goal's date required", () => {
     it("keeps a dated goal untouched", () => {
         const sqlite = beforeRebuild();
         seedGoal(sqlite, "dated", 9000);
-        run(sqlite, `${REBUILD}.sql`);
+        applyMigration(sqlite, `${REBUILD}.sql`);
 
         const row = sqlite.prepare("SELECT * FROM savingsGoals WHERE id = 'dated'").get() as {
             deletedAt: number | null;
@@ -68,7 +46,7 @@ describe("the rebuild that made a goal's date required", () => {
         // had already synced would consider the goal gone while the server kept it.
         const sqlite = beforeRebuild();
         seedGoal(sqlite, "dateless", null);
-        run(sqlite, `${REBUILD}.sql`);
+        applyMigration(sqlite, `${REBUILD}.sql`);
 
         const row = sqlite.prepare("SELECT * FROM savingsGoals WHERE id = 'dateless'").get() as {
             deletedAt: number | null;
@@ -83,7 +61,7 @@ describe("the rebuild that made a goal's date required", () => {
         const sqlite = beforeRebuild();
         sqlite.exec("INSERT OR REPLACE INTO appMeta (key, value) VALUES ('syncEnabled', '1')");
         seedGoal(sqlite, "dateless", null);
-        run(sqlite, `${REBUILD}.sql`);
+        applyMigration(sqlite, `${REBUILD}.sql`);
 
         const queued = sqlite.prepare("SELECT localId FROM outbox WHERE tableName = 'savingsGoals'").all() as {
             localId: string;
@@ -94,7 +72,7 @@ describe("the rebuild that made a goal's date required", () => {
     it("queues nothing on a ledger that does not sync", () => {
         const sqlite = beforeRebuild();
         seedGoal(sqlite, "dateless", null);
-        run(sqlite, `${REBUILD}.sql`);
+        applyMigration(sqlite, `${REBUILD}.sql`);
 
         const queued = sqlite.prepare("SELECT localId FROM outbox WHERE tableName = 'savingsGoals'").all();
         expect(queued).toStrictEqual([]);

@@ -1,4 +1,7 @@
-import type BetterSqlite3 from "better-sqlite3";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import type { SpendDb } from "@/data/budget-spent";
@@ -35,3 +38,43 @@ export const testSpendDb = (sqlite: BetterSqlite3.Database): SpendDb => drizzle(
  */
 // SAFETY: an empty object declares none of Database's members; this exists precisely for the suites that touch none of them.
 export const unusedDatabase = (): Database => ({}) as Database;
+
+const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
+
+/** The shipped migration files, in the order the app applies them. */
+export const migrationFiles = (): string[] =>
+    readdirSync(MIGRATIONS)
+        .filter((name) => name.endsWith(".sql"))
+        .sort();
+
+/** Runs one shipped migration file against a raw handle, statement by statement. */
+export function applyMigration(sqlite: BetterSqlite3.Database, file: string): void {
+    for (const statement of readFileSync(join(MIGRATIONS, file), "utf-8").split("--> statement-breakpoint")) {
+        if (statement.trim()) {
+            sqlite.exec(statement);
+        }
+    }
+}
+
+/**
+ * Applies the shipped migrations in order. `include` lets a suite stop short of
+ * one (`(file) => file < "0011_"`) to get the ledger as an earlier build left
+ * it. Real SQL rather than a hand-rolled schema because the outbox triggers and
+ * foreign keys under test exist only in the migration files; re-declaring them
+ * would test a copy.
+ */
+export function applyMigrations(sqlite: BetterSqlite3.Database, include: (file: string) => boolean = () => true): void {
+    for (const file of migrationFiles().filter(include)) {
+        applyMigration(sqlite, file);
+    }
+}
+
+/** A fresh in-memory handle with every shipped migration applied. */
+export function migratedSqlite(): BetterSqlite3.Database {
+    const sqlite = new BetterSqlite3(":memory:");
+    applyMigrations(sqlite);
+    return sqlite;
+}
+
+/** {@link migratedSqlite} wrapped as the app's {@link Database}. */
+export const migratedDatabase = (): Database => testDatabase(migratedSqlite());

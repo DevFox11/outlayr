@@ -1,13 +1,9 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 import { and, eq, isNull } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { categories } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 
 import {
     categoriesRepo,
@@ -16,22 +12,6 @@ import {
     SUGGESTED_CATEGORY_PRESETS,
 } from "./categories-core";
 import type { Category } from "./categories-core";
-
-const MIGRATIONS = join(import.meta.dirname, "../../drizzle");
-
-function migratedDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    for (const file of readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort()) {
-        for (const statement of readFileSync(join(MIGRATIONS, file), "utf-8").split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
-    return testDatabase(sqlite);
-}
 
 async function liveCategories(db: Database, income: boolean): Promise<Category[]> {
     return db
@@ -44,7 +24,7 @@ describe("ensureCategoryByName", () => {
     let db: Database;
 
     beforeEach(() => {
-        db = migratedDb();
+        db = migratedDatabase();
     });
 
     it("creates a category when nothing in the namespace answers to the name", async () => {

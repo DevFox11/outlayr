@@ -6,8 +6,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "
 import { curtainShade, withAlpha } from "@/theme/shade";
 
 /** Mesh wash height; exported so the form can bleed it up under the nav bar. */
-export const CURTAIN_HEIGHT = 260;
-const HEIGHT = CURTAIN_HEIGHT;
+const CURTAIN_HEIGHT = 260;
 
 /** A uniform 3×3 grid, the centre vertex pulled up to 0.42 for an upward bow. */
 const POINTS: number[][] = [
@@ -101,7 +100,7 @@ export function IdentityCurtain({ hues }: IdentityCurtainProps) {
 
     const animatedStyle = useAnimatedStyle(() => ({
         opacity: progress.get(),
-        transform: [{ translateY: -HEIGHT * (1 - progress.get()) }],
+        transform: [{ translateY: -CURTAIN_HEIGHT * (1 - progress.get()) }],
     }));
 
     // Frozen, never cross-faded: mesh interpolation reads as a horizontal sweep.
@@ -123,7 +122,7 @@ export function IdentityCurtain({ hues }: IdentityCurtainProps) {
     return (
         <Animated.View
             pointerEvents="none"
-            style={[{ height: HEIGHT, left: 0, position: "absolute", right: 0, top: 0 }, animatedStyle]}
+            style={[{ height: CURTAIN_HEIGHT, left: 0, position: "absolute", right: 0, top: 0 }, animatedStyle]}
         >
             <MeshGradientView
                 colors={colors}

@@ -1,31 +1,11 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { accounts, exchangeRates, savingsGoals } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 
 import { GoalValuationError, savingsGoalsQuery, savingsGoalsRepo } from "./savings-goals-core";
-
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
-
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    for (const file of readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort()) {
-        for (const statement of readFileSync(join(MIGRATIONS, file), "utf-8").split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
-    return testDatabase(sqlite);
-}
 
 const AUTHORED = new Date("2026-03-04T10:00:00.000Z");
 
@@ -45,7 +25,7 @@ const DUE = new Date("2027-03-04T10:00:00.000Z");
 let db: Database;
 
 beforeEach(() => {
-    db = makeDb();
+    db = migratedDatabase();
     db.insert(accounts)
         .values({
             currency: "USD",

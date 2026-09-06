@@ -1,12 +1,8 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 import { merchantKey } from "@/domain/merchant-resolver";
 
 import {
@@ -16,22 +12,6 @@ import {
     recentMerchants,
     rememberedCategoryFor,
 } from "./merchant-history-core";
-
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
-
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    for (const file of readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort()) {
-        for (const statement of readFileSync(join(MIGRATIONS, file), "utf-8").split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
-    return testDatabase(sqlite);
-}
 
 let db: Database;
 let clock = 0;
@@ -67,7 +47,7 @@ function remembered(name: string, income = false): Promise<string | null> {
 }
 
 beforeEach(() => {
-    db = makeDb();
+    db = migratedDatabase();
     clock = 0;
 });
 

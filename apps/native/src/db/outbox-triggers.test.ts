@@ -1,38 +1,13 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 
 import { META_KEYS } from "@/data/app-meta-core";
 import { SYNCED_META_KEYS, SYNCED_TABLES } from "@/data/sync-outbox-core";
-
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
-
-/**
- * The shipped migrations, applied in order — the triggers under test only exist
- * in the migration SQL, so re-declaring them here would test a copy.
- */
-function applyMigrations(sqlite: BetterSqlite3.Database, include: (name: string) => boolean): void {
-    const files = readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort();
-    for (const file of files) {
-        if (!include(file)) {
-            continue;
-        }
-        const sql = readFileSync(join(MIGRATIONS, file), "utf-8");
-        for (const statement of sql.split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
-}
+import { applyMigrations } from "@/db/test-database";
 
 function migrated(): BetterSqlite3.Database {
     const sqlite = new BetterSqlite3(":memory:");
-    applyMigrations(sqlite, () => true);
+    applyMigrations(sqlite);
     return sqlite;
 }
 

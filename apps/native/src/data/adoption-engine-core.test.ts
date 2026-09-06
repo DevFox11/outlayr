@@ -1,13 +1,9 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedSqlite, testDatabase } from "@/db/test-database";
 
 import { accountLedgerState, discardAccountLedger, replaceLocalFromAccount } from "./adoption-engine-core";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
@@ -15,20 +11,8 @@ import { drainOutbox, runSync } from "./sync-engine-core";
 import type { PulledRow, PushFn } from "./sync-engine-core";
 import { enqueueAllForSync, setSyncEnabled } from "./sync-outbox-core";
 
-const MIGRATIONS = join(import.meta.dirname, "..", "..", "drizzle");
-
 function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    for (const file of readdirSync(MIGRATIONS)
-        .filter((name) => name.endsWith(".sql"))
-        .sort()) {
-        const sql = readFileSync(join(MIGRATIONS, file), "utf-8");
-        for (const statement of sql.split("--> statement-breakpoint")) {
-            if (statement.trim()) {
-                sqlite.exec(statement);
-            }
-        }
-    }
+    const sqlite = migratedSqlite();
     sqlite.exec("PRAGMA foreign_keys = ON");
     return testDatabase(sqlite);
 }
