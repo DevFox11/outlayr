@@ -17,6 +17,12 @@ export interface PendingWrite {
      * the ledger's, and this app is multi-currency.
      */
     amountText?: string | null;
+    /**
+     * The Wallet card the purchase was made with, by its name in Wallet. The
+     * drain matches it to an account — see `matchCardAccount`. Null for a
+     * spoken entry.
+     */
+    card?: string | null;
     /** Category name as spoken; resolved to a real category by the drain. */
     category: string | null;
     /** An explicit ISO code when the automation pinned one; beats `amountText`. */
@@ -98,6 +104,7 @@ function claimName(files: QueueFiles): string {
 const pendingWriteSchema = z.object({
     amount: z.number().finite(),
     amountText: z.string().nullish(),
+    card: z.string().nullish(),
     category: z
         .string()
         .nullish()

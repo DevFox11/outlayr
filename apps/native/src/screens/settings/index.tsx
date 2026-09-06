@@ -232,6 +232,13 @@ function SettingsContent({ db }: { db: Database }) {
             </SettingsSection>
 
             <SettingsSection title={t("settings.section.device")}>
+                {Platform.OS === "ios" ? (
+                    <LinkRow
+                        icon="Wallet01"
+                        onPress={() => router.push("/settings/wallet")}
+                        title={t("settings.row.wallet")}
+                    />
+                ) : null}
                 <LinkRow
                     icon="Notification03"
                     onPress={() => router.push("/settings/notifications")}

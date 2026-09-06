@@ -2,9 +2,10 @@ import { and, desc, eq, isNull, like } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Database } from "@/db/client";
-import { categories, transactions } from "@/db/schema";
+import { accounts, categories, transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { detectCurrency } from "@/domain/detect-currency";
+import { matchCardAccount } from "@/domain/match-card-account";
 import type { PendingWrite } from "@/lib/pending-writes-core";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
@@ -26,6 +27,37 @@ import { transactionsRepo } from "./transactions-core";
  * see `LogWalletTransactionIntent`.
  */
 export const WALLET_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
+
+/** What `META_KEYS.lastWalletEntry` holds. */
+export interface LastWalletEntry {
+    /** Epoch ms of the commit, not of the purchase. */
+    at: number;
+    txId: string;
+}
+
+const lastWalletEntrySchema = z.object({ at: z.number().finite(), txId: z.string() });
+
+/** Null when nothing has come through Wallet yet, or the value is unreadable. */
+export function parseLastWalletEntry(raw: string | null | undefined): LastWalletEntry | null {
+    if (!raw) {
+        return null;
+    }
+    try {
+        const parsed = lastWalletEntrySchema.safeParse(JSON.parse(raw));
+        return parsed.success ? parsed.data : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * A job the Wallet automation produced, as opposed to a spoken one. The card is
+ * the sure sign; the key prefix covers an automation built before the card
+ * parameter existed.
+ */
+function fromWallet(job: PendingWrite): boolean {
+    return Boolean(job.card?.trim()) || (job.dedupeKey?.startsWith("wallet:") ?? false);
+}
 
 const LEDGER_LIMIT = 100;
 const LEDGER_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -133,14 +165,16 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
             console.warn("[outlayr] dropped a queued entry with no category");
             continue;
         }
-        // oxlint-disable-next-line no-loop-func -- awaited in place, so nothing outlives the iteration whose `job` and `categoryId` it reads
+        const account = await resolveAccount(db, job);
+        // oxlint-disable-next-line no-loop-func -- awaited in place, so nothing outlives the iteration whose `job`, `categoryId` and `account` it reads
         await withTransaction(db, async () => {
             const txId = await transactionsRepo.create(db, {
+                accountId: account?.id ?? null,
                 amount: job.amount,
                 categoryId,
                 // Null means "the ledger's own currency", which is what
                 // `transactionsRepo.create` already resolves it to.
-                currency: resolveWriteCurrency(job),
+                currency: resolveWriteCurrency(job, account),
                 date: new Date(job.date),
                 details: null,
                 income: job.income,
@@ -148,6 +182,10 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
             });
             ledger = remember(ledger, { at, id: job.id, key: job.dedupeKey?.trim() || null, txId }, at);
             await setMeta(db, META_KEYS.pendingWriteLedger, JSON.stringify(ledger));
+            if (fromWallet(job)) {
+                const entry: LastWalletEntry = { at, txId };
+                await setMeta(db, META_KEYS.lastWalletEntry, JSON.stringify(entry));
+            }
         });
         applied += 1;
     }
@@ -156,19 +194,43 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
     return applied;
 }
 
+interface MatchedAccount {
+    currency: string;
+    id: string;
+}
+
+/**
+ * The account a Wallet card maps to, or null when the job names no card or the
+ * name is not a confident match — see `matchCardAccount`.
+ */
+async function resolveAccount(db: Database, job: PendingWrite): Promise<MatchedAccount | null> {
+    const card = job.card?.trim();
+    if (!card) {
+        return null;
+    }
+    const rows = await db
+        .select({ currency: accounts.currency, id: accounts.id, name: accounts.name })
+        .from(accounts)
+        .where(isNull(accounts.deletedAt));
+    const id = matchCardAccount(card, rows);
+    const matched = rows.find((row) => row.id === id);
+    return matched ? { currency: matched.currency, id: matched.id } : null;
+}
+
 /**
  * The currency a queued entry was actually in, or null to use the ledger's.
  *
  * An explicit code from the automation wins; otherwise the formatted amount is
- * read for one. Anything the catalog cannot pin to a single currency stays null
- * — see `detectCurrency`.
+ * read for one. When the symbol cannot pin a single currency ("$" is on 22 of
+ * them) the card's account answers, since a card charges in its account's
+ * currency. Only with neither does it stay null — see `detectCurrency`.
  */
-function resolveWriteCurrency(job: PendingWrite): string | null {
+function resolveWriteCurrency(job: PendingWrite, account: MatchedAccount | null): string | null {
     const pinned = job.currency?.trim().toUpperCase();
     if (pinned) {
         return pinned;
     }
-    return detectCurrency(job.amountText);
+    return detectCurrency(job.amountText) ?? account?.currency ?? null;
 }
 
 /**

@@ -3,7 +3,7 @@ import BetterSqlite3 from "better-sqlite3";
 import { eq, ne } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
-import { categories, transactions } from "@/db/schema";
+import { accounts, categories, transactions } from "@/db/schema";
 import { testDatabase } from "@/db/test-database";
 import type { PendingWrite } from "@/lib/pending-writes-core";
 
@@ -25,6 +25,25 @@ function makeDb(): Database {
 			source text NOT NULL,
 			fetchedAt integer NOT NULL,
 			PRIMARY KEY (quote, rateType, date)
+		);
+		CREATE TABLE accounts (
+			id text PRIMARY KEY NOT NULL,
+			name text NOT NULL,
+			currency text NOT NULL,
+			kind text NOT NULL DEFAULT 'asset',
+			icon text,
+			emoji text,
+			customColor text,
+			imageColor text,
+			imageUri text,
+			imageKey text,
+			initialBalance real NOT NULL DEFAULT 0,
+			initialBalanceDate integer NOT NULL,
+			initialBalanceUsd real,
+			sortOrder integer NOT NULL DEFAULT 0,
+			dateCreated integer NOT NULL,
+			updatedAt integer NOT NULL,
+			deletedAt integer
 		);
 		CREATE TABLE categories (
 			id text PRIMARY KEY NOT NULL,
@@ -108,6 +127,27 @@ function walletWrite(id: string, overrides: Partial<PendingWrite> = {}): Pending
         note: "Blue Bottle",
         ...overrides,
     };
+}
+
+async function seedAccounts(db: Database): Promise<void> {
+    await db.insert(accounts).values([
+        {
+            currency: "MXN",
+            dateCreated: NOW,
+            id: "acc-chase",
+            initialBalanceDate: NOW,
+            name: "Chase Sapphire",
+            updatedAt: NOW,
+        },
+        {
+            currency: "EUR",
+            dateCreated: NOW,
+            id: "acc-n26",
+            initialBalanceDate: NOW,
+            name: "N26",
+            updatedAt: NOW,
+        },
+    ]);
 }
 
 async function liveRows(db: Database) {
@@ -227,6 +267,34 @@ describe("applyPendingWrites", () => {
     it("reads the card's currency out of the formatted amount", async () => {
         await applyPendingWrites(db, [walletWrite("a", { amountText: "12,40 zł", dedupeKey: null })], NOW);
 
+        const [row] = await db.select({ currency: transactions.currency }).from(transactions);
+        expect(row?.currency).toBe("PLN");
+    });
+
+    it("files a Wallet purchase under the account its card matches", async () => {
+        await seedAccounts(db);
+        await applyPendingWrites(db, [walletWrite("a", { card: "Chase Sapphire Reserve" })], NOW);
+        const [row] = await db.select({ accountId: transactions.accountId }).from(transactions);
+        expect(row?.accountId).toBe("acc-chase");
+    });
+
+    it("leaves a purchase unattached when the card matches no account", async () => {
+        await seedAccounts(db);
+        await applyPendingWrites(db, [walletWrite("a", { card: "Apple Card" })], NOW);
+        const [row] = await db.select({ accountId: transactions.accountId }).from(transactions);
+        expect(row?.accountId).toBeNull();
+    });
+
+    it("takes the account's currency when the amount's symbol is ambiguous", async () => {
+        await seedAccounts(db);
+        await applyPendingWrites(db, [walletWrite("a", { amountText: "$6.40", card: "Chase Sapphire" })], NOW);
+        const [row] = await db.select({ currency: transactions.currency }).from(transactions);
+        expect(row?.currency).toBe("MXN");
+    });
+
+    it("keeps the amount's own currency over the account's", async () => {
+        await seedAccounts(db);
+        await applyPendingWrites(db, [walletWrite("a", { amountText: "12,40 zł", card: "N26" })], NOW);
         const [row] = await db.select({ currency: transactions.currency }).from(transactions);
         expect(row?.currency).toBe("PLN");
     });

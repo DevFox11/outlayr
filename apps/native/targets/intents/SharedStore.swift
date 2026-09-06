@@ -104,6 +104,9 @@ struct PendingWrite: Codable {
     /// which currency it was in: a Wallet transaction is in the *card's*
     /// currency, not the ledger's. Resolved app-side, where the catalog lives.
     let amountText: String?
+    /// The Wallet card the purchase was made with, by its name in Wallet. The
+    /// app matches it to one of its accounts; nil for a spoken entry.
+    let card: String?
     /// An explicit ISO code, when the automation pins one. Beats `amountText`.
     let currency: String?
     /// Identifies the purchase, where `id` identifies this enqueue. Nil for a

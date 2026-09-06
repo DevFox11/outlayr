@@ -65,6 +65,7 @@ struct LogTransactionIntent: AppIntent {
             // A spoken amount carries no currency, so the app applies the
             // ledger's own.
             amountText: nil,
+            card: nil,
             currency: nil,
             // Two identical spoken entries are two entries: only the automation
             // triggers can claim that a repeat is the same purchase.

@@ -819,6 +819,10 @@ const settings = {
             en: "Upcoming Logs",
             es: "Próximos registros",
         }),
+        "settings.row.wallet": t({
+            en: "Apple Pay",
+            es: "Apple Pay",
+        }),
         "settings.screenTitle": t({
             en: "Settings",
             es: "Configuración",
@@ -1014,6 +1018,126 @@ const settings = {
         "settings.upcoming.section": t({
             en: "On the Log",
             es: "En el registro",
+        }),
+        "settings.wallet.accountsFooter": t({
+            en: "Name an account like its card in Wallet. A card that matches none still logs, unattached.",
+            es: "Nombra una cuenta como su tarjeta en Wallet. Una tarjeta sin coincidencia igual se registra, sin cuenta.",
+        }),
+        "settings.wallet.accountsSection": t({
+            en: "Cards match these accounts",
+            es: "Las tarjetas coinciden con estas cuentas",
+        }),
+        "settings.wallet.automationDetail": t({
+            en: "Wallet trigger runs Outlayr Wallet",
+            es: "El disparador de Wallet ejecuta Outlayr Wallet",
+        }),
+        "settings.wallet.automationRow": t({
+            en: "Automation in Shortcuts",
+            es: "Automatización en Atajos",
+        }),
+        "settings.wallet.get": t({
+            en: "Get the shortcut",
+            es: "Obtener el atajo",
+        }),
+        "settings.wallet.getAgain": t({
+            en: "Get the shortcut again",
+            es: "Obtener el atajo de nuevo",
+        }),
+        "settings.wallet.getDetail": t({
+            en: "Installs in Shortcuts with one tap. Then a Wallet automation runs it.",
+            es: "Se instala en Atajos con un toque. Luego una automatización de Wallet lo ejecuta.",
+        }),
+        "settings.wallet.hide": t({
+            en: "Hide",
+            es: "Ocultar",
+        }),
+        "settings.wallet.installed": t({
+            en: "Shortcut installed",
+            es: "Atajo instalado",
+        }),
+        "settings.wallet.lastSection": t({
+            en: "Last from Wallet",
+            es: "Último desde Wallet",
+        }),
+        "settings.wallet.lead": t({
+            en: "Every card tap lands on the Log, filed under the account it matches.",
+            es: "Cada pago con tarjeta llega al registro, en la cuenta que coincida.",
+        }),
+        "settings.wallet.manualStep1": t({
+            en: "Create New Shortcut, search Outlayr",
+            es: "Crear nuevo atajo, busca Outlayr",
+        }),
+        "settings.wallet.manualStep2": t({
+            en: "Add Log a Wallet Transaction",
+            es: "Añade Registrar una transacción de Wallet",
+        }),
+        "settings.wallet.manualStep3": t({
+            en: "Amount, Merchant and Card from Shortcut Input",
+            es: "Importe, Comercio y Tarjeta desde Entrada del atajo",
+        }),
+        "settings.wallet.noAccounts": t({
+            en: "No accounts yet",
+            es: "Aún no hay cuentas",
+        }),
+        "settings.wallet.nothingYet": t({
+            en: "Nothing yet",
+            es: "Nada aún",
+        }),
+        "settings.wallet.open": t({
+            en: "Open Shortcuts",
+            es: "Abrir Atajos",
+        }),
+        "settings.wallet.setupSection": t({
+            en: "Setup",
+            es: "Configuración",
+        }),
+        "settings.wallet.shortcutName": t({
+            en: "Outlayr Wallet",
+            es: "Outlayr Wallet",
+        }),
+        "settings.wallet.show": t({
+            en: "Show",
+            es: "Ver",
+        }),
+        "settings.wallet.step1": t({
+            en: "Automation, then +",
+            es: "Automatización, luego +",
+        }),
+        "settings.wallet.step2": t({
+            en: "Choose Wallet",
+            es: "Elige Wallet",
+        }),
+        "settings.wallet.step2Detail": t({
+            en: "Called Transaction before iOS 26",
+            es: "Se llama Transacción antes de iOS 26",
+        }),
+        "settings.wallet.step3": t({
+            en: "Pick your cards",
+            es: "Elige tus tarjetas",
+        }),
+        "settings.wallet.step3Detail": t({
+            en: "Run Immediately on, Notify When Run off",
+            es: "Ejecutar inmediatamente activado, Notificar al ejecutar desactivado",
+        }),
+        "settings.wallet.step4": t({
+            en: "Next, then pick Outlayr Wallet",
+            es: "Siguiente, luego elige Outlayr Wallet",
+        }),
+        "settings.wallet.step5": t({
+            en: "Done",
+            es: "OK",
+        }),
+        "settings.wallet.stepsSection": t({
+            en: "Turn it on in Shortcuts",
+            es: "Actívalo en Atajos",
+        }),
+        "settings.wallet.tryIt": t({
+            en: "Tap a card to try it",
+            es: "Paga con una tarjeta para probarlo",
+        }),
+        "settings.wallet.unattached": t({
+            en: "Unattached",
+            es: "Sin cuenta",
         }),
     },
     key: "settings" as const,

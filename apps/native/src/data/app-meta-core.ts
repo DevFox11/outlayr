@@ -45,6 +45,13 @@ export const META_KEYS = {
      */
     lastTransferFeeCategory: "lastTransferFeeCategory",
     /**
+     * The most recent row the Wallet automation produced, as JSON
+     * `{ at, txId }` — see `LastWalletEntry`. The Apple Pay settings screen
+     * shows it as proof the automation works. Device-local: the automation
+     * runs on this handset.
+     */
+    lastWalletEntry: "lastWalletEntry",
+    /**
      * The account subject this device's ledger has already been reconciled with.
      * Holding the id rather than a flag is what makes signing into a *different*
      * account ask again instead of silently pairing two strangers' ledgers.
@@ -105,6 +112,12 @@ export const META_KEYS = {
      * device's success says nothing about whether this one is current.
      */
     syncedAt: "syncedAt",
+    /**
+     * "1" once the Get-the-shortcut link has been opened. Optimistic: Shortcuts
+     * never reports an install back, so this only records that the user got as
+     * far as the link. Device-local.
+     */
+    walletShortcutAdded: "walletShortcutAdded",
 } as const;
 
 /**

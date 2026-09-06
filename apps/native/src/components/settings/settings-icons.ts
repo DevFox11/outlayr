@@ -38,6 +38,7 @@ import {
     TextFontIcon,
     UserCircleIcon,
     UserRemove01Icon,
+    Wallet01Icon,
 } from "@hugeicons-pro/core-stroke-rounded";
 import type { IconSvgElement } from "@hugeicons/react-native";
 
@@ -85,6 +86,7 @@ const REGISTRY = {
     TextFont: TextFontIcon,
     UserCircle: UserCircleIcon,
     UserRemove01: UserRemove01Icon,
+    Wallet01: Wallet01Icon,
 } satisfies Record<string, IconSvgElement>;
 
 export type SettingsIconName = keyof typeof REGISTRY;

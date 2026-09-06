@@ -27,6 +27,13 @@ struct LogWalletTransactionIntent: AppIntent {
     @Parameter(title: "Amount")
     var amount: String
 
+    /// The trigger's "Card or Pass": the card's name as it reads in Wallet,
+    /// e.g. "Chase Sapphire" or "Apple Card". The app matches it to an account
+    /// by name, which is also where the currency comes from when the amount's
+    /// symbol cannot say ("$" is on 22 currencies).
+    @Parameter(title: "Card")
+    var card: String?
+
     @Parameter(title: "Type", default: .expense)
     var side: LedgerSide
 
@@ -45,6 +52,7 @@ struct LogWalletTransactionIntent: AppIntent {
 
     static var parameterSummary: some ParameterSummary {
         Summary("Log \(\.$amount) at \(\.$merchant) as \(\.$side)") {
+            \.$card
             \.$currency
             \.$transactionId
         }
@@ -67,6 +75,9 @@ struct LogWalletTransactionIntent: AppIntent {
                 category: nil,
                 date: Date().timeIntervalSince1970 * 1000,
                 amountText: amount,
+                card: card?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .nilIfEmpty,
                 currency: currency?
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                     .uppercased()
@@ -75,7 +86,8 @@ struct LogWalletTransactionIntent: AppIntent {
                     transactionId: transactionId,
                     merchant: name,
                     amount: value,
-                    side: side
+                    side: side,
+                    card: card
                 )
             )
         )
@@ -93,11 +105,15 @@ struct LogWalletTransactionIntent: AppIntent {
     /// one purchase is the app's call, not this extension's — see
     /// `WALLET_DEDUPE_WINDOW_MS`. The amount is carried in minor units because a
     /// `Double` renders differently either side of the wire.
+    ///
+    /// The card is part of the key: the same merchant and amount on two cards
+    /// within the window are two purchases, not one settling.
     static func dedupeKey(
         transactionId: String?,
         merchant: String,
         amount: Double,
-        side: LedgerSide
+        side: LedgerSide,
+        card: String?
     ) -> String {
         if let external = transactionId?
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -105,7 +121,10 @@ struct LogWalletTransactionIntent: AppIntent {
             return "wallet:id:\(external)"
         }
         let minorUnits = Int((amount * 100).rounded())
-        return "wallet:\(side.rawValue):\(merchant.lowercased()):\(minorUnits)"
+        let cardKey = card?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() ?? ""
+        return "wallet:\(side.rawValue):\(merchant.lowercased()):\(minorUnits):\(cardKey)"
     }
 
     /// The locale's own currency and decimal formatters run first; the manual

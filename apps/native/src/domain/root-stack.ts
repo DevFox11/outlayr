@@ -24,6 +24,7 @@ export const SETTINGS_SCREENS: readonly {
     { name: "settings/sync", titleKey: "settings.sync.navTitle" },
     { name: "settings/time", titleKey: "nav.settings.time" },
     { name: "settings/upcoming", titleKey: "nav.settings.upcoming" },
+    { name: "settings/wallet", titleKey: "nav.settings.wallet" },
 ];
 
 export const CATEGORY_SHEETS: readonly {
