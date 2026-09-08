@@ -24,6 +24,10 @@
             "type": "stdio",
             "command": "argent",
             "args": ["mcp"]
+        },
+        "panelui": {
+            "command": "npx",
+            "args": ["-y", "panelui-cli@latest", "mcp"]
         }
     }
 }
