@@ -52,6 +52,14 @@ jobs:
         name: Publish JS to ${{ inputs.channel }}
         needs: [deploy_backend]
         environment: ${{ inputs.channel }}
+        # Job level: a step's `env:` values are not interpolated. Run 01a082be
+        # published to a channel literally named `${{ inputs.channel }}`.
+        env:
+            # Feeds app.config.ts's icon pick, which is part of the fingerprint.
+            # EAS Build sets it; a custom job does not.
+            EAS_BUILD_PROFILE: ${{ inputs.channel }}
+            # Not inlined into the script, so backticks in a message stay text.
+            UPDATE_MESSAGE: ${{ inputs.message }}
         steps:
             - uses: eas/checkout
             - uses: eas/install_node_modules
@@ -60,13 +68,9 @@ jobs:
             - name: Build the i18n dictionaries
               run: pnpm exec intlayer build
             - name: Publish
-              env:
-                  # `app.config.ts` reads this to pick the production icon, and the
-                  # icon is part of the fingerprint. EAS Build sets it; a custom job
-                  # does not, so an unset value here would publish a preview-shaped
-                  # update to production and no binary would ever match it.
-                  EAS_BUILD_PROFILE: ${{ inputs.channel }}
-                  # Through the environment, not inlined into the script, so a
-                  # message with backticks or `$(...)` is text rather than a command.
-                  UPDATE_MESSAGE: ${{ inputs.message }}
-              run: npx eas-cli update --channel "$EAS_BUILD_PROFILE" --message "$UPDATE_MESSAGE" --platform ios --non-interactive
+              run: |
+                  case "$EAS_BUILD_PROFILE" in
+                    production|preview) ;;
+                    *) echo "EAS_BUILD_PROFILE did not interpolate: '$EAS_BUILD_PROFILE'" >&2; exit 1 ;;
+                  esac
+                  npx eas-cli update --channel "$EAS_BUILD_PROFILE" --message "$UPDATE_MESSAGE" --platform ios --non-interactive
