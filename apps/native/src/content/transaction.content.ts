@@ -107,6 +107,10 @@ const transaction = {
             en: "Add Subscription",
             es: "Agregar suscripción",
         }),
+        "transaction.cta.lookup": t({
+            en: "Look up merchant",
+            es: "Buscar comercio",
+        }),
         "transaction.cta.save": t({
             en: "Save Changes",
             es: "Guardar cambios",

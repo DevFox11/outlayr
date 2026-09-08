@@ -101,6 +101,7 @@ jest.mock("@/contexts/local-data-context", () => ({
 }));
 
 const mockUseTransactionEnrichment = jest.fn((..._args: unknown[]) => ({
+    lookupNow: () => Promise.resolve(),
     onNameChange: () => {},
     pending: false,
 }));

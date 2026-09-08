@@ -40,20 +40,22 @@ import { useFavouriteCurrencies } from "@/data/favourite-currencies";
 import { toggleFavouriteCurrency } from "@/data/favourite-currencies-core";
 import { useRecentMerchants } from "@/data/merchant-history";
 import { rememberedCategoryFor } from "@/data/merchant-history-core";
+import { applyMerchantToSiblings } from "@/data/merchant-siblings-core";
 import { ratesRevision, subscribeRatesRevision } from "@/data/rates-revision";
 import { backfillRecurring } from "@/data/recurrence-backfill";
 import { setBoolSetting } from "@/data/settings-core";
 import { splitsRepo } from "@/data/splits-core";
 import { useTagIdsFor, useTags } from "@/data/tags";
-import { tagsRepo } from "@/data/tags-core";
+import { tagIdsForQuery, tagsRepo } from "@/data/tags-core";
 import { transactionRateSuggestions } from "@/data/transaction-entry-rates";
-import { transactionsRepo } from "@/data/transactions-core";
+import { getTransactionById, transactionsRepo } from "@/data/transactions-core";
 import type { Transaction, TransactionInput } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { CONFETTI_FLIGHT_MS } from "@/domain/confetti";
 import { computeCurtainHues } from "@/domain/curtain-hues";
 import { formatSentenceDate } from "@/domain/dates";
 import { isFavourite } from "@/domain/favourite-currencies";
+import { merchantKey } from "@/domain/merchant-resolver";
 import { suggestMerchants } from "@/domain/merchant-suggest";
 import { formatAmount, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
@@ -642,6 +644,21 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     notifyFailure({ body: t("transaction.tags.failedBody"), title: t("transaction.tags.failedTitle") });
                 }
             }
+            const answered = lookupAnsweredRef.current;
+            const carryCurrency = value.txCurrency ?? globalCurrency;
+            if (
+                mode === "edit" &&
+                forcedLookupRef.current &&
+                answered?.key === merchantKey(value.merchant) &&
+                answered.currency === carryCurrency
+            ) {
+                // The lookup was asked for on this row; its answer goes to the
+                // merchant's other rows too. Not awaited: the row is saved, and a
+                // sibling that would not take it is not this save's failure.
+                carryLookupToSiblings(savedId, value.income, value.merchant, value.txCurrency).catch((error) => {
+                    console.error("Failed to carry the merchant lookup to its other rows", error);
+                });
+            }
             // After the row exists, for the same reason tags are: the parts point at
             // it. A single part is stored as no split at all, which is what keeps an
             // entry attributed by its own `categoryId` rather than by an equivalent
@@ -908,6 +925,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         form.setFieldValue("category", picked);
         form.setFieldValue("pendingCategory", null);
         setCategorySource("user");
+        markTouched("category");
         setCategoryError(false);
     };
     const tagSheetRef = useRef<BottomSheetModal>(null);
@@ -1034,25 +1052,83 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     });
 
     /**
+     * The user asked for this merchant to be looked up, on this row, and has
+     * not typed a different name since. While it stands every guard that keeps
+     * a suggestion off a field the user already filled is lifted, and the save
+     * carries the answer to the merchant's other rows.
+     */
+    const forcedLookupRef = useRef(false);
+    // Written here rather than at the call sites: the ref is read by the
+    // memoised `attachLogo`, and the compiler only allows it to change inside a
+    // hook's own callback.
+    /**
+     * The merchant and currency a requested lookup actually answered for.
+     * The save carries to siblings only when this matches what is on screen:
+     * a save before the answer lands, or after an answer of nothing, must not
+     * hand the row's own old category to rows that had none.
+     */
+    const lookupAnsweredRef = useRef<{ currency: string | null; key: string } | null>(null);
+    // The one place `lookupAnsweredRef` is set: the compiler allows a captured
+    // ref to change inside a single hook's callback, not across two.
+    const recordLookupAnswer = useCallback((answer: { currency: string | null; key: string } | null) => {
+        lookupAnsweredRef.current = answer;
+    }, []);
+    const setForcedLookup = useCallback(
+        (forced: boolean) => {
+            forcedLookupRef.current = forced;
+            if (forced) {
+                touchedSinceLookupRef.current.clear();
+                // A new ask starts unanswered: the previous answer must not let a
+                // save carry while this one is still out.
+                recordLookupAnswer(null);
+            }
+        },
+        [recordLookupAnswer]
+    );
+
+    /**
+     * The slots the user has filled since asking for the lookup. A late
+     * answer may replace only what was left alone: a category picked while
+     * the model was still out is a newer choice than the answer.
+     */
+    const touchedSinceLookupRef = useRef<Set<"category" | "identity" | "tags">>(new Set());
+    const markTouched = useCallback((slot: "category" | "identity" | "tags") => {
+        touchedSinceLookupRef.current.add(slot);
+    }, []);
+    /** The domain whose logo is in the well, when a suggestion put it there. */
+    const suggestedDomainRef = useRef<string | null>(null);
+
+    /**
      * A suggested logo stays replaceable: typing on past one merchant to another
      * has to move the image with the name, so only a real choice ("user") or an
      * open picker stops it. Each run takes a ticket, and a result that settles
      * after a newer one started is dropped rather than painted over it.
      */
     const attachLogo = useCallback(
-        async (domain: string | null) => {
+        async (domain: string | null): Promise<boolean> => {
             const blocked = () =>
-                latest.current.identitySource === "user" ||
                 latest.current.pickerOpen ||
-                // An emoji or photo carried in from `initial`/`copyOf` is a choice
-                // already made; only an empty well or an earlier suggestion moves.
-                (latest.current.identitySource === "initial" && latest.current.hasIdentity);
+                // A lookup the user asked for is a choice made now, over whatever
+                // the well holds; only an open picker outranks it.
+                ((!forcedLookupRef.current || touchedSinceLookupRef.current.has("identity")) &&
+                    (latest.current.identitySource === "user" ||
+                        // An emoji or photo carried in from `initial`/`copyOf` is a choice
+                        // already made; only an empty well or an earlier suggestion moves.
+                        (latest.current.identitySource === "initial" && latest.current.hasIdentity)));
             if (blocked()) {
-                return;
+                return false;
             }
             logoRequestRef.current += 1;
             const ticket = logoRequestRef.current;
-            const stale = () => ticket !== logoRequestRef.current || blocked();
+            // The name the domain was found for. The transport rejects an answer
+            // for a name the field has left, but this pipeline is awaited on its
+            // own, and a rename during the next debounce would otherwise take
+            // the previous merchant's logo.
+            const askedFor = merchantKey(form.store.state.values.merchant);
+            const stale = () =>
+                ticket !== logoRequestRef.current ||
+                merchantKey(form.store.state.values.merchant) !== askedFor ||
+                blocked();
             // The new merchant resolved to nothing, so the previous merchant's
             // logo has to go with it — keeping it would caption this entry with
             // the wrong brand.
@@ -1072,45 +1148,68 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             // to fetch: a save in that gap would keep the wrong brand on the row.
             if (domain == null) {
                 dropSuggested();
-                return;
+                return false;
             }
             const outcome = await fetchMerchantImage({
                 domain,
                 name: form.store.state.values.merchant,
+                refresh: forcedLookupRef.current,
             });
             if (stale()) {
-                return;
+                return false;
             }
             if (outcome.kind !== "logo") {
                 dropSuggested();
-                return;
+                return false;
             }
+            // Required lazily so rendering this form does not pull Skia's downscaler
+            // into the module graph, matching `domain/ids.ts`.
+            // SAFETY: `require` is untyped; the path is a first-party module and the
+            // asserted type is that same module's own.
+            const photoStorage = require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
             let photoUri: string;
             try {
-                // Required lazily so rendering this form does not pull Skia's downscaler
-                // into the module graph, matching `domain/ids.ts`.
-                // SAFETY: `require` is untyped; the path is a first-party module and the
-                // asserted type is that same module's own.
-                const photoStorage = require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
                 photoUri = await photoStorage.persistLogoBytes(outcome.bytes);
             } catch {
-                return;
+                return false;
             }
             // Same tint the picker extracts for a chosen photo, so an auto-attached
             // logo colours the well and the curtain behind it rather than sitting on
             // the neutral fallback. An unreadable image costs the tint alone.
             const hues = await glowFromImage(photoUri);
             if (stale()) {
-                return;
+                // Nothing will name this file: the row moved on, or the form is
+                // gone (the unmount bumps the ticket).
+                try {
+                    photoStorage.photoFiles.remove(photoUri.slice(photoUri.lastIndexOf("/") + 1));
+                } catch {
+                    // A file already gone is the outcome wanted.
+                }
+                return false;
             }
+            suggestedDomainRef.current = domain;
             setIdentitySource("suggested");
+            // A requested lookup puts the logo in place of an emoji or glyph, not
+            // behind one; a lookup the form ran on its own only ever fills an
+            // empty well, so there is nothing there to clear.
+            const replacesChoice = forcedLookupRef.current && !touchedSinceLookupRef.current.has("identity");
             setIdentity((previous) => ({
                 ...previous,
+                emoji: replacesChoice ? null : previous.emoji,
+                icon: replacesChoice ? null : previous.icon,
                 photoColor: hues[0] ?? null,
                 photoUri,
             }));
+            return true;
         },
         [form, setIdentity]
+    );
+    // A logo still being fetched when the form closes has no row to land on.
+    useEffect(
+        () => () => {
+            logoRequestRef.current += 1;
+        },
+        []
     );
 
     /*
@@ -1121,7 +1220,23 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
      * than a dependency array, so the identity is free to change.
      */
     const applySuggestion = (suggestion: EnrichmentSuggestion) => {
-        if (categorySource !== "user") {
+        // Read from the ref, not a flag in state: the curated tier answers in
+        // the same tick the lookup is asked for, before a state change commits.
+        const forced = forcedLookupRef.current;
+        const answeredWithoutDomain =
+            suggestion.categoryId != null ||
+            suggestion.pendingCategory != null ||
+            suggestion.tagIds.length > 0 ||
+            suggestion.pendingTagNames.length > 0;
+        const answered = answeredWithoutDomain || suggestion.domain != null;
+        const answer = { currency, key: merchantKey(form.store.state.values.merchant) };
+        // A domain alone is an answer only once its logo is on the row: a save
+        // before then would carry to siblings a logo this row does not have.
+        if (forced && answered && (suggestion.domain == null || answeredWithoutDomain)) {
+            recordLookupAnswer(answer);
+        }
+        const touched = touchedSinceLookupRef.current;
+        if ((forced && !touched.has("category")) || categorySource !== "user") {
             if (suggestion.categoryId != null) {
                 const matchedCategory = getCategoryById(db, suggestion.categoryId);
                 if (matchedCategory != null) {
@@ -1143,7 +1258,11 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 setCategorySource("initial");
             }
         }
-        if (tagsSource !== "user") {
+        // Tags an edit opened with are the user's as much as a category is, but
+        // they arrive by query rather than with `initial`, so the guard reads
+        // them at apply time. A lookup the user asked for overrides them.
+        const savedTagsStand = tagsSource === "initial" && savedTagIds.length > 0;
+        if ((forced && !touched.has("tags")) || (tagsSource !== "user" && !savedTagsStand)) {
             if (suggestion.tagIds.length > 0 || suggestion.pendingTagNames.length > 0) {
                 form.setFieldValue("tagIds", [...suggestion.tagIds]);
                 form.setFieldValue("pendingTagNames", [...suggestion.pendingTagNames]);
@@ -1154,17 +1273,31 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 setTagsSource("initial");
             }
         }
-        attachLogo(suggestion.domain).catch(() => undefined);
+        attachLogo(suggestion.domain)
+            .then((landed) => {
+                if (landed && forcedLookupRef.current && merchantKey(form.store.state.values.merchant) === answer.key) {
+                    recordLookupAnswer(answer);
+                }
+            })
+            .catch(() => undefined);
     };
 
     const locale = useLocaleTag();
     const regionCode = useRegionCode();
-    const { onNameChange, pending: enriching } = useTransactionEnrichment({
+    const {
+        lookupNow,
+        onNameChange,
+        pending: enriching,
+    } = useTransactionEnrichment({
         categoryTree,
         currency,
-        enabled: mode === "create",
+        // An edit looks up too, but only what is empty: a saved category, tags
+        // or identity read as the user's (see the source flags), so a renamed
+        // merchant fills the gaps and nothing else.
+        enabled: true,
         groundedLookup,
         income,
+        initialName: nameSeed,
         locale,
         onSuggest: applySuggestion,
         regionCode,
@@ -1175,6 +1308,74 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     // A field the user has already edited is theirs — it never dims, because
     // nothing arriving can change it.
     const categoryEnriching = enriching && categorySource !== "user";
+
+    // The hook re-asks on its own when the currency or the side of the ledger
+    // changes; that ask is the form's, not the user's, so the override and
+    // the answer end here.
+    const seenLookupScopeRef = useRef({ currency, income });
+    useEffect(() => {
+        const seen = seenLookupScopeRef.current;
+        if (seen.currency === currency && seen.income === income) {
+            return;
+        }
+        seenLookupScopeRef.current = { currency, income };
+        setForcedLookup(false);
+    }, [currency, income, setForcedLookup]);
+
+    const lookUpMerchant = () => {
+        setForcedLookup(true);
+        haptics("light");
+        lookupNow().catch(() => undefined);
+    };
+
+    /**
+     * The looked-up answer, as saved on this row, applied to the merchant's
+     * other rows in the same currency. Read back from the row rather than the
+     * form, because a pending category is only given an id by the save.
+     * `forCurrency` is the row's own column, null in the default currency,
+     * so the siblings stored the same way are found.
+     */
+    const carryLookupToSiblings = async (
+        savedId: string,
+        forIncome: boolean,
+        merchant: string,
+        forCurrency: string | null
+    ) => {
+        const saved = getTransactionById(db, savedId);
+        // Only what the lookup put on the row and the user left there: a
+        // category or tags they chose since the tap are theirs, for this row.
+        const touched = touchedSinceLookupRef.current;
+        const carryCategory = categorySource === "suggested" && !touched.has("category");
+        const carryTags = tagsSource === "suggested" && !touched.has("tags");
+        const domain = identitySource === "suggested" && !touched.has("identity") ? suggestedDomainRef.current : null;
+        const persistLogo =
+            domain == null
+                ? null
+                : async () => {
+                      const outcome = await fetchMerchantImage({ domain, name: merchant });
+                      if (outcome.kind !== "logo") {
+                          throw new Error("No logo to carry");
+                      }
+                      const imageUri = await photoStorage.persistLogoBytes(outcome.bytes);
+                      return { imageColor: saved?.imageColor ?? null, imageUri };
+                  };
+        // SAFETY: untyped `require`, asserted to the module's own type; lazy
+        // for the same reason as in `attachLogo`.
+        const photoStorage = require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
+        await applyMerchantToSiblings(db, {
+            categoryId: carryCategory ? (saved?.categoryId ?? null) : null,
+            currency: forCurrency,
+            defaultCurrency: globalCurrency,
+            discard: (imageUri) => {
+                photoStorage.photoFiles.remove(imageUri.slice(imageUri.lastIndexOf("/") + 1));
+            },
+            excludeId: savedId,
+            income: forIncome,
+            key: merchantKey(merchant),
+            persistLogo,
+            tagIds: carryTags ? await tagIdsForQuery(db, savedId).then((rows) => rows.map((row) => row.tagId)) : [],
+        });
+    };
 
     useEffect(
         () => () => {
@@ -1319,6 +1520,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         // Or the note's keyboard is left standing over the picker about to be pushed.
         Keyboard.dismiss();
         setIdentitySource("user");
+        markTouched("identity");
         setPickerOpen(true);
         router.push("/transactions/identity");
     };
@@ -1423,6 +1625,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
      * mid-keystroke would take the caret with it.
      */
     const handleMerchantChange = (next: string) => {
+        setForcedLookup(false);
         form.setFieldValue("merchant", next);
         onNameChange(next);
     };
@@ -1739,6 +1942,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 
     const clearIdentity = () => {
         setIdentitySource("user");
+        markTouched("identity");
         setIdentity({
             color: null,
             emoji: null,
@@ -2019,7 +2223,10 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                             canSave={complete && !busy}
                             deleteLabel={t("common.delete")}
                             deleteTint={colors.danger}
+                            lookupBusy={enriching}
+                            lookupLabel={t("transaction.cta.lookup")}
                             onDelete={onDelete}
+                            onLookup={mode === "edit" ? lookUpMerchant : undefined}
                             onPress={() => {
                                 if (complete) {
                                     pressSubmit(form);
@@ -2108,6 +2315,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                 const id = await tagsRepo.ensureTag(db, createdTagName);
                                 if (id) {
                                     setTagsSource("user");
+                                    markTouched("tags");
                                     form.setFieldValue("tagIds", [...effectiveTagIdsOf(form.state.values.tagIds), id]);
                                     form.setFieldValue("pendingTagNames", (current) =>
                                         current.filter(
@@ -2119,6 +2327,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                             }}
                             onToggle={(tagId) => {
                                 setTagsSource("user");
+                                markTouched("tags");
                                 const current = effectiveTagIdsOf(form.state.values.tagIds);
                                 form.setFieldValue(
                                     "tagIds",

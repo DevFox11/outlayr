@@ -16,7 +16,12 @@ export interface TransactionFormCtaProps {
     canSave: boolean;
     deleteLabel?: string;
     deleteTint?: string;
+    /** A lookup is out; the button waits for it rather than asking twice. */
+    lookupBusy?: boolean;
+    lookupLabel?: string;
     onDelete?: () => void;
+    /** Given only while editing: a new entry looks its merchant up as it is typed. */
+    onLookup?: () => void;
     onPress: () => void;
     saveLabel: string;
 }
@@ -25,7 +30,7 @@ export interface TransactionFormCtaAction {
     accessibilityLabel: string;
     disabled: boolean;
     icon: ToolbarIconName;
-    key: "delete" | "save";
+    key: "delete" | "lookup" | "save";
     onPress: () => void;
     separateBackground?: boolean;
     tintColor?: string;
@@ -41,8 +46,21 @@ export function transactionFormCtaActions({
     onDelete,
     blockedTint,
     busy,
+    lookupBusy,
+    lookupLabel,
+    onLookup,
 }: TransactionFormCtaProps): TransactionFormCtaAction[] {
     const actions: TransactionFormCtaAction[] = [];
+    // Furthest from the thumb: asked for once per merchant, not per visit.
+    if (onLookup) {
+        actions.push({
+            accessibilityLabel: lookupLabel ?? "",
+            disabled: lookupBusy === true,
+            icon: "search",
+            key: "lookup",
+            onPress: onLookup,
+        });
+    }
     // Destructive first, so the outermost item under the thumb is Save.
     if (onDelete) {
         actions.push({

@@ -24,6 +24,18 @@ describe("transactionFormCtaActions", () => {
         expect(actions.map((a) => a.key)).toStrictEqual(["delete", "save"]);
     });
 
+    it("puts lookup furthest from the thumb, and holds it while a lookup is out", () => {
+        const actions = transactionFormCtaActions({
+            ...BASE,
+            lookupBusy: true,
+            lookupLabel: "Look up merchant",
+            onDelete: () => {},
+            onLookup: () => {},
+        });
+        expect(actions.map((a) => a.key)).toStrictEqual(["lookup", "delete", "save"]);
+        expect(actions[0]).toMatchObject({ disabled: true, icon: "search" });
+    });
+
     it("uses a distinct icon for each action", () => {
         const actions = transactionFormCtaActions({
             ...BASE,

@@ -92,6 +92,12 @@ export interface MerchantImageRequest {
     domain: string | null;
     /** What the user typed; folded into the on-device cache key. */
     name: string;
+    /**
+     * Ask the tiers again even if this key was remembered as a miss. A cached
+     * logo is still served: the key carries the domain, so a different answer
+     * from the model is a different key anyway.
+     */
+    refresh?: boolean;
 }
 
 /**
@@ -120,7 +126,7 @@ export async function fetchMerchantImage(
     if (cached.kind === "logo") {
         return { bytes: cached.bytes, kind: "logo" };
     }
-    if (cached.kind === "miss") {
+    if (cached.kind === "miss" && request.refresh !== true) {
         return NONE;
     }
 

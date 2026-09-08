@@ -10,7 +10,7 @@ import { getMeta, META_KEYS, setMeta } from "@/data/app-meta-core";
 import { categoriesRepo } from "@/data/categories-core";
 import { bumpRatesRevision } from "@/data/rates-revision";
 import { backfillRecurring } from "@/data/recurrence-backfill";
-import { tagsRepo } from "@/data/tags-core";
+import { tagIdsForQuery, tagsRepo } from "@/data/tags-core";
 import type { Transaction } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { accounts, categories, exchangeRates, tags, transactions } from "@/db/schema";
@@ -114,8 +114,19 @@ jest.mock<Partial<typeof import("@/lib/subscription-reminder-sync")>>("@/lib/sub
     syncSubscriptionReminders: jest.fn(() => Promise.resolve()),
 }));
 jest.mock("@/lib/logo-fetch", () => ({ fetchMerchantImage: jest.fn() }));
+// Without a Convex client the real transport rejects and the hook answers
+// nothing; the default here does the same, and a test can hold an answer back.
+const mockEnrich = jest.fn<(args: unknown) => Promise<unknown>>(() => Promise.reject(new Error("no cloud")));
+jest.mock("@/lib/convex", () => ({
+    ...jest.requireActual<typeof import("@/lib/convex")>("@/lib/convex"),
+    enrichmentTransport: () => (args: unknown) => mockEnrich(args),
+}));
+const mockedPhotoFilesRemove = jest.fn<(name: string) => void>();
 jest.mock<Partial<typeof import("@/lib/photo-storage")>>("@/lib/photo-storage", () => ({
     persistLogoBytes: jest.fn<typeof import("@/lib/photo-storage").persistLogoBytes>(),
+    photoFiles: {
+        remove: (name: string) => mockedPhotoFilesRemove(name),
+    } as typeof import("@/lib/photo-storage").photoFiles,
 }));
 jest.mock("@/theme/glow", () => {
     const actual = jest.requireActual<typeof import("@/theme/glow")>("@/theme/glow");
@@ -1526,7 +1537,9 @@ describe("transactionForm enrichment", () => {
         expect(containsText(tree, taggedLine("Streaming, Subscription"))).toBe(false);
     });
 
-    it("issues no enrichment call in edit mode", async () => {
+    // An edit looks its merchant up, but a saved category is the user's: the
+    // suggestion fills only what is empty.
+    it("keeps a saved category over the suggestion when an edit renames the merchant", async () => {
         const db = dbHolder.current as Database;
         const categoryId = await seedCategory(db, "c-groceries", "Groceries");
         await seedCategory(db, "c-entertainment", "Entertainment");
@@ -1563,6 +1576,371 @@ describe("transactionForm enrichment", () => {
         expect(containsText(sentenceSlot(tree, "transaction.field.category"), "Groceries")).toBe(true);
         expect(containsText(tree, "Entertainment")).toBe(false);
     });
+
+    it("fills an empty category when an edit renames the merchant", async () => {
+        const db = dbHolder.current as Database;
+        await seedCategory(db, "c-entertainment", "Entertainment");
+        const initial: Partial<Transaction> = {
+            amount: 12.5,
+            categoryId: null,
+            currency: null,
+            customColor: null,
+            date: new Date(),
+            details: null,
+            emoji: null,
+            icon: null,
+            id: "t1",
+            imageColor: null,
+            imageUri: null,
+            income: false,
+            note: "Untitled",
+            onceRecurring: false,
+            recurringCoefficient: 1,
+            recurringEndDate: null,
+            recurringType: 0,
+            reminderLeadDays: null,
+        };
+
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} initial={initial as any} mode="edit" onDone={() => {}} />
+            </Providers>
+        );
+
+        await changeMerchant(screen, "netflix");
+
+        const tree = screen.toJSON() as JsonNode;
+        expect(containsText(sentenceSlot(tree, "transaction.field.category"), "Entertainment")).toBe(true);
+    });
+
+    // The one path that overrides what the user filled: they asked for it, on
+    // this row, and the save carries the answer to the merchant's other rows.
+    it("refills a saved row on request and carries the answer to the merchant's siblings on save", async () => {
+        const db = dbHolder.current as Database;
+        const groceries = await seedCategory(db, "c-groceries", "Groceries");
+        await seedCategory(db, "c-entertainment", "Entertainment");
+        const bytes = new Uint8Array([1, 2, 3]);
+        mockedFetchMerchantImage.mockResolvedValue({ bytes, kind: "logo" });
+        mockedPersistLogoBytes.mockResolvedValue("file:///logos/netflix.png");
+        mockedGlowFromImage.mockResolvedValue(["#123456"]);
+        const initial = await seedStoredTransaction(db, {
+            categoryId: groceries,
+            currency: "USD",
+            emoji: "🎬",
+            id: "asked",
+            note: "Netflix",
+        });
+        await seedStoredTransaction(db, { categoryId: null, currency: "USD", id: "sibling", note: "NETFLIX" });
+        await seedStoredTransaction(db, { categoryId: groceries, currency: "USD", id: "filed", note: "netflix" });
+
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+            </Providers>
+        );
+        expect(findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.lookup")).not.toBeNull();
+
+        await act(async () => {
+            findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.lookup")?.props.onButtonPress();
+            await jest.advanceTimersByTimeAsync(0);
+        });
+
+        const tree = screen.toJSON() as JsonNode;
+        expect(containsText(sentenceSlot(tree, "transaction.field.category"), "Entertainment")).toBe(true);
+        expect(renderedMerchantImageUri(tree)).toBe("file:///logos/netflix.png");
+        expect(mockedFetchMerchantImage).toHaveBeenCalledWith({
+            domain: "netflix.com",
+            name: "Netflix",
+            refresh: true,
+        });
+
+        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
+        await act(async () => saveButton?.props.onButtonPress());
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(0);
+        });
+
+        const [asked] = await db.select().from(transactions).where(eq(transactions.id, "asked"));
+        expect(asked).toMatchObject({
+            categoryId: "c-entertainment",
+            emoji: null,
+            imageUri: "file:///logos/netflix.png",
+        });
+        const [sibling] = await db.select().from(transactions).where(eq(transactions.id, "sibling"));
+        expect(sibling).toMatchObject({ categoryId: "c-entertainment", imageUri: "file:///logos/netflix.png" });
+        const [filed] = await db.select().from(transactions).where(eq(transactions.id, "filed"));
+        expect(filed).toMatchObject({ categoryId: groceries, imageUri: "file:///logos/netflix.png" });
+    });
+
+    // Save stays pressable while a lookup is out. A save that lands before the
+    // answer, or after an answer of nothing, must not treat the row's own old
+    // category as the answer and copy it onto siblings that had none.
+    it("carries nothing to siblings when the lookup has not answered", async () => {
+        const db = dbHolder.current as Database;
+        const groceries = await seedCategory(db, "c-groceries", "Groceries");
+        const initial = await seedStoredTransaction(db, {
+            categoryId: groceries,
+            currency: "USD",
+            id: "asked",
+            note: "Zzq Unresolvable Shop",
+        });
+        await seedStoredTransaction(db, {
+            categoryId: null,
+            currency: "USD",
+            id: "sibling",
+            note: "zzq unresolvable shop",
+        });
+
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+            </Providers>
+        );
+        await act(async () => {
+            findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.lookup")?.props.onButtonPress();
+            await jest.advanceTimersByTimeAsync(0);
+        });
+        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
+        await act(async () => saveButton?.props.onButtonPress());
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(0);
+        });
+
+        const [sibling] = await db.select().from(transactions).where(eq(transactions.id, "sibling"));
+        expect(sibling.categoryId).toBeNull();
+    });
+
+    it("carries nothing when a second lookup for the same merchant is still out at save", async () => {
+        const db = dbHolder.current as Database;
+        const groceries = await seedCategory(db, "c-groceries", "Groceries");
+        await seedCategory(db, "c-fun", "Entertainment");
+        const initial = await seedStoredTransaction(db, {
+            categoryId: groceries,
+            currency: "USD",
+            id: "asked",
+            note: "Zzq Unresolvable Shop",
+        });
+        await seedStoredTransaction(db, {
+            categoryId: null,
+            currency: "USD",
+            id: "sibling",
+            note: "zzq unresolvable shop",
+        });
+        const answers: ((value: unknown) => void)[] = [];
+        const hold = () =>
+            new Promise((resolve) => {
+                answers.push(resolve);
+            });
+        mockEnrich.mockImplementation(hold);
+
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+            </Providers>
+        );
+        await act(async () => {
+            findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.lookup")?.props.onButtonPress();
+            await jest.advanceTimersByTimeAsync(0);
+        });
+        await act(async () => {
+            answers[0]?.({ categoryName: "Entertainment", domain: null, isNewCategory: false, tags: [] });
+            await jest.advanceTimersByTimeAsync(0);
+        });
+        await act(async () => {
+            answers[1]?.(null);
+            await jest.advanceTimersByTimeAsync(0);
+        });
+        // Answered once; asked again and saved before the second answer.
+        await act(async () => {
+            findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.lookup")?.props.onButtonPress();
+            await jest.advanceTimersByTimeAsync(0);
+        });
+        expect(answers).toHaveLength(3);
+        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
+        await act(async () => saveButton?.props.onButtonPress());
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(0);
+        });
+
+        const [sibling] = await db.select().from(transactions).where(eq(transactions.id, "sibling"));
+        expect(sibling.categoryId).toBeNull();
+        mockEnrich.mockRejectedValue(new Error("no cloud"));
+    });
+
+    // What the user picked after the answer is a choice for this row, not part
+    // of the answer, so it does not travel to the merchant's other rows.
+    it("carries the lookup's answer to siblings, not a category picked afterwards", async () => {
+        const db = dbHolder.current as Database;
+        const groceries = await seedCategory(db, "c-groceries", "Groceries");
+        await seedCategory(db, "c-work", "Work");
+        const initial = await seedStoredTransaction(db, {
+            categoryId: groceries,
+            currency: "USD",
+            emoji: "🍿",
+            id: "asked",
+            note: "Netflix",
+        });
+        await seedStoredTransaction(db, { categoryId: null, currency: "USD", id: "sibling", note: "netflix" });
+        mockedFetchMerchantImage.mockResolvedValue({ kind: "none" });
+
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+            </Providers>
+        );
+        await act(async () => {
+            findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.lookup")?.props.onButtonPress();
+            await jest.advanceTimersByTimeAsync(0);
+        });
+        expect(
+            containsText(sentenceSlot(screen.toJSON() as JsonNode, "transaction.field.category"), "Entertainment")
+        ).toBe(true);
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.field.category"));
+        });
+        await act(async () => {
+            pickOption(screen, "Work");
+        });
+        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
+        await act(async () => saveButton?.props.onButtonPress());
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(0);
+        });
+
+        const [asked] = await db.select().from(transactions).where(eq(transactions.id, "asked"));
+        expect(asked.categoryId).toBe("c-work");
+        const [sibling] = await db.select().from(transactions).where(eq(transactions.id, "sibling"));
+        // The tags the lookup found still travel; the category picked by hand does not.
+        expect(sibling.categoryId).toBeNull();
+        expect((await tagIdsForQuery(db, "sibling")).length).toBeGreaterThan(0);
+    });
+
+    // The hook asks again on its own when the currency changes. That answer
+    // is the form's fill-empty kind, not the user's request.
+    it("ends the requested lookup when the currency changes, so the re-ask fills only what is empty", async () => {
+        const db = dbHolder.current as Database;
+        const groceries = await seedCategory(db, "c-groceries", "Groceries");
+        await seedCategory(db, "c-fun", "Entertainment");
+        const initial = await seedStoredTransaction(db, {
+            categoryId: groceries,
+            currency: "USD",
+            id: "asked",
+            note: "Zzq Unresolvable Shop",
+        });
+        const answers: ((value: unknown) => void)[] = [];
+        const hold = () =>
+            new Promise((resolve) => {
+                answers.push(resolve);
+            });
+        mockEnrich.mockImplementation(hold);
+        const remote = { categoryName: "Entertainment", domain: null, isNewCategory: false, tags: [] };
+
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+            </Providers>
+        );
+        await act(async () => {
+            findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.lookup")?.props.onButtonPress();
+            await jest.advanceTimersByTimeAsync(0);
+        });
+        await pickEuro(screen);
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(600);
+        });
+        // The first ask was superseded by the currency change; the re-ask is out.
+        expect(answers.length).toBeGreaterThanOrEqual(2);
+        await act(async () => {
+            for (const answer of answers) {
+                answer(remote);
+            }
+            await jest.advanceTimersByTimeAsync(0);
+        });
+
+        expect(containsText(sentenceSlot(screen.toJSON() as JsonNode, "transaction.field.category"), "Groceries")).toBe(
+            true
+        );
+        mockEnrich.mockRejectedValue(new Error("no cloud"));
+    });
+
+    // The answer lands after the user has already picked: what they chose in
+    // the meantime is newer than the lookup, so it stands. A slot left alone
+    // since the tap still yields.
+    it("keeps a category picked while the lookup was out, and still refills one left alone", async () => {
+        const db = dbHolder.current as Database;
+        const groceries = await seedCategory(db, "c-groceries", "Groceries");
+        await seedCategory(db, "c-work", "Work");
+        await seedCategory(db, "c-fun", "Entertainment");
+        const initial = await seedStoredTransaction(db, {
+            categoryId: groceries,
+            currency: "USD",
+            id: "asked",
+            note: "Zzq Unresolvable Shop",
+        });
+        const answers: ((value: unknown) => void)[] = [];
+        const hold = () =>
+            new Promise((resolve) => {
+                answers.push(resolve);
+            });
+        mockEnrich.mockImplementation(hold);
+        const remote = { categoryName: "Entertainment", domain: null, isNewCategory: false, tags: [] };
+
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+            </Providers>
+        );
+        await act(async () => {
+            findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.lookup")?.props.onButtonPress();
+            await jest.advanceTimersByTimeAsync(0);
+        });
+        expect(answers).toHaveLength(1);
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.field.category"));
+        });
+        await act(async () => {
+            pickOption(screen, "Work");
+        });
+        await act(async () => {
+            answers[0]?.(remote);
+            await jest.advanceTimersByTimeAsync(0);
+        });
+        expect(containsText(sentenceSlot(screen.toJSON() as JsonNode, "transaction.field.category"), "Work")).toBe(
+            true
+        );
+        // The fast pass had no domain, so the grounded follow-up went out too;
+        // it has to settle before the button takes another tap.
+        expect(answers).toHaveLength(2);
+        await act(async () => {
+            answers[1]?.(null);
+            await jest.advanceTimersByTimeAsync(0);
+        });
+
+        await act(async () => {
+            findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.lookup")?.props.onButtonPress();
+            await jest.advanceTimersByTimeAsync(0);
+        });
+        expect(answers).toHaveLength(3);
+        await act(async () => {
+            answers[2]?.(remote);
+            await jest.advanceTimersByTimeAsync(0);
+        });
+        expect(
+            containsText(sentenceSlot(screen.toJSON() as JsonNode, "transaction.field.category"), "Entertainment")
+        ).toBe(true);
+        mockEnrich.mockRejectedValue(new Error("no cloud"));
+    });
+
+    // A new entry looks itself up as it is typed; the button is for a row
+    // whose earlier answer is what the user wants replaced.
+    it("offers no lookup button while creating", async () => {
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={dbHolder.current as Database} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+        expect(findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.lookup")).toBeNull();
+    });
 });
 
 describe("transactionForm logo attachment", () => {
@@ -1576,6 +1954,45 @@ describe("transactionForm logo attachment", () => {
 
     afterEach(() => {
         jest.useRealTimers();
+    });
+
+    // The fetch for the previous name is still out when the field is retyped,
+    // and the next name's own lookup has not fired yet: the old logo must not
+    // land on the new name in that gap.
+    it("drops a logo that settles after the name changed", async () => {
+        const bytes = new Uint8Array([1, 2, 3]);
+        let settle: (value: LogoOutcome) => void = () => {};
+        mockedFetchMerchantImage.mockReturnValue(
+            new Promise<LogoOutcome>((resolve) => {
+                settle = resolve;
+            })
+        );
+        mockedPersistLogoBytes.mockResolvedValue("file:///logos/netflix.png");
+        mockedGlowFromImage.mockResolvedValue(["#123456"]);
+        const removed: string[] = [];
+        mockedPhotoFilesRemove.mockImplementation((name: string) => {
+            removed.push(name);
+        });
+
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={dbHolder.current as Database} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+        await changeMerchant(screen, "netflix");
+        expect(mockedFetchMerchantImage).toHaveBeenCalledTimes(1);
+        await act(async () => {
+            fireEvent.changeText(screen.getByTestId("stage-merchant-field"), "zzq other shop");
+        });
+        await act(async () => {
+            settle({ bytes, kind: "logo" });
+            await jest.advanceTimersByTimeAsync(0);
+        });
+
+        expect(renderedMerchantImageUri(screen.toJSON() as JsonNode)).toBeNull();
+        // Dropped before it was stored, so there is no file to discard either.
+        expect(mockedPersistLogoBytes).not.toHaveBeenCalled();
+        expect(removed).toStrictEqual([]);
     });
 
     it("renders the persisted logo and its extracted curtain color", async () => {
@@ -1596,7 +2013,11 @@ describe("transactionForm logo attachment", () => {
         const tree = toJSON() as JsonNode;
         expect(renderedMerchantImageUri(tree)).toBe("file:///logos/netflix.png");
         expect(renderedCurtain(tree)).toStrictEqual(curtainGradient(["#123456"], false));
-        expect(mockedFetchMerchantImage).toHaveBeenCalledWith({ domain: "netflix.com", name: "netflix" });
+        expect(mockedFetchMerchantImage).toHaveBeenCalledWith({
+            domain: "netflix.com",
+            name: "netflix",
+            refresh: false,
+        });
         expect(mockedPersistLogoBytes).toHaveBeenCalledWith(bytes);
         expect(mockedGlowFromImage).toHaveBeenCalledWith("file:///logos/netflix.png");
     });

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, renderHook } from "@testing-library/react-native";
 
-import { clearEnrichmentCache, getCachedEnrichment } from "@/domain/enrichment-cache";
+import { clearEnrichmentCache, getCachedEnrichment, setCachedEnrichment } from "@/domain/enrichment-cache";
 import type { RemoteEnrichmentResult } from "@/domain/enrichment-cache";
 import { merchantKey } from "@/domain/merchant-resolver";
 import type { EnrichmentFn, EnrichmentRequest } from "@/lib/convex";
@@ -566,6 +566,116 @@ describe("tier 2: remote fallback", () => {
         });
 
         expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it("lookupNow asks again past the session cache, for the name it opened with", async () => {
+        const { fn, calls } = deferredTransport();
+        const onSuggest = jest.fn();
+        const { result } = await renderHook(() =>
+            useTransactionEnrichment(baseArgs({ initialName: UNKNOWN, onSuggest, transport: fn }))
+        );
+        setCachedEnrichment(merchantKey(UNKNOWN), null);
+
+        let lookup: Promise<void> = Promise.resolve();
+        await act(async () => {
+            lookup = result.current.lookupNow();
+        });
+        expect(fn).toHaveBeenCalledTimes(1);
+        expect(calls[0].args.name).toBe(UNKNOWN);
+        expect(result.current.pending).toBe(true);
+
+        await act(async () => {
+            calls[0].settle(REMOTE_RESULT);
+            await lookup;
+        });
+        expect(onSuggest).toHaveBeenLastCalledWith(
+            expect.objectContaining({ domain: "example.com", source: "remote" })
+        );
+        expect(result.current.pending).toBe(false);
+
+        // The force is spent: the next debounced lookup of the same name is a
+        // cache hit again, not a second call.
+        result.current.onNameChange(UNKNOWN);
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it("lookupNow stays pending through the grounded follow-up, and ignores a second tap meanwhile", async () => {
+        const { fn, calls } = deferredTransport();
+        const { result } = await renderHook(() =>
+            useTransactionEnrichment(baseArgs({ groundedLookup: true, initialName: UNKNOWN, transport: fn }))
+        );
+
+        let lookup: Promise<void> = Promise.resolve();
+        await act(async () => {
+            lookup = result.current.lookupNow();
+        });
+        await act(async () => {
+            void result.current.lookupNow();
+            calls[0].settle(null);
+        });
+        // The fast pass answered without a domain, so the grounded call is out
+        // and the button must stay held.
+        expect(calls).toHaveLength(2);
+        expect(calls[1].args.groundedLookup).toBe(true);
+        expect(result.current.pending).toBe(true);
+
+        await act(async () => {
+            calls[1].settle(REMOTE_RESULT);
+            await lookup;
+        });
+        expect(result.current.pending).toBe(false);
+    });
+
+    it("keeps a result that settles after the field moved on out of the new name, and still caches it", async () => {
+        const { fn, calls } = deferredTransport();
+        const onSuggest = jest.fn();
+        const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest, transport: fn })));
+
+        result.current.onNameChange(UNKNOWN);
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+        // Typed on before the debounce for the new name has fired.
+        result.current.onNameChange(OTHER_UNKNOWN);
+        onSuggest.mockClear();
+        await act(async () => {
+            calls[0].settle(REMOTE_RESULT);
+        });
+
+        expect(onSuggest).not.toHaveBeenCalled();
+        expect(getCachedEnrichment(merchantKey(UNKNOWN))).toStrictEqual({ hit: true, value: REMOTE_RESULT });
+    });
+
+    it("drops a request built for the other side of the ledger when income flips, and asks again", async () => {
+        const { fn, calls } = deferredTransport();
+        const onSuggest = jest.fn();
+        const { rerender, result } = await renderHook(
+            ({ income }: { income: boolean }) =>
+                useTransactionEnrichment(baseArgs({ income, onSuggest, transport: fn })),
+            { initialProps: { income: false } }
+        );
+
+        result.current.onNameChange(UNKNOWN);
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+        expect(calls[0].args.income).toBe(false);
+
+        await rerender({ income: true });
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+        expect(calls).toHaveLength(2);
+        expect(calls[1].args.income).toBe(true);
+
+        onSuggest.mockClear();
+        await act(async () => {
+            calls[0].settle(REMOTE_RESULT);
+        });
+        expect(onSuggest).not.toHaveBeenCalled();
     });
 
     it("drops a stale result once a newer request supersedes it", async () => {

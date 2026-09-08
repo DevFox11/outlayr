@@ -97,9 +97,18 @@ export function writeCachedLogo(key: string, bytes: Uint8Array | null): void {
         return;
     }
     try {
-        const target = new File(directory(), bytes == null ? `${key}${MISS_MARKER}` : key);
+        const dir = directory();
+        const target = new File(dir, bytes == null ? `${key}${MISS_MARKER}` : key);
         target.create({ overwrite: true });
         target.write(bytes ?? new Uint8Array(0));
+        // A logo found on a refreshed ask outranks the miss recorded before it;
+        // the marker is read first, so left standing it would hide the file.
+        if (bytes != null) {
+            const stale = new File(dir, `${key}${MISS_MARKER}`);
+            if (stale.exists) {
+                stale.delete();
+            }
+        }
     } catch {
         // A cache that cannot be written is still a working feature.
     }

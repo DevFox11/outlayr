@@ -59,6 +59,12 @@ export interface UseTransactionEnrichmentArgs {
     /** The server re-checks the `groundedLookup` setting independently. */
     groundedLookup?: boolean;
     income: boolean;
+    /**
+     * The merchant the form opened with. Seeds the name the tiers read without
+     * asking anything, so an edit whose currency changes, or whose owner asks
+     * for a lookup, resolves the name on screen rather than an empty one.
+     */
+    initialName?: string;
     locale?: string;
     onSuggest: (suggestion: EnrichmentSuggestion) => void;
     /**
@@ -89,6 +95,13 @@ export interface UseTransactionEnrichmentArgs {
 }
 
 export interface UseTransactionEnrichmentResult {
+    /**
+     * Asks the curated map and the model for the name on screen right now,
+     * past the debounce, the session cache and the ledger: what this device
+     * already answered is exactly what the caller is dissatisfied with. The
+     * grounded follow-up runs as soon as the fast pass settles without a domain.
+     */
+    lookupNow: () => Promise<void>;
     onNameChange: (next: string) => void;
     /**
      * A remote lookup is outstanding. The form decides which rows may show it —
@@ -183,6 +196,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
     const {
         enabled,
         income,
+        initialName,
         categoryTree,
         currency,
         resolveLocal,
@@ -197,8 +211,18 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
     } = args;
 
     const [pending, setPending] = useState(false);
+    /**
+     * A `lookupNow` in progress, fast pass and grounded follow-up included.
+     * `pending` alone drops between the two, which would offer the button
+     * again while the follow-up is still out.
+     */
+    const [forcing, setForcing] = useState(false);
 
-    const nameRef = useRef("");
+    const nameRef = useRef(initialName ?? "");
+    /** Set by `lookupNow` for the one `run` it starts; read and cleared there. */
+    const forceRef = useRef(false);
+    /** Mirrors `forcing` for the tap that lands before the state commits. */
+    const forcingRef = useRef(false);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const groundedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const recheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -421,6 +445,16 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             if (id !== requestIdRef.current) {
                 return;
             }
+            if (result?.grounding !== true) {
+                setCachedEnrichment(key, result, request.currency);
+            }
+            // The field moved on while this was out and the replacement has not
+            // started yet (its debounce is still running): the answer is kept
+            // for the cache above and must not be painted onto the new name.
+            if (merchantKey(nameRef.current) !== key) {
+                setPending(false);
+                return;
+            }
             // Below the ticket check: `runGroundedFollowUp` reads this to decide
             // whether the fast pass for the name ON SCREEN already found a
             // domain. A superseded request recording its outcome here would
@@ -429,9 +463,6 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             // does not.
             lastRemoteOutcomeRef.current = { hasDomain: result?.domain != null, key };
             setPending(false);
-            if (result?.grounding !== true) {
-                setCachedEnrichment(key, result, request.currency);
-            }
             emitRemoteResult(key, result);
         },
         [emitRemoteResult, resolveTransport, buildRequest]
@@ -520,6 +551,10 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
     }, []);
 
     const run = useCallback(async () => {
+        // Read first: every early return below is a final answer, and a force
+        // left standing would bypass the cache for the next keystroke's lookup.
+        const force = forceRef.current;
+        forceRef.current = false;
         const key = merchantKey(nameRef.current);
         if (key.length < MIN_KEY_LENGTH) {
             supersedeInFlight();
@@ -527,10 +562,16 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             emitNothing();
             return;
         }
-        // Deliberately not awaited: the curated tier below is synchronous, and a
-        // local read must not be what makes it stop being.
-        // oxlint-disable-next-line no-void -- marks the floating promise as intentional rather than a forgotten await.
-        void recallFromLedger(key);
+        if (force) {
+            // The ledger is what the user filed before, and a lookup they asked
+            // for is a request to hear the other tiers over it.
+            rememberedRef.current = { categoryId: null, key };
+        } else {
+            // Deliberately not awaited: the curated tier below is synchronous, and a
+            // local read must not be what makes it stop being.
+            // oxlint-disable-next-line no-void -- marks the floating promise as intentional rather than a forgotten await.
+            void recallFromLedger(key);
+        }
         const match = resolveMerchant(key);
         let curatedFallback = false;
         if (match != null) {
@@ -559,7 +600,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             supersedeInFlight();
             return;
         }
-        const cached = getCachedEnrichment(key, latest.current.currency);
+        const cached = force ? { hit: false as const } : getCachedEnrichment(key, latest.current.currency);
         if (cached.hit) {
             // Recorded as the fast outcome it once was, so a cached answer with
             // no domain still earns the grounded follow-up — the search it
@@ -570,7 +611,12 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             return;
         }
         if (inFlightRef.current.has(key)) {
-            return;
+            if (!force) {
+                return;
+            }
+            // The outstanding request may be the debounced one for this same
+            // name; the forced ask replaces it rather than waiting on it.
+            supersedeInFlight();
         }
         await runRemote(key);
     }, [emit, emitNothing, emitRemoteResult, recallFromLedger, runRemote, supersedeInFlight]);
@@ -596,6 +642,36 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         },
         [run, runGroundedFollowUp]
     );
+
+    const lookupNow = useCallback(async () => {
+        if (!latest.current.enabled || forcingRef.current) {
+            return;
+        }
+        forcingRef.current = true;
+        setForcing(true);
+        if (timerRef.current != null) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+        }
+        if (groundedTimerRef.current != null) {
+            clearTimeout(groundedTimerRef.current);
+            groundedTimerRef.current = null;
+        }
+        if (recheckTimerRef.current != null) {
+            clearTimeout(recheckTimerRef.current);
+            recheckTimerRef.current = null;
+        }
+        forceRef.current = true;
+        try {
+            // `run` awaits the fast pass, so by here its outcome is recorded and
+            // the follow-up can judge it without the idle timer's guesswork.
+            await run();
+            await runGroundedFollowUp();
+        } finally {
+            forcingRef.current = false;
+            setForcing(false);
+        }
+    }, [run, runGroundedFollowUp]);
 
     const teardown = useCallback(() => {
         if (timerRef.current != null) {
@@ -660,5 +736,28 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         onNameChange(nameRef.current);
     }, [currency, emit, onNameChange, supersedeInFlight]);
 
-    return { onNameChange, pending };
+    /**
+     * The side of the ledger picks the category namespace the request was
+     * built with, so a request still out for the other side must not answer:
+     * its category would be filed on the wrong side. Asked again for the new
+     * side, as a currency change is.
+     */
+    const seenIncomeRef = useRef(income);
+    useEffect(() => {
+        if (seenIncomeRef.current === income) {
+            return;
+        }
+        seenIncomeRef.current = income;
+        if (!latest.current.enabled) {
+            return;
+        }
+        supersedeInFlight();
+        lastRemoteOutcomeRef.current = null;
+        if (merchantKey(nameRef.current).length < MIN_KEY_LENGTH) {
+            return;
+        }
+        onNameChange(nameRef.current);
+    }, [income, onNameChange, supersedeInFlight]);
+
+    return { lookupNow, onNameChange, pending: pending || forcing };
 }

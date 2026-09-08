@@ -26,11 +26,15 @@ jest.mock("expo-file-system", () => {
         delete() {
             existing.delete(this.name);
         }
+        create() {
+            existing.add(this.name);
+        }
+        write() {}
     }
     return { Directory, File, Paths: { cache: "/cache" }, __existing: existing, __writtenAt: writtenAt };
 });
 
-import { cachedLogoUri, logoCacheKey, readCachedLogo } from "./logo-cache";
+import { cachedLogoUri, logoCacheKey, readCachedLogo, writeCachedLogo } from "./logo-cache";
 
 const { __existing, __writtenAt } = jest.requireMock("expo-file-system") as {
     __existing: Set<string>;
@@ -100,5 +104,24 @@ describe("a miss expires", () => {
     it("keeps a marker with no readable time, rather than guessing", async () => {
         __existing.add("zinli.miss");
         await expect(readCachedLogo("zinli", Number.MAX_SAFE_INTEGER)).resolves.toStrictEqual({ kind: "miss" });
+    });
+});
+
+describe("writeCachedLogo", () => {
+    beforeEach(() => {
+        __existing.clear();
+        __writtenAt.clear();
+    });
+
+    // A refreshed ask found the logo the earlier miss said was not there; the
+    // marker is read first, so it has to go or the file is never served.
+    it("removes a standing miss marker when a logo is written for the key", () => {
+        __existing.add("zinli.miss");
+        __writtenAt.set("zinli.miss", 1000);
+
+        writeCachedLogo("zinli", new Uint8Array([1]));
+
+        expect(__existing.has("zinli.miss")).toBe(false);
+        expect(__existing.has("zinli")).toBe(true);
     });
 });
