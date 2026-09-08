@@ -1053,18 +1053,10 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             logoRequestRef.current += 1;
             const ticket = logoRequestRef.current;
             const stale = () => ticket !== logoRequestRef.current || blocked();
-
-            const outcome = await fetchMerchantImage({
-                domain,
-                name: form.store.state.values.merchant,
-            });
-            if (stale()) {
-                return;
-            }
-            if (outcome.kind !== "logo") {
-                // The new merchant resolved to nothing, so the previous merchant's
-                // logo has to go with it — keeping it would caption this entry with
-                // the wrong brand.
+            // The new merchant resolved to nothing, so the previous merchant's
+            // logo has to go with it — keeping it would caption this entry with
+            // the wrong brand.
+            const dropSuggested = () => {
                 if (latest.current.identitySource === "suggested") {
                     setIdentitySource("initial");
                     setIdentity((previous) => ({
@@ -1073,6 +1065,24 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                         photoUri: null,
                     }));
                 }
+            };
+
+            // A withdrawn domain (a currency change, a name with no answer) is
+            // known now, and the drop must not wait on a fetch that has nothing
+            // to fetch: a save in that gap would keep the wrong brand on the row.
+            if (domain == null) {
+                dropSuggested();
+                return;
+            }
+            const outcome = await fetchMerchantImage({
+                domain,
+                name: form.store.state.values.merchant,
+            });
+            if (stale()) {
+                return;
+            }
+            if (outcome.kind !== "logo") {
+                dropSuggested();
                 return;
             }
             let photoUri: string;
@@ -1151,6 +1161,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const regionCode = useRegionCode();
     const { onNameChange, pending: enriching } = useTransactionEnrichment({
         categoryTree,
+        currency,
         enabled: mode === "create",
         groundedLookup,
         income,

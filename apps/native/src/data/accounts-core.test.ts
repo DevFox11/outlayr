@@ -9,6 +9,7 @@ import { buildRateTable } from "@/domain/valuation";
 
 import { accountsRepo, getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "./accounts-core";
 import { accountCellQuery, toCurrencyCells } from "./cell-query";
+import { candidateLogoIds } from "./logo-backfill-state";
 import { transactionsRepo } from "./transactions-core";
 
 function makeDb(): Database {
@@ -340,6 +341,8 @@ describe("accountsRepo lifecycle", () => {
         const byId = new Map(rows.map((row) => [row.id, row]));
         expect(byId.get(detached)?.accountId).toBeNull();
         expect(byId.get(untouched)?.accountId).toBe(kept);
+        // The detached row's logo candidate follows the stamp the detach gave it.
+        expect((await candidateLogoIds(db)).get(detached)).toBe(byId.get(detached)?.updatedAt.getTime());
     });
 
     it("reorder assigns each id its array index and stamps updatedAt", async () => {

@@ -16,21 +16,33 @@ const CACHE_LIMIT = 50;
 
 const cache = new Map<string, RemoteEnrichmentResult | null>();
 
-export function getCachedEnrichment(key: string): EnrichmentCacheLookup {
-    if (!cache.has(key)) {
-        return { hit: false };
-    }
-    return { hit: true, value: cache.get(key) ?? null };
+/**
+ * Scoped by the currency the lookup was made with, when it had one: the
+ * currency is the locator the model is given, so the same name can resolve to
+ * a different business in a different currency. A caller with no currency
+ * (the import review) reads and fills the bare partition.
+ */
+function cacheKey(key: string, currency: string | undefined): string {
+    return currency ? `${key}|${currency}` : key;
 }
 
-export function setCachedEnrichment(key: string, value: RemoteEnrichmentResult | null): void {
-    if (!cache.has(key) && cache.size >= CACHE_LIMIT) {
+export function getCachedEnrichment(key: string, currency?: string): EnrichmentCacheLookup {
+    const scoped = cacheKey(key, currency);
+    if (!cache.has(scoped)) {
+        return { hit: false };
+    }
+    return { hit: true, value: cache.get(scoped) ?? null };
+}
+
+export function setCachedEnrichment(key: string, value: RemoteEnrichmentResult | null, currency?: string): void {
+    const scoped = cacheKey(key, currency);
+    if (!cache.has(scoped) && cache.size >= CACHE_LIMIT) {
         const oldestKey = cache.keys().next().value;
         if (oldestKey !== undefined) {
             cache.delete(oldestKey);
         }
     }
-    cache.set(key, value);
+    cache.set(scoped, value);
 }
 
 export function clearEnrichmentCache(): void {

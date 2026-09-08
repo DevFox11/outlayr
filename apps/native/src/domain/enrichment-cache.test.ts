@@ -122,3 +122,19 @@ describe("clearEnrichmentCache", () => {
         expect(getCachedEnrichment("spotify")).toStrictEqual({ hit: false });
     });
 });
+
+describe("currency scope", () => {
+    it("keeps a name's answers apart per currency and leaves the bare partition alone", () => {
+        const eur: RemoteEnrichmentResult = {
+            categoryName: "Groceries",
+            domain: "carrefour.fr",
+            isNewCategory: false,
+            tags: [],
+        };
+        setCachedEnrichment("carrefour", eur, "EUR");
+
+        expect(getCachedEnrichment("carrefour", "EUR")).toStrictEqual({ hit: true, value: eur });
+        expect(getCachedEnrichment("carrefour", "VES")).toStrictEqual({ hit: false });
+        expect(getCachedEnrichment("carrefour")).toStrictEqual({ hit: false });
+    });
+});

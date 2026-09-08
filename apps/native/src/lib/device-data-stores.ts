@@ -13,6 +13,7 @@ import { deleteItemAsync, getItem } from "expo-secure-store";
 import { deleteDatabaseAsync } from "expo-sqlite";
 import { Platform } from "react-native";
 
+import { cancelLogoBackfill } from "./logo-backfill";
 import { QUEUE_DIRECTORY } from "./pending-writes-core";
 import { clearStoredPhotos } from "./photo-storage";
 import { PROVIDER_BINDING_KEY } from "./provider-revocation";
@@ -146,7 +147,12 @@ export function createNativeDeviceDataStores({ closeDatabase }: NativeDeviceData
         },
         photos: async () => clearStoredPhotos(),
         spotlight: clearSpotlight,
-        sqlite: async () => await clearSqlite(closeDatabase),
+        // The logo pass is stopped first: still awaiting the model or an image,
+        // it would otherwise write into a photo directory this erase empties.
+        sqlite: async () => {
+            await cancelLogoBackfill();
+            await clearSqlite(closeDatabase);
+        },
         widget: async () => clearWidgetStorage(),
     };
 }

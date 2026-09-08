@@ -12,6 +12,7 @@ import { archiveRowCount, parseArchive } from "@/domain/archive";
 import type { ArchiveDocument } from "@/domain/archive";
 import { useTranslation } from "@/i18n/context";
 import { pickArchiveFile, TransferError } from "@/lib/data-transfer";
+import { armLogoBackfill, cancelLogoBackfill } from "@/lib/logo-backfill";
 import { notifyFailure } from "@/lib/notify";
 import { useColors } from "@/theme/use-colors";
 
@@ -26,9 +27,14 @@ function RestoreDataContent({ db }: { db: Database }) {
     const t = useTranslation();
     const [busy, setBusy] = useState(false);
 
+    // The logo pass is stopped first: still awaiting the model or an image, it
+    // could otherwise paint a row the archive just replaced. It is re-armed once
+    // the archive is in, since the same database carries on.
     const applyArchive = (document: ArchiveDocument) => {
         setBusy(true);
-        restoreArchive(db, document)
+        cancelLogoBackfill()
+            .then(() => restoreArchive(db, document))
+            .finally(() => armLogoBackfill(db))
             .then(() => router.back())
             .catch(() => {
                 notifyFailure({ body: t("settings.restore.failedBody"), title: t("settings.restore.failedTitle") });

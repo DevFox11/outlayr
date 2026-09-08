@@ -54,6 +54,14 @@ describe(shouldPublish, () => {
         ).toBeFalsy();
     });
 
+    test("publishes a currency-scoped key and refuses any other delimiter", () => {
+        const sources = [{ url: "https://farmatodo.com/about" }];
+        expect(shouldPublish({ ...BASE_CANDIDATE, key: "farmatodo|ves" }, sources)).toBeTruthy();
+        expect(shouldPublish({ ...BASE_CANDIDATE, key: "farmatodo|VES" }, sources)).toBeFalsy();
+        expect(shouldPublish({ ...BASE_CANDIDATE, key: "farmatodo|ves|eur" }, sources)).toBeFalsy();
+        expect(shouldPublish({ ...BASE_CANDIDATE, key: "farmatodo#ves" }, sources)).toBeFalsy();
+    });
+
     test("does not publish when sources is empty (T3)", () => {
         expect(shouldPublish(BASE_CANDIDATE, [])).toBeFalsy();
     });

@@ -52,8 +52,8 @@ const onboarding = {
             es: "¿En qué moneda están tus números?",
         }),
         "onboarding.grounding.body": t({
-            en: "For a name Outlayr has never seen, it may search the public web once to learn its category — only the merchant name leaves your device, never an amount, date or account. On by default; change it any time in Settings.",
-            es: "Para un nombre que Outlayr nunca ha visto, puede buscar una vez en la web pública para conocer su categoría — solo el nombre del comercio sale de tu dispositivo, nunca un importe, fecha o cuenta. Activado por defecto; cámbialo cuando quieras en Ajustes.",
+            en: "For a name Outlayr has never seen, it may search the public web once to learn its category — only the merchant name, whether it is an expense or income, the entry's currency code and your language and region leave your device, never an amount, date or account. On by default; change it any time in Settings.",
+            es: "Para un nombre que Outlayr nunca ha visto, puede buscar una vez en la web pública para conocer su categoría — solo el nombre del comercio, si es gasto o ingreso, el código de moneda de la entrada y tu idioma y región salen de tu dispositivo, nunca un importe, fecha o cuenta. Activado por defecto; cámbialo cuando quieras en Ajustes.",
         }),
         "onboarding.grounding.eyebrow": t({
             en: "Coverage",

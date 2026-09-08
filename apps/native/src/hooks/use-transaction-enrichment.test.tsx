@@ -362,12 +362,13 @@ describe("tier 2: remote fallback", () => {
         expect(fn).toHaveBeenCalledTimes(1);
     });
 
-    it("sends only the merchant name and the user's own category names", async () => {
+    it("sends only the merchant name, the user's own category names and the entry's currency code", async () => {
         const { fn, calls } = deferredTransport();
         const { result } = await renderHook(() =>
             useTransactionEnrichment(
                 baseArgs({
                     categoryTree: [{ children: [], name: "Groceries" }],
+                    currency: "EUR",
                     transport: fn,
                 })
             )
@@ -380,12 +381,44 @@ describe("tier 2: remote fallback", () => {
 
         expect(Object.keys(calls[0].args).sort()).toStrictEqual([
             "categoryTree",
+            "currency",
             "groundedLookup",
             "income",
             "locale",
             "name",
             "regionCode",
         ]);
+        expect(calls[0].args.currency).toBe("EUR");
+    });
+
+    it("asks again when the currency changes after the merchant resolved, withdrawing the old logo first", async () => {
+        const { fn, calls } = deferredTransport();
+        const onSuggest = jest.fn<(suggestion: EnrichmentSuggestion) => void>();
+        const { result, rerender } = await renderHook(
+            (props: { currency: string }) =>
+                useTransactionEnrichment(baseArgs({ currency: props.currency, onSuggest, transport: fn })),
+            { initialProps: { currency: "VES" } }
+        );
+
+        result.current.onNameChange(UNKNOWN);
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+        await act(async () => {
+            calls[0].settle({ categoryName: "Groceries", domain: "carrefour.com.ve", isNewCategory: false, tags: [] });
+        });
+        expect(calls).toHaveLength(1);
+
+        await act(async () => {
+            rerender({ currency: "EUR" });
+        });
+        expect(onSuggest).toHaveBeenLastCalledWith(expect.objectContaining({ domain: null, source: "remote" }));
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+
+        expect(calls).toHaveLength(2);
+        expect(calls[1].args.currency).toBe("EUR");
     });
 
     it("threads regionCode into both the fast and grounded-follow-up calls", async () => {

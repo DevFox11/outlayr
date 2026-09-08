@@ -384,19 +384,25 @@ export async function applyImport(db: Database, plan: ImportPlan): Promise<numbe
     await withTransaction(db, async () => {
         for (const entry of plan.entries) {
             // oxlint-disable-next-line no-await-in-loop -- each create reads before it inserts, and every statement shares the one connection withTransaction holds open — issuing them together interleaves those reads and writes across the transaction that makes this import all-or-nothing
-            await transactionsRepo.create(db, {
-                amount: entry.amount,
-                categoryId: entry.categoryId,
-                currency: entry.currency,
-                date: entry.date,
-                details: null,
-                exchangeRate: entry.exchangeRate,
-                exchangeRateType: entry.exchangeRateType,
-                imageColor: entry.imageColor ?? null,
-                imageUri: entry.imageUri ?? null,
-                income: entry.income,
-                note: entry.note,
-            });
+            await transactionsRepo.create(
+                db,
+                {
+                    amount: entry.amount,
+                    categoryId: entry.categoryId,
+                    currency: entry.currency,
+                    date: entry.date,
+                    details: null,
+                    exchangeRate: entry.exchangeRate,
+                    exchangeRateType: entry.exchangeRateType,
+                    imageColor: entry.imageColor ?? null,
+                    imageUri: entry.imageUri ?? null,
+                    income: entry.income,
+                    note: entry.note,
+                },
+                // Imported rows are never looked up in the background: the import
+                // said what left the device, and that was decided at import time.
+                { logoCandidate: false }
+            );
         }
     });
 

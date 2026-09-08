@@ -241,6 +241,21 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
         expect(sent).toContain("VE");
     });
 
+    test("threads the purchase currency and the descriptor hint into the prompt", async () => {
+        const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
+            sourceUrl: "https://farmatodo.com/about",
+        });
+
+        await runGroundedLookupCall(
+            { grounding, groundingTools: { web_search: fakeWebSearchTool } },
+            { ...BASE_ARGS, currency: "EUR" }
+        );
+
+        const sent = JSON.stringify(grounding.doGenerateCalls[0]?.prompt);
+        expect(sent).toContain("charged in EUR");
+        expect(sent).toContain("card-terminal or bank-statement descriptor");
+    });
+
     test("licenses a global fallback when no business operates in the region", async () => {
         const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
             sourceUrl: "https://farmatodo.com/about",

@@ -8,6 +8,7 @@ import { testDatabase } from "@/db/test-database";
 import { startOfDay } from "@/domain/dates";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 
+import { candidateLogoIds, rememberLogoCandidates, rememberLogoDismissal } from "./logo-backfill-state";
 import {
     backfillAllRecurring,
     backfillRecurring,
@@ -262,6 +263,89 @@ describe("backfillRecurring", () => {
                 exchangeRateType: "custom",
             });
         }
+    });
+
+    it("registers no occurrence of a carrier that is not itself a candidate", async () => {
+        const id = await seedSource(db, { currency: "VES", date: at(2025, 3, 15), exchangeRateType: "official" });
+
+        await backfillRecurring(db, id, NOW);
+
+        expect((await generatedRows(db, id)).length).toBeGreaterThan(0);
+        await expect(candidateLogoIds(db)).resolves.toStrictEqual(new Map());
+    });
+
+    it("registers no occurrence of a carrier a peer has edited since it was written bare", async () => {
+        const id = await seedSource(db, { currency: "VES", date: at(2025, 3, 15), exchangeRateType: "official" });
+        await rememberLogoCandidates(db, [id], 1, Number.POSITIVE_INFINITY);
+
+        await backfillRecurring(db, id, NOW);
+
+        // Neither an occurrence nor the carrier itself: a retired stamp stays retired.
+        await expect(candidateLogoIds(db)).resolves.toStrictEqual(new Map([[id, 1]]));
+    });
+
+    it("gives the occurrences a logo the backfill painted on the carrier while they were built", async () => {
+        const id = await seedSource(db, { currency: "VES", date: at(2025, 3, 15), exchangeRateType: "official" });
+        await rememberLogoCandidates(db, [id], NOW.getTime(), Number.POSITIVE_INFINITY);
+        // The paint lands after the sweep read the carrier and before it writes.
+        const painted = new Date(NOW.getTime() + 1);
+        await db
+            .update(transactions)
+            .set({ imageColor: "#123456", imageUri: "file:///photos/logo.jpg", updatedAt: painted })
+            .where(eq(transactions.id, id));
+
+        await backfillRecurring(db, id, NOW);
+
+        for (const row of await generatedRows(db, id)) {
+            expect(row).toMatchObject({ imageColor: "#123456", imageUri: "file:///photos/logo.jpg" });
+        }
+    });
+
+    it("registers no occurrence of a carrier whose logo the user cleared", async () => {
+        const id = await seedSource(db, { currency: "VES", date: at(2025, 3, 15), exchangeRateType: "official" });
+        await rememberLogoCandidates(db, [id], NOW.getTime(), Number.POSITIVE_INFINITY);
+        await rememberLogoDismissal(db, id);
+
+        await backfillRecurring(db, id, NOW);
+
+        const candidates = await candidateLogoIds(db);
+        for (const row of await generatedRows(db, id)) {
+            expect(candidates.has(row.id)).toBeFalsy();
+        }
+    });
+
+    it("registers the bare occurrences it writes as logo candidates, and not one a peer already holds", async () => {
+        const id = await seedSource(db, { currency: "VES", date: at(2025, 3, 15), exchangeRateType: "official" });
+        await rememberLogoCandidates(db, [id], NOW.getTime(), Number.POSITIVE_INFINITY);
+        // Occurrence ids derive from the source id and the day, so a second ledger
+        // walking the same source produces the same ids: the first one is planted
+        // here as if it had arrived by sync before this device walked the schedule.
+        const probe = makeDb();
+        await seedSource(probe, { currency: "VES", date: at(2025, 3, 15), exchangeRateType: "official", id });
+        await rememberLogoCandidates(probe, [id], NOW.getTime(), Number.POSITIVE_INFINITY);
+        await backfillRecurring(probe, id, NOW);
+        const [first] = await generatedRows(probe, id);
+        await db.insert(transactions).values(first);
+
+        await backfillRecurring(db, id, NOW);
+
+        const generated = await generatedRows(db, id);
+        expect(generated.length).toBeGreaterThan(1);
+        const candidates = await candidateLogoIds(db);
+        expect(candidates.has(first.id)).toBeFalsy();
+        for (const row of generated.slice(1)) {
+            expect(candidates.has(row.id)).toBe(row.icon == null && row.emoji == null && row.note.length > 0);
+        }
+    });
+
+    it("moves the source's candidate stamp with the advance", async () => {
+        const id = await seedSource(db, { currency: "VES", date: at(2025, 3, 15), exchangeRateType: "official" });
+        await rememberLogoCandidates(db, [id], NOW.getTime(), Number.POSITIVE_INFINITY);
+        const later = new Date(NOW.getTime() + 60 * 60 * 1000);
+
+        await backfillRecurring(db, id, later);
+
+        expect((await candidateLogoIds(db)).get(id)).toBe(later.getTime());
     });
 
     it("re-resolves official occurrences at each occurrence date instead of copying the carrier rate", async () => {

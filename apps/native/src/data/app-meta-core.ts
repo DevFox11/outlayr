@@ -59,6 +59,16 @@ export const META_KEYS = {
      */
     ledgerAdoption: "ledgerAdoption",
     /**
+     * The logo backfill's own bookkeeping, all device-local: the rows this
+     * device created without an identity (`logoCandidates`, id -> created at),
+     * the ones whose logo the user removed by hand (`logoDismissals`), and when
+     * each merchant may be asked again (`logoBackfillRetries`). The removal
+     * itself replicates through the row; these only record intent and pacing.
+     */
+    logoBackfillRetries: "logoBackfillRetries",
+    logoCandidates: "logoCandidates",
+    logoDismissals: "logoDismissals",
+    /**
      * Written when the first-run flow finishes. `firstLaunch` cannot stand in for
      * it: bootstrap writes that one before any screen exists, so by the time the
      * flow could run it already reads as done.

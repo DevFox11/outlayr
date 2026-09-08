@@ -9,6 +9,8 @@ import { groupByDay } from "@/domain/day-sections";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
 
+import { META_KEYS, setMeta } from "./app-meta-core";
+import { candidateLogoIds, dismissedLogoIds } from "./logo-backfill-state";
 import { setSyncEnabled } from "./sync-outbox-core";
 import {
     accountTransactionsQuery,
@@ -23,6 +25,19 @@ import { transfersRepo } from "./transfers-core";
 function makeDb(): Database {
     const sqlite = new BetterSqlite3(":memory:");
     sqlite.exec(`
+		CREATE TABLE categories (
+			id text PRIMARY KEY NOT NULL,
+			name text,
+			color text DEFAULT '#FFFFFF',
+			icon text,
+			emoji text,
+			income integer NOT NULL DEFAULT 0,
+			sortOrder integer NOT NULL DEFAULT 0,
+			dateCreated integer,
+			parentId text,
+			updatedAt integer NOT NULL,
+			deletedAt integer
+		);
 		CREATE TABLE appMeta (
 			key text PRIMARY KEY NOT NULL,
 			value text
@@ -377,6 +392,195 @@ describe("transactionsRepo.update and the replicated photo key", () => {
         });
     });
 
+    it("registers a named entry saved without an identity as a logo candidate, unless told not to", async () => {
+        const db = makeDb();
+        const bare = await transactionsRepo.create(db, DRAFT);
+        const chosen = await transactionsRepo.create(db, { ...DRAFT, emoji: "☕" });
+        const photo = await transactionsRepo.create(db, { ...DRAFT, imageUri: PHOTO });
+        const imported = await transactionsRepo.create(db, DRAFT, { logoCandidate: false });
+        // A blank merchant is saved under the category's name, which is no brand.
+        const unnamed = await transactionsRepo.create(db, { ...DRAFT, note: "  " });
+
+        const candidates = await candidateLogoIds(db);
+        expect(candidates.has(bare)).toBeTruthy();
+        expect(candidates.has(chosen)).toBeFalsy();
+        expect(candidates.has(photo)).toBeFalsy();
+        expect(candidates.has(imported)).toBeFalsy();
+        expect(candidates.has(unnamed)).toBeFalsy();
+    });
+
+    it("moves the candidate with a local edit that keeps the row bare, and makes one only for a new name", async () => {
+        const db = makeDb();
+        const id = await transactionsRepo.create(db, DRAFT);
+        const imported = await transactionsRepo.create(db, DRAFT, { logoCandidate: false });
+        const unnamed = await transactionsRepo.create(db, { ...DRAFT, note: "" });
+
+        await transactionsRepo.update(db, id, { ...DRAFT, amount: 5 });
+        await transactionsRepo.update(db, imported, { ...DRAFT, amount: 5 });
+        await transactionsRepo.update(db, unnamed, { ...DRAFT, note: "Intermarche" });
+
+        const stamps = new Map(
+            (await db.select({ id: transactions.id, updatedAt: transactions.updatedAt }).from(transactions)).map(
+                (row) => [row.id, row.updatedAt.getTime()]
+            )
+        );
+        const candidates = await candidateLogoIds(db);
+        expect(candidates.get(id)).toBe(stamps.get(id));
+        expect(candidates.has(imported)).toBeFalsy();
+        expect(candidates.get(unnamed)).toBe(stamps.get(unnamed));
+    });
+
+    it("moves the candidate when a schedule is ended or a tombstone lifted", async () => {
+        const db = makeDb();
+        const id = await transactionsRepo.create(db, DRAFT);
+        const later = new Date("2026-09-08T10:00:00Z");
+
+        await transactionsRepo.stopRecurring(db, id, later);
+        expect((await candidateLogoIds(db)).get(id)).toBe(later.getTime());
+
+        await transactionsRepo.remove(db, id, later);
+        const lifted = new Date("2026-09-08T11:00:00Z");
+        await transactionsRepo.restore(db, id, lifted);
+        expect((await candidateLogoIds(db)).get(id)).toBe(lifted.getTime());
+    });
+
+    it("keeps the candidate through a delete and a restore", async () => {
+        const db = makeDb();
+        const id = await transactionsRepo.create(db, DRAFT);
+        const deleted = new Date("2026-09-08T10:00:00Z");
+        const lifted = new Date("2026-09-08T11:00:00Z");
+
+        await transactionsRepo.remove(db, id, deleted);
+        await transactionsRepo.restore(db, id, lifted);
+
+        expect((await candidateLogoIds(db)).get(id)).toBe(lifted.getTime());
+    });
+
+    it("forgets a dismissal when the merchant changes", async () => {
+        const db = makeDb();
+        const id = await transactionsRepo.create(db, { ...DRAFT, emoji: "☕" });
+
+        await transactionsRepo.update(db, id, { ...DRAFT, emoji: null });
+        await expect(dismissedLogoIds(db)).resolves.toStrictEqual(new Set([id]));
+
+        await transactionsRepo.update(db, id, { ...DRAFT, note: "Intermarche" });
+        await expect(dismissedLogoIds(db)).resolves.toStrictEqual(new Set());
+        expect((await candidateLogoIds(db)).has(id)).toBeTruthy();
+    });
+
+    it("keeps a logo that landed while the edit was being built", async () => {
+        const db = makeDb();
+        const id = await transactionsRepo.create(db, DRAFT);
+        // A null currency resolves to the ledger's, which is what makes the
+        // edit await between its read and its write; the ledger is EUR here so
+        // the merchant details stay the same.
+        await setMeta(db, META_KEYS.currency, "EUR");
+
+        // The edit reads the row, then awaits while it is built; the backfill
+        // paints in that gap. The edit, built from a row without a logo, carries none.
+        const editing = transactionsRepo.update(db, id, { ...DRAFT, amount: 5, currency: null });
+        await Promise.resolve();
+        const painted = new Date(Date.now() + 60_000);
+        await db
+            .update(transactions)
+            .set({ imageColor: "#123456", imageUri: PHOTO, updatedAt: painted })
+            .where(eq(transactions.id, id));
+        await editing;
+
+        await expect(photoColumns(db, id)).resolves.toMatchObject({ imageUri: PHOTO });
+        // And the row's clock did not run backwards past the paint.
+        const [row] = await db.select({ updatedAt: transactions.updatedAt }).from(transactions);
+        expect(row.updatedAt.getTime()).toBeGreaterThan(painted.getTime());
+    });
+
+    it("drops a logo that landed for the old merchant when the edit renamed it", async () => {
+        const db = makeDb();
+        const id = await transactionsRepo.create(db, DRAFT);
+
+        const editing = transactionsRepo.update(db, id, { ...DRAFT, currency: null, note: "Carrefour" });
+        await Promise.resolve();
+        await db.update(transactions).set({ imageColor: "#123456", imageUri: PHOTO }).where(eq(transactions.id, id));
+        await editing;
+
+        await expect(photoColumns(db, id)).resolves.toMatchObject({ imageUri: null });
+    });
+
+    it("lets a tint chosen in the edit win over a logo that landed meanwhile", async () => {
+        const db = makeDb();
+        const id = await transactionsRepo.create(db, DRAFT);
+
+        const editing = transactionsRepo.update(db, id, { ...DRAFT, currency: null, customColor: "#abcdef" });
+        await Promise.resolve();
+        await db.update(transactions).set({ imageColor: "#123456", imageUri: PHOTO }).where(eq(transactions.id, id));
+        await editing;
+
+        await expect(photoColumns(db, id)).resolves.toMatchObject({ imageUri: null });
+    });
+
+    it("leaves the candidate where it was when the edit itself fails", async () => {
+        const db = makeDb();
+        // withTransaction runs its task bare when the client has no async
+        // transaction API, which would make this rollback assertion vacuous.
+        const sqlite = db.$client as unknown as BetterSqlite3.Database;
+        Object.assign(db.$client as object, {
+            withTransactionAsync: async (task: () => Promise<void>) => {
+                sqlite.exec("BEGIN");
+                try {
+                    await task();
+                    sqlite.exec("COMMIT");
+                } catch (error) {
+                    sqlite.exec("ROLLBACK");
+                    throw error;
+                }
+            },
+        });
+        const id = await transactionsRepo.create(db, DRAFT);
+        const before = (await candidateLogoIds(db)).get(id);
+
+        // A category the schema will not accept: the UPDATE rejects after the
+        // bookkeeping would have moved the stamp.
+        await expect(transactionsRepo.update(db, id, { ...DRAFT, amount: Number.NaN })).rejects.toThrow();
+
+        expect((await candidateLogoIds(db)).get(id)).toBe(before);
+    });
+
+    it("keeps every candidate when saves overlap", async () => {
+        const db = makeDb();
+
+        const ids = await Promise.all([
+            transactionsRepo.create(db, DRAFT),
+            transactionsRepo.create(db, { ...DRAFT, note: "Coffee" }),
+            transactionsRepo.create(db, { ...DRAFT, note: "Metro" }),
+        ]);
+
+        const candidates = await candidateLogoIds(db);
+        for (const id of ids) {
+            expect(candidates.has(id)).toBeTruthy();
+        }
+    });
+
+    it("records a removal so the logo backfill leaves the row alone", async () => {
+        const db = makeDb();
+        const id = await transactionsRepo.create(db, { ...DRAFT, imageUri: PHOTO });
+
+        await transactionsRepo.update(db, id, { ...DRAFT, imageUri: null });
+
+        await expect(dismissedLogoIds(db)).resolves.toStrictEqual(new Set([id]));
+    });
+
+    it("records clearing an emoji or a tint too, and not an ordinary edit", async () => {
+        const db = makeDb();
+        const emoji = await transactionsRepo.create(db, { ...DRAFT, emoji: "☕" });
+        const tint = await transactionsRepo.create(db, { ...DRAFT, customColor: "#123456" });
+        const plain = await transactionsRepo.create(db, DRAFT);
+
+        await transactionsRepo.update(db, emoji, { ...DRAFT, emoji: null });
+        await transactionsRepo.update(db, tint, { ...DRAFT, customColor: null });
+        await transactionsRepo.update(db, plain, { ...DRAFT, note: "Renamed" });
+
+        await expect(dismissedLogoIds(db)).resolves.toStrictEqual(new Set([emoji, tint]));
+    });
+
     it("keeps the key when the row's bytes have not reached this device", async () => {
         const db = makeDb();
         const id = await transactionsRepo.create(db, DRAFT);
@@ -440,6 +644,17 @@ describe("the reminder notice on a subscription", () => {
         const successor = rows.find((row) => row.id !== id);
         expect(successor?.deletedAt).toBeNull();
         expect(successor?.reminderLeadDays).toBe(3);
+    });
+
+    it("registers the successor it creates as a logo candidate", async () => {
+        const db = makeDb();
+        const id = await transactionsRepo.create(db, SUBSCRIPTION);
+
+        await transactionsRepo.remove(db, id, NOW);
+
+        const successor = (await notices(db)).find((row) => row.id !== id);
+        expect(successor).toBeDefined();
+        expect((await candidateLogoIds(db)).has(successor?.id ?? "")).toBeTruthy();
     });
 
     it("clears the notice when the schedule is stopped", async () => {

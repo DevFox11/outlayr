@@ -53,6 +53,8 @@ function withRemembered(suggestion: EnrichmentSuggestion, categoryId: string | n
 
 export interface UseTransactionEnrichmentArgs {
     categoryTree: readonly CategoryBranch[];
+    /** The entry's currency, sent as a locator for the merchant. */
+    currency?: string;
     enabled: boolean;
     /** The server re-checks the `groundedLookup` setting independently. */
     groundedLookup?: boolean;
@@ -182,6 +184,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         enabled,
         income,
         categoryTree,
+        currency,
         resolveLocal,
         resolveHistory,
         resolveDomain,
@@ -239,6 +242,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
      */
     const latest = useRef({
         categoryTree,
+        currency,
         enabled,
         groundedLookup,
         income,
@@ -254,6 +258,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
     useEffect(() => {
         latest.current = {
             categoryTree,
+            currency,
             enabled,
             groundedLookup,
             income,
@@ -332,6 +337,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
                 children: [...branch.children],
                 name: branch.name,
             })),
+            currency: latest.current.currency,
             groundedLookup: grounded,
             income: latest.current.income,
             locale: latest.current.locale,
@@ -341,13 +347,19 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         []
     );
 
+    /**
+     * `askedIn` is the currency the request was made with, not the one on
+     * screen: a response is filed under the locator that produced it, or a
+     * currency change mid-flight would cache the old country's answer in the
+     * new partition and the re-ask would then hit it.
+     */
     const emitDomainResult = useCallback(
-        (key: string, result: RemoteEnrichmentResult | null): boolean => {
+        (key: string, result: RemoteEnrichmentResult | null, askedIn: string | undefined): boolean => {
             if (result?.domain == null || merchantKey(nameRef.current) !== key) {
                 return false;
             }
             if (result.grounding !== true) {
-                setCachedEnrichment(key, result);
+                setCachedEnrichment(key, result, askedIn);
             }
             const fallback = curatedFallbackRef.current;
             if (fallback != null && fallback.key === key) {
@@ -388,12 +400,13 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             const id = requestIdRef.current;
             inFlightRef.current.set(key, id);
             setPending(true);
+            // The fast tier never requests grounding — see `runGroundedFollowUp`
+            // for the idle-gated retry.
+            const request = buildRequest(false);
             let result: RemoteEnrichmentResult | null = null;
             try {
                 result = await Promise.race([
-                    // The fast tier never requests grounding — see
-                    // `runGroundedFollowUp` for the idle-gated retry.
-                    call(buildRequest(false)),
+                    call(request),
                     new Promise<null>((resolve) => {
                         setTimeout(() => resolve(null), REMOTE_TIMEOUT_MS);
                     }),
@@ -417,7 +430,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             lastRemoteOutcomeRef.current = { hasDomain: result?.domain != null, key };
             setPending(false);
             if (result?.grounding !== true) {
-                setCachedEnrichment(key, result);
+                setCachedEnrichment(key, result, request.currency);
             }
             emitRemoteResult(key, result);
         },
@@ -439,17 +452,21 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             return;
         }
         const ticket = requestIdRef.current;
-        const stale = () => ticket !== requestIdRef.current || merchantKey(nameRef.current) !== key;
+        const request = buildRequest(true);
+        const stale = () =>
+            ticket !== requestIdRef.current ||
+            merchantKey(nameRef.current) !== key ||
+            latest.current.currency !== request.currency;
         let result: RemoteEnrichmentResult | null = null;
         try {
-            result = await call(buildRequest(true));
+            result = await call(request);
         } catch {
             result = null;
         }
         if (stale()) {
             return;
         }
-        if (emitDomainResult(key, result) || result?.grounding !== true) {
+        if (emitDomainResult(key, result, request.currency) || result?.grounding !== true) {
             return;
         }
         const scheduleRecheck = (delay: number, retriesLeft: number) => {
@@ -457,13 +474,14 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
                 let rechecked: RemoteEnrichmentResult | null = null;
                 try {
                     rechecked = await call({
-                        ...buildRequest(false),
+                        ...request,
+                        groundedLookup: false,
                         knowledgeOnly: true,
                     });
                 } catch {
                     rechecked = null;
                 }
-                if (stale() || emitDomainResult(key, rechecked)) {
+                if (stale() || emitDomainResult(key, rechecked, request.currency)) {
                     return;
                 }
                 if (retriesLeft > 0) {
@@ -541,8 +559,12 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             supersedeInFlight();
             return;
         }
-        const cached = getCachedEnrichment(key);
+        const cached = getCachedEnrichment(key, latest.current.currency);
         if (cached.hit) {
+            // Recorded as the fast outcome it once was, so a cached answer with
+            // no domain still earns the grounded follow-up — the search it
+            // scheduled back then may have published one since.
+            lastRemoteOutcomeRef.current = { hasDomain: cached.value?.domain != null, key };
             emitRemoteResult(key, cached.value);
             supersedeInFlight();
             return;
@@ -601,6 +623,42 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
     }, [enabled, teardown]);
 
     useEffect(() => () => teardown(), [teardown]);
+
+    /**
+     * The currency is a locator the lookup was made with, so changing it after
+     * the merchant resolved has to ask again: the same name in another
+     * currency can be another business, and a logo the form already attached
+     * would otherwise be saved with the row, where the backfill treats it as
+     * final.
+     */
+    const seenCurrencyRef = useRef(currency);
+    useEffect(() => {
+        if (seenCurrencyRef.current === currency) {
+            return;
+        }
+        seenCurrencyRef.current = currency;
+        if (!latest.current.enabled) {
+            return;
+        }
+        // Whatever is still out was asked with the old locator and must not
+        // answer for the new one, cache included; nor may the last fast answer
+        // stand in for the new currency's when the grounded timer fires.
+        supersedeInFlight();
+        lastRemoteOutcomeRef.current = null;
+        const key = merchantKey(nameRef.current);
+        if (key.length < MIN_KEY_LENGTH) {
+            return;
+        }
+        // The logo on screen was found for the old currency. Only the domain is
+        // withdrawn — the category and tags do not depend on where the purchase
+        // was — so a save before the re-ask lands stores no wrong country's
+        // brand, and the backfill can still reach the row.
+        const last = lastEmittedRef.current;
+        if (last != null && last.key === key && last.suggestion.domain != null) {
+            emit({ ...last.suggestion, domain: null });
+        }
+        onNameChange(nameRef.current);
+    }, [currency, emit, onNameChange, supersedeInFlight]);
 
     return { onNameChange, pending };
 }

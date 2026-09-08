@@ -8,6 +8,7 @@ import { parseCsv } from "@/domain/csv";
 import { resolveImportMapping } from "@/domain/import-mapping";
 import { CSV_HEADER, parseCsvAmount, parseCsvDate } from "@/domain/transaction-csv";
 
+import { candidateLogoIds } from "./logo-backfill-state";
 import { transactionsRepo } from "./transactions-core";
 import {
     applyImport,
@@ -561,6 +562,12 @@ describe("applyImport", () => {
         const written = await applyImport(db, plan);
         expect(written).toBe(2);
         await expect(db.select().from(transactions)).resolves.toHaveLength(2);
+    });
+
+    it("never hands an imported row to the background logo lookup", async () => {
+        const plan = buildImportPlan(rows, MAPPING, "yyyy-MM-dd", ".", links, income);
+        await applyImport(db, plan);
+        await expect(candidateLogoIds(db)).resolves.toStrictEqual(new Map());
     });
 
     it("buckets each row into its own day and month", async () => {

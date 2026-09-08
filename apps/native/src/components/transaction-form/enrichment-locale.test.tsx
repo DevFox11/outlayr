@@ -209,7 +209,7 @@ describe("transactionForm merchant logo wiring", () => {
         expect(mockFetchMerchantImage).toHaveBeenCalledWith(expect.objectContaining({ domain: "example.com" }));
     });
 
-    it("passes a null domain for a curated suggestion with none", async () => {
+    it("fetches nothing for a curated suggestion with no domain", async () => {
         const db = dbHolder.current as Database;
         await render(
             <Providers>
@@ -228,6 +228,6 @@ describe("transactionForm merchant logo wiring", () => {
             });
         });
 
-        expect(mockFetchMerchantImage).toHaveBeenCalledWith(expect.objectContaining({ domain: null }));
+        expect(mockFetchMerchantImage).not.toHaveBeenCalled();
     });
 });

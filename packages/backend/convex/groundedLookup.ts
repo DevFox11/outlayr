@@ -10,7 +10,9 @@ import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 import type { ActionCtx } from "./_generated/server";
 import {
+    DESCRIPTOR_LINE,
     ENRICHMENT_MODEL_ID,
+    placeLines,
     rateLimiter,
     sanitizeCategoryName,
     sanitizeDomain,
@@ -39,6 +41,7 @@ function isForbiddenLogoOrigin(domain: string): boolean {
 }
 
 export interface GroundedRunArgs {
+    currency?: string;
     income: boolean;
     key: string;
     locale?: string;
@@ -68,34 +71,25 @@ const UNPARSEABLE_GROUNDED_OUTPUT: z.infer<typeof groundedOutputSchema> = {
 const JSON_CONTRACT =
     '{"categoryName": string | null, "emoji": string | null, "tags": string[], "domain": string | null}';
 
-/**
- * `regionCode` beats a same-named business elsewhere without licensing a
- * guess: the model is told to prefer a merchant operating there, never to
- * invent one when nothing actually matches.
- */
-function regionLine(regionCode: string | undefined): string {
-    return regionCode
-        ? `The user is in region ${regionCode}. If this name matches businesses in more than one country, prefer one operating in ${regionCode} over a same-named business elsewhere. If no business operating in ${regionCode} matches, fall back to the best globally known match for this name. Do not guess a match if none fits confidently.`
-        : "";
-}
-
 /** No `categoryTree` parameter anywhere in this file — structurally, not by convention. */
 function buildGroundedPrompt(
     name: string,
     income: boolean,
     locale: string | undefined,
-    regionCode: string | undefined
+    regionCode: string | undefined,
+    currency: string | undefined
 ): string {
     const kind = income ? "income" : "expense";
     return [
         `Identify this real-world ${kind} merchant or business: "${name}".`,
+        DESCRIPTOR_LINE,
         "Use web search to confirm its primary website domain before answering.",
         `Respond with ONLY one JSON object, no markdown fence, no other text, shaped exactly as: ${JSON_CONTRACT}.`,
         `Set categoryName to exactly one of: ${CANONICAL_NAMES_LIST}; or null if none fit confidently.`,
         "Set emoji to a single emoji that suits the category, or null.",
         "Suggest at most 3 short tags, and its primary web domain only if a search result confirms it, else null.",
         locale ? `The user's locale is ${locale}.` : "",
-        regionLine(regionCode),
+        ...placeLines(regionCode, currency),
     ]
         .filter((line) => line.length > 0)
         .join(" ");
@@ -165,7 +159,7 @@ export async function runGroundedLookupCall(
         abortSignal: AbortSignal.timeout(GROUNDED_REQUEST_TIMEOUT_MS),
         maxRetries: 0,
         model: deps.grounding,
-        prompt: buildGroundedPrompt(args.name, args.income, args.locale, args.regionCode),
+        prompt: buildGroundedPrompt(args.name, args.income, args.locale, args.regionCode, args.currency),
         stopWhen: isStepCount(4),
         tools: deps.groundingTools,
     });
@@ -309,6 +303,7 @@ export async function runGroundedLookup(
 
 export const run = internalAction({
     args: {
+        currency: v.optional(v.string()),
         income: v.boolean(),
         key: v.string(),
         locale: v.optional(v.string()),

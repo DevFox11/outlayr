@@ -7,6 +7,7 @@ import { migratedSqlite, testDatabase } from "@/db/test-database";
 
 import { accountLedgerState, discardAccountLedger, replaceLocalFromAccount } from "./adoption-engine-core";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
+import { candidateLogoIds, rememberLogoCandidate } from "./logo-backfill-state";
 import { drainOutbox, runSync } from "./sync-engine-core";
 import type { PulledRow, PushFn } from "./sync-engine-core";
 import { enqueueAllForSync, setSyncEnabled } from "./sync-outbox-core";
@@ -194,6 +195,21 @@ describe("discardAccountLedger", () => {
         const survivor = server.rows.get("transactions shared");
         expect(survivor?.deletedAt).toBeNull();
         expect(survivor?.fields.note).toBe("shared");
+    });
+
+    it("moves a lifted row's logo candidate with its new clock", async () => {
+        const server = makeServer();
+        await server.push({ deviceId: "peer", rows: [serverRow("shared", 900)] });
+        await addTransaction(db, "shared", new Date(100));
+        await rememberLogoCandidate(db, "shared", 100, Number.POSITIVE_INFINITY);
+
+        await discardAccountLedger(db, server.transport);
+
+        const [row] = await db
+            .select({ updatedAt: transactions.updatedAt })
+            .from(transactions)
+            .where(eq(transactions.id, "shared"));
+        expect((await candidateLogoIds(db)).get("shared")).toBe(row.updatedAt.getTime());
     });
 
     it("tombstones only rows this device has never seen", async () => {

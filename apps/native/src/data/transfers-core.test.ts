@@ -18,6 +18,7 @@ const P2P_VES_PER_USD = 60;
 function makeDb(): Database {
     const sqlite = new BetterSqlite3(":memory:");
     sqlite.exec(`
+		CREATE TABLE appMeta (key text PRIMARY KEY NOT NULL, value text);
 		CREATE TABLE accounts (
 			id text PRIMARY KEY NOT NULL,
 			name text NOT NULL,

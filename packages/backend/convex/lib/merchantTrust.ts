@@ -2,7 +2,8 @@
 
 const DOMAIN_PATTERN = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 const MAX_DOMAIN_LENGTH = 253;
-const KEY_PATTERN = /^[a-z0-9 ]{3,64}$/;
+/** A merchant key, optionally scoped to a currency — see `knowledgeKey`. */
+const KEY_PATTERN = /^[a-z0-9 ]{3,64}(\|[a-z]{3})?$/;
 const EMOJI_PATTERN = /\p{Extended_Pictographic}/u;
 const MAX_TAGS = 3;
 const MAX_TAG_LENGTH = 24;

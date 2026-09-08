@@ -11,6 +11,13 @@ import { nextDate, nextLanding, RECURRING_TYPE } from "@/domain/recurrence";
 import { uuidV5 } from "@/domain/uuid5";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
+import {
+    isLiveLogoCandidate,
+    isLogoCandidate,
+    LOGO_CANDIDATE_KEEP_MS,
+    refreshLogoCandidate,
+    rememberLogoCandidates,
+} from "./logo-backfill-state";
 import { localRateLookup } from "./rates";
 
 type TransactionRow = typeof transactions.$inferSelect;
@@ -57,6 +64,68 @@ function occurrenceId(parentLocalId: string, holding: Date): string {
  * The day the chain is anchored to. Falling back to the row's own day is what
  * keeps a chain written before the column existed walking exactly as it did.
  */
+/** The carrier's painted logo as it is now, or null when it has none. */
+async function liveLogo(db: Database, carrierId: string) {
+    const [row] = await db
+        .select({ imageColor: transactions.imageColor, imageUri: transactions.imageUri })
+        .from(transactions)
+        .where(eq(transactions.id, carrierId));
+    return row?.imageUri == null ? null : { imageColor: row.imageColor, imageUri: row.imageUri };
+}
+
+/**
+ * Inserts occurrences of `carrierId` and tells the logo backfill about the
+ * ones this statement actually created, when the carrier is its to finish.
+ * Occurrences bypass `transactionsRepo.create`, and a subscription saved
+ * before its logo landed would otherwise have its source painted and every
+ * charge left with the tile.
+ *
+ * Candidacy is inherited, never recomputed from the copied row: a carrier the
+ * user cleared by hand (dismissed), one whose merchant was blank and filled
+ * from the category, one that arrived by sync or that a peer has edited since
+ * is not a candidate, and its occurrences must not become ones by looking
+ * bare. The carrier is read live, inside the caller's transaction.
+ *
+ * Ignored rather than overwritten: an occurrence already under this id is the
+ * same charge replicated from another device, and it may carry an edit — or a
+ * deletion, or a logo its owner removed — this device has no business undoing.
+ * Only the ids the insert returns are registered, for that last reason.
+ */
+export async function insertOccurrences(
+    db: Database,
+    carrierId: string,
+    rows: readonly TransactionInsert[],
+    now: Date
+): Promise<void> {
+    if (rows.length === 0) {
+        return;
+    }
+    // Read live, before anything here moves the carrier: a peer's edit that
+    // reached it by sync retired it, and must retire its charges too. A logo
+    // the backfill painted on the carrier while these rows were being built
+    // is the one change that is this device's own, and the rows take it.
+    const inherit = await isLiveLogoCandidate(db, carrierId);
+    const live = await liveLogo(db, carrierId);
+    const written = rows.map((row) =>
+        live !== null && isLogoCandidate(row) ? { ...row, imageColor: live.imageColor, imageUri: live.imageUri } : row
+    );
+    const inserted = await db
+        .insert(transactions)
+        .values(written)
+        .onConflictDoNothing()
+        .returning({ id: transactions.id });
+    if (!inherit) {
+        return;
+    }
+    const created = new Set(inserted.map((row) => row.id));
+    const ids = rows.filter((row) => created.has(row.id) && isLogoCandidate(row)).map((row) => row.id);
+    if (ids.length > 0) {
+        // Every occurrence is written with `updatedAt: now`, which is the stamp
+        // the backfill matches the row against.
+        await rememberLogoCandidates(db, ids, now.getTime(), LOGO_CANDIDATE_KEEP_MS);
+    }
+}
+
 function anchorDayOf(source: TransactionRow): number {
     return source.recurringAnchorDay ?? source.date.getDate();
 }
@@ -179,12 +248,8 @@ export async function backfillRecurring(db: Database, id: string, now: Date = ne
     // still flagged recurring, so the next launch walks the same schedule again
     // and writes every occurrence a second time.
     await withTransaction(db, async () => {
-        if (canonicalized.length > 0) {
-            // Ignored rather than overwritten: an occurrence already under this id is
-            // the same charge replicated from another device, and it may carry an
-            // edit — or a deletion — this device has no business undoing.
-            await db.insert(transactions).values(canonicalized).onConflictDoNothing();
-        }
+        await insertOccurrences(db, source.id, canonicalized, now);
+        await refreshLogoCandidate(db, source.id, now.getTime());
         await db
             .update(transactions)
             .set({
@@ -310,7 +375,7 @@ export async function repairOrphanedRecurrence(db: Database, now: Date = new Dat
         const successor = await scheduleSuccessor(db, carrier, now);
         await withTransaction(db, async () => {
             if (successor != null) {
-                await db.insert(transactions).values(successor).onConflictDoNothing();
+                await insertOccurrences(db, carrier.id, [successor], now);
             }
             await db
                 .update(transactions)

@@ -8,6 +8,7 @@ import { canonicalUsd } from "@/domain/canonical-usd";
 import type { CanonicalUsd } from "@/domain/canonical-usd";
 import { firstOfMonth, startOfDay } from "@/domain/dates";
 import { newId } from "@/domain/ids";
+import { merchantKey } from "@/domain/merchant-resolver";
 import { DEFAULT_CURRENCY } from "@/domain/money";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 import { normalizeLead } from "@/domain/subscription-reminder";
@@ -17,8 +18,16 @@ import { getMeta, META_KEYS } from "./app-meta-core";
 import type { SpendDb } from "./budget-spent";
 import { getCategoryById } from "./categories-core";
 import { ERASED_DATE } from "./erase-core";
+import {
+    forgetLogoDismissal,
+    isLogoCandidate,
+    LOGO_CANDIDATE_KEEP_MS,
+    refreshLogoCandidate,
+    rememberLogoCandidate,
+    rememberLogoDismissal,
+} from "./logo-backfill-state";
 import { localRateLookup } from "./rates";
-import { scheduleSuccessor } from "./recurrence-backfill";
+import { insertOccurrences, scheduleSuccessor } from "./recurrence-backfill";
 
 export const LOG_PAGE_DAYS = 30;
 
@@ -301,6 +310,21 @@ function removesPhoto(previous: Transaction | null, next: typeof transactions.$i
 }
 
 /**
+ * Whether this edit takes every identity off a row that had one — a glyph,
+ * an emoji, a tint or a photo. The logo backfill has to hear about it, or a
+ * row saved bare and later given an emoji, then cleared, would be painted
+ * over the user's decision on the next launch. `removesPhoto` is narrower on
+ * purpose: only a photo has a replicated key to release.
+ */
+function clearsIdentity(previous: Transaction | null, next: typeof transactions.$inferInsert): boolean {
+    const had =
+        previous != null &&
+        (previous.imageUri != null || previous.icon != null || previous.emoji != null || previous.customColor != null);
+    const has = next.imageUri != null || next.icon != null || next.emoji != null || next.customColor != null;
+    return had && !has;
+}
+
+/**
  * The notice an edit that never mentioned it must keep. A form builds its input
  * from the fields it paints, so a screen with no lead picker sends the key absent
  * — and writing `toRow`'s null there would turn a 3-day notice off the next time
@@ -344,11 +368,33 @@ export function accountTransactionsQuery(db: SpendDb, accountId: string) {
         .orderBy(desc(transactions.date));
 }
 
+export interface CreateOptions {
+    /**
+     * Whether a named entry saved with its category tile becomes the logo
+     * backfill's to finish — see `logo-backfill-core.ts`. On by default. The
+     * CSV import passes false: its rows are history the user was told stayed
+     * on the device, its review already attached every logo the cache held,
+     * and one candidate write per row would make a large import quadratic.
+     */
+    logoCandidate?: boolean;
+}
+
 export const transactionsRepo = {
-    async create(db: Database, input: TransactionInput): Promise<string> {
+    async create(db: Database, input: TransactionInput, options: CreateOptions = {}): Promise<string> {
         const id = newId();
         const row = await toRow(db, id, input);
         await db.insert(transactions).values(row);
+        // Bookkeeping, so it cannot fail the save: the row is already in, and a
+        // caller told otherwise would retry and write it twice. Judged on the
+        // merchant the caller gave, not on `row.note`: a blank merchant is filled
+        // with the category's name above, and "Rent" is not a brand to look up.
+        if (options.logoCandidate !== false && isLogoCandidate({ ...row, note: input.note })) {
+            try {
+                await rememberLogoCandidate(db, id, row.updatedAt.getTime(), LOGO_CANDIDATE_KEEP_MS);
+            } catch (error) {
+                console.warn("[outlayr] logo candidate not recorded", error);
+            }
+        }
         return id;
     },
 
@@ -369,8 +415,11 @@ export const transactionsRepo = {
             if (successor != null) {
                 // The successor's id is derived from its schedule, so a peer that
                 // already anchored the same one holds the row this would duplicate.
-                await db.insert(transactions).values(successor).onConflictDoNothing();
+                await insertOccurrences(db, id, [successor], now);
             }
+            // The tombstone moves `updatedAt`; the candidate follows so that a
+            // restore can move it again.
+            await refreshLogoCandidate(db, id, now.getTime());
             await db
                 .update(transactions)
                 .set({
@@ -412,10 +461,14 @@ export const transactionsRepo = {
      * today, so lifting one alone would strand a charge with no owner.
      */
     async restore(db: Database, id: string, now: Date = new Date()): Promise<void> {
-        await db
-            .update(transactions)
-            .set({ deletedAt: null, updatedAt: now })
-            .where(and(eq(transactions.id, id), isNotNull(transactions.deletedAt), isNull(transactions.transferId)));
+        await withTransaction(db, async () => {
+            const previous = getTransactionById(db, id);
+            if (previous == null || previous.deletedAt == null || previous.transferId != null) {
+                return;
+            }
+            await refreshLogoCandidate(db, id, now.getTime());
+            await db.update(transactions).set({ deletedAt: null, updatedAt: now }).where(eq(transactions.id, id));
+        });
     },
 
     /**
@@ -429,14 +482,21 @@ export const transactionsRepo = {
      * `repairOrphanedRecurrence` has left to read a broken chain back from.
      */
     async stopRecurring(db: Database, id: string, now: Date = new Date()): Promise<void> {
-        await db
-            .update(transactions)
-            .set({
-                recurringType: RECURRING_TYPE.none,
-                reminderLeadDays: null,
-                updatedAt: now,
-            })
-            .where(and(eq(transactions.id, id), isNull(transactions.deletedAt)));
+        await withTransaction(db, async () => {
+            const previous = getTransactionById(db, id);
+            if (previous == null || previous.deletedAt != null) {
+                return;
+            }
+            await refreshLogoCandidate(db, id, now.getTime());
+            await db
+                .update(transactions)
+                .set({
+                    recurringType: RECURRING_TYPE.none,
+                    reminderLeadDays: null,
+                    updatedAt: now,
+                })
+                .where(eq(transactions.id, id));
+        });
     },
 
     async update(db: Database, id: string, input: TransactionInput): Promise<void> {
@@ -444,18 +504,81 @@ export const transactionsRepo = {
         const row = await toRow(db, id, input);
         const { id: _omit, ...rest } = row;
         const kept = keptCanonical(row, previous, input);
-        await db
-            .update(transactions)
-            .set({
-                ...rest,
-                ...kept,
-                accountId: keptAccount(previous, input),
-                imageKey: removesPhoto(previous, row) ? null : rest.imageKey,
-                reminderLeadDays: keptLead(row, previous, input),
-            })
-            .where(eq(transactions.id, id));
+        // One transaction for the bookkeeping and the row: a stamp moved for
+        // an UPDATE that then failed would never match the row again.
+        await withTransaction(db, async () => {
+            // A removal is the user's call on this row, and the logo backfill has
+            // to be told or it puts an image back on the next launch. Recorded
+            // BEFORE the row goes bare: the painter reads the dismissal list in its
+            // own UPDATE, so once this is in there is no moment it could slip
+            // through.
+            if (clearsIdentity(previous, row)) {
+                await rememberLogoDismissal(db, id);
+            }
+            // An edit made here that leaves the row bare keeps it the backfill's:
+            // an existing candidate follows the new `updatedAt`, which a peer's edit
+            // arriving by sync would not. A row that was never a candidate becomes
+            // one only when this edit gives it a merchant name it did not have — a
+            // name the user typed here is exactly what the setting discloses — so
+            // an imported row edited for its amount stays out, and a cleared
+            // identity is a dismissal above, never a candidate. Before the write,
+            // since the refresh matches the stamp against the row as it is now.
+            if (previous != null && isLogoCandidate({ ...row, note: input.note }) && !clearsIdentity(previous, row)) {
+                if (merchantKey(previous.note) === merchantKey(row.note ?? "")) {
+                    await refreshLogoCandidate(db, id, row.updatedAt.getTime());
+                } else {
+                    // A refusal recorded for the old merchant does not cover the new one.
+                    await forgetLogoDismissal(db, id);
+                    await rememberLogoCandidate(db, id, row.updatedAt.getTime(), LOGO_CANDIDATE_KEEP_MS);
+                }
+            }
+            // The logo backfill may have painted the row while `toRow` was awaiting.
+            // An edit that neither had nor chose an identity carries the form's
+            // stale nulls; writing them would orphan a file that landed in between.
+            // Read synchronously, right before the write, so nothing fits between.
+            const landed = landedLogo(previous, getTransactionById(db, id), row);
+            await db
+                .update(transactions)
+                .set({
+                    ...rest,
+                    ...kept,
+                    ...landed,
+                    accountId: keptAccount(previous, input),
+                    imageKey: removesPhoto(previous, row) ? null : rest.imageKey,
+                    reminderLeadDays: keptLead(row, previous, input),
+                })
+                .where(eq(transactions.id, id));
+        });
     },
 };
+
+/**
+ * The identity a backfill gave the row between the edit's read and its write,
+ * when the edit itself carries none — see the call site. Empty otherwise.
+ */
+function landedLogo(
+    previous: Transaction | null,
+    live: Transaction | null,
+    next: typeof transactions.$inferInsert
+): Partial<Pick<typeof transactions.$inferInsert, "imageColor" | "imageUri" | "updatedAt">> {
+    const editHasNone = next.imageUri == null && next.icon == null && next.emoji == null && next.customColor == null;
+    if (!editHasNone || previous == null || previous.imageUri != null || live?.imageUri == null) {
+        return {};
+    }
+    // The logo was resolved for the merchant and currency as they were; an
+    // edit that changed either is saving a different merchant, and the
+    // backfill will look that one up rather than keep the wrong brand.
+    const sameMerchant =
+        merchantKey(previous.note) === merchantKey(next.note ?? "") && previous.currency === next.currency;
+    if (!sameMerchant) {
+        return {};
+    }
+    // The edit's own clock was taken before the paint landed; the row's clock
+    // must not run backwards or the sync's last-writer check would drop the
+    // edit as older than the logo it keeps.
+    const updatedAt = new Date(Math.max(next.updatedAt.getTime(), live.updatedAt.getTime() + 1));
+    return { imageColor: live.imageColor, imageUri: live.imageUri, updatedAt };
+}
 
 /**
  * Synchronous on purpose: the expo-sqlite driver executes on the JS thread

@@ -7,6 +7,7 @@ import { applyPendingWrites } from "@/data/pending-writes-core";
 import { pullRatesIfDue } from "@/data/rates";
 import type { Database } from "@/db/client";
 import { ratesPuller } from "@/lib/convex";
+import { armLogoBackfill, backfillLogos } from "@/lib/logo-backfill";
 import { publishWidgets } from "@/widgets/publish";
 
 import { indexSpotlight } from "./spotlight";
@@ -26,6 +27,7 @@ export function useSystemSync(db: Database | null): void {
         if (db == null) {
             return;
         }
+        armLogoBackfill(db);
 
         const publish = debounce(PUBLISH_DEBOUNCE_MS, () => {
             publishWidgets(db);
@@ -36,6 +38,8 @@ export function useSystemSync(db: Database | null): void {
 
         // Applying the queue writes rows, which trips the change listener below and
         // publishes on its own — so this deliberately does not publish itself.
+        // The logo pass runs after the drain so a Wallet purchase that just landed
+        // is in the set it reads.
         const catchUp = () => {
             drainQueue(db)
                 .then((applied) => {
@@ -46,6 +50,10 @@ export function useSystemSync(db: Database | null): void {
                 .catch((error) => {
                     console.warn("[outlayr] pending writes failed to apply", error);
                     publish.schedule();
+                })
+                .then(() => backfillLogos(db))
+                .catch((error) => {
+                    console.warn("[outlayr] logo backfill failed", error);
                 });
         };
 

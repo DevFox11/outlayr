@@ -9,6 +9,7 @@ import { canonicalUsd } from "@/domain/canonical-usd";
 import { newId } from "@/domain/ids";
 
 import { getMetaSync, META_KEYS, setMeta } from "./app-meta-core";
+import { refreshLogoCandidates } from "./logo-backfill-state";
 import { localRateLookup } from "./rates";
 import { tombstoneTransfersTouchingAccount } from "./transfers-core";
 
@@ -141,6 +142,19 @@ export const accountsRepo = {
                 .update(accounts)
                 .set({ deletedAt: now, updatedAt: now })
                 .where(and(eq(accounts.id, id), isNull(accounts.deletedAt)));
+            // Detaching moves `updatedAt` on rows that stay live and bare; a logo
+            // candidate among them has to follow or the backfill reads it as a
+            // peer's edit and never paints it. Before the write, since only a
+            // stamp that matches the row as it is now is moved.
+            const attached = await db
+                .select({ id: transactions.id })
+                .from(transactions)
+                .where(eq(transactions.accountId, id));
+            await refreshLogoCandidates(
+                db,
+                attached.map((row) => row.id),
+                now.getTime()
+            );
             await db
                 .update(transactions)
                 .set({ accountId: null, updatedAt: now })

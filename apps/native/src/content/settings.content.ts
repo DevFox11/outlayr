@@ -448,8 +448,8 @@ const settings = {
             es: "Sugerir categoría y etiquetas",
         }),
         "settings.featureLab.aiEnrichmentNote": t({
-            en: "Well-known services are recognised on this device, with nothing sent anywhere. For anything else, only the name you typed and your own category names leave the device — never amounts, dates or accounts.",
-            es: "Los servicios conocidos se reconocen en este dispositivo, sin enviar nada. En los demás casos solo salen del dispositivo el nombre que escribiste y los nombres de tus categorías, nunca importes, fechas ni cuentas.",
+            en: "Well-known services are recognised on this device, and only their web address goes to a logo service to fetch the logo. For anything else, only the merchant name of an entry (typed, spoken, scanned or logged from Wallet), whether it is an expense or income, its currency code, your language and device region, and your own category names leave the device — never amounts, dates or accounts — and the web address that comes back goes to the same logo service. A recent entry saved without a logo is looked up again in the background.",
+            es: "Los servicios conocidos se reconocen en este dispositivo, y solo su dirección web va a un servicio de logos para traer el logo. En los demás casos solo salen del dispositivo el nombre del comercio de una entrada (escrito, dictado, escaneado o registrado desde Wallet), si es gasto o ingreso, su código de moneda, tu idioma y la región del dispositivo, y los nombres de tus categorías, nunca importes, fechas ni cuentas, y la dirección web que vuelve va al mismo servicio de logos. Una entrada reciente guardada sin logo se vuelve a buscar en segundo plano.",
         }),
         "settings.featureLab.aiSection": t({
             en: "Smart fill",
@@ -484,8 +484,8 @@ const settings = {
             es: "Buscar comercios nuevos",
         }),
         "settings.featureLab.groundedLookupNote": t({
-            en: "For a merchant nobody has seen before, the name alone may be searched on the web to learn its category — never on the transaction you're entering, and never with any amount, date or account. Off keeps every lookup on this device and the ones already known.",
-            es: "Para un comercio que nadie ha visto antes, solo el nombre puede buscarse en la web para conocer su categoría — nunca en la transacción que estás ingresando, y nunca con ningún importe, fecha o cuenta. Desactivado mantiene cada búsqueda en este dispositivo y en los comercios ya conocidos.",
+            en: "For a merchant nobody has seen before, the name, whether it is an expense or income, the entry's currency code and your language and device region may be searched on the web to learn its category — never on the transaction you're entering, and never with any amount, date or account. Off keeps every lookup on this device and the ones already known.",
+            es: "Para un comercio que nadie ha visto antes, el nombre, si es gasto o ingreso, el código de moneda de la entrada y tu idioma y región del dispositivo pueden buscarse en la web para conocer su categoría — nunca en la transacción que estás ingresando, y nunca con ningún importe, fecha o cuenta. Desactivado mantiene cada búsqueda en este dispositivo y en los comercios ya conocidos.",
         }),
         "settings.featureLab.lineGraph": t({
             en: "Show Line Graph",

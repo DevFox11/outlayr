@@ -14,6 +14,7 @@ import {
     rateLimiter,
     runSuggest,
     sanitizeDomain,
+    sanitizeCurrencyCode,
     sanitizeRegionCode,
     suggestArgs,
 } from "./enrichment";
@@ -70,11 +71,21 @@ const BASE_ARGS = {
 };
 
 describe("suggest args validation", () => {
-    test("carries exactly the seven privacy-boundary fields", () => {
+    test("carries exactly the eight privacy-boundary fields", () => {
         // Amounts, dates, accounts, balances, and identity must never leave the
         // device — this is a threat-matrix assertion, not a shape convenience.
+        // `currency` is a code, never a figure.
         expect(Object.keys(suggestArgs).sort()).toStrictEqual(
-            ["categoryTree", "groundedLookup", "income", "knowledgeOnly", "locale", "name", "regionCode"].sort()
+            [
+                "categoryTree",
+                "currency",
+                "groundedLookup",
+                "income",
+                "knowledgeOnly",
+                "locale",
+                "name",
+                "regionCode",
+            ].sort()
         );
     });
 });
@@ -186,6 +197,42 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
             })
         );
     }
+
+    test("a currency-scoped request reads its own partition, never the bare one", async () => {
+        vi.stubEnv("XAI_API_KEY", "");
+        const t = convexTest(schema, modules);
+        const identity = await seedAuthUser(t);
+        await seedKnowledge(t, "Sushi Way");
+
+        await expect(
+            authenticatedAs(t, identity).action(api.enrichment.suggest, {
+                ...BASE_ARGS,
+                currency: "EUR",
+                name: "Sushi Way",
+            })
+        ).resolves.toStrictEqual(EMPTY);
+
+        await t.run((ctx) =>
+            ctx.db.insert("merchantKnowledge", {
+                categoryName: "Dining Out",
+                domain: "sushiway.fr",
+                emoji: null,
+                key: `${merchantKey("Sushi Way")}|eur`,
+                modelId: "test-model",
+                parentCategoryName: null,
+                resolvedAt: Date.now(),
+                tags: [],
+            })
+        );
+
+        await expect(
+            authenticatedAs(t, identity).action(api.enrichment.suggest, {
+                ...BASE_ARGS,
+                currency: "EUR",
+                name: "Sushi Way",
+            })
+        ).resolves.toMatchObject({ domain: "sushiway.fr" });
+    });
 
     test("a cache hit serves category, tags and domain without consuming either rate-limit bucket", async () => {
         const t = convexTest(schema, modules);
@@ -456,6 +503,7 @@ describe("runSuggest sanitisation", () => {
         const model = mockModel({
             categoryName: "  Streaming  ",
             domain: "  netflix.com  ",
+            domainConfidence: "high",
             isNewCategory: true,
             tags: ["  Music  ", "Streaming"],
         });
@@ -487,6 +535,49 @@ describe("runSuggest sanitisation", () => {
         expect(result.tags).toStrictEqual(["a".repeat(24), "second", "third"]);
     });
 
+    test("drops a domain the model itself rates low, so the grounded tier is asked instead", async () => {
+        const model = mockModel({
+            categoryName: "Dining Out",
+            domain: "sushiway.com",
+            domainConfidence: "low",
+            isNewCategory: false,
+            tags: [],
+        });
+
+        await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toMatchObject({
+            categoryName: "Dining Out",
+            domain: null,
+        });
+    });
+
+    test("drops a domain the model did not rate at all", async () => {
+        const model = mockModel({
+            categoryName: "Groceries",
+            domain: "intermarche.com",
+            isNewCategory: false,
+            tags: [],
+        });
+
+        await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toMatchObject({
+            categoryName: "Groceries",
+            domain: null,
+        });
+    });
+
+    test("keeps a domain rated medium", async () => {
+        const model = mockModel({
+            categoryName: "Groceries",
+            domain: "intermarche.com",
+            domainConfidence: "medium",
+            isNewCategory: false,
+            tags: [],
+        });
+
+        await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toMatchObject({
+            domain: "intermarche.com",
+        });
+    });
+
     test("rejects a domain that is not a bare host.tld shape", async () => {
         const model = mockModel({
             categoryName: null,
@@ -502,6 +593,7 @@ describe("runSuggest sanitisation", () => {
         const model = mockModel({
             categoryName: null,
             domain: "NETFLIX.COM",
+            domainConfidence: "high",
             isNewCategory: false,
             tags: [],
         });
@@ -717,6 +809,36 @@ describe("runSuggest regionCode", () => {
         expect(sent).toContain("fall back to the best globally known match");
     });
 
+    test("threads the purchase currency into the prompt", async () => {
+        const model = mockModel({
+            categoryName: null,
+            domain: null,
+            isNewCategory: false,
+            tags: [],
+        });
+
+        await runSuggest(model, { ...BASE_ARGS, categoryTree: [], currency: "EUR" });
+
+        const sent = JSON.stringify(model.doGenerateCalls[0]?.prompt);
+        expect(sent).toContain("charged in EUR");
+    });
+
+    test("asks for a best-guess domain and a confidence, and says what the name looks like", async () => {
+        const model = mockModel({
+            categoryName: null,
+            domain: null,
+            isNewCategory: false,
+            tags: [],
+        });
+
+        await runSuggest(model, { ...BASE_ARGS, categoryTree: [] });
+
+        const sent = JSON.stringify(model.doGenerateCalls[0]?.prompt);
+        expect(sent).toContain("domainConfidence");
+        expect(sent).toContain("card-terminal or bank-statement descriptor");
+        expect(sent).not.toContain("only if you are confident");
+    });
+
     test("omits any region line from the prompt when regionCode is absent", async () => {
         const model = mockModel({
             categoryName: null,
@@ -751,6 +873,20 @@ describe(sanitizeDomain, () => {
 
     test("case-folds before stripping, so WWW.NETFLIX.COM also loses its prefix", () => {
         expect(sanitizeDomain("WWW.NETFLIX.COM")).toBe("netflix.com");
+    });
+});
+
+describe(sanitizeCurrencyCode, () => {
+    test("uppercases a valid lowercase code", () => {
+        expect(sanitizeCurrencyCode("eur")).toBe("EUR");
+    });
+
+    test("rejects anything that is not a currency the app can pick", () => {
+        expect(sanitizeCurrencyCode("EURO")).toBeUndefined();
+        expect(sanitizeCurrencyCode("E1R")).toBeUndefined();
+        expect(sanitizeCurrencyCode("AAA")).toBeUndefined();
+        expect(sanitizeCurrencyCode("")).toBeUndefined();
+        expect(sanitizeCurrencyCode(undefined)).toBeUndefined();
     });
 });
 

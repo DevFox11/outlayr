@@ -9,7 +9,8 @@ import { components, internal } from "./_generated/api";
 import { action, internalQuery } from "./_generated/server";
 import type { ActionCtx } from "./_generated/server";
 import { optionalUserId } from "./lib/auth";
-import { merchantKey } from "./lib/merchantKey";
+import { PICKABLE_CURRENCY_CODES } from "./lib/currencies";
+import { knowledgeKey } from "./lib/merchantKey";
 
 /**
  * `grok-4-fast-non-reasoning` and `grok-3-mini` — the original design's pick
@@ -45,6 +46,13 @@ const PICTOGRAPHIC = /\p{Extended_Pictographic}/u;
  */
 export const suggestArgs = {
     categoryTree: v.array(v.object({ children: v.array(v.string()), name: v.string() })),
+    /**
+     * The ISO 4217 code the purchase was charged in — a code, never an amount.
+     * It is the one signal that survives travel: a device set to VE buying in
+     * EUR is in Europe, and `regionCode` alone would point the model the wrong
+     * way. Sanitized before use (`sanitizeCurrencyCode`).
+     */
+    currency: v.optional(v.string()),
     /**
      * One side of the dual-authority consent gate. A forged `true` alone
      * cannot enable a grounded lookup — the synced `appMeta` row must also
@@ -101,10 +109,23 @@ export const EMPTY: Suggestion = {
     tags: [],
 };
 
+const DOMAIN_CONFIDENCE = ["high", "medium", "low"] as const;
+
+function domainAccepted(confidence: (typeof DOMAIN_CONFIDENCE)[number] | null | undefined): boolean {
+    return confidence === "high" || confidence === "medium";
+}
+
 /** The model's own output is untrusted input — this is only the JSON shape. */
 const modelOutputSchema = z.object({
     categoryName: z.string().nullable(),
     domain: z.string().nullable(),
+    /**
+     * Asked for alongside the domain so the prompt can demand a best guess
+     * without the guess reaching the logo fetcher: only `high` or `medium`
+     * keeps the domain in `runSuggest`. Nullish so a model that omits it still
+     * answers the category — the domain alone is what it forfeits.
+     */
+    domainConfidence: z.enum(DOMAIN_CONFIDENCE).nullish(),
     emoji: z.string().nullish(),
     isNewCategory: z.boolean(),
     // Nullish rather than nullable: a model that simply omits one of these has
@@ -216,6 +237,22 @@ export function sanitizeRegionCode(region: string | undefined): string | undefin
     return REGION_CODE_PATTERN.test(trimmed) ? trimmed : undefined;
 }
 
+const KNOWN_CURRENCIES: ReadonlySet<string> = new Set(PICKABLE_CURRENCY_CODES);
+
+/**
+ * A currency the app can actually pick, not merely three letters. Client-
+ * submitted, and it partitions the shared knowledge cache and the per-key
+ * grounded gate, so an arbitrary string here would be a fresh partition and
+ * a fresh search allowance each time.
+ */
+export function sanitizeCurrencyCode(currency: string | undefined): string | undefined {
+    if (currency === undefined) {
+        return;
+    }
+    const trimmed = currency.trim().toUpperCase();
+    return KNOWN_CURRENCIES.has(trimmed) ? trimmed : undefined;
+}
+
 function describeTree(tree: readonly CategoryBranch[]): string {
     if (tree.length === 0) {
         return "none";
@@ -228,14 +265,35 @@ function describeTree(tree: readonly CategoryBranch[]): string {
 }
 
 /**
- * `regionCode` beats a same-named business elsewhere without licensing a
- * guess: the model is told to prefer a merchant operating there, never to
- * invent one when nothing actually matches.
+ * What a merchant name actually looks like when it arrives. A Wallet
+ * automation and a bank statement both hand over the card-terminal descriptor,
+ * and "Sushi Way Les Ha" is a truncated "Sushi Way Les Halles", not a business
+ * the model has never heard of.
  */
-function regionLine(regionCode: string | undefined): string {
-    return regionCode
-        ? `The user is in region ${regionCode}. If this name matches businesses in more than one country, prefer one operating in ${regionCode} over a same-named business elsewhere. If no business operating in ${regionCode} matches, fall back to the best globally known match for this name. Do not guess a match if none fits confidently.`
-        : "";
+export const DESCRIPTOR_LINE =
+    "The name is usually a card-terminal or bank-statement descriptor: it may be truncated, abbreviated, uppercase, or carry a city, country or store number.";
+
+/**
+ * Measured against the live model: "only if you are confident" answered null
+ * for Intermarché, Stradivarius and Île-de-France Mobilités, whose logos the
+ * image tiers had all along. Asking for the best guess plus a confidence and
+ * dropping only `low` resolved every one of those, while a person's name or a
+ * private note still comes back null.
+ */
+export const DOMAIN_LINE =
+    "Set domain to the primary web domain of the brand you recognise (a chain, retailer, restaurant group, transit operator, utility, service or app): the apex domain of its main site, never a subdomain. Set domainConfidence to high when you recognise the brand, medium when it is a plausible match, low when you are guessing. Set domain to null only when the name does not identify any specific business you know of (a person, a private note, an unknown local shop).";
+
+/**
+ * Where the purchase happened outranks where the device is registered. The
+ * device region only breaks ties between same-named businesses.
+ */
+export function placeLines(regionCode: string | undefined, currency: string | undefined): string[] {
+    return [
+        currency ? `The purchase was charged in ${currency}, which indicates where the merchant operates.` : "",
+        regionCode
+            ? `The user's device region is ${regionCode}, but they may be travelling. If this name matches businesses in more than one country, prefer one operating in ${regionCode} unless the currency says otherwise; if no business operating in ${regionCode} matches, fall back to the best globally known match for this name.`
+            : "",
+    ];
 }
 
 function buildPrompt(
@@ -243,18 +301,21 @@ function buildPrompt(
     income: boolean,
     locale: string | undefined,
     regionCode: string | undefined,
+    currency: string | undefined,
     tree: readonly CategoryBranch[]
 ): string {
     const kind = income ? "income" : "expense";
     return [
         `Classify this ${kind} transaction merchant name: "${name}".`,
+        DESCRIPTOR_LINE,
         `The user's categories, with any nested under them, are: ${describeTree(tree)}.`,
         "Reuse one of those names verbatim when it fits, and set parentCategoryName to null.",
         "Otherwise suggest a short new category name. If it clearly belongs beneath one of the user's existing top-level categories, set parentCategoryName to that name exactly; if it stands on its own, set parentCategoryName to null.",
         "Set emoji to a single emoji that suits the category, or null.",
-        "Suggest at most 3 short tags, and the merchant's primary web domain only if you are confident of it (otherwise null).",
+        "Suggest at most 3 short tags.",
+        DOMAIN_LINE,
         locale ? `The user's locale is ${locale}.` : "",
-        regionLine(regionCode),
+        ...placeLines(regionCode, currency),
     ]
         .filter((line) => line.length > 0)
         .join(" ");
@@ -262,6 +323,7 @@ function buildPrompt(
 
 export interface RunSuggestArgs {
     categoryTree: readonly CategoryBranch[];
+    currency?: string;
     income: boolean;
     locale?: string;
     name: string;
@@ -342,7 +404,7 @@ export async function runSuggest(model: LanguageModel, args: RunSuggestArgs): Pr
         maxRetries: 0,
         model,
         output: Output.object({ schema: modelOutputSchema }),
-        prompt: buildPrompt(args.name, args.income, args.locale, args.regionCode, tree),
+        prompt: buildPrompt(args.name, args.income, args.locale, args.regionCode, args.currency, tree),
     });
 
     return {
@@ -350,7 +412,9 @@ export async function runSuggest(model: LanguageModel, args: RunSuggestArgs): Pr
         // it has no reason to be authoritative about the user's own local data.
         ...applyToTree(args.categoryTree, {
             categoryName: sanitizeCategoryName(output.categoryName),
-            domain: sanitizeDomain(output.domain),
+            // A guess is a wrong brand's logo on the row, and an unrated domain
+            // is a guess too; only a null here lets the grounded tier take over.
+            domain: domainAccepted(output.domainConfidence) ? sanitizeDomain(output.domain) : null,
             emoji: sanitizeEmoji(output.emoji ?? null),
             parentCategoryName: sanitizeCategoryName(output.parentCategoryName ?? null),
             tags: sanitizeTags(output.tags),
@@ -390,6 +454,7 @@ export const groundedConsent = internalQuery({
 });
 
 export interface GroundedScheduleArgs {
+    currency?: string;
     groundedLookup: boolean;
     income: boolean;
     locale?: string;
@@ -441,8 +506,9 @@ export async function maybeScheduleGrounded(
         return false;
     }
     await ctx.scheduler.runAfter(0, internal.groundedLookup.run, {
+        currency: args.currency,
         income: args.income,
-        key: merchantKey(args.name),
+        key: knowledgeKey(args.name, args.currency),
         locale: args.locale,
         name: args.name,
         regionCode: args.regionCode,
@@ -469,12 +535,13 @@ export const suggest = action({
         }
 
         const regionCode = sanitizeRegionCode(args.regionCode);
+        const currency = sanitizeCurrencyCode(args.currency);
 
         // Tier 1.5: an indexed read that costs nothing and consumes neither rate
         // limit bucket below — checked before `XAI_API_KEY` so a hit still works
         // even when that key is unset (design's degradation matrix).
         const cached = await ctx.runQuery(internal.merchantKnowledge.lookup, {
-            key: merchantKey(trimmedName),
+            key: knowledgeKey(trimmedName, currency),
         });
         if (cached !== null) {
             return {
@@ -509,6 +576,7 @@ export const suggest = action({
             const modelId = process.env.XAI_MODEL_ID || ENRICHMENT_MODEL_ID;
             const result = await runSuggest(xaiProvider(modelId), {
                 categoryTree: args.categoryTree,
+                currency,
                 income: args.income,
                 locale: args.locale,
                 name: trimmedName,
@@ -523,6 +591,7 @@ export const suggest = action({
             // of this merchant, never this transaction.
             if (result.categoryName === null || result.domain === null) {
                 const scheduled = await maybeScheduleGrounded(ctx, identity.tokenIdentifier, {
+                    currency,
                     groundedLookup: args.groundedLookup,
                     income: args.income,
                     locale: args.locale,

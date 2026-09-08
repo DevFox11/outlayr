@@ -117,6 +117,11 @@ export interface CategoryBranch {
 export interface EnrichmentRequest {
     /** Names only — the shape of the ledger, never its figures. */
     categoryTree: CategoryBranch[];
+    /**
+     * The ISO code the entry is in — a code, never an amount. Where the money
+     * was spent is a better locator than where the device is registered.
+     */
+    currency?: string;
     /** The synced `groundedLookup` setting; the server re-checks it too. */
     groundedLookup: boolean;
     income: boolean;
