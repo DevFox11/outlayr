@@ -25,6 +25,8 @@ export type ScanFailure =
     | "notConfigured"
     | "unauthenticated"
     | "rateLimited"
+    | "notEntitled"
+    | "quotaExceeded"
     | "provider";
 
 type ScanSource = "camera" | "library";
@@ -89,6 +91,12 @@ function failureFor(status: string): ScanFailure {
         }
         case "rateLimited": {
             return "rateLimited";
+        }
+        case "notEntitled": {
+            return "notEntitled";
+        }
+        case "quotaExceeded": {
+            return "quotaExceeded";
         }
         default: {
             return "provider";

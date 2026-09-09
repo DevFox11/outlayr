@@ -291,6 +291,10 @@ const importSheet = {
             en: "Not configured yet.",
             es: "Aún no está configurado.",
         }),
+        "import.unavailableNotEntitled": t({
+            en: "Importing is part of Pro.",
+            es: "Importar es parte de Pro.",
+        }),
         "import.unavailableOffline": t({
             en: "You're offline.",
             es: "Estás sin conexión.",

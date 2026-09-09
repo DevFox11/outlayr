@@ -1,15 +1,17 @@
+import { env } from "@outlayr/env/backend";
 import { ConvexError, v } from "convex/values";
 
-import { components } from "./_generated/api";
-import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
-import type { MutationCtx } from "./_generated/server";
+import { components, internal } from "./_generated/api";
+import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
 import { purgeUserBatch } from "./account";
 import { requireUserId } from "./lib/auth";
+import { eraseUpstreamCustomer, revenuecat } from "./revenuecat";
 
 const DELETE_JOB_TTL_MS = 24 * 60 * 60 * 1000;
 
 type DeletionProvider = "appleServerRevoked" | "googleLocalReceipt" | null;
-export type DeletionPhase = "prepared" | "providersRevoked" | "purged" | "authDeleting" | "complete";
+export type DeletionPhase = "prepared" | "providersRevoked" | "purged" | "billingErased" | "authDeleting" | "complete";
 
 export interface DeletionJob {
     errorCode: string | null;
@@ -66,7 +68,12 @@ export async function consumeGoogleLocalReceipt(job: DeletionJob, receiptChallen
 
 export async function advanceDeletion(
     job: DeletionJob,
-    deps: { deleteAuth: () => Promise<void>; purge: () => Promise<boolean>; revoke: () => Promise<void> }
+    deps: {
+        deleteAuth: () => Promise<void>;
+        eraseBilling: () => Promise<void>;
+        purge: () => Promise<boolean>;
+        revoke: () => Promise<void>;
+    }
 ): Promise<DeletionJob> {
     requireUnexpiredDeletionJob(job);
     if (job.phase === "complete") {
@@ -83,6 +90,10 @@ export async function advanceDeletion(
         job.phase = "purged";
     }
     if (job.phase === "purged") {
+        await deps.eraseBilling();
+        job.phase = "billingErased";
+    }
+    if (job.phase === "billingErased") {
         job.phase = "authDeleting";
         return job;
     }
@@ -94,7 +105,7 @@ export async function advanceDeletion(
     return job;
 }
 
-async function jobForSecret(ctx: MutationCtx, secret: string) {
+async function jobForSecret(ctx: QueryCtx, secret: string) {
     const secretHash = await hashResumeSecret(secret);
     return ctx.db
         .query("accountDeletionJobs")
@@ -116,6 +127,9 @@ function requireUnexpiredPreparedJob(job: DeletionJob) {
 export const prepare = mutation({
     args: {},
     handler: async (ctx) => {
+        if (!env.REVENUECAT_SECRET_KEY) {
+            throw new ConvexError("Account deletion needs REVENUECAT_SECRET_KEY before it can erase billing");
+        }
         const receiptChallenge = randomSecret();
         const resumeSecret = randomSecret();
         await ctx.db.insert("accountDeletionJobs", {
@@ -199,6 +213,9 @@ export const advance = mutation({
             return publicStatus({ ...job, phase: "purged" });
         }
         if (job.phase === "purged") {
+            throw new ConvexError("Billing erasure is required before auth deletion");
+        }
+        if (job.phase === "billingErased") {
             await ctx.db.patch(job._id, { phase: "authDeleting" });
             return publicStatus({ ...job, phase: "authDeleting" });
         }
@@ -224,6 +241,52 @@ export const advance = mutation({
         }
         await ctx.db.patch(job._id, { phase: "complete", userId: null });
         return { errorCode: null, phase: "complete" as const };
+    },
+});
+
+export const billingTarget = internalQuery({
+    args: { resumeSecret: v.string() },
+    handler: async (ctx, args) => {
+        const job = await jobForSecret(ctx, args.resumeSecret);
+        if (!job) {
+            throw new ConvexError("Deletion job not found");
+        }
+        requireUnexpiredDeletionJob(job);
+        if (job.phase === "providersRevoked" || job.phase === "prepared") {
+            throw new ConvexError("Purge is required before billing erasure");
+        }
+        return job.phase === "purged" ? job.userId : null;
+    },
+});
+
+export const recordBillingErased = internalMutation({
+    args: { resumeSecret: v.string() },
+    handler: async (ctx, args) => {
+        const job = await jobForSecret(ctx, args.resumeSecret);
+        if (!job) {
+            throw new ConvexError("Deletion job not found");
+        }
+        requireUnexpiredDeletionJob(job);
+        if (job.phase !== "purged") {
+            return publicStatus(job);
+        }
+        if (!job.userId) {
+            throw new ConvexError("Deletion job is missing its private user linkage");
+        }
+        await revenuecat.deleteCustomer(ctx, { appUserId: job.userId });
+        await ctx.db.patch(job._id, { phase: "billingErased" });
+        return publicStatus({ ...job, phase: "billingErased" });
+    },
+});
+
+export const eraseBilling = action({
+    args: { resumeSecret: v.string() },
+    handler: async (ctx, args): Promise<{ errorCode: string | null; phase: DeletionPhase }> => {
+        const appUserId = await ctx.runQuery(internal.accountDeletion.billingTarget, args);
+        if (appUserId !== null) {
+            await eraseUpstreamCustomer(appUserId);
+        }
+        return await ctx.runMutation(internal.accountDeletion.recordBillingErased, args);
     },
 });
 

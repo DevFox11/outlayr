@@ -1,14 +1,15 @@
 // oxlint-disable unicorn/filename-case -- the Convex module name is the function path — clients call this action as api.receiptScan.scan
 
 import { createXai } from "@ai-sdk/xai";
-import { HOUR, RateLimiter } from "@convex-dev/rate-limiter";
+import { HOUR, isRateLimitError, RateLimiter } from "@convex-dev/rate-limiter";
 import { generateText, NoObjectGeneratedError, Output, TypeValidationError } from "ai";
 import type { LanguageModel } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 
-import { components } from "./_generated/api";
-import { action } from "./_generated/server";
+import { components, internal } from "./_generated/api";
+import { action, internalMutation } from "./_generated/server";
+import { admitCapture } from "./lib/captures";
 import { PICKABLE_CURRENCY_CODES } from "./lib/currencies";
 
 /**
@@ -71,6 +72,8 @@ const scanStatus = v.union(
     v.literal("unauthenticated"),
     v.literal("notConfigured"),
     v.literal("rateLimited"),
+    v.literal("notEntitled"),
+    v.literal("quotaExceeded"),
     v.literal("invalid"),
     v.literal("providerError"),
     v.literal("invalidResponse"),
@@ -116,6 +119,8 @@ export type ScanStatus =
     | "unauthenticated"
     | "notConfigured"
     | "rateLimited"
+    | "notEntitled"
+    | "quotaExceeded"
     | "invalid"
     | "providerError"
     | "invalidResponse"
@@ -466,6 +471,17 @@ export async function readReceipt(
  * Read live rather than through a frozen snapshot, so that
  * `npx convex env set XAI_API_KEY=""` takes effect on the very next call.
  */
+export const admit = internalMutation({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity === null) {
+            return "notEntitled" as const;
+        }
+        return admitCapture(ctx, identity, () => rateLimiter.limit(ctx, "receiptScanGlobal"));
+    },
+});
+
 export const scan = action({
     args: receiptScanArgs,
     handler: async (ctx, args): Promise<ScanResult> => {
@@ -500,9 +516,14 @@ export const scan = action({
             return failure("rateLimited");
         }
 
-        const global = await rateLimiter.limit(ctx, "receiptScanGlobal");
-        if (!global.ok) {
-            return failure("rateLimited");
+        const admitted = await ctx.runMutation(internal.receiptScan.admit, {}).catch((error) => {
+            if (isRateLimitError(error)) {
+                return "rateLimited" as const;
+            }
+            throw error;
+        });
+        if (admitted !== "ok") {
+            return failure(admitted);
         }
 
         const xaiProvider = createXai({ apiKey });

@@ -3,6 +3,7 @@
 import { HOUR } from "@convex-dev/rate-limiter";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { MockLanguageModelV3 } from "ai/test";
+import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
@@ -17,7 +18,7 @@ import {
 } from "./csvImport";
 import { merchantKey } from "./lib/merchantKey";
 import schema from "./schema";
-import { authenticatedAs, seedAuthUser } from "./test.helpers";
+import { authenticatedAs, grantPro, seedAuthUser } from "./test.helpers";
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -121,11 +122,28 @@ describe("csvImport guard ladder", () => {
         ).resolves.toStrictEqual({ status: "invalid", suggestions: null });
     });
 
+    test("returns notEntitled for a free user before either bucket is spent", async () => {
+        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        const t = convexTest(schema, modules);
+        rateLimiterTest.register(t);
+        revenuecatTest.register(t);
+        const identity = await seedAuthUser(t);
+        const limitSpy = vi.spyOn(rateLimiter, "limit");
+
+        await expect(authenticatedAs(t, identity).action(api.csvImport.csvImport, BASE_ARGS)).resolves.toStrictEqual({
+            status: "notEntitled",
+            suggestions: null,
+        });
+        expect(limitSpy).not.toHaveBeenCalled();
+    });
+
     test("returns rateLimited and never throws once the per-user bucket is exhausted", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
+        await grantPro(t, identity);
         const asUser = authenticatedAs(t, identity);
         const tokenIdentifier = await asUser.run(async (ctx) => (await ctx.auth.getUserIdentity())?.tokenIdentifier);
         if (!tokenIdentifier) {
@@ -149,7 +167,9 @@ describe("csvImport guard ladder", () => {
     test("returns rateLimited and never throws once the global window is exhausted", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
+        revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
+        await grantPro(t, identity);
 
         const limitSpy = vi
             .spyOn(rateLimiter, "limit")
@@ -168,7 +188,9 @@ describe("csvImport guard ladder", () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
+        await grantPro(t, identity);
         await t.run((ctx) =>
             ctx.db.insert("merchantKnowledge", {
                 categoryName: "Healthcare",
@@ -244,7 +266,9 @@ describe(perUserLimitConfig, () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         vi.stubEnv("CSV_IMPORT_CAPACITY", "25");
         const t = convexTest(schema, modules);
+        revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
+        await grantPro(t, identity);
         const limitSpy = vi.spyOn(rateLimiter, "limit").mockResolvedValue({ ok: false, retryAfter: 1000 });
 
         await expect(authenticatedAs(t, identity).action(api.csvImport.csvImport, BASE_ARGS)).resolves.toStrictEqual({
@@ -278,6 +302,7 @@ describe(scheduleImportGrounded, () => {
     test("schedules one grounded run per label, deduped by merchant key", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
 
         const scheduled = await asIdentity(t, identity).run((ctx) =>
@@ -314,6 +339,7 @@ describe(scheduleImportGrounded, () => {
     test("caps one import's grounded attempts at GROUNDED_IMPORT_MAX", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
 
         const labels = Array.from(
@@ -374,6 +400,7 @@ describe(scheduleImportGrounded, () => {
     test("returns 0 instead of throwing when the session no longer resolves to a user", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
 
         const stale = t.withIdentity({
@@ -398,7 +425,9 @@ describe("merchantKnowledge tier", () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
+        await grantPro(t, identity);
         await t.run((ctx) =>
             ctx.db.insert("merchantKnowledge", {
                 categoryName: "Healthcare",
@@ -444,7 +473,9 @@ describe("merchantKnowledge tier", () => {
         );
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
+        await grantPro(t, identity);
 
         const result = await authenticatedAs(t, identity).action(api.csvImport.csvImport, {
             categoryTree: [{ children: [], name: "Utilities" }],
@@ -473,7 +504,9 @@ describe("merchantKnowledge tier", () => {
         );
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
+        await grantPro(t, identity);
         await t.run((ctx) =>
             ctx.db.insert("merchantKnowledge", {
                 categoryName: "Healthcare",

@@ -4,6 +4,7 @@ import type { TestConvex } from "convex-test";
 import type { GenericSchema, SchemaDefinition } from "convex/server";
 
 import { components } from "./_generated/api";
+import { PRO_ENTITLEMENT_ID, revenuecat } from "./revenuecat";
 
 /**
  * `safeGetAuthUser` resolves the caller by looking up a `session` row whose
@@ -96,4 +97,21 @@ export function authenticatedAs(t: AnyTestConvex, identity: SeededIdentity): Any
         sessionId: identity.sessionId,
         subject: identity.subject,
     }) as AnyTestConvex;
+}
+
+export async function grantPro(t: AnyTestConvex, identity: Pick<SeededIdentity, "userId">): Promise<void> {
+    await t.run((ctx) =>
+        revenuecat.syncSubscriber(ctx, {
+            appUserId: identity.userId,
+            subscriber: {
+                entitlements: {
+                    [PRO_ENTITLEMENT_ID]: {
+                        expires_date: null,
+                        product_identifier: "com.tryoutlayr.app.pro.lifetime",
+                        purchase_date: new Date().toISOString(),
+                    },
+                },
+            },
+        })
+    );
 }

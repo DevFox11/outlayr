@@ -14,6 +14,7 @@ jest.mock<Partial<typeof import("@/lib/auth-client")>>("@/lib/auth-client", () =
 // `convex` only has to be non-null — the module's own guard reads it — while the
 // calls themselves go through the wrappers `convex.ts` exports.
 jest.mock("@/lib/convex", () => ({
+    cloudAction: jest.fn<typeof import("@/lib/convex").cloudAction>(),
     cloudMutation: jest.fn<typeof import("@/lib/convex").cloudMutation>(),
     cloudQuery: jest.fn<typeof import("@/lib/convex").cloudQuery>(),
     convex: {},

@@ -12,6 +12,7 @@ import { action } from "./_generated/server";
 import { maybeScheduleGrounded, sanitizeRegionCode } from "./enrichment";
 import type { GroundedScheduleCtx } from "./enrichment";
 import { merchantKey } from "./lib/merchantKey";
+import { isPro } from "./revenuecat";
 
 /** `XAI_MODEL_ID` overrides this without a deploy, matching `enrichment.ts`. */
 const CSV_IMPORT_MODEL_ID = "grok-4.20-0309-non-reasoning";
@@ -45,6 +46,7 @@ const csvImportStatus = v.union(
     v.literal("unauthenticated"),
     v.literal("notConfigured"),
     v.literal("rateLimited"),
+    v.literal("notEntitled"),
     v.literal("invalid"),
     v.literal("providerError"),
     v.literal("invalidResponse")
@@ -72,6 +74,7 @@ export type CsvImportStatus =
     | "unauthenticated"
     | "notConfigured"
     | "rateLimited"
+    | "notEntitled"
     | "invalid"
     | "providerError"
     | "invalidResponse";
@@ -284,6 +287,10 @@ export const csvImport = action({
 
         if (args.labels.length === 0 || args.labels.length > MAX_LABELS) {
             return failure("invalid");
+        }
+
+        if (!(await isPro(ctx, identity.subject))) {
+            return failure("notEntitled");
         }
 
         const perUser = await rateLimiter.limit(ctx, "csvImportPerUser", {

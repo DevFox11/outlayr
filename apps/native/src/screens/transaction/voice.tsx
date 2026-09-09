@@ -87,14 +87,18 @@ const STRIP_TURNS = 4;
 const FAILURE_KEY = {
     denied: "voice.failed.denied",
     notConfigured: "voice.failed.notConfigured",
+    notEntitled: "voice.failed.notEntitled",
     offline: "voice.failed.offline",
     provider: "voice.failed.provider",
+    quotaExceeded: "voice.failed.quotaExceeded",
     rateLimited: "voice.failed.rateLimited",
     silent: "voice.failed.silent",
     timeout: "voice.failed.timeout",
     unauthenticated: "voice.failed.unauthenticated",
     unclear: "voice.failed.unclear",
 } as const satisfies Record<VoiceFailure, string>;
+
+const NO_RETRY_REASONS: ReadonlySet<VoiceFailure> = new Set(["notEntitled", "quotaExceeded"]);
 
 const FIELD_KEY = {
     account: "voice.turn.field.account",
@@ -480,7 +484,9 @@ function orbActionOf(
         return { label: t("voice.action.fix"), onPress: saving ? undefined : actions.listenAgain };
     }
     if (phase.kind === "failed") {
-        return { label: t("voice.action.retry"), onPress: actions.listenAgain };
+        return NO_RETRY_REASONS.has(phase.reason)
+            ? { label: t(FAILURE_KEY[phase.reason]), onPress: undefined }
+            : { label: t("voice.action.retry"), onPress: actions.listenAgain };
     }
     return { label: t("voice.mic.finish"), onPress: actions.finish };
 }
@@ -785,7 +791,7 @@ function VoiceThreadScreen() {
                   onPress: () => saveTransfer(transfer, transferLegs.from, transferLegs.to),
               }
             : { label: t("voice.action.finish"), onPress: () => openTransferForm(transfer) };
-    } else if (phase.kind === "failed") {
+    } else if (phase.kind === "failed" && !NO_RETRY_REASONS.has(phase.reason)) {
         primary = { label: t("voice.action.retry"), onPress: listenAgain };
         if (phase.reason === "denied") {
             secondary = { label: t("voice.action.settings"), onPress: openSettings };

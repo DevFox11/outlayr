@@ -61,6 +61,7 @@ const REASON_BY_STATUS = {
     invalid: "providerError",
     invalidResponse: "invalidResponse",
     notConfigured: "notConfigured",
+    notEntitled: "notEntitled",
     providerError: "providerError",
     rateLimited: "rateLimited",
     unauthenticated: "unauthenticated",

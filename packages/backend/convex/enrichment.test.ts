@@ -2,6 +2,7 @@
 
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { MockLanguageModelV3 } from "ai/test";
+import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
@@ -137,6 +138,7 @@ describe("suggest guard ladder", () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
         const asUser = authenticatedAs(t, identity);
         const tokenIdentifier = await asUser.run(async (ctx) => (await ctx.auth.getUserIdentity())?.tokenIdentifier);
@@ -417,6 +419,7 @@ describe(maybeScheduleGrounded, () => {
     test("schedules when the arg is true and no appMeta row exists", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
 
         const scheduled = await asIdentity(t, identity).run((ctx) =>
@@ -434,6 +437,7 @@ describe(maybeScheduleGrounded, () => {
     test("the scheduled args never carry categoryTree (ADR-7)", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
 
         await asIdentity(t, identity).run((ctx) =>
@@ -459,6 +463,7 @@ describe(maybeScheduleGrounded, () => {
     test("returns false instead of throwing when the session no longer resolves to a user", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
 
         const stale = t.withIdentity({
@@ -481,6 +486,7 @@ describe(maybeScheduleGrounded, () => {
     test("the scheduled args thread a region code through to groundedLookup.run", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
 
         await asIdentity(t, identity).run((ctx) =>

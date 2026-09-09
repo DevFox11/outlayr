@@ -4,12 +4,12 @@ import { z } from "zod";
 import { resumeCloudDeletion } from "./account-lifecycle";
 import type { DeletionPreparation } from "./account-lifecycle";
 import { authClient } from "./auth-client";
-import { cloudMutation, cloudQuery, convex } from "./convex";
+import { cloudAction, cloudMutation, cloudQuery, convex } from "./convex";
 import { persistGoogleLocalReceiptAfterRevocation, revokeGoogleProviderSubject } from "./provider-revocation";
 
 export const deletionResumeSecretKey = "outlayr.account-deletion-resume";
 
-type DeletionPhase = "authDeleting" | "complete" | "prepared" | "providersRevoked" | "purged";
+type DeletionPhase = "authDeleting" | "billingErased" | "complete" | "prepared" | "providersRevoked" | "purged";
 
 /** How far `accountDeletion` has got, as its `poll` and `advance` report it. */
 interface DeletionStatus {
@@ -111,6 +111,7 @@ export async function resumePersistedCloudDeletion({
     if (status.phase !== "complete") {
         await resumeCloudDeletion(status.phase, preparation, {
             advanceDeletion: async (resumeSecret) => await cloudMutation("accountDeletion:advance", { resumeSecret }),
+            eraseBilling: async (resumeSecret) => await cloudAction("accountDeletion:eraseBilling", { resumeSecret }),
             revokeProvider: async () => await resumeProviderRevocation(preparation),
         });
         const completed = await poll();

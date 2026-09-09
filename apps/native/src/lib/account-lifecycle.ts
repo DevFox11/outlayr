@@ -1,7 +1,7 @@
 export type AccountLifecycleAction = "deleteAll" | "deleteCloud" | "signOut";
 type AccountLifecycleStage = "deleteAccount" | "resetDevice" | "revokeProvider" | "signOut";
 
-type DeletionPhase = "authDeleting" | "complete" | "prepared" | "providersRevoked" | "purged";
+type DeletionPhase = "authDeleting" | "billingErased" | "complete" | "prepared" | "providersRevoked" | "purged";
 
 export interface DeletionPreparation {
     provider?: "apple" | "google";
@@ -16,6 +16,7 @@ export interface AccountLifecycleDependencies {
     beginDeviceReset?: () => Promise<void>;
     clearDeletionSecret?: () => Promise<void>;
     deleteAccount: () => Promise<void>;
+    eraseBilling?: (resumeSecret: string) => Promise<{ phase: DeletionPhase }>;
     markDeviceCleanupReady?: () => Promise<void>;
     navigateToLedger: () => void;
     navigateToOnboarding?: () => void;
@@ -40,22 +41,26 @@ class AccountLifecycleError extends Error {
 export async function resumeCloudDeletion(
     phase: DeletionPhase,
     preparation: DeletionPreparation,
-    deps: Pick<AccountLifecycleDependencies, "advanceDeletion" | "revokeProvider">
+    deps: Pick<AccountLifecycleDependencies, "advanceDeletion" | "eraseBilling" | "revokeProvider">
 ): Promise<void> {
-    if (!(deps.advanceDeletion && deps.revokeProvider)) {
+    if (!(deps.advanceDeletion && deps.eraseBilling && deps.revokeProvider)) {
         throw new Error("Resumable account deletion is not configured");
     }
-    const { advanceDeletion, revokeProvider } = deps;
+    const { advanceDeletion, eraseBilling, revokeProvider } = deps;
     if (phase === "prepared") {
         await revokeProvider(preparation);
     }
-    const advanceUntilComplete = async (): Promise<void> => {
-        const next = await advanceDeletion(preparation.resumeSecret);
-        if (next.phase !== "complete" && next.phase !== "prepared") {
-            await advanceUntilComplete();
+    const advanceFrom = async (current: DeletionPhase): Promise<void> => {
+        if (current === "complete" || current === "prepared") {
+            return;
         }
+        const next =
+            current === "purged"
+                ? await eraseBilling(preparation.resumeSecret)
+                : await advanceDeletion(preparation.resumeSecret);
+        await advanceFrom(next.phase);
     };
-    await advanceUntilComplete();
+    await advanceFrom(phase === "prepared" ? "providersRevoked" : phase);
 }
 
 async function completeCloudDeletion(deps: AccountLifecycleDependencies, clearSecret = true): Promise<void> {
@@ -65,15 +70,23 @@ async function completeCloudDeletion(deps: AccountLifecycleDependencies, clearSe
             deps.persistDeletionSecret &&
             deps.revokeProvider &&
             deps.advanceDeletion &&
+            deps.eraseBilling &&
             deps.clearDeletionSecret
         )
     ) {
         throw new Error("Resumable account deletion is not configured");
     }
-    const { advanceDeletion, clearDeletionSecret, persistDeletionSecret, prepareDeletion, revokeProvider } = deps;
+    const {
+        advanceDeletion,
+        clearDeletionSecret,
+        eraseBilling,
+        persistDeletionSecret,
+        prepareDeletion,
+        revokeProvider,
+    } = deps;
     const preparation = await prepareDeletion();
     await persistDeletionSecret(preparation);
-    await resumeCloudDeletion("prepared", preparation, { advanceDeletion, revokeProvider });
+    await resumeCloudDeletion("prepared", preparation, { advanceDeletion, eraseBilling, revokeProvider });
     if (clearSecret) {
         await clearDeletionSecret();
     }

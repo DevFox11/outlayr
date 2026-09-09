@@ -4,10 +4,12 @@ import { getThreadMetadata, saveMessage } from "@convex-dev/agent";
 import agentTest from "@convex-dev/agent/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { MockTranscriptionModelV4 } from "ai/test";
+import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { api, components } from "./_generated/api";
+import { captureLimiter, FREE_CAPTURE_CONFIG } from "./lib/captures";
 import schema from "./schema";
 import { authenticatedAs, seedAuthUser } from "./test.helpers";
 import {
@@ -247,6 +249,7 @@ describe("voice thread + speak guard ladder", () => {
         const t = convexTest(schema, modules);
         agentTest.register(t);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         return t;
     }
 
@@ -382,6 +385,30 @@ describe("voice thread + speak guard ladder", () => {
         await expect(asUser.mutation(api.voiceEntry.startThread, {})).resolves.toStrictEqual({
             status: "rateLimited",
             threadId: null,
+        });
+    });
+
+    test("returns notEntitled once a free user's capture pool is spent", async () => {
+        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        const t = harness();
+        const identity = await seedAuthUser(t);
+        const asUser = authenticatedAs(t, identity);
+        const { threadId } = await asUser.mutation(api.voiceEntry.startThread, {});
+        if (threadId === null) {
+            throw new Error("Expected a thread for a signed-in caller");
+        }
+        const tokenIdentifier = await asUser.run(async (ctx) => (await ctx.auth.getUserIdentity())?.tokenIdentifier);
+        if (!tokenIdentifier) {
+            throw new Error("Expected an authenticated identity");
+        }
+        await t.run((ctx) =>
+            captureLimiter.limit(ctx, "capturesFree", {
+                count: FREE_CAPTURE_CONFIG.rate,
+                key: tokenIdentifier,
+            })
+        );
+        await expect(asUser.action(api.voiceEntry.speak, { ...ACTION_ARGS, threadId })).resolves.toMatchObject({
+            status: "notEntitled",
         });
     });
 

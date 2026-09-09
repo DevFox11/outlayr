@@ -1,10 +1,12 @@
 /// <reference types="vite/client" />
 
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
+import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { api } from "./_generated/api";
+import { captureLimiter, FREE_CAPTURE_CONFIG } from "./lib/captures";
 import {
     buildPrompt,
     LANGUAGE_PATTERN,
@@ -279,10 +281,64 @@ describe("scan guard ladder", () => {
         );
     });
 
+    test("a global reject spends none of the caller's captures", async () => {
+        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        const t = convexTest(schema, modules);
+        rateLimiterTest.register(t);
+        revenuecatTest.register(t);
+        const identity = await seedAuthUser(t);
+        const tokenIdentifier = await authenticatedAs(t, identity).run(
+            async (ctx) => (await ctx.auth.getUserIdentity())?.tokenIdentifier
+        );
+        if (!tokenIdentifier) {
+            throw new Error("Expected an authenticated identity");
+        }
+        vi.spyOn(rateLimiter, "limit").mockImplementation(async (_ctx, name) =>
+            name === "receiptScanGlobal" ? { ok: false, retryAfter: 1000 } : { ok: true, retryAfter: undefined }
+        );
+
+        await expect(authenticatedAs(t, identity).action(api.receiptScan.scan, BASE_ARGS)).resolves.toStrictEqual({
+            receipt: null,
+            status: "rateLimited",
+        });
+        await expect(
+            t.run((ctx) =>
+                captureLimiter.check(ctx, "capturesFree", { count: FREE_CAPTURE_CONFIG.rate, key: tokenIdentifier })
+            )
+        ).resolves.toMatchObject({ ok: true });
+    });
+
+    test("returns notEntitled once a free user's capture pool is spent, before any model call", async () => {
+        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        const t = convexTest(schema, modules);
+        rateLimiterTest.register(t);
+        revenuecatTest.register(t);
+        const identity = await seedAuthUser(t);
+        const tokenIdentifier = await authenticatedAs(t, identity).run(
+            async (ctx) => (await ctx.auth.getUserIdentity())?.tokenIdentifier
+        );
+        if (!tokenIdentifier) {
+            throw new Error("Expected an authenticated identity");
+        }
+
+        await t.run((ctx) =>
+            captureLimiter.limit(ctx, "capturesFree", {
+                count: FREE_CAPTURE_CONFIG.rate,
+                key: tokenIdentifier,
+            })
+        );
+
+        await expect(authenticatedAs(t, identity).action(api.receiptScan.scan, BASE_ARGS)).resolves.toStrictEqual({
+            receipt: null,
+            status: "notEntitled",
+        });
+    });
+
     test("returns rateLimited once the per-user bucket is exhausted, before any model call", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
         const asUser = authenticatedAs(t, identity);
         const tokenIdentifier = await asUser.run(async (ctx) => (await ctx.auth.getUserIdentity())?.tokenIdentifier);

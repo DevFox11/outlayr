@@ -8,6 +8,8 @@ export default defineConfig({
         env: {
             COTIZAVE_API_KEY: "test-cotizave-key",
             NATIVE_APP_URL: "outlayr://",
+            REVENUECAT_SECRET_KEY: "test-revenuecat-secret-key",
+            REVENUECAT_WEBHOOK_AUTH: "test-revenuecat-webhook-secret-0123456789",
             SITE_URL: "http://localhost:3000",
         },
         // `convex-test` runs functions in a Convex-like runtime, not Node.

@@ -54,6 +54,7 @@ export default defineSchema({
             v.literal("prepared"),
             v.literal("providersRevoked"),
             v.literal("purged"),
+            v.literal("billingErased"),
             v.literal("authDeleting"),
             v.literal("complete")
         ),

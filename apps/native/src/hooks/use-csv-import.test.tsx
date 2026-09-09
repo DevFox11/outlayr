@@ -488,6 +488,7 @@ describe("each server status maps to its own reason", () => {
         ["providerError", "providerError"],
         ["invalid", "providerError"],
         ["unauthenticated", "unauthenticated"],
+        ["notEntitled", "notEntitled"],
     ];
 
     for (const [status, reason] of cases) {

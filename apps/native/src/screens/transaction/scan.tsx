@@ -69,8 +69,10 @@ const FAILURE_KEY = {
     denied: "receipt.failed.denied",
     noCamera: "receipt.failed.noCamera",
     notConfigured: "receipt.failed.notConfigured",
+    notEntitled: "receipt.failed.notEntitled",
     offline: "receipt.failed.offline",
     provider: "receipt.failed.provider",
+    quotaExceeded: "receipt.failed.quotaExceeded",
     rateLimited: "receipt.failed.rateLimited",
     timeout: "receipt.failed.timeout",
     unauthenticated: "receipt.failed.unauthenticated",
@@ -790,9 +792,11 @@ function ScanFlowScreen() {
     }
 
     if (phase.kind === "failed") {
-        let primary: BarAction = libraryAction;
+        let primary: BarAction | null = libraryAction;
         let secondary: BarAction | null = null;
-        if (phase.reason === "denied") {
+        if (phase.reason === "notEntitled" || phase.reason === "quotaExceeded") {
+            primary = null;
+        } else if (phase.reason === "denied") {
             primary = { label: t("receipt.action.settings"), onPress: openSettings };
             secondary = libraryAction;
         } else if (phase.reason === "noCamera") {

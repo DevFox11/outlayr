@@ -13,7 +13,8 @@ export type UnavailableReason =
     | "notConfigured"
     | "invalidResponse"
     | "overCap"
-    | "unauthenticated";
+    | "unauthenticated"
+    | "notEntitled";
 
 interface ImportResolution {
     fromModel: ReadonlySet<string>;

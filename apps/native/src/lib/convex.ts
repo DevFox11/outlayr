@@ -43,7 +43,7 @@ export function cloudMutation<Args, Result>(path: string, args: Args): Promise<R
     return cloudClient().mutation(path as never, args as never) as Promise<Result>;
 }
 
-function cloudAction<Args, Result>(path: string, args: Args): Promise<Result> {
+export function cloudAction<Args, Result>(path: string, args: Args): Promise<Result> {
     // SAFETY: as in `cloudQuery`.
     return cloudClient().action(path as never, args as never) as Promise<Result>;
 }
@@ -164,6 +164,7 @@ export type CsvImportStatus =
     | "unauthenticated"
     | "notConfigured"
     | "rateLimited"
+    | "notEntitled"
     | "invalid"
     | "providerError"
     | "invalidResponse";
@@ -237,7 +238,16 @@ export interface ProposedDraft {
     draft: VoiceDraft | null;
 }
 
-type SpeakStatus = "ok" | "unauthenticated" | "notConfigured" | "rateLimited" | "invalid" | "providerError" | "unclear";
+type SpeakStatus =
+    | "ok"
+    | "unauthenticated"
+    | "notConfigured"
+    | "rateLimited"
+    | "notEntitled"
+    | "quotaExceeded"
+    | "invalid"
+    | "providerError"
+    | "unclear";
 
 interface SpeakResult {
     /** The turn the words landed on; the draft answers at the same order. */
@@ -386,6 +396,8 @@ type ScanStatus =
     | "unauthenticated"
     | "notConfigured"
     | "rateLimited"
+    | "notEntitled"
+    | "quotaExceeded"
     | "invalid"
     | "providerError"
     | "invalidResponse"

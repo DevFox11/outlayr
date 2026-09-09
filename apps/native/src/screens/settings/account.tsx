@@ -17,7 +17,7 @@ import { useTranslation } from "@/i18n/context";
 import { runAccountLifecycle } from "@/lib/account-lifecycle";
 import { authClient } from "@/lib/auth-client";
 import { useAuthSession } from "@/lib/auth-session";
-import { cloudMutation, convex } from "@/lib/convex";
+import { cloudAction, cloudMutation, convex } from "@/lib/convex";
 import { deletionResumeSecretKey, resumePersistedCloudDeletion, resumeProviderRevocation } from "@/lib/deletion-resume";
 import type { StoredDeletionPreparation } from "@/lib/deletion-resume";
 import { createDeviceResetGate, writeDeviceResetMarker } from "@/lib/device-data-reset";
@@ -122,6 +122,12 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
                 action === "deleteAll" ? async () => await writeDeviceResetMarker({ phase: "cloud", v: 1 }) : undefined,
             clearDeletionSecret: async () => await deleteItemAsync(deletionResumeSecretKey),
             deleteAccount: async () => undefined,
+            eraseBilling: async (resumeSecret) => {
+                if (convex === null) {
+                    throw new Error("Cloud deletion is unavailable");
+                }
+                return await cloudAction("accountDeletion:eraseBilling", { resumeSecret });
+            },
             markDeviceCleanupReady:
                 action === "deleteAll"
                     ? async () => await writeDeviceResetMarker({ phase: "device", v: 1 })

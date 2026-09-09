@@ -13,6 +13,8 @@ export const env = createEnv({
         EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS: z.string().optional(),
         EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB: z.string().optional(),
         EXPO_PUBLIC_LOGO_DEV_TOKEN: z.string().optional(),
+        EXPO_PUBLIC_REVENUECAT_ANDROID_KEY: z.string().optional(),
+        EXPO_PUBLIC_REVENUECAT_IOS_KEY: z.string().optional(),
     },
     clientPrefix: "EXPO_PUBLIC_",
     emptyStringAsUndefined: true,
@@ -22,6 +24,8 @@ export const env = createEnv({
         EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS,
         EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB,
         EXPO_PUBLIC_LOGO_DEV_TOKEN: process.env.EXPO_PUBLIC_LOGO_DEV_TOKEN,
+        EXPO_PUBLIC_REVENUECAT_ANDROID_KEY: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
+        EXPO_PUBLIC_REVENUECAT_IOS_KEY: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
     },
 });
 

@@ -12,7 +12,7 @@ import {
     syncStreams,
     vStreamArgs,
 } from "@convex-dev/agent";
-import { HOUR, RateLimiter } from "@convex-dev/rate-limiter";
+import { HOUR, isRateLimitError, RateLimiter } from "@convex-dev/rate-limiter";
 import { experimental_transcribe as transcribe, NoTranscriptGeneratedError } from "ai";
 import type { LanguageModel, TranscriptionModel } from "ai";
 import { paginationOptsValidator } from "convex/server";
@@ -22,6 +22,7 @@ import { z } from "zod";
 import { components, internal } from "./_generated/api";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
+import { admitCapture } from "./lib/captures";
 
 /** `XAI_MODEL_ID` overrides this without a deploy, matching `enrichment.ts`. */
 const VOICE_ENTRY_MODEL_ID = "grok-4.20-0309-non-reasoning";
@@ -101,6 +102,8 @@ const speakStatus = v.union(
     v.literal("unauthenticated"),
     v.literal("notConfigured"),
     v.literal("rateLimited"),
+    v.literal("notEntitled"),
+    v.literal("quotaExceeded"),
     v.literal("invalid"),
     v.literal("providerError"),
     /** The provider heard no words at all. Nothing was written to the thread. */
@@ -119,6 +122,8 @@ export type SpeakStatus =
     | "unauthenticated"
     | "notConfigured"
     | "rateLimited"
+    | "notEntitled"
+    | "quotaExceeded"
     | "invalid"
     | "providerError"
     | "unclear";
@@ -595,6 +600,17 @@ export const endThread = mutation({
  * Read live rather than through a frozen snapshot, so that
  * `npx convex env set XAI_API_KEY=""` takes effect on the very next call.
  */
+export const admit = internalMutation({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity === null) {
+            return "notEntitled" as const;
+        }
+        return admitCapture(ctx, identity, () => rateLimiter.limit(ctx, "voiceEntryGlobal"));
+    },
+});
+
 export const speak = action({
     args: voiceEntryArgs,
     handler: async (ctx, args): Promise<SpeakResult> => {
@@ -632,9 +648,14 @@ export const speak = action({
             return failure("rateLimited");
         }
 
-        const global = await rateLimiter.limit(ctx, "voiceEntryGlobal");
-        if (!global.ok) {
-            return failure("rateLimited");
+        const admitted = await ctx.runMutation(internal.voiceEntry.admit, {}).catch((error) => {
+            if (isRateLimitError(error)) {
+                return "rateLimited" as const;
+            }
+            throw error;
+        });
+        if (admitted !== "ok") {
+            return failure(admitted);
         }
 
         const xaiProvider = createXai({ apiKey });

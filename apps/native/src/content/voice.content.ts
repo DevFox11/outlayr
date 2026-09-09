@@ -40,6 +40,10 @@ const voice = {
             en: "Speaking an entry needs the cloud tier.",
             es: "Dictar un registro necesita el nivel en la nube.",
         }),
+        "voice.failed.notEntitled": t({
+            en: "Your free captures, voice and receipts together, are used up. They come back within 30 days; Pro lifts the limit.",
+            es: "Tus capturas gratis, entre voz y recibos, ya se usaron. Vuelven en menos de 30 días; Pro quita ese límite.",
+        }),
         "voice.failed.offline": t({
             en: "You're offline.",
             es: "Estás sin conexión.",
@@ -47,6 +51,10 @@ const voice = {
         "voice.failed.provider": t({
             en: "Couldn't write that down.",
             es: "No pude anotarlo.",
+        }),
+        "voice.failed.quotaExceeded": t({
+            en: "The fair-use limit for captures is reached. It resets within 30 days.",
+            es: "Se alcanzó el límite de uso justo de capturas. Se reinicia en menos de 30 días.",
         }),
         "voice.failed.rateLimited": t({
             en: "That's a lot of entries at once. Give it a moment.",

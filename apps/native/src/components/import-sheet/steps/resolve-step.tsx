@@ -18,6 +18,7 @@ import { StepCta } from "../step-cta";
 const REASON_COPY = {
     invalidResponse: "import.unavailableInvalidResponse",
     notConfigured: "import.unavailableNotConfigured",
+    notEntitled: "import.unavailableNotEntitled",
     offline: "import.unavailableOffline",
     overCap: "import.unavailableOverCap",
     providerError: "import.unavailableProviderError",
@@ -26,7 +27,7 @@ const REASON_COPY = {
     unauthenticated: "import.unavailableUnauthenticated",
 } satisfies Record<UnavailableReason, TranslationKey>;
 
-const NO_RETRY_REASONS: ReadonlySet<UnavailableReason> = new Set(["overCap", "notConfigured"]);
+const NO_RETRY_REASONS: ReadonlySet<UnavailableReason> = new Set(["overCap", "notConfigured", "notEntitled"]);
 
 function StageTask({ children, label, status }: { children: React.ReactNode; label: string; status: TaskStatus }) {
     const colors = useColors();

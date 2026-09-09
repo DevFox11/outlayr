@@ -23,6 +23,7 @@ import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_bgn from "../lib/bgn.js";
+import type * as lib_captures from "../lib/captures.js";
 import type * as lib_currencies from "../lib/currencies.js";
 import type * as lib_merchantKey from "../lib/merchantKey.js";
 import type * as lib_merchantTrust from "../lib/merchantTrust.js";
@@ -33,6 +34,7 @@ import type * as merchantKnowledge from "../merchantKnowledge.js";
 import type * as photos from "../photos.js";
 import type * as providerLifecycle from "../providerLifecycle.js";
 import type * as receiptScan from "../receiptScan.js";
+import type * as revenuecat from "../revenuecat.js";
 import type * as sync from "../sync.js";
 import type * as voiceEntry from "../voiceEntry.js";
 
@@ -58,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/auth": typeof lib_auth;
   "lib/bgn": typeof lib_bgn;
+  "lib/captures": typeof lib_captures;
   "lib/currencies": typeof lib_currencies;
   "lib/merchantKey": typeof lib_merchantKey;
   "lib/merchantTrust": typeof lib_merchantTrust;
@@ -68,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   photos: typeof photos;
   providerLifecycle: typeof providerLifecycle;
   receiptScan: typeof receiptScan;
+  revenuecat: typeof revenuecat;
   sync: typeof sync;
   voiceEntry: typeof voiceEntry;
 }>;
@@ -103,4 +107,5 @@ export declare const components: {
   r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
+  revenuecat: import("convex-revenuecat/_generated/component.js").ComponentApi<"revenuecat">;
 };

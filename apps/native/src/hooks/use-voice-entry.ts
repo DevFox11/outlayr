@@ -55,6 +55,8 @@ export type VoiceFailure =
     | "notConfigured"
     | "unauthenticated"
     | "rateLimited"
+    | "notEntitled"
+    | "quotaExceeded"
     | "provider";
 
 /**
@@ -116,6 +118,12 @@ function failureFor(status: string): VoiceFailure {
         }
         case "rateLimited": {
             return "rateLimited";
+        }
+        case "notEntitled": {
+            return "notEntitled";
+        }
+        case "quotaExceeded": {
+            return "quotaExceeded";
         }
         default: {
             return "provider";

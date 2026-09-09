@@ -11,6 +11,7 @@ import type { ActionCtx } from "./_generated/server";
 import { optionalUserId } from "./lib/auth";
 import { PICKABLE_CURRENCY_CODES } from "./lib/currencies";
 import { knowledgeKey } from "./lib/merchantKey";
+import { isPro } from "./revenuecat";
 
 /**
  * `grok-4-fast-non-reasoning` and `grok-3-mini` — the original design's pick
@@ -590,14 +591,17 @@ export const suggest = action({
             // Scheduling is never awaited: it fills Tier 1.5 for the NEXT lookup
             // of this merchant, never this transaction.
             if (result.categoryName === null || result.domain === null) {
-                const scheduled = await maybeScheduleGrounded(ctx, identity.tokenIdentifier, {
-                    currency,
-                    groundedLookup: args.groundedLookup,
-                    income: args.income,
-                    locale: args.locale,
-                    name: trimmedName,
-                    regionCode,
-                });
+                const scheduled =
+                    args.groundedLookup &&
+                    (await isPro(ctx, identity.subject)) &&
+                    (await maybeScheduleGrounded(ctx, identity.tokenIdentifier, {
+                        currency,
+                        groundedLookup: args.groundedLookup,
+                        income: args.income,
+                        locale: args.locale,
+                        name: trimmedName,
+                        regionCode,
+                    }));
                 // Whatever the model did answer is kept — blanking it would throw
                 // away a good category to report a missing logo. `grounding: true`
                 // is what stops the client caching this as final.

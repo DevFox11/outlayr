@@ -20,6 +20,7 @@ import { Text } from "@/components/text";
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
 import { LocalDataProvider, useDatabase, useLocalData } from "@/contexts/local-data-context";
+import { RevenueCatProvider } from "@/contexts/revenuecat-context";
 import { useAccountDeferred, useOnboardingSettled } from "@/data/onboarding";
 import { useSeededClockPreference } from "@/data/settings";
 import { DeferredDeleteProvider } from "@/data/use-deferred-delete";
@@ -72,12 +73,18 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 
 function CloudRuntimeProvider({ children }: { children: ReactNode }) {
     if (cloudRuntime === null) {
-        return <AuthSessionProvider>{children}</AuthSessionProvider>;
+        return (
+            <AuthSessionProvider>
+                <RevenueCatProvider>{children}</RevenueCatProvider>
+            </AuthSessionProvider>
+        );
     }
 
     return (
         <AuthSessionProvider>
-            <ActivatedCloudRuntime>{children}</ActivatedCloudRuntime>
+            <RevenueCatProvider>
+                <ActivatedCloudRuntime>{children}</ActivatedCloudRuntime>
+            </RevenueCatProvider>
         </AuthSessionProvider>
     );
 }

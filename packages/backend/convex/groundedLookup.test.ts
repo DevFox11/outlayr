@@ -3,6 +3,7 @@
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { tool } from "ai";
 import { MockLanguageModelV3 } from "ai/test";
+import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
 import { describe, expect, test, vi } from "vitest";
 import { z } from "zod";
@@ -302,6 +303,7 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
     test("performs no model work when groundedPerKey is already exhausted for this key", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         await t.run((ctx) => rateLimiter.limit(ctx, "groundedPerKey", { key: "farmatodo" }));
         const grounding = mockTextModel("irrelevant");
 
@@ -318,6 +320,7 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
     test("performs no model work when groundedBudgetMicros is exhausted (T7)", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const limitSpy = vi
             .spyOn(rateLimiter, "limit")
             .mockImplementation(async (_ctx, name) =>
@@ -339,6 +342,7 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
     test("a confident result writes merchantKnowledge and records spend as published", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
             input: 130,
             output: 30,
@@ -372,6 +376,7 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
     test("a thrown model call records spend as unpublished instead of dying uncaught", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         const aborting = new MockLanguageModelV3({
             doGenerate: async () => {
                 const abort = new Error("The operation was aborted");
@@ -411,6 +416,7 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
     test("an uncorroborated result records spend but writes nothing to merchantKnowledge", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
+        revenuecatTest.register(t);
         // A confident domain with NO source part at all — nothing corroborates it.
         const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD));
 
