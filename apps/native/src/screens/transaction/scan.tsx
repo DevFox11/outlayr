@@ -35,6 +35,7 @@ import { stillCurrent } from "@/domain/voice-entry";
 import { useIsMounted } from "@/hooks/use-is-mounted";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
 import { useMerchantMark } from "@/hooks/use-merchant-mark";
+import { useProEntitled } from "@/hooks/use-pro-locked";
 import { useReceiptScan } from "@/hooks/use-receipt-scan";
 import type { ScanFailure, ScanPhoto } from "@/hooks/use-receipt-scan";
 import { useRegionCode } from "@/hooks/use-region-code";
@@ -560,6 +561,7 @@ function pairRates(paid: RateTable, ledger: RateTable, paidCode: string): RateTa
 
 function ScanFlowScreen() {
     const router = useRouter();
+    const entitled = useProEntitled();
     const db = useDatabase();
     const t = useTranslation();
     const colors = useColors();
@@ -794,7 +796,12 @@ function ScanFlowScreen() {
     if (phase.kind === "failed") {
         let primary: BarAction | null = libraryAction;
         let secondary: BarAction | null = null;
-        if (phase.reason === "notEntitled" || phase.reason === "quotaExceeded") {
+        if (phase.reason === "notEntitled" && !entitled) {
+            primary = { label: t("pro.action.see"), onPress: () => router.push("/paywall") };
+        } else if (phase.reason === "notEntitled") {
+            primary = phase.photo === null ? cameraAction : { label: t("receipt.action.retry"), onPress: retry };
+            secondary = libraryAction;
+        } else if (phase.reason === "quotaExceeded") {
             primary = null;
         } else if (phase.reason === "denied") {
             primary = { label: t("receipt.action.settings"), onPress: openSettings };

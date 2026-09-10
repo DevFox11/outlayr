@@ -7,6 +7,8 @@ import { META_KEYS } from "./app-meta-core";
 import { useLiveQuery } from "./live-query";
 
 export interface SyncStatus {
+    /** The device-local switch, which outlives any entitlement. */
+    enabled: boolean;
     /** Rows this device has queued and not yet handed to the server. */
     pending: number;
     /** When a cycle last completed here, or null if none ever has. */
@@ -28,6 +30,7 @@ export function useSyncStatus(db: Database): SyncStatus {
     const ms = raw == null ? Number.NaN : Number(raw);
 
     return {
+        enabled: metaRows.find((row) => row.key === META_KEYS.syncEnabled)?.value === "1",
         pending: pendingRows[0]?.total ?? 0,
         syncedAt: Number.isFinite(ms) ? new Date(ms) : null,
     };

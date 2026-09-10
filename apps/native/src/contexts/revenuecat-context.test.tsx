@@ -5,6 +5,7 @@ import { AppState, Text } from "react-native";
 import type { CustomerInfo, PurchasesPackage } from "react-native-purchases";
 
 import { RevenueCatProvider, useRevenueCat } from "./revenuecat-context";
+import type { PurchaseOutcome } from "./revenuecat-context";
 
 const mockSession: { accountId: string | null } = { accountId: null };
 const mockCustomerInfo: { listener: ((info: CustomerInfo) => void) | null } = { listener: null };
@@ -22,6 +23,7 @@ jest.mock<Partial<typeof import("@/lib/auth-session")>>("@/lib/auth-session", ()
 jest.mock<typeof import("@/lib/revenuecat")>("@/lib/revenuecat", () => ({
     PRO_ENTITLEMENT_ID: "pro",
     configureRevenueCat: () => true,
+    eligibleForTrial: jest.fn(async () => new Set<string>()),
     getPackages: jest.fn(async () => []),
     hasProEntitlement: (info: CustomerInfo | null) => info?.entitlements.active.pro !== undefined,
     identifyUser: jest.fn(async () => true),
@@ -36,10 +38,14 @@ jest.mock<typeof import("@/lib/revenuecat")>("@/lib/revenuecat", () => ({
     restoreAndCheckPro: jest.fn(async () => false),
 }));
 
+const mockMirror = jest.fn<() => Promise<boolean>>(async () => true);
+jest.mock("@/lib/entitlement-mirror", () => ({ mirrorEntitlement: () => mockMirror() }));
+
 const sdk = jest.mocked(jest.requireMock<typeof import("@/lib/revenuecat")>("@/lib/revenuecat"));
 
 beforeEach(() => {
     jest.clearAllMocks();
+    mockMirror.mockResolvedValue(true);
 });
 
 function Probe() {
@@ -214,7 +220,7 @@ describe("revenueCatProvider identity", () => {
         const { result, rerender } = await renderHook(() => useRevenueCat(), { wrapper: RevenueCatProvider });
         // SAFETY: the provider hands the package straight to the mocked SDK; nothing on it is read.
         const pack = { identifier: "$rc_annual" } as unknown as PurchasesPackage;
-        let purchase: Promise<boolean> = Promise.resolve(false);
+        let purchase: Promise<PurchaseOutcome> = Promise.resolve("cancelled");
         await act(async () => {
             purchase = result.current.purchasePackage(pack);
             purchase.catch(() => undefined);
@@ -485,7 +491,7 @@ describe("revenueCatProvider identity", () => {
         // SAFETY: the provider hands the package straight to the mocked SDK; nothing on it is read.
         const pack = { identifier: "$rc_annual" } as unknown as PurchasesPackage;
 
-        let purchase: Promise<boolean> = Promise.resolve(false);
+        let purchase: Promise<PurchaseOutcome> = Promise.resolve("cancelled");
         await act(async () => {
             purchase = result.current.purchasePackage(pack);
         });
@@ -496,7 +502,7 @@ describe("revenueCatProvider identity", () => {
         });
 
         expect(sdk.purchaseAndCheckPro).toHaveBeenCalledWith(pack);
-        await expect(purchase).resolves.toBe(false);
+        await expect(purchase).resolves.toBe("unentitled");
     });
 
     it("retries the account identity on foreground after a failed sign-in", async () => {
@@ -554,5 +560,99 @@ describe("revenueCatProvider identity", () => {
             sdk.logOutUser.mock.invocationCallOrder[0]
         );
         expect(getByTestId("pro").props.children).toBe("true");
+    });
+});
+
+/**
+ * `isPending` gates the ledger-adoption cover, so it has to be true whenever an
+ * answer is still coming AND false whenever one can no longer arrive: a gap
+ * settles adoption early, and a stuck flag holds the app behind a splash.
+ */
+describe("revenueCatProvider entitlement pending", () => {
+    it("stays pending from mount until the mirror answers for a Pro customer", async () => {
+        let releaseMirror: (mirrored: boolean) => void = () => undefined;
+        mockMirror.mockImplementation(
+            () =>
+                new Promise<boolean>((resolve) => {
+                    releaseMirror = resolve;
+                })
+        );
+        mockSession.accountId = "user-30";
+
+        const { result } = await renderHook(() => useRevenueCat(), { wrapper: RevenueCatProvider });
+
+        // The store has answered Pro, but the mirror it triggers has not.
+        expect(result.current.isPro).toBe(true);
+        expect(result.current.isMirrored).toBe(false);
+        expect(result.current.isPending).toBe(true);
+
+        await act(async () => {
+            releaseMirror(true);
+        });
+
+        expect(result.current.isMirrored).toBe(true);
+        expect(result.current.isPending).toBe(false);
+    });
+
+    it("never reports a settled gap between the store saying Pro and the mirror starting", async () => {
+        // Every commit, not just the settled one: the gap this guards against is
+        // a single render, and an effect elsewhere in the tree acts on it.
+        const seen: { mirrored: boolean; pending: boolean; pro: boolean }[] = [];
+        function Recorder() {
+            const { isMirrored, isPending, isPro } = useRevenueCat();
+            useEffect(() => {
+                seen.push({ mirrored: isMirrored, pending: isPending, pro: isPro });
+            });
+            return null;
+        }
+        let releaseMirror: (mirrored: boolean) => void = () => undefined;
+        mockMirror.mockImplementation(
+            () =>
+                new Promise<boolean>((resolve) => {
+                    releaseMirror = resolve;
+                })
+        );
+        mockSession.accountId = "user-34";
+
+        await render(
+            <RevenueCatProvider>
+                <Recorder />
+            </RevenueCatProvider>
+        );
+        await act(async () => {
+            releaseMirror(true);
+        });
+
+        expect(seen.filter((frame) => frame.pro && !frame.mirrored && !frame.pending)).toStrictEqual([]);
+    });
+
+    it("stops pending when the mirror refuses, rather than waiting on an answer that came", async () => {
+        mockMirror.mockResolvedValue(false);
+        mockSession.accountId = "user-31";
+
+        const { result } = await renderHook(() => useRevenueCat(), { wrapper: RevenueCatProvider });
+
+        expect(result.current.isMirrored).toBe(false);
+        expect(result.current.isPending).toBe(false);
+    });
+
+    it("stops pending for a Free account that replaces one whose mirror never landed", async () => {
+        // Never settles: the account switch has to release the flags this
+        // request would otherwise have owned.
+        mockMirror.mockReturnValue(
+            new Promise<boolean>(() => {
+                // Deliberately abandoned.
+            })
+        );
+        sdk.identifyUser.mockImplementation(async (accountId: string) => accountId === "user-32");
+        mockSession.accountId = "user-32";
+        const { result, rerender } = await renderHook(() => useRevenueCat(), { wrapper: RevenueCatProvider });
+        expect(result.current.isPending).toBe(true);
+
+        mockSession.accountId = "user-33";
+        await rerender(undefined);
+
+        expect(result.current.isPro).toBe(false);
+        expect(result.current.isPending).toBe(false);
     });
 });

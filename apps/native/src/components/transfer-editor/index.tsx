@@ -25,6 +25,7 @@ import { rememberFeeCategory, transfersRepo } from "@/data/transfers-core";
 import { formatSignedAmount } from "@/domain/account-display";
 import { currencySymbol, formatAmount } from "@/domain/money";
 import { numpadToNumber } from "@/domain/numpad";
+import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { LARGE_ONLY, TRANSFER_DETENT } from "@/lib/sheet-detents";
 import { withAlpha } from "@/theme/shade";
@@ -49,6 +50,7 @@ interface TransferEditorProps {
 export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
     const db = useDatabase();
     const router = useRouter();
+    const accountCreateRoute = useAccountCreateRoute();
     const navigation = useNavigation();
     const t = useTranslation();
     const { language } = useLanguage();
@@ -307,7 +309,7 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
             <AccountPickerSheet
                 allowNone={false}
                 db={db}
-                onCreate={() => router.push("/accounts/create")}
+                onCreate={() => router.push(accountCreateRoute)}
                 onDismiss={() => setListOpen(false)}
                 onSelect={(account) => {
                     draft.chooseFrom(account);
@@ -319,7 +321,7 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
             <AccountPickerSheet
                 allowNone={false}
                 db={db}
-                onCreate={() => router.push("/accounts/create")}
+                onCreate={() => router.push(accountCreateRoute)}
                 onDismiss={() => setListOpen(false)}
                 onSelect={(account) => {
                     draft.chooseTo(account);

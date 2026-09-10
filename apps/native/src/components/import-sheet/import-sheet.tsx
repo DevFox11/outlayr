@@ -57,10 +57,11 @@ export interface ImportSheetHandle {
 interface StepBodyProps {
     onDone: () => void;
     onOpenFeatureLab: () => void;
+    onSeePro: () => void;
     step: ImportStep;
 }
 
-function StepBody({ step, onOpenFeatureLab, onDone }: StepBodyProps) {
+function StepBody({ step, onOpenFeatureLab, onSeePro, onDone }: StepBodyProps) {
     const review = useImportReview();
     const { status, choose } = useChooseImportFile();
 
@@ -72,7 +73,7 @@ function StepBody({ step, onOpenFeatureLab, onDone }: StepBodyProps) {
             return <FileStep busy={status === "loading"} onChoose={choose} />;
         }
         case "resolve": {
-            return <ResolveStep onOpenFeatureLab={onOpenFeatureLab} review={review} />;
+            return <ResolveStep onOpenFeatureLab={onOpenFeatureLab} onSeePro={onSeePro} review={review} />;
         }
         case "review": {
             return <ReviewStep review={review} />;
@@ -146,6 +147,10 @@ export function ImportSheet({ ref }: ImportSheetProps) {
         router.push("/settings/feature-lab");
     }, [dismiss]);
 
+    const onSeePro = useCallback(() => {
+        router.push("/paywall");
+    }, []);
+
     const back = STEP_BACK[step];
     const onBack = back == null ? undefined : () => importDraftStore.setStep(back);
 
@@ -176,7 +181,12 @@ export function ImportSheet({ ref }: ImportSheetProps) {
 
                             {draft.ui.resumed ? <ResumeNotice onStartOver={() => importDraftStore.clear()} /> : null}
                             <Animated.View className="flex-1" entering={entering} key={step}>
-                                <StepBody onDone={dismiss} onOpenFeatureLab={onOpenFeatureLab} step={step} />
+                                <StepBody
+                                    onDone={dismiss}
+                                    onOpenFeatureLab={onOpenFeatureLab}
+                                    onSeePro={onSeePro}
+                                    step={step}
+                                />
                             </Animated.View>
                         </View>
                     </CsvImportProvider>

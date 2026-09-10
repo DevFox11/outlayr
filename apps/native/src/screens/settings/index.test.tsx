@@ -24,6 +24,7 @@ jest.mock("@/contexts/display-settings-context", () => ({
     useAppSettings: () => mockTestAppSettings(),
     useDisplaySettings: () => mockTestDisplaySettingsValue(),
 }));
+jest.mock("@/contexts/revenuecat-context", () => ({ useRevenueCat: () => ({ isPro: false }) }));
 jest.mock("@/data/app-meta", () => ({ useGlobalCurrency: () => "USD" }));
 jest.mock("@/data/use-sync-status", () => ({ useSyncStatus: () => ({ pending: 0, syncedAt: null }) }));
 jest.mock("@/data/use-valuation-coverage", () => ({

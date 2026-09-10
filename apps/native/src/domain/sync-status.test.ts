@@ -1,40 +1,55 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { effectiveCapabilityStatus, ownsSyncSwitch, syncPresentation, syncStatusLabel } from "./sync-status";
+import {
+    effectiveCapabilityStatus,
+    ownsSyncSwitch,
+    syncPaused,
+    syncPresentation,
+    syncRunnable,
+    syncStatusLabel,
+} from "./sync-status";
 
 const AT = new Date(1_700_000_000_000);
 
 describe("syncStatusLabel", () => {
     it("reads an empty queue as up to date, not as zero pending", () => {
-        expect(syncStatusLabel(0, AT)).toStrictEqual({
+        expect(syncStatusLabel(0, AT, false)).toStrictEqual({
             key: "settings.sync.upToDate",
         });
     });
 
     it("does not claim up to date on a device that has never synced", () => {
-        expect(syncStatusLabel(0, null)).toStrictEqual({
+        expect(syncStatusLabel(0, null, false)).toStrictEqual({
             key: "settings.sync.never",
         });
     });
 
     it("counts a single pending row without pluralising it", () => {
-        expect(syncStatusLabel(1, AT)).toStrictEqual({
+        expect(syncStatusLabel(1, AT, false)).toStrictEqual({
             key: "settings.sync.pendingOne",
         });
     });
 
     it("carries the count once there is more than one", () => {
-        expect(syncStatusLabel(7, AT)).toStrictEqual({
+        expect(syncStatusLabel(7, AT, false)).toStrictEqual({
             count: 7,
             key: "settings.sync.pending",
         });
     });
 
     it("reports pending work even before a first successful cycle", () => {
-        expect(syncStatusLabel(3, null)).toStrictEqual({
+        expect(syncStatusLabel(3, null, false)).toStrictEqual({
             count: 3,
             key: "settings.sync.pending",
         });
+    });
+
+    it("never dates an idle queue as up to date while replication is paused", () => {
+        expect(syncStatusLabel(0, AT, true)).toStrictEqual({ key: "settings.sync.paused" });
+    });
+
+    it("reports a paused engine rather than the work it is not doing", () => {
+        expect(syncStatusLabel(4, AT, true)).toStrictEqual({ key: "settings.sync.paused" });
     });
 });
 
@@ -81,27 +96,67 @@ describe("effective capability status", () => {
 
 describe("syncPresentation", () => {
     it("names the build as unavailable before it names the account", () => {
-        expect(syncPresentation("unavailable", false)).toStrictEqual({
+        expect(syncPresentation("unavailable", false, false)).toStrictEqual({
             detail: "settings.account.unavailableDetail",
             title: "settings.account.unavailable",
         });
     });
 
     it("asks for an account without claiming sync is off", () => {
-        expect(syncPresentation("accountRequired", false)).toStrictEqual({
+        expect(syncPresentation("accountRequired", false, false)).toStrictEqual({
             detail: "settings.sync.needsAccount",
             title: "settings.account.notSignedIn",
         });
     });
 
     it("reads the switch only once the capability settled", () => {
-        expect(syncPresentation("syncOff", false).title).toBe("settings.sync.off");
-        expect(syncPresentation("active", true).title).toBe("settings.sync.on");
+        expect(syncPresentation("syncOff", false, true).title).toBe("settings.sync.off");
+        expect(syncPresentation("active", true, true).title).toBe("settings.sync.on");
     });
 
     it("ignores the switch position for a kind that has no switch", () => {
-        expect(syncPresentation("unavailable", true).title).toBe("settings.account.unavailable");
-        expect(syncPresentation("accountRequired", true).title).toBe("settings.account.notSignedIn");
+        expect(syncPresentation("unavailable", true, false).title).toBe("settings.account.unavailable");
+        expect(syncPresentation("accountRequired", true, false).title).toBe("settings.account.notSignedIn");
+    });
+
+    it("reads a switch left on without a confirmed entitlement as paused rather than off", () => {
+        expect(syncPresentation("syncOff", true, false)).toStrictEqual({
+            detail: "settings.sync.pausedDetail",
+            title: "settings.sync.paused",
+        });
+    });
+
+    it("never calls a switch the user turned off paused", () => {
+        expect(syncPresentation("syncOff", false, false).title).toBe("settings.sync.off");
+    });
+});
+
+describe("syncRunnable", () => {
+    it("holds replication down while the entitlement is unproven", () => {
+        expect(syncRunnable(true, false)).toBe(false);
+    });
+
+    it("runs for a confirmed customer who turned the switch on", () => {
+        expect(syncRunnable(true, true)).toBe(true);
+    });
+
+    it("stays off for a confirmed customer who never turned it on", () => {
+        expect(syncRunnable(false, true)).toBe(false);
+    });
+});
+
+describe("syncPaused", () => {
+    it("pauses replication the user asked for and the entitlement withholds", () => {
+        expect(syncPaused(true, false)).toBe(true);
+    });
+
+    it("does not call an off switch paused, whatever the entitlement", () => {
+        expect(syncPaused(false, false)).toBe(false);
+        expect(syncPaused(false, true)).toBe(false);
+    });
+
+    it("does not pause a confirmed customer", () => {
+        expect(syncPaused(true, true)).toBe(false);
     });
 });
 

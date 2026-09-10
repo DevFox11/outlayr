@@ -298,6 +298,17 @@ function RootStack() {
                     <Stack.Screen.Title>{t("nav.search")}</Stack.Screen.Title>
                 </Stack.Screen>
 
+                <Stack.Screen
+                    name="paywall"
+                    options={{
+                        presentation: "modal",
+                        sheetGrabberVisible: true,
+                        title: "",
+                    }}
+                >
+                    <Stack.Header transparent />
+                </Stack.Screen>
+
                 {SETTINGS_SCREENS.map((screen) => (
                     <Stack.Screen key={screen.name} name={screen.name}>
                         <Stack.Header transparent />

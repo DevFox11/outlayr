@@ -8,6 +8,7 @@ import { useCsvImportContext } from "@/contexts/csv-import-context";
 import type { UnavailableReason } from "@/domain/import-flow";
 import type { CsvImportStage } from "@/hooks/use-csv-import";
 import type { ImportReviewResult } from "@/hooks/use-import-review";
+import { useProEntitled } from "@/hooks/use-pro-locked";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
 import { importDraftStore, useImportDraft } from "@/lib/import-draft-store";
@@ -28,6 +29,32 @@ const REASON_COPY = {
 } satisfies Record<UnavailableReason, TranslationKey>;
 
 const NO_RETRY_REASONS: ReadonlySet<UnavailableReason> = new Set(["overCap", "notConfigured", "notEntitled"]);
+
+function UnavailableAction({
+    reason,
+    onRetry,
+    onSeePro,
+}: {
+    onRetry: () => void;
+    onSeePro: () => void;
+    reason: UnavailableReason;
+}) {
+    const t = useTranslation();
+    const entitled = useProEntitled();
+    // `notEntitled` is in NO_RETRY_REASONS, but it is the one reason a retry can
+    // fix — once the entitlement is confirmed the same import runs.
+    const gated = reason === "notEntitled" && !entitled;
+    if (reason !== "notEntitled" && NO_RETRY_REASONS.has(reason)) {
+        return null;
+    }
+    return (
+        <Pressable accessibilityRole="button" onPress={gated ? onSeePro : onRetry}>
+            <Text className="font-sans-medium text-body text-tint">
+                {t(gated ? "pro.action.see" : "import.tryAgain")}
+            </Text>
+        </Pressable>
+    );
+}
 
 function StageTask({ children, label, status }: { children: React.ReactNode; label: string; status: TaskStatus }) {
     const colors = useColors();
@@ -66,10 +93,11 @@ function StageDetail({ children }: { children: React.ReactNode }) {
 
 interface ResolveStepProps {
     onOpenFeatureLab: () => void;
+    onSeePro: () => void;
     review: ImportReviewResult;
 }
 
-export function ResolveStep({ review, onOpenFeatureLab }: ResolveStepProps) {
+export function ResolveStep({ review, onOpenFeatureLab, onSeePro }: ResolveStepProps) {
     const t = useTranslation();
     const { flow } = useImportDraft();
     const { running, stage, outcome, reason, totalLabels, tier1Matched, tier2Sent, run } = useCsvImportContext();
@@ -98,11 +126,7 @@ export function ResolveStep({ review, onOpenFeatureLab }: ResolveStepProps) {
                     </Text>
                     <Text className="text-footnote text-muted">{t(REASON_COPY[reason])}</Text>
                 </View>
-                {NO_RETRY_REASONS.has(reason) ? null : (
-                    <Pressable accessibilityRole="button" onPress={run}>
-                        <Text className="font-sans-medium text-body text-tint">{t("import.tryAgain")}</Text>
-                    </Pressable>
-                )}
+                <UnavailableAction onRetry={run} onSeePro={onSeePro} reason={reason} />
             </View>
         );
     }

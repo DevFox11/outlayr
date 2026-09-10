@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 
+import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
 import type { TestConvex } from "convex-test";
 import type { FunctionArgs } from "convex/server";
@@ -10,8 +11,14 @@ import { api, internal } from "./_generated/api";
 import { photoKeyFor, photoOwnerFromKey } from "./lib/photoKeys";
 import { PHOTO_QUOTA_BYTES, PHOTO_URL_BATCH_LIMIT } from "./photos";
 import schema from "./schema";
-import { authenticatedAs, seedAuthUser } from "./test.helpers";
+import { authenticatedAs, seedAuthUser, seedProUser } from "./test.helpers";
 import type { SeededIdentity } from "./test.helpers";
+
+function harness() {
+    const t = convexTest(schema, modules);
+    revenuecatTest.register(t);
+    return t;
+}
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -104,14 +111,14 @@ async function totalStored(t: TestClient, userId: string): Promise<number> {
 
 describe("requestUpload", () => {
     test("refuses a caller with no session", async () => {
-        const t = convexTest(schema, modules);
+        const t = harness();
 
         await expect(t.mutation(api.photos.requestUpload, { name: PHOTO })).rejects.toThrow(ConvexError);
     });
 
     test("refuses a name that would climb out of the account's prefix", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         await expect(
             authenticatedAs(t, owner).mutation(api.photos.requestUpload, {
@@ -121,8 +128,8 @@ describe("requestUpload", () => {
     });
 
     test("refuses once the account is at its storage ceiling", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await storeSize(t, photoKeyFor(owner.userId, "big.jpg"), PHOTO_QUOTA_BYTES);
 
         await expect(
@@ -133,8 +140,8 @@ describe("requestUpload", () => {
     });
 
     test("mints a url while the account is still under the ceiling", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await storeSize(t, photoKeyFor(owner.userId, "big.jpg"), PHOTO_QUOTA_BYTES - 1);
 
         const { key } = await authenticatedAs(t, owner).mutation(api.photos.requestUpload, { name: PHOTO });
@@ -144,9 +151,9 @@ describe("requestUpload", () => {
     test("weighs only the caller's own photos", async () => {
         // The sum is indexed by user, so a stranger at the ceiling must not spend
         // this account's allowance.
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
-        const stranger = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
+        const stranger = await seedProUser(t);
         await storeSize(t, photoKeyFor(stranger.userId, "big.jpg"), PHOTO_QUOTA_BYTES);
 
         const { key } = await authenticatedAs(t, owner).mutation(api.photos.requestUpload, { name: PHOTO });
@@ -158,8 +165,8 @@ describe("accounting for what an account stores", () => {
     test("replaces a re-uploaded name's size instead of adding to it", async () => {
         // A counter per account would read 300 here, and the account would be
         // charged for bytes R2 overwrote.
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         const key = photoKeyFor(owner.userId, PHOTO);
 
         await storeSize(t, key, 100);
@@ -169,7 +176,7 @@ describe("accounting for what an account stores", () => {
     });
 
     test("records nothing for a key that is not a photo key", async () => {
-        const t = convexTest(schema, modules);
+        const t = harness();
         await t.mutation(internal.photos.recordPhotoSize, {
             bytes: 999,
             key: "not/a/photo/key",
@@ -182,9 +189,9 @@ describe("accounting for what an account stores", () => {
 
 describe("confirmUpload", () => {
     test("refuses a key belonging to another account", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
-        const stranger = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
+        const stranger = await seedProUser(t);
 
         await expect(
             authenticatedAs(t, owner).action(api.photos.confirmUpload, {
@@ -196,14 +203,14 @@ describe("confirmUpload", () => {
 
 describe("readUrls", () => {
     test("refuses a caller with no session", async () => {
-        const t = convexTest(schema, modules);
+        const t = harness();
 
         await expect(t.query(api.photos.readUrls, { keys: [] })).rejects.toThrow(ConvexError);
     });
 
     test("refuses a batch bigger than the limit", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         const keys = Array.from({ length: PHOTO_URL_BATCH_LIMIT + 1 }, (_, i) =>
             photoKeyFor(owner.userId, `p${i}.jpg`)
         );
@@ -212,16 +219,16 @@ describe("readUrls", () => {
     });
 
     test("mints nothing for an empty batch without reaching R2", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         await expect(authenticatedAs(t, owner).query(api.photos.readUrls, { keys: [] })).resolves.toStrictEqual([]);
     });
 
     test("drops a key belonging to another account rather than minting for it", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
-        const stranger = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
+        const stranger = await seedProUser(t);
 
         await expect(
             authenticatedAs(t, owner).query(api.photos.readUrls, {
@@ -233,9 +240,9 @@ describe("readUrls", () => {
 
 describe("releaseUnreferenced", () => {
     test("refuses a key belonging to another account", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
-        const stranger = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
+        const stranger = await seedProUser(t);
 
         await expect(
             authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, {
@@ -245,8 +252,8 @@ describe("releaseUnreferenced", () => {
     });
 
     test("keeps an object a live row still names", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         const key = photoKeyFor(owner.userId, PHOTO);
         await push(t, owner, [transactionRow("t1", { imageKey: key })]);
 
@@ -258,8 +265,8 @@ describe("releaseUnreferenced", () => {
     });
 
     test("keeps an object only a tombstoned row names", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         const key = photoKeyFor(owner.userId, PHOTO);
         await push(t, owner, [transactionRow("t1", { deletedAt: 200, imageKey: key })]);
 
@@ -273,8 +280,8 @@ describe("releaseUnreferenced", () => {
     });
 
     test("keeps an object only an account logo names", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         const key = photoKeyFor(owner.userId, PHOTO);
         await push(t, owner, [accountRow("a1", { imageKey: key })]);
 
@@ -286,9 +293,9 @@ describe("releaseUnreferenced", () => {
     });
 
     test("does not see another account's row as a reference", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
-        const stranger = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
+        const stranger = await seedProUser(t);
         const key = photoKeyFor(owner.userId, PHOTO);
         await push(t, stranger, [transactionRow("t1", { imageKey: key })]);
 
@@ -309,8 +316,8 @@ describe("merchant cache keys stay unowned (T8)", () => {
     });
 
     test("readUrls drops a merchant key even for an authenticated caller", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         await expect(
             authenticatedAs(t, owner).query(api.photos.readUrls, {
@@ -328,8 +335,8 @@ describe("merchant cache keys stay unowned (T8)", () => {
  */
 describe("the convex storage fallback", () => {
     test("mints a read url for a key confirmed with a storage id", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         const key = photoKeyFor(owner.userId, PHOTO);
         const storageId = await t.run(async (ctx) => await ctx.storage.store(new Blob(["bytes"])));
 
@@ -346,8 +353,8 @@ describe("the convex storage fallback", () => {
     });
 
     test("re-uploading the same name frees the object it displaced", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         const key = photoKeyFor(owner.userId, PHOTO);
         const first = await t.run(async (ctx) => await ctx.storage.store(new Blob(["one"])));
         const second = await t.run(async (ctx) => await ctx.storage.store(new Blob(["two"])));
@@ -367,8 +374,8 @@ describe("the convex storage fallback", () => {
     });
 
     test("releasing an unreferenced key drops the mapping and the bytes", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         const key = photoKeyFor(owner.userId, PHOTO);
         const storageId = await t.run(async (ctx) => await ctx.storage.store(new Blob(["bytes"])));
         await authenticatedAs(t, owner).action(api.photos.confirmUpload, {
@@ -381,5 +388,16 @@ describe("the convex storage fallback", () => {
         expect(released).toStrictEqual({ released: true });
         await expect(t.run(async (ctx) => await ctx.db.query("photoObjects").collect())).resolves.toHaveLength(0);
         await expect(t.run(async (ctx) => await ctx.storage.getUrl(storageId))).resolves.toBeNull();
+    });
+});
+
+describe("the Pro gate", () => {
+    test("refuses an upload target to an account without Pro", async () => {
+        const t = harness();
+        const free = await seedAuthUser(t);
+
+        await expect(
+            authenticatedAs(t, free).mutation(api.photos.requestUpload, { name: "receipt.jpg" })
+        ).rejects.toThrow("Pro");
     });
 });

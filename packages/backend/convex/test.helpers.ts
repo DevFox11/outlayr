@@ -99,6 +99,12 @@ export function authenticatedAs(t: AnyTestConvex, identity: SeededIdentity): Any
     }) as AnyTestConvex;
 }
 
+export async function seedProUser(t: AnyTestConvex, options?: SeedOptions): Promise<SeededIdentity> {
+    const identity = await seedAuthUser(t, options);
+    await grantPro(t, identity);
+    return identity;
+}
+
 export async function grantPro(t: AnyTestConvex, identity: Pick<SeededIdentity, "userId">): Promise<void> {
     await t.run((ctx) =>
         revenuecat.syncSubscriber(ctx, {

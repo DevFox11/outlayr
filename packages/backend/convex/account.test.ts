@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 
+import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
 import type { TestConvex } from "convex-test";
 import type { FunctionArgs } from "convex/server";
@@ -8,7 +9,13 @@ import { describe, expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import { photoKeyFor } from "./lib/photoKeys";
 import schema from "./schema";
-import { authenticatedAs, seedAuthUser } from "./test.helpers";
+import { authenticatedAs, seedProUser } from "./test.helpers";
+
+function harness() {
+    const t = convexTest(schema, modules);
+    revenuecatTest.register(t);
+    return t;
+}
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -76,8 +83,8 @@ async function countRows(t: TestClient, userId: string): Promise<number> {
 
 describe("purging an account", () => {
     test("removes the caller's ledger and reports done", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await authenticatedAs(t, owner).mutation(api.sync.push, {
             deviceId: DEVICE,
             rows: [transactionRow("a"), transactionRow("b")],
@@ -90,9 +97,9 @@ describe("purging an account", () => {
     });
 
     test("leaves another account's ledger untouched", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
-        const stranger = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
+        const stranger = await seedProUser(t);
         await authenticatedAs(t, owner).mutation(api.sync.push, {
             deviceId: DEVICE,
             rows: [transactionRow("a")],
@@ -111,8 +118,8 @@ describe("purging an account", () => {
     test("drops the seq counter only once the rows are gone", async () => {
         // Removing it while rows remain would restart numbering under records that
         // already carry higher seqs, and a peer would then never see them again.
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await authenticatedAs(t, owner).mutation(api.sync.push, {
             deviceId: DEVICE,
             rows: [transactionRow("a")],
@@ -145,8 +152,8 @@ describe("purging an account", () => {
         // the mapping, the accounting and the stored bytes all exist the way they
         // would in production. The Convex-storage path is the testable one: the R2
         // branch needs a component convex-test cannot register.
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         const key = photoKeyFor(owner.userId, "a.jpg");
         const storageId = await t.run(async (ctx) => await ctx.storage.store(new Blob(["bytes"])));
         await authenticatedAs(t, owner).action(api.photos.confirmUpload, {
@@ -167,8 +174,8 @@ describe("purging an account", () => {
     test("is safe to run again on an account already purged", async () => {
         // A pass that dies halfway is retried rather than resumed, so a second run
         // over nothing has to be a no-op instead of an error.
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         const passes = await purgeAll(t, owner.userId);
         expect(passes).toBe(1);

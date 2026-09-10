@@ -41,6 +41,7 @@ import { formatAmount, minorUnitsFor, roundToMinorUnits } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { useAccountIdentity } from "@/hooks/use-account-identity";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
+import { useCurrencyBlocked } from "@/hooks/use-pro-gate";
 import { useRegionCode } from "@/hooks/use-region-code";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
@@ -82,6 +83,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
     const { db, mode } = props;
     const editId = props.mode === "edit" ? props.id : null;
     const router = useRouter();
+    const currencyBlocked = useCurrencyBlocked(editId);
     const navigation = useNavigation();
     const t = useTranslation();
     const { language } = useLanguage();
@@ -132,6 +134,13 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
         defaultValues: initialValues,
         onSubmit: async ({ value }) => {
             setFailure(null);
+            // The picker is not the only way a currency gets here: the form opens
+            // on the global currency, which is not capped, so an untouched field
+            // can still be the second currency in the ledger.
+            if (currencyBlocked(value.currency)) {
+                router.push("/paywall");
+                return;
+            }
             // A currency swapped after typing can leave more precision in the pad
             // than the new code has minor units — JPY cannot hold "12.34".
             const magnitude = roundToMinorUnits(numpadToNumber(value.balanceText), value.currency);
@@ -438,8 +447,12 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 
             <CurrencyPickerSheet
                 onSelect={(code) => {
-                    form.setFieldValue("currency", code);
                     currencySheetRef.current?.dismiss();
+                    if (currencyBlocked(code)) {
+                        router.push("/paywall");
+                        return;
+                    }
+                    form.setFieldValue("currency", code);
                 }}
                 ref={currencySheetRef}
                 selected={currency}

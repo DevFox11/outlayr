@@ -71,6 +71,7 @@ import { ctaKey, transactionWhenLabel } from "@/domain/transaction-form-labels";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
 import { isMissingCategory, transactionFormErrors } from "@/domain/transaction-form-validate";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
+import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 import { useRegionCode } from "@/hooks/use-region-code";
 import { useTransactionEnrichment } from "@/hooks/use-transaction-enrichment";
 import type { EnrichmentSuggestion, PendingCategory } from "@/hooks/use-transaction-enrichment";
@@ -873,6 +874,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const scheme = useColorScheme();
     const isDark = scheme === "dark";
     const router = useRouter();
+    const accountCreateRoute = useAccountCreateRoute();
 
     /**
      * The one bottom surface. It rests on the keypad — the amount is the first
@@ -1924,7 +1926,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     stageStep === "account" && allAccounts.length === 0
                         ? {
                               label: t("transaction.account.create"),
-                              onPress: () => router.push("/accounts/create"),
+                              onPress: () => router.push(accountCreateRoute),
                               tone: "primary",
                           }
                         : stageFooter(amountNumber, merchant)

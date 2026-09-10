@@ -919,6 +919,14 @@ const settings = {
             en: "Every change you make here is queued for your account and reaches your other devices.",
             es: "Cada cambio que haces aquí se pone en cola para tu cuenta y llega a tus otros dispositivos.",
         }),
+        "settings.sync.paused": t({
+            en: "Paused",
+            es: "En pausa",
+        }),
+        "settings.sync.pausedDetail": t({
+            en: "Syncing needs Outlayr Pro. Your ledger is complete on this iPhone and keeps working; changes wait here until Pro is active again.",
+            es: "Sincronizar requiere Outlayr Pro. Tu registro está completo en este iPhone y sigue funcionando; los cambios esperan aquí hasta que Pro esté activo otra vez.",
+        }),
         "settings.sync.pending": t({
             en: "{count} waiting to sync",
             es: "{count} en espera de sincronizar",

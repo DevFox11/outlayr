@@ -11,6 +11,7 @@ import { LinkRow, PickerRow, SettingsSection, ToggleRow } from "@/components/set
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { useAppSettings, useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
+import { useRevenueCat } from "@/contexts/revenuecat-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
     choiceDetail,
@@ -27,8 +28,9 @@ import type { Database } from "@/db/client";
 import { ACCENTS } from "@/domain/accent";
 import { appIconLabel } from "@/domain/app-icons";
 import { lockFailureMessage } from "@/domain/app-lock";
-import { syncStatusLabel } from "@/domain/sync-status";
+import { syncPaused, syncStatusLabel } from "@/domain/sync-status";
 import { coverageNote } from "@/domain/valuation-coverage";
+import { useProEntitled } from "@/hooks/use-pro-locked";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { languageLabel } from "@/i18n/languages";
 import { translateNow } from "@/i18n/runtime";
@@ -84,6 +86,7 @@ export function Settings() {
 function SettingsContent({ db }: { db: Database }) {
     const router = useRouter();
     const t = useTranslation();
+    const { isPro } = useRevenueCat();
     const importSheetRef = useRef<ImportSheetHandle>(null);
     const { language } = useLanguage();
     useReminderSync(db);
@@ -91,6 +94,7 @@ function SettingsContent({ db }: { db: Database }) {
     const currency = useGlobalCurrency(db);
     const coverage = useValuationCoverage(db);
     const sync = useSyncStatus(db);
+    const proEntitled = useProEntitled();
     const { state: settings } = useAppSettings();
     const { showCents } = useDisplaySettings().state;
     const showNotifications = settings.bool("showNotifications");
@@ -110,13 +114,19 @@ function SettingsContent({ db }: { db: Database }) {
 
     const numberEntryDetail = choiceDetail(NUMBER_ENTRY_OPTIONS, numberEntryType);
 
-    const syncLabel = syncStatusLabel(sync.pending, sync.syncedAt);
+    const syncLabel = syncStatusLabel(sync.pending, sync.syncedAt, syncPaused(sync.enabled, proEntitled));
     const syncValue = syncLabel.count === undefined ? t(syncLabel.key) : t(syncLabel.key, { count: syncLabel.count });
 
     return (
         <SettingsScreen footer={`Outlayr ${version} (${build})`}>
             <SettingsSection title={t("settings.section.account")}>
                 <AccountRow />
+                <LinkRow
+                    icon="Sparkles"
+                    onPress={() => router.push("/paywall")}
+                    title={t("pro.entry.title")}
+                    value={isPro ? t("pro.entry.valuePro") : t("pro.entry.value")}
+                />
                 <LinkRow
                     icon="Cloud"
                     onPress={() => router.push("/settings/sync")}

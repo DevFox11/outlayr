@@ -33,6 +33,8 @@ import { useValuation } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
 import { dominantCategory } from "@/domain/budget-dominant";
 import { BUDGET_TYPE } from "@/domain/budget-math";
+import { blocksNewBudget, FREE_BUDGETS } from "@/domain/pro-limits";
+import { useAccountCreateRoute, useProCapped } from "@/hooks/use-pro-gate";
 import { useTranslation } from "@/i18n/context";
 import { budgetMenuItems } from "@/lib/budget-actions";
 import { notifyFailure } from "@/lib/notify";
@@ -68,6 +70,7 @@ function pairs<T>(items: readonly T[]): [T, T | undefined][] {
 
 function BudgetContent({ db }: { db: Database }) {
     const router = useRouter();
+    const accountCreateRoute = useAccountCreateRoute();
     const [gridWidth, setGridWidth] = useState<number | null>(null);
     const t = useTranslation();
     const haptics = useHaptics();
@@ -132,6 +135,7 @@ function BudgetContent({ db }: { db: Database }) {
 
     const limitSheetRef = useRef<BottomSheetModal>(null);
     const [limitTarget, setLimitTarget] = useState<LimitTarget | null>(null);
+    const budgetsCapped = useProCapped(allBudgets.length, FREE_BUDGETS);
     const accountSheetRef = useRef<BottomSheetModal>(null);
     const goalSheetRef = useRef<BottomSheetModal>(null);
     const [goalTarget, setGoalTarget] = useState<GoalTarget | null>(null);
@@ -140,7 +144,13 @@ function BudgetContent({ db }: { db: Database }) {
     // runs during render to build each card's context menu, so a closure that
     // reached for `limitSheetRef.current` would be a ref read in render as far as
     // the compiler can tell. Setting state is not.
-    const openLimit = setLimitTarget;
+    const openLimit = (target: LimitTarget) => {
+        if (blocksNewBudget(target.categoryId, budgetedCategoryIds, budgetsCapped)) {
+            router.push("/paywall");
+            return;
+        }
+        setLimitTarget(target);
+    };
     useEffect(() => {
         if (limitTarget) {
             limitSheetRef.current?.present();
@@ -258,6 +268,14 @@ function BudgetContent({ db }: { db: Database }) {
             // still recognised as budgeted — inserting a second row for it would
             // fail on the unique category id.
             const existing = allBudgets.find((budget) => budget.categoryId === target.categoryId);
+            // Re-checked at the write, not just when the sheet opened: the
+            // entitlement can resolve, or a sync can add a budget, while it is
+            // open — and the cap is deliberately not enforced until the store
+            // has answered, so an unresolved caller reaches this point.
+            if (!existing && blocksNewBudget(target.categoryId, budgetedCategoryIds, budgetsCapped)) {
+                router.push("/paywall");
+                return;
+            }
             // An untouched figure is left out of the patch: see `LimitCommit`.
             await (existing
                 ? budgetsRepo.patchBudget(db, existing.id, { ...(limitChanged && { amount: limit }), type })
@@ -301,7 +319,7 @@ function BudgetContent({ db }: { db: Database }) {
                 db={db}
                 onCreate={() => {
                     accountSheetRef.current?.dismiss();
-                    router.push("/accounts/create");
+                    router.push(accountCreateRoute);
                 }}
                 onSelect={(picked) => {
                     accountSheetRef.current?.dismiss();

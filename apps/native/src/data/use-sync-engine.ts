@@ -35,12 +35,16 @@ const REPLICATED = new Set<string>(SYNCED_TABLES);
  * device-local and only the sign-in flow opens it, so a signed-out install runs
  * this hook and does nothing at all.
  *
+ * `paused` holds every trigger down while replication is not entitled. The
+ * outbox keeps queueing, so nothing is lost and the first cycle after Pro
+ * returns drains what accumulated.
+ *
  * Failures are swallowed to a warning: the app is local-first, so a failed sync
  * is not a failed save.
  */
-export function useSyncEngine(db: Database | null): void {
+export function useSyncEngine(db: Database | null, paused: boolean): void {
     useEffect(() => {
-        if (db == null) {
+        if (db == null || paused) {
             return;
         }
         const transport = syncTransport();
@@ -158,5 +162,5 @@ export function useSyncEngine(db: Database | null): void {
             subscription.remove();
             unwatch?.();
         };
-    }, [db]);
+    }, [db, paused]);
 }

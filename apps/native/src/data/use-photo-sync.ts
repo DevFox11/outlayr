@@ -34,9 +34,9 @@ const PHOTO_DEBOUNCE_MS = 5000;
  * Failures are swallowed to a warning for the same reason replication's are:
  * the photo is already durable on the device that took it.
  */
-export function usePhotoSync(db: Database | null): void {
+export function usePhotoSync(db: Database | null, paused: boolean): void {
     useEffect(() => {
-        if (db == null) {
+        if (db == null || paused) {
             return;
         }
         const transport = photoTransport();
@@ -90,5 +90,5 @@ export function usePhotoSync(db: Database | null): void {
             listener.remove();
             subscription.remove();
         };
-    }, [db]);
+    }, [db, paused]);
 }

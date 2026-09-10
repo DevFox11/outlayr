@@ -23,6 +23,7 @@ import {
     transferFields,
 } from "./lib/syncTables";
 import type { SyncedTable, WireFields, WireValue } from "./lib/syncTables";
+import { requirePro } from "./revenuecat";
 
 /**
  * Rows a single `push` may carry. Chosen against Convex's per-transaction
@@ -372,9 +373,8 @@ async function upsert(
  * validated session and never from an argument, so one account can neither read
  * nor write another's ledger.
  *
- * Sync is free and ungated today. If it ever becomes an entitlement, the check
- * belongs immediately after `requireUserId` in `push` and `pullSince` — on the
- * server, where a client cannot route around it.
+ * Sync is a Pro entitlement, checked immediately after `requireUserId` in
+ * `push` and `pullSince` — on the server, where a client cannot route around it.
  */
 export const push = mutation({
     args: {
@@ -383,6 +383,7 @@ export const push = mutation({
     },
     handler: async (ctx, args) => {
         const userId = await requireUserId(ctx);
+        await requirePro(ctx, userId);
 
         if (args.rows.length > PUSH_BATCH_LIMIT) {
             throw new ConvexError(`A push carries at most ${PUSH_BATCH_LIMIT} rows; got ${args.rows.length}`);
@@ -519,6 +520,7 @@ export const pullSince = query({
     },
     handler: async (ctx, args) => {
         const userId = await requireUserId(ctx);
+        await requirePro(ctx, userId);
         const limit = Math.min(Math.max(Math.trunc(args.limit ?? PULL_PAGE_LIMIT), 1), PULL_PAGE_LIMIT);
 
         const pages = await Promise.all(

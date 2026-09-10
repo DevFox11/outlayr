@@ -7,7 +7,12 @@ export interface SyncPresentation {
 
 export interface SyncLabel {
     count?: number;
-    key: "settings.sync.upToDate" | "settings.sync.never" | "settings.sync.pending" | "settings.sync.pendingOne";
+    key:
+        | "settings.sync.upToDate"
+        | "settings.sync.never"
+        | "settings.sync.pending"
+        | "settings.sync.pendingOne"
+        | "settings.sync.paused";
 }
 
 export type EffectiveCapabilityStatus =
@@ -54,7 +59,13 @@ export function effectiveCapabilityStatus(probe: CapabilityStatusProbe): Effecti
  * `docs/convex-sync-design.md` settles the UX as silent-and-retrying — a count
  * that stops falling is honest about what is true without guessing at why.
  */
-export function syncStatusLabel(pending: number, syncedAt: Date | null): SyncLabel {
+export function syncStatusLabel(pending: number, syncedAt: Date | null, paused: boolean): SyncLabel {
+    // Ahead of the queue and the timestamp, both of which describe a cycle that
+    // is no longer running: "Up to date" off a stale timestamp is the one thing
+    // a paused row must not say.
+    if (paused) {
+        return { key: "settings.sync.paused" };
+    }
     if (pending === 1) {
         return { key: "settings.sync.pendingOne" };
     }
@@ -65,16 +76,51 @@ export function syncStatusLabel(pending: number, syncedAt: Date | null): SyncLab
 }
 
 /**
+ * Whether replication may run. The stored switch is the user's intent and
+ * outlives an entitlement, so a lapsed Pro pauses the engines here rather than
+ * by rewriting the flag — resubscribing restores sync without the user having
+ * to find the switch again.
+ *
+ * Keyed on a CONFIRMED entitlement rather than on the absence of a lock: the
+ * server refuses an unproven customer, so a build that cannot reach RevenueCat
+ * must pause too instead of retrying into rejections.
+ */
+export function syncRunnable(syncEnabled: boolean, proEntitled: boolean): boolean {
+    return syncEnabled && proEntitled;
+}
+
+/**
+ * Replication the user asked for and the entitlement is withholding. NOT the
+ * inverse of `syncRunnable`, which is also false for a switch that is simply
+ * off — telling a Free user who never enabled sync that it is "paused" reports
+ * a loss they never had.
+ */
+export function syncPaused(syncEnabled: boolean, proEntitled: boolean): boolean {
+    return syncEnabled && !proEntitled;
+}
+
+/**
  * The heading the sync screen leads with, for a capability kind and the current
  * switch position. Only the two settled kinds distinguish on/off — an
  * unconfigured build or a signed-out device has no switch to describe.
+ *
+ * A switch left on without a confirmed entitlement reads as paused, not off:
+ * the device is not syncing, and "off" would blame a choice the user did not
+ * make.
  */
-export function syncPresentation(kind: EffectiveCapabilityStatus["kind"], syncEnabled: boolean): SyncPresentation {
+export function syncPresentation(
+    kind: EffectiveCapabilityStatus["kind"],
+    syncEnabled: boolean,
+    proEntitled: boolean
+): SyncPresentation {
     if (kind === "unavailable") {
         return { detail: "settings.account.unavailableDetail", title: "settings.account.unavailable" };
     }
     if (kind === "accountRequired") {
         return { detail: "settings.sync.needsAccount", title: "settings.account.notSignedIn" };
+    }
+    if (syncPaused(syncEnabled, proEntitled)) {
+        return { detail: "settings.sync.pausedDetail", title: "settings.sync.paused" };
     }
     return syncEnabled
         ? { detail: "settings.sync.onDetail", title: "settings.sync.on" }

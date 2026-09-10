@@ -1,6 +1,6 @@
 import { env } from "@outlayr/env/native";
 import { Platform } from "react-native";
-import Purchases, { LOG_LEVEL } from "react-native-purchases";
+import Purchases, { INTRO_ELIGIBILITY_STATUS, LOG_LEVEL } from "react-native-purchases";
 import type { CustomerInfo, PurchasesPackage } from "react-native-purchases";
 import { z } from "zod";
 
@@ -57,6 +57,18 @@ export async function logOutUser(): Promise<boolean> {
 export async function getPackages(): Promise<PurchasesPackage[]> {
     const { current } = await Purchases.getOfferings();
     return current?.availablePackages ?? [];
+}
+
+export async function eligibleForTrial(productIds: readonly string[]): Promise<Set<string>> {
+    if (productIds.length === 0) {
+        return new Set();
+    }
+    const byProduct = await Purchases.checkTrialOrIntroductoryPriceEligibility([...productIds]);
+    return new Set(
+        Object.entries(byProduct)
+            .filter(([, value]) => value.status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE)
+            .map(([productId]) => productId)
+    );
 }
 
 export async function purchaseAndCheckPro(pack: PurchasesPackage): Promise<boolean> {

@@ -53,6 +53,7 @@ import type {
 } from "@/domain/voice-entry";
 import { useIsMounted } from "@/hooks/use-is-mounted";
 import { useMerchantMark } from "@/hooks/use-merchant-mark";
+import { useProEntitled } from "@/hooks/use-pro-locked";
 import { useVoiceEntry } from "@/hooks/use-voice-entry";
 import type { VoiceFailure, VoicePhase } from "@/hooks/use-voice-entry";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -474,8 +475,9 @@ interface BarAction {
 function orbActionOf(
     phase: VoicePhase,
     saving: boolean,
-    actions: { finish: () => void; listenAgain: () => void },
-    t: TranslateFn
+    actions: { finish: () => void; listenAgain: () => void; seePro: () => void },
+    t: TranslateFn,
+    entitled: boolean
 ) {
     if (phase.kind === "sending" || phase.kind === "thinking" || phase.kind === "starting") {
         return { label: t("voice.state.thinking"), onPress: undefined };
@@ -484,11 +486,36 @@ function orbActionOf(
         return { label: t("voice.action.fix"), onPress: saving ? undefined : actions.listenAgain };
     }
     if (phase.kind === "failed") {
+        if (phase.reason === "notEntitled") {
+            return entitled
+                ? { label: t("voice.action.retry"), onPress: actions.listenAgain }
+                : { label: t("pro.action.see"), onPress: actions.seePro };
+        }
         return NO_RETRY_REASONS.has(phase.reason)
             ? { label: t(FAILURE_KEY[phase.reason]), onPress: undefined }
             : { label: t("voice.action.retry"), onPress: actions.listenAgain };
     }
     return { label: t("voice.mic.finish"), onPress: actions.finish };
+}
+
+function failedActions(
+    reason: VoiceFailure,
+    t: TranslateFn,
+    handlers: { listenAgain: () => void; openSettings: () => void; seePro: () => void },
+    entitled: boolean
+) {
+    if (reason === "notEntitled") {
+        return entitled
+            ? { primary: { label: t("voice.action.retry"), onPress: handlers.listenAgain }, secondary: null }
+            : { primary: { label: t("pro.action.see"), onPress: handlers.seePro }, secondary: null };
+    }
+    if (NO_RETRY_REASONS.has(reason)) {
+        return { primary: null, secondary: null };
+    }
+    return {
+        primary: { label: t("voice.action.retry"), onPress: handlers.listenAgain },
+        secondary: reason === "denied" ? { label: t("voice.action.settings"), onPress: handlers.openSettings } : null,
+    };
 }
 
 function VoiceThreadScreen() {
@@ -730,6 +757,12 @@ function VoiceThreadScreen() {
         Linking.openSettings().catch(() => undefined);
     }, []);
 
+    const seePro = useCallback(() => {
+        router.push("/paywall");
+    }, [router]);
+
+    const entitled = useProEntitled();
+
     const status = (() => {
         switch (phase.kind) {
             case "starting": {
@@ -791,11 +824,8 @@ function VoiceThreadScreen() {
                   onPress: () => saveTransfer(transfer, transferLegs.from, transferLegs.to),
               }
             : { label: t("voice.action.finish"), onPress: () => openTransferForm(transfer) };
-    } else if (phase.kind === "failed" && !NO_RETRY_REASONS.has(phase.reason)) {
-        primary = { label: t("voice.action.retry"), onPress: listenAgain };
-        if (phase.reason === "denied") {
-            secondary = { label: t("voice.action.settings"), onPress: openSettings };
-        }
+    } else if (phase.kind === "failed") {
+        ({ primary, secondary } = failedActions(phase.reason, t, { listenAgain, openSettings, seePro }, entitled));
     }
 
     const bottom = settled ? (
@@ -839,7 +869,7 @@ function VoiceThreadScreen() {
         </Animated.View>
     ) : null;
 
-    const orb = orbActionOf(phase, saving, { finish, listenAgain }, t);
+    const orb = orbActionOf(phase, saving, { finish, listenAgain, seePro }, t, entitled);
 
     return (
         <VoiceShell bottom={bottom} closeDisabled={saving} onClose={close}>

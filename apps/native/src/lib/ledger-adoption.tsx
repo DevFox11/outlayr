@@ -11,6 +11,7 @@ import { useLiveQuery } from "@/data/live-query";
 import { appMeta } from "@/db/schema";
 import { adoptionActions, adoptionPlan, choiceActions } from "@/domain/ledger-adoption";
 import type { AdoptionChoice } from "@/domain/ledger-adoption";
+import { useProLocked, useProPending } from "@/hooks/use-pro-locked";
 import { adoptionEngine } from "@/lib/adoption-engine";
 import { useAuthSession } from "@/lib/auth-session";
 
@@ -61,12 +62,30 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
         accountId == null || settled ? "settled" : "resolving"
     );
     const [failed, setFailed] = useState(false);
+    const confirmedFree = useProLocked();
+    const entitlementPending = useProPending();
     const retryByAccount = useRef<{ accountId: string; retry: ReturnType<typeof createSingleAdoptionRetry> } | null>(
         null
     );
 
     useEffect(() => {
-        if (accountId == null || settled) {
+        // Held rather than settled while the entitlement is still being
+        // established: settling hands the local ledger to `RootStack`, and a
+        // Pro customer on a new device could edit it before the account's
+        // ledger has been reconciled, turning an automatic adoption into a
+        // merge. The hold is bounded by the requests themselves.
+        if (accountId != null && !settled && entitlementPending) {
+            // oxlint-disable-next-line react/react-compiler -- as below: one arm of the same async state machine.
+            setStatus("resolving");
+            return;
+        }
+        // Skipped only for a CONFIRMED Free customer, who has no account ledger
+        // to reconcile against. Every other answer — Pro, unmirrored Pro, or a
+        // store lookup that failed — reconciles, because settling would claim a
+        // check that never ran. When the account cannot be read, that reaches
+        // the existing `defer` path: refused pull, one retry scheduled, no
+        // marker written, so the work stays due for the next launch.
+        if (accountId == null || settled || confirmedFree) {
             // oxlint-disable-next-line react/react-compiler -- one arm of an async state machine whose other arms settle from awaits; splitting this one out to a derivation would leave the status written from two places.
             setStatus("settled");
             return;
@@ -124,7 +143,7 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
             cancelled = true;
             subscription.remove();
         };
-    }, [db, accountId, settled]);
+    }, [db, accountId, settled, confirmedFree, entitlementPending]);
 
     const choose = useCallback(
         (choice: AdoptionChoice) => {

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 
@@ -9,16 +9,14 @@ import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { META_KEYS } from "@/data/app-meta-core";
 import { runAdoption } from "@/data/ledger-adoption";
-import { useLiveQuery } from "@/data/live-query";
 import { setSyncEnabled } from "@/data/sync-outbox-core";
 import { useSyncStatus } from "@/data/use-sync-status";
 import type { Database } from "@/db/client";
-import { appMeta } from "@/db/schema";
 import { formatDayHeader, formatTime } from "@/domain/dates";
 import type { AdoptionActions } from "@/domain/ledger-adoption";
-import { effectiveCapabilityStatus, ownsSyncSwitch, syncPresentation } from "@/domain/sync-status";
+import { effectiveCapabilityStatus, ownsSyncSwitch, syncPresentation, syncRunnable } from "@/domain/sync-status";
+import { useProEntitled } from "@/hooks/use-pro-locked";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { adoptionEngine } from "@/lib/adoption-engine";
 import { useAuthSession } from "@/lib/auth-session";
@@ -46,26 +44,32 @@ export function Sync() {
 
 function SyncSettings({ db }: { db: Database }) {
     const t = useTranslation();
+    const router = useRouter();
+    const entitled = useProEntitled();
     const { language } = useLanguage();
     const { accountId } = useAuthSession();
     const { status } = useLedgerAdoption();
-    const { pending, syncedAt } = useSyncStatus(db);
-    const enabled = useSyncEnabled(db);
+    const { enabled, pending, syncedAt } = useSyncStatus(db);
     const { use24Hour } = useDisplaySettings().state;
     const [busy, setBusy] = useState(false);
 
+    const runnable = syncRunnable(enabled, entitled);
     const capability = effectiveCapabilityStatus({
         accountId,
         cloud: cloudRuntime === null ? "unconfigured" : "configured",
         local: false,
         pending,
-        syncEnabled: enabled,
+        syncEnabled: runnable,
         syncedAt,
     });
     const owned = ownsSyncSwitch(capability.kind, status);
-    const presentation = syncPresentation(capability.kind, enabled);
+    const presentation = syncPresentation(capability.kind, enabled, entitled);
 
     const toggle = (next: boolean) => {
+        if (next && !entitled) {
+            router.push("/paywall");
+            return;
+        }
         setBusy(true);
         const work =
             next && accountId ? runAdoption(db, adoptionEngine(db), RESUME, accountId) : setSyncEnabled(db, false);
@@ -111,13 +115,4 @@ function SyncSettings({ db }: { db: Database }) {
             ) : null}
         </SettingsScreen>
     );
-}
-
-/**
- * Read live rather than through `isSyncEnabled`: the switch has to follow the
- * write the moment it lands, and the gate is a row like any other.
- */
-function useSyncEnabled(db: Database): boolean {
-    const rows = useLiveQuery(appMeta, () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.syncEnabled)));
-    return rows[0]?.value === "1";
 }

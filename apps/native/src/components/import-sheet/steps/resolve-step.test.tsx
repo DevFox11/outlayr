@@ -11,6 +11,7 @@ import { askedStatus, matchedStatus, ResolveStep } from "./resolve-step";
 
 const mockRun = jest.fn();
 const mockOpenFeatureLab = jest.fn();
+const mockSeePro = jest.fn();
 
 let mockContext: UseCsvImportResult;
 
@@ -163,6 +164,7 @@ describe("resolveStep", () => {
     beforeEach(() => {
         mockRun.mockClear();
         mockOpenFeatureLab.mockClear();
+        mockSeePro.mockClear();
         importDraftStore.clear();
         mockContext = baseContext();
     });
@@ -170,7 +172,7 @@ describe("resolveStep", () => {
     it("names the file once, on the step that read it, with the checklist and the privacy footnote", async () => {
         loadFile();
         const { getAllByText, getByText } = await render(
-            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />
+            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([])} />
         );
 
         expect(getAllByText("bank.csv")).toHaveLength(1);
@@ -183,14 +185,18 @@ describe("resolveStep", () => {
 
     it("auto-runs the resolution when idle", async () => {
         loadFile();
-        await render(<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />);
+        await render(
+            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([])} />
+        );
         expect(mockRun).toHaveBeenCalledTimes(1);
     });
 
     it("does not re-run once an outcome settled", async () => {
         loadFile();
         mockContext = baseContext({ outcome: "applied" });
-        await render(<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />);
+        await render(
+            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([])} />
+        );
         expect(mockRun).not.toHaveBeenCalled();
     });
 
@@ -198,7 +204,9 @@ describe("resolveStep", () => {
         loadFile();
         importDraftStore.setStep("resolve");
         mockContext = baseContext({ outcome: "applied" });
-        await render(<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([ENTRY])} />);
+        await render(
+            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([ENTRY])} />
+        );
         expect(importDraftStore.getSnapshot().ui.step).toBe("review");
     });
 
@@ -206,7 +214,9 @@ describe("resolveStep", () => {
         loadFile();
         importDraftStore.setStep("resolve");
         mockContext = baseContext({ outcome: "applied" });
-        await render(<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />);
+        await render(
+            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([])} />
+        );
         expect(importDraftStore.getSnapshot().ui.step).toBe("resolve");
     });
 
@@ -214,7 +224,7 @@ describe("resolveStep", () => {
         loadFile();
         mockContext = baseContext({ outcome: "unavailable", reason: "timeout" });
         const { getByText } = await render(
-            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />
+            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([])} />
         );
 
         expect(getByText("import.unavailableTitle")).toBeTruthy();
@@ -223,11 +233,24 @@ describe("resolveStep", () => {
         expect(mockRun).toHaveBeenCalledTimes(1);
     });
 
+    it("sends an unentitled import to the paywall instead of a retry", async () => {
+        loadFile();
+        mockContext = baseContext({ outcome: "unavailable", reason: "notEntitled" });
+        const { getByText, queryByText } = await render(
+            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([])} />
+        );
+
+        expect(queryByText("import.tryAgain")).toBeNull();
+        await fireEvent.press(getByText("pro.action.see"));
+        expect(mockSeePro).toHaveBeenCalledTimes(1);
+        expect(mockRun).not.toHaveBeenCalled();
+    });
+
     it("offers no retry for a no-retry reason", async () => {
         loadFile();
         mockContext = baseContext({ outcome: "unavailable", reason: "overCap" });
         const { queryByText } = await render(
-            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />
+            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([])} />
         );
         expect(queryByText("import.tryAgain")).toBeNull();
     });
@@ -237,7 +260,7 @@ describe("resolveStep", () => {
         importDraftStore.setStep("resolve");
         mockContext = baseContext({ outcome: "applied" });
         const { toJSON } = await render(
-            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([ENTRY])} />
+            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([ENTRY])} />
         );
         const classes = classNames(toJSON() as unknown as JsonNode);
         expect(classes.some(isPureFlexFill)).toBe(false);
@@ -252,7 +275,7 @@ describe("resolveStep", () => {
             tier2Sent: 7,
         });
         const { getByText } = await render(
-            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />
+            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([])} />
         );
 
         expect(getByText('import.resolveDetailSent:{"count":7}')).toBeTruthy();
@@ -266,7 +289,7 @@ describe("resolveStep", () => {
             tier2Sent: 0,
         });
         const { getByText } = await render(
-            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />
+            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([])} />
         );
 
         expect(getByText("import.resolveDetailNothingSent")).toBeTruthy();
@@ -275,7 +298,9 @@ describe("resolveStep", () => {
     it("never fills the filename chip with the muted text colour", async () => {
         loadFile();
         mockContext = baseContext({ outcome: "applied", stage: "settled" });
-        const { toJSON } = await render(<ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />);
+        const { toJSON } = await render(
+            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([])} />
+        );
         const chip = classNames(toJSON() as unknown as JsonNode).find((c) => /\bbg-transparent\b/.test(c));
         expect(chip).toBeDefined();
         expect(chip).not.toMatch(/\bbg-muted\b/);
@@ -285,7 +310,7 @@ describe("resolveStep", () => {
         loadFile();
         mockContext = baseContext({ outcome: "declined" });
         const { getByText } = await render(
-            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} review={reviewWith([])} />
+            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([])} />
         );
 
         expect(getByText("import.declinedBody")).toBeTruthy();

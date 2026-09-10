@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 
+import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
 import type { TestConvex } from "convex-test";
 import type { FunctionArgs } from "convex/server";
@@ -9,8 +10,14 @@ import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
 import schema from "./schema";
 import { PUSH_BATCH_LIMIT } from "./sync";
-import { authenticatedAs, seedAuthUser } from "./test.helpers";
+import { authenticatedAs, grantPro, seedAuthUser, seedProUser } from "./test.helpers";
 import type { SeededIdentity } from "./test.helpers";
+
+function harness() {
+    const t = convexTest(schema, modules);
+    revenuecatTest.register(t);
+    return t;
+}
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -120,7 +127,7 @@ async function omitStoredTransactionAccountId(t: TestClient): Promise<void> {
 
 describe("push authorization", () => {
     test("refuses a caller with no session", async () => {
-        const t = convexTest(schema, modules);
+        const t = harness();
 
         await expect(
             t.mutation(api.sync.push, {
@@ -131,8 +138,8 @@ describe("push authorization", () => {
     });
 
     test("stores the row under the caller's own id, never an argument", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100)]);
 
@@ -142,9 +149,9 @@ describe("push authorization", () => {
     });
 
     test("keeps two accounts' ledgers apart", async () => {
-        const t = convexTest(schema, modules);
-        const first = await seedAuthUser(t);
-        const second = await seedAuthUser(t);
+        const t = harness();
+        const first = await seedProUser(t);
+        const second = await seedProUser(t);
 
         await pushAs(t, first, DEVICE_A, [transactionRow("shared-id", 100)]);
         await pushAs(t, second, DEVICE_B, [transactionRow("shared-id", 200)]);
@@ -155,8 +162,8 @@ describe("push authorization", () => {
     });
 
     test("refuses a batch larger than the per-transaction budget", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         const rows = Array.from({ length: PUSH_BATCH_LIMIT + 1 }, (_, i) => transactionRow(`t${i}`, 100));
 
         await expect(pushAs(t, owner, DEVICE_A, rows)).rejects.toThrow(ConvexError);
@@ -165,8 +172,8 @@ describe("push authorization", () => {
 
 describe("push table coverage", () => {
     test("accepts and round-trips a row from every table the outbox drains", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         const rows: PushRows = [
             {
                 deletedAt: null,
@@ -222,8 +229,8 @@ describe("push table coverage", () => {
     });
 
     test("round-trips an account and a transaction that names it", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         await pushAs(t, owner, DEVICE_A, [
             {
@@ -251,8 +258,8 @@ describe("push table coverage", () => {
     });
 
     test("round-trips resolved and pending custom transaction rate triples", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
             transactionRow("resolved-custom", 1, {
                 fields: { amountUsd: 1.801802, exchangeRate: 55.5, exchangeRateType: "custom" },
@@ -276,8 +283,8 @@ describe("push table coverage", () => {
     });
 
     test("serves a stored transaction that predates accountId as null", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         const { accountId: _absent, ...legacy } = transactionFields();
         await t.run(async (ctx) => {
@@ -298,8 +305,8 @@ describe("push table coverage", () => {
     });
 
     test("an accounts tombstone beats a live edit like any other table", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         await pushAs(t, owner, DEVICE_A, [
             {
@@ -326,8 +333,8 @@ describe("push table coverage", () => {
     });
 
     test("a tags tombstone beats a live edit like any other table", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         const live: PushRows = [
             {
                 deletedAt: null,
@@ -358,8 +365,8 @@ describe("push table coverage", () => {
 
 describe("push sequencing", () => {
     test("stamps each accepted row with the next seq and bumps the counter once", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         const result = await pushAs(t, owner, DEVICE_A, [
             categoryRow("c1", 100),
@@ -374,8 +381,8 @@ describe("push sequencing", () => {
     });
 
     test("continues the sequence across batches", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100)]);
         await pushAs(t, owner, DEVICE_A, [transactionRow("t2", 101)]);
@@ -385,8 +392,8 @@ describe("push sequencing", () => {
     });
 
     test("leaves the counter alone when a whole batch is a no-op", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100)]);
         const replay = await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100)]);
@@ -395,8 +402,8 @@ describe("push sequencing", () => {
     });
 
     test("upserts by localId rather than inserting a second copy", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100)]);
         await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 200, { fields: { note: "tea" } })]);
@@ -407,8 +414,8 @@ describe("push sequencing", () => {
     });
 
     test("keys appMeta on the meta key, not on a row id", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         await pushAs(t, owner, DEVICE_A, [
             {
@@ -437,8 +444,8 @@ describe("push sequencing", () => {
 
 describe("push conflict resolution", () => {
     test("R1 — a tombstone beats a strictly newer edit", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100, { deletedAt: 100 })]);
         const result = await pushAs(t, owner, DEVICE_B, [
@@ -452,8 +459,8 @@ describe("push conflict resolution", () => {
     });
 
     test("R1 — a tombstone lands on top of a newer live row", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 500)]);
         await pushAs(t, owner, DEVICE_B, [transactionRow("t1", 100, { deletedAt: 100 })]);
@@ -463,8 +470,8 @@ describe("push conflict resolution", () => {
     });
 
     test("R2 — the greater updatedAt takes the whole row", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 500, { fields: { note: "newer" } })]);
         const consumed = await pullAs(t, owner, 0);
@@ -477,8 +484,8 @@ describe("push conflict resolution", () => {
     });
 
     test("R2 — an exact tie breaks on the greater deviceId, both ways round", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100, { fields: { note: "from-a" } })]);
         await pushAs(t, owner, DEVICE_B, [transactionRow("t1", 100, { fields: { note: "from-b" } })]);
@@ -492,8 +499,8 @@ describe("push conflict resolution", () => {
     });
 
     test("preserves pending custom policy against an equal-timestamp old-client official backfill", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
             transactionRow("t1", 100, {
                 fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
@@ -512,8 +519,8 @@ describe("push conflict resolution", () => {
     });
 
     test("preserves pending custom policy when the equal-timestamp official backfill arrived first", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_B, [
             transactionRow("t1", 100, {
                 fields: { amountUsd: 2.5, currency: "VES", exchangeRate: 40, exchangeRateType: "official" },
@@ -532,8 +539,8 @@ describe("push conflict resolution", () => {
     });
 
     test("treats omitted legacy nullable fields as null when pending custom arrives first", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
             transactionRow("t1", 100, {
                 fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
@@ -559,8 +566,8 @@ describe("push conflict resolution", () => {
     });
 
     test("treats omitted legacy nullable fields as null when official arrives first", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_B, [
             transactionRow("t1", 100, {
                 fields: {
@@ -586,8 +593,8 @@ describe("push conflict resolution", () => {
     });
 
     test("treats a legacy omitted stored accountId as null when pending custom arrives first", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
             transactionRow("t1", 100, {
                 fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
@@ -607,8 +614,8 @@ describe("push conflict resolution", () => {
     });
 
     test("treats a legacy omitted stored accountId as null when official arrives first", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_B, [
             transactionRow("t1", 100, {
                 fields: { amountUsd: 2.5, currency: "VES", exchangeRate: 40, exchangeRateType: "official" },
@@ -628,8 +635,8 @@ describe("push conflict resolution", () => {
     });
 
     test("re-emits pending custom after the losing device passed its original sequence", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
             transactionRow("t1", 100, {
                 fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
@@ -654,8 +661,8 @@ describe("push conflict resolution", () => {
     });
 
     test("coalesces duplicate losing backfills into one correction emission", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
             transactionRow("t1", 100, {
                 fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
@@ -675,8 +682,8 @@ describe("push conflict resolution", () => {
     });
 
     test("re-emits one correction for an identical losing backfill in a later push", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
             transactionRow("t1", 100, {
                 fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
@@ -701,8 +708,8 @@ describe("push conflict resolution", () => {
     });
 
     test("keeps normal deviceId tie-breaking when an equal-timestamp official edit changes a business field", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
             transactionRow("t1", 100, {
                 fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
@@ -727,8 +734,8 @@ describe("push conflict resolution", () => {
     });
 
     test("accepts a genuinely newer user edit from pending custom to official", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
             transactionRow("t1", 100, {
                 fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
@@ -749,14 +756,14 @@ describe("push conflict resolution", () => {
 
 describe("pullSince", () => {
     test("refuses a caller with no session", async () => {
-        const t = convexTest(schema, modules);
+        const t = harness();
 
         await expect(t.query(api.sync.pullSince, { cursor: 0 })).rejects.toThrow(ConvexError);
     });
 
     test("merge-sorts six streams into one seq-ordered log", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         await pushAs(t, owner, DEVICE_A, [
             transactionRow("t1", 100),
@@ -795,8 +802,8 @@ describe("pullSince", () => {
     });
 
     test("serves only what is strictly after the cursor", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
             transactionRow("t1", 100),
             transactionRow("t2", 101),
@@ -809,8 +816,8 @@ describe("pullSince", () => {
     });
 
     test("pages a log longer than the limit without dropping a row", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(
             t,
             owner,
@@ -833,8 +840,8 @@ describe("pullSince", () => {
     });
 
     test("carries the full field payload, tombstone included", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
             transactionRow("t1", 100, {
                 deletedAt: 150,
@@ -851,8 +858,8 @@ describe("pullSince", () => {
     });
 
     test("serves appMeta under the key it was pushed with", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
             {
                 deletedAt: null,
@@ -871,8 +878,8 @@ describe("pullSince", () => {
     });
 
     test("leaves the cursor where it was when nothing is new", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100)]);
 
         const page = await pullAs(t, owner, 1);
@@ -885,23 +892,58 @@ describe("pullSince", () => {
 
 describe("currentSeq", () => {
     test("is zero for an account that has never pushed", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
 
         await expect(authenticatedAs(t, owner).query(api.sync.currentSeq, {})).resolves.toBe(0);
     });
 
     test("moves when any device pushes", async () => {
-        const t = convexTest(schema, modules);
-        const owner = await seedAuthUser(t);
+        const t = harness();
+        const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100)]);
 
         await expect(authenticatedAs(t, owner).query(api.sync.currentSeq, {})).resolves.toBe(2);
     });
 
     test("refuses a caller with no session", async () => {
-        const t = convexTest(schema, modules);
+        const t = harness();
 
         await expect(t.query(api.sync.currentSeq, {})).rejects.toThrow(ConvexError);
+    });
+});
+
+describe("the Pro gate", () => {
+    test("refuses a push from an account without Pro, and writes nothing", async () => {
+        const t = harness();
+        const free = await seedAuthUser(t);
+
+        await expect(
+            authenticatedAs(t, free).mutation(api.sync.push, { deviceId: DEVICE_A, rows: [transactionRow("a", 1)] })
+        ).rejects.toThrow("Pro");
+
+        const rows = await t.run((ctx) => ctx.db.query("transactions").collect());
+        expect(rows).toStrictEqual([]);
+    });
+
+    test("refuses a pull from an account without Pro", async () => {
+        const t = harness();
+        const free = await seedAuthUser(t);
+
+        await expect(authenticatedAs(t, free).query(api.sync.pullSince, { cursor: 0 })).rejects.toThrow("Pro");
+    });
+
+    test("lets the same account through the moment the entitlement lands", async () => {
+        const t = harness();
+        const owner = await seedAuthUser(t);
+        await expect(
+            authenticatedAs(t, owner).mutation(api.sync.push, { deviceId: DEVICE_A, rows: [transactionRow("a", 1)] })
+        ).rejects.toThrow("Pro");
+
+        await grantPro(t, owner);
+
+        await expect(
+            authenticatedAs(t, owner).mutation(api.sync.push, { deviceId: DEVICE_A, rows: [transactionRow("a", 1)] })
+        ).resolves.toBeDefined();
     });
 });

@@ -7,6 +7,7 @@ import { action, internalMutation, internalQuery, mutation, query } from "./_gen
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
 import { isPhotoName, ownsPhotoKey, photoKeyFor, photoOwnerFromKey } from "./lib/photoKeys";
+import { requirePro } from "./revenuecat";
 
 /**
  * Transaction photo bytes, which travel outside `sync.ts` entirely.
@@ -118,6 +119,7 @@ export const requestUpload = mutation({
     args: { name: v.string() },
     handler: async (ctx, args) => {
         const userId = await requireUserId(ctx);
+        await requirePro(ctx, userId);
         await checkPhotoQuota(ctx, userId);
         if (!isPhotoName(args.name)) {
             throw new ConvexError(`Not a photo file name: ${args.name}`);

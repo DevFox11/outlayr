@@ -59,6 +59,7 @@ export const ROOT_STACK_SCREEN_NAMES = {
     ledger: [
         "(tabs)",
         "search",
+        "paywall",
         ...SETTINGS_SCREENS.map((screen) => screen.name),
         "accounts/index",
         "accounts/reorder",
