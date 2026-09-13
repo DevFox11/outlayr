@@ -34,8 +34,10 @@ fi
 # install either way — it keeps one command surface across the repo. vp itself
 # lives in node_modules/.bin, which is exactly what a fresh worktree does not
 # have yet, so fetch it when it is not already on PATH.
+# stdin is /dev/null because under COLORTERM=truecolor vp queries the terminal
+# palette (OSC 4/10 + DA1) and blocks on a reply the T3 terminal never sends.
 if command -v vp >/dev/null 2>&1; then
-	vp install
+	vp install </dev/null
 else
-	pnpm dlx --package vite-plus vp install
+	pnpm dlx --package vite-plus vp install </dev/null
 fi
