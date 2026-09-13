@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Outlayr App Store deck</title>
+<style>
+  :root {
+    --paper: #f2f0ea;
+    --ink: #17150f;
+    --muted: #6b6557;
+    --border: #dcd8cc;
+    --tint: #c2371b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 16px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    -webkit-text-size-adjust: 100%;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  header {
+    padding: 20px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--paper);
+    z-index: 2;
+  }
+  h1 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
+  .meta {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  nav { display: flex; gap: 8px; margin-top: 12px; }
+  nav a {
+    flex: 1;
+    text-align: center;
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  nav a.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  section { padding: 0 0 40px; }
+  figure { margin: 0; border-bottom: 1px solid var(--border); }
+  figcaption {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  figcaption b { color: var(--tint); font-weight: 600; letter-spacing: 0.04em; }
+  img, video { display: block; width: 100%; height: auto; }
+  /* The App Preview is the one thing here that is not a still, so it gets the
+     only visual emphasis on the page: a rule above it and its own label. */
+  .film { border-top: 2px solid var(--ink); }
+  .film figcaption b { color: var(--ink); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Outlayr &middot; App Store deck</h1>
+  <div class="meta">8 screens + App Preview &middot; iPhone 6.9&Prime; &middot; 1320&times;2868</div>
+  <nav>
+    <a href="#en" class="on" id="nav-en">English</a>
+    <a href="#es" id="nav-es">Espa&ntilde;ol</a>
+  </nav>
+</header>
+
+<section id="en">
+  <figure class="film"><figcaption><b>APP PREVIEW &middot; 21s</b><span>One entry, start to finish</span></figcaption><video src="app-preview-en.mp4" controls playsinline preload="metadata"></video></figure>
+  <figure><figcaption><b>OUTLAYR</b><span>Every account. One page.</span></figcaption><img src="en-01.png" alt="Screen 1, the Log"></figure>
+  <figure><figcaption><b>THE ENTRY</b><span>Log it in one sentence.</span></figcaption><img src="en-02.png" alt="Screen 2, the sentence form"></figure>
+  <figure><figcaption><b>PACE</b><span>You&rsquo;ll end the month $319 short.</span></figcaption><img src="en-03.png" alt="Screen 3, the burn-down"></figure>
+  <figure><figcaption><b>WIDGETS</b><span>Without opening the app.</span></figcaption><img src="en-04.png" alt="Screen 4, Home Screen widgets"></figure>
+  <figure><figcaption><b>INSIGHTS</b><span>Where the week actually went.</span></figcaption><img src="en-05.png" alt="Screen 5, insights"></figure>
+  <figure><figcaption><b>ACCOUNTS</b><span>Two currencies. One ledger.</span></figcaption><img src="en-06.png" alt="Screen 6, accounts"></figure>
+  <figure><figcaption><b>GOALS</b><span>Japan in April. You&rsquo;re on pace.</span></figcaption><img src="en-07.png" alt="Screen 7, goals"></figure>
+  <figure><figcaption><b>FIVE WAYS IN</b><span>Type it, say it, or snap it.</span></figcaption><img src="en-08.png" alt="Screen 8, the capture menu"></figure>
+</section>
+
+<section id="es" hidden>
+  <figure class="film"><figcaption><b>APP PREVIEW &middot; 20s</b><span>Un registro, de principio a fin</span></figcaption><video src="app-preview-es.mp4" controls playsinline preload="metadata"></video></figure>
+  <figure><figcaption><b>OUTLAYR</b><span>Tus cuentas. Una sola vista.</span></figcaption><img src="es-01.png" alt="Pantalla 1, el Registro"></figure>
+  <figure><figcaption><b>EL REGISTRO</b><span>An&oacute;talo en una frase.</span></figcaption><img src="es-02.png" alt="Pantalla 2, la frase"></figure>
+  <figure><figcaption><b>RITMO</b><span>Este mes te faltar&aacute;n 319 $.</span></figcaption><img src="es-03.png" alt="Pantalla 3, el consumo"></figure>
+  <figure><figcaption><b>WIDGETS</b><span>Sin siquiera abrir la app.</span></figcaption><img src="es-04.png" alt="Pantalla 4, widgets"></figure>
+  <figure><figcaption><b>AN&Aacute;LISIS</b><span>A d&oacute;nde se fue la semana.</span></figcaption><img src="es-05.png" alt="Pantalla 5, estad&iacute;sticas"></figure>
+  <figure><figcaption><b>CUENTAS</b><span>Dos monedas. Un solo libro.</span></figcaption><img src="es-06.png" alt="Pantalla 6, cuentas"></figure>
+  <figure><figcaption><b>METAS</b><span>Jap&oacute;n en abril. Vas al ritmo.</span></figcaption><img src="es-07.png" alt="Pantalla 7, metas"></figure>
+  <figure><figcaption><b>CINCO MANERAS</b><span>Escr&iacute;belo, dilo o fotograf&iacute;alo.</span></figcaption><img src="es-08.png" alt="Pantalla 8, el men&uacute;"></figure>
+</section>
+
+<script>
+  // Two static sections rather than a re-fetch: the whole deck is 16 images and
+  // toggling `hidden` keeps both decoded once the page has settled. The videos
+  // are paused on switch so audio-less playback does not keep running offscreen.
+  const sections = { en: document.getElementById("en"), es: document.getElementById("es") };
+  const links = { en: document.getElementById("nav-en"), es: document.getElementById("nav-es") };
+
+  function show(which) {
+    for (const key of Object.keys(sections)) {
+      sections[key].hidden = key !== which;
+      links[key].classList.toggle("on", key === which);
+      if (key !== which) for (const v of sections[key].querySelectorAll("video")) v.pause();
+    }
+    scrollTo(0, 0);
+  }
+
+  for (const key of Object.keys(links)) {
+    links[key].addEventListener("click", (event) => {
+      event.preventDefault();
+      show(key);
+    });
+  }
+</script>
+</body>
+</html>

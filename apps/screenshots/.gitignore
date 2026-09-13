@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+.env*.local
+
+# The App Store Connect deliverable: 64 PNGs, ~45MB, four sizes of the same
+# eight slides. Build output, not source — the editor's "Export bundle" button
+# regenerates it from app-store-screenshots.json plus public/screenshots/, both
+# of which are committed. The raw sim captures and the two App Previews are NOT
+# ignored: re-shooting those is a full seed + capture + localize pass.
+export/
+.impeccable/

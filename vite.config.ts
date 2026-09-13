@@ -12,9 +12,15 @@ import { defineConfig } from "vite-plus";
 
 // Paths ultracite's shared ignore list does not know about. Reasoning for the
 // non-obvious ones: `drizzle` and `uniwind-types.d.ts` are generated, `ios` /
-// `android` / `Pods` are CNG output, and `.agents` / `.claude` are vendored
-// skill trees we do not own.
+// `android` / `Pods` are CNG output, `.agents` / `.claude` are vendored skill
+// trees we do not own, and `apps/screenshots` is the App Store marketing deck —
+// pnpm installs it now, but it is scaffolded rather than authored here, and it
+// is Tailwind v3 while `settings.tailwindcss.entryPoint` below points at the
+// native app's v4 `global.css`, so linting it would report every class unknown.
+// Its hand-written `scripts/` write simulator ledgers and stay checked.
 const projectIgnores = [
+    "apps/screenshots/*",
+    "!apps/screenshots/scripts",
     "**/.expo",
     "**/.nx",
     "**/dev-dist",

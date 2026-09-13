@@ -1,0 +1,328 @@
+{
+  "schemaVersion": 2,
+  "appName": "Outlayr",
+  "themeId": "outlayr-paper",
+  "connectedCanvas": true,
+  "locales": [
+    "en",
+    "es"
+  ],
+  "locale": "en",
+  "device": "iphone",
+  "orientation": "portrait",
+  "appIcon": "/app-icon.png",
+  "slidesByDevice": {
+    "iphone": [
+      {
+        "id": "s1-hero",
+        "layout": "hero",
+        "label": {
+          "en": "OUTLAYR",
+          "es": "OUTLAYR"
+        },
+        "headline": {
+          "en": "Every account.\nOne page.",
+          "es": "Tus cuentas.\nUna sola vista."
+        },
+        "screenshot": "/screenshots/apple/iphone/{locale}/01.png",
+        "transforms": {
+          "device": {
+            "x": 153.18,
+            "y": 745.68,
+            "width": 1013.64,
+            "height": 2064.96
+          }
+        }
+      },
+      {
+        "id": "s2-sentence",
+        "layout": "device-bottom",
+        "label": {
+          "en": "THE ENTRY",
+          "es": "EL REGISTRO"
+        },
+        "headline": {
+          "en": "Log it in\none sentence.",
+          "es": "Anótalo en\nuna frase."
+        },
+        "screenshot": "/screenshots/apple/iphone/{locale}/02.png"
+      },
+      {
+        "id": "s3-pace",
+        "layout": "hero",
+        "label": {
+          "en": "PACE",
+          "es": "RITMO"
+        },
+        "headline": {
+          "en": "You'll end the\nmonth $319 short.",
+          "es": "Este mes te\nfaltarán 319 $."
+        },
+        "screenshot": "/screenshots/apple/iphone/{locale}/04.png",
+        "transforms": {
+          "device": {
+            "x": 153.18,
+            "y": 745.68,
+            "width": 1013.64,
+            "height": 2064.96
+          }
+        }
+      },
+      {
+        "id": "s4-widgets",
+        "layout": "device-bottom",
+        "label": {
+          "en": "WIDGETS",
+          "es": "WIDGETS"
+        },
+        "headline": {
+          "en": "Without opening\nthe app.",
+          "es": "Sin siquiera\nabrir la app."
+        },
+        "screenshot": "/screenshots/apple/iphone/{locale}/09.png"
+      },
+      {
+        "id": "s5-insights",
+        "layout": "device-top",
+        "label": {
+          "en": "INSIGHTS",
+          "es": "ANÁLISIS"
+        },
+        "headline": {
+          "en": "Where the week\nactually went.",
+          "es": "A dónde se fue\nla semana."
+        },
+        "screenshot": "/screenshots/apple/iphone/{locale}/05.png",
+        "transforms": {
+          "device": {
+            "x": 103.3,
+            "y": -144,
+            "width": 1113.4,
+            "height": 2268
+          },
+          "caption": {
+            "x": 105.6,
+            "y": 2316,
+            "width": 1108.8,
+            "height": 560
+          }
+        }
+      },
+      {
+        "id": "s6-accounts",
+        "layout": "device-bottom",
+        "label": {
+          "en": "ACCOUNTS",
+          "es": "CUENTAS"
+        },
+        "headline": {
+          "en": "Two currencies.\nOne ledger.",
+          "es": "Dos monedas.\nUn solo libro."
+        },
+        "screenshot": "/screenshots/apple/iphone/{locale}/06.png"
+      },
+      {
+        "id": "s7-goals",
+        "layout": "hero",
+        "label": {
+          "en": "GOALS",
+          "es": "METAS"
+        },
+        "headline": {
+          "en": "Japan in April.\nYou're on pace.",
+          "es": "Japón en abril.\nVas al ritmo."
+        },
+        "screenshot": "/screenshots/apple/iphone/{locale}/08.png",
+        "transforms": {
+          "device": {
+            "x": 153.18,
+            "y": 745.68,
+            "width": 1013.64,
+            "height": 2064.96
+          }
+        }
+      },
+      {
+        "id": "s8-capture",
+        "layout": "device-top",
+        "label": {
+          "en": "FIVE WAYS IN",
+          "es": "CINCO MANERAS"
+        },
+        "headline": {
+          "en": "Type it, say it,\nor snap it.",
+          "es": "Escríbelo, dilo\no fotografíalo."
+        },
+        "screenshot": "/screenshots/apple/iphone/{locale}/03.png",
+        "transforms": {
+          "device": {
+            "x": 103.3,
+            "y": -144,
+            "width": 1113.4,
+            "height": 2268
+          },
+          "caption": {
+            "x": 105.6,
+            "y": 2316,
+            "width": 1108.8,
+            "height": 560
+          }
+        }
+      }
+    ],
+    "android": [
+      {
+        "id": "s_mtyz8xqn_5",
+        "layout": "hero",
+        "label": {
+          "en": "MEET YOUR APP"
+        },
+        "headline": {
+          "en": "Sell one\nidea per slide."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mtyz8xqn_6",
+        "layout": "device-bottom",
+        "label": {
+          "en": "FEATURE 01"
+        },
+        "headline": {
+          "en": "Your headline\nlives here."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mtyz8xqn_7",
+        "layout": "two-devices",
+        "label": {
+          "en": "FEATURE 02"
+        },
+        "headline": {
+          "en": "Show two\nscreens at once."
+        },
+        "screenshot": "",
+        "screenshotSecondary": ""
+      },
+      {
+        "id": "s_mtyz8xqn_8",
+        "layout": "device-top",
+        "label": {
+          "en": "FEATURE 03"
+        },
+        "headline": {
+          "en": "Flip the contrast\nfor visual rhythm."
+        },
+        "screenshot": "",
+        "inverted": true
+      },
+      {
+        "id": "s_mtyz8xqn_9",
+        "layout": "no-device",
+        "label": {
+          "en": "MORE"
+        },
+        "headline": {
+          "en": "And so\nmuch more."
+        },
+        "screenshot": ""
+      }
+    ],
+    "ipad": [
+      {
+        "id": "s_mtyz8xqn_a",
+        "layout": "hero",
+        "label": {
+          "en": "MEET YOUR APP"
+        },
+        "headline": {
+          "en": "Made for\nthe big screen."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mtyz8xqn_b",
+        "layout": "device-bottom",
+        "label": {
+          "en": "FEATURE 01"
+        },
+        "headline": {
+          "en": "Built for\nfocus."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mtyz8xqn_c",
+        "layout": "device-top",
+        "label": {
+          "en": "FEATURE 02"
+        },
+        "headline": {
+          "en": "Always within reach."
+        },
+        "screenshot": "",
+        "inverted": true
+      }
+    ],
+    "android-7": [
+      {
+        "id": "s_mtyz8xqn_d",
+        "layout": "hero",
+        "label": {
+          "en": "MEET YOUR APP"
+        },
+        "headline": {
+          "en": "Pocket-sized\npower."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mtyz8xqn_e",
+        "layout": "split-landscape",
+        "label": {
+          "en": "FEATURE 01"
+        },
+        "headline": {
+          "en": "Wide canvas,\nbigger ideas."
+        },
+        "screenshot": ""
+      }
+    ],
+    "android-10": [
+      {
+        "id": "s_mtyz8xqn_f",
+        "layout": "hero",
+        "label": {
+          "en": "MEET YOUR APP"
+        },
+        "headline": {
+          "en": "Made for\nthe big screen."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mtyz8xqn_g",
+        "layout": "split-landscape",
+        "label": {
+          "en": "FEATURE 01"
+        },
+        "headline": {
+          "en": "Wide canvas,\nbigger ideas."
+        },
+        "screenshot": ""
+      }
+    ],
+    "feature-graphic": [
+      {
+        "id": "s_mtyz8xqn_h",
+        "layout": "feature-graphic",
+        "label": {},
+        "headline": {
+          "en": "Your tagline goes here."
+        },
+        "screenshot": ""
+      }
+    ]
+  }
+}

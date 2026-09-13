@@ -2,12 +2,11 @@ packages:
     - apps/*
     - packages/*
 allowBuilds:
-    esbuild: true
-    better-sqlite3: true
-    "@shopify/react-native-skia": true
-    # intlayer pulls this in for `intlayer watch`; the build pipeline only ever
-    # runs `intlayer build`, so CI needs no native toolchain for it.
     "@parcel/watcher": false
+    "@shopify/react-native-skia": true
+    better-sqlite3: true
+    esbuild: true
+    sharp: false
 packageExtensions:
     # Both Babel plugins `require("@babel/traverse")`/`require("@babel/generator")`
     # without declaring them, so pnpm's strict layout sends the lookup to the
