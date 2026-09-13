@@ -37,11 +37,12 @@ export interface DaySection<T> {
     totals: CurrencyBucket[];
 }
 
+const instant = (row: DayGroupable): number => (row.date ?? row.day).getTime();
+
 /**
- * The JS mirror of Swift's `SectionedFetchRequest<Date?, Transaction>` keyed on
- * `\.day`. Sections follow first appearance rather than being re-sorted, so a
- * day-descending query stays day-descending and a caller can order the list
- * however it queried it.
+ * Newest first, keyed on the local calendar day of the row's instant. The stored
+ * `day` is midnight in whatever time zone the row was saved in, so keying on it
+ * splits one day in two once the device's zone changes.
  */
 export function groupByDay<T extends DayGroupable>(
     rows: readonly T[],
@@ -51,16 +52,18 @@ export function groupByDay<T extends DayGroupable>(
     const sections: DaySection<T>[] = [];
     const byDay = new Map<number, DaySection<T>>();
     for (const row of rows) {
-        const key = row.day.getTime();
+        const key = new Date(instant(row)).setHours(0, 0, 0, 0);
         let section = byDay.get(key);
         if (!section) {
-            section = { data: [], day: new Date(row.day), total: 0, totals: [] };
+            section = { data: [], day: new Date(key), total: 0, totals: [] };
             byDay.set(key, section);
             sections.push(section);
         }
         section.data.push(row);
     }
+    sections.sort((a, b) => b.day.getTime() - a.day.getTime());
     for (const section of sections) {
+        section.data.sort((a, b) => instant(b) - instant(a));
         section.totals = currencyTotals(
             section.data.filter((row) => !row.excludedFromTotals),
             globalCurrency,

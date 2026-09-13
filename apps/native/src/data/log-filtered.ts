@@ -62,9 +62,7 @@ function filterPredicate(scope: LogFilterScope, now: Date, categoryIds: string[]
                 ? and(visibleAt(now), inArray(transactions.categoryId, categoryIds))
                 : null;
         }
-        case "day": {
-            return and(visibleAt(now), eq(transactions.day, cursorStart("day", scope.cursor)));
-        }
+        case "day":
         case "week":
         case "month": {
             const unit = scope.filter;

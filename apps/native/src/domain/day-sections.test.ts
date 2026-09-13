@@ -25,8 +25,8 @@ describe("groupByDay", () => {
         expect(sections[0].total).toBe(-25);
     });
 
-    it("keeps sections in first-appearance order so a day-desc query stays desc", () => {
-        const sections = groupByDay([row("2026-07-24", 10), row("2026-07-23", 20), row("2026-07-21", 30)]);
+    it("orders sections newest first", () => {
+        const sections = groupByDay([row("2026-07-23", 20), row("2026-07-24", 10), row("2026-07-21", 30)]);
         expect(sections.map((section) => section.day.getDate())).toStrictEqual([24, 23, 21]);
     });
 
@@ -38,6 +38,21 @@ describe("groupByDay", () => {
         expect(sections[0].data).toHaveLength(2);
         expect(sections[0].total).toBe(-15);
         expect(sections[1].total).toBe(-20);
+    });
+
+    it("merges a day saved under two time zones into one section, newest first", () => {
+        const midnight = new Date("2026-09-09T00:00:00");
+        const early = {
+            amount: 7,
+            date: new Date("2026-09-09T02:47:00"),
+            day: new Date("2026-09-09T01:00:00"),
+            income: false,
+        };
+        const late = { amount: 8, date: new Date("2026-09-09T22:09:00"), day: midnight, income: false };
+        const sections = groupByDay([early, late]);
+        expect(sections).toHaveLength(1);
+        expect(sections[0].day.getTime()).toBe(midnight.getTime());
+        expect(sections[0].data).toStrictEqual([late, early]);
     });
 
     it("buckets a day's total per currency rather than adding two together", () => {
