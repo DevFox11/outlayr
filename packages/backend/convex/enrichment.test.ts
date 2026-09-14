@@ -841,6 +841,8 @@ describe("runSuggest regionCode", () => {
 
         const sent = JSON.stringify(model.doGenerateCalls[0]?.prompt);
         expect(sent).toContain("domainConfidence");
+        expect(sent).toContain("Set brand to the business's official name");
+        expect(sent).toContain("keeping hyphens, digits, dots and country suffixes");
         expect(sent).toContain("card-terminal or bank-statement descriptor");
         expect(sent).not.toContain("only if you are confident");
     });

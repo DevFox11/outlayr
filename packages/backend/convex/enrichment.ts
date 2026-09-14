@@ -118,6 +118,14 @@ function domainAccepted(confidence: (typeof DOMAIN_CONFIDENCE)[number] | null | 
 
 /** The model's own output is untrusted input — this is only the JSON shape. */
 const modelOutputSchema = z.object({
+    /**
+     * Never read. Asking the model to write the brand's own name before its
+     * domain is what measurably fixes the domain's spelling: on 13 hyphenated
+     * or regional merchants x 10 runs, correct domains rose from 88 to 106 of
+     * 130 (with the spelling sentence in `DOMAIN_LINE`), against 96 for that
+     * sentence alone.
+     */
+    brand: z.string().nullish(),
     categoryName: z.string().nullable(),
     domain: z.string().nullable(),
     /**
@@ -282,7 +290,7 @@ export const DESCRIPTOR_LINE =
  * private note still comes back null.
  */
 export const DOMAIN_LINE =
-    "Set domain to the primary web domain of the brand you recognise (a chain, retailer, restaurant group, transit operator, utility, service or app): the apex domain of its main site, never a subdomain. Set domainConfidence to high when you recognise the brand, medium when it is a plausible match, low when you are guessing. Set domain to null only when the name does not identify any specific business you know of (a person, a private note, an unknown local shop).";
+    "Set brand to the business's official name written the way the brand itself writes it, or null. Set domain to the primary web domain of the brand you recognise (a chain, retailer, restaurant group, transit operator, utility, service or app): the apex domain of its main site, never a subdomain. Write the domain exactly as the brand's own website address is spelled, keeping hyphens, digits, dots and country suffixes; it is often not the brand name with spaces, accents and punctuation removed (for example coca-cola.com, hm.com, bahn.de). Set domainConfidence to high when you recognise the brand, medium when it is a plausible match, low when you are guessing. Set domain to null only when the name does not identify any specific business you know of (a person, a private note, an unknown local shop).";
 
 /**
  * Where the purchase happened outranks where the device is registered. The

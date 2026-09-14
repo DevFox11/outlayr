@@ -1058,6 +1058,14 @@ export const MERCHANTS: readonly MerchantEntry[] = [
         tags: ["Rideshare"],
     },
     {
+        categoryName: "Transport",
+        domain: "free-now.com",
+        id: "freenow",
+        label: "FREENOW",
+        patterns: ["freenow", "free now"],
+        tags: ["Rideshare"],
+    },
+    {
         categoryName: "Shopping",
         domain: "falabella.com",
         id: "falabella",
