@@ -60,17 +60,11 @@ export function serializeCsvAmount(amount: number, currency: string): string {
     return Number.parseFloat(fixed) === magnitude ? fixed : exactDecimal(magnitude);
 }
 
-/**
- * Which of `.` and `,` the column uses as its decimal point, decided across
- * every value rather than per value: `1,234` alone is unknowable, but a column
- * holding both `1.234,56` and `9,90` is not. A separator appearing twice, or
- * once with a three-digit tail, reads as grouping and casts no vote.
- */
 function soleSeparator(lastDot: number, lastComma: number): DecimalSeparator | null {
-    if (lastDot >= 0) {
+    if (lastDot !== -1) {
         return ".";
     }
-    if (lastComma >= 0) {
+    if (lastComma !== -1) {
         return ",";
     }
     return null;

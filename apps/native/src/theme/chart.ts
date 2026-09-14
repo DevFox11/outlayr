@@ -53,14 +53,6 @@ export const CHART_DRAW = {
     durationMs: 600,
 } as const;
 
-/**
- * An axis maximum rounded up to something a person would say out loud, with 10%
- * of headroom so the tallest bar never touches the ceiling.
- */
-export function axisMax(peak: number): number {
-    return Math.max(10, Math.ceil((peak * 1.1) / 10) * 10);
-}
-
 /** Compact magnitude for an axis label: 950, 1.2k, 15k, 3M. */
 export function compactMagnitude(value: number): string {
     const abs = Math.abs(value);

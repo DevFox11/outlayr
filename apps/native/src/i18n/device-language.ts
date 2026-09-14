@@ -7,12 +7,17 @@ import { AppState } from "react-native";
  * onboarding (§1.7) — deriving it from the locale is the guess that defect
  * exists to remove.
  */
-function deviceLanguageTag(): string | null {
+/** Null rather than throwing when the locale list cannot be read. */
+export function firstLocale() {
     try {
-        return getLocales()[0]?.languageTag ?? null;
+        return getLocales()[0] ?? null;
     } catch {
         return null;
     }
+}
+
+function deviceLanguageTag(): string | null {
+    return firstLocale()?.languageTag ?? null;
 }
 
 /**

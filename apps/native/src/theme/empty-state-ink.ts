@@ -2,8 +2,6 @@ import { withAlpha } from "./shade";
 
 export type EmptyStateTier = "takeover" | "inFlow" | "insetRow";
 
-export const EMPTY_STATE_TIERS = ["takeover", "inFlow", "insetRow"] as const satisfies readonly EmptyStateTier[];
-
 export const MARK_CEILING = {
     inFlow: 88,
     insetRow: 34,

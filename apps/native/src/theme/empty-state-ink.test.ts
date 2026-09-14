@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { EMPTY_STATE_TIERS, ghostInk, MARK_CEILING } from "./empty-state-ink";
+import { ghostInk, MARK_CEILING } from "./empty-state-ink";
 import type { EmptyStateTier } from "./empty-state-ink";
 
 const INK = "#010101";
@@ -13,7 +13,7 @@ function alphaOf(rgba: string): number {
     return Number(match[1]);
 }
 
-const LADDER: readonly EmptyStateTier[] = [...EMPTY_STATE_TIERS];
+const LADDER: readonly EmptyStateTier[] = ["takeover", "inFlow", "insetRow"];
 
 describe("the mark size ladder", () => {
     it("covers every tier", () => {

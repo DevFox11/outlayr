@@ -1,31 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { axisMax, CHART_DASH, compactMagnitude, dashArray } from "./chart";
-
-describe("axisMax", () => {
-    it("keeps the tallest bar clear of the ceiling", () => {
-        expect(axisMax(100) > 100).toBeTruthy();
-        expect(axisMax(9999) > 9999).toBeTruthy();
-    });
-
-    it("never collapses to zero on an empty window", () => {
-        expect(axisMax(0)).toBe(10);
-    });
-
-    it("rounds to a multiple of ten a person would say out loud", () => {
-        expect(axisMax(87) % 10).toBe(0);
-        expect(axisMax(1234) % 10).toBe(0);
-    });
-
-    it("grows monotonically with the peak", () => {
-        let previous = 0;
-        for (const peak of [0, 5, 50, 500, 5000, 50_000]) {
-            const value = axisMax(peak);
-            expect(value >= previous).toBeTruthy();
-            previous = value;
-        }
-    });
-});
+import { CHART_DASH, compactMagnitude, dashArray } from "./chart";
 
 describe("compactMagnitude", () => {
     it("leaves values under a thousand whole", () => {

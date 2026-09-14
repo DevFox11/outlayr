@@ -1,5 +1,5 @@
 import { accountBalanceSeries } from "./account-balance-series";
-import type { AccountBalanceSeriesAccount, AccountBalanceSeriesPoint } from "./account-balance-series";
+import type { AccountBalanceSeriesAccount } from "./account-balance-series";
 import { initialInDisplay } from "./account-display";
 import type { CurrencyCell } from "./currency-totals";
 import type { RateTable } from "./valuation";
@@ -53,7 +53,7 @@ export function netWorthSeries(
             opening: opening.value,
         });
         return {
-            byDate: indexByDate(series),
+            byDate: new Map(series.map((point) => [point.date, point])),
             openingExact: opening.exact,
         };
     });
@@ -92,12 +92,4 @@ export function netWorthSeries(
         points.push({ date, exact, value });
     }
     return points;
-}
-
-function indexByDate(series: readonly AccountBalanceSeriesPoint[]): Map<string, AccountBalanceSeriesPoint> {
-    const byDate = new Map<string, AccountBalanceSeriesPoint>();
-    for (const point of series) {
-        byDate.set(point.date, point);
-    }
-    return byDate;
 }

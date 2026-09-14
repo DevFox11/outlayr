@@ -32,18 +32,8 @@ export class TransferError extends Error {
  * or Files write because it needs no permission and already offers every
  * destination the user has.
  */
-export async function shareText(text: string, fileName: string, mimeType: string, dialogTitle: string): Promise<void> {
-    if (!(await isAvailableAsync())) {
-        throw new TransferError("alerts.transfer.sharingUnavailable");
-    }
-    const file = new File(Paths.cache, fileName);
-    file.create({ intermediates: true, overwrite: true });
-    file.write(text);
-    await shareAsync(file.uri, { dialogTitle, mimeType });
-}
-
-export async function shareBytes(
-    bytes: Uint8Array,
+export async function shareFile(
+    data: string | Uint8Array,
     fileName: string,
     mimeType: string,
     dialogTitle: string
@@ -53,7 +43,7 @@ export async function shareBytes(
     }
     const file = new File(Paths.cache, fileName);
     file.create({ intermediates: true, overwrite: true });
-    file.write(bytes);
+    file.write(data);
     await shareAsync(file.uri, { dialogTitle, mimeType });
 }
 

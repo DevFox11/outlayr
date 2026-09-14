@@ -226,6 +226,14 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const groundedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const recheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const clearTimers = useCallback(() => {
+        for (const ref of [timerRef, groundedTimerRef, recheckTimerRef]) {
+            if (ref.current != null) {
+                clearTimeout(ref.current);
+                ref.current = null;
+            }
+        }
+    }, []);
     const requestIdRef = useRef(0);
     /**
      * Key -> the request ticket that owns it. Ticketed rather than a bare set
@@ -264,7 +272,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
      * rendering is a side effect the compiler cannot follow, and every read
      * happens after commit anyway.
      */
-    const latest = useRef({
+    const resolved = {
         categoryTree,
         currency,
         enabled,
@@ -278,23 +286,10 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         resolveHistory,
         resolveLocal,
         transport,
-    });
+    };
+    const latest = useRef(resolved);
     useEffect(() => {
-        latest.current = {
-            categoryTree,
-            currency,
-            enabled,
-            groundedLookup,
-            income,
-            locale,
-            onSuggest,
-            regionCode,
-            remoteEnabled,
-            resolveDomain,
-            resolveHistory,
-            resolveLocal,
-            transport,
-        };
+        latest.current = resolved;
     });
 
     /** Only while the field still holds the merchant the lookup was made for. */
@@ -627,20 +622,11 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             if (!latest.current.enabled) {
                 return;
             }
-            if (timerRef.current != null) {
-                clearTimeout(timerRef.current);
-            }
-            if (groundedTimerRef.current != null) {
-                clearTimeout(groundedTimerRef.current);
-            }
-            if (recheckTimerRef.current != null) {
-                clearTimeout(recheckTimerRef.current);
-                recheckTimerRef.current = null;
-            }
+            clearTimers();
             timerRef.current = setTimeout(run, DEBOUNCE_MS);
             groundedTimerRef.current = setTimeout(runGroundedFollowUp, GROUNDED_IDLE_MS);
         },
-        [run, runGroundedFollowUp]
+        [clearTimers, run, runGroundedFollowUp]
     );
 
     const lookupNow = useCallback(async () => {
@@ -649,18 +635,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         }
         forcingRef.current = true;
         setForcing(true);
-        if (timerRef.current != null) {
-            clearTimeout(timerRef.current);
-            timerRef.current = null;
-        }
-        if (groundedTimerRef.current != null) {
-            clearTimeout(groundedTimerRef.current);
-            groundedTimerRef.current = null;
-        }
-        if (recheckTimerRef.current != null) {
-            clearTimeout(recheckTimerRef.current);
-            recheckTimerRef.current = null;
-        }
+        clearTimers();
         forceRef.current = true;
         try {
             // `run` awaits the fast pass, so by here its outcome is recorded and
@@ -671,25 +646,14 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             forcingRef.current = false;
             setForcing(false);
         }
-    }, [run, runGroundedFollowUp]);
+    }, [clearTimers, run, runGroundedFollowUp]);
 
     const teardown = useCallback(() => {
-        if (timerRef.current != null) {
-            clearTimeout(timerRef.current);
-            timerRef.current = null;
-        }
-        if (groundedTimerRef.current != null) {
-            clearTimeout(groundedTimerRef.current);
-            groundedTimerRef.current = null;
-        }
-        if (recheckTimerRef.current != null) {
-            clearTimeout(recheckTimerRef.current);
-            recheckTimerRef.current = null;
-        }
+        clearTimers();
         requestIdRef.current += 1;
         inFlightRef.current.clear();
         setPending(false);
-    }, []);
+    }, [clearTimers]);
 
     useEffect(() => {
         if (!enabled) {

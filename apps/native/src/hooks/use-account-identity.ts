@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { resolveInstitutionDomain } from "@/domain/institution-map";
 import type { EnrichmentFn } from "@/lib/convex";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
+import { persistLogo as persistLogoDefault } from "@/lib/persist-logo";
 
 import { useTransactionEnrichment } from "./use-transaction-enrichment";
 import type { EnrichmentSuggestion } from "./use-transaction-enrichment";
@@ -41,18 +42,6 @@ export interface UseAccountIdentityResult {
     pending: boolean;
 }
 
-async function persistDefault(bytes: Uint8Array): Promise<AccountLogo> {
-    // Required lazily so rendering the editor does not pull Skia's downscaler
-    // into the module graph, matching `domain/ids.ts`.
-    // SAFETY: untyped `require`, asserted to that module's own type.
-    const photoStorage = require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
-    // SAFETY: as on the line above.
-    const { glowFromImage } = require("@/theme/glow") as typeof import("@/theme/glow");
-    const imageUri = await photoStorage.persistLogoBytes(bytes);
-    const hues = await glowFromImage(imageUri);
-    return { imageColor: hues[0] ?? null, imageUri };
-}
-
 /**
  * The transaction enrichment protocol with everything but the domain ignored:
  * same debounce rhythm, consent gates, caches and grounded follow-up, consumed
@@ -75,7 +64,7 @@ export function useAccountIdentity(args: UseAccountIdentityArgs): UseAccountIden
         onClear,
         transport,
         fetchImage = fetchMerchantImage,
-        persistLogo = persistDefault,
+        persistLogo = persistLogoDefault,
     } = args;
 
     const nameRef = useRef("");

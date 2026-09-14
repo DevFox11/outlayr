@@ -15,8 +15,6 @@ import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useSystemSync } from "@/lib/use-system-sync";
 
 import migrationsBundle from "../../drizzle/migrations";
-import { reopenLocalData } from "./local-data-state";
-import type { LocalDataState } from "./local-data-state";
 
 export type LocalDataStatus = "opening" | "migrating" | "seeding" | "ready" | "error";
 
@@ -56,7 +54,17 @@ export function useDatabase(): Database {
  * on it, so no screen ever observes a half-built database.
  */
 export function LocalDataProvider({ children }: { children: ReactNode }) {
-    const [state, setState] = useState<LocalDataState>({ attempt: 0, db: null, error: null, status: "opening" });
+    const [state, setState] = useState<{
+        attempt: number;
+        db: Database | null;
+        error: Error | null;
+        status: LocalDataStatus;
+    }>({
+        attempt: 0,
+        db: null,
+        error: null,
+        status: "opening",
+    });
     const { attempt, db, error, status } = state;
     const proEntitled = useProEntitled();
 
@@ -126,7 +134,13 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
             db,
             error,
             retry: () => {
-                setState(reopenLocalData);
+                setState((previous) => ({
+                    ...previous,
+                    attempt: previous.attempt + 1,
+                    db: null,
+                    error: null,
+                    status: "opening",
+                }));
             },
             status,
         }),

@@ -5,7 +5,7 @@ import { layoutDayCard } from "@/domain/day-card";
 import type { CardTone, CardWeight, DayCardInput } from "@/domain/day-card";
 import { translateNow } from "@/i18n/runtime";
 
-import { shareBytes, TransferError } from "./data-transfer";
+import { shareFile, TransferError } from "./data-transfer";
 
 /** Retina-density raster of a layout measured in points. */
 const SCALE = 3;
@@ -113,5 +113,5 @@ export async function shareDayCard(input: DayCardInput, fileName: string): Promi
     if (bytes == null) {
         throw new TransferError("alerts.dayCard.undrawable");
     }
-    await shareBytes(bytes, fileName, "image/png", translateNow("alerts.dayCard.shareTitle"));
+    await shareFile(bytes, fileName, "image/png", translateNow("alerts.dayCard.shareTitle"));
 }

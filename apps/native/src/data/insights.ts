@@ -151,12 +151,7 @@ export function elapsedSlots(
         return 1;
     }
     const nowMs = now.getTime();
-    let elapsed = 0;
-    for (const range of ranges) {
-        if (range.start.getTime() <= nowMs) {
-            elapsed += 1;
-        }
-    }
+    const elapsed = ranges.filter((range) => range.start.getTime() <= nowMs).length;
     return Math.max(1, Math.min(ranges.length, elapsed));
 }
 
@@ -189,9 +184,6 @@ export function bucketSeries(
         ...r,
         value: 0,
     }));
-    if (buckets.length === 0) {
-        return buckets;
-    }
     const last = buckets.at(-1);
     if (!last) {
         return buckets;
@@ -229,11 +221,7 @@ export function runningTotals(buckets: readonly InsightsBucket[]): number[] {
 }
 
 export function periodTotal(buckets: readonly InsightsBucket[]): number {
-    let total = 0;
-    for (const bucket of buckets) {
-        total += bucket.value;
-    }
-    return total;
+    return buckets.reduce((total, bucket) => total + bucket.value, 0);
 }
 
 function windowBounds(
@@ -243,9 +231,6 @@ function windowBounds(
     calendar: InsightsCalendar
 ): { start: number; end: number } | null {
     const ranges = bucketRanges(period, now, offset, calendar);
-    if (ranges.length === 0) {
-        return null;
-    }
     const last = ranges.at(-1);
     if (!last) {
         return null;

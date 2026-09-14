@@ -1,13 +1,7 @@
-import { getLocales } from "expo-localization";
 import { useMemo } from "react";
 
+import { firstLocale } from "@/i18n/device-language";
+
 export function useRegionCode(): string | undefined {
-    return useMemo(() => {
-        try {
-            const region = getLocales()[0]?.regionCode?.trim();
-            return region || undefined;
-        } catch {
-            // No locale available; the hook reports undefined.
-        }
-    }, []);
+    return useMemo(() => firstLocale()?.regionCode?.trim() || undefined, []);
 }

@@ -14,7 +14,7 @@ import { archiveFileName, serializeArchive } from "@/domain/archive";
 import { CSV_HEADER } from "@/domain/transaction-csv";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
-import { shareText, TransferError } from "@/lib/data-transfer";
+import { shareFile, TransferError } from "@/lib/data-transfer";
 import { notifyFailure } from "@/lib/notify";
 import { useColors } from "@/theme/use-colors";
 
@@ -49,7 +49,7 @@ function ExportDataContent({ db }: { db: Database }) {
         setBusy(true);
         buildArchive(db, new Date())
             .then((document) =>
-                shareText(
+                shareFile(
                     serializeArchive(document),
                     archiveFileName(new Date()),
                     "application/json",
@@ -68,7 +68,7 @@ function ExportDataContent({ db }: { db: Database }) {
     const run = () => {
         setBusy(true);
         exportTransactionsCsv(db)
-            .then((csv) => shareText(csv, exportFileName(new Date()), "text/csv", t("settings.export.shareTitle")))
+            .then((csv) => shareFile(csv, exportFileName(new Date()), "text/csv", t("settings.export.shareTitle")))
             .catch((cause: unknown) => {
                 notifyFailure({
                     body: cause instanceof TransferError ? t(cause.key) : t("settings.export.failedBody"),

@@ -173,9 +173,9 @@ export function formatSentenceDate(date: Date, language: Language = runtimeLangu
 export function formatTime(date: Date, use24Hour = false, language: Language = runtimeLanguage()): string {
     const hours = date.getHours();
     const minutes = date.getMinutes();
-    const mm = minutes < 10 ? `0${minutes}` : String(minutes);
+    const mm = String(minutes).padStart(2, "0");
     if (use24Hour) {
-        return `${hours < 10 ? `0${hours}` : hours}:${mm}`;
+        return `${String(hours).padStart(2, "0")}:${mm}`;
     }
     const meridiem = dateName(hours >= 12 ? "dates.meridiem.pm" : "dates.meridiem.am", language);
     const hour12 = hours % 12 === 0 ? 12 : hours % 12;

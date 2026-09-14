@@ -32,16 +32,6 @@ export interface RateTable {
     get: (code: string, dateKey: string) => number | null;
 }
 
-function byDateDescending(a: { date: string }, b: { date: string }): number {
-    if (a.date < b.date) {
-        return 1;
-    }
-    if (a.date > b.date) {
-        return -1;
-    }
-    return 0;
-}
-
 export function buildRateTable(rows: readonly { quote: string; date: string; rate: number }[]): RateTable {
     const byCode = new Map<string, { date: string; rate: number }[]>();
     for (const row of rows) {
@@ -55,7 +45,7 @@ export function buildRateTable(rows: readonly { quote: string; date: string; rat
     // Descending, so the first entry at or before a date is the answer. Dates are
     // `YYYY-MM-DD`, which sorts lexically exactly as it sorts chronologically.
     for (const list of byCode.values()) {
-        list.sort(byDateDescending);
+        list.sort((a, b) => b.date.localeCompare(a.date));
     }
 
     return {
@@ -216,11 +206,7 @@ export function valueDatedRowsIn(rows: readonly DatedValuable[], displayCurrency
 }
 
 export function sumValuedIn(rows: readonly DatedValuable[], displayCurrency: string, rates: RateTable): number {
-    let total = 0;
-    for (const value of valueDatedRowsIn(rows, displayCurrency, rates)) {
-        total += value;
-    }
-    return total;
+    return valueDatedRowsIn(rows, displayCurrency, rates).reduce((total, value) => total + value, 0);
 }
 
 interface BudgetLimit {

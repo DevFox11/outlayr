@@ -1,34 +1,14 @@
 import { File } from "expo-file-system";
-import { getLocales } from "expo-localization";
 
 import { attachMissingLogos } from "@/data/logo-backfill-core";
 import type { LogoBackfillDeps } from "@/data/logo-backfill-core";
 import { readBoolSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
+import { firstLocale } from "@/i18n/device-language";
+import { persistLogo } from "@/lib/persist-logo";
 
 import { convex, enrichmentTransport } from "./convex";
 import { fetchMerchantImage } from "./logo-fetch";
-
-/** Null rather than throwing when the locale list cannot be read. */
-function firstLocale() {
-    try {
-        return getLocales()[0] ?? null;
-    } catch {
-        return null;
-    }
-}
-
-async function persistLogo(bytes: Uint8Array): Promise<{ imageColor: string | null; imageUri: string }> {
-    // Required lazily so the sync hook does not pull Skia's downscaler into the
-    // module graph, matching `use-account-identity.ts`.
-    // SAFETY: untyped `require`, asserted to that module's own type.
-    const photoStorage = require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
-    // SAFETY: as on the line above.
-    const { glowFromImage } = require("@/theme/glow") as typeof import("@/theme/glow");
-    const imageUri = await photoStorage.persistLogoBytes(bytes);
-    const hues = await glowFromImage(imageUri);
-    return { imageColor: hues[0] ?? null, imageUri };
-}
 
 /**
  * The production wiring for `attachMissingLogos`: the same consent gates the

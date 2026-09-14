@@ -53,15 +53,7 @@ export function buildReviewRows(plan: ImportPlan, duplicates: ReadonlySet<number
 }
 
 function sameMembers(a: ReadonlySet<number>, b: ReadonlySet<number>): boolean {
-    if (a.size !== b.size) {
-        return false;
-    }
-    for (const value of a) {
-        if (!b.has(value)) {
-            return false;
-        }
-    }
-    return true;
+    return a.size === b.size && [...a].every((value) => b.has(value));
 }
 
 const EMPTY_PLAN: ImportPlan = {
