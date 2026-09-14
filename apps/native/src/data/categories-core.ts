@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, max } from "drizzle-orm";
 
 import { TOMBSTONED_BUDGET } from "@/data/budgets-core";
 import type { Database } from "@/db/client";
@@ -166,8 +166,8 @@ export interface CategoryInput {
 }
 
 async function nextSortOrder(db: Database, income: boolean, parentId: string | null): Promise<number> {
-    const rows = await db
-        .select({ sortOrder: categories.sortOrder })
+    const [row] = await db
+        .select({ highest: max(categories.sortOrder) })
         .from(categories)
         .where(
             and(
@@ -175,11 +175,8 @@ async function nextSortOrder(db: Database, income: boolean, parentId: string | n
                 isNull(categories.deletedAt),
                 parentId == null ? isNull(categories.parentId) : eq(categories.parentId, parentId)
             )
-        )
-        .orderBy(desc(categories.sortOrder))
-        .limit(1);
-    const last = rows[0]?.sortOrder;
-    return last == null ? 0 : last + 1;
+        );
+    return (row?.highest ?? -1) + 1;
 }
 
 /**

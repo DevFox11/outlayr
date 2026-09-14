@@ -13,6 +13,7 @@ import {
     startOfYear,
 } from "./dates";
 import type { CalendarSettings } from "./dates";
+import { addMonths } from "./recurrence";
 
 /** Mirrors the Swift `Budget.type` codes. */
 export const BUDGET_TYPE = {
@@ -27,21 +28,6 @@ export interface BudgetWindow {
     start: Date;
 }
 
-/**
- * Adds calendar `months`, clamping the day to the target month's length so
- * Jan 31 + 1mo → Feb 28/29 (and stays clamped on the next advance). Matches
- * Apple's `Calendar.date(byAdding: .month)`, which the rolling window relies on.
- */
-function addMonthsClamped(date: Date, months: number): Date {
-    const d = new Date(date);
-    const day = d.getDate();
-    d.setDate(1);
-    d.setMonth(d.getMonth() + months);
-    const daysInTarget = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-    d.setDate(Math.min(day, daysInTarget));
-    return d;
-}
-
 /** End of the single period beginning at `start`. Ports `Budget.endDate`. */
 export function periodEnd(start: Date, type: number): Date {
     switch (type) {
@@ -52,10 +38,10 @@ export function periodEnd(start: Date, type: number): Date {
             return addDays(start, 7);
         }
         case BUDGET_TYPE.month: {
-            return addMonthsClamped(start, 1);
+            return addMonths(start, 1, start.getDate());
         }
         case BUDGET_TYPE.year: {
-            return addMonthsClamped(start, 12);
+            return addMonths(start, 12, start.getDate());
         }
         default: {
             return new Date(start);
@@ -109,10 +95,10 @@ export function previousPeriodStart(start: Date, type: number): Date {
             return addDays(start, -7);
         }
         case BUDGET_TYPE.month: {
-            return addMonthsClamped(start, -1);
+            return addMonths(start, -1, start.getDate());
         }
         case BUDGET_TYPE.year: {
-            return addMonthsClamped(start, -12);
+            return addMonths(start, -12, start.getDate());
         }
         default: {
             return new Date(start);

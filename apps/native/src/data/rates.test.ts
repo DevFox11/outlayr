@@ -4,8 +4,9 @@ import BetterSqlite3 from "better-sqlite3";
 import type { Database } from "@/db/client";
 import { appMeta, exchangeRates } from "@/db/schema";
 import { testDatabase } from "@/db/test-database";
+import { chunkRows } from "@/lib/chunk";
 
-import { chunkRows, isThrottled, pullRatesIfDue, RATE_ROWS_PER_CHUNK, RATES_THROTTLE_MS } from "./rates";
+import { isThrottled, pullRatesIfDue, RATE_ROWS_PER_CHUNK, RATES_THROTTLE_MS } from "./rates";
 import type { PullRatesPage, RateWireRow } from "./rates";
 import { ratesRevision, subscribeRatesRevision } from "./rates-revision";
 

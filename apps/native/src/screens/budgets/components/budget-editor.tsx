@@ -1,9 +1,6 @@
 import { DatePicker, Host, HStack, Spacer } from "@expo/ui/swift-ui";
 import { datePickerStyle, labelsHidden } from "@expo/ui/swift-ui/modifiers";
-import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useMemo, useState } from "react";
-import type { ReactNode } from "react";
 import { Pressable, Switch, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
 
@@ -17,6 +14,8 @@ import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
+
+import { EditorRow } from "./editor-row";
 
 /**
  * What the editor writes. Every field is optional: one row commits one fact.
@@ -257,36 +256,5 @@ export function BudgetEditor({
                 </Text>
             ) : null}
         </View>
-    );
-}
-
-function EditorRow({
-    label,
-    value,
-    detail,
-    onPress,
-}: {
-    detail?: ReactNode;
-    label: string;
-    onPress: () => void;
-    value: string;
-}) {
-    const colors = useColors();
-    return (
-        <Pressable
-            accessibilityRole="button"
-            accessibilityValue={{ text: value }}
-            className="border-border border-b py-3.5 active:opacity-60"
-            onPress={onPress}
-        >
-            <View className="flex-row items-center gap-3">
-                <Text className="text-body text-foreground flex-1">{label}</Text>
-                <Text className="text-body text-muted" style={{ fontVariant: ["tabular-nums"] }}>
-                    {value}
-                </Text>
-                <HugeiconsIcon color={colors.subtle} icon={ArrowRight01Icon} size={16} strokeWidth={2.2} />
-            </View>
-            {detail ? <Text className="text-muted text-subtitle pt-1 leading-snug">{detail}</Text> : null}
-        </Pressable>
     );
 }

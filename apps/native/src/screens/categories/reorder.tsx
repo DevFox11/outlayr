@@ -11,21 +11,9 @@ import { useCategoriesByNamespace } from "@/data/categories";
 import { categoriesRepo } from "@/data/categories-core";
 import type { Category, CategoryWithChildren } from "@/data/categories-core";
 import type { Database } from "@/db/client";
+import { applyMove } from "@/domain/reorder";
 import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
-
-/**
- * Replicates SwiftUI's `Array.move(fromOffsets:toOffset:)`: `destination` is an
- * index in the pre-removal coordinate space, so shift it back by the number of
- * moved items that sat before it.
- */
-function applyMove<T>(items: T[], sourceIndices: number[], destination: number): T[] {
-    const moving = sourceIndices.map((index) => items[index]);
-    const rest = items.filter((_, index) => !sourceIndices.includes(index));
-    const removedBefore = sourceIndices.filter((index) => index < destination).length;
-    const insertAt = destination - removedBefore;
-    return [...rest.slice(0, insertAt), ...moving, ...rest.slice(insertAt)];
-}
 
 export function CategoryReorder({ income }: { income: boolean }) {
     const db = useDatabase();

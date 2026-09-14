@@ -1,3 +1,5 @@
+import { buildPatternIndex, containsTokenSequence } from "./pattern-index";
+
 /**
  * Banks, card issuers, brokerages and wallets — the things an ACCOUNT is named
  * after, which is a different question from the one `merchant-map.ts` answers.
@@ -186,7 +188,7 @@ const INSTITUTIONS: readonly InstitutionEntry[] = [
         patterns: ["bnc", "banco nacional de credito"],
     },
     // Listed after "bbva" so the two-token pattern outranks it — see the sort in
-    // `buildInstitutionIndex`, which does not depend on this file's order.
+    // `buildPatternIndex`, which does not depend on this file's order.
     {
         domain: "provincial.com",
         id: "provincial",
@@ -205,56 +207,7 @@ const INSTITUTIONS: readonly InstitutionEntry[] = [
     { domain: "100banco.com", id: "100-banco", label: "100% Banco", patterns: ["100 banco"] },
 ] as const;
 
-interface PatternRank {
-    readonly entry: InstitutionEntry;
-    readonly pattern: string;
-    readonly tokenCount: number;
-}
-
-/**
- * Longest pattern first, so "bbva provincial" is reached before "bbva" and
- * "banco santander" before "santander". Same ranking as the merchant index, and
- * for the same reason: a more specific name must not be answered by a shorter
- * one it happens to contain.
- */
-function buildInstitutionIndex(institutions: readonly InstitutionEntry[]): ReadonlyMap<string, InstitutionEntry> {
-    const ranked: PatternRank[] = [];
-    for (const entry of institutions) {
-        for (const pattern of entry.patterns) {
-            ranked.push({ entry, pattern, tokenCount: pattern.split(" ").length });
-        }
-    }
-    ranked.sort((a, b) => {
-        const tokenDiff = b.tokenCount - a.tokenCount;
-        return tokenDiff === 0 ? b.pattern.length - a.pattern.length : tokenDiff;
-    });
-    const index = new Map<string, InstitutionEntry>();
-    for (const { pattern, entry } of ranked) {
-        index.set(pattern, entry);
-    }
-    return index;
-}
-
-const INSTITUTION_INDEX: ReadonlyMap<string, InstitutionEntry> = buildInstitutionIndex(INSTITUTIONS);
-
-function containsTokenSequence(haystack: readonly string[], needle: readonly string[]): boolean {
-    if (needle.length === 0 || needle.length > haystack.length) {
-        return false;
-    }
-    for (let start = 0; start <= haystack.length - needle.length; start += 1) {
-        let matched = true;
-        for (let offset = 0; offset < needle.length; offset += 1) {
-            if (haystack[start + offset] !== needle[offset]) {
-                matched = false;
-                break;
-            }
-        }
-        if (matched) {
-            return true;
-        }
-    }
-    return false;
-}
+const INSTITUTION_INDEX: ReadonlyMap<string, InstitutionEntry> = buildPatternIndex(INSTITUTIONS);
 
 /**
  * The institution's domain, or null. Takes a key already folded by

@@ -1,3 +1,5 @@
+import { buildPatternIndex } from "./pattern-index";
+
 export interface MerchantEntry {
     readonly categoryName: string;
     readonly domain: string | null;
@@ -1211,28 +1213,4 @@ export const MERCHANTS: readonly MerchantEntry[] = [
     },
 ] as const;
 
-interface PatternRank {
-    readonly entry: MerchantEntry;
-    readonly pattern: string;
-    readonly tokenCount: number;
-}
-
-function buildMerchantIndex(merchants: readonly MerchantEntry[]): ReadonlyMap<string, MerchantEntry> {
-    const ranked: PatternRank[] = [];
-    for (const entry of merchants) {
-        for (const pattern of entry.patterns) {
-            ranked.push({ entry, pattern, tokenCount: pattern.split(" ").length });
-        }
-    }
-    ranked.sort((a, b) => {
-        const tokenDiff = b.tokenCount - a.tokenCount;
-        return tokenDiff === 0 ? b.pattern.length - a.pattern.length : tokenDiff;
-    });
-    const index = new Map<string, MerchantEntry>();
-    for (const { pattern, entry } of ranked) {
-        index.set(pattern, entry);
-    }
-    return index;
-}
-
-export const MERCHANT_INDEX: ReadonlyMap<string, MerchantEntry> = buildMerchantIndex(MERCHANTS);
+export const MERCHANT_INDEX: ReadonlyMap<string, MerchantEntry> = buildPatternIndex(MERCHANTS);

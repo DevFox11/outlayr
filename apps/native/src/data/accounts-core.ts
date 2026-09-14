@@ -1,16 +1,15 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, max } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { accounts, transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { DEFAULT_ACCOUNT_KIND } from "@/domain/account-kind";
 import type { AccountKind } from "@/domain/account-kind";
-import { canonicalUsd } from "@/domain/canonical-usd";
 import { newId } from "@/domain/ids";
 
 import { getMetaSync, META_KEYS, setMeta } from "./app-meta-core";
+import { frozenUsdAmount } from "./frozen-usd";
 import { refreshLogoCandidates } from "./logo-backfill-state";
-import { localRateLookup } from "./rates";
 import { tombstoneTransfersTouchingAccount } from "./transfers-core";
 
 export type Account = typeof accounts.$inferSelect;
@@ -56,32 +55,11 @@ export async function rememberLastUsedAccount(db: Database, id: string): Promise
 }
 
 async function nextSortOrder(db: Database): Promise<number> {
-    const rows = await db
-        .select({ sortOrder: accounts.sortOrder })
+    const [row] = await db
+        .select({ highest: max(accounts.sortOrder) })
         .from(accounts)
-        .where(isNull(accounts.deletedAt))
-        .orderBy(desc(accounts.sortOrder))
-        .limit(1);
-    const last = rows[0]?.sortOrder;
-    return last == null ? 0 : last + 1;
-}
-
-/**
- * The opening balance's USD value, frozen at the rate of its own day — the
- * contract `transactions.amountUsd` keeps. Signed, unlike an entry: an account
- * can open overdrawn, so the magnitude is canonicalized and the sign restored.
- */
-async function frozenUsd(db: Database, amount: number, currency: string, date: Date): Promise<number | null> {
-    if (amount === 0) {
-        return 0;
-    }
-    const { amountUsd } = await canonicalUsd(localRateLookup(db), {
-        amount: Math.abs(amount),
-        currency,
-        date,
-        displayCurrency: currency,
-    });
-    return amountUsd == null ? null : Math.sign(amount) * amountUsd;
+        .where(isNull(accounts.deletedAt));
+    return (row?.highest ?? -1) + 1;
 }
 
 export const accountsRepo = {
@@ -103,7 +81,7 @@ export const accountsRepo = {
             imageUri: input.imageUri ?? null,
             initialBalance,
             initialBalanceDate,
-            initialBalanceUsd: await frozenUsd(db, initialBalance, input.currency, initialBalanceDate),
+            initialBalanceUsd: await frozenUsdAmount(db, initialBalance, input.currency, initialBalanceDate),
             kind: input.kind ?? DEFAULT_ACCOUNT_KIND,
             name: input.name,
             sortOrder: await nextSortOrder(db),
@@ -190,7 +168,7 @@ export const accountsRepo = {
                 initialBalance,
                 initialBalanceDate,
                 initialBalanceUsd: moneyMoved
-                    ? await frozenUsd(db, initialBalance, currency, initialBalanceDate)
+                    ? await frozenUsdAmount(db, initialBalance, currency, initialBalanceDate)
                     : existing.initialBalanceUsd,
                 updatedAt: new Date(),
             })

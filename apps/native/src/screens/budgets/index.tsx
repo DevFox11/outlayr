@@ -51,6 +51,7 @@ import { GoalTargetSheet } from "./components/goal-target-sheet";
 import type { GoalCommit, GoalTarget } from "./components/goal-target-sheet";
 import { SavingsGoalsSection } from "./components/savings-goals-section";
 import { UnbudgetedRail } from "./components/unbudgeted-rail";
+import { pairs } from "./pairs";
 
 export function Budgets() {
     const db = useDatabase();
@@ -59,14 +60,6 @@ export function Budgets() {
 
 /** `gap-3` between the two columns of the card grid. */
 const CARD_GUTTER = 12;
-
-function pairs<T>(items: readonly T[]): [T, T | undefined][] {
-    const rows: [T, T | undefined][] = [];
-    for (let index = 0; index < items.length; index += 2) {
-        rows.push([items[index], items[index + 1]]);
-    }
-    return rows;
-}
 
 function BudgetContent({ db }: { db: Database }) {
     const router = useRouter();

@@ -7,6 +7,7 @@ import type { SavingsGoalWithProgress } from "@/data/savings-goals";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
+import { pairs } from "../pairs";
 import { GoalCard } from "./goal-card";
 
 /** `gap-3` between the two columns, matching the budget card grid above it. */
@@ -58,7 +59,7 @@ export function SavingsGoalsSection({ goals, currency, onPress, onAdd }: Savings
             </View>
 
             <View className="gap-3" onLayout={(event) => setGridWidth(event.nativeEvent.layout.width)}>
-                {pairs(ordered).map(([left, right]) => (
+                {pairs(tiles(ordered)).map(([left, right]) => (
                     <View className="flex-row gap-3" key={left.key}>
                         <Tile currency={currency} onAdd={onAdd} onPress={onPress} tile={left} width={cardWidth} />
                         {right ? (
@@ -149,12 +150,7 @@ interface GridTile {
     key: string;
 }
 
-/** The goals plus the add tile, in rows of two. */
-function pairs(goals: readonly SavingsGoalWithProgress[]): [GridTile, GridTile | undefined][] {
-    const tiles: GridTile[] = [...goals.map((entry) => ({ entry, key: entry.goal.id })), { entry: null, key: "add" }];
-    const rows: [GridTile, GridTile | undefined][] = [];
-    for (let index = 0; index < tiles.length; index += 2) {
-        rows.push([tiles[index], tiles[index + 1]]);
-    }
-    return rows;
+/** The goals plus the add tile. */
+function tiles(goals: readonly SavingsGoalWithProgress[]): GridTile[] {
+    return [...goals.map((entry) => ({ entry, key: entry.goal.id })), { entry: null, key: "add" }];
 }

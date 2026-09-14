@@ -32,7 +32,7 @@ export function ensureRecurringType(type: number): number {
 }
 
 /** Adds `n` whole months, landing on `anchorDay` where the target month allows. */
-function addMonths(date: Date, n: number, anchorDay: number): Date {
+export function addMonths(date: Date, n: number, anchorDay: number): Date {
     const d = new Date(date);
     d.setDate(1);
     d.setMonth(d.getMonth() + n);

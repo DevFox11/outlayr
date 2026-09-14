@@ -17,6 +17,8 @@ import { CHART_DRAW, CHART_SCRUB } from "@/theme/chart";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
+import { showXLabel } from "./x-label";
+
 const HEIGHT = 150;
 const LABEL_H = 18;
 const LABEL_W = 32;
@@ -317,13 +319,3 @@ const StyleSheetAbsoluteFill = {
     right: 0,
     top: 0,
 };
-
-function showXLabel(period: InsightsPeriod, index: number, label: string): boolean {
-    if (period === "week") {
-        return true;
-    }
-    if (period === "year") {
-        return [1, 4, 7, 10].includes(index + 1);
-    }
-    return [1, 8, 15, 22, 29].includes(Number(label));
-}

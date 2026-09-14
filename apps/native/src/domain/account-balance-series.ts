@@ -1,8 +1,8 @@
 import { utcDateString } from "@outlayr/money/dates";
 
+import { cellIsExact } from "./account-balance";
 import { valueCell } from "./currency-totals";
 import type { CurrencyCell } from "./currency-totals";
-import { convertUsdSum } from "./valuation";
 import type { RateTable } from "./valuation";
 
 const HISTORY_DAYS = 182;
@@ -24,16 +24,6 @@ function addUtcDays(dateKey: string, days: number): string {
     const date = new Date(`${dateKey}T00:00:00.000Z`);
     date.setUTCDate(date.getUTCDate() + days);
     return utcDateString(date.getTime());
-}
-
-function cellIsExact(cell: CurrencyCell, currency: string, rates: RateTable): boolean {
-    if (cell.currencyCode === currency) {
-        return true;
-    }
-    if (cell.unconvertedCount > 0) {
-        return false;
-    }
-    return convertUsdSum(cell.amountUsd, cell.dateKey, currency, rates) !== null;
 }
 
 function applyCell(

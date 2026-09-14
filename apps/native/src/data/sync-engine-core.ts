@@ -20,6 +20,7 @@ import {
     transfers,
 } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
+import { chunkRows } from "@/lib/chunk";
 
 import { getOrCreateDeviceId, getSyncCursor, isSyncEnabled, setSyncCursor, SYNCED_META_KEYS } from "./sync-outbox-core";
 import type { SYNCED_TABLES } from "./sync-outbox-core";
@@ -338,18 +339,10 @@ function toLocalFields(spec: TableSpec, fields: WireFields): Row {
     );
 }
 
-function chunked<T>(values: readonly T[]): T[][] {
-    const chunks: T[][] = [];
-    for (let start = 0; start < values.length; start += ID_CHUNK) {
-        chunks.push(values.slice(start, start + ID_CHUNK));
-    }
-    return chunks;
-}
-
 async function rowsById(db: Database, table: SyncedTable, ids: readonly string[]): Promise<Map<string, Row>> {
     const spec = SPECS[table];
     const batches = await Promise.all(
-        chunked(ids).map((chunk) =>
+        chunkRows(ids, ID_CHUNK).map((chunk) =>
             anyWriter(db)
                 .select()
                 .from(spec.table)
@@ -451,7 +444,10 @@ export async function drainOutbox(db: Database, push: PushFn): Promise<number> {
         }
 
         /* oxlint-disable no-await-in-loop -- chunking only exists to stay under SQLite's bound-parameter limit, and one connection serialises writers anyway, so overlapping these deletes buys contention rather than parallelism */
-        for (const chunk of chunked(queued.map((entry) => entry.seq))) {
+        for (const chunk of chunkRows(
+            queued.map((entry) => entry.seq),
+            ID_CHUNK
+        )) {
             await db.delete(outbox).where(inArray(outbox.seq, chunk));
         }
         /* oxlint-enable no-await-in-loop */
@@ -632,7 +628,10 @@ async function applyInTransaction(
         );
         for (const [table, entries] of cleared) {
             /* oxlint-disable no-await-in-loop -- these deletes run inside one SQLite transaction, which admits a single writer, so they cannot overlap */
-            for (const chunk of chunked(entries.map((entry) => entry.localId))) {
+            for (const chunk of chunkRows(
+                entries.map((entry) => entry.localId),
+                ID_CHUNK
+            )) {
                 await db.delete(outbox).where(and(eq(outbox.tableName, table), inArray(outbox.localId, chunk)));
             }
             /* oxlint-enable no-await-in-loop */

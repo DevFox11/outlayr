@@ -21,6 +21,8 @@ import { panGesture } from "@/lib/gestures";
 import { CHART_BAR, CHART_DASH, CHART_DRAW, CHART_SCRUB, compactMagnitude, dashArray } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 
+import { showXLabel } from "./x-label";
+
 const BAR_AREA = 150;
 const LABEL_H = 18;
 const LABEL_W = 32;
@@ -368,14 +370,4 @@ function AxisLabel({ children, color }: { children: string; color: string }) {
             {children}
         </RNText>
     );
-}
-
-function showXLabel(period: InsightsPeriod, index: number, label: string): boolean {
-    if (period === "week") {
-        return true;
-    }
-    if (period === "year") {
-        return [1, 4, 7, 10].includes(index + 1);
-    }
-    return [1, 8, 15, 22, 29].includes(Number(label));
 }

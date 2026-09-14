@@ -7,6 +7,7 @@ import { bumpRatesRevision } from "@/data/rates-revision";
 import type { Database } from "@/db/client";
 import { appMeta, exchangeRates } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
+import { chunkRows } from "@/lib/chunk";
 
 /** 12 hours. */
 export const RATES_THROTTLE_MS = 43_200_000;
@@ -38,14 +39,6 @@ export interface PullRatesPage {
 
 /** Injected so the pull logic never imports the Convex client. */
 export type PullRatesFn = (args?: { cursor?: number }) => Promise<PullRatesPage>;
-
-export function chunkRows<T>(rows: readonly T[], size: number): T[][] {
-    const chunks: T[][] = [];
-    for (let start = 0; start < rows.length; start += size) {
-        chunks.push(rows.slice(start, start + size));
-    }
-    return chunks;
-}
 
 /**
  * A backward clock jump puts the recorded pull in the future, which would hold

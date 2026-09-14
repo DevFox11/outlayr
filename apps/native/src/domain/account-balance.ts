@@ -22,7 +22,7 @@ export interface AccountBalance {
     total: number;
 }
 
-function cellIsExact(cell: CurrencyCell, currency: string, rates: RateTable) {
+export function cellIsExact(cell: CurrencyCell, currency: string, rates: RateTable): boolean {
     if (cell.currencyCode === currency) {
         return true;
     }

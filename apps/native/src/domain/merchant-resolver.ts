@@ -1,5 +1,6 @@
 import { MERCHANT_INDEX } from "./merchant-map";
 import type { MerchantEntry } from "./merchant-map";
+import { containsTokenSequence } from "./pattern-index";
 
 export interface MerchantMatch {
     readonly categoryName: string;
@@ -15,25 +16,6 @@ export function merchantKey(raw: string): string {
         .replaceAll(/[^\p{L}\p{N}]+/gu, " ")
         .trim()
         .replaceAll(/\s+/g, " ");
-}
-
-function containsTokenSequence(haystack: readonly string[], needle: readonly string[]): boolean {
-    if (needle.length === 0 || needle.length > haystack.length) {
-        return false;
-    }
-    for (let start = 0; start <= haystack.length - needle.length; start += 1) {
-        let matched = true;
-        for (let offset = 0; offset < needle.length; offset += 1) {
-            if (haystack[start + offset] !== needle[offset]) {
-                matched = false;
-                break;
-            }
-        }
-        if (matched) {
-            return true;
-        }
-    }
-    return false;
 }
 
 function resolveAlias(key: string): MerchantEntry | null {

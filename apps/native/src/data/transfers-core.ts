@@ -3,13 +3,12 @@ import { and, count, eq, inArray, isNull, or } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { transactions, transfers } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
-import { canonicalUsd } from "@/domain/canonical-usd";
 import { firstOfMonth, startOfDay } from "@/domain/dates";
 import { newId } from "@/domain/ids";
 import type { FeeSide } from "@/domain/transfer-reconcile";
 
 import { getMetaSync, META_KEYS, setMeta } from "./app-meta-core";
-import { localRateLookup } from "./rates";
+import { frozenUsdAmount } from "./frozen-usd";
 
 interface TransferFeeInput {
     amount: number;
@@ -40,16 +39,6 @@ export function lastFeeCategoryId(db: Database): string | null {
 
 export async function rememberFeeCategory(db: Database, categoryId: string): Promise<void> {
     await setMeta(db, META_KEYS.lastTransferFeeCategory, categoryId);
-}
-
-async function frozenUsd(db: Database, amount: number, currency: string, date: Date): Promise<number | null> {
-    const { amountUsd } = await canonicalUsd(localRateLookup(db), {
-        amount,
-        currency,
-        date,
-        displayCurrency: currency,
-    });
-    return amountUsd ?? null;
 }
 
 function assertMovable(input: TransferInput): void {
@@ -105,9 +94,9 @@ export const transfersRepo = {
         const id = newId();
         const feeCurrency = input.fee?.side === "destination" ? input.toCurrency : input.fromCurrency;
         const [fromAmountUsd, toAmountUsd, feeUsd] = await Promise.all([
-            frozenUsd(db, input.fromAmount, input.fromCurrency, input.date),
-            frozenUsd(db, input.toAmount, input.toCurrency, input.date),
-            input.fee ? frozenUsd(db, input.fee.amount, feeCurrency, input.date) : Promise.resolve(null),
+            frozenUsdAmount(db, input.fromAmount, input.fromCurrency, input.date),
+            frozenUsdAmount(db, input.toAmount, input.toCurrency, input.date),
+            input.fee ? frozenUsdAmount(db, input.fee.amount, feeCurrency, input.date) : Promise.resolve(null),
         ]);
 
         await withTransaction(db, async () => {

@@ -2,10 +2,9 @@ import { asc, eq, isNull, max } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { savingsGoals } from "@/db/schema";
-import { canonicalUsd } from "@/domain/canonical-usd";
 import { newId } from "@/domain/ids";
 
-import { localRateLookup } from "./rates";
+import { frozenUsd } from "./frozen-usd";
 
 export type SavingsGoal = typeof savingsGoals.$inferSelect;
 
@@ -45,28 +44,6 @@ export class GoalValuationError extends Error {
         super("A goal's amounts could not be valued in USD.");
         this.name = "GoalValuationError";
     }
-}
-
-/** Mirrors `accounts-core`'s: a target is frozen the same way a balance is. */
-async function frozenUsd(
-    db: Database,
-    amount: number,
-    currency: string,
-    date: Date
-): Promise<{ amountUsd: number | null; exchangeRate: number | null }> {
-    if (amount === 0) {
-        return { amountUsd: 0, exchangeRate: null };
-    }
-    const { amountUsd, exchangeRate } = await canonicalUsd(localRateLookup(db), {
-        amount: Math.abs(amount),
-        currency,
-        date,
-        displayCurrency: currency,
-    });
-    return {
-        amountUsd: amountUsd == null ? null : Math.sign(amount) * amountUsd,
-        exchangeRate: exchangeRate ?? null,
-    };
 }
 
 /**
