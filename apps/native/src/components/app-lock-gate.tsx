@@ -1,6 +1,6 @@
 import SquareLock02Icon from "@hugeicons-pro/core-solid-rounded/SquareLock02Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createContext, use, useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { AppState, Pressable, View } from "react-native";
 
@@ -11,6 +11,12 @@ import type { TranslationKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
 import { lockIsEnforceable, requestUnlock } from "@/lib/app-lock";
 import { useColors } from "@/theme/use-colors";
+
+const LockOpenContext = createContext(true);
+
+export function useAppLockOpen(): boolean {
+    return use(LockOpenContext);
+}
 
 /**
  * Holds the shield over `children` rather than swapping them out: unmounting the
@@ -102,7 +108,7 @@ export function AppLockGate({ children }: { children: ReactNode }) {
 
     return (
         <View className="flex-1">
-            {children}
+            <LockOpenContext.Provider value={gate === "open"}>{children}</LockOpenContext.Provider>
             {gate === "shut" ? (
                 <AppLockScreen
                     busy={checking}

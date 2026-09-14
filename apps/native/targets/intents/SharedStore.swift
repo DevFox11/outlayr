@@ -1,4 +1,5 @@
 import Foundation
+import UserNotifications
 
 /// The App Group both the app and this extension can reach.
 ///
@@ -11,6 +12,10 @@ enum SharedStore {
 
     /// Where the app leaves the figures the read-only intents report.
     static let snapshotKey = "intentSnapshot"
+
+    /// Epoch milliseconds, as a string, of the last `SignalWalletRunIntent` run.
+    /// Mirrored by `WALLET_LAST_RUN_KEY` in `src/lib/widget-bridge.ts`.
+    static let walletRunKey = "walletLastRunAt"
 
     /// Where this extension leaves work for the app to commit, one JSON line per
     /// write. Mirrored by `QUEUE_DIRECTORY` / `QUEUE_FILE` in
@@ -43,6 +48,20 @@ enum SharedStore {
               var line = try? JSONEncoder().encode(write) else { return }
         line.append(0x0A)
         append(line, to: url)
+    }
+
+    /// Posts the app's own "Logged …" push from the extension. Skipped, not
+    /// thrown, when the app never got notification permission: the write is
+    /// already queued and a failed run would make Shortcuts retry it.
+    static func notify(_ body: String) async {
+        let center = UNUserNotificationCenter.current()
+        guard await center.notificationSettings().authorizationStatus == .authorized else { return }
+        let content = UNMutableNotificationContent()
+        content.body = body
+        content.threadIdentifier = "automation"
+        try? await center.add(
+            UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        )
     }
 
     private static func queueURL() -> URL? {
@@ -112,6 +131,9 @@ struct PendingWrite: Codable {
     /// Identifies the purchase, where `id` identifies this enqueue. Nil for a
     /// spoken entry, which names no purchase outside itself.
     let dedupeKey: String?
+    /// The raw notification text a `LogNotificationIntent` run carried; the app
+    /// parses the amount and merchant out of it. Nil for every other intent.
+    let text: String?
 }
 
 /// A projection of `WidgetProps` in `src/widgets/props.ts`: every figure arrives

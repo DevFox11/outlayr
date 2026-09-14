@@ -162,6 +162,40 @@ describe("applyPendingWrites", () => {
         await seedCategories(db);
     });
 
+    it("reads a notification job's amount and merchant, and files it by account", async () => {
+        await seedAccounts(db);
+        const job = walletWrite("push", {
+            amount: 0,
+            amountText: null,
+            card: "Chase",
+            dedupeKey: "notification:expense:x",
+            note: "",
+            text: "Purchase alert\nYou made a $12.40 purchase at STARBUCKS with your card ending in 4321.",
+        });
+
+        const applied = await applyPendingWrites(db, [job], NOW);
+
+        expect(applied).toBe(1);
+        const [row] = await db
+            .select({
+                accountId: transactions.accountId,
+                amount: transactions.amount,
+                currency: transactions.currency,
+                note: transactions.note,
+            })
+            .from(transactions);
+        expect(row).toStrictEqual({ accountId: "acc-chase", amount: 12.4, currency: "MXN", note: "STARBUCKS" });
+    });
+
+    it("skips a notification that names no amount", async () => {
+        const job = walletWrite("statement", { amount: 0, note: "", text: "Your statement is ready" });
+
+        const applied = await applyPendingWrites(db, [job], NOW);
+
+        expect(applied).toBe(0);
+        await expect(liveRows(db)).resolves.toHaveLength(0);
+    });
+
     it("commits a queued entry through the repo", async () => {
         const applied = await applyPendingWrites(db, [walletWrite("a")], NOW);
 

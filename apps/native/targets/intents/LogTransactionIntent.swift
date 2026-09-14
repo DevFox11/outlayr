@@ -69,7 +69,8 @@ struct LogTransactionIntent: AppIntent {
             currency: nil,
             // Two identical spoken entries are two entries: only the automation
             // triggers can claim that a repeat is the same purchase.
-            dedupeKey: nil
+            dedupeKey: nil,
+            text: nil
         )
         SharedStore.enqueue(write)
 

@@ -22,8 +22,8 @@ export interface DeferredDeleteSnapshot {
 export interface DeferredDeleteController {
     /** Drops the failure report once it has been delivered. */
     acknowledgeFailure: () => void;
-    /** Commits whatever is still pending, e.g. because the screen is going away. */
-    flush: () => void;
+    /** Commits whatever is still pending, e.g. because the screen is going away. Settles once written. */
+    flush: () => Promise<void>;
     requestDelete: (id: string) => void;
     snapshot: DeferredDeleteSnapshot;
     undo: () => void;
@@ -70,8 +70,8 @@ export function createDeferredDelete<Handle>({
         }
     }
 
-    function write(id: string) {
-        commit(id).catch(() => {
+    function write(id: string): Promise<void> {
+        return commit(id).catch(() => {
             // The window has already closed and the row is on the list again, with
             // nothing recorded. Reporting is the only thing that separates that from
             // the app having lost the gesture.
@@ -108,7 +108,7 @@ export function createDeferredDelete<Handle>({
         publish();
     }
 
-    function flush() {
+    async function flush() {
         cancelTimer();
         if (pendingId === null) {
             return;
@@ -118,7 +118,7 @@ export function createDeferredDelete<Handle>({
         // No snapshot for the hide ending: the caller is tearing down and has nothing
         // left to draw. A rejected write still publishes, which is how a failure
         // survives the teardown.
-        write(id);
+        await write(id);
     }
 
     return controller;

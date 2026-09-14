@@ -36,6 +36,7 @@ import { languageLabel } from "@/i18n/languages";
 import { translateNow } from "@/i18n/runtime";
 import { alternateIconsSupported, useAppIcon } from "@/lib/app-icon";
 import { requestUnlock } from "@/lib/app-lock";
+import { APP_VERSION } from "@/lib/app-version";
 import { importDraftStore } from "@/lib/import-draft-store";
 import { notifyFailure } from "@/lib/notify";
 import { useReminderSync } from "@/lib/reminder-sync";
@@ -108,9 +109,8 @@ function SettingsContent({ db }: { db: Database }) {
     const colorScheme = settings.number("colorScheme");
     const scheme = useColorScheme() === "dark" ? "dark" : "light";
 
-    const version = Constants.expoConfig?.version ?? "1.0.0";
     const build = Constants.expoConfig?.ios?.buildNumber ?? "1";
-    const diagnostics = supportDiagnostics(version, build);
+    const diagnostics = supportDiagnostics(APP_VERSION, build);
 
     const numberEntryDetail = choiceDetail(NUMBER_ENTRY_OPTIONS, numberEntryType);
 
@@ -118,7 +118,7 @@ function SettingsContent({ db }: { db: Database }) {
     const syncValue = syncLabel.count === undefined ? t(syncLabel.key) : t(syncLabel.key, { count: syncLabel.count });
 
     return (
-        <SettingsScreen footer={`Outlayr ${version} (${build})`}>
+        <SettingsScreen footer={`Outlayr ${APP_VERSION} (${build})`}>
             <SettingsSection title={t("settings.section.account")}>
                 <AccountRow />
                 <LinkRow

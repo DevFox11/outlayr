@@ -96,7 +96,7 @@ export interface DeferredDeleteRegistry {
     /** Points every held write at the open database; re-set when the file is reopened. */
     attachDatabase: (db: Database | null) => void;
     /** Commits every open window now, e.g. because the app is leaving the foreground. */
-    flushAll: () => void;
+    flushAll: () => Promise<void>;
     /** Id currently held for `kind`, which its list hides, or null. */
     pendingId: (kind: DeferredDeleteKind) => string | null;
     /** `body` is an already-translated supporting line for the undo toast. */
@@ -212,10 +212,8 @@ export function createDeferredDeleteRegistry(): DeferredDeleteRegistry {
         attachDatabase: (db) => {
             database = db;
         },
-        flushAll: () => {
-            for (const slot of slots.values()) {
-                slot.controller.flush();
-            }
+        flushAll: async () => {
+            await Promise.all(Array.from(slots.values(), (slot) => slot.controller.flush()));
         },
         pendingId: (kind) => slots.get(kind)?.controller.snapshot.pendingId ?? null,
         requestDelete: (kind, id, body) => {

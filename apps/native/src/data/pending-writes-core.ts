@@ -6,6 +6,7 @@ import { accounts, categories, transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { detectCurrency } from "@/domain/detect-currency";
 import { matchCardAccount } from "@/domain/match-card-account";
+import { parseNotification } from "@/domain/parse-notification";
 import type { PendingWrite } from "@/lib/pending-writes-core";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
@@ -51,12 +52,24 @@ export function parseLastWalletEntry(raw: string | null | undefined): LastWallet
 }
 
 /**
- * A job the Wallet automation produced, as opposed to a spoken one. The card is
- * the sure sign; the key prefix covers an automation built before the card
+ * A job an automation produced, as opposed to a spoken one. The card is the
+ * sure sign; the key prefixes cover an automation built before the card
  * parameter existed.
  */
-function fromWallet(job: PendingWrite): boolean {
-    return Boolean(job.card?.trim()) || (job.dedupeKey?.startsWith("wallet:") ?? false);
+function fromAutomation(job: PendingWrite): boolean {
+    return Boolean(job.card?.trim()) || /^(?:wallet|notification):/.test(job.dedupeKey ?? "");
+}
+
+/** A notification job with its amount and merchant filled in, or null when it names no purchase. */
+function readNotification(job: PendingWrite): PendingWrite | null {
+    if (!job.text) {
+        return job;
+    }
+    const parsed = parseNotification(job.text);
+    if (!parsed) {
+        return null;
+    }
+    return { ...job, amount: parsed.amount, amountText: parsed.amountText, note: parsed.merchant ?? "" };
 }
 
 const LEDGER_LIMIT = 100;
@@ -154,7 +167,11 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
     let applied = 0;
 
     /* oxlint-disable no-await-in-loop -- exactly-once depends on this job seeing the ledger row the previous job's SQLite transaction committed, so the jobs must land one at a time */
-    for (const job of jobs) {
+    for (const queued of jobs) {
+        const job = readNotification(queued);
+        if (!job) {
+            continue;
+        }
         const seen = alreadyApplied(ledger, job, at);
         if (seen && (await stillOnLedger(db, seen.txId))) {
             continue;
@@ -182,7 +199,7 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
             });
             ledger = remember(ledger, { at, id: job.id, key: job.dedupeKey?.trim() || null, txId }, at);
             await setMeta(db, META_KEYS.pendingWriteLedger, JSON.stringify(ledger));
-            if (fromWallet(job)) {
+            if (fromAutomation(job)) {
                 const entry: LastWalletEntry = { at, txId };
                 await setMeta(db, META_KEYS.lastWalletEntry, JSON.stringify(entry));
             }

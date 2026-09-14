@@ -18,9 +18,7 @@ import { useColors } from "@/theme/use-colors";
  * reconciled with this device's yet.
  */
 export function AuthCover({ children }: { children: ReactNode }) {
-    const { gate } = useAuthSession();
-    const { status } = useLedgerAdoption();
-    const covered = gate === "restoring" || status === "resolving";
+    const covered = useAuthCovered();
 
     return (
         <View className="flex-1">
@@ -28,6 +26,12 @@ export function AuthCover({ children }: { children: ReactNode }) {
             {covered ? <RestoringScreen /> : null}
         </View>
     );
+}
+
+export function useAuthCovered(): boolean {
+    const { gate } = useAuthSession();
+    const { status } = useLedgerAdoption();
+    return gate === "restoring" || status === "resolving";
 }
 
 function RestoringScreen() {

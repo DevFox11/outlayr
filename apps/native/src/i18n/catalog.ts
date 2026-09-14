@@ -30,6 +30,7 @@ type Search = typeof import("@/content/search.content").default;
 type Settings = typeof import("@/content/settings.content").default;
 type Transaction = typeof import("@/content/transaction.content").default;
 type Transfers = typeof import("@/content/transfers.content").default;
+type Update = typeof import("@/content/update.content").default;
 type Voice = typeof import("@/content/voice.content").default;
 
 /**
@@ -57,6 +58,7 @@ export const DICTIONARY_KEYS = [
     "settings",
     "transaction",
     "transfers",
+    "update",
     "voice",
 ] as const;
 
@@ -80,6 +82,7 @@ type Content =
     | Settings["content"]
     | Transaction["content"]
     | Transfers["content"]
+    | Update["content"]
     | Voice["content"];
 
 /**

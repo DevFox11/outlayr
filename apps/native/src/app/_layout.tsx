@@ -17,6 +17,7 @@ import { AppLockGate } from "@/components/app-lock-gate";
 import { AuthCover } from "@/components/auth-cover";
 import { LocalDataError } from "@/components/local-data-error";
 import { Text } from "@/components/text";
+import { UpdateSheet } from "@/components/update-sheet";
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
 import { LocalDataProvider, useDatabase, useLocalData } from "@/contexts/local-data-context";
@@ -158,6 +159,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
                             <AuthCover>
                                 <AppLockGate>
                                     <RootStack />
+                                    <UpdateSheet />
                                 </AppLockGate>
                             </AuthCover>
                         </ThemeProvider>

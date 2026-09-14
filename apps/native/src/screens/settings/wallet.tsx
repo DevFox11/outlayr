@@ -1,8 +1,14 @@
 import { and, eq, isNull } from "drizzle-orm";
-import { Button } from "panelui-native";
+import { Image } from "expo-image";
+import { Button, Carousel } from "panelui-native";
 import { useState } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
+import type { ImageRequireSource } from "react-native";
 
+import boundFrame from "@/assets/images/recipe/bound.jpg";
+import newShortcutFrame from "@/assets/images/recipe/new-shortcut.jpg";
+import pickerFrame from "@/assets/images/recipe/picker.jpg";
+import triggersFrame from "@/assets/images/recipe/triggers.jpg";
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { MonoLabel } from "@/components/mono-label";
 import { SettingsSection } from "@/components/settings/settings-row";
@@ -14,6 +20,7 @@ import { useAccounts } from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { META_KEYS, setMeta } from "@/data/app-meta-core";
 import { useLiveQuery, useLiveValue } from "@/data/live-query";
+import type { LastWalletEntry } from "@/data/pending-writes-core";
 import { parseLastWalletEntry } from "@/data/pending-writes-core";
 import type { Database } from "@/db/client";
 import { appMeta, transactions } from "@/db/schema";
@@ -31,36 +38,54 @@ const TILE_RADIUS = 8;
 
 interface Step {
     detail?: TranslationKey;
+    /** A frame of the Shortcuts screen this step happens on, for the strip. */
+    frame?: ImageRequireSource;
     title: TranslationKey;
 }
 
-/** The automation, once the shared shortcut is installed. */
-const AUTOMATION_STEPS: readonly Step[] = [
+/**
+ * Built inline on iOS 26: the action goes straight into a blank automation,
+ * and the trigger's Wallet transaction is the "Shortcut Input" its three
+ * fields are read from. The action lives in the OutlayrIntents extension,
+ * which only ever surfaces inside the action picker and under Library › Apps.
+ */
+const MANUAL_STEPS: readonly Step[] = [
     { title: "settings.wallet.step1" },
     { detail: "settings.wallet.step2Detail", title: "settings.wallet.step2" },
     { detail: "settings.wallet.step3Detail", title: "settings.wallet.step3" },
-    { title: "settings.wallet.step4" },
-    { title: "settings.wallet.step5" },
-];
-
-/**
- * The same automation built inline, for as long as there is no shared link.
- * No separate shortcut: the action goes straight into a blank automation, and
- * the trigger's Wallet transaction is the "Shortcut Input" its three fields
- * are read from. The action lives in the OutlayrIntents extension, which only
- * ever surfaces inside the action picker and under Library › Apps; nothing of
- * Outlayr's appears in All Shortcuts until the user saves one.
- */
-const MANUAL_STEPS: readonly Step[] = [
-    ...AUTOMATION_STEPS.slice(0, 3),
     { title: "settings.wallet.manualStep1" },
     { detail: "settings.wallet.manualStep2Detail", title: "settings.wallet.manualStep2" },
     { detail: "settings.wallet.manualStep3Detail", title: "settings.wallet.manualStep3" },
     { title: "settings.wallet.step5" },
 ];
 
-/** Whether the one-tap install exists yet; without it the shortcut is never "installed". */
-const HAS_SHARED_SHORTCUT = WALLET_SHORTCUT_URL != null;
+/** iOS 27 keeps a shortcut's triggers inside it, so a shared link installs the whole automation. */
+const TRIGGERS_IN_SHORTCUTS = Number.parseInt(String(Platform.Version), 10) >= 27;
+
+const IOS27_AUTOMATION_STEPS: readonly Step[] = [
+    { detail: "settings.wallet.v27Step1Detail", title: "settings.wallet.v27Step1" },
+    { title: "settings.wallet.v27Step2" },
+];
+
+const IOS27_MANUAL_STEPS: readonly Step[] = [
+    { frame: newShortcutFrame, title: "settings.wallet.v27Manual1" },
+    { detail: "settings.wallet.v27Manual2Detail", frame: triggersFrame, title: "settings.wallet.v27Manual2" },
+    { detail: "settings.wallet.manualStep2Detail", frame: pickerFrame, title: "settings.wallet.manualStep2" },
+    { detail: "settings.wallet.manualStep3Detail27", frame: boundFrame, title: "settings.wallet.manualStep3" },
+    { title: "settings.wallet.step5" },
+];
+
+const NOTIFICATION_STEPS: readonly Step[] = [
+    { frame: newShortcutFrame, title: "settings.wallet.v27Manual1" },
+    { detail: "settings.wallet.notifStep2Detail", frame: triggersFrame, title: "settings.wallet.notifStep2" },
+    { detail: "settings.wallet.notifStep3Detail", frame: pickerFrame, title: "settings.wallet.manualStep2" },
+    { detail: "settings.wallet.notifStep4Detail", title: "settings.wallet.notifStep4" },
+    { detail: "settings.wallet.notifStep5Detail", title: "settings.wallet.notifStep5" },
+    { title: "settings.wallet.step5" },
+];
+
+/** The shared shortcut carries an iOS 27 trigger, so only iOS 27 gets the one-tap install. */
+const HAS_SHARED_SHORTCUT = WALLET_SHORTCUT_URL != null && TRIGGERS_IN_SHORTCUTS;
 
 export function Wallet() {
     const db = useDatabase();
@@ -80,12 +105,18 @@ function WalletSettings({ db }: { db: Database }) {
         (rows) => rows[0]?.value ?? null
     );
     const lastEntry = parseLastWalletEntry(last);
+    const lastRunAt = useLiveValue(
+        appMeta,
+        () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.walletLastRunAt)),
+        (rows) => (rows[0]?.value ? Number(rows[0].value) : null)
+    );
     const [stepsShown, setStepsShown] = useState(false);
-    const working = lastEntry != null;
+    const working = lastEntry != null || lastRunAt != null;
     // What this user's automation actually runs. `added` is only ever set by the
     // shared link, so a setup built inline before the link shipped stays inline.
     const linked = HAS_SHARED_SHORTCUT && added;
-    const steps = linked ? AUTOMATION_STEPS : MANUAL_STEPS;
+    const inline = TRIGGERS_IN_SHORTCUTS ? IOS27_MANUAL_STEPS : MANUAL_STEPS;
+    const steps = linked ? IOS27_AUTOMATION_STEPS : inline;
 
     const getShortcut = async () => {
         try {
@@ -116,11 +147,7 @@ function WalletSettings({ db }: { db: Database }) {
 
     return (
         <SettingsScreen>
-            {working ? (
-                <LastEntry db={db} txId={lastEntry.txId} />
-            ) : (
-                <Text className="text-muted text-body pt-6 leading-snug">{t("settings.wallet.lead")}</Text>
-            )}
+            <Proof db={db} lastEntry={lastEntry} lastRunAt={lastRunAt} />
 
             <SettingsSection title={t(working ? "settings.wallet.setupSection" : "settings.wallet.stepsSection")}>
                 {linked ? (
@@ -133,17 +160,17 @@ function WalletSettings({ db }: { db: Database }) {
                         shown={stepsShown}
                     />
                 ) : null}
-                {working && !stepsShown
-                    ? null
-                    : steps.map((step, index) => (
-                          <StepRow
-                              detail={step.detail ? t(step.detail) : undefined}
-                              key={step.title}
-                              number={index + 1}
-                              title={t(step.title)}
-                          />
-                      ))}
+                {working && !stepsShown ? null : <StepList steps={steps} />}
             </SettingsSection>
+
+            {TRIGGERS_IN_SHORTCUTS && (!working || stepsShown) ? (
+                <SettingsSection
+                    footer={t("settings.wallet.notificationFooter")}
+                    title={t("settings.wallet.notificationSection")}
+                >
+                    <StepList steps={NOTIFICATION_STEPS} />
+                </SettingsSection>
+            ) : null}
 
             <View className="gap-2.5 pt-5">
                 <Button
@@ -163,11 +190,7 @@ function WalletSettings({ db }: { db: Database }) {
             </View>
 
             {working ? null : (
-                <View className="gap-1.5 pt-6">
-                    <MonoLabel>{t("settings.wallet.lastSection")}</MonoLabel>
-                    <Text className="text-foreground text-title">{t("settings.wallet.nothingYet")}</Text>
-                    <Text className="text-muted text-subtitle">{t("settings.wallet.tryIt")}</Text>
-                </View>
+                <ProofBlock detail={t("settings.wallet.tryIt")} title={t("settings.wallet.nothingYet")} />
             )}
 
             <AccountsSection db={db} />
@@ -208,13 +231,50 @@ function LastEntry({ db, txId }: { db: Database; txId: string }) {
     const parts = [row.note, account?.name ?? t("settings.wallet.unattached"), when];
 
     return (
+        <ProofBlock
+            detail={parts.join(" · ")}
+            title={formatAmount(row.amount, row.currency ?? ledgerCurrency, showCents, language)}
+        />
+    );
+}
+
+function Proof({
+    db,
+    lastEntry,
+    lastRunAt,
+}: {
+    db: Database;
+    lastEntry: LastWalletEntry | null;
+    lastRunAt: number | null;
+}) {
+    const t = useTranslation();
+    if (lastEntry) {
+        return <LastEntry db={db} txId={lastEntry.txId} />;
+    }
+    if (lastRunAt != null) {
+        return <RanOnly at={lastRunAt} />;
+    }
+    return <Text className="text-muted text-body pt-6 leading-snug">{t("settings.wallet.lead")}</Text>;
+}
+
+function RanOnly({ at }: { at: number }) {
+    const t = useTranslation();
+    const { language } = useLanguage();
+    const { use24Hour } = useDisplaySettings().state;
+    const when = `${formatChargeDate(new Date(at), undefined, language)} ${formatTime(new Date(at), use24Hour, language)}`;
+    return <ProofBlock detail={t("settings.wallet.ranAt", { when })} title={t("settings.wallet.nothingLogged")} />;
+}
+
+function ProofBlock({ title, detail }: { detail: string; title: string }) {
+    const t = useTranslation();
+    return (
         <View className="gap-1.5 pt-6">
             <MonoLabel>{t("settings.wallet.lastSection")}</MonoLabel>
             <Text className="text-foreground text-title" style={TABULAR}>
-                {formatAmount(row.amount, row.currency ?? ledgerCurrency, showCents, language)}
+                {title}
             </Text>
             <Text className="text-muted text-subtitle" numberOfLines={2}>
-                {parts.join(" · ")}
+                {detail}
             </Text>
         </View>
     );
@@ -253,6 +313,60 @@ function AccountsSection({ db }: { db: Database }) {
                 ))
             )}
         </SettingsSection>
+    );
+}
+
+const FRAME_WIDTH = 150;
+const FRAME_HEIGHT = 325;
+const FRAME_GAP = 12;
+const FRAME_RADIUS = 12;
+
+/** The steps that have a frame, in a swipeable row above the list. */
+function FrameStrip({ steps }: { steps: readonly Step[] }) {
+    const t = useTranslation();
+    const framed = steps.flatMap((step, index) =>
+        step.frame ? [{ ...step, frame: step.frame, number: index + 1 }] : []
+    );
+    if (framed.length === 0) {
+        return null;
+    }
+    return (
+        <Carousel align="start" className="-mx-5 pt-3" itemSize={FRAME_WIDTH + FRAME_GAP}>
+            <Carousel.Content style={{ height: FRAME_HEIGHT + 44 }}>
+                {framed.map((step) => (
+                    <Carousel.Item className="gap-1.5 pl-5" key={step.title}>
+                        <Image
+                            contentFit="cover"
+                            source={step.frame}
+                            style={{ borderRadius: FRAME_RADIUS, height: FRAME_HEIGHT, width: FRAME_WIDTH }}
+                        />
+                        <Text className="text-muted text-subtitle" numberOfLines={2} style={{ width: FRAME_WIDTH }}>
+                            <Text className="text-foreground font-mono" style={TABULAR}>
+                                {String(step.number)}
+                            </Text>
+                            {`  ${t(step.title)}`}
+                        </Text>
+                    </Carousel.Item>
+                ))}
+            </Carousel.Content>
+        </Carousel>
+    );
+}
+
+function StepList({ steps }: { steps: readonly Step[] }) {
+    const t = useTranslation();
+    return (
+        <>
+            <FrameStrip steps={steps} />
+            {steps.map((step, index) => (
+                <StepRow
+                    detail={step.detail ? t(step.detail) : undefined}
+                    key={step.title}
+                    number={index + 1}
+                    title={t(step.title)}
+                />
+            ))}
+        </>
     );
 }
 

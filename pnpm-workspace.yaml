@@ -37,3 +37,6 @@ catalog:
 minimumReleaseAgeExclude:
     - ultracite@7.10.4
     - panelui-native@0.75.1
+
+patchedDependencies:
+    expo-widgets@57.0.16: patches/expo-widgets@57.0.16.patch

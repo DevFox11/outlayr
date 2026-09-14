@@ -1,16 +1,15 @@
 import { Linking } from "react-native";
 
 /**
- * The iCloud link to the shared "Outlayr Wallet" shortcut: the Log a Wallet
- * Transaction action with Amount, Merchant and Card already bound to the Wallet
- * transaction, so installing it is one tap. Null until it has been shared from
- * a phone running this build, in which case the screen falls back to walking
- * the user through building it.
+ * The iCloud link to the shared "Outlayr - Apple Pay" shortcut: the Wallet
+ * trigger, Signal a Wallet Run, and Log a Wallet Transaction with Amount,
+ * Merchant, Card and Currency Code bound to the trigger. The trigger inside it
+ * is an iOS 27 feature, so the screen only offers the link there.
  *
  * Re-share and update this whenever `LogWalletTransactionIntent`'s parameters
  * change: a shortcut is a snapshot of the action, not a reference to it.
  */
-export const WALLET_SHORTCUT_URL: string | null = null;
+export const WALLET_SHORTCUT_URL: string | null = "https://www.icloud.com/shortcuts/5bbc7b635f5e4eec95884da850f4d226";
 
 /**
  * Undocumented but stable since iOS 17: lands on the Automations tab, which is

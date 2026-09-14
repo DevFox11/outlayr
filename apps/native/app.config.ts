@@ -151,6 +151,7 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
             projectId: "f076a9e9-ec12-464d-85eb-772c4d0efce5",
         },
         primaryAppIcon: isProduction ? "Outlayr" : "OutlayrTesting",
+        whatsNew: process.env.UPDATE_MESSAGE ?? null,
     },
     ios: {
         appleTeamId: "8ZB3YXDU7V",

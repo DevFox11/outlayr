@@ -88,13 +88,14 @@ struct LogWalletTransactionIntent: AppIntent {
                     amount: value,
                     side: side,
                     card: card
-                )
+                ),
+                text: nil
             )
         )
 
-        return .result(
-            dialog: IntentDialog(name.isEmpty ? "Logged." : "Logged \(name).")
-        )
+        let summary = name.isEmpty ? "Logged \(amount)" : "Logged \(amount) at \(name)"
+        await SharedStore.notify(summary)
+        return .result(dialog: IntentDialog("\(summary)."))
     }
 
     /// What makes two runs of this intent one purchase.

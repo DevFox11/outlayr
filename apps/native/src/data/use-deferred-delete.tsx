@@ -63,10 +63,7 @@ export interface DeferredDelete {
  * silently lost.
  */
 export function useDeferredDelete(kind: DeferredDeleteKind): DeferredDelete {
-    const registry = use(DeferredDeleteContext);
-    if (registry === null) {
-        throw new Error("useDeferredDelete must be used within DeferredDeleteProvider");
-    }
+    const registry = useRegistry();
 
     const pendingId = useSyncExternalStore(
         useCallback((listener: () => void) => registry.subscribe(kind, listener), [registry, kind]),
@@ -81,4 +78,17 @@ export function useDeferredDelete(kind: DeferredDeleteKind): DeferredDelete {
     );
 
     return { pendingId, requestDelete };
+}
+
+/** For a JS reload, which tears the runtime down without the AppState change that flushes. */
+export function useFlushDeferredDeletes(): () => Promise<void> {
+    return useRegistry().flushAll;
+}
+
+function useRegistry(): DeferredDeleteRegistry {
+    const registry = use(DeferredDeleteContext);
+    if (registry === null) {
+        throw new Error("Deferred deletes must be used within DeferredDeleteProvider");
+    }
+    return registry;
 }

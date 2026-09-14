@@ -1036,8 +1036,8 @@ const settings = {
             es: "Las tarjetas coinciden con estas cuentas",
         }),
         "settings.wallet.automationDetail": t({
-            en: "Wallet trigger runs Outlayr Wallet",
-            es: "El disparador de Wallet ejecuta Outlayr Wallet",
+            en: "Wallet trigger runs Outlayr - Apple Pay",
+            es: "El disparador de Wallet ejecuta Outlayr - Apple Pay",
         }),
         "settings.wallet.automationDetailInline": t({
             en: "Wallet trigger runs Log a Wallet Transaction",
@@ -1056,8 +1056,8 @@ const settings = {
             es: "Obtener el atajo de nuevo",
         }),
         "settings.wallet.getDetail": t({
-            en: "Installs in Shortcuts with one tap. Then a Wallet automation runs it.",
-            es: "Se instala en Atajos con un toque. Luego una automatización de Wallet lo ejecuta.",
+            en: "Installs the whole automation with one tap. Then turn it on.",
+            es: "Instala la automatización completa con un toque. Luego actívala.",
         }),
         "settings.wallet.hide": t({
             en: "Hide",
@@ -1095,25 +1095,73 @@ const settings = {
             en: "Tap each, choose Shortcut Input, then the matching field",
             es: "Toca cada uno, elige Entrada del atajo y luego el campo que corresponde",
         }),
+        "settings.wallet.manualStep3Detail27": t({
+            en: "Tap each, pick the Wallet variable above the keyboard, then the matching field",
+            es: "Toca cada uno, elige la variable de Wallet sobre el teclado y luego el campo que corresponde",
+        }),
         "settings.wallet.noAccounts": t({
             en: "No accounts yet",
             es: "Aún no hay cuentas",
+        }),
+        "settings.wallet.nothingLogged": t({
+            en: "Nothing logged yet",
+            es: "Nada registrado aún",
         }),
         "settings.wallet.nothingYet": t({
             en: "Nothing yet",
             es: "Nada aún",
         }),
+        "settings.wallet.notifStep2": t({
+            en: "Pick Notification, then the app",
+            es: "Elige Notificación y luego la app",
+        }),
+        "settings.wallet.notifStep2Detail": t({
+            en: "Your bank, or Wallet",
+            es: "Tu banco, o Wallet",
+        }),
+        "settings.wallet.notifStep3Detail": t({
+            en: "Pick Log from a Notification",
+            es: "Elige Registrar desde una notificación",
+        }),
+        "settings.wallet.notifStep4": t({
+            en: "Fill Title, Subtitle and Body",
+            es: "Rellena Título, Subtítulo y Cuerpo",
+        }),
+        "settings.wallet.notifStep4Detail": t({
+            en: "Tap each, pick the Notification variable above the keyboard, then the matching field",
+            es: "Toca cada uno, elige la variable de Notificación sobre el teclado y luego el campo que corresponde",
+        }),
+        "settings.wallet.notifStep5": t({
+            en: "Type the account name in Account",
+            es: "Escribe el nombre de la cuenta en Cuenta",
+        }),
+        "settings.wallet.notifStep5Detail": t({
+            en: "The one this app's card belongs to",
+            es: "La cuenta a la que pertenece la tarjeta de esa app",
+        }),
+        "settings.wallet.notificationFooter": t({
+            en: "Any app that sends a purchase push works, one automation per app. The amount and merchant are read from the text.",
+            es: "Sirve con cualquier app que envíe una notificación de compra, una automatización por app. El importe y el comercio se leen del texto.",
+        }),
+        "settings.wallet.notificationSection": t({
+            en: "Or from a bank notification",
+            es: "O desde una notificación del banco",
+        }),
         "settings.wallet.open": t({
             en: "Open Shortcuts",
             es: "Abrir Atajos",
+        }),
+        "settings.wallet.ranAt": t({
+            en: "The automation ran {when}",
+            es: "La automatización se ejecutó {when}",
         }),
         "settings.wallet.setupSection": t({
             en: "Setup",
             es: "Configuración",
         }),
         "settings.wallet.shortcutName": t({
-            en: "Outlayr Wallet",
-            es: "Outlayr Wallet",
+            en: "Outlayr - Apple Pay",
+            es: "Outlayr - Apple Pay",
         }),
         "settings.wallet.show": t({
             en: "Show",
@@ -1139,10 +1187,6 @@ const settings = {
             en: "Run Immediately on, Notify When Run off",
             es: "Ejecutar inmediatamente activado, Notificar al ejecutar desactivado",
         }),
-        "settings.wallet.step4": t({
-            en: "Next, then pick Outlayr Wallet",
-            es: "Siguiente, luego elige Outlayr Wallet",
-        }),
         "settings.wallet.step5": t({
             en: "Done",
             es: "OK",
@@ -1158,6 +1202,30 @@ const settings = {
         "settings.wallet.unattached": t({
             en: "Unattached",
             es: "Sin cuenta",
+        }),
+        "settings.wallet.v27Manual1": t({
+            en: "New shortcut, then search Automation",
+            es: "Nuevo atajo, luego busca Automatización",
+        }),
+        "settings.wallet.v27Manual2": t({
+            en: "Pick Wallet",
+            es: "Elige Wallet",
+        }),
+        "settings.wallet.v27Manual2Detail": t({
+            en: "Any Card is fine. Automation is already on and Notify off.",
+            es: "Cualquier tarjeta sirve. Automatización ya viene activada y Notificar desactivado.",
+        }),
+        "settings.wallet.v27Step1": t({
+            en: "Library, then Automation",
+            es: "Biblioteca, luego Automatización",
+        }),
+        "settings.wallet.v27Step1Detail": t({
+            en: "A shared automation arrives turned off",
+            es: "Una automatización compartida llega desactivada",
+        }),
+        "settings.wallet.v27Step2": t({
+            en: "Turn on Outlayr - Apple Pay",
+            es: "Activa Outlayr - Apple Pay",
         }),
     },
     key: "settings" as const,

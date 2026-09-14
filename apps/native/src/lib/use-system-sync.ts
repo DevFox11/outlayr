@@ -2,6 +2,7 @@ import { addDatabaseChangeListener } from "expo-sqlite";
 import { useEffect } from "react";
 import { AppState } from "react-native";
 
+import { getMeta, META_KEYS, setMeta } from "@/data/app-meta-core";
 import { backfillBudgetUsd, backfillCanonicalUsd, stampLedgerCurrency } from "@/data/canonicalize-backfill";
 import { applyPendingWrites } from "@/data/pending-writes-core";
 import { pullRatesIfDue } from "@/data/rates";
@@ -12,7 +13,7 @@ import { publishWidgets } from "@/widgets/publish";
 
 import { indexSpotlight } from "./spotlight";
 import { affectsSpotlight, affectsWidgets, debounce, PUBLISH_DEBOUNCE_MS, SPOTLIGHT_DEBOUNCE_MS } from "./sync-cadence";
-import { claimPendingWrites, releasePendingWrites } from "./widget-bridge";
+import { claimPendingWrites, readWalletLastRun, releasePendingWrites } from "./widget-bridge";
 
 /**
  * Keeps the widget tiles and the Spotlight index current, each on its own
@@ -41,6 +42,9 @@ export function useSystemSync(db: Database | null): void {
         // The logo pass runs after the drain so a Wallet purchase that just landed
         // is in the set it reads.
         const catchUp = () => {
+            mirrorWalletRun(db).catch((error) => {
+                console.warn("[outlayr] wallet run stamp failed", error);
+            });
             drainQueue(db)
                 .then((applied) => {
                     if (applied === 0) {
@@ -117,6 +121,18 @@ export function useSystemSync(db: Database | null): void {
  * (`applyPendingWrites` remembers what it committed) but it can lose one nobody
  * ever writes again.
  */
+async function mirrorWalletRun(db: Database): Promise<void> {
+    const at = readWalletLastRun();
+    if (at == null) {
+        return;
+    }
+    const stamp = String(at);
+    if ((await getMeta(db, META_KEYS.walletLastRunAt)) === stamp) {
+        return;
+    }
+    await setMeta(db, META_KEYS.walletLastRunAt, stamp);
+}
+
 async function drainQueue(db: Database): Promise<number> {
     const claimed = claimPendingWrites();
     if (claimed.names.length === 0) {

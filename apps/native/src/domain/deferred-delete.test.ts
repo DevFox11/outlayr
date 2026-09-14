@@ -157,6 +157,28 @@ describe("createDeferredDelete", () => {
         expect(writes.committed).toStrictEqual(["a"]);
     });
 
+    it("settles a flush only once its write has", async () => {
+        let land = () => {};
+        const { controller } = harness(
+            () =>
+                new Promise<void>((resolve) => {
+                    land = resolve;
+                })
+        );
+        let settled = false;
+
+        controller.requestDelete("a");
+        const flushed = controller.flush().then(() => {
+            settled = true;
+        });
+        await settle();
+        expect(settled).toBeFalsy();
+
+        land();
+        await flushed;
+        expect(settled).toBeTruthy();
+    });
+
     /** Same hole, other path: the screen going away must not swallow the failure. */
     it("still reports a rejected write that was flushed", async () => {
         const { controller, seen } = harness(rejecting);

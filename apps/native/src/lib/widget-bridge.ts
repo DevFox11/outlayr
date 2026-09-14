@@ -37,6 +37,9 @@ export const PENDING_WRITES_KEY = "pendingWrites";
 /** The key the read-only intents decode; see {@link publishIntentSnapshot}. */
 export const INTENT_SNAPSHOT_KEY = "intentSnapshot";
 
+/** Epoch ms string `SignalWalletRunIntent` writes on every Wallet automation run. */
+export const WALLET_LAST_RUN_KEY = "walletLastRunAt";
+
 let storage: ExtensionStorage | null = null;
 
 function getStorage(): ExtensionStorage | null {
@@ -88,6 +91,11 @@ export interface IntentSnapshot {
         spent: string;
         income: string;
     };
+}
+
+export function readWalletLastRun(): number | null {
+    const at = Number(getStorage()?.get(WALLET_LAST_RUN_KEY));
+    return at > 0 ? at : null;
 }
 
 export function publishIntentSnapshot(snapshot: IntentSnapshot): void {

@@ -81,7 +81,7 @@
         "expo-widgets": "~57.0.16",
         "intlayer": "^9.4.1",
         "number-flow-react-native": "^0.5.1",
-        "panelui-native": "^0.88.0",
+        "panelui-native": "^0.97.0",
         "react": "19.2.3",
         "react-freeze": "1.0.4",
         "react-native": "0.86.3",

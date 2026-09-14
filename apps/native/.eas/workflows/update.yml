@@ -15,7 +15,7 @@ on:
                 required: true
             message:
                 type: string
-                description: What changed, shown in the EAS dashboard.
+                description: Release notes for the What's new sheet, one per line (-F message=$'First\nSecond').
                 required: true
 
 defaults:

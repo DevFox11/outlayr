@@ -42,6 +42,8 @@ export interface PendingWrite {
     id: string;
     income: boolean;
     note: string;
+    /** Raw notification text; the drain parses amount and merchant out of it. */
+    text?: string | null;
 }
 
 /** Where the intents append, inside the App Group container. */
@@ -115,6 +117,7 @@ const pendingWriteSchema = z.object({
     id: z.string(),
     income: z.boolean(),
     note: z.string(),
+    text: z.string().nullish(),
 });
 
 /** Null for a line that is not JSON, or not a write this build can commit. */

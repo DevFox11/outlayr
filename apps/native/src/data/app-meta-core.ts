@@ -127,6 +127,12 @@ export const META_KEYS = {
      * never reports an install back, so this only records that the user got as
      * far as the link. Device-local.
      */
+    /**
+     * Epoch ms of the last Wallet automation run, mirrored from the App Group
+     * on foreground. Proof the automation fires even when nothing was logged.
+     * Device-local.
+     */
+    walletLastRunAt: "walletLastRunAt",
     walletShortcutAdded: "walletShortcutAdded",
 } as const;
 

@@ -82,6 +82,13 @@ async function press(element: Parameters<typeof fireEvent.press>[0]) {
 const openDial = () => press(screen.getByLabelText("log.add.menu"));
 const pressAction = (label: string) => press(screen.getByLabelText(label));
 
+/**
+ * Closed is read off the trigger, not off the actions: panelui keeps them
+ * mounted while the closing spring runs, and under jest that spring never
+ * reports finishing.
+ */
+const dialExpanded = () => screen.getByLabelText("log.add.menu").props.accessibilityState.expanded;
+
 describe("floatingAddButton", () => {
     beforeEach(() => {
         mockPush.mockClear();
@@ -141,7 +148,7 @@ describe("floatingAddButton", () => {
 
         await pressAction("log.add.transaction");
 
-        expect(screen.queryByLabelText("log.add.transaction")).toBeNull();
+        expect(dialExpanded()).toBe(false);
     });
 
     it("seeds the resume step and presents the sheet when the import action is pressed", async () => {
@@ -227,7 +234,7 @@ describe("floatingAddButton", () => {
             rerender(<FloatingAddButton />);
         });
 
-        expect(screen.queryByLabelText("log.add.transaction")).toBeNull();
+        expect(dialExpanded()).toBe(false);
     });
 
     it("ticks through the app's haptics wrapper, which reads the Haptics setting", async () => {
