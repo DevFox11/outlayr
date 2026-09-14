@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { allocationsFor, isBalanced, rebalance, splitEvenly, totalsByCategory, unallocated } from "./split";
+import { allocationsFor, isBalanced, rebalance, unallocated } from "./split";
 import type { Allocation } from "./split";
 
 const entry = (id: string, amount: number, categoryId: string | null) => ({
@@ -72,32 +72,6 @@ describe("whether a split adds up", () => {
     });
 });
 
-describe("splitting evenly", () => {
-    it("adds up exactly when the total does not divide", () => {
-        const parts = splitEvenly(10, 3);
-        expect(parts.map((part) => part.amount)).toStrictEqual([3.34, 3.33, 3.33]);
-        expect(isBalanced(10, parts)).toBe(true);
-    });
-
-    it("puts the remainder on the first part so it can be checked by eye", () => {
-        expect(splitEvenly(10, 3)[0].amount).toBe(3.34);
-    });
-
-    it("divides cleanly when it divides", () => {
-        const parts = splitEvenly(9, 3);
-        expect(parts.map((part) => part.amount)).toStrictEqual([3, 3, 3]);
-    });
-
-    it("takes the categories it is given", () => {
-        const parts = splitEvenly(10, 2, ["food", "travel"]);
-        expect(parts.map((part) => part.categoryId)).toStrictEqual(["food", "travel"]);
-    });
-
-    it("answers nothing for a count below one", () => {
-        expect(splitEvenly(10, 0)).toStrictEqual([]);
-    });
-});
-
 describe("editing one part of a split", () => {
     const two: Allocation[] = [
         { amount: 25, categoryId: "a" },
@@ -129,53 +103,5 @@ describe("editing one part of a split", () => {
 
     it("ignores an index that is not there", () => {
         expect(rebalance(40, two, 7, 10)).toStrictEqual(two);
-    });
-});
-
-describe("totalling by category", () => {
-    it("counts an unsplit entry exactly as it does today", () => {
-        const totals = totalsByCategory([entry("t1", 40, "food")], new Map());
-        expect(totals.get("food")).toBe(40);
-    });
-
-    it("spreads a split entry across its categories", () => {
-        const totals = totalsByCategory(
-            [entry("t1", 40, "food")],
-            new Map([
-                [
-                    "t1",
-                    [
-                        { amount: 25, categoryId: "food" },
-                        { amount: 15, categoryId: "travel" },
-                    ],
-                ],
-            ])
-        );
-        expect(totals.get("food")).toBe(25);
-        expect(totals.get("travel")).toBe(15);
-    });
-
-    it("never counts a split entry twice", () => {
-        // The whole risk of the feature: a category breakdown that sums to more
-        // than the ledger.
-        const totals = totalsByCategory(
-            [entry("t1", 40, "food"), entry("t2", 10, "travel")],
-            new Map([
-                [
-                    "t1",
-                    [
-                        { amount: 25, categoryId: "food" },
-                        { amount: 15, categoryId: "travel" },
-                    ],
-                ],
-            ])
-        );
-        const sum = [...totals.values()].reduce((a, b) => a + b, 0);
-        expect(sum).toBe(50);
-    });
-
-    it("keeps uncategorised money under its own null key", () => {
-        const totals = totalsByCategory([entry("t1", 40, null)], new Map());
-        expect(totals.get(null)).toBe(40);
     });
 });

@@ -113,10 +113,6 @@ export async function getSyncAccountSubject(db: Database): Promise<string | null
     return await getMeta(db, META_KEYS.syncAccountSubject);
 }
 
-export async function setSyncAccountSubject(db: Database, accountId: string): Promise<void> {
-    await setMeta(db, META_KEYS.syncAccountSubject, accountId);
-}
-
 export async function enableSyncForAccount(db: Database, accountId: string): Promise<void> {
     await withTransaction(db, async () => {
         await setMeta(db, META_KEYS.syncAccountSubject, accountId);
@@ -224,13 +220,6 @@ export async function enqueueAllForSync(db: Database): Promise<void> {
                 });
         }
     });
-}
-
-/** When a replication cycle last completed here, or null if none ever has. */
-export async function getSyncedAt(db: Database): Promise<Date | null> {
-    const raw = await getMeta(db, META_KEYS.syncedAt);
-    const ms = raw === null ? Number.NaN : Number(raw);
-    return Number.isFinite(ms) ? new Date(ms) : null;
 }
 
 export async function setSyncedAt(db: Database, at: Date): Promise<void> {

@@ -7,12 +7,6 @@
  */
 export const LIMIT_STEP = 25;
 
-/** Rounds to {@link LIMIT_STEP}, never below one step and never above `max`. */
-export function snapToStep(value: number, max: number): number {
-    const stepped = Math.round(value / LIMIT_STEP) * LIMIT_STEP;
-    return Math.min(max, Math.max(LIMIT_STEP, stepped));
-}
-
 /**
  * A limit to open on when nothing else says so: four fifths of what this window
  * has already taken, so the line starts somewhere the curve already crosses

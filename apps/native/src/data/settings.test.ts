@@ -7,7 +7,6 @@ import { amountParts, formatAmount } from "@/domain/money";
 
 import { getMeta } from "./app-meta-core";
 import {
-    clockLabel,
     ordinalDay,
     parseBoolSetting,
     parseIntSetting,
@@ -17,7 +16,6 @@ import {
     setBoolSetting,
     setCurrency,
     setNumberSetting,
-    weekdayLabel,
 } from "./settings-core";
 
 function makeDb(): Database {
@@ -106,11 +104,6 @@ describe("the 12/24-hour clock", () => {
         await seedClockPreference(db, true);
         await expect(readBoolSetting(db, "use24HourClock")).resolves.toBe(false);
     });
-
-    it("labels both clocks", () => {
-        expect(clockLabel(false)).toBe("clock.twelveHour");
-        expect(clockLabel(true)).toBe("clock.twentyFourHour");
-    });
 });
 
 describe("settings read/write round-trip", () => {
@@ -166,11 +159,6 @@ describe("setting parsers", () => {
 });
 
 describe("time-frame labels", () => {
-    it("labels the weekday setting", () => {
-        expect(weekdayLabel(1)).toBe("settings.time.sunday");
-        expect(weekdayLabel(2)).toBe("settings.time.monday");
-    });
-
     it("renders English ordinals", () => {
         expect(ordinalDay(1)).toBe("1st");
         expect(ordinalDay(2)).toBe("2nd");

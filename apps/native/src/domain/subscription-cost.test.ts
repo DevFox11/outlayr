@@ -1,12 +1,11 @@
 import { describe, expect, it } from "@jest/globals";
 
 import { RECURRING_TYPE } from "./recurrence";
-import { monthlyChargeCount, monthlyEquivalent, monthlySubscriptionCost } from "./subscription-cost";
+import { monthlyChargeCount, monthlySubscriptionCost } from "./subscription-cost";
 import type { ScheduleCostEntry } from "./subscription-cost";
 import { buildRateTable } from "./valuation";
 
 const DAYS_PER_MONTH = 365 / 12;
-const WEEKS_PER_MONTH = 52 / 12;
 
 function isClose(actual: number, expected: number) {
     return Math.abs(actual - expected) < 1e-9;
@@ -29,23 +28,8 @@ function schedule(
 }
 
 describe("normalizing one schedule to a month", () => {
-    it("restates every cadence at its own rate", () => {
-        expect(isClose(monthlyEquivalent(30, RECURRING_TYPE.daily, 1), 30 * DAYS_PER_MONTH)).toBeTruthy();
-        expect(isClose(monthlyEquivalent(30, RECURRING_TYPE.weekly, 1), 30 * WEEKS_PER_MONTH)).toBeTruthy();
-        expect(isClose(monthlyEquivalent(30, RECURRING_TYPE.monthly, 1), 30)).toBeTruthy();
-        expect(isClose(monthlyEquivalent(30, RECURRING_TYPE.yearly, 1), 2.5)).toBeTruthy();
-    });
-
-    it("divides by the interval when the schedule skips periods", () => {
-        expect(isClose(monthlyEquivalent(30, RECURRING_TYPE.daily, 2), (30 * DAYS_PER_MONTH) / 2)).toBeTruthy();
-        expect(isClose(monthlyEquivalent(30, RECURRING_TYPE.weekly, 3), (30 * WEEKS_PER_MONTH) / 3)).toBeTruthy();
-        expect(isClose(monthlyEquivalent(30, RECURRING_TYPE.monthly, 4), 7.5)).toBeTruthy();
-        expect(isClose(monthlyEquivalent(30, RECURRING_TYPE.yearly, 2), 1.25)).toBeTruthy();
-    });
-
     it("charges a non-recurring row nothing at all", () => {
         expect(monthlyChargeCount(RECURRING_TYPE.none, 1)).toBe(0);
-        expect(monthlyEquivalent(999, RECURRING_TYPE.none, 1)).toBe(0);
     });
 
     it("reads a coefficient below one as every period, matching nextDate", () => {

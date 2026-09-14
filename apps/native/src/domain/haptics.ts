@@ -14,17 +14,6 @@ export const HAPTICS_EXCESSIVE = 2;
  */
 export type HapticEvent = "selection" | "keyTap" | "light" | "medium" | "heavy" | "success" | "warning" | "error";
 
-export const HAPTIC_EVENTS: readonly HapticEvent[] = [
-    "selection",
-    "keyTap",
-    "light",
-    "medium",
-    "heavy",
-    "success",
-    "warning",
-    "error",
-];
-
 export type HapticPlay =
     | { kind: "selection" }
     | { kind: "impact"; style: "light" | "medium" | "heavy" }

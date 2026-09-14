@@ -54,18 +54,6 @@ export const APP_ICONS = [
  */
 export type AppIconSlug = (typeof APP_ICONS)[number]["slug"];
 
-/**
- * The predicate below cannot narrow to plain `string`: a type predicate has to
- * be assignable to the value it tests, and under the const assertion that value
- * is the literal union rather than `string | null`.
- */
-type AppIconName = NonNullable<(typeof APP_ICONS)[number]["name"]>;
-
-/** Read by `app.config.ts` to copy the bundles in and declare them to actool. */
-export const ALTERNATE_ICON_NAMES: readonly string[] = APP_ICONS.map((icon) => icon.name).filter(
-    (name): name is AppIconName => name !== null
-);
-
 export function appIconChoice(active: string | null): AppIconChoice {
     return APP_ICONS.find((icon) => icon.name === active) ?? APP_ICONS[0];
 }

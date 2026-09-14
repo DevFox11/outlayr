@@ -41,11 +41,6 @@ export function monthlyChargeCount(recurringType: number, recurringCoefficient: 
     }
 }
 
-/** One charge of `amount` on this cadence, restated as a month of it. */
-export function monthlyEquivalent(amount: number, recurringType: number, recurringCoefficient: number): number {
-    return amount * monthlyChargeCount(recurringType, recurringCoefficient);
-}
-
 /**
  * What a set of schedules costs per month, per currency. Every schedule is
  * normalized to one monthly charge whatever its cadence, so face values are not

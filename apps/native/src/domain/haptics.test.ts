@@ -1,20 +1,21 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { HAPTIC_EVENTS, HAPTICS_EXCESSIVE, HAPTICS_OFF, HAPTICS_SUBTLE, hapticPlay } from "./haptics";
+import { HAPTICS_EXCESSIVE, HAPTICS_OFF, HAPTICS_SUBTLE, hapticPlay } from "./haptics";
 import type { HapticEvent } from "./haptics";
 
 const LANDINGS: HapticEvent[] = ["light", "medium", "heavy", "success", "warning", "error"];
 const TICKS: HapticEvent[] = ["selection", "keyTap"];
+const EVENTS = [...TICKS, ...LANDINGS];
 
 describe("haptics setting", () => {
     it("plays nothing at all on None", () => {
-        for (const event of HAPTIC_EVENTS) {
+        for (const event of EVENTS) {
             expect(hapticPlay(HAPTICS_OFF, event)).toBeNull();
         }
     });
 
     it("plays every event on Excessive", () => {
-        for (const event of HAPTIC_EVENTS) {
+        for (const event of EVENTS) {
             expect(hapticPlay(HAPTICS_EXCESSIVE, event)).not.toBeNull();
         }
     });

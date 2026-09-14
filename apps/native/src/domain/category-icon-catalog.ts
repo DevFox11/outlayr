@@ -443,16 +443,6 @@ export const CATEGORY_EMOJI_GROUPS: readonly CategoryEmojiGroup[] = [
     },
 ];
 
-/** Search synonyms keyed by registry key (Swift synonyms verbatim). */
-export const CATEGORY_ICON_KEYWORDS: Record<string, readonly string[]> = Object.fromEntries(
-    RAW_ICON_GROUPS.flatMap((group) =>
-        group.icons.map((icon) => [icon.key, KEYWORDS_BY_NAME.get(icon.name) ?? []] as const)
-    )
-);
-
-export const FALLBACK_EXPENSE_ICON = "SaleTag01";
-export const FALLBACK_INCOME_ICON = "Coins01";
-
 interface IconMatchEntry {
     readonly key: string;
     readonly normalizedTerms: readonly string[];

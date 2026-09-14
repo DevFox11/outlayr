@@ -4,7 +4,6 @@ import {
     conversionOf,
     DETAIL_LINES,
     formatQuantity,
-    itemsSum,
     receiptDetails,
     resolveReceipt,
     savableReceipt,
@@ -153,11 +152,7 @@ describe("receiptDetails", () => {
     });
 });
 
-describe("itemsSum and formatQuantity", () => {
-    it("adds the lines at the currency's minor units", () => {
-        expect(itemsSum(resolve(DRAFT).items, "EUR")).toBe(3.15);
-    });
-
+describe("formatQuantity", () => {
     it("prints a quantity without trailing zeros", () => {
         expect(formatQuantity(2)).toBe("2");
         expect(formatQuantity(1.5)).toBe("1.5");

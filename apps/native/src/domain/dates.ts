@@ -187,11 +187,6 @@ export function monthLongTitle(date: Date, language: Language = runtimeLanguage(
     return dateName(`dates.monthLong.${date.getMonth()}`, language);
 }
 
-/** The shouted full month a budget's limit picker names, e.g. "JULY". */
-export function formatMonthLabel(date: Date, language: Language = runtimeLanguage()): string {
-    return monthLongTitle(date, language).toUpperCase();
-}
-
 /**
  * "Jun 2027" — a goal's deadline, which is months or years out.
  *

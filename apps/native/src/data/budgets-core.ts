@@ -347,18 +347,3 @@ async function budgetPatch(
     }
     return patch;
 }
-
-/**
- * Synchronous on purpose: the expo-sqlite driver executes on the JS thread, so
- * the edit form can have the row in hand during its first render instead of
- * flashing an empty one for a frame.
- */
-export function getBudgetById(db: Database, id: string): typeof budgets.$inferSelect | null {
-    const rows = db
-        .select()
-        .from(budgets)
-        .where(and(eq(budgets.id, id), isNull(budgets.deletedAt)))
-        .limit(1)
-        .all();
-    return rows[0] ?? null;
-}

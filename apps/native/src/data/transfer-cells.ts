@@ -120,25 +120,3 @@ export function toTransferCell(row: Omit<CellRow, "income">, income: boolean): C
         unconvertedCount: Number(row.unconvertedRows ?? 0),
     };
 }
-
-export async function transferCells(db: SpendDb, accountId: string): Promise<CurrencyCell[]> {
-    const [outbound, inbound] = await Promise.all([
-        transferOutboundQuery(db, accountId),
-        transferInboundQuery(db, accountId),
-    ]);
-
-    return [...outbound.map((row) => toTransferCell(row, false)), ...inbound.map((row) => toTransferCell(row, true))];
-}
-
-export interface AccountTransferCell extends CurrencyCell {
-    accountId: string;
-}
-
-export async function allTransferCells(db: SpendDb): Promise<AccountTransferCell[]> {
-    const [outbound, inbound] = await Promise.all([transfersOutboundQuery(db), transfersInboundQuery(db)]);
-
-    return [
-        ...outbound.map(({ accountId, ...row }) => ({ accountId, ...toTransferCell(row, false) })),
-        ...inbound.map(({ accountId, ...row }) => ({ accountId, ...toTransferCell(row, true) })),
-    ];
-}

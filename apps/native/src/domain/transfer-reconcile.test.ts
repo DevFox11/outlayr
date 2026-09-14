@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { solveTransfer, transferDisplay, transferGap, transferLegs } from "./transfer-reconcile";
+import { solveTransfer, transferGap, transferLegs } from "./transfer-reconcile";
 import type { TransferValues } from "./transfer-reconcile";
 
 const VES_DECIMALS = 2;
@@ -147,35 +147,6 @@ describe("transferLegs stores movement and leaves the fee outside", () => {
 
     it("refuses a transfer whose source fee is the whole amount", () => {
         expect(transferLegs(sourceFeeCase({ fee: 100, sent: 100 }), USD_DECIMALS, VES_DECIMALS)).toBeNull();
-    });
-});
-
-describe("transferDisplay recomposes what the user typed", () => {
-    it("adds a source-side fee back onto the outbound leg", () => {
-        expect(
-            transferDisplay({ exchangeRate: 55.5, fromAmount: 97.3, toAmount: 5400.15 }, 2.7, "source")
-        ).toStrictEqual({
-            arrived: 5400.15,
-            sent: 100,
-        });
-    });
-
-    it("deducts a destination-side fee from the inbound leg", () => {
-        expect(
-            transferDisplay({ exchangeRate: 55.5, fromAmount: 100, toAmount: 5550 }, 150, "destination")
-        ).toStrictEqual({
-            arrived: 5400,
-            sent: 100,
-        });
-    });
-
-    it("round-trips through transferLegs on both sides", () => {
-        for (const values of [sourceFeeCase(), destFeeCase()]) {
-            const legs = transferLegs(values, USD_DECIMALS, VES_DECIMALS);
-            const shown = transferDisplay(legs as NonNullable<typeof legs>, values.fee, values.feeSide);
-            expect(shown.sent).toBeCloseTo(values.sent, 6);
-            expect(shown.arrived).toBeCloseTo(values.arrived, 6);
-        }
     });
 });
 

@@ -6,7 +6,6 @@ import { describe, expect, it } from "@jest/globals";
 import { EN } from "@/i18n/catalog";
 
 import {
-    ALTERNATE_ICON_NAMES,
     APP_ICONS,
     appIconChoice,
     appIconLabel,
@@ -17,6 +16,7 @@ import {
 import type { AppIconState } from "./app-icons";
 
 const nativeRoot = join(import.meta.dirname, "../..");
+const ALTERNATE_ICON_NAMES = APP_ICONS.map((icon) => icon.name).filter((name) => name !== null);
 
 function declaredInAppConfig(): string[] {
     const source = readFileSync(join(nativeRoot, "app.config.ts"), "utf-8");

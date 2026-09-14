@@ -7,7 +7,6 @@ import {
     REMINDER_CUSTOM,
     REMINDER_EVENING,
     REMINDER_MORNING,
-    reminderChoiceWrites,
     reminderReconcile,
     reminderTime,
 } from "./reminder";
@@ -101,34 +100,5 @@ describe("reconciling a stored setting against iOS", () => {
         expect(reminderReconcile(false, "granted")).toBe("none");
         expect(reminderReconcile(false, "denied")).toBe("none");
         expect(reminderReconcile(false, "undetermined")).toBe("none");
-    });
-});
-
-describe("step 03's reminder choice", () => {
-    const custom = { hour: 7, minute: 15 };
-
-    it("writes the fixed option with no extra time for the morning", () => {
-        expect(reminderChoiceWrites(REMINDER_MORNING, custom)).toStrictEqual({
-            option: REMINDER_MORNING,
-            time: null,
-        });
-    });
-
-    it("writes the fixed option with no extra time for the evening", () => {
-        expect(reminderChoiceWrites(REMINDER_EVENING, custom)).toStrictEqual({
-            option: REMINDER_EVENING,
-            time: null,
-        });
-    });
-
-    it("carries the picked time only for the custom option", () => {
-        expect(reminderChoiceWrites(REMINDER_CUSTOM, custom)).toStrictEqual({
-            option: REMINDER_CUSTOM,
-            time: custom,
-        });
-    });
-
-    it('writes nothing for "don\'t remind me"', () => {
-        expect(reminderChoiceWrites(null, custom)).toBeNull();
     });
 });

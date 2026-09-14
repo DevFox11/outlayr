@@ -1,19 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { LIMIT_STEP, snapToStep, suggestedLimit } from "./budget-limit-step";
-
-describe("snapping a limit to its step", () => {
-    it("rounds to the nearest step", () => {
-        expect(snapToStep(412, 1000)).toBe(400);
-        expect(snapToStep(413, 1000)).toBe(425);
-    });
-
-    it("never lands below one step, or above the axis", () => {
-        expect(snapToStep(1, 1000)).toBe(LIMIT_STEP);
-        expect(snapToStep(-50, 1000)).toBe(LIMIT_STEP);
-        expect(snapToStep(9999, 500)).toBe(500);
-    });
-});
+import { LIMIT_STEP, suggestedLimit } from "./budget-limit-step";
 
 describe("the limit a fresh sheet opens on", () => {
     it("takes four fifths of what the window has already cost", () => {

@@ -3,9 +3,8 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import type { Database } from "@/db/client";
 import { categories, transactionSplits, transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
-import { totalsByCategory } from "@/domain/split";
 
-import { allSplitsQuery, splitsForQuery, splitsRepo, UnbalancedSplitError } from "./splits-core";
+import { splitsForQuery, splitsRepo, UnbalancedSplitError } from "./splits-core";
 import { transactionsRepo } from "./transactions-core";
 
 async function seed(db: Database) {
@@ -83,8 +82,6 @@ describe("splitsRepo", () => {
         await splitsRepo.setSplit(db, "t1", 40, []);
 
         await expect(splitsForQuery(db, "t1")).resolves.toStrictEqual([]);
-        const totals = totalsByCategory([{ amount: 40, categoryId: "food", id: "t1" }], new Map());
-        expect(totals.get("food")).toBe(40);
     });
 
     it("leaves the replaced rows as tombstones so the change travels", async () => {
@@ -116,38 +113,17 @@ describe("splitsRepo", () => {
     });
 
     it("is not consulted for an entry that is gone", async () => {
-        // A tombstoned entry never reaches `totalsByCategory`, so its parts cannot
-        // feed a category even though the rows are still live. That is why delete
-        // does not touch them — and why undo cannot lose them.
+        // A tombstoned entry is read by no aggregate, so its parts cannot feed a
+        // category even though the rows are still live. That is why delete does
+        // not touch them — and why undo cannot lose them.
         await splitsRepo.setSplit(db, "t1", 40, [
             { amount: 25, categoryId: "food" },
             { amount: 15, categoryId: "travel" },
         ]);
         await transactionsRepo.remove(db, "t1");
 
-        const totals = totalsByCategory([], new Map());
-        expect(totals.size).toBe(0);
         // The rows survive, so an undo needs no repair and replication still
         // carries whatever the entry is restored to.
         await expect(splitsForQuery(db, "t1")).resolves.toHaveLength(2);
-    });
-
-    it("feeds the category totals without double-counting the entry", async () => {
-        await splitsRepo.setSplit(db, "t1", 40, [
-            { amount: 25, categoryId: "food" },
-            { amount: 15, categoryId: "travel" },
-        ]);
-
-        const byEntry = new Map<string, { categoryId: string | null; amount: number }[]>();
-        for (const row of await allSplitsQuery(db)) {
-            const existing = byEntry.get(row.transactionId) ?? [];
-            existing.push({ amount: row.amount, categoryId: row.categoryId });
-            byEntry.set(row.transactionId, existing);
-        }
-        const totals = totalsByCategory([{ amount: 40, categoryId: "food", id: "t1" }], byEntry);
-
-        expect(totals.get("food")).toBe(25);
-        expect(totals.get("travel")).toBe(15);
-        expect([...totals.values()].reduce((a, b) => a + b, 0)).toBe(40);
     });
 });

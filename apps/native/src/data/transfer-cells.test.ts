@@ -8,9 +8,31 @@ import { buildRateTable } from "@/domain/valuation";
 
 import type { SpendDb } from "./budget-spent";
 import { accountCellQuery, toCurrencyCells } from "./cell-query";
-import { allTransferCells, transferCells } from "./transfer-cells";
+import {
+    toTransferCell,
+    transferInboundQuery,
+    transferOutboundQuery,
+    transfersInboundQuery,
+    transfersOutboundQuery,
+} from "./transfer-cells";
 
 const DAY = new Date(Date.UTC(2026, 7, 9));
+
+async function transferCells(db: SpendDb, accountId: string) {
+    const [outbound, inbound] = await Promise.all([
+        transferOutboundQuery(db, accountId),
+        transferInboundQuery(db, accountId),
+    ]);
+    return [...outbound.map((row) => toTransferCell(row, false)), ...inbound.map((row) => toTransferCell(row, true))];
+}
+
+async function allTransferCells(db: SpendDb) {
+    const [outbound, inbound] = await Promise.all([transfersOutboundQuery(db), transfersInboundQuery(db)]);
+    return [
+        ...outbound.map(({ accountId, ...row }) => ({ accountId, ...toTransferCell(row, false) })),
+        ...inbound.map(({ accountId, ...row }) => ({ accountId, ...toTransferCell(row, true) })),
+    ];
+}
 const NO_RATES = buildRateTable([]);
 
 function makeDb() {

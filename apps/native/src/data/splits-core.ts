@@ -31,19 +31,6 @@ export function splitsForQuery(db: Database, transactionId: string) {
         .orderBy(asc(transactionSplits.sortOrder));
 }
 
-/** Every live split in the ledger, for the readers that aggregate by category. */
-export function allSplitsQuery(db: Database) {
-    return db
-        .select({
-            amount: transactionSplits.amount,
-            categoryId: transactionSplits.categoryId,
-            transactionId: transactionSplits.transactionId,
-        })
-        .from(transactionSplits)
-        .where(isNull(transactionSplits.deletedAt))
-        .orderBy(asc(transactionSplits.sortOrder));
-}
-
 export const splitsRepo = {
     /**
      * Retires the splits of entries that are going.

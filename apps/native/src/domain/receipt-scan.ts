@@ -148,14 +148,6 @@ export function formatQuantity(quantity: number): string {
     return String(Math.round(quantity * 1000) / 1000);
 }
 
-/** The lines added up, for the review to set beside the printed total. */
-export function itemsSum(items: readonly ReceiptItem[], currency: string): number {
-    return roundMoney(
-        items.reduce((sum, item) => sum + item.price, 0),
-        minorUnitsFor(currency)
-    );
-}
-
 export interface Conversion {
     /** The total restated in the ledger's currency at the receipt day's rate. */
     amount: number;

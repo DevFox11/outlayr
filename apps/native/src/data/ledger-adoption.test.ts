@@ -5,7 +5,7 @@ import type { Database } from "@/db/client";
 import { accounts, budgets, categories, mainBudget, transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
 
-import { getMeta, META_KEYS } from "./app-meta-core";
+import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { seedCategories } from "./categories-core";
 import {
     adoptedAccount,
@@ -18,10 +18,8 @@ import {
 import type { AdoptionEngine } from "./ledger-adoption";
 import {
     getSyncCursor,
-    getSyncedAt,
     isSyncEnabled,
     outboxPendingCount,
-    setSyncAccountSubject,
     setSyncCursor,
     setSyncEnabled,
     setSyncedAt,
@@ -149,7 +147,7 @@ describe("adoption marker", () => {
 
         await expect(isSyncEnabled(db)).resolves.toBe(false);
         await expect(getSyncCursor(db)).resolves.toBe(0);
-        await expect(getSyncedAt(db)).resolves.toBeNull();
+        await expect(getMeta(db, META_KEYS.syncedAt)).resolves.toBeNull();
         await expect(outboxPendingCount(db)).resolves.toBe(0);
         await expect(adoptedAccount(db)).resolves.toBe("account-a");
     });
@@ -164,12 +162,12 @@ describe("adoption marker", () => {
 
         await expect(isSyncEnabled(db)).resolves.toBe(false);
         await expect(getSyncCursor(db)).resolves.toBe(0);
-        await expect(getSyncedAt(db)).resolves.toBeNull();
+        await expect(getMeta(db, META_KEYS.syncedAt)).resolves.toBeNull();
         await expect(outboxPendingCount(db)).resolves.toBe(0);
     });
 
     it("unmarked-bound-subject-preserves-explicit-sync-off", async () => {
-        await setSyncAccountSubject(db, "account-a");
+        await setMeta(db, META_KEYS.syncAccountSubject, "account-a");
 
         await prepareAccountAdoption(db, "account-a");
 
@@ -179,7 +177,7 @@ describe("adoption marker", () => {
 
     it("mismatched-marker-and-metadata-cannot-preserve-queued-writes", async () => {
         await markAdopted(db, "account-a");
-        await setSyncAccountSubject(db, "account-b");
+        await setMeta(db, META_KEYS.syncAccountSubject, "account-b");
         await setSyncEnabled(db, true);
         await addTransaction(db, "queued-for-mismatched-subject");
 
@@ -259,7 +257,7 @@ describe("running an adoption", () => {
         await expect(getMeta(db, META_KEYS.syncAccountSubject)).resolves.toBeNull();
         await expect(outboxPendingCount(db)).resolves.toBe(0);
         await expect(getSyncCursor(db)).resolves.toBe(0);
-        await expect(getSyncedAt(db)).resolves.toBeNull();
+        await expect(getMeta(db, META_KEYS.syncedAt)).resolves.toBeNull();
         await expect(adoptedAccount(db)).resolves.toBeNull();
     });
 
@@ -304,7 +302,7 @@ describe("running an adoption", () => {
         await expect(getMeta(db, META_KEYS.syncAccountSubject)).resolves.toBeNull();
         await expect(outboxPendingCount(db)).resolves.toBe(0);
         await expect(getSyncCursor(db)).resolves.toBe(0);
-        await expect(getSyncedAt(db)).resolves.toBeNull();
+        await expect(getMeta(db, META_KEYS.syncedAt)).resolves.toBeNull();
         await expect(adoptedAccount(db)).resolves.toBeNull();
     });
 

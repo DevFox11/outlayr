@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
-import { eq, getTableColumns, isNull } from "drizzle-orm";
+import { and, eq, getTableColumns, isNull } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { appMeta, budgets, categories, exchangeRates, mainBudget, outbox } from "@/db/schema";
@@ -8,8 +8,19 @@ import { migratedDatabase, testDatabase } from "@/db/test-database";
 import { BUDGET_TYPE, shiftWindow, startOfPeriod } from "@/domain/budget-math";
 import { buildRateTable, limitIn } from "@/domain/valuation";
 
-import { budgetsRepo, getBudgetById, TOMBSTONED_BUDGET, TOMBSTONED_MAIN_BUDGET } from "./budgets-core";
+import { budgetsRepo, TOMBSTONED_BUDGET, TOMBSTONED_MAIN_BUDGET } from "./budgets-core";
 import { setSyncEnabled } from "./sync-outbox-core";
+
+function getBudgetById(db: Database, id: string) {
+    return (
+        db
+            .select()
+            .from(budgets)
+            .where(and(eq(budgets.id, id), isNull(budgets.deletedAt)))
+            .limit(1)
+            .all()[0] ?? null
+    );
+}
 
 function makeDb(): Database {
     const sqlite = new BetterSqlite3(":memory:");

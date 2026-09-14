@@ -113,25 +113,6 @@ export function transferLegs(
     return finitePositive(exchangeRate) ? { exchangeRate, fromAmount, toAmount } : null;
 }
 
-/** What the two amount fields read, once the fee has been put on its side. */
-export interface TransferDisplay {
-    arrived: number;
-    sent: number;
-}
-
-export function transferDisplay(legs: TransferLegs, fee: number, feeSide: FeeSide): TransferDisplay {
-    if (feeSide === "source") {
-        return {
-            arrived: roundMoney(legs.toAmount, NOISE_DECIMALS),
-            sent: roundMoney(legs.fromAmount + fee, NOISE_DECIMALS),
-        };
-    }
-    return {
-        arrived: roundMoney(legs.toAmount - fee, NOISE_DECIMALS),
-        sent: roundMoney(legs.fromAmount, NOISE_DECIMALS),
-    };
-}
-
 export function transferGap(values: TransferValues, decimals: number): number {
     const expected = solveTransfer(values, "arrived", decimals);
     if (expected === null) {

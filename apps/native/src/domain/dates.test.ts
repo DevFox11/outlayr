@@ -6,7 +6,6 @@ import * as dates from "./dates";
 import {
     formatChargeDate,
     formatDayHeader,
-    formatMonthLabel,
     formatTime,
     formatUpcomingDate,
     monthAbbrev,
@@ -52,8 +51,6 @@ describe("month names", () => {
     it("names the month in each language", () => {
         expect(monthAbbrevTitle(WEDNESDAY, "en")).toBe("Jul");
         expect(monthAbbrevTitle(WEDNESDAY, "es")).toBe("jul");
-        expect(formatMonthLabel(WEDNESDAY, "en")).toBe("JULY");
-        expect(formatMonthLabel(WEDNESDAY, "es")).toBe("JULIO");
     });
 
     it("shouts the abbreviation without losing the accent", () => {
@@ -152,7 +149,6 @@ describe("the language argument", () => {
         underRuntimeLanguage("es", () => {
             expect(monthAbbrevTitle(WEDNESDAY)).toBe("jul");
             expect(monthAbbrev(WEDNESDAY)).toBe("JUL");
-            expect(formatMonthLabel(WEDNESDAY)).toBe("JULIO");
             expect(weekdayInitial(WEDNESDAY)).toBe("X");
             expect(formatDayHeader(WEDNESDAY, NOW)).toBe("MIÉ, 22 JUL");
             expect(formatDayHeader(NOW, NOW)).toBe("HOY");

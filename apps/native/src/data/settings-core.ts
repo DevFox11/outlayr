@@ -223,14 +223,6 @@ export async function seedClockPreference(db: Database, deviceUses24Hour: boolea
     await setBoolSetting(db, "use24HourClock", deviceUses24Hour);
 }
 
-export function clockLabel(use24Hour: boolean): TranslationKey {
-    return use24Hour ? "clock.twentyFourHour" : "clock.twelveHour";
-}
-
-export function weekdayLabel(firstWeekday: number): TranslationKey {
-    return firstWeekday === 2 ? "settings.time.monday" : "settings.time.sunday";
-}
-
 export function ordinalDay(day: number, language: Language = "en"): string {
     // Spanish counts days of the month with plain cardinals ("día 3 del mes"),
     // so an English ordinal suffix would render as "día 3rd del mes".

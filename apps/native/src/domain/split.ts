@@ -94,46 +94,6 @@ export function rebalance(
 }
 
 /**
- * Splits `total` into `count` parts that add up exactly.
- *
- * The remainder goes on the FIRST part rather than being spread, so three ways
- * of 10.00 reads 3.34 / 3.33 / 3.33. Spreading it would be fairer and much
- * harder to check by eye, and a split is something the owner reads back.
- */
-export function splitEvenly(total: number, count: number, categoryIds: readonly (string | null)[] = []): Allocation[] {
-    if (count < 1) {
-        return [];
-    }
-    const each = round(total / count);
-    const parts: Allocation[] = [];
-    for (let index = 0; index < count; index += 1) {
-        parts.push({ amount: each, categoryId: categoryIds[index] ?? null });
-    }
-    parts[0] = { ...parts[0], amount: round(total - each * (count - 1)) };
-    return parts;
-}
-
-/**
- * Totals per category across many entries' allocations.
- *
- * The one function a category-scoped aggregate needs: hand it the entries and
- * their explicit allocations and it answers what each category holds, with
- * unsplit entries counted exactly as they are today.
- */
-export function totalsByCategory(
-    entries: readonly SplittableEntry[],
-    explicitByEntry: ReadonlyMap<string, readonly Allocation[]>
-): Map<string | null, number> {
-    const totals = new Map<string | null, number>();
-    for (const entry of entries) {
-        for (const allocation of allocationsFor(entry, explicitByEntry.get(entry.id) ?? [])) {
-            totals.set(allocation.categoryId, round((totals.get(allocation.categoryId) ?? 0) + allocation.amount));
-        }
-    }
-    return totals;
-}
-
-/**
  * Two decimals, matching what the amounts are stored and displayed at.
  *
  * Every arithmetic result here goes through it, so a split's parts can be summed

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { cadenceUnit, ensureRecurringType, nextDate, nextLanding, RECURRING_TYPE, schedulePreview } from "./recurrence";
+import { ensureRecurringType, nextDate, nextLanding, RECURRING_TYPE, schedulePreview } from "./recurrence";
 
 const at = (y: number, m: number, day: number): Date => new Date(y, m - 1, day);
 
@@ -67,17 +67,6 @@ describe("advancing one occurrence", () => {
     it("has no next occurrence without a cadence", () => {
         expect(nextDate(at(2026, 3, 10), RECURRING_TYPE.none, 1)).toBeNull();
         expect(nextDate(at(2026, 3, 10), 99, 1)).toBeNull();
-    });
-});
-
-describe("cadence unit", () => {
-    it("names the unit each cadence steps in", () => {
-        expect(cadenceUnit(RECURRING_TYPE.daily)).toBe("day");
-        expect(cadenceUnit(RECURRING_TYPE.yearly)).toBe("year");
-    });
-
-    it("falls back to the month for a cadence nothing declares", () => {
-        expect(cadenceUnit(RECURRING_TYPE.none)).toBe("month");
     });
 });
 
