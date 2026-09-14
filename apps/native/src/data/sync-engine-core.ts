@@ -562,7 +562,7 @@ async function applyInTransaction(
     now: Date
 ): Promise<ApplyResult> {
     const outboxEntries = await db.select({ localId: outbox.localId, tableName: outbox.tableName }).from(outbox);
-    const pending = new Set(outboxEntries.map((entry) => `${entry.tableName} ${entry.localId}`));
+    const pending = new Set(outboxEntries.map((entry) => `${entry.tableName}\0${entry.localId}`));
 
     const byTable = new Map<SyncedTable, PulledRow[]>();
     for (const row of page.rows) {
@@ -603,7 +603,7 @@ async function applyInTransaction(
                       deletedAt: row.table === "appMeta" ? null : toEpoch(local.deletedAt),
                       updatedAt: row.table === "appMeta" ? null : (toEpoch(local.updatedAt) ?? 0),
                   };
-        const isPending = pending.has(`${row.table} ${row.localId}`);
+        const isPending = pending.has(`${row.table}\0${row.localId}`);
         if (incomingWinsLocally(row, localVersion, isPending)) {
             winners.push(row);
         }
