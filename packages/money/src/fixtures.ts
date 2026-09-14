@@ -1,9 +1,7 @@
 import type { EntryRateType, MarketRateType, RateLookup } from "./rates";
 
 /**
- * Golden vectors shared by the `@outlayr/money` vitest suite AND the
- * `apps/native` jest suite; running both proves V8<->V8 parity only (Hermes
- * parity is verified separately by an on-device e2e run). Dates derive from a
+ * Golden vectors for the `@outlayr/money` vitest suite. Dates derive from a
  * fixed reference instant, never `Date.now()`.
  */
 

@@ -1,6 +1,3 @@
 {
-    "extends": "@outlayr/config/tsconfig.base.json",
-    "compilerOptions": {
-        "strictNullChecks": true
-    }
+    "extends": "@outlayr/config/tsconfig.base.json"
 }

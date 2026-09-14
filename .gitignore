@@ -1,15 +1,10 @@
 # Dependencies
 node_modules
-.pnp
-.pnp.js
 
 # Build outputs
 dist
 build
 *.tsbuildinfo
-
-# Generated files
-apps/web/src/routeTree.gen.ts
 
 # Environment variables
 .env
@@ -36,20 +31,15 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
-# Turbo
-.turbo
-.nx
-
-# Better-T-Stack
-.alchemy
-.vercel
-
 # Testing
 coverage
 .nyc_output
 
 # Argent (simulator QA artifacts: screen recordings, flows)
 .argent
+
+# Playwright MCP page dumps
+.playwright-mcp
 
 # Misc
 *.tgz

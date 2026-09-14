@@ -6,8 +6,7 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
 
 - **TypeScript** - For type safety and improved developer experience
 - **Convex** - Reactive backend-as-a-service platform
-- **Biome** - Linting and formatting
-- **Turborepo** - Optimized monorepo build system
+- **Vite+** (`vp`) - Task runner, plus Oxlint and Oxfmt for linting and formatting
 
 ## Getting Started
 
@@ -56,7 +55,7 @@ outlayr/
 - `pnpm run build`: Build all applications
 - `pnpm run dev:setup`: Setup and configure your Convex project
 - `pnpm run check-types`: Check TypeScript types across all apps
-- `pnpm run check`: Run Biome formatting and linting
+- `pnpm run check`: Lint and check formatting (`pnpm run fix` applies what is fixable)
 
 ## License
 

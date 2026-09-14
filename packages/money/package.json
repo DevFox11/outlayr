@@ -9,12 +9,10 @@
         "./currency": "./src/currency.ts",
         "./dates": "./src/dates.ts",
         "./errors": "./src/errors.ts",
-        "./fixtures": "./src/fixtures.ts",
         "./rates": "./src/rates.ts",
         "./round": "./src/round.ts"
     },
     "scripts": {
-        "check:types": "tsc --noEmit",
         "check-types": "tsc --noEmit",
         "generate:catalog": "node scripts/generate-catalog.mjs",
         "test": "vitest run",
