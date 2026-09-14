@@ -23,6 +23,20 @@ import { components, internal } from "./_generated/api";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
 import { admitCapture } from "./lib/captures";
+import {
+    clampDate,
+    CURRENCY_PATTERN,
+    DATE_PATTERN,
+    describeTree,
+    LANGUAGE_PATTERN,
+    MAX_NAME_LENGTH,
+    namesWithinBudget,
+    normalizeDomain,
+    perUserTokenBucket,
+    pickKnown,
+    trimTo,
+} from "./lib/ledgerPrompt";
+import type { LedgerContext } from "./lib/ledgerPrompt";
 
 /** `XAI_MODEL_ID` overrides this without a deploy, matching `enrichment.ts`. */
 const VOICE_ENTRY_MODEL_ID = "grok-4.20-0309-non-reasoning";
@@ -32,16 +46,11 @@ const VOICE_ENTRY_MODEL_ID = "grok-4.20-0309-non-reasoning";
  * client's 48kbps mono preset is ~360KB, and a Convex value tops out at 1MB.
  */
 export const MAX_AUDIO_BYTES = 900_000;
-const MAX_CATEGORY_NAMES = 200;
-const MAX_ACCOUNT_NAMES = 50;
 /**
  * The names are copied into a paid prompt, so their size is bounded as well
  * as their count: a branch holds at most this many children, every name is
  * at most this long, and the whole tree at most this many names.
  */
-const MAX_CHILDREN_PER_BRANCH = 50;
-const MAX_NAME_LENGTH = 80;
-const MAX_TOTAL_NAMES = 400;
 const MAX_MERCHANT_LENGTH = 80;
 const MAX_DETAILS_LENGTH = 200;
 /** How far a spoken date may sit from today before it is read as a mishearing. */
@@ -181,11 +190,6 @@ export interface ProposedDraft {
     draft: VoiceDraft | null;
 }
 
-export interface CategoryBranch {
-    children: string[];
-    name: string;
-}
-
 function failure(status: Exclude<SpeakStatus, "ok">, transcript: string | null = null): SpeakResult {
     return { order: null, status, transcript };
 }
@@ -212,22 +216,7 @@ export const modelOutputSchema = z.object({
 
 export type ModelOutput = z.infer<typeof modelOutputSchema>;
 
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-/** A BCP-47 tag as the device reports it, extensions included ("sr-Latn-RS-u-ca-gregory"); bounded because it lands in the prompt. */
-export const LANGUAGE_PATTERN = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{1,8}){0,12}$/;
-/** A bare hostname: labels of letters, digits and hyphens, at least one dot, no path. */
-const DOMAIN_PATTERN = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
-const CURRENCY_PATTERN = /^[A-Z]{3}$/;
-
-export function perUserLimitConfig() {
-    const override = Number(process.env.VOICE_ENTRY_CAPACITY);
-    return {
-        capacity: Number.isInteger(override) && override > 0 ? override : 10,
-        kind: "token bucket",
-        period: HOUR,
-        rate: 40,
-    } as const;
-}
+export const perUserLimitConfig = () => perUserTokenBucket("VOICE_ENTRY_CAPACITY", 40);
 
 /**
  * A thread costs component rows and a scheduled expiry, so opening one is
@@ -251,41 +240,6 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
         shards: 10,
     },
 });
-
-/** True when the names the client sent fit the prompt's budget. */
-export function namesWithinBudget(tree: readonly CategoryBranch[], accounts: readonly string[]): boolean {
-    if (tree.length > MAX_CATEGORY_NAMES || accounts.length > MAX_ACCOUNT_NAMES) {
-        return false;
-    }
-    const short = (name: string) => name.length <= MAX_NAME_LENGTH;
-    let total = accounts.length;
-    for (const branch of tree) {
-        if (!short(branch.name) || branch.children.length > MAX_CHILDREN_PER_BRANCH || !branch.children.every(short)) {
-            return false;
-        }
-        total += 1 + branch.children.length;
-    }
-    return total <= MAX_TOTAL_NAMES && accounts.every(short);
-}
-
-function describeTree(tree: readonly CategoryBranch[]): string {
-    if (tree.length === 0) {
-        return "none";
-    }
-    return tree
-        .map((branch) =>
-            branch.children.length > 0 ? `${branch.name} (containing ${branch.children.join(", ")})` : branch.name
-        )
-        .join("; ");
-}
-
-export interface LedgerContext {
-    accounts: readonly string[];
-    categoryTree: readonly CategoryBranch[];
-    currency: string;
-    language?: string;
-    today: string;
-}
 
 function weekdayOf(isoDate: string): string {
     const parsed = new Date(`${isoDate}T12:00:00Z`);
@@ -323,58 +277,6 @@ export function buildPrompt(args: LedgerContext): string {
         .join(" ");
 }
 
-function clampDate(candidate: string | null, today: string): string {
-    if (candidate == null || !DATE_PATTERN.test(candidate)) {
-        return today;
-    }
-    const spoken = Date.parse(`${candidate}T00:00:00Z`);
-    const base = Date.parse(`${today}T00:00:00Z`);
-    if (Number.isNaN(spoken) || Number.isNaN(base)) {
-        return today;
-    }
-    // `Date.parse` rolls "2026-02-31" forward to March 3 instead of refusing
-    // it; a day the calendar does not have is a mishearing, not a date.
-    if (new Date(spoken).toISOString().slice(0, 10) !== candidate) {
-        return today;
-    }
-    const days = (spoken - base) / 86_400_000;
-    return days < -MAX_PAST_DAYS || days > MAX_FUTURE_DAYS ? today : candidate;
-}
-
-function trimTo(value: string | null | undefined, max: number): string | null {
-    const trimmed = value?.trim() ?? "";
-    return trimmed.length === 0 ? null : trimmed.slice(0, max);
-}
-
-function pickKnown(candidate: string | null, known: readonly string[]): string | null {
-    const trimmed = candidate?.trim();
-    if (!trimmed) {
-        return null;
-    }
-    const exact = known.find((name) => name === trimmed);
-    if (exact) {
-        return exact;
-    }
-    // The model sometimes answers in a different case than the tree it was
-    // shown; the name it meant is still the one on the list.
-    const folded = trimmed.toLowerCase();
-    return known.find((name) => name.toLowerCase() === folded) ?? null;
-}
-
-/** "https://www.carrefour.es/shop" becomes "carrefour.es"; anything that is not a hostname becomes null. */
-function normalizeDomain(candidate: string | null): string | null {
-    if (candidate === null) {
-        return null;
-    }
-    const [host] = candidate
-        .trim()
-        .toLowerCase()
-        .replace(/^[a-z]+:\/\//, "")
-        .replace(/^www\./, "")
-        .split(/[/?#]/);
-    return host !== undefined && DOMAIN_PATTERN.test(host) ? host : null;
-}
-
 function normalizeRecurrence(candidate: ModelOutput["recurrence"]): VoiceRecurrence | null {
     if (candidate === null || !Number.isFinite(candidate.every)) {
         return null;
@@ -401,7 +303,7 @@ export function normalizeDraft(output: ModelOutput, args: LedgerContext): VoiceD
     const base = {
         amount,
         currency,
-        date: clampDate(output.date, args.today),
+        date: clampDate(output.date, args.today, MAX_PAST_DAYS, MAX_FUTURE_DAYS),
         details: trimTo(output.details, MAX_DETAILS_LENGTH),
     };
     if (output.kind === "transfer") {

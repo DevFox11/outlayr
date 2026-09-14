@@ -7,13 +7,12 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { api } from "./_generated/api";
 import { captureLimiter, FREE_CAPTURE_CONFIG } from "./lib/captures";
+import { LANGUAGE_PATTERN, namesWithinBudget } from "./lib/ledgerPrompt";
 import {
     buildPrompt,
-    LANGUAGE_PATTERN,
     looksLikeJpeg,
     MAX_IMAGE_BYTES,
     MAX_ITEMS,
-    namesWithinBudget,
     normalizeDraft,
     normalizeItems,
     perUserLimitConfig,

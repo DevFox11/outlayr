@@ -11,6 +11,8 @@ import { components, internal } from "./_generated/api";
 import { action } from "./_generated/server";
 import { maybeScheduleGrounded, sanitizeRegionCode } from "./enrichment";
 import type { GroundedScheduleCtx } from "./enrichment";
+import { describeTree, perUserTokenBucket } from "./lib/ledgerPrompt";
+import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { merchantKey } from "./lib/merchantKey";
 import { isPro } from "./revenuecat";
 
@@ -58,11 +60,6 @@ const csvImportResult = v.object({
     suggestions: v.union(v.array(labelSuggestion), v.null()),
 });
 
-export interface CategoryBranch {
-    children: string[];
-    name: string;
-}
-
 export interface LabelSuggestion {
     categoryName: string;
     domain: string | null;
@@ -99,17 +96,6 @@ const modelOutputSchema = z.object({
     ),
 });
 
-function describeTree(tree: readonly CategoryBranch[]): string {
-    if (tree.length === 0) {
-        return "none";
-    }
-    return tree
-        .map((branch) =>
-            branch.children.length > 0 ? `${branch.name} (containing ${branch.children.join(", ")})` : branch.name
-        )
-        .join("; ");
-}
-
 export interface RunClassifyArgs {
     categoryTree: readonly CategoryBranch[];
     labels: readonly string[];
@@ -126,26 +112,7 @@ function buildPrompt(args: RunClassifyArgs): string {
 
 const DEFAULT_PER_USER_CAPACITY = 2;
 
-/**
- * Keyed by `identity.tokenIdentifier`, per the repo's Convex guidelines
- * (preferred over `subject`), never a client argument. An import is far
- * heavier than one merchant name, so this bucket is smaller than
- * `enrichment.ts`'s.
- *
- * Declared inline rather than in the `RateLimiter` below so the capacity is
- * read per call: Convex does not reevaluate module scope when an environment
- * variable changes, so an in-constructor capacity would need a redeploy to pick
- * up `npx convex env set CSV_IMPORT_CAPACITY`.
- */
-export function perUserLimitConfig() {
-    const override = Number(process.env.CSV_IMPORT_CAPACITY);
-    return {
-        capacity: Number.isInteger(override) && override > 0 ? override : DEFAULT_PER_USER_CAPACITY,
-        kind: "token bucket",
-        period: HOUR,
-        rate: 6,
-    } as const;
-}
+export const perUserLimitConfig = () => perUserTokenBucket("CSV_IMPORT_CAPACITY", 6, DEFAULT_PER_USER_CAPACITY);
 
 /**
  * `shards: 10` is copied from `enrichment.ts:118` and is load-bearing — an

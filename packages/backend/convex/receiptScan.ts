@@ -11,6 +11,19 @@ import { components, internal } from "./_generated/api";
 import { action, internalMutation } from "./_generated/server";
 import { admitCapture } from "./lib/captures";
 import { PICKABLE_CURRENCY_CODES } from "./lib/currencies";
+import {
+    clampDate,
+    CURRENCY_PATTERN,
+    DATE_PATTERN,
+    describeTree,
+    LANGUAGE_PATTERN,
+    namesWithinBudget,
+    normalizeDomain,
+    perUserTokenBucket,
+    pickKnown,
+    trimTo,
+} from "./lib/ledgerPrompt";
+import type { LedgerContext } from "./lib/ledgerPrompt";
 
 /**
  * Grok 4.20 reads images as well as text. `XAI_VISION_MODEL_ID` overrides it
@@ -26,11 +39,6 @@ const RECEIPT_SCAN_MODEL_ID = "grok-4.20-0309-non-reasoning";
 export const MAX_IMAGE_BYTES = 900_000;
 /** The first bytes of every JPEG; anything else is not the photo the client says it is. */
 const JPEG_MAGIC = [0xff, 0xd8, 0xff] as const;
-const MAX_CATEGORY_NAMES = 200;
-const MAX_ACCOUNT_NAMES = 50;
-const MAX_CHILDREN_PER_BRANCH = 50;
-const MAX_NAME_LENGTH = 80;
-const MAX_TOTAL_NAMES = 400;
 const MAX_MERCHANT_LENGTH = 80;
 const MAX_ITEM_NAME_LENGTH = 80;
 const MAX_PAYMENT_LENGTH = 40;
@@ -161,11 +169,6 @@ export interface ScanResult {
     status: ScanStatus;
 }
 
-export interface CategoryBranch {
-    children: string[];
-    name: string;
-}
-
 function failure(status: Exclude<ScanStatus, "ok">): ScanResult {
     return { receipt: null, status };
 }
@@ -198,24 +201,11 @@ export const modelOutputSchema = z.object({
 
 export type ModelOutput = z.infer<typeof modelOutputSchema>;
 
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-/** A BCP-47 tag as the device reports it, extensions included ("sr-Latn-RS-u-ca-gregory"); bounded because it lands in the prompt. */
-export const LANGUAGE_PATTERN = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{1,8}){0,12}$/;
 const REGION_PATTERN = /^[A-Z]{2}$/;
-const DOMAIN_PATTERN = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
-const CURRENCY_PATTERN = /^[A-Z]{3}$/;
 /** The currencies exchange rates are fetched for — the only ones a receipt may be filed in. */
 const KNOWN_CURRENCIES: ReadonlySet<string> = new Set(PICKABLE_CURRENCY_CODES);
 
-export function perUserLimitConfig() {
-    const override = Number(process.env.RECEIPT_SCAN_CAPACITY);
-    return {
-        capacity: Number.isInteger(override) && override > 0 ? override : 10,
-        kind: "token bucket",
-        period: HOUR,
-        rate: 30,
-    } as const;
-}
+export const perUserLimitConfig = () => perUserTokenBucket("RECEIPT_SCAN_CAPACITY", 30);
 
 /** `shards: 10` is copied from `enrichment.ts:118` and is load-bearing. */
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
@@ -227,46 +217,10 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     },
 });
 
-/** True when the names the client sent fit the prompt's budget. */
-export function namesWithinBudget(tree: readonly CategoryBranch[], accounts: readonly string[]): boolean {
-    if (tree.length > MAX_CATEGORY_NAMES || accounts.length > MAX_ACCOUNT_NAMES) {
-        return false;
-    }
-    const short = (name: string) => name.length <= MAX_NAME_LENGTH;
-    let total = accounts.length;
-    for (const branch of tree) {
-        if (!short(branch.name) || branch.children.length > MAX_CHILDREN_PER_BRANCH || !branch.children.every(short)) {
-            return false;
-        }
-        total += 1 + branch.children.length;
-    }
-    return total <= MAX_TOTAL_NAMES && accounts.every(short);
-}
-
 /** True for bytes that start the way every JPEG does. */
 export function looksLikeJpeg(image: ArrayBuffer): boolean {
     const head = new Uint8Array(image, 0, Math.min(JPEG_MAGIC.length, image.byteLength));
     return head.length === JPEG_MAGIC.length && JPEG_MAGIC.every((byte, index) => head[index] === byte);
-}
-
-function describeTree(tree: readonly CategoryBranch[]): string {
-    if (tree.length === 0) {
-        return "none";
-    }
-    return tree
-        .map((branch) =>
-            branch.children.length > 0 ? `${branch.name} (containing ${branch.children.join(", ")})` : branch.name
-        )
-        .join("; ");
-}
-
-export interface LedgerContext {
-    accounts: readonly string[];
-    categoryTree: readonly CategoryBranch[];
-    currency: string;
-    language?: string;
-    regionCode?: string;
-    today: string;
 }
 
 export function buildPrompt(args: LedgerContext): string {
@@ -291,53 +245,6 @@ export function buildPrompt(args: LedgerContext): string {
     ]
         .filter((line) => line.length > 0)
         .join(" ");
-}
-
-function clampDate(candidate: string | null, today: string): string {
-    if (candidate == null || !DATE_PATTERN.test(candidate)) {
-        return today;
-    }
-    const printed = Date.parse(`${candidate}T00:00:00Z`);
-    const base = Date.parse(`${today}T00:00:00Z`);
-    if (Number.isNaN(printed) || Number.isNaN(base)) {
-        return today;
-    }
-    if (new Date(printed).toISOString().slice(0, 10) !== candidate) {
-        return today;
-    }
-    const days = (printed - base) / 86_400_000;
-    return days < -MAX_PAST_DAYS || days > 0 ? today : candidate;
-}
-
-function trimTo(value: string | null | undefined, max: number): string | null {
-    const trimmed = value?.trim() ?? "";
-    return trimmed.length === 0 ? null : trimmed.slice(0, max);
-}
-
-function pickKnown(candidate: string | null, known: readonly string[]): string | null {
-    const trimmed = candidate?.trim();
-    if (!trimmed) {
-        return null;
-    }
-    const exact = known.find((name) => name === trimmed);
-    if (exact) {
-        return exact;
-    }
-    const folded = trimmed.toLowerCase();
-    return known.find((name) => name.toLowerCase() === folded) ?? null;
-}
-
-function normalizeDomain(candidate: string | null): string | null {
-    if (candidate === null) {
-        return null;
-    }
-    const [host] = candidate
-        .trim()
-        .toLowerCase()
-        .replace(/^[a-z]+:\/\//, "")
-        .replace(/^www\./, "")
-        .split(/[/?#]/);
-    return host !== undefined && DOMAIN_PATTERN.test(host) ? host : null;
 }
 
 /** A printed money line: finite, not negative, within the ledger's ceiling; else null. */
@@ -417,7 +324,7 @@ export function normalizeDraft(output: ModelOutput, args: LedgerContext): Receip
         currency,
         currencySource: output.currencyPrinted ? "printed" : "inferred",
         currencyUnresolved,
-        date: clampDate(output.date, args.today),
+        date: clampDate(output.date, args.today, MAX_PAST_DAYS, 0),
         domain: normalizeDomain(output.domain),
         income: output.kind === "refund",
         items: normalizeItems(output.items),

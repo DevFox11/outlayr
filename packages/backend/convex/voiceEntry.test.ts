@@ -10,12 +10,12 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { api, components } from "./_generated/api";
 import { captureLimiter, FREE_CAPTURE_CONFIG } from "./lib/captures";
+import { namesWithinBudget } from "./lib/ledgerPrompt";
 import schema from "./schema";
 import { authenticatedAs, seedAuthUser } from "./test.helpers";
 import {
     buildPrompt,
     MAX_AUDIO_BYTES,
-    namesWithinBudget,
     normalizeDraft,
     perUserLimitConfig,
     perUserThreadLimitConfig,

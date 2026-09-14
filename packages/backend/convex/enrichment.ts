@@ -10,6 +10,8 @@ import { action, internalQuery } from "./_generated/server";
 import type { ActionCtx } from "./_generated/server";
 import { optionalUserId } from "./lib/auth";
 import { PICKABLE_CURRENCY_CODES } from "./lib/currencies";
+import { describeTree } from "./lib/ledgerPrompt";
+import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { knowledgeKey } from "./lib/merchantKey";
 import { isPro } from "./revenuecat";
 
@@ -82,11 +84,6 @@ const suggestion = v.object({
     parentCategoryName: v.union(v.string(), v.null()),
     tags: v.array(v.string()),
 });
-
-export interface CategoryBranch {
-    children: string[];
-    name: string;
-}
 
 export interface Suggestion {
     categoryName: string | null;
@@ -258,17 +255,6 @@ export function sanitizeCurrencyCode(currency: string | undefined): string | und
     }
     const trimmed = currency.trim().toUpperCase();
     return KNOWN_CURRENCIES.has(trimmed) ? trimmed : undefined;
-}
-
-function describeTree(tree: readonly CategoryBranch[]): string {
-    if (tree.length === 0) {
-        return "none";
-    }
-    return tree
-        .map((branch) =>
-            branch.children.length > 0 ? `${branch.name} (containing ${branch.children.join(", ")})` : branch.name
-        )
-        .join("; ");
 }
 
 /**
