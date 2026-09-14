@@ -92,7 +92,7 @@ describe("categoryEditorDetailsSection", () => {
 
     it("carries the tint color into the picker's modifiers", async () => {
         const { toJSON } = await render(<CategoryEditorDetailsSection {...BASE_PROPS} tintColor="#ABCDEF" />);
-        expect(JSON.stringify(toJSON())).toContain('"$type":"tint","color":"#ABCDEF"');
+        expect(JSON.stringify(toJSON())).toContain('"$type":"tint","tint":{"type":"color","color":"#ABCDEF"}');
     });
 
     it("renders the caption as the section footer when present", async () => {
