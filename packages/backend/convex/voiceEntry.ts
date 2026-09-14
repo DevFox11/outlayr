@@ -17,6 +17,7 @@ import { experimental_transcribe as transcribe, NoTranscriptGeneratedError } fro
 import type { LanguageModel, TranscriptionModel } from "ai";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import type { Infer } from "convex/values";
 import { z } from "zod";
 
 import { components, internal } from "./_generated/api";
@@ -126,16 +127,7 @@ const speakResult = v.object({
     transcript: v.union(v.string(), v.null()),
 });
 
-export type SpeakStatus =
-    | "ok"
-    | "unauthenticated"
-    | "notConfigured"
-    | "rateLimited"
-    | "notEntitled"
-    | "quotaExceeded"
-    | "invalid"
-    | "providerError"
-    | "unclear";
+export type SpeakStatus = Infer<typeof speakStatus>;
 
 export interface SpeakResult {
     order: number | null;

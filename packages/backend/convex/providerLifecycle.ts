@@ -3,6 +3,8 @@ import { decryptOAuthToken, setTokenUtil } from "better-auth/oauth2";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { z } from "zod";
 
+import { sha256Hex } from "./lib/sha256Hex";
+
 export interface AppleGrantInput {
     authorizationCode: string;
     identityToken: string;
@@ -84,12 +86,6 @@ export async function grantAppleCredential(
 
 const APPLE_ISSUER = "https://appleid.apple.com";
 const APPLE_JWKS = createRemoteJWKSet(new URL("https://appleid.apple.com/auth/keys"));
-
-function sha256Hex(value: string): Promise<string> {
-    return crypto.subtle
-        .digest("SHA-256", new TextEncoder().encode(value))
-        .then((bytes) => Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, "0")).join(""));
-}
 
 const appleIdentityClaims = z.object({ sub: z.string() });
 

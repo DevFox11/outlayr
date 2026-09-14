@@ -5,8 +5,9 @@ import { convexTest } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { api } from "./_generated/api";
-import { consumeGoogleLocalReceipt, hashResumeSecret } from "./accountDeletion";
+import { consumeGoogleLocalReceipt } from "./accountDeletion";
 import type { DeletionJob } from "./accountDeletion";
+import { sha256Hex } from "./lib/sha256Hex";
 import { isPro } from "./revenuecat";
 import schema from "./schema";
 import { authenticatedAs, grantPro, seedAuthUser } from "./test.helpers";
@@ -36,19 +37,19 @@ const job: DeletionJob = {
 
 describe("resumable account deletion", () => {
     test("hashes the raw secret", async () => {
-        await expect(hashResumeSecret(secret)).resolves.not.toBe(secret);
+        await expect(sha256Hex(secret)).resolves.not.toBe(secret);
     });
 
     test("rejects a Google local receipt bound to another deletion job", async () => {
         const receipt = "receipt-for-job-a";
         const jobA: DeletionJob = {
             ...job,
-            googleReceiptChallengeHash: await hashResumeSecret(receipt),
+            googleReceiptChallengeHash: await sha256Hex(receipt),
             phase: "prepared",
         };
         const jobB: DeletionJob = {
             ...job,
-            googleReceiptChallengeHash: await hashResumeSecret("receipt-for-job-b"),
+            googleReceiptChallengeHash: await sha256Hex("receipt-for-job-b"),
             phase: "prepared",
         };
 
@@ -63,14 +64,14 @@ describe("resumable account deletion", () => {
         const receipt = "receipt-for-job";
         const prepared: DeletionJob = {
             ...job,
-            googleReceiptChallengeHash: await hashResumeSecret(receipt),
+            googleReceiptChallengeHash: await sha256Hex(receipt),
             phase: "prepared",
         };
         const consumed = await consumeGoogleLocalReceipt(prepared, receipt);
 
         expect(consumed.provider).toBe("googleLocalReceipt");
         expect(consumed.googleReceiptChallengeHash).toBeNull();
-        expect(consumed.googleReceiptDigest).toBe(await hashResumeSecret(receipt));
+        expect(consumed.googleReceiptDigest).toBe(await sha256Hex(receipt));
         await expect(consumeGoogleLocalReceipt(consumed, receipt)).resolves.toBe(consumed);
     });
 });

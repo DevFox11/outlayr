@@ -20,7 +20,7 @@ export function merchantKey(raw: string): string {
  * but letters, digits and single spaces, so this cannot appear in one: a
  * merchant named "Acme EUR" and "Acme" in EUR stay two keys.
  */
-export const KNOWLEDGE_KEY_DELIMITER = "|";
+const KNOWLEDGE_KEY_DELIMITER = "|";
 
 /**
  * The shared knowledge cache's identity. Scoped by the currency the purchase

@@ -5,6 +5,7 @@ import { HOUR, RateLimiter } from "@convex-dev/rate-limiter";
 import { generateText, NoObjectGeneratedError, Output, TypeValidationError } from "ai";
 import type { LanguageModel } from "ai";
 import { v } from "convex/values";
+import type { Infer } from "convex/values";
 import { z } from "zod";
 
 import { components, internal } from "./_generated/api";
@@ -66,15 +67,7 @@ export interface LabelSuggestion {
     label: string;
 }
 
-export type CsvImportStatus =
-    | "ok"
-    | "unauthenticated"
-    | "notConfigured"
-    | "rateLimited"
-    | "notEntitled"
-    | "invalid"
-    | "providerError"
-    | "invalidResponse";
+export type CsvImportStatus = Infer<typeof csvImportStatus>;
 
 export interface CsvImportResult {
     degraded?: boolean;

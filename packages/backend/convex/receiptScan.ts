@@ -5,6 +5,7 @@ import { HOUR, isRateLimitError, RateLimiter } from "@convex-dev/rate-limiter";
 import { generateText, NoObjectGeneratedError, Output, TypeValidationError } from "ai";
 import type { LanguageModel } from "ai";
 import { v } from "convex/values";
+import type { Infer } from "convex/values";
 import { z } from "zod";
 
 import { components, internal } from "./_generated/api";
@@ -122,17 +123,7 @@ const scanResult = v.object({
     status: scanStatus,
 });
 
-export type ScanStatus =
-    | "ok"
-    | "unauthenticated"
-    | "notConfigured"
-    | "rateLimited"
-    | "notEntitled"
-    | "quotaExceeded"
-    | "invalid"
-    | "providerError"
-    | "invalidResponse"
-    | "unclear";
+export type ScanStatus = Infer<typeof scanStatus>;
 
 export interface ReceiptItem {
     name: string;

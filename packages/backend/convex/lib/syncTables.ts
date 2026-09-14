@@ -143,19 +143,6 @@ export const transactionColumns = {
     imageUri: v.optional(v.union(v.string(), v.null())),
 };
 
-export const budgetFields = {
-    amount: v.number(),
-    amountUsd: v.union(v.number(), v.null()),
-    categoryId: v.union(v.string(), v.null()),
-    currency: v.union(v.string(), v.null()),
-    dateCreated: v.union(v.number(), v.null()),
-    green: v.boolean(),
-    name: v.union(v.string(), v.null()),
-    rollover: v.boolean(),
-    startDate: v.union(v.number(), v.null()),
-    type: v.number(),
-};
-
 export const mainBudgetFields = {
     amount: v.number(),
     amountUsd: v.union(v.number(), v.null()),
@@ -166,6 +153,11 @@ export const mainBudgetFields = {
     rollover: v.boolean(),
     startDate: v.union(v.number(), v.null()),
     type: v.number(),
+};
+
+export const budgetFields = {
+    ...mainBudgetFields,
+    categoryId: v.union(v.string(), v.null()),
 };
 
 export const savingsGoalFields = {
@@ -230,7 +222,7 @@ export const transactionSplitFields = {
     transactionId: v.string(),
 };
 
-export const TOMBSTONED_TABLES = [
+const TOMBSTONED_TABLES = [
     "categories",
     "transactions",
     "budgets",

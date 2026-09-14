@@ -6,6 +6,7 @@ import { action, internalMutation, internalQuery, mutation, query } from "./_gen
 import type { QueryCtx } from "./_generated/server";
 import { purgeUserBatch } from "./account";
 import { requireUserId } from "./lib/auth";
+import { sha256Hex } from "./lib/sha256Hex";
 import { eraseUpstreamCustomer, revenuecat } from "./revenuecat";
 
 const DELETE_JOB_TTL_MS = 24 * 60 * 60 * 1000;
@@ -30,11 +31,6 @@ export function requireUnexpiredDeletionJob(job: DeletionJob): void {
     }
 }
 
-export async function hashResumeSecret(secret: string): Promise<string> {
-    const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(secret));
-    return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 function randomSecret(): string {
     const bytes = crypto.getRandomValues(new Uint8Array(32));
     return btoa(String.fromCodePoint(...bytes))
@@ -44,7 +40,7 @@ function randomSecret(): string {
 }
 
 export async function consumeGoogleLocalReceipt(job: DeletionJob, receiptChallenge: string): Promise<DeletionJob> {
-    const receiptDigest = await hashResumeSecret(receiptChallenge);
+    const receiptDigest = await sha256Hex(receiptChallenge);
     if (job.phase === "providersRevoked" && job.provider === "googleLocalReceipt") {
         if (receiptDigest !== job.googleReceiptDigest) {
             throw new Error("Google local receipt does not match this deletion job");
@@ -67,7 +63,7 @@ export async function consumeGoogleLocalReceipt(job: DeletionJob, receiptChallen
 }
 
 async function jobForSecret(ctx: QueryCtx, secret: string) {
-    const secretHash = await hashResumeSecret(secret);
+    const secretHash = await sha256Hex(secret);
     return ctx.db
         .query("accountDeletionJobs")
         .withIndex("by_secretHash", (q) => q.eq("secretHash", secretHash))
@@ -96,11 +92,11 @@ export const prepare = mutation({
         await ctx.db.insert("accountDeletionJobs", {
             errorCode: null,
             expiresAt: Date.now() + DELETE_JOB_TTL_MS,
-            googleReceiptChallengeHash: await hashResumeSecret(receiptChallenge),
+            googleReceiptChallengeHash: await sha256Hex(receiptChallenge),
             googleReceiptDigest: null,
             phase: "prepared",
             provider: null,
-            secretHash: await hashResumeSecret(resumeSecret),
+            secretHash: await sha256Hex(resumeSecret),
             userId: await requireUserId(ctx),
         });
         return { receiptChallenge, resumeSecret };
@@ -254,11 +250,7 @@ export const eraseBilling = action({
 export const poll = query({
     args: { resumeSecret: v.string() },
     handler: async (ctx, args) => {
-        const secretHash = await hashResumeSecret(args.resumeSecret);
-        const job = await ctx.db
-            .query("accountDeletionJobs")
-            .withIndex("by_secretHash", (q) => q.eq("secretHash", secretHash))
-            .unique();
+        const job = await jobForSecret(ctx, args.resumeSecret);
         if (!job || (job.phase !== "complete" && job.expiresAt <= Date.now())) {
             return null;
         }
@@ -269,11 +261,7 @@ export const poll = query({
 export const resumeUserId = internalQuery({
     args: { resumeSecret: v.string() },
     handler: async (ctx, args) => {
-        const secretHash = await hashResumeSecret(args.resumeSecret);
-        const job = await ctx.db
-            .query("accountDeletionJobs")
-            .withIndex("by_secretHash", (q) => q.eq("secretHash", secretHash))
-            .unique();
+        const job = await jobForSecret(ctx, args.resumeSecret);
         if (!job) {
             throw new ConvexError("Deletion job cannot revoke Apple credentials now");
         }
