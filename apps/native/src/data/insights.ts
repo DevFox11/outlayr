@@ -420,7 +420,6 @@ export function categoryMovers(
     return movers.slice(0, MOVER_LIMIT);
 }
 
-/** Both totals are positive magnitudes; the net is `income − spent`. */
 /** Both sides of one window, each already a positive magnitude. */
 export interface WindowTotals {
     income: number;

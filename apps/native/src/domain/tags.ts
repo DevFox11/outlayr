@@ -46,6 +46,12 @@ export function sortTags<T extends NamedTag>(tags: readonly T[]): T[] {
     return [...tags].sort((a, b) => tagKey(a.name).localeCompare(tagKey(b.name)));
 }
 
+/** The two sets of tag ids a save has to write, in link-table terms. */
+export interface TagLinkDiff {
+    attach: string[];
+    detach: string[];
+}
+
 /**
  * Which links to write and which to retire so a row ends up carrying exactly
  * `next`.
@@ -55,12 +61,6 @@ export function sortTags<T extends NamedTag>(tags: readonly T[]): T[] {
  * nothing, and its tombstone-then-recreate would briefly show the entry
  * untagged on the far side.
  */
-/** The two sets of tag ids a save has to write, in link-table terms. */
-export interface TagLinkDiff {
-    attach: string[];
-    detach: string[];
-}
-
 export function tagLinkDiff(current: readonly string[], next: readonly string[]): TagLinkDiff {
     const before = new Set(current);
     const after = new Set(next);

@@ -123,11 +123,6 @@ export const META_KEYS = {
      */
     syncedAt: "syncedAt",
     /**
-     * "1" once the Get-the-shortcut link has been opened. Optimistic: Shortcuts
-     * never reports an install back, so this only records that the user got as
-     * far as the link. Device-local.
-     */
-    /**
      * Epoch ms of the last Wallet automation run, mirrored from the App Group
      * on foreground. Proof the automation fires even when nothing was logged.
      * Device-local.

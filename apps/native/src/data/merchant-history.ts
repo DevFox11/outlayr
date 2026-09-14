@@ -21,7 +21,7 @@ const RECENT_MERCHANT_LIMIT = 6;
  * expense names and the payers an income names are two different lists, and
  * offering one where the other belongs is noise.
  */
-export function useRecentMerchants(db: Database, income: boolean, limit: number = RECENT_MERCHANT_LIMIT): string[] {
+export function useRecentMerchants(db: Database, income: boolean): string[] {
     const rows = useLiveQuery(transactions, () => recentMerchantNotesQuery(db, income), [income]);
-    return useMemo(() => recentMerchants(rows, limit), [rows, limit]);
+    return useMemo(() => recentMerchants(rows, RECENT_MERCHANT_LIMIT), [rows]);
 }

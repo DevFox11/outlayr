@@ -5,8 +5,6 @@ import * as schema from "./schema";
 
 const DATABASE_NAME = "outlayr.db";
 
-const sqliteConnections = new WeakMap<object, ReturnType<typeof openDatabaseSync>>();
-
 /**
  * `enableChangeListener` is what powers `useLiveQuery`. Migrations are NOT run
  * here — `LocalDataProvider` awaits `migrate(db, bundle)` right after this
@@ -38,18 +36,11 @@ export function openDatabase() {
         );
     }
 
-    const database = drizzle(sqlite, { schema });
-    sqliteConnections.set(database, sqlite);
-    return database;
+    return drizzle(sqlite, { schema });
 }
 
 export type Database = ReturnType<typeof openDatabase>;
 
 export async function closeDatabase(database: Database): Promise<void> {
-    const sqlite = sqliteConnections.get(database);
-    if (!sqlite) {
-        throw new Error("Database connection is unavailable for device reset");
-    }
-    await sqlite.closeAsync();
-    sqliteConnections.delete(database);
+    await database.$client.closeAsync();
 }

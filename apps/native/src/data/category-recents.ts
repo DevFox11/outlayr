@@ -22,7 +22,7 @@ export function recentCategoryIdsQuery(db: Database, income: boolean, limit: num
         .limit(limit);
 }
 
-export function useRecentCategoryIds(db: Database, income: boolean, limit: number = RECENT_CATEGORY_LIMIT): string[] {
-    const rows = useLiveQuery(transactions, () => recentCategoryIdsQuery(db, income, limit), [income, limit]);
+export function useRecentCategoryIds(db: Database, income: boolean): string[] {
+    const rows = useLiveQuery(transactions, () => recentCategoryIdsQuery(db, income), [income]);
     return rows.map((row) => row.categoryId).filter((id): id is string => id != null);
 }

@@ -122,10 +122,6 @@ export function useAccountBalance(
 }
 
 /**
- * Total across every account valued into `valuation`'s display currency. Null
- * with no accounts, so the overview card can hide entirely.
- */
-/**
  * Every account valued into `valuation`'s currency, with the per-account rows
  * the Log draws. `excludeId` drops an account whose deletion is pending its
  * undo window: its cells are ignored with it, so the total moves as the row

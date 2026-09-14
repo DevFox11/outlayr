@@ -76,6 +76,7 @@ export interface GoalSpan {
 }
 
 const MS_PER_DAY = 86_400_000;
+const REQUIRED_LINE_SAMPLES = 24;
 
 const DAYS_PER_MONTH = 30.44;
 
@@ -187,8 +188,7 @@ function standingFor(
  */
 export function goalRequiredLine(
     { startAmount, startDate, targetDate }: Pick<GoalSpan, "startAmount" | "startDate" | "targetDate">,
-    target: number,
-    samples = 24
+    target: number
 ): { time: number; value: number }[] {
     // Day-normalised at both ends, like the standing. Interpolating over the raw
     // instants instead put the drawn line half a day out of step with the figure
@@ -208,7 +208,7 @@ export function goalRequiredLine(
     // Sampled on calendar-day ordinals, positions AND values alike. Deriving them
     // from the raw span put the line at 24/47 of the target on the middle day of a
     // spring-forward span while the figure beside it said one half.
-    const steps = Math.min(samples, totalDays);
+    const steps = Math.min(REQUIRED_LINE_SAMPLES, totalDays);
     for (let step = 0; step <= steps; step += 1) {
         const ordinal = Math.round((step * totalDays) / steps);
         points.push({

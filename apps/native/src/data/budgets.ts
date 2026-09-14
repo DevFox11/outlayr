@@ -598,8 +598,7 @@ export interface UnbudgetedRail {
 export function useUnbudgetedScopes(
     db: Database,
     nowMs: number,
-    contributions: readonly ExpenseContribution[],
-    type: number = BUDGET_TYPE.month
+    contributions: readonly ExpenseContribution[]
 ): UnbudgetedRail {
     const rows = useLiveQuery(budgets, () =>
         db.select({ categoryId: budgets.categoryId }).from(budgets).where(isNull(budgets.deletedAt))
@@ -610,11 +609,11 @@ export function useUnbudgetedScopes(
 
     return useMemo(() => {
         const now = new Date(nowMs);
-        const start = startOfPeriod(now, type, { firstDayOfMonth, firstWeekday });
-        const window = { end: periodEnd(start, type), start };
+        const start = startOfPeriod(now, BUDGET_TYPE.month, { firstDayOfMonth, firstWeekday });
+        const window = { end: periodEnd(start, BUDGET_TYPE.month), start };
         const totals = spendPerWindow(
             contributions,
-            closedWindowsBefore({ current: window, since: earliestDate(contributions), type })
+            closedWindowsBefore({ current: window, since: earliestDate(contributions), type: BUDGET_TYPE.month })
         );
         const budgeted = new Set(rows.map((row) => row.categoryId));
 
@@ -639,5 +638,5 @@ export function useUnbudgetedScopes(
         scopes.sort((left, right) => right.typical - left.typical);
 
         return { everything: typicalOf(totals.get(EVERY_SCOPE) ?? []), scopes, window };
-    }, [rows, categoryMeta, contributions, nowMs, type, firstDayOfMonth, firstWeekday]);
+    }, [rows, categoryMeta, contributions, nowMs, firstDayOfMonth, firstWeekday]);
 }

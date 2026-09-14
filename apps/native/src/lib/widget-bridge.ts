@@ -38,7 +38,7 @@ export const PENDING_WRITES_KEY = "pendingWrites";
 export const INTENT_SNAPSHOT_KEY = "intentSnapshot";
 
 /** Epoch ms string `SignalWalletRunIntent` writes on every Wallet automation run. */
-export const WALLET_LAST_RUN_KEY = "walletLastRunAt";
+const WALLET_LAST_RUN_KEY = "walletLastRunAt";
 
 let storage: ExtensionStorage | null = null;
 
