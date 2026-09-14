@@ -4,13 +4,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { internalAction, internalMutation, internalQuery, query } from "./_generated/server";
-import {
-    marketRateType,
-    PICKABLE_CURRENCY_CODES,
-    rateSource,
-    resolveRateOnDate,
-    utcDateString,
-} from "./lib/currencies";
+import { marketRateType, PICKABLE_CURRENCY_CODES, rateSource, utcDateString } from "./lib/currencies";
 import type { MarketRateType } from "./lib/currencies";
 
 const PRUNE_BATCH_SIZE = 200;
@@ -155,15 +149,6 @@ function toRateWire(doc: Doc<"exchangeRates">) {
         source: doc.source,
     };
 }
-
-const rateResult = v.union(
-    v.object({
-        date: v.string(),
-        fetchedAt: v.number(),
-        rate: v.number(),
-    }),
-    v.null()
-);
 
 /**
  * Which `official` quotes are already stored on each requested date, so an
@@ -367,42 +352,6 @@ export const pruneStale = internalAction({
         return { deleted: batch.deleted, isDone: batch.isDone };
     },
     returns: v.object({ deleted: v.number(), isDone: v.boolean() }),
-});
-
-export const getLatestRate = query({
-    args: {
-        quote: v.string(),
-        rateType: marketRateType,
-    },
-    handler: async (ctx, args) => {
-        const rows = await ctx.db
-            .query("exchangeRates")
-            .withIndex("by_quote_and_rateType_and_date", (q) => q.eq("quote", args.quote).eq("rateType", args.rateType))
-            .order("desc")
-            .take(1);
-        const [row] = rows;
-        if (!row) {
-            return null;
-        }
-        return { date: row.date, fetchedAt: row.fetchedAt, rate: row.rate };
-    },
-    returns: rateResult,
-});
-
-export const getRateOnDate = query({
-    args: {
-        date: v.string(),
-        quote: v.string(),
-        rateType: marketRateType,
-    },
-    handler: async (ctx, args) => {
-        const row = await resolveRateOnDate(ctx.db, args.quote, args.rateType, args.date);
-        if (!row) {
-            return null;
-        }
-        return { date: row.date, fetchedAt: row.fetchedAt, rate: row.rate };
-    },
-    returns: rateResult,
 });
 
 /**

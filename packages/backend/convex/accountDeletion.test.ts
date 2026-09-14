@@ -5,7 +5,7 @@ import { convexTest } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { api } from "./_generated/api";
-import { advanceDeletion, consumeGoogleLocalReceipt, hashResumeSecret } from "./accountDeletion";
+import { consumeGoogleLocalReceipt, hashResumeSecret } from "./accountDeletion";
 import type { DeletionJob } from "./accountDeletion";
 import { isPro } from "./revenuecat";
 import schema from "./schema";
@@ -35,128 +35,8 @@ const job: DeletionJob = {
 };
 
 describe("resumable account deletion", () => {
-    test("revocation-failure-keeps-deletion-incomplete-and-retryable", async () => {
-        await expect(
-            advanceDeletion(job, {
-                deleteAuth: async () => undefined,
-                eraseBilling: async () => undefined,
-                purge: async () => true,
-                revoke: async () => {
-                    throw new Error("offline");
-                },
-            })
-        ).rejects.toThrow("offline");
-        expect(job.phase).toBe("prepared");
-    });
-
-    test("apple-revoke-precedes-purge", async () => {
-        const calls: string[] = [];
-        await advanceDeletion(job, {
-            deleteAuth: async () => {
-                calls.push("delete");
-            },
-            eraseBilling: async () => {
-                calls.push("erase");
-            },
-            purge: async () => {
-                calls.push("purge");
-                return true;
-            },
-            revoke: async () => {
-                calls.push("revoke");
-            },
-        });
-        expect(calls).toStrictEqual(["revoke", "purge", "erase"]);
-    });
-
-    test("google-revoke-precedes-delete and purge-requires-revocation", async () => {
-        const calls: string[] = [];
-        await expect(
-            advanceDeletion(
-                { ...job, phase: "prepared" },
-                {
-                    deleteAuth: async () => {
-                        calls.push("delete");
-                    },
-                    eraseBilling: async () => {
-                        calls.push("erase");
-                    },
-                    purge: async () => {
-                        calls.push("purge");
-                        return true;
-                    },
-                    revoke: async () => {
-                        calls.push("google-revoke");
-                    },
-                }
-            )
-        ).resolves.toMatchObject({ phase: "authDeleting" });
-        expect(calls).toStrictEqual(["google-revoke", "purge", "erase"]);
-    });
-
-    test("deletion-job-resumes-lost-response-without-identity", async () => {
-        const calls: string[] = [];
-        const authDeleting = { ...job, phase: "authDeleting" as const };
-        await expect(
-            advanceDeletion(authDeleting, {
-                deleteAuth: async () => {
-                    calls.push("delete");
-                },
-                eraseBilling: async () => undefined,
-                purge: async () => true,
-                revoke: async () => undefined,
-            })
-        ).resolves.toMatchObject({ phase: "complete", userId: null });
-        expect(calls).toStrictEqual(["delete"]);
-    });
-
-    test("expiry-after-providersRevoked-fails-closed-before-purge", async () => {
-        const purge = vi.fn(async () => true);
-        await expect(
-            advanceDeletion(
-                { ...job, expiresAt: 0, phase: "providersRevoked", provider: "appleServerRevoked" },
-                {
-                    deleteAuth: async () => undefined,
-                    eraseBilling: async () => undefined,
-                    purge,
-                    revoke: async () => undefined,
-                }
-            )
-        ).rejects.toThrow("expired");
-        expect(purge).not.toHaveBeenCalled();
-    });
-
-    test("expiry-after-purge-fails-closed-before-auth-deletion", async () => {
-        const deleteAuth = vi.fn(async () => undefined);
-        await expect(
-            advanceDeletion(
-                { ...job, expiresAt: 0, phase: "purged", provider: "appleServerRevoked" },
-                {
-                    deleteAuth,
-                    eraseBilling: async () => undefined,
-                    purge: async () => true,
-                    revoke: async () => undefined,
-                }
-            )
-        ).rejects.toThrow("expired");
-        expect(deleteAuth).not.toHaveBeenCalled();
-    });
-
-    test("hashes the raw secret and accepts idempotent complete replay", async () => {
+    test("hashes the raw secret", async () => {
         await expect(hashResumeSecret(secret)).resolves.not.toBe(secret);
-        await expect(
-            advanceDeletion(
-                { ...job, phase: "complete", userId: null },
-                {
-                    deleteAuth: async () => {
-                        throw new Error("must not delete twice");
-                    },
-                    eraseBilling: async () => undefined,
-                    purge: async () => true,
-                    revoke: async () => undefined,
-                }
-            )
-        ).resolves.toMatchObject({ phase: "complete" });
     });
 
     test("rejects a Google local receipt bound to another deletion job", async () => {

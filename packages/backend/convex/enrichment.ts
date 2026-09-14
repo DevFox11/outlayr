@@ -19,12 +19,10 @@ import { isPro } from "./revenuecat";
  * https://api.x.ai/v1/models`). Measured live against a real
  * merchant-extraction prompt: the `grok-4.20-0309` non-reasoning snapshot
  * settled in 841ms with correct structured output; `grok-4.5` took 2.69s.
- * `grok-4.5` is kept here only as the documented too-slow fallback — it is
- * never selected automatically. `XAI_MODEL_ID` overrides the primary id
- * without a deploy. Exported so `groundedLookup.ts` shares the same default.
+ * `XAI_MODEL_ID` overrides the primary id without a deploy. Exported so
+ * `groundedLookup.ts` shares the same default.
  */
 export const ENRICHMENT_MODEL_ID = "grok-4.20-non-reasoning";
-export const ENRICHMENT_FALLBACK_MODEL_ID = "grok-4.5";
 
 const MIN_NAME_LENGTH = 3;
 const MAX_NAME_LENGTH = 64;
@@ -592,13 +590,9 @@ export const suggest = action({
                 regionCode,
             });
 
-            // A missing domain counts as a miss, not just a missing category. The
-            // model can infer "Supermercados X" is groceries from the name alone,
-            // but it cannot invent a regional chain's domain — so the case that
-            // most needs a grounded search is the one that still has a category.
             // Scheduling is never awaited: it fills Tier 1.5 for the NEXT lookup
             // of this merchant, never this transaction.
-            if (result.categoryName === null || result.domain === null) {
+            if (needsGroundedLookup(result)) {
                 const scheduled =
                     args.groundedLookup &&
                     (await isPro(ctx, identity.subject)) &&

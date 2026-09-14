@@ -66,45 +66,6 @@ export async function consumeGoogleLocalReceipt(job: DeletionJob, receiptChallen
     };
 }
 
-export async function advanceDeletion(
-    job: DeletionJob,
-    deps: {
-        deleteAuth: () => Promise<void>;
-        eraseBilling: () => Promise<void>;
-        purge: () => Promise<boolean>;
-        revoke: () => Promise<void>;
-    }
-): Promise<DeletionJob> {
-    requireUnexpiredDeletionJob(job);
-    if (job.phase === "complete") {
-        return job;
-    }
-    if (job.phase === "prepared") {
-        await deps.revoke();
-        job.phase = "providersRevoked";
-    }
-    if (job.phase === "providersRevoked") {
-        if (!(await deps.purge())) {
-            return job;
-        }
-        job.phase = "purged";
-    }
-    if (job.phase === "purged") {
-        await deps.eraseBilling();
-        job.phase = "billingErased";
-    }
-    if (job.phase === "billingErased") {
-        job.phase = "authDeleting";
-        return job;
-    }
-    if (job.phase === "authDeleting") {
-        await deps.deleteAuth();
-        job.phase = "complete";
-        job.userId = null;
-    }
-    return job;
-}
-
 async function jobForSecret(ctx: QueryCtx, secret: string) {
     const secretHash = await hashResumeSecret(secret);
     return ctx.db

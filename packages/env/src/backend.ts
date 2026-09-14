@@ -26,7 +26,5 @@ export const env = createEnv({
         GOOGLE_CLIENT_SECRET: z.string().optional(),
         REVENUECAT_SECRET_KEY: z.string().optional(),
         REVENUECAT_WEBHOOK_AUTH: z.string().min(32).optional(),
-        XAI_API_KEY: z.string().optional(),
-        XAI_MODEL_ID: z.string().optional(),
     },
 });

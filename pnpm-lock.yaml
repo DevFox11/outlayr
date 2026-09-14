@@ -480,9 +480,6 @@ importers:
       convex:
         specifier: 'catalog:'
         version: 1.45.0(react@19.2.3)
-      convex-helpers:
-        specifier: ^0.1.123
-        version: 0.1.123(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)(zod@4.4.3)
       convex-revenuecat:
         specifier: ^0.3.2
         version: 0.3.2(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)(zod@4.4.3)

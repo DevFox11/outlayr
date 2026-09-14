@@ -34,7 +34,6 @@ export interface AppleGrantDependencies {
     exchange: (authorizationCode: string) => Promise<AppleTokens>;
     findAppleAccount: (userId: string) => Promise<AppleAccount | null>;
     persist: (accountId: string, tokens: AppleStoredTokens, retainedRefreshToken?: string | null) => Promise<void>;
-    refresh: (account: AppleAccount) => Promise<AppleTokens>;
     revoke: (refreshToken: string) => Promise<void>;
     verify: (idToken: string, nonce?: string) => Promise<{ subject: string }>;
 }
@@ -77,51 +76,6 @@ export async function grantAppleCredential(
             refreshToken: tokens.refreshToken,
         });
         return { active: true };
-    } catch (cause) {
-        await revokeReplacement(tokens, deps);
-        throw cause;
-    }
-}
-
-const APPLE_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
-
-function refreshedWithinDailyCadence(account: AppleAccount, now: Date): boolean {
-    if (!account.updatedAt) {
-        return false;
-    }
-    return new Date(account.updatedAt).getTime() + APPLE_REFRESH_INTERVAL_MS > now.getTime();
-}
-
-export async function refreshAppleCredential(
-    userId: string,
-    deps: AppleGrantDependencies,
-    now = new Date()
-): Promise<{ active: true; refreshed: boolean }> {
-    const account = await deps.findAppleAccount(userId);
-    if (!account?.refreshToken) {
-        throw new Error("Linked Apple account does not have refresh material");
-    }
-    if (refreshedWithinDailyCadence(account, now)) {
-        return { active: true, refreshed: false };
-    }
-
-    let tokens: AppleTokens | null = null;
-    try {
-        tokens = await deps.refresh(account);
-        const identity = await deps.verify(tokens.idToken);
-        if (identity.subject !== account.accountId) {
-            throw new Error("Apple refreshed token subject does not match the linked Apple account");
-        }
-        await deps.persist(
-            account.id,
-            {
-                accessToken: tokens.accessToken,
-                accessTokenExpiresAt: expiresAt(tokens, now),
-                refreshToken: tokens.refreshToken,
-            },
-            account.refreshToken
-        );
-        return { active: true, refreshed: true };
     } catch (cause) {
         await revokeReplacement(tokens, deps);
         throw cause;
@@ -260,16 +214,6 @@ function appleCredentialLifecycleDependencies(config: AppleServerConfig, context
                     : retainedRefreshToken,
             });
         },
-        refresh: async (account: AppleAccount): Promise<AppleTokens> => {
-            if (!account.refreshToken) {
-                throw new Error("Linked Apple account does not have refresh material");
-            }
-            return appleTokenRequest(config, {
-                grant_type: "refresh_token",
-                // SAFETY: the unexported `AuthContext` again, as in `persist`.
-                refresh_token: await decryptOAuthToken(account.refreshToken, context as never),
-            });
-        },
         revoke: async (refreshToken: string) => {
             const response = await fetch("https://appleid.apple.com/auth/revoke", {
                 body: new URLSearchParams({
@@ -317,26 +261,6 @@ export function appleCredentialLifecycle(config: AppleServerConfig | null, resum
                         appleCredentialLifecycleDependencies(config, ctx.context as AppleLifecycleContext)
                     );
                     return ctx.json(result);
-                }
-            ),
-            refreshAppleCredential: createAuthEndpoint(
-                "/apple/refresh",
-                {
-                    body: z.object({}),
-                    method: "POST",
-                    use: [sessionMiddleware],
-                },
-                async (ctx) => {
-                    if (config === null) {
-                        throw new Error("Apple credential lifecycle is not configured");
-                    }
-                    return ctx.json(
-                        await refreshAppleCredential(
-                            ctx.context.session.user.id,
-                            // SAFETY: as in `grantAppleCredential` above.
-                            appleCredentialLifecycleDependencies(config, ctx.context as AppleLifecycleContext)
-                        )
-                    );
                 }
             ),
             revokeAppleCredential: createAuthEndpoint(

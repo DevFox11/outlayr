@@ -5,6 +5,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { api, internal } from "./_generated/api";
 import { nextPruneStep } from "./exchangeRates";
+import { resolveRateOnDate } from "./lib/currencies";
 import type { MarketRateType, RateSource } from "./lib/currencies";
 import schema from "./schema";
 
@@ -138,66 +139,7 @@ describe("upsertRates", () => {
     });
 });
 
-describe("getLatestRate", () => {
-    test("returns the most-recent-date row", async () => {
-        const t = convexTest(schema, modules);
-        const seeds: SeedRate[] = [
-            {
-                date: "2026-03-11",
-                fetchedAt: 100,
-                quote: "VES",
-                rate: 39,
-                rateType: "official",
-                source: "frankfurter",
-            },
-            {
-                date: "2026-03-13",
-                fetchedAt: 300,
-                quote: "VES",
-                rate: 41,
-                rateType: "official",
-                source: "frankfurter",
-            },
-            {
-                date: "2026-03-12",
-                fetchedAt: 200,
-                quote: "VES",
-                rate: 40,
-                rateType: "official",
-                source: "frankfurter",
-            },
-        ];
-        for (const row of seeds) {
-            await seed(t, row);
-        }
-
-        const latest = await t.query(api.exchangeRates.getLatestRate, {
-            quote: "VES",
-            rateType: "official",
-        });
-        expect(latest).toStrictEqual({ date: "2026-03-13", fetchedAt: 300, rate: 41 });
-    });
-
-    test("returns null when no rate exists for the pair", async () => {
-        const t = convexTest(schema, modules);
-        await seed(t, {
-            date: "2026-03-13",
-            fetchedAt: 100,
-            quote: "VES",
-            rate: 42,
-            rateType: "binance",
-            source: "cotizave",
-        });
-
-        const latest = await t.query(api.exchangeRates.getLatestRate, {
-            quote: "VES",
-            rateType: "official",
-        });
-        expect(latest).toBeNull();
-    });
-});
-
-describe("getRateOnDate", () => {
+describe(resolveRateOnDate, () => {
     const gappedSeeds: SeedRate[] = [
         {
             date: "2026-03-11",
@@ -223,12 +165,8 @@ describe("getRateOnDate", () => {
             await seed(t, row);
         }
 
-        const result = await t.query(api.exchangeRates.getRateOnDate, {
-            date: "2026-03-13",
-            quote: "VES",
-            rateType: "official",
-        });
-        expect(result).toStrictEqual({ date: "2026-03-13", fetchedAt: 300, rate: 40 });
+        const result = await t.run(async (ctx) => await resolveRateOnDate(ctx.db, "VES", "official", "2026-03-13"));
+        expect(result).toMatchObject({ date: "2026-03-13", fetchedAt: 300, rate: 40 });
     });
 
     test("falls back to the newest earlier date across a weekend gap", async () => {
@@ -237,12 +175,8 @@ describe("getRateOnDate", () => {
             await seed(t, row);
         }
 
-        const saturday = await t.query(api.exchangeRates.getRateOnDate, {
-            date: "2026-03-14",
-            quote: "VES",
-            rateType: "official",
-        });
-        expect(saturday).toStrictEqual({ date: "2026-03-13", fetchedAt: 300, rate: 40 });
+        const saturday = await t.run(async (ctx) => await resolveRateOnDate(ctx.db, "VES", "official", "2026-03-14"));
+        expect(saturday).toMatchObject({ date: "2026-03-13", fetchedAt: 300, rate: 40 });
     });
 
     test("returns null when no row is on or before the requested date", async () => {
@@ -251,11 +185,7 @@ describe("getRateOnDate", () => {
             await seed(t, row);
         }
 
-        const before = await t.query(api.exchangeRates.getRateOnDate, {
-            date: "2026-03-01",
-            quote: "VES",
-            rateType: "official",
-        });
+        const before = await t.run(async (ctx) => await resolveRateOnDate(ctx.db, "VES", "official", "2026-03-01"));
         expect(before).toBeNull();
     });
 });
