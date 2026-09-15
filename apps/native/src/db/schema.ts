@@ -453,7 +453,7 @@ export const appMeta = sqliteTable("appMeta", {
 
 /**
  * The durable push queue: one pending entry per replicated row, written by the
- * `AFTER INSERT/UPDATE` triggers the migration adds to the six user tables.
+ * `AFTER INSERT/UPDATE` triggers the migrations add to every replicated table.
  * Triggers rather than repo calls because writes already happen outside the
  * repos (`data/recurrence-backfill.ts`, `data/canonicalize-backfill.ts`, the App
  * Intents drain in `lib/use-system-sync.ts`), and a repo-level queue would
@@ -472,7 +472,7 @@ export const appMeta = sqliteTable("appMeta", {
  *
  * drizzle-kit does not know triggers exist: it neither generates nor diffs them,
  * and the SQLite changes it implements by rebuilding a table drop every trigger
- * attached to it. A migration that recreates one of the six tables has to
+ * attached to it. A migration that recreates one of the replicated tables has to
  * re-declare its triggers by hand.
  */
 export const outbox = sqliteTable(

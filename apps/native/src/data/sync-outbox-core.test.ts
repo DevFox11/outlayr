@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 import type { Database } from "@/db/client";
-import { accounts, categories, transactions } from "@/db/schema";
+import { accounts, categories, outbox, transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
@@ -154,6 +154,26 @@ describe("enqueueAllForSync", () => {
         await enqueueAllForSync(db);
 
         await expect(outboxPendingCount(db)).resolves.toBe(4);
+    });
+
+    /**
+     * `schema.ts` states it: "re-queuing an already pending row issues a NEW seq:
+     * a drain that pushes seqs 1-500 and then deletes them cannot delete an edit
+     * that arrived while it was pushing." `onConflictDoUpdate` mutated the row in
+     * place and kept the old seq, reopening exactly that window for a ledger
+     * adoption overlapping an in-flight drain.
+     */
+    it("re-queues an already pending row under a new seq", async () => {
+        await setSyncEnabled(db, true);
+        await addTransaction(db, "t1");
+        const before = await db.select().from(outbox);
+
+        await enqueueAllForSync(db);
+
+        const after = await db.select().from(outbox);
+        const queued = after.filter((row) => row.tableName === "transactions" && row.localId === "t1");
+        expect(queued).toHaveLength(1);
+        expect(queued[0].seq).toBeGreaterThan(before.find((row) => row.localId === "t1")?.seq ?? 0);
     });
 
     it("queues only account-scoped meta keys", async () => {
