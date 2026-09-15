@@ -12,11 +12,7 @@ import { advanceBudgetWindow } from "@/domain/budget-math";
 import { formatDayHeader } from "@/domain/dates";
 import { formatAmount, minorUnitsFor } from "@/domain/money";
 import { limitIn } from "@/domain/valuation";
-import { CATALOGS, EN } from "@/i18n/catalog";
-import type { TranslatableKey } from "@/i18n/catalog";
-import { SUPPORTED_LANGUAGES } from "@/i18n/languages";
 import { translateNow } from "@/i18n/runtime";
-import { translate } from "@/i18n/translate";
 
 import { budgetLink, transactionLink } from "./deep-links";
 
@@ -78,21 +74,6 @@ export async function indexSpotlight(db: SpendDb, now = new Date()) {
 
 type Money = (value: number, code: string) => string;
 
-/**
- * A keyword is a term someone types, and the index is only rewritten when the
- * ledger is — so indexing the active language alone would leave every result
- * unfindable by its own search term the moment the language changes, until the
- * next write happens to republish. Keywords match one at a time, so carrying
- * every language's form costs index size and nothing else.
- */
-function keywordForms(key: TranslatableKey): string[] {
-    return [
-        ...new Set(
-            SUPPORTED_LANGUAGES.map((language) => translate(key, { catalog: CATALOGS[language], fallback: EN }))
-        ),
-    ];
-}
-
 async function indexTransactions(
     db: SpendDb,
     now: Date,
@@ -122,8 +103,12 @@ async function indexTransactions(
     }
 
     const untitled = translateNow("spotlight.entry");
-    const incomeKeywords = keywordForms("common.income");
-    const expenseKeywords = keywordForms("common.expense");
+    // The active language alone. The index is rebuilt on every launch and every
+    // background (`use-system-sync`), and the only way to change the language is
+    // the iOS Settings row, which terminates the app — so there is no window in
+    // which a stale language could be left in the index.
+    const incomeKeyword = translateNow("common.income");
+    const expenseKeyword = translateNow("common.expense");
 
     await Spotlight.indexItems(
         rows.map((row) => {
@@ -148,7 +133,7 @@ async function indexTransactions(
                     ...[row.note, category, row.details, row.amount.toFixed(minorUnitsFor(code))].filter(
                         (value): value is string => Boolean(value)
                     ),
-                    ...(row.income ? incomeKeywords : expenseKeywords),
+                    row.income ? incomeKeyword : expenseKeyword,
                 ],
                 lastUsedDate: row.date.getTime(),
                 // `note` is non-null but can be empty, and a blank Spotlight title
@@ -192,7 +177,7 @@ async function indexBudgets(
     // cap, and a pull can leave one whose category is tombstoned with nothing to
     // name it. Composing the title around it would read "Budget budget".
     const unnamed = translateNow("spotlight.budget.fallback");
-    const budgetKeywords = keywordForms("spotlight.budget.keyword");
+    const budgetKeyword = translateNow("spotlight.budget.keyword");
 
     await Spotlight.indexItems(
         rows.map((row) => {
@@ -214,7 +199,7 @@ async function indexBudgets(
                     ),
                 }),
                 domainIdentifier: BUDGET_DOMAIN,
-                keywords: [name, ...budgetKeywords].filter((value): value is string => Boolean(value)),
+                keywords: [name, budgetKeyword].filter((value): value is string => Boolean(value)),
                 title: name ? translateNow("spotlight.budget.title", { name }) : unnamed,
                 uniqueIdentifier: budgetLink(row.id),
             };

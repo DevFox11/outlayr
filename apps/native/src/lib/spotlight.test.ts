@@ -68,4 +68,18 @@ describe("spotlight transaction keywords", () => {
 
         expect(keywords()).toContain("1200");
     });
+
+    it("carries the active language's kind, not every language's", () => {
+        // The index is rebuilt on every launch and every background, and the
+        // language row hands the user to iOS Settings, which terminates the app —
+        // so a second language in here is never the one being typed.
+        const db = migratedDatabase({ foreignKeys: false });
+
+        return seed(db, 5, "USD")
+            .then(() => indexSpotlight(db, NOW))
+            .then(() => {
+                expect(keywords()).toContain("Expense");
+                expect(keywords()).not.toContain("Gasto");
+            });
+    });
 });
