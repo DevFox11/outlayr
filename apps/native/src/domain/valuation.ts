@@ -1,3 +1,4 @@
+import { decimalsFor } from "@outlayr/money/currency";
 import { utcDateString } from "@outlayr/money/dates";
 import { convertFromUsd, roundMoney } from "@outlayr/money/round";
 
@@ -154,6 +155,11 @@ export function valueRowsIn(rows: readonly DirectedValuable[], displayCurrency: 
         }
     }
 
+    // `convertUsdSum` already rounds at the display currency's own exponent, so
+    // the running difference has to be handed back out at the same one — a flat
+    // two here left a 3-decimal currency's rows failing to sum to their header.
+    const decimals = decimalsFor(displayCurrency);
+
     for (const indices of cells.values()) {
         let runningUsd = 0;
         let assigned = 0;
@@ -170,7 +176,7 @@ export function valueRowsIn(rows: readonly DirectedValuable[], displayCurrency: 
                 }
                 break;
             }
-            values[index] = roundMoney(converted - assigned);
+            values[index] = roundMoney(converted - assigned, decimals);
             assigned = converted;
         }
     }

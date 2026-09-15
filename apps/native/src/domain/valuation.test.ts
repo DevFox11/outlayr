@@ -318,3 +318,33 @@ describe("valueRowsIn", () => {
         ).toStrictEqual([10, 20]);
     });
 });
+
+/**
+ * `convertUsdSum` rounds at the display currency's own exponent, so the running
+ * difference `valueRowsIn` hands back out has to use the same one. A flat two
+ * decimals here left a 3-decimal currency's rows failing to sum to the header
+ * they exist to agree with.
+ */
+describe("valueRowsIn in a three-decimal currency", () => {
+    const bhdRates = buildRateTable([{ date: "2026-07-10", quote: "BHD", rate: 0.377 }]);
+    const row = (amountUsd: number) => ({
+        amount: amountUsd,
+        amountUsd,
+        currency: "USD",
+        dateKey: "2026-07-10",
+        income: false,
+    });
+
+    it("hands out rows that sum back to the cell's own conversion", () => {
+        const values = valueRowsIn([row(3.274), row(3.274)], "BHD", bhdRates);
+
+        // 6.548 USD is 2.468596 BHD, which is 2.469 at three decimals.
+        expect(roundMoney(values[0] + values[1], 3)).toBe(2.469);
+    });
+
+    it("keeps the fils rather than rounding each row to cents", () => {
+        const values = valueRowsIn([row(3.274)], "BHD", bhdRates);
+
+        expect(values[0]).toBe(1.234);
+    });
+});
