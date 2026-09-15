@@ -2,7 +2,7 @@
 
 Inspected 2026-08-13 via argent-environment-inspector.
 
-- **Type:** Expo SDK 57 / RN 0.86.2 / React 19.2.3 in `apps/native` (expo-router, expo-dev-client). Convex in `packages/backend`. pnpm + Vite+ (`vp`) as the task runner, linter and formatter.
+- **Type:** Expo SDK 57 / RN 0.86.3 / React 19.2.3 in `apps/native` (expo-router, expo-dev-client). Convex in `packages/backend`. pnpm + Vite+ (`vp`) as the task runner, linter and formatter.
 - **React Native:** yes. Primary target iOS; an Android script exists. Not Expo Go.
 - **Bundle id:** `com.tryoutlayr.app`. App group `group.com.tryoutlayr.app`. Scheme `outlayr://`.
 - **Metro:** default `8081`. Preferred start: `pnpm --filter @outlayr/native dev` (`intlayer build && expo start --dev-client --clear`). Simulator preview `http://localhost:8081/.sim`.
