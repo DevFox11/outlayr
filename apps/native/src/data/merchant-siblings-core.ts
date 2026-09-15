@@ -173,17 +173,9 @@ export async function applyMerchantToSiblings(db: Database, input: MerchantSibli
 }
 
 /**
- * Attaches the tags to a row that still carries none. The live-row check, the
- * "no tags of its own" check and the writes share one transaction, so a rename
- * or a tag chosen by the user between the read and the write cannot slip in.
- * A link retired earlier for the same pair is revived rather than duplicated,
- * so the revived link keeps the identity other devices already know.
- *
- * The revival is a look-up followed by an `UPDATE ... WHERE id = ?`, the same
- * shape as `tagsRepo.setTagsFor`, rather than `ON CONFLICT(transactionId,
- * tagId)`: the pair's unique index is partial, and a partial index cannot be a
- * conflict target. It is partial because a tombstoned link must not hold the
- * pair's slot against an incoming one from another device.
+ * Attaches the tags to a row that still carries none, reviving a retired link
+ * for the same pair by id — the pair index is partial, so it cannot be an
+ * `ON CONFLICT` target.
  */
 async function attachTagsIfStill(
     db: Database,
@@ -213,7 +205,6 @@ async function attachTagsIfStill(
         if (own.length > 0) {
             return;
         }
-        // The row carries no live link, so anything found here is tombstoned.
         const retired = await db
             .select({ id: transactionTags.id, tagId: transactionTags.tagId })
             .from(transactionTags)

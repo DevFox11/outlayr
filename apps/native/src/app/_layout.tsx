@@ -103,17 +103,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const [splashHidden, setSplashHidden] = useState(false);
-    // The BARE token names, not the `--color-*` ones. panelui's own theme.css
-    // declares `--color-background`, `--color-foreground` and `--color-border`
-    // inside its `@variant` blocks, and the `@theme inline` bridge at the foot
-    // of global.css only generates utility classes — so a runtime read of those
-    // three returns panelui's palette, not ours. Measured on the simulator: the
-    // large title painted #262626, panelui's foreground, on our #f2f0ea paper.
-    // Same trap, same fix as `--color-accent-foreground` at global.css:116.
-    //
-    // `--color-card` stays: the app declares it literally in its own variant
-    // blocks (:125, :245), and there is no bare `--card`. `--color-tint` stays
-    // because panelui claims no such name.
+    // Bare names: panelui's theme.css also declares the `--color-*` ones and wins at runtime.
     // SAFETY: uniwind types the batched read as (string | undefined)[]; every name
     // below is declared in global.css, so each slot resolves.
     const [background, card, text, border, primary] = useCSSVariable([

@@ -7,16 +7,8 @@ const nativeRoot = join(import.meta.dirname, "../..");
 const stylesheet = readFileSync(join(nativeRoot, "global.css"), "utf-8");
 const panelui = readFileSync(join(nativeRoot, "node_modules/panelui-native/theme.css"), "utf-8");
 
-/**
- * Every `"--token"` string literal in the app. Broader than the `useCSSVariable`
- * call sites on purpose: the biggest reader by far, `useColors`, passes a
- * `COLOR_VARIABLES` map rather than an inline array, and a rule that only saw
- * inline arrays would certify the two smallest surfaces and miss the twenty
- * names behind it.
- */
 const NAME = /"(--[a-z][a-z0-9-]*)"/g;
 
-/** Every `--token: value` line, ignoring the `@theme inline` bridge's `var(...)` aliases. */
 function declares(css: string, name: string): number {
     const pattern = new RegExp(`^\\s*${name}:\\s*(?!var\\()`, "gm");
     return css.match(pattern)?.length ?? 0;
@@ -43,20 +35,8 @@ function runtimeReads(): { file: string; name: string }[] {
     return [...seen.values()];
 }
 
-/**
- * `useCSSVariable` reads a variable from the live cascade, where panelui's
- * `theme.css` sits in the same `@layer theme` as ours and declares its own
- * `--color-*` names inside `@variant light` / `@variant dark` blocks. The
- * `@theme inline` bridge at the foot of `global.css` only generates utility
- * classes, so it does not answer a runtime read and cannot outrank panelui.
- *
- * A name panelui claims therefore resolves to PANELUI's palette unless we
- * re-declare it literally in our own variant blocks. That is silent: the colour
- * is plausible, nothing throws, and no rendered tree records it. It shipped
- * three times — `--color-accent-foreground` (fixed at `global.css:116` by
- * re-declaring), then the navigator theme and the import sheet's ground (both
- * fixed by reading the bare token instead).
- */
+// A name panelui's theme.css declares resolves to panelui's palette at runtime unless
+// global.css re-declares it in both variant blocks; the inline bridge does not count.
 describe("variables read at runtime", () => {
     const reads = runtimeReads();
 
@@ -69,7 +49,6 @@ describe("variables read at runtime", () => {
             if (declares(panelui, name) === 0) {
                 return;
             }
-            // Both schemes, or the one we do not re-declare falls through.
             expect({ name, ours: declares(stylesheet, name) }).toStrictEqual({ name, ours: 2 });
         });
     }

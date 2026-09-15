@@ -919,7 +919,6 @@ describe("r3 — invariants Convex cannot hold", () => {
         const rows = await db.select().from(transactionTags);
         expect(rows.filter((row) => row.deletedAt === null).map((row) => row.id)).toStrictEqual(["local"]);
         expect(rows.find((row) => row.id === "remote")?.deletedAt).not.toBeNull();
-        // The row this device wrote is NOT what the server holds, so it stays queued.
         expect((await db.select().from(outbox)).map((row) => row.localId)).toStrictEqual(["remote"]);
     });
 

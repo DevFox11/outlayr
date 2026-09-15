@@ -702,17 +702,9 @@ async function resolveBudgetCategory(db: Database, row: PulledRow, now: Date): P
 }
 
 /**
- * `transactionTags` allows one LIVE link per `(transactionId, tagId)` locally
- * and none on the server, where a link is addressed by `localId`. So two
- * devices tagging the same entry offline each mint their own id for the pair
- * and the second row cannot be inserted here — the same shape as
- * `resolveBudgetCategory`, and resolved the same way, at the write.
- *
- * The loser cannot be released by nulling a column: both halves of the pair are
- * NOT NULL. It is tombstoned instead, which the partial index accepts, and the
- * incoming loser is written tombstoned and left queued so this device pushes
- * its own correction. Both devices see the same pair and pick the same
- * survivor, and R1 makes the tombstone absorbing.
+ * One live link per `(transactionId, tagId)` locally, none on the server — the
+ * same shape as `resolveBudgetCategory`, except the loser is tombstoned rather
+ * than released, since both halves of the pair are NOT NULL.
  */
 async function resolveTagLink(db: Database, row: PulledRow, now: Date): Promise<boolean> {
     const tagId = wireId.safeParse(row.fields.tagId);
