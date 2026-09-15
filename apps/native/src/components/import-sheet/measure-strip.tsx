@@ -5,8 +5,6 @@ import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 
-const TABULAR = { fontVariant: ["tabular-nums" as const] };
-
 /**
  * A cell states which of the two it is rather than leaving the strip to infer it
  * from what was passed: `figure` is rendered as the bold tabular number, `value`
@@ -31,9 +29,8 @@ export function MeasureStrip({ cells, className }: { cells: readonly MeasureStri
                                 cell.value
                             ) : (
                                 <Text
-                                    className="font-sans-semibold text-body text-foreground"
+                                    className="font-sans-semibold text-body text-foreground tabular-nums"
                                     numberOfLines={1}
-                                    style={TABULAR}
                                 >
                                     {cell.figure}
                                 </Text>

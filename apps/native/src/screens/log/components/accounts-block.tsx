@@ -11,7 +11,6 @@ import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 import { useColors } from "@/theme/use-colors";
 
-const TABULAR = { fontVariant: ["tabular-nums" as const] };
 /** The Log row's tile, so an account reads at the same weight as an entry. */
 const TILE_SIZE = 36;
 const TILE_RADIUS = 9;
@@ -64,7 +63,7 @@ export function AccountsBlock({ accounts, overview, currency, showCents, onOpen,
                 <MonoLabel>{`${t("accounts.overview.heading")} · ${overview.count}  ›`}</MonoLabel>
                 <View className="flex-row items-baseline gap-1.5">
                     {overview.exact ? null : <MonoLabel className="text-subtle">{`${currency}?`}</MonoLabel>}
-                    <Text className="font-sans-semibold text-body text-muted" numberOfLines={1} style={TABULAR}>
+                    <Text className="font-sans-semibold text-body text-muted tabular-nums" numberOfLines={1}>
                         {formatSignedAmount(overview.total, currency, showCents, language)}
                     </Text>
                 </View>
@@ -148,9 +147,8 @@ function AccountRow({ account, row, currency, showCents, language, onPress }: Ac
             </View>
             {row.exact ? null : <MonoLabel className="text-subtle">{`${currency}?`}</MonoLabel>}
             <Text
-                className={cn("font-sans-medium text-callout", owed ? "text-muted" : "text-foreground")}
+                className={cn("font-sans-medium text-callout tabular-nums", owed ? "text-muted" : "text-foreground")}
                 numberOfLines={1}
-                style={TABULAR}
             >
                 {figure}
             </Text>

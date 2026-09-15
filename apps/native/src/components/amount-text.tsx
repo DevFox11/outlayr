@@ -11,8 +11,6 @@ import type { Language } from "@/i18n/languages";
 import { Text } from "./text";
 import { cn, tv } from "./tw";
 
-const TABULAR = { fontVariant: ["tabular-nums" as const] };
-
 interface HeroNumberProps {
     /** Signed magnitude; the sign shown is derived unless `sign` is given. */
     amount: number;
@@ -46,9 +44,9 @@ export function HeroNumber({
     return (
         <Text
             adjustsFontSizeToFit
-            className={cn("tracking-hero font-sans", toneClass)}
+            className={cn("tracking-hero font-sans tabular-nums", toneClass)}
             numberOfLines={1}
-            style={[TABULAR, { fontSize: size }]}
+            style={{ fontSize: size }}
         >
             <Text className="text-muted font-sans" style={{ fontSize: small }}>
                 {resolvedSign}
@@ -111,9 +109,8 @@ export function RowAmount({
             // Spelled out because neither the glyph nor the colour is a cue a screen
             // reader can read; `rowAmountLabel` owns the wording.
             accessibilityLabel={rowAmountLabel({ amount, code, income: transfer ? null : income, showCents }, t)}
-            className={rowAmount({ income: !transfer && income === true, isFuture, struck })}
+            className={cn(rowAmount({ income: !transfer && income === true, isFuture, struck }), "tabular-nums")}
             numberOfLines={1}
-            style={TABULAR}
         >
             {sign}
             {formatAmount(amount, code, showCents, language)}
@@ -138,7 +135,7 @@ export function MeasureCellAmount({ magnitude, positive, income, code, showCents
     const toneClass = income ? "text-income" : "text-foreground";
     const sign = positive ? "+" : "-";
     return (
-        <Text className={cn("font-sans-semibold text-body", toneClass)} numberOfLines={1} style={TABULAR}>
+        <Text className={cn("font-sans-semibold text-body tabular-nums", toneClass)} numberOfLines={1}>
             {sign}
             {formatAmount(magnitude, code, showCents, language)}
         </Text>
@@ -169,7 +166,7 @@ export function DayTotal({ totals, showCents = true, sizeClass = "text-footnote"
             {totals.map((bucket, index) => (
                 <Fragment key={bucket.currencyCode}>
                     {index > 0 ? <Text className={cn("font-sans-semibold text-subtle", sizeClass)}>/</Text> : null}
-                    <Text className={cn("font-sans-semibold text-muted", sizeClass)} numberOfLines={1} style={TABULAR}>
+                    <Text className={cn("font-sans-semibold text-muted tabular-nums", sizeClass)} numberOfLines={1}>
                         {signedAmount(bucket.amount, bucket.currencyCode, showCents, language)}
                     </Text>
                 </Fragment>

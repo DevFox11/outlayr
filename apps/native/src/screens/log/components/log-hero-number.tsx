@@ -4,8 +4,6 @@ import { Text } from "@/components/text";
 import { amountDigits, amountParts, withCurrencySymbol } from "@/domain/money";
 import { useLanguage } from "@/i18n/context";
 
-const TABULAR = { fontVariant: ["tabular-nums" as const] };
-
 /**
  * Scaled by hand rather than by a text style: the figure has to stay
  * proportionate to the body-sized ledger underneath it.
@@ -49,10 +47,10 @@ export function LogHeroNumber({ magnitude, code, positive, showCents = true }: L
             {leading ? symbol : null}
             <Text
                 adjustsFontSizeToFit
-                className="text-foreground shrink font-sans"
+                className="text-foreground shrink font-sans tabular-nums"
                 minimumFontScale={0.5}
                 numberOfLines={1}
-                style={[TABULAR, { fontSize: FONT_SIZE }]}
+                style={{ fontSize: FONT_SIZE }}
             >
                 {trailing ? sign : null}
                 {digits}

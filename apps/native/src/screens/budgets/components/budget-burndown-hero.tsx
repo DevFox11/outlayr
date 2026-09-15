@@ -5,8 +5,8 @@ import { GestureDetector } from "react-native-gesture-handler";
 import { scheduleOnRN } from "react-native-worklets";
 
 import { HeroNumber } from "@/components/amount-text";
-import { MeasureRow } from "@/components/measure-row";
-import type { Measure } from "@/components/measure-row";
+import { MeasureStrip } from "@/components/import-sheet/measure-strip";
+import type { MeasureStripCell } from "@/components/import-sheet/measure-strip";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
@@ -86,23 +86,23 @@ export function BudgetBurndownHero({
     // already stating the overage, and a third cell repeating it is a figure
     // twice rather than a measure more.
     const perDay = budget.leftover < 0 ? null : leftPerDay(budget.leftover, budget.window, now);
-    const measures: Measure[] = [
+    const measures: MeasureStripCell[] = [
         {
+            figure: formatAmount(budget.limit, currency, false, language),
             key: "limit",
             label: t("budgets.measure.limit"),
-            value: formatAmount(budget.limit, currency, false, language),
         },
         {
+            figure: formatAmount(budget.spent, currency, false, language),
             key: "spent",
             label: t("budgets.measure.spent"),
-            value: formatAmount(budget.spent, currency, false, language),
         },
     ];
     if (perDay !== null) {
         measures.push({
+            figure: formatAmount(perDay, currency, perDay < 10, language),
             key: "perDay",
             label: t("budgets.measure.perDay"),
-            value: formatAmount(perDay, currency, perDay < 10, language),
         });
     }
 
@@ -198,7 +198,7 @@ export function BudgetBurndownHero({
 					    runway used to sit here as a second mono label; the verdict below
 					    already says it in a sentence. */}
                     <View className="pt-3.5">
-                        <MeasureRow measures={measures} />
+                        <MeasureStrip cells={measures} className="border-b-0" />
                     </View>
                 </View>
             </GestureDetector>

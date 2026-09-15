@@ -32,7 +32,6 @@ import { notifyFailure } from "@/lib/notify";
 import { openShortcutsAutomations, openWalletShortcut, WALLET_SHORTCUT_URL } from "@/lib/wallet-shortcut";
 import { useColors } from "@/theme/use-colors";
 
-const TABULAR = { fontVariant: ["tabular-nums" as const] };
 const TILE_SIZE = 30;
 const TILE_RADIUS = 8;
 
@@ -266,9 +265,7 @@ function ProofBlock({ title, detail }: { detail: string; title: string }) {
     return (
         <View className="gap-1.5 pt-6">
             <MonoLabel>{t("settings.wallet.lastSection")}</MonoLabel>
-            <Text className="text-foreground text-title" style={TABULAR}>
-                {title}
-            </Text>
+            <Text className="text-foreground text-title tabular-nums">{title}</Text>
             <Text className="text-muted text-subtitle" numberOfLines={2}>
                 {detail}
             </Text>
@@ -339,9 +336,7 @@ function FrameStrip({ steps }: { steps: readonly Step[] }) {
                             style={{ borderRadius: FRAME_RADIUS, height: FRAME_HEIGHT, width: FRAME_WIDTH }}
                         />
                         <Text className="text-muted text-subtitle" numberOfLines={3} style={{ width: FRAME_WIDTH }}>
-                            <Text className="text-foreground font-mono" style={TABULAR}>
-                                {String(step.number)}
-                            </Text>
+                            <Text className="text-foreground font-mono tabular-nums">{String(step.number)}</Text>
                             {`  ${t(step.title)}`}
                         </Text>
                     </Carousel.Item>
@@ -371,9 +366,7 @@ function StepList({ steps }: { steps: readonly Step[] }) {
 function StepRow({ number, title, detail }: { detail?: string; number: number; title: string }) {
     return (
         <View className="border-border flex-row gap-3 border-b py-3">
-            <Text className="text-muted text-subtitle w-4 pt-0.5 font-mono" style={TABULAR}>
-                {String(number)}
-            </Text>
+            <Text className="text-muted text-subtitle w-4 pt-0.5 font-mono tabular-nums">{String(number)}</Text>
             <View className="flex-1">
                 <Text className="text-body text-foreground">{title}</Text>
                 {detail ? <Text className="text-muted text-subtitle leading-snug">{detail}</Text> : null}
