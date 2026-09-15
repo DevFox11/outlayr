@@ -17,6 +17,7 @@ import type {
     CsvImportStatus,
     LabelSuggestion,
 } from "@/lib/convex";
+import { withTimeout } from "@/lib/with-timeout";
 
 export const AI_TIER_MAX_CHARS = 2_000_000;
 export const AI_TIER_MAX_ROWS = 5000;
@@ -220,12 +221,7 @@ function groupByScrubbedLabel(labels: readonly string[]): ReadonlyMap<string, st
 
 async function askModel(call: CsvImportFn, request: CsvImportRequest): Promise<Settled> {
     try {
-        const raced = await Promise.race([
-            call(request),
-            new Promise<typeof TIMED_OUT>((resolve) => {
-                setTimeout(() => resolve(TIMED_OUT), CLIENT_TIMEOUT_MS);
-            }),
-        ]);
+        const raced = await withTimeout(call(request), CLIENT_TIMEOUT_MS, TIMED_OUT);
         return raced === TIMED_OUT ? { kind: "timeout" } : { kind: "result", result: raced };
     } catch {
         return { kind: "rejected" };

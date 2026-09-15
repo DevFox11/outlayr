@@ -8,6 +8,7 @@ import { merchantKey, resolveMerchant } from "@/domain/merchant-resolver";
 import type { MerchantMatch } from "@/domain/merchant-resolver";
 import { enrichmentTransport } from "@/lib/convex";
 import type { CategoryBranch, EnrichmentFn } from "@/lib/convex";
+import { withTimeout } from "@/lib/with-timeout";
 
 export interface PendingCategory {
     color: string;
@@ -424,12 +425,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
             const request = buildRequest(false);
             let result: RemoteEnrichmentResult | null = null;
             try {
-                result = await Promise.race([
-                    call(request),
-                    new Promise<null>((resolve) => {
-                        setTimeout(() => resolve(null), REMOTE_TIMEOUT_MS);
-                    }),
-                ]);
+                result = await withTimeout(call(request), REMOTE_TIMEOUT_MS, null);
             } catch {
                 result = null;
             }

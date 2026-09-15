@@ -16,6 +16,7 @@ import { judgeSilence, localIsoDate, meterToLevel, proposedDraftOf, voiceTurnsOf
 import type { SilenceWatch, VoiceTurn } from "@/domain/voice-entry";
 import { VOICE_TURNS_QUERY, voiceThreadTransport } from "@/lib/convex";
 import type { SpeakRequest, StartThreadResult, VoiceDraft, VoiceThreadTransport } from "@/lib/convex";
+import { withTimeout } from "@/lib/with-timeout";
 
 /**
  * One sentence of speech, mono, at the lowest AAC rate that still transcribes
@@ -384,15 +385,13 @@ export function useVoiceEntry<Context>({
         sentRef.current = phase.clip;
         const take = takeRef.current;
         const { clip } = phase;
-        const timeout = new Promise<"timeout">((resolve) => {
-            setTimeout(() => resolve("timeout"), REQUEST_TIMEOUT_MS);
-        });
         void (async () => {
             try {
-                const settled = await Promise.race([
+                const settled = await withTimeout(
                     api.speak({ ...request, audio: clip, threadId, today: localIsoDate(new Date()) }),
-                    timeout,
-                ]);
+                    REQUEST_TIMEOUT_MS,
+                    "timeout" as const
+                );
                 if (take !== takeRef.current) {
                     return;
                 }

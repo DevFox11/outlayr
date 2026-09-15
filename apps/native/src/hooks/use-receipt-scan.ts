@@ -11,6 +11,7 @@ import { localIsoDate } from "@/domain/voice-entry";
 import { receiptScanTransport } from "@/lib/convex";
 import type { ReceiptDraft, ReceiptScanFn, ScanRequest } from "@/lib/convex";
 import { prepareReceiptImage } from "@/lib/receipt-image";
+import { withTimeout } from "@/lib/with-timeout";
 
 /** The re-encode plus one vision call; past this the network, not the model, is the problem. */
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -145,15 +146,13 @@ export function useReceiptScan<Context>({
                 setPhase({ kind: "failed", photo, reason: "unreadable" });
                 return;
             }
-            const timeout = new Promise<"timeout">((resolve) => {
-                setTimeout(() => resolve("timeout"), REQUEST_TIMEOUT_MS);
-            });
             const { context: sentContext, request: sent } = sentRef.current;
             try {
-                const settled = await Promise.race([
+                const settled = await withTimeout(
                     api({ ...sent, image: prepared.bytes, today: localIsoDate(new Date()) }),
-                    timeout,
-                ]);
+                    REQUEST_TIMEOUT_MS,
+                    "timeout" as const
+                );
                 if (take !== takeRef.current) {
                     return;
                 }

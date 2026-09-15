@@ -231,6 +231,14 @@ const settings = {
             en: "Favourite",
             es: "Favorita",
         }),
+        "settings.currency.favouriteFailedBody": t({
+            en: "Your favourites were not changed.",
+            es: "Tus favoritas no se cambiaron.",
+        }),
+        "settings.currency.favouriteFailedTitle": t({
+            en: "Couldn't save that",
+            es: "No se pudo guardar",
+        }),
         "settings.currency.favourites": t({
             en: "Favourites",
             es: "Favoritas",
