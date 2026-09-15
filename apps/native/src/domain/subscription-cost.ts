@@ -1,5 +1,6 @@
 import { currencyTotals } from "./currency-totals";
 import type { CurrencyBucket, CurrencyEntry } from "./currency-totals";
+import { startOfDay } from "./dates";
 import { RECURRING_TYPE } from "./recurrence";
 import type { RateTable } from "./valuation";
 
@@ -68,7 +69,11 @@ export function monthlySubscriptionCost(
             continue;
         }
         const endsAt = schedule.recurringEndDate;
-        if (endsAt != null && endsAt.getTime() < now.getTime()) {
+        // Compared as days, because the end day is INCLUSIVE — `pastEndLimit` in
+        // `recurrence.ts` lands a charge on it. The picker stores the date as a
+        // local midnight, so an instant comparison dropped a schedule from this
+        // figure from 00:00:01 on the very day the ledger still charges it.
+        if (endsAt != null && startOfDay(endsAt).getTime() < startOfDay(now).getTime()) {
             continue;
         }
         perMonth.push({

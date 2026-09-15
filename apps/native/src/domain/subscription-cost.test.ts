@@ -136,6 +136,38 @@ describe("monthlySubscriptionCost", () => {
         expect(buckets).toStrictEqual([{ amount: -1000, currencyCode: "USD", transactionCount: 1 }]);
     });
 
+    /**
+     * The end day is INCLUSIVE — `pastEndLimit` in `recurrence.ts` lands a charge
+     * on it — and the picker stores the date as a local midnight. Comparing
+     * instants dropped the schedule from this figure from 00:00:01 on the very day
+     * the ledger still charges it. The two cases either side were a month apart,
+     * so neither reached the boundary.
+     */
+    it("keeps a schedule on the day it ends, which still charges", () => {
+        const endsToday = new Date(2026, 6, 20);
+        const buckets = monthlySubscriptionCost(
+            [schedule(1000, RECURRING_TYPE.monthly, 1, { recurringEndDate: endsToday })],
+            "USD",
+            undefined,
+            new Date(2026, 6, 20, 9, 30)
+        );
+
+        expect(buckets).toStrictEqual([{ amount: -1000, currencyCode: "USD", transactionCount: 1 }]);
+    });
+
+    it("drops it the following day", () => {
+        const buckets = monthlySubscriptionCost(
+            [schedule(1000, RECURRING_TYPE.monthly, 1, { recurringEndDate: new Date(2026, 6, 20) })],
+            "USD",
+            undefined,
+            new Date(2026, 6, 21, 0, 30)
+        );
+
+        // The bucket survives as the display currency's empty total; what matters
+        // is that the ended schedule contributes nothing to it.
+        expect(buckets).toStrictEqual([{ amount: 0, currencyCode: "USD", transactionCount: 0 }]);
+    });
+
     it("keeps a schedule that names no end at all", () => {
         const buckets = monthlySubscriptionCost(
             [schedule(1000, RECURRING_TYPE.monthly)],
