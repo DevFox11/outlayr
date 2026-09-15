@@ -6,7 +6,8 @@ import type { TestConvex } from "convex-test";
 import type { FunctionArgs } from "convex/server";
 import { describe, expect, test } from "vitest";
 
-import { api, internal } from "./_generated/api";
+import { api } from "./_generated/api";
+import { purgeUserBatch } from "./account";
 import { photoKeyFor } from "./lib/photoKeys";
 import schema from "./schema";
 import { authenticatedAs, seedProUser } from "./test.helpers";
@@ -57,15 +58,16 @@ function transactionRow(localId: string): PushRows[number] {
     };
 }
 
-/** Drains the purge the way `beforeDelete` does, and reports the passes taken. */
+/** Drains the purge the way `accountDeletion.advance` does, and reports the passes taken. */
 async function purgeAll(t: TestClient, userId: string): Promise<number> {
     let passes = 0;
     let done = false;
     while (!done) {
-        ({ done } = await t.mutation(internal.account.purgeBatch, { userId }));
+        // eslint-disable-next-line no-await-in-loop
+        ({ done } = await t.run(async (ctx) => await purgeUserBatch(ctx, userId)));
         passes += 1;
         if (passes > 50) {
-            throw new Error("purgeBatch never reported done");
+            throw new Error("purgeUserBatch never reported done");
         }
     }
     return passes;
@@ -125,9 +127,7 @@ describe("purging an account", () => {
             rows: [transactionRow("a")],
         });
 
-        const first = await t.mutation(internal.account.purgeBatch, {
-            userId: owner.userId,
-        });
+        const first = await t.run(async (ctx) => await purgeUserBatch(ctx, owner.userId));
         expect(first.done).toBeFalsy();
         const stateAfterFirst = await t.run(async (ctx) =>
             ctx.db

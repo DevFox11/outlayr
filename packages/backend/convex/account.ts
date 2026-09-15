@@ -1,8 +1,6 @@
 import { R2 } from "@convex-dev/r2";
-import { v } from "convex/values";
 
 import { components } from "./_generated/api";
-import { internalMutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { SYNCED_TABLES } from "./lib/syncTables";
 
@@ -73,12 +71,6 @@ export async function purgeUserBatch(ctx: MutationCtx, userId: string): Promise<
     }
     return { done: true, removed: 0 };
 }
-export const purgeBatch = internalMutation({
-    args: { userId: v.string() },
-    handler: async (ctx, args) => await purgeUserBatch(ctx, args.userId),
-    returns: v.object({ done: v.boolean(), removed: v.number() }),
-});
-
 /**
  * Frees the bytes behind a key, whichever backend holds them.
  *

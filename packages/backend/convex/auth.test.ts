@@ -3,10 +3,8 @@
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { api } from "./_generated/api";
 import { createAuth } from "./auth";
 import schema from "./schema";
-import { authenticatedAs, seedAuthUser } from "./test.helpers";
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -97,23 +95,5 @@ describe("auth", () => {
         const enabled = await t.run(async (ctx) => createAuth(ctx).options.user?.deleteUser?.enabled);
 
         expect(enabled).toBeFalsy();
-    });
-
-    test("getCurrentUser is null when signed out", async () => {
-        const t = convexTest(schema, modules);
-
-        await expect(t.query(api.auth.getCurrentUser, {})).resolves.toBeNull();
-    });
-
-    test("getCurrentUser resolves the signed-in user", async () => {
-        const t = convexTest(schema, modules);
-        const identity = await seedAuthUser(t, { email: "signed-in@example.com" });
-
-        const user = await authenticatedAs(t, identity).query(api.auth.getCurrentUser, {});
-
-        expect(user).toMatchObject({
-            _id: identity.userId,
-            email: "signed-in@example.com",
-        });
     });
 });

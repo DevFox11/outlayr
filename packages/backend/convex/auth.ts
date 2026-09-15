@@ -8,7 +8,6 @@ import { importPKCS8, SignJWT } from "jose";
 
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
-import { query } from "./_generated/server";
 import authConfig from "./auth.config";
 import { appleCredentialLifecycle } from "./providerLifecycle";
 
@@ -161,8 +160,3 @@ function createAuth(ctx: GenericCtx<DataModel>) {
 }
 
 export { createAuth };
-
-export const getCurrentUser = query({
-    args: {},
-    handler: async (ctx) => await authComponent.safeGetAuthUser(ctx),
-});
