@@ -248,6 +248,52 @@ describe("the Budget widget's selections", () => {
         expect(props.Budget.views.auto).toStrictEqual(props.Budget.views.overall);
     });
 
+    // The tile and the Budgets screen both say "worst" and used to mean different
+    // things: the screen ranks over-budget first and then by how much money is
+    // over, while the tile sorted on the fraction alone. So $10 over on a $100
+    // budget lost the tile to $2 over on a $10 one.
+    it("names the same budget the Budgets screen ranks first", async () => {
+        const db = await withBudgets(false);
+        await db.insert(categories).values({ id: "cat-3", income: false, name: "Tips", updatedAt: NOW });
+        await db.insert(budgets).values({
+            amount: 10,
+            categoryId: "cat-3",
+            id: "b-tips",
+            startDate: new Date(Date.UTC(2026, 6, 1)),
+            type: 3,
+            updatedAt: NOW,
+        });
+        // Food: 110 of 100 — $10 over, 1.1x. Tips: 12 of 10 — $2 over, 1.2x.
+        await db.insert(transactions).values([
+            {
+                amount: 20,
+                categoryId: "cat-1",
+                date: NOW,
+                day: NOW,
+                id: "t3",
+                income: false,
+                month: NOW,
+                note: "More groceries",
+                updatedAt: NOW,
+            },
+            {
+                amount: 12,
+                categoryId: "cat-3",
+                date: NOW,
+                day: NOW,
+                id: "t4",
+                income: false,
+                month: NOW,
+                note: "Tip",
+                updatedAt: NOW,
+            },
+        ]);
+
+        const props = await buildWidgetProps(db, NOW);
+
+        expect(props.Budget.views.worst.name).toBe("Food");
+    });
+
     it("leaves the automatic view on the worst budget when there is no overall one", async () => {
         const props = await buildWidgetProps(await withBudgets(false), NOW);
 

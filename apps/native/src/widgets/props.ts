@@ -15,6 +15,7 @@ import {
     transactions as transactionsTable,
 } from "@/db/schema";
 import { advanceBudgetWindow, budgetPeriodPhrase } from "@/domain/budget-math";
+import { compareBudgetSeverity } from "@/domain/budget-severity";
 import { formatDayHeader, formatUpcomingDate, startOfDay } from "@/domain/dates";
 import { DEFAULT_CURRENCY, formatAmount } from "@/domain/money";
 import { limitIn } from "@/domain/valuation";
@@ -400,7 +401,17 @@ function buildBudget(
     }
 
     let worst = empty;
-    const [ranked] = [...figures.categories].sort((a, b) => b.spent / b.limit - a.spent / a.limit);
+    // The same order the Budgets screen ranks by. Its own comparator puts an
+    // over-budget one first and guards the zero limit — `spent / 0` is `Infinity`
+    // for anything spent and `NaN` for nothing, and a comparator returning either
+    // hands "worst" to a budget with no limit at all while the one genuinely over
+    // is not shown.
+    const [ranked] = [...figures.categories].sort((a, b) =>
+        compareBudgetSeverity(
+            { amount: a.limit, overBudget: a.spent > a.limit, spent: a.spent },
+            { amount: b.limit, overBudget: b.spent > b.limit, spent: b.spent }
+        )
+    );
     if (ranked) {
         // Name precedence mirrors `usePerCategoryBudgets`.
         const rankedCategory = ranked.row.categoryId ? categoriesById.get(ranked.row.categoryId) : undefined;
