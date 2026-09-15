@@ -458,7 +458,16 @@ export const transactionTags = sqliteTable(
         index("transactionTags_transactionId_idx").on(table.transactionId),
         index("transactionTags_tagId_idx").on(table.tagId),
         index("transactionTags_deletedAt_idx").on(table.deletedAt),
-        uniqueIndex("transactionTags_pair_idx").on(table.transactionId, table.tagId),
+        // One LIVE link per pair. Partial, because a tombstoned link must not
+        // hold the slot: the server addresses links by `localId` and has no
+        // matching constraint, so two devices tagging the same entry offline
+        // each mint their own id for the pair. If a retired row still occupied
+        // it, the applier's INSERT would raise here, roll back the page along
+        // with the sync cursor, and every later pull would refetch and throw
+        // again — sync stopping silently until a wipe.
+        uniqueIndex("transactionTags_pair_idx")
+            .on(table.transactionId, table.tagId)
+            .where(sql`${table.deletedAt} IS NULL`),
     ]
 );
 
