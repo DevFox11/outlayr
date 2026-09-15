@@ -32,11 +32,14 @@ describe("the live-link pair index", () => {
             )
             .run(id, "t1", "g1", 1, deletedAt);
 
+    // SAFETY: the statement selects one integer column and always returns a row.
+    const links = () => (sqlite.prepare("SELECT COUNT(*) AS n FROM transactionTags").get() as { n: number }).n;
+
     it("lets a link from another device land on a pair this device retired", () => {
         link("a", 2);
 
         expect(() => link("b", null)).not.toThrow();
-        expect(sqlite.prepare("SELECT COUNT(*) AS n FROM transactionTags").get()).toStrictEqual({ n: 2 });
+        expect(links()).toBe(2);
     });
 
     it("holds two retired links for the same pair, because both devices may have tombstoned it", () => {
