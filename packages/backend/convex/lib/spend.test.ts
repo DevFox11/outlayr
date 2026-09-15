@@ -28,12 +28,22 @@ describe("pricing defaults", () => {
         expect(budgetCeilingMicros()).toBe(25_000_000);
     });
 
-    test("budgetConfig is a sharded 30-day fixed window sized to the ceiling", () => {
-        expect(budgetConfig()).toMatchObject({
-            kind: "fixed window",
-            rate: 25_000_000,
-            shards: 10,
-        });
+    test("budgetConfig is a sharded 30-day fixed window", () => {
+        expect(budgetConfig()).toMatchObject({ kind: "fixed window", shards: 10 });
+    });
+
+    // The whole point of reading the ceiling live is that the limiter's rate
+    // follows it: `npx convex env set GROUNDED_BUDGET_MICROS=0` has to close the
+    // gate without a deploy. Asserting the default here instead would pass
+    // against a hardcoded constant, which is exactly what it must rule out.
+    test("budgetConfig's rate follows the env override, not the compiled default", () => {
+        vi.stubEnv("GROUNDED_BUDGET_MICROS", "7000000");
+        expect(budgetConfig().rate).toBe(7_000_000);
+    });
+
+    test("an override of zero closes the gate rather than falling back to the default", () => {
+        vi.stubEnv("GROUNDED_BUDGET_MICROS", "0");
+        expect(budgetConfig().rate).toBe(0);
     });
 });
 

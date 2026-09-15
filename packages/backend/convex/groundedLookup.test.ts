@@ -10,7 +10,7 @@ import { z } from "zod";
 
 import { rateLimiter } from "./enrichment";
 import { GROUNDED_REQUEST_TIMEOUT_MS, runGroundedLookup, runGroundedLookupCall } from "./groundedLookup";
-import { budgetConfig } from "./lib/spend";
+import { budgetConfig, DEFAULT_BUDGET_CEILING_MICROS } from "./lib/spend";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.ts");
@@ -478,7 +478,13 @@ describe("grounded abort budget", () => {
 });
 
 describe("budgetConfig integration", () => {
+    // `shards` and `kind` are the same whether the config is built per call or
+    // registered once, so they cannot answer the question in the name. The rate
+    // can: only a per-call `budgetConfig()` sees an env change.
     test("groundedBudgetMicros is checked with the live-configured ceiling, not a static registration", () => {
-        expect(budgetConfig()).toMatchObject({ kind: "fixed window", shards: 10 });
+        vi.stubEnv("GROUNDED_BUDGET_MICROS", "0");
+        expect(budgetConfig().rate).toBe(0);
+        vi.unstubAllEnvs();
+        expect(budgetConfig().rate).toBe(DEFAULT_BUDGET_CEILING_MICROS);
     });
 });
