@@ -1,44 +1,18 @@
 import type { Language } from "@/i18n/languages";
 
-const MONTHS_EN = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-] as const;
-
-const MONTHS_ES = [
-    "enero",
-    "febrero",
-    "marzo",
-    "abril",
-    "mayo",
-    "junio",
-    "julio",
-    "agosto",
-    "septiembre",
-    "octubre",
-    "noviembre",
-    "diciembre",
-] as const;
+import { monthLongTitle } from "./dates";
 
 /**
- * Hand-rolled per locale: Hermes ships without ICU, so `toLocaleDateString`
- * would silently fall back to en-US for every language.
+ * The date as a title page writes it: "July 30, 2026" / "30 de julio de 2026".
+ *
+ * Hand-rolled rather than `toLocaleDateString`: Hermes ships without ICU, so
+ * every language would read back as the en-US default anyway. The month itself
+ * comes from the catalog, which is where the app's other twelve month names
+ * already live.
  */
 export function flyleafDate(date: Date, language: Language): string {
     const day = date.getDate();
+    const month = monthLongTitle(date, language);
     const year = date.getFullYear();
-    if (language === "es") {
-        return `${day} de ${MONTHS_ES[date.getMonth()]} de ${year}`;
-    }
-    return `${MONTHS_EN[date.getMonth()]} ${day}, ${year}`;
+    return language === "es" ? `${day} de ${month} de ${year}` : `${month} ${day}, ${year}`;
 }
