@@ -8,7 +8,7 @@ import { LAYOUT_LABEL } from "@/lib/constants";
 import { pickText } from "@/lib/locale";
 import type { Device, Orientation, Slide, Theme } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { DeckCanvas, SlideCanvas, getCanvas } from "./slide-canvas";
+import { DeckCanvas, getCanvas } from "./slide-canvas";
 
 type Props = {
   slide: Slide;
@@ -107,30 +107,17 @@ export function SlideThumb({
               pointerEvents: "none",
             }}
           >
-            {connectedCanvas ? (
-              <DeckCanvas
-                slides={visibleSlides}
-                device={device}
-                orientation={orientation}
-                theme={theme}
-                locale={locale}
-                appName={appName}
-                appIcon={appIcon}
-                connectedCanvas
-                editable={false}
-              />
-            ) : (
-              <SlideCanvas
-                slide={slide}
-                device={device}
-                orientation={orientation}
-                theme={theme}
-                locale={locale}
-                appName={appName}
-                appIcon={appIcon}
-                editable={false}
-              />
-            )}
+            <DeckCanvas
+              slides={visibleSlides}
+              device={device}
+              orientation={orientation}
+              theme={theme}
+              locale={locale}
+              appName={appName}
+              appIcon={appIcon}
+              connectedCanvas={connectedCanvas}
+              editable={false}
+            />
           </div>
         </div>
         <div className="flex min-w-0 flex-1 flex-col">

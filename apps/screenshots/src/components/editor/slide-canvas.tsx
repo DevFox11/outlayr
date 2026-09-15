@@ -92,24 +92,6 @@ type EditHandlers = {
   onSelectElement?: (id: ElementId | null) => void;
 };
 
-type Props = {
-  slide: Slide;
-  device: Device;
-  orientation: Orientation;
-  theme: Theme;
-  locale: string;
-  appName?: string;
-  appIcon?: string;
-  editable?: boolean;
-  edit?: EditHandlers;
-  selectedElementId?: ElementId | null;
-  // Preview scale (1.0 = full size). Used so react-rnd maps drag deltas correctly
-  // when the canvas is rendered inside a CSS-transformed container.
-  previewScale?: number;
-  /** When true, suppress the "Drop a screenshot here" placeholder. Used for export. */
-  hideEmpty?: boolean;
-};
-
 type DeckEditHandlers = {
   onLabelChange?: (slideId: string, v: string) => void;
   onHeadlineChange?: (slideId: string, v: string) => void;
@@ -300,41 +282,6 @@ function shade(hex: string, percent: number) {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
-// ---------- Decorative blob ----------
-
-function Blob({
-  cW,
-  color,
-  x,
-  y,
-  size,
-  opacity = 0.4,
-}: {
-  cW: number;
-  color: string;
-  x: number;
-  y: number;
-  size: number;
-  opacity?: number;
-}) {
-  return (
-    <div
-      style={{
-        position: "absolute",
-        left: `${x}%`,
-        top: `${y}%`,
-        width: `${size}%`,
-        aspectRatio: "1 / 1",
-        background: color,
-        borderRadius: "50%",
-        filter: `blur(${cW * 0.06}px)`,
-        opacity,
-        pointerEvents: "none",
-      }}
-    />
-  );
-}
-
 // ---------- Default element rects per layout ----------
 
 type Rect = { x: number; y: number; width: number; height: number };
@@ -488,76 +435,6 @@ export function getElementTransform(
   };
 }
 
-// ---------- Main single-screen canvas ----------
-
-export function SlideCanvas({
-  slide,
-  device,
-  orientation,
-  theme,
-  locale,
-  appName,
-  appIcon,
-  editable,
-  edit,
-  selectedElementId = null,
-  previewScale = 1,
-  hideEmpty,
-}: Props) {
-  const { cW, cH } = getCanvas(device, orientation);
-
-  if (slide.layout === "feature-graphic" || device === "feature-graphic") {
-    return (
-      <FeatureGraphicCanvas
-        slide={slide}
-        cW={cW}
-        theme={theme}
-        locale={locale}
-        appName={appName}
-        appIcon={appIcon}
-        editable={editable}
-        edit={edit}
-      />
-    );
-  }
-
-  const handleBackgroundMouseDown = editable
-    ? (e: React.MouseEvent<HTMLDivElement>) => {
-        if (e.target === e.currentTarget) edit?.onSelectElement?.(null);
-      }
-    : undefined;
-
-  return (
-    <div
-      onMouseDown={handleBackgroundMouseDown}
-      style={{
-        width: "100%",
-        height: "100%",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <SlideBackground slide={slide} theme={theme} />
-      <SlideElements
-        slide={slide}
-        device={device}
-        orientation={orientation}
-        theme={theme}
-        locale={locale}
-        editable={editable}
-        edit={edit}
-        selectedElementId={selectedElementId}
-        previewScale={previewScale}
-        hideEmpty={hideEmpty}
-        screenX={0}
-        boundsW={cW}
-        boundsH={cH}
-        allowCrossScreen={false}
-      />
-    </div>
-  );
-}
-
 // ---------- Connected deck canvas ----------
 
 export function DeckCanvas({
@@ -592,40 +469,6 @@ export function DeckCanvas({
       {slides.map((slide, index) => {
         const screenX = index * cW;
         const active = activeSlideId === slide.id;
-        if (slide.layout === "feature-graphic" || device === "feature-graphic") {
-          return (
-            <div
-              key={`${slide.id}-feature`}
-              onMouseDown={(e) => {
-                if (!editable || e.defaultPrevented) return;
-                edit?.onSelectScreen?.(slide.id);
-                edit?.onSelectElement?.(null);
-              }}
-              style={{
-                position: "absolute",
-                left: screenX,
-                top: 0,
-                width: cW,
-                height: cH,
-                overflow: "hidden",
-              }}
-            >
-              <FeatureGraphicCanvas
-                slide={slide}
-                cW={cW}
-                theme={theme}
-                locale={locale}
-                appName={appName}
-                appIcon={appIcon}
-                editable={editable}
-                edit={{
-                  onHeadlineChange: (v) => edit?.onHeadlineChange?.(slide.id, v),
-                }}
-              />
-              {showGuides && <ScreenGuide cW={cW} cH={cH} index={index} active={active} />}
-            </div>
-          );
-        }
         return (
           <div
             key={`${slide.id}-bg`}
@@ -643,7 +486,22 @@ export function DeckCanvas({
               overflow: "hidden",
             }}
           >
-            <SlideBackground slide={slide} theme={theme} />
+            {slide.layout === "feature-graphic" || device === "feature-graphic" ? (
+              <FeatureGraphicCanvas
+                slide={slide}
+                cW={cW}
+                theme={theme}
+                locale={locale}
+                appName={appName}
+                appIcon={appIcon}
+                editable={editable}
+                edit={{
+                  onHeadlineChange: (v) => edit?.onHeadlineChange?.(slide.id, v),
+                }}
+              />
+            ) : (
+              <SlideBackground slide={slide} theme={theme} />
+            )}
             {showGuides && <ScreenGuide cW={cW} cH={cH} index={index} active={active} />}
           </div>
         );
@@ -812,7 +670,20 @@ function FeatureGraphicCanvas({
         color: theme.fgAlt,
       }}
     >
-      <Blob cW={cW} color={theme.accent} x={70} y={20} size={50} opacity={0.45} />
+      <div
+        style={{
+          position: "absolute",
+          left: "70%",
+          top: "20%",
+          width: "50%",
+          aspectRatio: "1 / 1",
+          background: theme.accent,
+          borderRadius: "50%",
+          filter: `blur(${cW * 0.06}px)`,
+          opacity: 0.45,
+          pointerEvents: "none",
+        }}
+      />
       <div style={{ display: "flex", alignItems: "center", gap: cW * 0.03, zIndex: 2 }}>
         {appIcon && img(appIcon) ? (
           <img
