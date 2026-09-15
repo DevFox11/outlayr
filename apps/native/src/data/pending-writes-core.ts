@@ -111,8 +111,18 @@ async function readLedger(db: Database): Promise<LedgerEntry[]> {
     }
 }
 
+/**
+ * Records the row this job produced, replacing anything it recorded before.
+ *
+ * Appending would leave two entries under one enqueue id, and `alreadyApplied`
+ * answers with the FIRST — so after a deleted duplicate sent a job round again,
+ * every later replay would keep re-checking the transaction the user deleted,
+ * find it gone, and write another one.
+ */
 function remember(ledger: LedgerEntry[], entry: LedgerEntry, at: number): LedgerEntry[] {
-    return [...ledger, entry].filter((kept) => at - kept.at <= LEDGER_RETENTION_MS).slice(-LEDGER_LIMIT);
+    return [...ledger.filter((kept) => kept.id !== entry.id), entry]
+        .filter((kept) => at - kept.at <= LEDGER_RETENTION_MS)
+        .slice(-LEDGER_LIMIT);
 }
 
 /**

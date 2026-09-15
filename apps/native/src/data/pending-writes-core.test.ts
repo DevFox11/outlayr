@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { eq, ne } from "drizzle-orm";
+import { eq, isNull, ne } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { accounts, categories, transactions } from "@/db/schema";
@@ -70,6 +70,11 @@ async function seedAccounts(db: Database): Promise<void> {
 
 async function liveRows(db: Database) {
     return db.select({ id: transactions.id, note: transactions.note }).from(transactions);
+}
+
+/** {@link liveRows} without the tombstones, which is what the name suggests. */
+async function undeleted(db: Database) {
+    return db.select({ id: transactions.id }).from(transactions).where(isNull(transactions.deletedAt));
 }
 
 describe("applyPendingWrites", () => {
@@ -258,6 +263,31 @@ describe("applyPendingWrites", () => {
 
         expect(applied).toBe(0);
         await expect(liveRows(db)).resolves.toHaveLength(0);
+    });
+
+    // The queue delivers at least once: an interrupted drain leaves the file in
+    // place, so the same enqueue id comes back. Deleting the duplicate it wrote
+    // is the user saying the charge belongs on the ledger once, and re-running
+    // the automation has to be able to put it back — but only once more.
+    it("does not re-write a replayed job again after the first replay landed", async () => {
+        const job = walletWrite("j1");
+        await applyPendingWrites(db, [job], NOW);
+        const [first] = await liveRows(db);
+
+        // The user deletes it as a duplicate, so the tombstone must not block a
+        // genuine re-run.
+        await transactionsRepo.remove(db, first?.id ?? "", NOW);
+        const replay = new Date(NOW.getTime() + WALLET_DEDUPE_WINDOW_MS + 1);
+        await applyPendingWrites(db, [job], replay);
+        await expect(undeleted(db)).resolves.toHaveLength(1);
+
+        // Every launch after that replays the same file. The ledger entry now
+        // points at the live row, so nothing more is written.
+        const later = new Date(replay.getTime() + WALLET_DEDUPE_WINDOW_MS + 1);
+        await applyPendingWrites(db, [job], later);
+        await applyPendingWrites(db, [job], new Date(later.getTime() + WALLET_DEDUPE_WINDOW_MS + 1));
+
+        await expect(undeleted(db)).resolves.toHaveLength(1);
     });
 });
 
