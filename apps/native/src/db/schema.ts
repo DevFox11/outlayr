@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 
@@ -206,6 +207,15 @@ export const transactions = sqliteTable(
         index("transactions_categoryId_idx").on(table.categoryId),
         index("transactions_accountId_idx").on(table.accountId),
         index("transactions_deletedAt_idx").on(table.deletedAt),
+        // Partial, because every live row shares the NULL `deletedAt` key and
+        // `transactions_deletedAt_idx` therefore cannot narrow this at all.
+        // Three readers ask it: the subscription-reminder sweep at every launch,
+        // the recurrence back-fill, and a `useLiveQuery` in `log-filtered` that
+        // re-runs on every write to this table. Measured at 20k rows, 200 runs:
+        // `SCAN transactions` 113ms, `SEARCH ... USING INDEX` 5ms.
+        index("transactions_recurring_idx")
+            .on(table.recurringType)
+            .where(sql`${table.deletedAt} IS NULL AND ${table.recurringType} > 0`),
         // `date` carries almost every range predicate in the app (the log window,
         // budget periods, insight buckets). The composite serves the log's exact
         // sort, `orderBy(desc(day), desc(date))`, which otherwise cannot walk an
