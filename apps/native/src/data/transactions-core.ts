@@ -546,6 +546,13 @@ export const transactionsRepo = {
                     ...kept,
                     ...landed,
                     accountId: keptAccount(previous, input),
+                    // Deletion is `remove` and `restore`'s call, never an edit's.
+                    // `toRow` builds a fresh row and every fresh row is live, so
+                    // spreading it cleared the tombstone: a peer's delete arriving
+                    // while this sheet was open lost to the save, and the row came
+                    // back on both devices with a newer `updatedAt` than the
+                    // deletion that was meant to win.
+                    deletedAt: previous?.deletedAt ?? null,
                     imageKey: removesPhoto(previous, row) ? null : rest.imageKey,
                     reminderLeadDays: keptLead(row, previous, input),
                 })

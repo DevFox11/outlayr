@@ -15,6 +15,7 @@ import { setSyncEnabled } from "./sync-outbox-core";
 import {
     accountTransactionsQuery,
     deletedTransactionsQuery,
+    getTransactionById,
     ledgerSizeQuery,
     logWindowDaysQuery,
     transactionsRepo,
@@ -1049,5 +1050,33 @@ describe("ledgerSizeQuery", () => {
 
         const rows = await ledgerSizeQuery(db);
         expect(rows.map((row) => row.id)).toStrictEqual(["live"]);
+    });
+});
+
+describe("transactionsRepo.update over a row a peer has deleted", () => {
+    // `restore` and `stopRecurring` both refuse a tombstone; `update` did not,
+    // and `toRow` builds a fresh row whose `deletedAt` is always null.
+    it("keeps the tombstone rather than putting the row back", async () => {
+        const db = makeDb();
+        const id = await transactionsRepo.create(db, DRAFT);
+        await transactionsRepo.remove(db, id);
+        const tombstoned = getTransactionById(db, id);
+
+        // What the edit sheet does when it was open as the peer's delete arrived.
+        await transactionsRepo.update(db, id, { ...DRAFT, amount: 200 });
+
+        const row = getTransactionById(db, id);
+        expect(row?.deletedAt).toStrictEqual(tombstoned?.deletedAt);
+        expect(row?.amount).toBe(200);
+    });
+
+    it("still clears it through restore, which is the call that owns it", async () => {
+        const db = makeDb();
+        const id = await transactionsRepo.create(db, DRAFT);
+        await transactionsRepo.remove(db, id);
+
+        await transactionsRepo.restore(db, id);
+
+        expect(getTransactionById(db, id)?.deletedAt).toBeNull();
     });
 });
