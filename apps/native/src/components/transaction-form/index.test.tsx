@@ -15,6 +15,7 @@ import type { Transaction } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { accounts, categories, exchangeRates, tags, transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
+import { RECURRING_TYPE } from "@/domain/recurrence";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
 import type { LogoOutcome } from "@/lib/logo-fetch";
@@ -708,7 +709,7 @@ describe("transactionForm", () => {
         });
     });
 
-    it("renders edit mode without crashing once a subscription row loads", async () => {
+    it("opens a saved subscription on its own cadence, not as a one-off", async () => {
         const db = dbHolder.current as Database;
         const categoryId = await seedCategory(db);
         const initial: Partial<Transaction> = {
@@ -728,15 +729,22 @@ describe("transactionForm", () => {
             onceRecurring: false,
             recurringCoefficient: 1,
             recurringEndDate: null,
-            recurringType: 30,
+            recurringType: RECURRING_TYPE.yearly,
             reminderLeadDays: null,
         };
-        const { toJSON } = await render(
+        const view = await render(
             <Providers>
                 <TransactionForm db={db} initial={initial as any} mode="edit" onDone={() => {}} />
             </Providers>
         );
-        expect(toJSON()).toBeTruthy();
+
+        // `toJSON()` being truthy is true of every render this component can
+        // produce. What the seed is for is `isSubscription`, which decides
+        // whether the repeat chip offers a schedule or names the one already
+        // set — and this is the only test in the suite that seeds
+        // `recurringType` through `initial`.
+        expect(view.queryByText("transaction.sentence.set.repeatYearly")).not.toBeNull();
+        expect(view.queryByText("transaction.sentence.add.repeat")).toBeNull();
     });
 
     it("plumbs the seeded identity's emoji into the identity section", async () => {
