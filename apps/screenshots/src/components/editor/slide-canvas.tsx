@@ -61,7 +61,7 @@ function getFrameAspect(device: Device, orientation: Orientation) {
   }
 }
 
-export function getFrameForDevice(device: Device, orientation: Orientation): {
+function getFrameForDevice(device: Device, orientation: Orientation): {
   Comp: FrameComp;
   widthFn: (cW: number, cH: number) => number;
   smallWidthFn: (cW: number, cH: number) => number;
@@ -545,7 +545,7 @@ export function SlideCanvas({
         overflow: "hidden",
       }}
     >
-      <SlideBackground slide={slide} cW={cW} cH={cH} theme={theme} />
+      <SlideBackground slide={slide} theme={theme} />
       <SlideElements
         slide={slide}
         device={device}
@@ -651,7 +651,7 @@ export function DeckCanvas({
               overflow: "hidden",
             }}
           >
-            <SlideBackground slide={slide} cW={cW} cH={cH} theme={theme} />
+            <SlideBackground slide={slide} theme={theme} />
             {showGuides && <ScreenGuide cW={cW} cH={cH} index={index} active={active} />}
           </div>
         );
@@ -719,10 +719,6 @@ function SlideBackground({
   theme,
 }: {
   slide: Slide;
-  // Still accepted so the call sites stay uniform with the other layers, but
-  // unused now that the background is a flat sheet with nothing to scale.
-  cW: number;
-  cH: number;
   theme: Theme;
 }) {
   const inverted = !!slide.inverted;

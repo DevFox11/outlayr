@@ -242,12 +242,8 @@ function ElementTransformControls({
       ? slide.textElements?.find((element) => element.id === textElementKey(activeId))
       : null;
 
-  function getTransform(id: ElementId) {
-    return getElementTransform(slide, device, orientation, id);
-  }
-
   function patchElement(id: ElementId, patch: Partial<ElementTransform>) {
-    const cur = getTransform(id);
+    const cur = getElementTransform(slide, device, orientation, id);
     if (!cur) return;
     if (isTextElementId(id)) {
       const textId = textElementKey(id);
@@ -274,10 +270,6 @@ function ElementTransformControls({
     });
   }
 
-  function setTextElementValue(element: TextElement, value: string) {
-    patchTextElement(element.id, { text: writeLocalized(element.text, locale, value) });
-  }
-
   function deleteTextElement(element: TextElement) {
     const nextTextElements = (slide.textElements || []).filter((item) => item.id !== element.id);
     onChange({
@@ -292,7 +284,7 @@ function ElementTransformControls({
     const zIndex =
       Math.max(
         5,
-        ...present.map((elementId) => getTransform(elementId)?.zIndex ?? defaultZ(elementId)),
+        ...present.map((elementId) => getElementTransform(slide, device, orientation, elementId)?.zIndex ?? defaultZ(elementId)),
       ) + 1;
     const element: TextElement = {
       id,
@@ -316,8 +308,8 @@ function ElementTransformControls({
   // Z-order: re-rank zIndex among present elements so they remain contiguous.
   function reorder(id: ElementId, dir: "front" | "back" | "up" | "down") {
     const ranked = [...present].sort((a, b) => {
-      const za = getTransform(a)?.zIndex ?? defaultZ(a);
-      const zb = getTransform(b)?.zIndex ?? defaultZ(b);
+      const za = getElementTransform(slide, device, orientation, a)?.zIndex ?? defaultZ(a);
+      const zb = getElementTransform(slide, device, orientation, b)?.zIndex ?? defaultZ(b);
       return za - zb;
     });
     const idx = ranked.indexOf(id);
@@ -336,7 +328,7 @@ function ElementTransformControls({
       transform: { ...element.transform },
     }));
     ranked.forEach((eid, i) => {
-      const cur = getTransform(eid);
+      const cur = getElementTransform(slide, device, orientation, eid);
       if (!cur) return;
       if (isTextElementId(eid)) {
         const textId = textElementKey(eid);
@@ -381,7 +373,10 @@ function ElementTransformControls({
           onRotate={(rotation) => patchElement(activeId, { rotation })}
           onReorder={(dir) => reorder(activeId, dir)}
           onTextChange={(value) => {
-            if (activeTextElement) setTextElementValue(activeTextElement, value);
+            if (activeTextElement)
+                patchTextElement(activeTextElement.id, {
+                  text: writeLocalized(activeTextElement.text, locale, value),
+                });
           }}
           onTextPatch={(patch) => {
             if (activeTextElement) patchTextElement(activeTextElement.id, patch);
@@ -570,12 +565,12 @@ function TextElementPanel({
 }
 
 function LayerButton({
-  disabled,
+  disabled = false,
   onClick,
   label,
   children,
 }: {
-  disabled: boolean;
+  disabled?: boolean;
   onClick: () => void;
   label: string;
   children: React.ReactNode;

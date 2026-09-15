@@ -11,7 +11,7 @@ export const CANVAS: Record<Device, { w: number; h: number; wL?: number; hL?: nu
 };
 
 // ---------- Export sizes per device ----------
-export type ExportSize = { label: string; w: number; h: number };
+type ExportSize = { label: string; w: number; h: number };
 
 export const EXPORT_SIZES: Record<Device, ExportSize[]> = {
   iphone: [

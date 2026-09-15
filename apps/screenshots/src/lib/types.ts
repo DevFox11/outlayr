@@ -8,8 +8,6 @@ export type Device =
 
 export type Orientation = "portrait" | "landscape";
 
-export type Platform = "ios" | "android";
-
 // Layouts the editor can render. Vary across slides for visual rhythm.
 export type SlideLayout =
   | "hero"             // centered device, headline above

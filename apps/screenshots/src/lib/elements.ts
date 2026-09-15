@@ -1,12 +1,12 @@
 import type { BuiltInElementId, ElementId, TextElementId } from "./types";
 
-export const BUILT_IN_ELEMENT_IDS: BuiltInElementId[] = [
+const BUILT_IN_ELEMENT_IDS: BuiltInElementId[] = [
   "caption",
   "device",
   "deviceSecondary",
 ];
 
-export const TEXT_ELEMENT_PREFIX = "text:";
+const TEXT_ELEMENT_PREFIX = "text:";
 
 export function isBuiltInElementId(id: ElementId | string): id is BuiltInElementId {
   return (BUILT_IN_ELEMENT_IDS as string[]).includes(id);

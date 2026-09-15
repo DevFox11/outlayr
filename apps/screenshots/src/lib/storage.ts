@@ -177,10 +177,6 @@ async function saveToFile(state: ProjectState): Promise<{ ok: true } | { ok: fal
 
 type Updater = ProjectState | ((prev: ProjectState) => ProjectState);
 
-function applyUpdater(updater: Updater, prev: ProjectState): ProjectState {
-  return typeof updater === "function" ? updater(prev) : updater;
-}
-
 export function useProject() {
   const [state, _setState] = useState<ProjectState>(DEFAULT_PROJECT);
   const [hydrated, setHydrated] = useState(false);
@@ -278,7 +274,7 @@ export function useProject() {
 
   const setState = useCallback((updater: Updater) => {
     _setState((prev) => {
-      const next = applyUpdater(updater, prev);
+      const next = typeof updater === "function" ? updater(prev) : updater;
       if (next === prev) return prev;
       const now = Date.now();
       if (now - lastPushAt.current > COALESCE_MS) {
