@@ -2,7 +2,17 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import { eq, getTableColumns } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
-import { accounts, budgets, categories, mainBudget, outbox, savingsGoals, transactions } from "@/db/schema";
+import {
+    accounts,
+    budgets,
+    categories,
+    mainBudget,
+    outbox,
+    savingsGoals,
+    tags,
+    transactions,
+    transactionTags,
+} from "@/db/schema";
 import { migratedSqlite, testDatabase, withAsyncTransactions } from "@/db/test-database";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
@@ -743,6 +753,23 @@ describe("applyPulledRows", () => {
     });
 });
 
+async function seedTagPair(db: Database): Promise<void> {
+    await addTransaction(db, "t1");
+    await db.insert(tags).values({ id: "g1", name: "coffee", sortOrder: 0, updatedAt: AT(1) });
+}
+
+function tagLinkRow(localId: string, updatedAt: number): PulledRow {
+    return {
+        deletedAt: null,
+        deviceId: "device-b",
+        fields: { tagId: "g1", transactionId: "t1" },
+        localId,
+        seq: 1,
+        table: "transactionTags",
+        updatedAt,
+    };
+}
+
 function budgetRow(localId: string, seq: number, updatedAt: number, categoryId: string | null): PulledRow {
     return {
         deletedAt: null,
@@ -867,6 +894,33 @@ describe("r3 — invariants Convex cannot hold", () => {
 
         await expect(seed(first, "aaa", "zzz")).resolves.toStrictEqual(["zzz"]);
         await expect(seed(second, "zzz", "aaa")).resolves.toStrictEqual(["zzz"]);
+    });
+
+    it("keeps one live tag link per pair when the incoming row wins", async () => {
+        await seedTagPair(db);
+        await db.insert(transactionTags).values({ id: "local", tagId: "g1", transactionId: "t1", updatedAt: AT(1000) });
+
+        await applyPulledRows(db, { cursor: 1, rows: [tagLinkRow("remote", 9000)] });
+
+        const rows = await db.select().from(transactionTags);
+        const live = rows.filter((row) => row.deletedAt === null);
+        expect(live.map((row) => row.id)).toStrictEqual(["remote"]);
+        expect(rows.find((row) => row.id === "local")?.deletedAt).not.toBeNull();
+    });
+
+    it("tombstones the incoming tag link when the local one wins, and keeps it queued", async () => {
+        await setSyncEnabled(db, true);
+        await seedTagPair(db);
+        await db.insert(transactionTags).values({ id: "local", tagId: "g1", transactionId: "t1", updatedAt: AT(9000) });
+        await db.delete(outbox);
+
+        await applyPulledRows(db, { cursor: 1, rows: [tagLinkRow("remote", 1000)] });
+
+        const rows = await db.select().from(transactionTags);
+        expect(rows.filter((row) => row.deletedAt === null).map((row) => row.id)).toStrictEqual(["local"]);
+        expect(rows.find((row) => row.id === "remote")?.deletedAt).not.toBeNull();
+        // The row this device wrote is NOT what the server holds, so it stays queued.
+        expect((await db.select().from(outbox)).map((row) => row.localId)).toStrictEqual(["remote"]);
     });
 
     it("leaves two budgets on different categories alone", async () => {

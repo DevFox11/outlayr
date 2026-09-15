@@ -508,7 +508,7 @@ export function incomingWinsLocally(
  * hold the same pair of rows and so compute the same survivor, which is the
  * only property the rule needs.
  */
-function keepsCategory(
+function keepsTheSlot(
     incoming: { updatedAt: number; localId: string },
     rival: { updatedAt: number; id: string }
 ): boolean {
@@ -688,12 +688,61 @@ async function resolveBudgetCategory(db: Database, row: PulledRow, now: Date): P
         if (rival.id === row.localId) {
             continue;
         }
-        if (keepsCategory(row, { id: rival.id, updatedAt: rival.updatedAt.getTime() })) {
+        if (keepsTheSlot(row, { id: rival.id, updatedAt: rival.updatedAt.getTime() })) {
             // oxlint-disable-next-line no-await-in-loop -- this runs inside the apply transaction, which admits a single writer, so the rival tombstones cannot overlap
             await db
                 .update(budgets)
                 .set({ categoryId: null, deletedAt: now, updatedAt: now })
                 .where(eq(budgets.id, rival.id));
+        } else {
+            incomingLoses = true;
+        }
+    }
+    return incomingLoses;
+}
+
+/**
+ * `transactionTags` allows one LIVE link per `(transactionId, tagId)` locally
+ * and none on the server, where a link is addressed by `localId`. So two
+ * devices tagging the same entry offline each mint their own id for the pair
+ * and the second row cannot be inserted here — the same shape as
+ * `resolveBudgetCategory`, and resolved the same way, at the write.
+ *
+ * The loser cannot be released by nulling a column: both halves of the pair are
+ * NOT NULL. It is tombstoned instead, which the partial index accepts, and the
+ * incoming loser is written tombstoned and left queued so this device pushes
+ * its own correction. Both devices see the same pair and pick the same
+ * survivor, and R1 makes the tombstone absorbing.
+ */
+async function resolveTagLink(db: Database, row: PulledRow, now: Date): Promise<boolean> {
+    const tagId = wireId.safeParse(row.fields.tagId);
+    const transactionId = wireId.safeParse(row.fields.transactionId);
+    if (row.deletedAt !== null || !(tagId.success && transactionId.success)) {
+        return false;
+    }
+
+    const rivals = await db
+        .select({ id: transactionTags.id, updatedAt: transactionTags.updatedAt })
+        .from(transactionTags)
+        .where(
+            and(
+                eq(transactionTags.transactionId, transactionId.data),
+                eq(transactionTags.tagId, tagId.data),
+                isNull(transactionTags.deletedAt)
+            )
+        );
+
+    let incomingLoses = false;
+    for (const rival of rivals) {
+        if (rival.id === row.localId) {
+            continue;
+        }
+        if (keepsTheSlot(row, { id: rival.id, updatedAt: rival.updatedAt.getTime() })) {
+            // oxlint-disable-next-line no-await-in-loop -- this runs inside the apply transaction, which admits a single writer, so the rival tombstones cannot overlap
+            await db
+                .update(transactionTags)
+                .set({ deletedAt: now, updatedAt: now })
+                .where(eq(transactionTags.id, rival.id));
         } else {
             incomingLoses = true;
         }
@@ -737,7 +786,8 @@ async function writeRow(db: Database, row: PulledRow, now: Date): Promise<boolea
     // shape as `resolveBudgetCategory` above: a row this device rewrote is not
     // what the server holds, so it stays queued.
     const datelessGoal = row.table === "savingsGoals" && row.deletedAt === null && row.fields.targetDate == null;
-    const rewritten = lostCategory || datelessGoal;
+    const lostTagPair = row.table === "transactionTags" && (await resolveTagLink(db, row, now));
+    const rewritten = lostCategory || datelessGoal || lostTagPair;
 
     const values = {
         ...toLocalFields(spec, row.fields),
@@ -775,7 +825,7 @@ async function reconcileMainBudget(db: Database, now: Date): Promise<boolean> {
     }
 
     const survivor = live.reduce((best, row) =>
-        keepsCategory(
+        keepsTheSlot(
             { localId: row.id, updatedAt: row.updatedAt.getTime() },
             { id: best.id, updatedAt: best.updatedAt.getTime() }
         )
