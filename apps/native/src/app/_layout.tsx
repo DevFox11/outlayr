@@ -73,14 +73,6 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 }
 
 function CloudRuntimeProvider({ children }: { children: ReactNode }) {
-    if (cloudRuntime === null) {
-        return (
-            <AuthSessionProvider>
-                <RevenueCatProvider>{children}</RevenueCatProvider>
-            </AuthSessionProvider>
-        );
-    }
-
     return (
         <AuthSessionProvider>
             <RevenueCatProvider>

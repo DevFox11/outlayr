@@ -35,6 +35,22 @@ interface TagPickerSheetProps {
 /** Present via the forwarded ref: `ref.current?.present()`. */
 const NO_PENDING_TAG_NAMES: string[] = [];
 
+/** The one row that makes a tag, offered both for what was typed and for a pending name. */
+function CreateTagRow({ name, onPress }: { name: string; onPress: () => void }) {
+    const colors = useColors();
+    const t = useTranslation();
+    return (
+        <Pressable
+            accessibilityRole="button"
+            className="mx-5 mb-2 flex-row items-center gap-2 py-3 active:opacity-60"
+            onPress={onPress}
+        >
+            <SymbolView name="plus.circle.fill" size={18} tintColor={colors.tint} type="monochrome" />
+            <Text className="font-sans-medium text-body text-foreground">{t("transaction.tags.create", { name })}</Text>
+        </Pressable>
+    );
+}
+
 export function TagPickerSheet({
     tags,
     selected,
@@ -113,31 +129,10 @@ export function TagPickerSheet({
                     </View>
                 </View>
 
-                {canCreate ? (
-                    <Pressable
-                        accessibilityRole="button"
-                        className="mx-5 mb-2 flex-row items-center gap-2 py-3 active:opacity-60"
-                        onPress={create}
-                    >
-                        <SymbolView name="plus.circle.fill" size={18} tintColor={colors.tint} type="monochrome" />
-                        <Text className="font-sans-medium text-body text-foreground">
-                            {t("transaction.tags.create", { name: trimmed })}
-                        </Text>
-                    </Pressable>
-                ) : null}
+                {canCreate ? <CreateTagRow name={trimmed} onPress={create} /> : null}
 
                 {pendingToOffer.map((name) => (
-                    <Pressable
-                        accessibilityRole="button"
-                        className="mx-5 mb-2 flex-row items-center gap-2 py-3 active:opacity-60"
-                        key={name}
-                        onPress={() => onCreate(normalizeTagName(name))}
-                    >
-                        <SymbolView name="plus.circle.fill" size={18} tintColor={colors.tint} type="monochrome" />
-                        <Text className="font-sans-medium text-body text-foreground">
-                            {t("transaction.tags.create", { name })}
-                        </Text>
-                    </Pressable>
+                    <CreateTagRow key={name} name={name} onPress={() => onCreate(normalizeTagName(name))} />
                 ))}
 
                 <BottomSheetFlatList

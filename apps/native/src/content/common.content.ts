@@ -15,6 +15,10 @@ const common = {
             en: "Close",
             es: "Cerrar",
         }),
+        "common.confirmHint": t({
+            en: "Double tap to confirm",
+            es: "Toca dos veces para confirmar",
+        }),
         "common.continue": t({
             en: "Continue",
             es: "Continuar",

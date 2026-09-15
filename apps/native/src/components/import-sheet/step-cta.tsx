@@ -3,6 +3,7 @@ import { useState } from "react";
 import { AccessibilityInfo } from "react-native";
 
 import { cn } from "@/components/tw";
+import { useTranslation } from "@/i18n/context";
 
 interface StepCtaProps {
     busy?: boolean;
@@ -23,6 +24,7 @@ export function StepCta({
     className,
     testID,
 }: StepCtaProps) {
+    const t = useTranslation();
     const [armedFor, setArmedFor] = useState<string | null>(null);
     const armed = confirmLabel !== undefined && armedFor === confirmLabel;
     const shownLabel = armed && confirmLabel !== undefined ? confirmLabel : label;
@@ -46,7 +48,7 @@ export function StepCta({
 
     return (
         <Button
-            accessibilityHint={armed ? "Double tap to confirm" : undefined}
+            accessibilityHint={armed ? t("common.confirmHint") : undefined}
             className={cn("rounded-full", className)}
             disabled={disabled}
             fullWidth
