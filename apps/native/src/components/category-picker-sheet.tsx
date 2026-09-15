@@ -238,8 +238,11 @@ export function CategoryPickerSheet({
                     {searching ? (
                         <InputGroup.Suffix className="px-2.5">
                             <Pressable
+                                accessibilityLabel={t("common.clearSearch")}
                                 accessibilityRole="button"
-                                hitSlop={8}
+                                // 15pt of glyph reaches 45 tall; the sides stay inside the
+                                // suffix's own px-2.5 so the slop never covers the field.
+                                hitSlop={{ bottom: 15, left: 10, right: 12, top: 15 }}
                                 onPress={clearQuery}
                                 testID="category-search-clear"
                             >

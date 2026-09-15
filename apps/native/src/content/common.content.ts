@@ -11,6 +11,10 @@ const common = {
             en: "Cancel",
             es: "Cancelar",
         }),
+        "common.clearSearch": t({
+            en: "Clear search",
+            es: "Borrar búsqueda",
+        }),
         "common.close": t({
             en: "Close",
             es: "Cerrar",

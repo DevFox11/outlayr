@@ -150,6 +150,10 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
                             <Pressable
                                 accessibilityLabel={t("transaction.split.editAmount")}
                                 accessibilityRole="button"
+                                // The row is `items-center`, so each child keeps its natural
+                                // height and the row's py-3 never reaches these two. Sides take
+                                // half the gap-3 each, so the pair meets without overlapping.
+                                hitSlop={{ bottom: 11, left: 6, right: 6, top: 11 }}
                                 onPress={() => editAmount(index)}
                             >
                                 <Text className="text-body text-foreground font-mono tabular-nums">
@@ -160,6 +164,7 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
                                 <Pressable
                                     accessibilityLabel={t("transaction.split.removePart")}
                                     accessibilityRole="button"
+                                    hitSlop={{ bottom: 13, left: 6, right: 13, top: 13 }}
                                     onPress={() => onChange(removePart(allocations, index, minorUnits))}
                                 >
                                     <HugeiconsIcon color={colors.muted} icon={Cancel01Icon} size={18} />

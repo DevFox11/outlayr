@@ -178,6 +178,15 @@ describe("categoryPickerSheet", () => {
         expect(screen.queryByText("Groceries")).toBeNull();
     });
 
+    // The clear button is an icon with no text child, so without a label VoiceOver
+    // reaches an unnamed control mid-search and cannot say what it does.
+    it("names its clear button, which is otherwise a bare glyph", async () => {
+        await mount({ db: await seededDb() });
+        await type("rent");
+
+        expect(screen.getByLabelText("common.clearSearch")).toBeTruthy();
+    });
+
     it("filters the list down to the categories that match", async () => {
         await mount({ db: await seededDb() });
         await type("rent");
