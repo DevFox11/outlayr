@@ -332,17 +332,18 @@ const CLEANUP_BATCH = 200;
 export const cleanupExpired = internalMutation({
     args: {},
     handler: async (ctx) => {
-        const jobs = await ctx.db
-            .query("accountDeletionJobs")
-            .withIndex("by_expiresAt", (q) => q.lt("expiresAt", Date.now()))
-            .filter((q) =>
-                q.or(
-                    q.eq(q.field("phase"), "prepared"),
-                    q.eq(q.field("phase"), "complete"),
-                    q.and(q.eq(q.field("phase"), "providersRevoked"), q.eq(q.field("provider"), "googleLocalReceipt"))
-                )
-            )
-            .take(CLEANUP_BATCH);
+        const now = Date.now();
+        const expired = (phase: "prepared" | "complete" | "providersRevoked") =>
+            ctx.db
+                .query("accountDeletionJobs")
+                .withIndex("by_phase_and_expiresAt", (q) => q.eq("phase", phase).lt("expiresAt", now))
+                .take(CLEANUP_BATCH);
+        const [prepared, complete, revoked] = await Promise.all([
+            expired("prepared"),
+            expired("complete"),
+            expired("providersRevoked"),
+        ]);
+        const jobs = [...prepared, ...complete, ...revoked.filter((job) => job.provider === "googleLocalReceipt")];
         await Promise.all(jobs.map(async (job) => await ctx.db.delete(job._id)));
     },
 });

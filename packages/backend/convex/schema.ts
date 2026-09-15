@@ -68,7 +68,7 @@ export default defineSchema({
         userId: v.union(v.string(), v.null()),
     })
         .index("by_secretHash", ["secretHash"])
-        .index("by_expiresAt", ["expiresAt"])
+        .index("by_phase_and_expiresAt", ["phase", "expiresAt"])
         .index("by_userId", ["userId"]),
 
     /**
