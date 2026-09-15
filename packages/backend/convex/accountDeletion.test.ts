@@ -130,6 +130,60 @@ describe("billing erasure", () => {
     });
 });
 
+/** Backdates a job's TTL, the way an abandoned deletion ages out. */
+async function expire(t: TestConvex<typeof schema>, resumeSecret: string) {
+    const secretHash = await sha256Hex(resumeSecret);
+    await t.run(async (ctx) => {
+        const row = await ctx.db
+            .query("accountDeletionJobs")
+            .withIndex("by_secretHash", (q) => q.eq("secretHash", secretHash))
+            .unique();
+        if (row) {
+            await ctx.db.patch(row._id, { expiresAt: 0 });
+        }
+    });
+}
+
+describe("an abandoned deletion past its TTL", () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    test("still finishes, because the ledger is already gone", async () => {
+        stubUpstream(200);
+        const { owner, resumeSecret, t } = await purgedJob();
+        // A big ledger takes 200 rows per `advance`, so the user can lose
+        // connectivity mid-purge and come back a day later. By then the entries
+        // are hard-deleted and nothing can put them back.
+        await expire(t, resumeSecret);
+
+        await expect(t.query(api.accountDeletion.poll, { resumeSecret })).resolves.toMatchObject({
+            phase: "purged",
+        });
+        await expect(t.action(api.accountDeletion.eraseBilling, { resumeSecret })).resolves.toMatchObject({
+            phase: "billingErased",
+        });
+        await t.mutation(api.accountDeletion.advance, { resumeSecret });
+        await expect(t.mutation(api.accountDeletion.advance, { resumeSecret })).resolves.toMatchObject({
+            phase: "complete",
+        });
+        await expect(authRows(t, "user", owner.userId)).resolves.toHaveLength(0);
+    });
+
+    test("still refuses to START destroying without fresh reauthentication", async () => {
+        const t = convexTest(schema, modules);
+        revenuecatTest.register(t);
+        const owner = await seedAuthUser(t);
+        await grantPro(t, owner);
+        const { resumeSecret } = await authenticatedAs(t, owner).mutation(api.accountDeletion.prepare, {});
+        await expire(t, resumeSecret);
+
+        await expect(t.mutation(api.accountDeletion.recordAppleRevocation, { resumeSecret })).rejects.toThrow(
+            "expired"
+        );
+    });
+});
+
 interface AuthRow {
     _id: string;
     userId?: string;

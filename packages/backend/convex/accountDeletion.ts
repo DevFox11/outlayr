@@ -26,8 +26,20 @@ export interface DeletionJob {
     userId: string | null;
 }
 
-export function requireUnexpiredDeletionJob(job: DeletionJob): void {
-    if (job.phase !== "complete" && job.expiresAt <= Date.now()) {
+/**
+ * The TTL gates the authorisation to START destroying, not the destruction.
+ *
+ * Only `prepared` still has anything to re-authenticate for. Past it the
+ * provider is revoked and the ledger is being hard-deleted a batch at a time,
+ * and a large one takes many round trips — so a device that goes offline
+ * mid-purge and returns a day later must be allowed to finish. Refusing left the
+ * entries gone, the account and its sessions live, and the subscription still
+ * billing, with no path forward: `cleanupExpired` sweeps only `prepared` and
+ * `complete`, so the job survived forever carrying the `userId` this whole flow
+ * exists to destroy.
+ */
+export function requireUnexpiredDeletionJob(job: DeletionJob, at: number = Date.now()): void {
+    if (job.phase === "prepared" && job.expiresAt <= at) {
         throw new ConvexError("Deletion job expired; reauthentication is required");
     }
 }
@@ -269,9 +281,12 @@ export const poll = query({
     args: { at: v.optional(v.number()), resumeSecret: v.string() },
     handler: async (ctx, args) => {
         const job = await jobForSecret(ctx, args.resumeSecret);
+        if (!job) {
+            return null;
+        }
         // `at` rather than the wall clock: nothing writes the job when it merely
         // expires, so a subscribed caller would go on being told the old phase.
-        if (!job || (job.phase !== "complete" && job.expiresAt <= (args.at ?? Date.now()))) {
+        if (job.phase === "prepared" && job.expiresAt <= (args.at ?? Date.now())) {
             return null;
         }
         return publicStatus(job);
