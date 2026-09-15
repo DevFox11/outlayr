@@ -29,6 +29,7 @@ import m0024 from './0024_goal_start_and_required_date.sql';
 import m0025 from './0025_settings_requeue_under_upsert.sql';
 import m0026 from './0026_every_trigger_requeues.sql';
 import m0027 from './0027_index_the_recurring_scan.sql';
+import m0028 from './0028_queue_the_backfilled_photos.sql';
 
   export default {
     journal,
@@ -60,7 +61,8 @@ m0023,
 m0024,
 m0025,
 m0026,
-m0027
+m0027,
+m0028
     }
   }
   
