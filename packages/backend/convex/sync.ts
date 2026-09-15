@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
-import type { MutationCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
 import {
     accountFields,
@@ -376,6 +376,33 @@ async function upsert(
  * Sync is a Pro entitlement, checked immediately after `requireUserId` in
  * `push` and `pullSince` — on the server, where a client cannot route around it.
  */
+/** A user can prepare more than one deletion; none of them is a large number. */
+const DELETION_JOBS_PER_USER = 20;
+
+/**
+ * Refuses a push from a device that has not learned the account is going.
+ *
+ * `purgeUserBatch` deletes `syncState` last and reports done, but the session is
+ * not deleted until the end of `advance` and Pro is not cleared until
+ * `recordBillingErased` — so both of this mutation's own guards stay true for a
+ * window as long as a retried RevenueCat call. A push landing inside it
+ * re-creates `syncState` at `nextSeq: 1` and re-inserts rows for a user id that
+ * is about to stop existing, and nothing can ever find them again: every purge
+ * path is keyed off the `accountDeletionJobs.userId` that `advance` then nulls.
+ *
+ * `prepared` is deliberately still allowed — the owner has asked but not
+ * confirmed, and may yet cancel.
+ */
+async function refuseWhileDeleting(ctx: QueryCtx, userId: string): Promise<void> {
+    const jobs = await ctx.db
+        .query("accountDeletionJobs")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .take(DELETION_JOBS_PER_USER);
+    if (jobs.some((job) => job.phase !== "prepared")) {
+        throw new ConvexError("This account is being deleted and can no longer accept changes");
+    }
+}
+
 export const push = mutation({
     args: {
         deviceId: v.string(),
@@ -384,6 +411,7 @@ export const push = mutation({
     handler: async (ctx, args) => {
         const userId = await requireUserId(ctx);
         await requirePro(ctx, userId);
+        await refuseWhileDeleting(ctx, userId);
 
         if (args.rows.length > PUSH_BATCH_LIMIT) {
             throw new ConvexError(`A push carries at most ${PUSH_BATCH_LIMIT} rows; got ${args.rows.length}`);

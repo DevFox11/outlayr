@@ -161,6 +161,25 @@ describe("push authorization", () => {
         expect(page.rows[0].updatedAt).toBe(100);
     });
 
+    test("refuses a push once the purge has started, and allows one before it", async () => {
+        const t = harness();
+        const owner = await seedProUser(t);
+        const { resumeSecret } = await authenticatedAs(t, owner).mutation(api.accountDeletion.prepare, {});
+
+        // Asked but not confirmed: the owner may still cancel, so the ledger is
+        // still theirs to change.
+        await pushAs(t, owner, DEVICE_A, [transactionRow("before", 100)]);
+
+        await t.mutation(api.accountDeletion.recordAppleRevocation, { resumeSecret });
+        await t.mutation(api.accountDeletion.advance, { resumeSecret });
+
+        // The session and the Pro mirror both outlive the purge, so `push`'s own
+        // two guards still pass here. Without this check the row comes back for a
+        // user id that is about to stop existing, and no later pass can find it.
+        await expect(pushAs(t, owner, DEVICE_A, [transactionRow("after", 200)])).rejects.toThrow(ConvexError);
+        await expect(t.run((ctx) => ctx.db.query("transactions").collect())).resolves.toHaveLength(0);
+    });
+
     test("refuses a batch larger than the per-transaction budget", async () => {
         const t = harness();
         const owner = await seedProUser(t);
