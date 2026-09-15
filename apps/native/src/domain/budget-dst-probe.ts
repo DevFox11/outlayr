@@ -1,4 +1,4 @@
-import { daysLeftInWindow, hoursLeftInDay } from "./budget-math";
+import { budgetPace, daysLeftInWindow, hoursLeftInDay } from "./budget-math";
 
 /**
  * Runs outside the test process, spawned with `TZ` forced by the caller. Jest
@@ -25,4 +25,14 @@ function localDate(offset: number): Date {
 const window = { end: localDate(0), start: localDate(5) };
 const now = localDate(10);
 
-process.stdout.write(String(kind === "days" ? daysLeftInWindow(window, now) : hoursLeftInDay(window, now)));
+function answer(): number {
+    if (kind === "days") {
+        return daysLeftInWindow(window, now);
+    }
+    if (kind === "pace") {
+        return budgetPace(window, now).remaining;
+    }
+    return hoursLeftInDay(window, now);
+}
+
+process.stdout.write(String(answer()));

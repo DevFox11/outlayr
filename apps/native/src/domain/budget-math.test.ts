@@ -284,7 +284,7 @@ describe("budgetWindowLabel", () => {
  * last day of March reported two days left, and `leftPerDay` halved the
  * remaining allowance with it.
  */
-function inMadrid(kind: "days" | "hours", ...parts: number[]): number {
+function inMadrid(kind: "days" | "hours" | "pace", ...parts: number[]): number {
     const probe = join(import.meta.dirname, "budget-dst-probe.ts");
     return Number(
         execFileSync(process.execPath, ["--import", "tsx", probe, kind, ...parts.map(String)], {
@@ -308,6 +308,16 @@ describe("time left across a spring-forward", () => {
 
     it("reports one hour left half an hour before a shortened day ends", () => {
         expect(inMadrid("hours", 2025, 2, 31, 0, 0, 2025, 2, 30, 0, 0, 2025, 2, 30, 23, 30)).toBe(1);
+    });
+
+    /**
+     * `budgetPace` kept flooring raw milliseconds after its two neighbours here
+     * were fixed. On the last day of a month holding a shift that leaves a day of
+     * allowance that does not exist, which `isBehindPace` then reads as behind on
+     * a day the user is not.
+     */
+    it("has no allowance left on the last day of a month that lost an hour", () => {
+        expect(inMadrid("pace", 2025, 3, 1, 0, 0, 2025, 2, 1, 0, 0, 2025, 2, 31, 0, 30)).toBe(0);
     });
 });
 

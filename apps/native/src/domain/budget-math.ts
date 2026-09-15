@@ -263,7 +263,11 @@ export function budgetPace(window: BudgetWindow, now: Date): BudgetPace {
         return { elapsed: 1, remaining: 0 };
     }
     const totalDays = Math.max(1, Math.round(totalMs / DAY_MS));
-    const daysPast = Math.max(0, Math.floor(elapsedMs / DAY_MS)) + 1;
+    // Counted through the local calendar, for the reason `daysLeftInWindow` below
+    // spells out: flooring raw milliseconds reads an hour short for the whole of
+    // the first local day after a clock shift, which on the last day of such a
+    // month left a day of allowance that is not there.
+    const daysPast = Math.max(0, daysBetween(window.start.getTime(), startOfDay(now).getTime())) + 1;
     return {
         elapsed: clamp01(elapsedMs / totalMs),
         remaining: clamp01((totalDays - daysPast) / totalDays),
