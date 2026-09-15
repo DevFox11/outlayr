@@ -10,7 +10,7 @@ import { isPickableCurrency } from "./currency";
 import { utcDateString } from "./dates";
 import { MoneyValidationError } from "./errors";
 import { makeRateLookup } from "./fixtures";
-import { resolveEntryRate } from "./rates";
+import { computeAmountUSD, resolveEntryRate } from "./rates";
 
 const FINITE_PATTERN = /amountUSD must be a finite number/;
 const EPOCH_PATTERN = /epoch-milliseconds/;
@@ -126,5 +126,24 @@ describe(resolveEntryRate, () => {
         await expect(resolveEntryRate(badLookup, "VES", "official", undefined, "2026-06-30")).rejects.toThrow(
             MoneyValidationError
         );
+    });
+
+    it("rejects a negative EUR leg rather than flipping the amount's sign", async () => {
+        // The second leg of an `eur_reference` conversion is a divisor too, so a
+        // negative EUR rate turns a VES expense into income. The first leg has
+        // always refused this; the second used to check only that a row existed.
+        const badEur = makeRateLookup([
+            { date: "2026-06-01", quote: "VES", rate: 747.33, rateType: "eur_reference" },
+            { date: "2026-06-01", quote: "EUR", rate: -0.87, rateType: "official" },
+        ]);
+
+        await expect(
+            computeAmountUSD(badEur, {
+                baseAmount: 100,
+                date: "2026-06-30",
+                exchangeRate: 747.33,
+                exchangeRateType: "eur_reference",
+            })
+        ).rejects.toThrow(MoneyValidationError);
     });
 });

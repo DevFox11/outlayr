@@ -55,12 +55,23 @@ export async function resolveEntryRate(
     if (!row) {
         throw new MoneyValidationError(`No ${rateType} rate available for ${currency} on ${date}`);
     }
-    if (!Number.isFinite(row.rate) || row.rate <= 0) {
+    return requirePositiveRate(row.rate, currency, rateType, date);
+}
+
+/**
+ * A rate divides, so a zero or a negative one does not merely misprice: it sends
+ * the amount to infinity or flips its sign, turning an expense into income. Both
+ * legs of an `eur_reference` conversion go through here — ingestion validates
+ * too, but `exchangeRates` stores a bare `v.number()` and `RateLookup` is an
+ * injectable interface, so this is the last guard before the divide.
+ */
+function requirePositiveRate(rate: number, currency: string, rateType: string, date: string): number {
+    if (!Number.isFinite(rate) || rate <= 0) {
         throw new MoneyValidationError(
-            `Resolved ${rateType} rate for ${currency} on ${date} must be a positive number, got: ${row.rate}`
+            `Resolved ${rateType} rate for ${currency} on ${date} must be a positive number, got: ${rate}`
         );
     }
-    return row.rate;
+    return rate;
 }
 
 export interface ComputeAmountUSDInput {
@@ -111,7 +122,7 @@ export async function computeAmountUSD(lookup: RateLookup, input: ComputeAmountU
                 `No EUR official rate available on ${input.date} for eur_reference conversion`
             );
         }
-        denominators.push(toScaledInt(eurRow.rate));
+        denominators.push(toScaledInt(requirePositiveRate(eurRow.rate, "EUR", "official", input.date)));
     }
     const amountUSD = divideToUsd(numerator, denominators);
     if (!Number.isFinite(amountUSD)) {
