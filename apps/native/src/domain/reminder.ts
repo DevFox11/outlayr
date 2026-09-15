@@ -71,7 +71,8 @@ export function enableReminderStep(permission: ReminderPermission): EnableRemind
         case "granted": {
             return "schedule";
         }
-        case "denied": {
+        case "denied":
+        case "unknown": {
             return "open-settings";
         }
         default: {

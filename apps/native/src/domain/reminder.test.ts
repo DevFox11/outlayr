@@ -94,6 +94,10 @@ describe("turning reminders on", () => {
     it("sends a denied user to iOS Settings, the only place that can undo it", () => {
         expect(enableReminderStep("denied")).toBe("open-settings");
     });
+
+    it("sends a user whose permission could not be read to iOS Settings rather than silently doing nothing", () => {
+        expect(enableReminderStep("unknown")).toBe("open-settings");
+    });
 });
 
 describe("reconciling a stored setting against iOS", () => {
