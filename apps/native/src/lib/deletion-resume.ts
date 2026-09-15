@@ -100,7 +100,7 @@ export async function resumePersistedCloudDeletion({
         return false;
     }
     const poll = async (): Promise<DeletionStatus | null> =>
-        await cloudQuery("accountDeletion:poll", { resumeSecret: preparation.resumeSecret });
+        await cloudQuery("accountDeletion:poll", { at: Date.now(), resumeSecret: preparation.resumeSecret });
     const status = await poll();
     if (status === null) {
         throw recoveryError();

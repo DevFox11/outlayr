@@ -356,6 +356,22 @@ describe("pruneStale", () => {
         expect(pending[0]?.scheduledTime).toBeGreaterThan(Date.now());
     });
 
+    test("pullRates slices on the caller's instant, not the server's clock", async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
+        const t = convexTest(schema, modules);
+        await seedOfficialRate(t, "VES", daysAgoDate(10));
+
+        // A caller whose clock is far enough ahead that the row has left the
+        // window. The server's own `Date.now()` still says it is inside.
+        const ahead = await t.query(api.exchangeRates.pullRates, {
+            at: Date.now() + 400 * 24 * 60 * 60 * 1000,
+        });
+
+        // `YYYY-MM-DD` sorts lexically as it sorts chronologically.
+        expect(ahead.windowStart.localeCompare(daysAgoDate(10))).toBeGreaterThan(0);
+    });
+
     test("pullRates still serves the anchor after GC", async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));

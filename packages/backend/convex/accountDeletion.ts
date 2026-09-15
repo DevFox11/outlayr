@@ -266,10 +266,12 @@ export const eraseBilling = action({
 });
 
 export const poll = query({
-    args: { resumeSecret: v.string() },
+    args: { at: v.optional(v.number()), resumeSecret: v.string() },
     handler: async (ctx, args) => {
         const job = await jobForSecret(ctx, args.resumeSecret);
-        if (!job || (job.phase !== "complete" && job.expiresAt <= Date.now())) {
+        // `at` rather than the wall clock: nothing writes the job when it merely
+        // expires, so a subscribed caller would go on being told the old phase.
+        if (!job || (job.phase !== "complete" && job.expiresAt <= (args.at ?? Date.now()))) {
             return null;
         }
         return publicStatus(job);

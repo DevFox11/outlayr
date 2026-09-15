@@ -49,7 +49,7 @@ export function cloudAction<Args, Result>(path: string, args: Args): Promise<Res
 }
 
 export function ratesPuller(): PullRatesFn {
-    return async (args) => cloudQuery("exchangeRates:pullRates", args ?? {});
+    return async (args) => cloudQuery("exchangeRates:pullRates", { ...args, at: Date.now() });
 }
 
 /**

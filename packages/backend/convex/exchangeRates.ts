@@ -82,8 +82,8 @@ const MS_PER_DAY = 86_400_000;
  * (the anchor), and `pruneStale` keeps exactly that same set — an invariant
  * that only holds while both derive the boundary HERE. Never inline it.
  */
-export function ratesWindowStart(): string {
-    return utcDateString(Date.now() - RATES_WINDOW_DAYS * MS_PER_DAY);
+export function ratesWindowStart(at: number = Date.now()): string {
+    return utcDateString(at - RATES_WINDOW_DAYS * MS_PER_DAY);
 }
 
 /**
@@ -362,9 +362,14 @@ export const pruneStale = internalAction({
  * (absent = page 0), not a Convex pagination cursor.
  */
 export const pullRates = query({
-    args: { cursor: v.optional(v.number()) },
+    args: { at: v.optional(v.number()), cursor: v.optional(v.number()) },
     handler: async (ctx, args) => {
-        const windowStart = ratesWindowStart();
+        // Taken as an argument, never read off the wall clock: a query is not
+        // rerun because time passed, and `exchangeRates` is written only by a
+        // 12-hour cron, so a subscriber crossing UTC midnight would keep serving
+        // yesterday's window for hours. Same reason `groundedSpend.monthlyTotal`
+        // takes `at`.
+        const windowStart = ratesWindowStart(args.at);
         const start = args.cursor ?? 0;
         const pagePairs = ANCHOR_PAIR_CATALOG.slice(start, start + PAIRS_PER_PAGE);
 
