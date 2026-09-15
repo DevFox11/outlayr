@@ -117,7 +117,7 @@ export function LogInsights({
             {alsoThisPeriod.length > 0 ? (
                 <View className="gap-2 pt-3">
                     <View className="pb-0.75">
-                        <Hairline />
+                        <View className="bg-border h-px w-full" />
                     </View>
                     <MonoLabel>{t("log.insights.also", { period: t(PERIOD_PHRASE_KEY[period]) })}</MonoLabel>
                     <View className="flex-row flex-wrap gap-1.5">
@@ -145,10 +145,6 @@ export function LogInsights({
             ) : null}
         </View>
     );
-}
-
-function Hairline() {
-    return <View className="bg-border h-px w-full" />;
 }
 
 function AlsoPill({ figures, measure, showCents }: { figures: LogFigures; measure: LogMeasure; showCents: boolean }) {

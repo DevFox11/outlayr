@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { View } from "react-native";
 
 import { Text } from "@/components/text";
-import { cn } from "@/components/tw";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { ExpenseContribution } from "@/data/budget-spent";
 import { buildDaySlots, dayVerdictSentence } from "@/domain/budget-day-slots";
@@ -61,7 +60,6 @@ export function BudgetDaySlots({
 
     const span = (value: number) => `${(value / slots.scale) * 100}%` as const;
     const sentence = dayVerdictSentence(slots, noun, t);
-    const sizeClass = compact ? "text-label" : "text-footnote";
 
     return (
         <View className={compact ? "pt-1.5" : "pt-4"}>
@@ -122,8 +120,8 @@ export function BudgetDaySlots({
 
             {sentence && !bandOnly ? (
                 <View className="flex-row items-baseline gap-1.5 pt-2">
-                    <Text className={cn("text-foreground", sizeClass)}>{sentence}</Text>
-                    <Text className={cn("text-muted", sizeClass)}>
+                    <Text className="text-foreground text-footnote">{sentence}</Text>
+                    <Text className="text-muted text-footnote">
                         {`${formatAmount(Math.abs(slots.remaining), currency, showCents, language)} ${
                             slots.remaining < 0 ? t("budgets.suffix.over") : t("budgets.suffix.left")
                         }`}

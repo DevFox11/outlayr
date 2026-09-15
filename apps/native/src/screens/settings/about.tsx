@@ -13,10 +13,6 @@ const DIME_REPO = "https://github.com/rafsoh/dimeApp";
 const GPL_LICENSE = "https://www.gnu.org/licenses/gpl-3.0.html";
 const LOGO_DEV = "https://logo.dev";
 
-function open(url: string) {
-    openBrowserAsync(url);
-}
-
 export function About() {
     const t = useTranslation();
     return (
@@ -26,11 +22,27 @@ export function About() {
             </View>
 
             <SettingsSection title={t("settings.about.links")}>
-                <LinkRow icon="SourceCode" onPress={() => open(OUTLAYR_REPO)} title={t("settings.about.outlayrRepo")} />
-                <LinkRow icon="Favourite" onPress={() => open(DIME_REPO)} title={t("settings.about.dimeRepo")} />
-                <LinkRow icon="License" onPress={() => open(GPL_LICENSE)} title={t("settings.about.gplLink")} />
+                <LinkRow
+                    icon="SourceCode"
+                    onPress={() => openBrowserAsync(OUTLAYR_REPO)}
+                    title={t("settings.about.outlayrRepo")}
+                />
+                <LinkRow
+                    icon="Favourite"
+                    onPress={() => openBrowserAsync(DIME_REPO)}
+                    title={t("settings.about.dimeRepo")}
+                />
+                <LinkRow
+                    icon="License"
+                    onPress={() => openBrowserAsync(GPL_LICENSE)}
+                    title={t("settings.about.gplLink")}
+                />
                 {/* Required by logo.dev's free plan: a visible, followable link. */}
-                <LinkRow icon="Sparkles" onPress={() => open(LOGO_DEV)} title={t("settings.about.logoDev")} />
+                <LinkRow
+                    icon="Sparkles"
+                    onPress={() => openBrowserAsync(LOGO_DEV)}
+                    title={t("settings.about.logoDev")}
+                />
             </SettingsSection>
 
             <View className="gap-2 pt-8">

@@ -10,22 +10,17 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useCategoriesByNamespace } from "@/data/categories";
 import { categoriesRepo } from "@/data/categories-core";
 import type { Category, CategoryWithChildren } from "@/data/categories-core";
-import type { Database } from "@/db/client";
 import { applyMove } from "@/domain/reorder";
 import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
-
-export function CategoryReorder({ income }: { income: boolean }) {
-    const db = useDatabase();
-    return <CategoryReorderReady db={db} income={income} />;
-}
 
 /**
  * `onMove` is scoped to one `List.ForEach`, so a Section boundary is the limit of
  * what can move where — one card for the whole tree would promise cross-group
  * drags the list cannot perform.
  */
-function CategoryReorderReady({ db, income }: { db: Database; income: boolean }) {
+export function CategoryReorder({ income }: { income: boolean }) {
+    const db = useDatabase();
     const t = useTranslation();
     const colors = useColors();
     const parents = useCategoriesByNamespace(db, income);

@@ -16,10 +16,10 @@ interface LogHeroNumberProps {
     /** Unsigned magnitude; the sign is passed separately. */
     magnitude: number;
     positive: boolean;
-    showCents?: boolean;
+    showCents: boolean;
 }
 
-export function LogHeroNumber({ magnitude, code, positive, showCents = true }: LogHeroNumberProps) {
+export function LogHeroNumber({ magnitude, code, positive, showCents }: LogHeroNumberProps) {
     const { language } = useLanguage();
     const parts = amountParts(magnitude, code, showCents, language);
     const digits = amountDigits(parts);

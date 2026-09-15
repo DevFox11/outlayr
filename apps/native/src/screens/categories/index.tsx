@@ -50,7 +50,6 @@ import { categoriesRepo, suggestedCategoriesNotAdded } from "@/data/categories-c
 import type { Category, CategoryWithChildren, SuggestedCategoryPreset } from "@/data/categories-core";
 import { setBoolSetting } from "@/data/settings-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
-import type { Database } from "@/db/client";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { hitArea, outline } from "@/lib/swift-ui-geometry";
@@ -154,10 +153,6 @@ function usePendingRemoved(parents: CategoryWithChildren[], pendingId: string | 
 
 export function Categories({ income }: { income: boolean }) {
     const db = useDatabase();
-    return <CategoriesReady db={db} income={income} />;
-}
-
-function CategoriesReady({ db, income }: { db: Database; income: boolean }) {
     const router = useRouter();
     const t = useTranslation();
     const colors = useColors();

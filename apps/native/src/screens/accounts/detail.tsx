@@ -16,24 +16,18 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useAccountTransfers } from "@/data/account-transfers";
 import { useAccountBalanceDetails, useAccounts, useAccountTransactions } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
-import type { TransactionWithCategory } from "@/data/transactions";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import type { Database } from "@/db/client";
 import { formatSignedAmount } from "@/domain/account-display";
 import { monthAbbrevTitle } from "@/domain/dates";
 import { groupByDay } from "@/domain/day-sections";
 import { mergeByRecency } from "@/domain/transfer-log-rows";
-import type { RateTable } from "@/domain/valuation";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
 import { AccountBalanceChart } from "./components/account-balance-chart";
 
 export function AccountDetail({ id }: { id: string }) {
     const db = useDatabase();
-    return <AccountDetailReady db={db} id={id} />;
-}
-
-function AccountDetailReady({ db, id }: { db: Database; id: string }) {
     const router = useRouter();
     const accounts = useAccounts(db);
     // A delete from the edit sheet holds its write for the undo window, so the row
@@ -160,17 +154,4 @@ function DetailMark() {
     );
 }
 
-const AccountTransactionRow = memo(
-    ({
-        transaction,
-        currency,
-        onPress,
-        rates,
-    }: {
-        transaction: TransactionWithCategory;
-        currency: string;
-        onPress: (id: string) => void;
-        rates: RateTable;
-    }) => <TransactionRow currency={currency} onPress={onPress} rates={rates} transaction={transaction} />
-);
-AccountTransactionRow.displayName = "AccountTransactionRow";
+const AccountTransactionRow = memo(TransactionRow);

@@ -40,10 +40,6 @@ import { BudgetPeriodStepper } from "@/screens/budgets/components/budget-period-
  * route: a static sibling of a dynamic segment never resolved here.
  */
 export function OverallBudgetDetail({ db, onDone }: { db: Database; onDone: () => void }) {
-    return <MainBudgetDetail db={db} onDone={onDone} />;
-}
-
-function MainBudgetDetail({ db, onDone }: { db: Database; onDone: () => void }) {
     const router = useRouter();
     const t = useTranslation();
     const haptics = useHaptics();
