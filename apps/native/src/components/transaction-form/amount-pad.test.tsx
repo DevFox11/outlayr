@@ -18,7 +18,6 @@ jest.mock("../amount-numpad", () => {
 
 const BASE = {
     code: "USD",
-    income: false,
     label: "Amount",
     minorUnits: 2,
     onChange: () => {},
@@ -88,18 +87,6 @@ describe("transactionFormAmountPad", () => {
         expect(pad?.props.minorUnits).toBe(0);
         expect(pad?.props.code).toBe("JPY");
         expect(pad?.props.onChange).toBe(onChange);
-    });
-
-    it("tints the keypad for income", async () => {
-        const { toJSON } = await render(<TransactionFormAmountPad {...BASE} income />);
-        const pad = findByType(toJSON() as JsonNode, "AmountNumpad");
-        expect(pad?.props.toneClass).toContain("income");
-    });
-
-    it("leaves the keypad untinted for an expense", async () => {
-        const { toJSON } = await render(<TransactionFormAmountPad {...BASE} income={false} />);
-        const pad = findByType(toJSON() as JsonNode, "AmountNumpad");
-        expect(pad?.props.toneClass).not.toContain("income");
     });
 
     // Docked, the pad has no sheet chrome to say what it is entering, and the

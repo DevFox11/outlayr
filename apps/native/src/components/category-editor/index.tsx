@@ -28,7 +28,7 @@ import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { IdentityCurtain } from "@/components/identity-curtain";
 import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
 import { Text } from "@/components/text";
-import { useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
+import { EMPTY_DRAFT, useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useCategoriesByNamespace } from "@/data/categories";
 import { CATEGORY_PALETTE, categoriesRepo, getCategoryById } from "@/data/categories-core";
@@ -214,13 +214,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
         if (mode !== "create") {
             return;
         }
-        setDraft({
-            color: null,
-            emoji: null,
-            icon: null,
-            photoColor: null,
-            photoUri: null,
-        });
+        setDraft(EMPTY_DRAFT);
     }, [mode, setDraft]);
 
     // Seeded with the raw icon/emoji, not the resolved fallback, so an unknown
@@ -238,13 +232,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
                       photoColor: null,
                       photoUri: null,
                   }
-                : {
-                      color: null,
-                      emoji: null,
-                      icon: null,
-                      photoColor: null,
-                      photoUri: null,
-                  }
+                : EMPTY_DRAFT
         );
     }, [mode, loaded, setDraft]);
 
@@ -390,13 +378,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
         // auto-color effect assigns the first free slot AFTER this insert has
         // landed, where a value chosen now comes from the pre-insert set.
         setColorTouched(false);
-        setDraft({
-            color: null,
-            emoji: null,
-            icon: null,
-            photoColor: null,
-            photoUri: null,
-        });
+        setDraft(EMPTY_DRAFT);
         flashAdded();
     };
 
@@ -497,15 +479,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
                 income={income}
                 onLayout={(e) => setHeroBand(e.nativeEvent.layout.height)}
                 onPress={openPicker}
-                onReset={() =>
-                    setDraft({
-                        color: null,
-                        emoji: null,
-                        icon: null,
-                        photoColor: null,
-                        photoUri: null,
-                    })
-                }
+                onReset={() => setDraft(EMPTY_DRAFT)}
                 photoUri={null}
                 variant="category"
             />

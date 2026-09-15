@@ -29,7 +29,7 @@ import { shallowEqual } from "@/components/form/shallow-equal";
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { SubscribeFields } from "@/components/form/subscribe-fields";
 import { useAppSettings, useSettingBool } from "@/contexts/display-settings-context";
-import { useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
+import { EMPTY_DRAFT, useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
 import { useAccounts } from "@/data/accounts";
 import { getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
@@ -1894,7 +1894,6 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     code={currency}
                     footer={stageFooter(amountNumber, merchant)}
                     forward={stage.forward}
-                    income={income}
                     label={t("transaction.field.amount")}
                     minorUnits={minorUnits}
                     onChange={(next) => {
@@ -1936,13 +1935,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const clearIdentity = () => {
         setIdentitySource("user");
         markTouched("identity");
-        setIdentity({
-            color: null,
-            emoji: null,
-            icon: null,
-            photoColor: null,
-            photoUri: null,
-        });
+        setIdentity(EMPTY_DRAFT);
     };
 
     return (

@@ -31,7 +31,7 @@ import { IdentityCurtain } from "@/components/identity-curtain";
 import { HERO_RING, IdentityFlyUpLayer } from "@/components/identity-fly-up";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useAppSettings } from "@/contexts/display-settings-context";
-import { useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
+import { EMPTY_DRAFT, useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { accountsRepo, getAccountById } from "@/data/accounts-core";
 import type { Account } from "@/data/accounts-core";
@@ -203,13 +203,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
         if (mode !== "create") {
             return;
         }
-        setDraft({
-            color: null,
-            emoji: null,
-            icon: null,
-            photoColor: null,
-            photoUri: null,
-        });
+        setDraft(EMPTY_DRAFT);
     }, [mode, setDraft]);
 
     useEffect(() => {
@@ -225,13 +219,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                       photoColor: loaded.imageColor ?? null,
                       photoUri: loaded.imageUri ?? null,
                   }
-                : {
-                      color: null,
-                      emoji: null,
-                      icon: null,
-                      photoColor: null,
-                      photoUri: null,
-                  }
+                : EMPTY_DRAFT
         );
     }, [mode, loaded, setDraft]);
 

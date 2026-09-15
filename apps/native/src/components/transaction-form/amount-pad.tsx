@@ -18,7 +18,6 @@ interface TransactionFormAmountPadProps {
     footer?: StageFooter;
     /** Direction of travel, passed straight to the stage — see its own `forward`. */
     forward?: boolean;
-    income: boolean;
     /** Named above the keys, so the stage says what it is entering. */
     label: string;
     minorUnits: number;
@@ -55,7 +54,6 @@ export function TransactionFormAmountPad({
     code,
     footer,
     forward,
-    income,
     label,
     minorUnits,
     mode,
@@ -101,7 +99,6 @@ export function TransactionFormAmountPad({
             mode={mode}
             onChange={onChange}
             showDisplay={false}
-            toneClass={income ? "text-income" : "text-foreground"}
             value={value}
         />
     );

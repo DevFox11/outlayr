@@ -148,46 +148,39 @@ export function PickerRow<T extends string | number | boolean>({
 }) {
     const colors = useColors();
     return (
-        <View className="border-border border-b py-3.5">
-            <View className="flex-row items-center gap-3">
-                <HugeiconsIcon color={colors.foreground} icon={settingsIcon(icon)} size={GLYPH} strokeWidth={1.9} />
-                <Text className="text-body text-foreground flex-1" numberOfLines={1}>
-                    {title}
-                </Text>
-                <Host matchContents>
-                    <Picker
-                        modifiers={[pickerStyle("menu"), tint(colors.muted)]}
-                        onSelectionChange={(next) => {
-                            const picked = options.find((option) => String(option.value) === next);
-                            if (picked) {
-                                onChange(picked.value);
-                            }
-                        }}
-                        selection={String(value)}
-                    >
-                        {options.map((option) => {
-                            const key = String(option.value);
-                            if (tintedLabelAvailable && option.swatch) {
-                                return (
-                                    <TintedLabel
-                                        color={option.swatch}
-                                        key={key}
-                                        modifiers={[tag(key)]}
-                                        title={option.label}
-                                    />
-                                );
-                            }
+        <RowShell detail={detail} icon={icon} title={title}>
+            <Host matchContents>
+                <Picker
+                    modifiers={[pickerStyle("menu"), tint(colors.muted)]}
+                    onSelectionChange={(next) => {
+                        const picked = options.find((option) => String(option.value) === next);
+                        if (picked) {
+                            onChange(picked.value);
+                        }
+                    }}
+                    selection={String(value)}
+                >
+                    {options.map((option) => {
+                        const key = String(option.value);
+                        if (tintedLabelAvailable && option.swatch) {
                             return (
-                                <NativeText key={key} modifiers={[tag(key)]}>
-                                    {option.label}
-                                </NativeText>
+                                <TintedLabel
+                                    color={option.swatch}
+                                    key={key}
+                                    modifiers={[tag(key)]}
+                                    title={option.label}
+                                />
                             );
-                        })}
-                    </Picker>
-                </Host>
-            </View>
-            {detail ? <Text className={cn(TITLE_INSET, "text-muted text-subtitle leading-snug")}>{detail}</Text> : null}
-        </View>
+                        }
+                        return (
+                            <NativeText key={key} modifiers={[tag(key)]}>
+                                {option.label}
+                            </NativeText>
+                        );
+                    })}
+                </Picker>
+            </Host>
+        </RowShell>
     );
 }
 

@@ -43,7 +43,8 @@ interface IdentityFlyUpValue {
     sheetHeight: SharedValue<number>;
 }
 
-const EMPTY_DRAFT: IdentitySelection = {
+/** An identity with nothing chosen — what an editor opens on and resets to. */
+export const EMPTY_DRAFT: IdentitySelection = {
     color: null,
     emoji: null,
     icon: null,
