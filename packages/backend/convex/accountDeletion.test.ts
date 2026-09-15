@@ -2,9 +2,10 @@
 
 import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
+import type { TestConvex } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { api } from "./_generated/api";
+import { api, components } from "./_generated/api";
 import { consumeGoogleLocalReceipt } from "./accountDeletion";
 import type { DeletionJob } from "./accountDeletion";
 import { sha256Hex } from "./lib/sha256Hex";
@@ -126,5 +127,68 @@ describe("billing erasure", () => {
 
         await expect(t.query(api.accountDeletion.poll, { resumeSecret })).resolves.toMatchObject({ phase: "purged" });
         await expect(t.run((ctx) => isPro(ctx, owner.userId))).resolves.toBeTruthy();
+    });
+});
+
+interface AuthRow {
+    _id: string;
+    userId?: string;
+}
+
+function authRows(t: TestConvex<typeof schema>, model: "account" | "session" | "user", userId: string) {
+    return t.run(async (ctx) => {
+        const page = (await ctx.runQuery(components.betterAuth.adapter.findMany, {
+            model,
+            paginationOpts: { cursor: null, numItems: 100 },
+            where: [{ field: model === "user" ? "_id" : "userId", operator: "eq", value: userId }],
+        })) as { page: AuthRow[] };
+        return page.page;
+    });
+}
+
+async function linkAppleAccount(t: TestConvex<typeof schema>, userId: string) {
+    const now = Date.now();
+    await t.run((ctx) =>
+        ctx.runMutation(components.betterAuth.adapter.create, {
+            input: {
+                data: {
+                    accessToken: "apple-access-token",
+                    accountId: "apple-subject",
+                    createdAt: now,
+                    providerId: "apple",
+                    refreshToken: "apple-refresh-token",
+                    updatedAt: now,
+                    userId,
+                },
+                model: "account",
+            },
+        })
+    );
+}
+
+describe("auth deletion", () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    test("erases the user, its sessions and its OAuth links, then reports complete", async () => {
+        stubUpstream(200);
+        const { owner, resumeSecret, t } = await purgedJob();
+        await linkAppleAccount(t, owner.userId);
+        await t.action(api.accountDeletion.eraseBilling, { resumeSecret });
+        await expect(t.mutation(api.accountDeletion.advance, { resumeSecret })).resolves.toMatchObject({
+            phase: "authDeleting",
+        });
+
+        await expect(t.mutation(api.accountDeletion.advance, { resumeSecret })).resolves.toMatchObject({
+            phase: "complete",
+        });
+
+        await expect(authRows(t, "user", owner.userId)).resolves.toHaveLength(0);
+        await expect(authRows(t, "session", owner.userId)).resolves.toHaveLength(0);
+        await expect(authRows(t, "account", owner.userId)).resolves.toHaveLength(0);
+        await expect(t.query(api.accountDeletion.poll, { resumeSecret })).resolves.toMatchObject({
+            phase: "complete",
+        });
     });
 });

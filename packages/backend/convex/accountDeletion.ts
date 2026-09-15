@@ -3,13 +3,14 @@ import { ConvexError, v } from "convex/values";
 
 import { components, internal } from "./_generated/api";
 import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
-import type { QueryCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { purgeUserBatch } from "./account";
 import { requireUserId } from "./lib/auth";
 import { sha256Hex } from "./lib/sha256Hex";
 import { eraseUpstreamCustomer, revenuecat } from "./revenuecat";
 
 const DELETE_JOB_TTL_MS = 24 * 60 * 60 * 1000;
+const AUTH_DELETE_PAGE = 100;
 
 type DeletionProvider = "appleServerRevoked" | "googleLocalReceipt" | null;
 export type DeletionPhase = "prepared" | "providersRevoked" | "purged" | "billingErased" | "authDeleting" | "complete";
@@ -144,6 +145,32 @@ export const recordAppleRevocation = mutation({
     },
 });
 
+/**
+ * Removes every row Better Auth holds for a user in one table. Its own user
+ * cascade is off (`auth.ts` disables `deleteUser`), so `session` — and `account`,
+ * which carries the provider subject and its OAuth tokens — are this flow's to
+ * delete. `deleteMany` deletes a single page per call, so the cursor has to be
+ * followed to the end or the rest survive the erasure.
+ */
+async function deleteAuthRows(ctx: MutationCtx, model: "account" | "session", userId: string): Promise<void> {
+    let cursor: string | null = null;
+    let done = false;
+    /* oxlint-disable no-await-in-loop -- each page's cursor is the next request's argument */
+    while (!done) {
+        // SAFETY: as in the `deleteOne` call in `advance`.
+        const page = (await ctx.runMutation(
+            components.betterAuth.adapter.deleteMany as never,
+            {
+                input: { model, where: [{ field: "userId", operator: "eq", value: userId }] },
+                paginationOpts: { cursor, numItems: AUTH_DELETE_PAGE },
+            } as never
+        )) as { continueCursor: string; isDone: boolean };
+        done = page.isDone;
+        cursor = page.continueCursor;
+    }
+    /* oxlint-enable no-await-in-loop */
+}
+
 export const advance = mutation({
     args: { resumeSecret: v.string() },
     handler: async (ctx, args) => {
@@ -176,26 +203,17 @@ export const advance = mutation({
             await ctx.db.patch(job._id, { phase: "authDeleting" });
             return publicStatus({ ...job, phase: "authDeleting" });
         }
-        try {
-            // SAFETY: the better-auth component types its mutation references
-            // against its own generated api, which this app does not import. The
-            // `input` shape below is the adapter's documented one.
-            await ctx.runMutation(
-                components.betterAuth.adapter.deleteOne as never,
-                {
-                    input: { model: "user", where: [{ field: "_id", operator: "eq", value: job.userId }] },
-                } as never
-            );
-        } finally {
-            // SAFETY: as in the `deleteOne` call above.
-            await ctx.runMutation(
-                components.betterAuth.adapter.deleteMany as never,
-                {
-                    input: { model: "session", where: [{ field: "userId", operator: "eq", value: job.userId }] },
-                    paginationOpts: {},
-                } as never
-            );
-        }
+        await deleteAuthRows(ctx, "session", job.userId);
+        await deleteAuthRows(ctx, "account", job.userId);
+        // SAFETY: the better-auth component types its mutation references
+        // against its own generated api, which this app does not import. The
+        // `input` shape below is the adapter's documented one.
+        await ctx.runMutation(
+            components.betterAuth.adapter.deleteOne as never,
+            {
+                input: { model: "user", where: [{ field: "_id", operator: "eq", value: job.userId }] },
+            } as never
+        );
         await ctx.db.patch(job._id, { phase: "complete", userId: null });
         return { errorCode: null, phase: "complete" as const };
     },
