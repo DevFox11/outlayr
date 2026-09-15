@@ -46,6 +46,9 @@ async function reconcileSubscriptionReminders(db: Database): Promise<void> {
         readBoolSetting(db, "subscriptionReminders"),
         reminderPermission(),
     ]);
+    if (enabled && permission === "unknown") {
+        return;
+    }
     const decision = reminderReconcile(enabled, permission);
     const armed = decision === "schedule" ? await pendingReminderPlan(db, new Date(), await readReminderTime(db)) : [];
 

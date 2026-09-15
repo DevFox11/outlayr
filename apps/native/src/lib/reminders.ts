@@ -30,7 +30,8 @@ function toPermission(result: NotificationPermissionsStatus): ReminderPermission
 export async function reminderPermission(): Promise<ReminderPermission> {
     try {
         return toPermission(await getPermissionsAsync());
-    } catch {
+    } catch (error) {
+        console.warn("[outlayr] notification permission read failed", error);
         return "unknown";
     }
 }
@@ -42,7 +43,8 @@ export async function requestReminderPermission(): Promise<ReminderPermission> {
                 ios: { allowAlert: true, allowBadge: true, allowSound: true },
             })
         );
-    } catch {
+    } catch (error) {
+        console.warn("[outlayr] notification permission request failed", error);
         return "unknown";
     }
 }
