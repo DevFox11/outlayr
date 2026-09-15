@@ -25,11 +25,7 @@ export interface BuiltCatalog {
  * `CURRENCY_DECIMALS` literal type support. A provider currency outside this set
  * (e.g. a 4-digit accounting unit like CLF) must fail the build loudly rather
  * than ship an exponent the rounding path cannot express.
- *
- * 6 exists for the metals. CLDR has no fraction entry for XAU/XAG/XPT/XPD, so
- * they silently took the DEFAULT of 2 — quantizing gold to 0.01 troy oz, a ~$35
- * step. `$10` of gold rounded to `0`, and `$100` to `0.03 XAU`, which is `$105`
- * back at the same rate. Six matches the engine's own USD_SCALE.
+ * 6 is the metals (XAU/XAG/XPT/XPD), which CLDR leaves unset.
  */
 const ALLOWED_DECIMALS = new Set<number>([0, 2, 3, 6]);
 

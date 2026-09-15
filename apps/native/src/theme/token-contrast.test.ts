@@ -138,15 +138,6 @@ const WHITE_TEXT_SITES = [
     "screens/log/components/swipeable-transaction-row.tsx",
 ] as const;
 
-/**
- * The AA guard below once carried four exemptions: dark `--surface` was #3a3a3c,
- * an iOS elevated grey 3.6x the luminance of every other dark plane, and
- * `--subtle`, `--tint`, `--danger` and `--over-budget` were iOS system colours
- * that could not clear 4.5:1 against it without being replaced by pastels. The
- * paper theme re-derived that ground to #2a251b and all four now pass, so the
- * list, the skip it fed, and the three tests that policed it are gone. Git has
- * them if a pair ever has to be held open again.
- */
 function pairKey(theme: Theme, token: string, ground: string): string {
     return `${theme}: --${token} on --${ground}`;
 }
