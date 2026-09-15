@@ -10,7 +10,7 @@ import type { Valuation } from "@/data/valuation-source";
 import { budgets as budgetsTable, categories as categoriesTable, transactions as transactionsTable } from "@/db/schema";
 import { advanceBudgetWindow } from "@/domain/budget-math";
 import { formatDayHeader } from "@/domain/dates";
-import { formatAmount } from "@/domain/money";
+import { formatAmount, minorUnitsFor } from "@/domain/money";
 import { limitIn } from "@/domain/valuation";
 import { CATALOGS, EN } from "@/i18n/catalog";
 import type { TranslatableKey } from "@/i18n/catalog";
@@ -131,7 +131,8 @@ async function indexTransactions(
             // Under its own code, never the ledger's: the Log row this result opens
             // prints the stored amount unconverted and marks the foreign code beside
             // it, so converting here would disagree with the screen it deep-links to.
-            const amount = money(row.amount, row.currency ?? valuation.displayCurrency);
+            const code = row.currency ?? valuation.displayCurrency;
+            const amount = money(row.amount, code);
             return {
                 // What the row says on the Log, in the order the Log says it.
                 contentDescription: [row.income ? `+${amount}` : amount, category, formatDayHeader(row.date, now)]
@@ -139,9 +140,13 @@ async function indexTransactions(
                     .join(" · "),
                 domainIdentifier: TRANSACTION_DOMAIN,
                 keywords: [
-                    // The amount is included unformatted so "12.40" finds the coffee.
-                    ...[row.note, category, row.details, String(row.amount)].filter((value): value is string =>
-                        Boolean(value)
+                    // At the currency's minor units, not `String(row.amount)`: the
+                    // column is major units, so a €12.40 coffee is stored as 12.4 and
+                    // indexed the same way — and "12.40", which is what the Log row
+                    // above prints, then matched nothing. Spotlight matches keywords
+                    // by token prefix, so the padded form still answers to "12".
+                    ...[row.note, category, row.details, row.amount.toFixed(minorUnitsFor(code))].filter(
+                        (value): value is string => Boolean(value)
                     ),
                     ...(row.income ? incomeKeywords : expenseKeywords),
                 ],
