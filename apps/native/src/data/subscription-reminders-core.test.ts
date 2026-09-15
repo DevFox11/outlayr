@@ -28,6 +28,7 @@ interface CarrierOverrides {
     deletedAt?: Date | null;
     id?: string;
     note?: string;
+    recurringAnchorDay?: number | null;
     recurringCoefficient?: number;
     recurringEndDate?: Date | null;
     recurringType?: number;
@@ -49,6 +50,7 @@ async function seedCarrier(db: Database, overrides: CarrierOverrides): Promise<s
         month: startOfDay(overrides.date),
         note: overrides.note ?? "Netflix",
         onceRecurring: true,
+        recurringAnchorDay: overrides.recurringAnchorDay ?? null,
         recurringCoefficient: overrides.recurringCoefficient ?? 1,
         recurringEndDate: overrides.recurringEndDate ?? null,
         recurringType: overrides.recurringType ?? RECURRING_TYPE.monthly,
@@ -96,6 +98,16 @@ describe("reminderCandidates", () => {
         expect(candidate?.landing.getHours()).toBe(0);
         expect(candidate?.landing.getMinutes()).toBe(0);
         expect(candidate?.landing.getTime()).toBe(at(2025, 7, 15).getTime());
+    });
+
+    it("advances from the day the chain was written for, not the short month it was clamped into", async () => {
+        // 31 Jan monthly, clamped to 28 Feb by the backfill, which recorded the
+        // anchor it was clamped from. March has a 31st, so the charge goes back.
+        await seedCarrier(db, { date: at(2025, 2, 28), recurringAnchorDay: 31, reminderLeadDays: 0 });
+
+        const [candidate] = await reminderCandidates(db, at(2025, 3, 5));
+
+        expect(candidate?.landing).toStrictEqual(at(2025, 3, 31));
     });
 
     it("keeps a future-dated pending charge as its own landing", async () => {

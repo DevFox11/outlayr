@@ -8,7 +8,7 @@ import { withTransaction } from "@/db/transaction";
 import { canonicalUsd } from "@/domain/canonical-usd";
 import { firstOfMonth, startOfDay } from "@/domain/dates";
 import { DEFAULT_CURRENCY } from "@/domain/money";
-import { nextDate, nextLanding, RECURRING_TYPE } from "@/domain/recurrence";
+import { RECURRING_TYPE, anchorDayOf, nextDate, nextLanding } from "@/domain/recurrence";
 import { uuidV5 } from "@/domain/uuid5";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
@@ -126,10 +126,6 @@ export async function insertOccurrences(
         // the backfill matches the row against.
         await rememberLogoCandidates(db, ids, now.getTime(), LOGO_CANDIDATE_KEEP_MS);
     }
-}
-
-function anchorDayOf(source: TransactionRow): number {
-    return source.recurringAnchorDay ?? source.date.getDate();
 }
 
 function occurrenceRow(source: TransactionRow, holding: Date, carriesSchedule: boolean, now: Date): TransactionInsert {

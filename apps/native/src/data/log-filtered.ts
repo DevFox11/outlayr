@@ -6,7 +6,7 @@ import { transactions } from "@/db/schema";
 import { addDays, startOfDay } from "@/domain/dates";
 import type { LogFilter } from "@/domain/log-filter";
 import { cursorEnd, cursorStart } from "@/domain/log-period-cursor";
-import { nextDate } from "@/domain/recurrence";
+import { anchorDayOf, nextDate } from "@/domain/recurrence";
 
 import { useCategoryMeta } from "./categories";
 import { useLiveQuery } from "./live-query";
@@ -204,5 +204,9 @@ export function landingDate(row: TransactionWithCategory, now: Date): Date {
     if (row.date.getTime() > now.getTime()) {
         return row.date;
     }
-    return nextDate(row.day ?? row.date, row.recurringType, row.recurringCoefficient ?? 1) ?? row.date;
+    // From the instant's own day, not the stored `day`: that is midnight in the
+    // writing device's zone and can read as the day before on this one.
+    return (
+        nextDate(startOfDay(row.date), row.recurringType, row.recurringCoefficient ?? 1, anchorDayOf(row)) ?? row.date
+    );
 }

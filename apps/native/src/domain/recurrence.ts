@@ -41,6 +41,17 @@ export function addMonths(date: Date, n: number, anchorDay: number): Date {
     return d;
 }
 
+/**
+ * The day of the month a schedule was written for.
+ *
+ * A carrier clamped into a short month — 31 Jan advancing to 28 Feb — has to
+ * keep advancing from 31, so every projection of the same chain has to ask for
+ * this rather than read the day off the row it happens to be standing on.
+ */
+export function anchorDayOf(source: { date: Date; recurringAnchorDay: number | null }): number {
+    return source.recurringAnchorDay ?? source.date.getDate();
+}
+
 function normalizeAnchor(anchorDay: number | null | undefined, from: Date) {
     if (anchorDay == null) {
         return from.getDate();

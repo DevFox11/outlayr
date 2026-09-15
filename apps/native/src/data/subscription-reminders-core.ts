@@ -3,7 +3,7 @@ import { and, gt, isNotNull, isNull } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { DEFAULT_CURRENCY } from "@/domain/money";
-import { nextLanding, RECURRING_TYPE } from "@/domain/recurrence";
+import { anchorDayOf, nextLanding, RECURRING_TYPE } from "@/domain/recurrence";
 import type { TimeOfDay } from "@/domain/reminder";
 import { reminderPlan } from "@/domain/subscription-reminder";
 import type { ArmedReminder, ReminderCandidate } from "@/domain/subscription-reminder";
@@ -21,11 +21,15 @@ export interface SubscriptionReminderCandidate extends ReminderCandidate {
 const CANDIDATE_COLUMNS = {
     amount: transactions.amount,
     currency: transactions.currency,
+    // Only the anchor's fallback: `recurringAnchorDay` is what the projection
+    // actually advances from.
+    date: transactions.date,
     // `day` and not `date`: the schedule advances in whole days, and a carrier's
     // `date` still carries the clock time of the charge it last took.
     day: transactions.day,
     id: transactions.id,
     note: transactions.note,
+    recurringAnchorDay: transactions.recurringAnchorDay,
     recurringCoefficient: transactions.recurringCoefficient,
     recurringEndDate: transactions.recurringEndDate,
     recurringType: transactions.recurringType,
@@ -62,7 +66,14 @@ export async function reminderCandidates(db: Database, now: Date): Promise<Subsc
     const ledgerCurrency = (await getMeta(db, META_KEYS.currency)) ?? DEFAULT_CURRENCY;
 
     return rows.flatMap((row) => {
-        const landing = nextLanding(row.day, row.recurringType, row.recurringCoefficient, row.recurringEndDate, now);
+        const landing = nextLanding(
+            row.day,
+            row.recurringType,
+            row.recurringCoefficient,
+            row.recurringEndDate,
+            now,
+            anchorDayOf(row)
+        );
         // A chain that has run past its end date has no charge left to announce.
         if (landing == null) {
             return [];

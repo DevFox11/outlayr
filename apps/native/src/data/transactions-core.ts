@@ -54,7 +54,9 @@ export const LOG_COLUMNS = {
     income: transactions.income,
     note: transactions.note,
     // Upcoming projects each scheduled entry forward, which needs the interval as
-    // well as the cadence.
+    // well as the cadence, and the day the chain was written for — a carrier
+    // clamped into February still lands on the 31st in March.
+    recurringAnchorDay: transactions.recurringAnchorDay,
     recurringCoefficient: transactions.recurringCoefficient,
     // And the end, or a schedule the owner has already stopped keeps counting
     // toward what their subscriptions cost a month.

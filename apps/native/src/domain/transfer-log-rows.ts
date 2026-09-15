@@ -35,6 +35,7 @@ export interface TransferLogRow {
     imageUri: null;
     income: boolean;
     note: string;
+    recurringAnchorDay: number | null;
     recurringCoefficient: number;
     recurringEndDate: null;
     recurringType: number;
@@ -73,6 +74,7 @@ export function toTransferLogRow(
         imageUri: null,
         income: false,
         note: transfer.note === "" ? `${from} → ${to}` : transfer.note,
+        recurringAnchorDay: null,
         recurringCoefficient: 1,
         recurringEndDate: null,
         recurringType: 0,
