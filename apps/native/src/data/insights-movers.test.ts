@@ -41,10 +41,6 @@ describe("runningTotals", () => {
         const series = Array.from({ length: 31 }, (_, index) =>
             bucket(index === 11 || index === 25 ? 248_200 : -2500, index + 1)
         );
-        const perSlot = series.map((b) => b.value);
-        const slotSpan = Math.max(...perSlot) - Math.min(...perSlot);
-        expect(2500 / slotSpan < 0.01).toBeTruthy();
-
         const totals = runningTotals(series);
         const runSpan = Math.max(...totals) - Math.min(...totals);
         expect(2500 / runSpan > 0.005).toBeTruthy();

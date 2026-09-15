@@ -202,7 +202,9 @@ describe("backfillRecurring", () => {
 
         await backfillRecurring(db, id, NOW);
 
-        for (const row of await generatedRows(db, id)) {
+        const generated = await generatedRows(db, id);
+        expect(generated.length).toBeGreaterThan(0);
+        for (const row of generated) {
             expect(row).toMatchObject({
                 accountId: "account-1",
                 amountUsd: null,
@@ -256,7 +258,9 @@ describe("backfillRecurring", () => {
         await backfillRecurring(db, id, NOW);
 
         const candidates = await candidateLogoIds(db);
-        for (const row of await generatedRows(db, id)) {
+        const generated = await generatedRows(db, id);
+        expect(generated.length).toBeGreaterThan(0);
+        for (const row of generated) {
             expect(candidates.has(row.id)).toBeFalsy();
         }
     });
@@ -315,7 +319,9 @@ describe("backfillRecurring", () => {
             await seedRate(db, "EUR", "official", date, 0.8);
         }
         await backfillRecurring(db, id, NOW);
-        for (const row of await generatedRows(db, id)) {
+        const generated = await generatedRows(db, id);
+        expect(generated.length).toBeGreaterThan(0);
+        for (const row of generated) {
             expect(row.exchangeRateType).toBe("eur_reference");
         }
     });
@@ -442,7 +448,9 @@ describe("backfillRecurring", () => {
 
         await backfillRecurring(db, id, NOW);
 
-        for (const row of await generatedRows(db, id)) {
+        const generated = await generatedRows(db, id);
+        expect(generated.length).toBeGreaterThan(0);
+        for (const row of generated) {
             expect(row.reminderLeadDays).toBeNull();
         }
     });

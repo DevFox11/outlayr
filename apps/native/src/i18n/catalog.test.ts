@@ -13,9 +13,17 @@ function placeholders(template: string): Set<string> {
 }
 
 describe("catalog parity", () => {
-    it("ships a catalog for every supported language", () => {
+    // Every other test here compares the two catalogs against each other, so an
+    // empty pair agrees with itself and all of them pass while the app renders
+    // raw keys. A dictionary that fails to resolve contributes nothing rather
+    // than throwing, which is exactly the shape a stale `.intlayer/` takes.
+    it("ships a populated catalog for every supported language, from every dictionary", () => {
         for (const language of SUPPORTED_LANGUAGES) {
-            expect(CATALOGS[language]).toBeTruthy();
+            const catalog = CATALOGS[language];
+            expect(Object.keys(catalog).length).toBeGreaterThan(500);
+            for (const dictionary of DICTIONARY_KEYS) {
+                expect(Object.keys(getIntlayer(dictionary, language)).length).toBeGreaterThan(0);
+            }
         }
     });
 

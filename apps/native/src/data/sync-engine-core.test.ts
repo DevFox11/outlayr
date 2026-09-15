@@ -1064,7 +1064,9 @@ describe("two devices against one account", () => {
         await expect(outboxPendingCount(beta)).resolves.toBe(0);
         await expect(alpha.select().from(transactions)).resolves.toHaveLength(2);
         await expect(beta.select().from(transactions)).resolves.toHaveLength(2);
-        await expect(getSyncCursor(alpha)).resolves.toBe(await getSyncCursor(beta));
+        const settled = await getSyncCursor(alpha);
+        expect(settled).toBeGreaterThan(0);
+        await expect(getSyncCursor(beta)).resolves.toBe(settled);
     });
 
     it("stops rather than looping when a page does not advance the cursor", async () => {
