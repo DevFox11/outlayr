@@ -23,7 +23,6 @@ import { translateNow } from "@/i18n/runtime";
 import { DEEP_LINKS } from "@/lib/deep-links";
 
 import { WIDGET_PALETTE } from "./palette";
-import type { WidgetPalette } from "./palette";
 
 /**
  * A widget renders in whatever appearance the home screen is in, which is not
@@ -31,12 +30,7 @@ import type { WidgetPalette } from "./palette";
  * layout — so the layout is handed both sides and picks. See `palette.ts` for
  * why the colours travel as data at all.
  */
-interface WidgetChrome {
-    dark: WidgetPalette;
-    light: WidgetPalette;
-}
-
-const CHROME: WidgetChrome = WIDGET_PALETTE;
+type WidgetChrome = typeof WIDGET_PALETTE;
 
 /** What a large widget holds at the Log's row rhythm; medium takes the first 3. */
 const LEDGER_LIMIT = 8;
@@ -301,7 +295,7 @@ export async function buildWidgetProps(db: SpendDb, now: Date = new Date()): Pro
     return {
         Budget: await buildBudget(db, now, contributions, categoriesById, money, whole, valuation),
         Insights: {
-            chrome: CHROME,
+            chrome: WIDGET_PALETTE,
             defaultPeriod: period,
             windows: {
                 month: buildInsights(contributions, categoriesById, "month", now, calendar, money),
@@ -311,7 +305,7 @@ export async function buildWidgetProps(db: SpendDb, now: Date = new Date()): Pro
         },
         Ledger: await buildLedger(db, now, categoriesById, money, entryMoney, contributions, calendar),
         Log: {
-            chrome: CHROME,
+            chrome: WIDGET_PALETTE,
             todayLabel: translateNow("common.today").toUpperCase(),
             todaySpent: money(sumExpenses(contributions, startOfDay(now), now, null)),
             url: DEEP_LINKS.newExpense,
@@ -406,7 +400,7 @@ async function buildBudget(
     }
 
     return {
-        chrome: CHROME,
+        chrome: WIDGET_PALETTE,
         views: { auto: overall.present ? overall : worst, overall, worst },
     };
 
@@ -501,11 +495,6 @@ async function buildIntentBudgets(
     return out;
 }
 
-/**
- * Mirrors `spentForCategory` / `spentForMain` over the insights contribution
- * set, which already carries every row's `parentId`. A null `categoryId` is the
- * overall budget, which every expense feeds.
- */
 /** The income counterpart of {@link sumExpenses}, unscoped by category. */
 function sumIncome(rows: readonly Contribution[], start: Date, now: Date): number {
     const startMs = start.getTime();
@@ -567,7 +556,7 @@ async function buildLedger(
         .limit(LEDGER_LIMIT);
 
     return {
-        chrome: CHROME,
+        chrome: WIDGET_PALETTE,
         entries: rows.map((row) => {
             const category = row.categoryId ? categoriesById.get(row.categoryId) : undefined;
             return {

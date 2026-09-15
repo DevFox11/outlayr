@@ -31,14 +31,12 @@ const LedgerWidget = (props: LedgerWidgetProps, environment: WidgetEnvironment<L
         props.headers[environment.configuration?.period ?? "today"]?.[environment.configuration?.measure ?? "spent"] ??
         props.headers.today.spent;
     const family = environment.widgetFamily;
+    const limit = family === "systemMedium" ? 3 : 8;
+
     // Declared inside the body, not at module scope: babel stringifies this
     // function and the extension evaluates it in a bare `JSContext`, where a
-    // module-level constant resolves to nothing. It fails as a render-time
+    // module-level helper resolves to nothing. It fails as a render-time
     // `ReferenceError` on the tile, never at build time.
-    const mediumRows = 3;
-    const accessoryRows = 3;
-    const limit = family === "systemMedium" ? mediumRows : 8;
-
     const signed = (entry: LedgerEntryProps) => (entry.income ? `+${entry.amount}` : entry.amount);
 
     // Lock Screen families render vibrant: one tint, no background, a couple of
@@ -54,7 +52,7 @@ const LedgerWidget = (props: LedgerWidgetProps, environment: WidgetEnvironment<L
     }
 
     if (family === "accessoryRectangular") {
-        const recent = props.entries.slice(0, accessoryRows);
+        const recent = props.entries.slice(0, 3);
         if (recent.length === 0) {
             return (
                 <Text modifiers={[font({ design: "rounded", size: 14, weight: "medium" }), widgetURL(props.url)]}>
