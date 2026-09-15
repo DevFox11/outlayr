@@ -12,11 +12,9 @@
         "eas-build-post-install": "intlayer build",
         "gen:app-icon-previews": "node --import tsx scripts/generate-app-icon-previews.ts",
         "gen:icons": "node --import tsx scripts/generate-icons.ts",
-        "gen:symbolsets": "node --import tsx scripts/generate-symbolsets.ts",
         "i18n:build": "intlayer build",
         "i18n:test": "intlayer test",
         "ios": "expo run:ios",
-        "prebuild": "expo prebuild",
         "sim": "serve-sim",
         "start": "intlayer build && expo start",
         "test": "intlayer build && jest"

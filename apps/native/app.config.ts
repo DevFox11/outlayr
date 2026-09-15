@@ -168,15 +168,12 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
         usesAppleSignIn: true,
     },
     name: "Outlayr",
-    orientation: "default",
     owner: "danestves-llc",
     plugins: [
         "expo-router",
         "expo-localization",
         "expo-image",
         "expo-sqlite",
-        "expo-status-bar",
-        "expo-sharing",
         [
             "expo-build-properties",
             {
@@ -282,7 +279,6 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
         "./plugins/with-ui-scene.ts",
         "./plugins/with-min-pod-deployment-target.ts",
         "./plugins/with-extension-pods-root.ts",
-        ["./plugins/with-symbolsets.ts", { directory: "./assets/symbols" }],
     ],
     // Fingerprint, not appVersion: the custom config plugins and Apple targets
     // change native code without a version bump, and an update served to a
