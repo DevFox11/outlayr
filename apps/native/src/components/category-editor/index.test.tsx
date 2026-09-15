@@ -248,7 +248,9 @@ describe("categoryEditor", () => {
         });
 
         const hookOrderViolations = errorSpy.mock.calls.filter(([message]) =>
-            typeof message === "string" ? /Rendered (more|fewer) hooks/.test(message) : false
+            // React LOGS this wording. "Rendered more hooks" is what it THROWS,
+            // and `act` surfaces that on its own.
+            typeof message === "string" ? /change in the order of Hooks/.test(message) : false
         );
         expect(hookOrderViolations).toHaveLength(0);
         errorSpy.mockRestore();
@@ -276,7 +278,9 @@ describe("categoryEditor", () => {
         });
 
         const hookOrderViolations = errorSpy.mock.calls.filter(([message]) =>
-            typeof message === "string" ? /Rendered (more|fewer) hooks/.test(message) : false
+            // React LOGS this wording. "Rendered more hooks" is what it THROWS,
+            // and `act` surfaces that on its own.
+            typeof message === "string" ? /change in the order of Hooks/.test(message) : false
         );
         expect(hookOrderViolations).toHaveLength(0);
         errorSpy.mockRestore();
