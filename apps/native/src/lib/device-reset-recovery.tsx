@@ -22,6 +22,13 @@ export function DeviceResetRecovery({ children }: { children: ReactNode }) {
                 throw new Error("Local database is unavailable for device reset");
             }
             const database = db;
+            // Set only if the sweep actually reached the sqlite store, which it
+            // does only when a reset marker was waiting. Every ordinary launch
+            // recovers nothing, and reopening then would publish
+            // `status: "opening"` on a database that was just opened — which
+            // un-gates this component in `_layout`, remounts it, and recovers
+            // nothing again, forever.
+            let closed = false;
             const result = await createDeviceResetGate({
                 // Close only. `retry()` belongs after the whole sweep, not inside
                 // it: it publishes `status: "opening"`, which un-gates this
@@ -30,7 +37,10 @@ export function DeviceResetRecovery({ children }: { children: ReactNode }) {
                 // the delete loses to a locked file, or the reopen re-seeds a
                 // ledger while the remaining stores are still being erased. The
                 // sibling path in `settings/account` closes the same way.
-                closeDatabase: async () => await closeDatabase(database),
+                closeDatabase: async () => {
+                    closed = true;
+                    await closeDatabase(database);
+                },
                 completeCloudDeletion: async () => {
                     await resumePersistedCloudDeletion({ clearOnComplete: false, required: true });
                 },
@@ -38,9 +48,11 @@ export function DeviceResetRecovery({ children }: { children: ReactNode }) {
             if (result.failures.length > 0) {
                 throw new Error(`Device cleanup incomplete: ${result.failures.join(", ")}`);
             }
-            // The database file is gone, so the provider is holding a handle to
-            // nothing until this reopens it.
-            retry();
+            if (closed) {
+                // The database file is gone, so the provider is holding a handle
+                // to nothing until this reopens it.
+                retry();
+            }
             setReady(true);
         } catch (cause) {
             setError(cause instanceof Error ? cause : new Error(String(cause)));

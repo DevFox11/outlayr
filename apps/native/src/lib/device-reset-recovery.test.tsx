@@ -106,6 +106,24 @@ describe("deviceResetRecovery", () => {
         expect(mockRetry).toHaveBeenCalledTimes(1);
     });
 
+    it("does not reopen on an ordinary launch, when there was no reset to recover", () => {
+        // `recoverDeviceReset` returns early on a null marker, so nothing closes
+        // the database — and reopening the one just opened publishes
+        // `status: "opening"`, which un-gates this component and remounts it into
+        // the same no-op, forever.
+        mockRecover.mockResolvedValue({ failures: [] });
+        return render(
+            <DeviceResetRecovery>
+                <Text>ledger</Text>
+            </DeviceResetRecovery>
+        ).then(({ getByText }) =>
+            waitFor(() => {
+                expect(getByText("ledger")).toBeTruthy();
+                expect(mockRetry).not.toHaveBeenCalled();
+            })
+        );
+    });
+
     it("leaves the database closed when a store failed, rather than reopening onto a half-erased device", async () => {
         mockResumePersistedCloudDeletion.mockResolvedValue(true);
         mockRecover.mockImplementation(async () => {
