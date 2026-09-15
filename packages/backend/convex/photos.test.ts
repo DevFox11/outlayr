@@ -163,6 +163,19 @@ describe("requestUpload", () => {
         expect(key).toBe(photoKeyFor(owner.userId, PHOTO));
     });
 
+    // The quota reads every row the account owns, so it must not run for a name
+    // that was never going to be accepted.
+    test("rejects an unusable name without weighing the account first", async () => {
+        const t = harness();
+        const owner = await seedProUser(t);
+        await storeSize(t, photoKeyFor(owner.userId, "big.jpg"), PHOTO_QUOTA_BYTES);
+
+        // Both refusals are ConvexError, so the message is what says which ran.
+        await expect(
+            authenticatedAs(t, owner).mutation(api.photos.requestUpload, { name: "../other/a.jpg" })
+        ).rejects.toThrow("Not a photo file name");
+    });
+
     test("weighs only the caller's own photos", async () => {
         // The sum is indexed by user, so a stranger at the ceiling must not spend
         // this account's allowance.

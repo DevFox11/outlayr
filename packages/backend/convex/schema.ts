@@ -217,6 +217,10 @@ export default defineSchema({
         userId: v.string(),
     })
         .index("by_user", ["userId"])
+        // `bytes` second so the unconfirmed-upload cap is an index range rather
+        // than a post-index filter: without it, an account with nothing
+        // outstanding walks its whole photo history to learn that.
+        .index("by_user_and_bytes", ["userId", "bytes"])
         .index("by_key", ["key"]),
 
     /** A target on an account; progress is that account's balance. */

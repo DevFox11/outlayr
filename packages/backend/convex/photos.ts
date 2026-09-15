@@ -135,10 +135,12 @@ export const requestUpload = mutation({
     handler: async (ctx, args) => {
         const userId = await requireUserId(ctx);
         await requirePro(ctx, userId);
-        await checkPhotoQuota(ctx, userId);
+        // Before the quota, which reads every row this account owns. A name that
+        // was never going to be accepted should not cost that.
         if (!isPhotoName(args.name)) {
             throw new ConvexError(`Not a photo file name: ${args.name}`);
         }
+        await checkPhotoQuota(ctx, userId);
         const key = photoKeyFor(userId, args.name);
         await reserveUploadKey(ctx, userId, key);
         if (usingR2()) {
@@ -166,8 +168,7 @@ async function reserveUploadKey(ctx: MutationCtx, userId: string, key: string): 
     }
     const unweighed = await ctx.db
         .query("photoSizes")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .filter((q) => q.eq(q.field("bytes"), 0))
+        .withIndex("by_user_and_bytes", (q) => q.eq("userId", userId).eq("bytes", 0))
         .take(UNCONFIRMED_UPLOAD_LIMIT);
     if (unweighed.length >= UNCONFIRMED_UPLOAD_LIMIT) {
         throw new ConvexError({
