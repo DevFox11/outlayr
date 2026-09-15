@@ -23,16 +23,33 @@ describe("iconKeysMatching", () => {
         expect(iconKeysMatching("   ")).toStrictEqual(ALL_KEYS);
     });
 
+    // Each of these asserts an exclusion as well as a hit. Presence alone is
+    // satisfied by a superset, so `isMatch = true` — the picker filtering nothing
+    // and returning all 163 icons for every query — passed every one of them.
     it("matches on a keyword synonym", () => {
-        expect(iconKeysMatching("groceries").includes("ShoppingCart01")).toBeTruthy();
+        const keys = iconKeysMatching("groceries");
+        expect(keys).toContain("ShoppingCart01");
+        expect(keys).not.toContain("Airplane01");
     });
 
     it("matches on a name token", () => {
-        expect(iconKeysMatching("coffee").includes("Coffee02")).toBeTruthy();
+        const keys = iconKeysMatching("coffee");
+        expect(keys).toContain("Coffee02");
+        expect(keys).not.toContain("Car01");
     });
 
     it("ignores case and diacritics", () => {
-        expect(iconKeysMatching("CAFÉ").includes("Coffee02")).toBeTruthy();
+        const keys = iconKeysMatching("CAFÉ");
+        expect(keys).toContain("Coffee02");
+        expect(keys).not.toContain("Bus01");
+    });
+
+    it("narrows rather than reordering the whole catalog", () => {
+        expect(iconKeysMatching("coffee").length).toBeLessThan(ALL_KEYS.length);
+    });
+
+    it("answers nothing for a query no icon carries", () => {
+        expect(iconKeysMatching("zzzznotanicon")).toStrictEqual([]);
     });
 
     it("returns unique keys with no duplicates", () => {
