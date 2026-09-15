@@ -39,7 +39,19 @@ describe("featureLab — grounded lookup row", () => {
         expect(getByLabelText("settings.featureLab.groundedLookup").props.value).toBe(true);
     });
 
-    it("writes the toggled value through setBoolSetting", async () => {
+    // The NEW value, not the current one. `beforeEach` leaves every setting
+    // false, so firing `false` here was indistinguishable from a row that wrote
+    // back whatever it already held — a toggle that never flips.
+    it("writes the value the switch moved to, not the one it held", async () => {
+        const { getByLabelText } = await render(<FeatureLab />);
+
+        fireEvent(getByLabelText("settings.featureLab.groundedLookup"), "valueChange", true);
+
+        expect(mockSetBoolSetting).toHaveBeenCalledWith(expect.anything(), "groundedLookup", true);
+    });
+
+    it("turns it back off from on", async () => {
+        mockBool.mockImplementation((key: string) => key === "groundedLookup");
         const { getByLabelText } = await render(<FeatureLab />);
 
         fireEvent(getByLabelText("settings.featureLab.groundedLookup"), "valueChange", false);
