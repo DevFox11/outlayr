@@ -182,9 +182,8 @@ export function BudgetRow({
                         {isDay || !burndown ? null : (
                             <BudgetBurndownChart
                                 burndown={burndown}
-                                domain="limit"
                                 height={THUMB_HEIGHT}
-                                interactive={false}
+                                thumbnail
                                 limit={budget.amount}
                                 width={THUMB_WIDTH}
                             />

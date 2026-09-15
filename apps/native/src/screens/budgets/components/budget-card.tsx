@@ -128,9 +128,8 @@ export function BudgetCard({
                     {chartWidth > 0 ? (
                         <BudgetBurndownChart
                             burndown={burndown}
-                            domain="limit"
                             height={THUMB_HEIGHT}
-                            interactive={false}
+                            thumbnail
                             limit={budget.amount}
                             width={chartWidth}
                         />

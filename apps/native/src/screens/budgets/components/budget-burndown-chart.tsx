@@ -24,22 +24,20 @@ import { useColors } from "@/theme/use-colors";
 
 interface BudgetBurndownChartProps {
     burndown: Burndown;
-    /**
-     * `auto` fits the plot to this budget's own range; `limit` pins the axis to
-     * ±the limit so a column of thumbnails shares one unit — without it a
-     * 200%-over budget looks identical to a 2%-over one.
-     */
-    domain?: "auto" | "limit";
     height?: number;
-    /**
-     * False turns the chart into a static sparkline. The pan claims the touch the
-     * moment it lands, so a thumbnail inside a pressable row must opt out or the
-     * row never registers a tap.
-     */
-    interactive?: boolean;
     limit: number;
     /** Called with the scrubbed day (1-indexed) or null when the finger lifts. */
     onScrub?: (day: number | null) => void;
+    /**
+     * The chart as it appears inside a budget row or card rather than on its own.
+     *
+     * It pins the axis to ±the limit, so a column of them shares one unit and a
+     * 200%-over budget does not look identical to a 2%-over one; and it gives up
+     * the pan, which claims the touch the moment it lands and would otherwise
+     * stop the row registering a tap. The two always went together, because they
+     * are the same distinction.
+     */
+    thumbnail?: boolean;
     width: number;
 }
 
@@ -242,9 +240,10 @@ export function BudgetBurndownChart({
     width,
     height = 150,
     onScrub,
-    interactive = true,
-    domain = "auto",
+    thumbnail = false,
 }: BudgetBurndownChartProps) {
+    const interactive = !thumbnail;
+    const domain = thumbnail ? "limit" : "auto";
     const colors = useColors();
     const t = useTranslation();
     const reduceMotion = useReducedMotion();
