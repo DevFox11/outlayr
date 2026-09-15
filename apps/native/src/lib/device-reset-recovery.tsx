@@ -9,11 +9,6 @@ import { useTranslation } from "@/i18n/context";
 import { resumePersistedCloudDeletion } from "./deletion-resume";
 import { createDeviceResetGate } from "./device-data-reset";
 
-export async function retryBeforeClosingDatabase(retry: () => void, close: () => Promise<void>): Promise<void> {
-    retry();
-    await close();
-}
-
 export function DeviceResetRecovery({ children }: { children: ReactNode }) {
     const { db, retry } = useLocalData();
     const t = useTranslation();
@@ -28,8 +23,10 @@ export function DeviceResetRecovery({ children }: { children: ReactNode }) {
             }
             const database = db;
             const result = await createDeviceResetGate({
-                closeDatabase: async () =>
-                    await retryBeforeClosingDatabase(retry, async () => await closeDatabase(database)),
+                closeDatabase: async () => {
+                    retry();
+                    await closeDatabase(database);
+                },
                 completeCloudDeletion: async () => {
                     await resumePersistedCloudDeletion({ clearOnComplete: false, required: true });
                 },

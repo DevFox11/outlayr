@@ -1,6 +1,5 @@
 import { BottomSheetModal, BottomSheetView } from "@expo/ui/community/bottom-sheet";
 import { SymbolView } from "expo-symbols";
-import { useRef } from "react";
 import type { Ref } from "react";
 import { Pressable, View } from "react-native";
 
@@ -9,7 +8,6 @@ import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 import { AmountNumpad } from "./amount-numpad";
-import { CurrencyPickerSheet } from "./currency-picker-sheet";
 import { GlassButton } from "./glass-button";
 import { Text } from "./text";
 
@@ -17,28 +15,16 @@ interface AmountEntrySheetProps {
     code: string;
     minorUnits: number;
     onChange: (next: string) => void;
-    /** Omitted where the caller already owns a currency control of its own. */
-    onCurrencyChange?: (code: string) => void;
     onDone: () => void;
     ref?: Ref<BottomSheetModal>;
     toneClass?: string;
     value: string;
 }
 
-export function AmountEntrySheet({
-    value,
-    minorUnits,
-    code,
-    toneClass,
-    onChange,
-    onCurrencyChange,
-    onDone,
-    ref,
-}: AmountEntrySheetProps) {
+export function AmountEntrySheet({ value, minorUnits, code, toneClass, onChange, onDone, ref }: AmountEntrySheetProps) {
     const colors = useColors();
     const t = useTranslation();
     const symbol = currencySymbol(code);
-    const currencySheetRef = useRef<BottomSheetModal>(null);
 
     return (
         <BottomSheetModal
@@ -49,24 +35,7 @@ export function AmountEntrySheet({
         >
             <BottomSheetView style={{ paddingBottom: 8 }}>
                 <View className="flex-row items-center justify-between px-4 pt-2 pb-1">
-                    {onCurrencyChange ? (
-                        <GlassButton
-                            accessibilityLabel={t("transaction.amount.changeCurrency")}
-                            className="h-11 rounded-[22px] px-[15px]"
-                            onPress={() => currencySheetRef.current?.present()}
-                        >
-                            <Text className="font-sans-semibold text-body text-foreground">{`${code} (${symbol})`}</Text>
-                            <SymbolView
-                                name="chevron.down"
-                                size={12}
-                                tintColor={colors.muted}
-                                type="monochrome"
-                                weight="semibold"
-                            />
-                        </GlassButton>
-                    ) : (
-                        <Text className="font-sans-semibold text-body text-muted px-[15px]">{`${code} (${symbol})`}</Text>
-                    )}
+                    <Text className="font-sans-semibold text-body text-muted px-[15px]">{`${code} (${symbol})`}</Text>
 
                     <GlassButton
                         accessibilityLabel={t("common.close")}
@@ -103,17 +72,6 @@ export function AmountEntrySheet({
                     </Pressable>
                 </View>
             </BottomSheetView>
-
-            {onCurrencyChange ? (
-                <CurrencyPickerSheet
-                    onSelect={(next) => {
-                        onCurrencyChange(next);
-                        currencySheetRef.current?.dismiss();
-                    }}
-                    ref={currencySheetRef}
-                    selected={code}
-                />
-            ) : null}
         </BottomSheetModal>
     );
 }

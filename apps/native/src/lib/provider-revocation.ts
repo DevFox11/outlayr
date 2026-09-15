@@ -23,19 +23,6 @@ export async function persistProviderBinding(binding: ProviderBinding): Promise<
     await setItemAsync(PROVIDER_BINDING_KEY, JSON.stringify(binding));
 }
 
-export function legacyAppleReauthenticationSubject(
-    account: { accountId: string; providerId: string } | null,
-    credentialSubject: string
-): string {
-    if (account?.providerId !== "apple" || !account.accountId) {
-        throw new Error("Apple provider revocation requires reauthentication");
-    }
-    if (account.accountId !== credentialSubject) {
-        throw new Error("Apple reauthentication does not match the linked Apple account");
-    }
-    return account.accountId;
-}
-
 export async function providerBindingFor(betterAuthUserId: string): Promise<ProviderBinding> {
     const raw = await getItemAsync(PROVIDER_BINDING_KEY);
     if (raw === null) {
@@ -59,12 +46,4 @@ export async function providerBindingFor(betterAuthUserId: string): Promise<Prov
 export async function revokeGoogleProviderSubject(providerSubject: string): Promise<void> {
     const { GoogleOneTapSignIn } = await import("react-native-nitro-google-signin");
     await GoogleOneTapSignIn.revokeAccess(providerSubject);
-}
-
-export async function persistGoogleLocalReceiptAfterRevocation(
-    revoke: () => Promise<void>,
-    persistReceipt: () => Promise<void>
-): Promise<void> {
-    await revoke();
-    await persistReceipt();
 }

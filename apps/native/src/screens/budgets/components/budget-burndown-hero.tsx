@@ -23,9 +23,10 @@ import { tapGesture } from "@/lib/gestures";
 import { BudgetBurndownChart } from "./budget-burndown-chart";
 import { BudgetDaySlots } from "./budget-day-slots";
 
+/** How far the chart reaches past the screen's text gutter. */
+const BLEED = 8;
+
 interface BudgetBurndownHeroProps {
-    /** How far the chart reaches past the screen's text gutter. */
-    bleed?: number;
     budget: MainBudgetView;
     burndown: Burndown | null;
     contributions: readonly ExpenseContribution[];
@@ -59,7 +60,6 @@ export function BudgetBurndownHero({
     currency,
     onPress,
     nowMs,
-    bleed = 8,
 }: BudgetBurndownHeroProps) {
     const { showCents } = useDisplaySettings().state;
     const t = useTranslation();
@@ -109,7 +109,7 @@ export function BudgetBurndownHero({
     const status = over ? t("budgets.hero.overBudget") : t("budgets.hero.leftPeriod", { period });
     const footnote = scrubLabel ? t("budgets.hero.onDate", { date: scrubLabel, label: status }) : status;
 
-    const chartWidth = measured > 0 ? measured + bleed * 2 : windowWidth - 24;
+    const chartWidth = measured > 0 ? measured + BLEED * 2 : windowWidth - 24;
 
     const openDetail = useMemo(
         () =>
@@ -172,7 +172,7 @@ export function BudgetBurndownHero({
                     </View>
 
                     {showChart && burndown ? (
-                        <View className="pt-4" style={{ marginHorizontal: -bleed }}>
+                        <View className="pt-4" style={{ marginHorizontal: -BLEED }}>
                             <BudgetBurndownChart
                                 burndown={burndown}
                                 height={CHART_HEIGHT}

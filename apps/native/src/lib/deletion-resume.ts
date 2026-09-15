@@ -5,7 +5,7 @@ import { resumeCloudDeletion } from "./account-lifecycle";
 import type { DeletionPreparation } from "./account-lifecycle";
 import { authClient } from "./auth-client";
 import { cloudAction, cloudMutation, cloudQuery, convex } from "./convex";
-import { persistGoogleLocalReceiptAfterRevocation, revokeGoogleProviderSubject } from "./provider-revocation";
+import { revokeGoogleProviderSubject } from "./provider-revocation";
 
 export const deletionResumeSecretKey = "outlayr.account-deletion-resume";
 
@@ -54,13 +54,10 @@ export async function resumeProviderRevocation(preparation: StoredDeletionPrepar
         throw recoveryError();
     }
     if (preparation.provider === "google") {
-        await persistGoogleLocalReceiptAfterRevocation(
-            async () => await revokeGoogleProviderSubject(preparation.providerSubject),
-            async () =>
-                await setItemAsync(
-                    deletionResumeSecretKey,
-                    JSON.stringify({ ...preparation, googleLocalReceipt: preparation.receiptChallenge })
-                )
+        await revokeGoogleProviderSubject(preparation.providerSubject);
+        await setItemAsync(
+            deletionResumeSecretKey,
+            JSON.stringify({ ...preparation, googleLocalReceipt: preparation.receiptChallenge })
         );
         await cloudMutation("accountDeletion:submitGoogleLocalReceipt", {
             receiptChallenge: preparation.receiptChallenge,

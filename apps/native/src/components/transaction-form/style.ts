@@ -1,4 +1,4 @@
-import { Animation, font, foregroundStyle, frame } from "@expo/ui/swift-ui/modifiers";
+import { font, foregroundStyle, frame } from "@expo/ui/swift-ui/modifiers";
 
 import { hitArea, outline } from "@/lib/swift-ui-geometry";
 
@@ -13,17 +13,8 @@ export const ROW = [frame({ minHeight: 54 })];
  * living inside them.
  */
 export const TAP_ROW = [...ROW, hitArea(outline.rectangle())];
-export const CARD_OUTLINE = outline.roundedRectangle({
-    cornerRadius: 12,
-    roundedCornerStyle: "continuous",
-});
 
 export const BODY = font({ design: "rounded", textStyle: "body" });
-export const BODY_SEMIBOLD = font({
-    design: "rounded",
-    textStyle: "body",
-    weight: "semibold",
-});
 export const CAPTION = font({ design: "rounded", textStyle: "caption" });
 
 /**
@@ -37,20 +28,4 @@ export const HERO_BOTTOM_PADDING = 6;
 export const rowLabel = foregroundStyle({
     style: "secondary",
     type: "hierarchical",
-});
-export const FORM_BLUR_RADIUS = 8;
-/**
- * MUST track `LAUNCH_SPRING`/`RETURN_SPRING` in the fly-up context — the hero is
- * a Reanimated view and the blur is a SwiftUI one, so nothing but this pairing
- * keeps them on the same curve. Directional because the return is the snappier
- * of the two; one shared curve leaves the blur clearing ~200ms after the hero is
- * home and the sheet has gone.
- */
-export const FLY_UP = Animation.spring({
-    dampingFraction: 0.85,
-    response: 0.4,
-});
-export const FLY_BACK = Animation.spring({
-    dampingFraction: 0.98,
-    response: 0.29,
 });

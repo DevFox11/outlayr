@@ -20,7 +20,6 @@ interface UseNumpadAmountFieldOptions {
     code: string;
     minorUnits: number;
     onChange: (next: string) => void;
-    onCurrencyChange?: (code: string) => void;
     toneClass?: string;
     value: string;
 }
@@ -31,7 +30,6 @@ export function useNumpadAmountField({
     code,
     minorUnits,
     toneClass,
-    onCurrencyChange,
 }: UseNumpadAmountFieldOptions): NumpadAmountField {
     const ref = useRef<BottomSheetModal>(null);
     return {
@@ -41,7 +39,6 @@ export function useNumpadAmountField({
             code,
             minorUnits,
             onChange,
-            onCurrencyChange,
             onDone: () => ref.current?.dismiss(),
             ref,
             toneClass,

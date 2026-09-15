@@ -20,10 +20,6 @@ jest.mock("@/lib/convex", () => ({
     convex: {},
 }));
 jest.mock("@/lib/provider-revocation", () => ({
-    persistGoogleLocalReceiptAfterRevocation: async (revoke: () => Promise<void>, persist: () => Promise<void>) => {
-        await revoke();
-        await persist();
-    },
     revokeGoogleProviderSubject: (...args: unknown[]) => mockRevokeGoogleProviderSubject(...args),
 }));
 

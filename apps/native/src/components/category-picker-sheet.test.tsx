@@ -94,13 +94,6 @@ interface SheetOptions {
     excludeIds?: readonly string[];
     onCreate?: (name: string) => void;
     onSelect?: (category: { id: string; name: string | null }) => void;
-    pendingCategory?: {
-        name: string;
-        icon: string;
-        color: string;
-        emoji: string | null;
-        parentName: string | null;
-    } | null;
     selectedId?: string | null;
 }
 
@@ -113,7 +106,6 @@ async function mount(options: SheetOptions) {
             income={false}
             onCreate={options.onCreate}
             onSelect={options.onSelect ?? (() => {})}
-            pendingCategory={options.pendingCategory ?? null}
             ref={ref}
             selectedId={options.selectedId ?? null}
         />
@@ -140,27 +132,6 @@ function press(testID: string): void {
 }
 
 describe("categoryPickerSheet", () => {
-    it("renders a pending category as the top pick, with its willBeCreated caption", async () => {
-        const { toJSON } = await mount({
-            db: migratedDatabase(),
-            pendingCategory: {
-                color: "#AF52DE",
-                emoji: null,
-                icon: "FilmRoll01",
-                name: "Entertainment",
-                parentName: null,
-            },
-        });
-        const json = JSON.stringify(toJSON());
-        expect(json).toContain("Entertainment");
-        expect(json).toContain("transaction.category.willBeCreated");
-    });
-
-    it("renders no pending row when there is no pending category", async () => {
-        const { toJSON } = await mount({ db: migratedDatabase() });
-        expect(JSON.stringify(toJSON())).not.toContain("transaction.category.willBeCreated");
-    });
-
     it("expands the parent of a selected subcategory so its checkmark is reachable", async () => {
         const db = await seededDb();
         addChild(db, "organic", "Organic", GROCERIES);

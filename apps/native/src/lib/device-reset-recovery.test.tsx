@@ -5,7 +5,7 @@ import { Text } from "react-native";
 import { testLocalData as mockTestLocalData } from "@/contexts/test-local-data";
 import { unusedDatabase as mockUnusedDatabase } from "@/db/test-database";
 
-import { DeviceResetRecovery, retryBeforeClosingDatabase } from "./device-reset-recovery";
+import { DeviceResetRecovery } from "./device-reset-recovery";
 
 const mockRecover = jest.fn<typeof import("@/lib/device-data-reset").recoverDeviceReset>();
 const mockResumePersistedCloudDeletion = jest.fn<typeof import("@/lib/deletion-resume").resumePersistedCloudDeletion>();
@@ -89,18 +89,5 @@ describe("deviceResetRecovery", () => {
         );
         await waitFor(() => expect(getByText("Cloud deletion recovery requires reauthentication")).toBeTruthy());
         expect(queryByText("ledger")).toBeNull();
-    });
-
-    it("transitions local data before closing the database", async () => {
-        const events: string[] = [];
-
-        await retryBeforeClosingDatabase(
-            () => events.push("retry"),
-            async () => {
-                events.push("close");
-            }
-        );
-
-        expect(events).toStrictEqual(["retry", "close"]);
     });
 });

@@ -6,8 +6,6 @@ import type { DeviceDataStores, DeviceStore, NativeDeviceDataStoreDependencies }
 
 const RESET_MARKER_KEY = "outlayr.device-reset";
 
-export type { DeviceDataStores, DeviceStore } from "./device-data-stores";
-
 export interface DeviceResetMarker {
     phase: "cloud" | "device";
     v: 1;

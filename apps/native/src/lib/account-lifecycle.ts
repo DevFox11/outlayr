@@ -135,10 +135,7 @@ export async function runAccountLifecycle(
         }
     }
     if (action === "deleteAll") {
-        deps.navigateToOnboarding?.();
-        if (!deps.navigateToOnboarding) {
-            deps.navigateToLedger();
-        }
+        (deps.navigateToOnboarding ?? deps.navigateToLedger)();
         return;
     }
     deps.navigateToLedger();

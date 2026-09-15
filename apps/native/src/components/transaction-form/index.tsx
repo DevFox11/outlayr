@@ -23,7 +23,7 @@ import {
 import Animated, { FadeInDown, FadeOutDown, useDerivedValue, useSharedValue } from "react-native-reanimated";
 
 import { Confetti } from "@/components/confetti";
-import { HEADER_HEIGHT } from "@/components/editor-style";
+import { FLY_BACK, FLY_UP, FORM_BLUR_RADIUS, HEADER_HEIGHT } from "@/components/editor-style";
 import { InlineFailure } from "@/components/form/inline-failure";
 import { shallowEqual } from "@/components/form/shallow-equal";
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
@@ -111,7 +111,6 @@ import { StepMerchant } from "./stage/step-merchant";
 import { StepRate } from "./stage/step-rate";
 import { StepRepeat } from "./stage/step-repeat";
 import { StepWhen } from "./stage/step-when";
-import { FLY_BACK, FLY_UP, FORM_BLUR_RADIUS } from "./style";
 import { useSplitDraft } from "./use-split-draft";
 
 /**

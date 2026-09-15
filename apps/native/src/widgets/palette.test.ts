@@ -3,8 +3,19 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "@jest/globals";
 
-import { PALETTE_VARIABLES, WIDGET_PALETTE } from "./palette";
+import { WIDGET_PALETTE } from "./palette";
 import type { WidgetPalette } from "./palette";
+
+/** Maps each palette entry to the `global.css` custom property it mirrors. */
+const PALETTE_VARIABLES = {
+    background: "--background",
+    border: "--border",
+    income: "--income",
+    ink: "--foreground",
+    muted: "--muted",
+    over: "--over-budget",
+    subtle: "--subtle",
+} satisfies Record<keyof WidgetPalette, string>;
 
 const CSS = readFileSync(join(import.meta.dirname, "../../global.css"), "utf-8");
 

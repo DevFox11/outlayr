@@ -1,4 +1,4 @@
-import { Animation, font } from "@expo/ui/swift-ui/modifiers";
+import { Animation } from "@expo/ui/swift-ui/modifiers";
 
 export const FORM_BLUR_RADIUS = 8;
 /**
@@ -15,12 +15,6 @@ export const FLY_UP = Animation.spring({
 export const FLY_BACK = Animation.spring({
     dampingFraction: 0.98,
     response: 0.29,
-});
-
-export const BODY_SEMIBOLD = font({
-    design: "rounded",
-    textStyle: "body",
-    weight: "semibold",
 });
 
 /**

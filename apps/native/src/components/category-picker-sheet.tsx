@@ -17,7 +17,6 @@ import { useRecentCategoryIds } from "@/data/category-recents";
 import type { Database } from "@/db/client";
 import { expandedForSelectedCategory, searchCategoryTree } from "@/domain/category-search";
 import type { CategoryMatch } from "@/domain/category-search";
-import type { PendingCategory } from "@/hooks/use-transaction-enrichment";
 import { useTranslation } from "@/i18n/context";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
@@ -30,8 +29,6 @@ const EASE = Easing.inOut(Easing.ease);
 const CARD_LAYOUT = LinearTransition.duration(300).easing(EASE);
 const CHILD_IN = FadeIn.duration(300).easing(EASE);
 const CHILD_OUT = FadeOut.duration(300).easing(EASE);
-
-const PENDING_CATEGORY_ID = "__pending__";
 
 interface CategoryPickerSheetProps {
     db: Database;
@@ -47,8 +44,6 @@ interface CategoryPickerSheetProps {
     /** Fires on a swipe-dismiss too, so a presenter can undo whatever it did to open this. */
     onDismiss?: () => void;
     onSelect: (category: Category) => void;
-    /** Not yet a real row — shown as the top pick, materialized only on save. */
-    pendingCategory?: PendingCategory | null;
     ref?: Ref<BottomSheetModal>;
     selectedId: string | null;
 }
@@ -62,7 +57,6 @@ export function CategoryPickerSheet({
     excludeIds,
     income,
     selectedId,
-    pendingCategory,
     onSelect,
     onCreate,
     ref,
@@ -281,35 +275,6 @@ export function CategoryPickerSheet({
                     searchPanel
                 ) : (
                     <>
-                        {pendingCategory ? (
-                            <>
-                                <GroupCaption text={t("transaction.category.suggested")} />
-                                <Animated.View
-                                    className="bg-surface mb-4 overflow-hidden rounded-xl"
-                                    layout={CARD_LAYOUT}
-                                >
-                                    <CategoryRow
-                                        caption={t("transaction.category.willBeCreated")}
-                                        category={{
-                                            color: pendingCategory.color,
-                                            dateCreated: new Date(0),
-                                            deletedAt: null,
-                                            emoji: null,
-                                            icon: pendingCategory.icon,
-                                            id: PENDING_CATEGORY_ID,
-                                            income,
-                                            name: pendingCategory.name,
-                                            parentId: null,
-                                            sortOrder: -1,
-                                            updatedAt: new Date(0),
-                                        }}
-                                        onSelect={dismiss}
-                                        selected={selectedId === null}
-                                    />
-                                </Animated.View>
-                            </>
-                        ) : null}
-
                         {recents.length > 0 ? (
                             <>
                                 <GroupCaption text={t("transaction.category.recent")} />
