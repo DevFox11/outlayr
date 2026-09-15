@@ -24,7 +24,7 @@ export function SettingsSection({ title, footer, children }: { title: string; fo
     return (
         <View className="pt-6">
             <View className="pb-1.5">
-                <MonoLabel>{title}</MonoLabel>
+                <MonoLabel accessibilityRole="header">{title}</MonoLabel>
             </View>
             <View className="border-border border-t">{children}</View>
             {footer ? <Text className="text-muted text-subtitle pt-2 leading-snug">{footer}</Text> : null}
