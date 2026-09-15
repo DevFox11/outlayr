@@ -1,9 +1,9 @@
 import { MeshGradientView } from "expo-mesh-gradient";
 import { useEffect } from "react";
-import { useColorScheme } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 import { curtainShade, withAlpha } from "@/theme/shade";
+import { useIsDark } from "@/theme/use-is-dark";
 
 /** Mesh wash height; exported so the form can bleed it up under the nav bar. */
 const CURTAIN_HEIGHT = 260;
@@ -84,8 +84,7 @@ interface IdentityCurtainProps {
  * the chosen identity's hues.
  */
 export function IdentityCurtain({ hues }: IdentityCurtainProps) {
-    const scheme = useColorScheme();
-    const isDark = scheme === "dark";
+    const isDark = useIsDark();
     const revealed = hues != null && hues.length > 0 ? 1 : 0;
     const progress = useSharedValue(revealed);
 

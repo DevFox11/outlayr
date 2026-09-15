@@ -9,7 +9,7 @@ import { StatusBar } from "expo-status-bar";
 import { PanelUIProvider, useTheme } from "panelui-native";
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { Pressable, useColorScheme, useWindowDimensions, View } from "react-native";
+import { Pressable, useWindowDimensions, View } from "react-native";
 import { SafeAreaListener, SafeAreaProvider } from "react-native-safe-area-context";
 import { Uniwind, useCSSVariable } from "uniwind";
 
@@ -102,7 +102,6 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
     useApplyThemePreference();
     const { theme } = useTheme();
     const isDark = theme === "dark";
-    const colorScheme = useColorScheme();
     const [splashHidden, setSplashHidden] = useState(false);
     // SAFETY: uniwind types the batched read as (string | undefined)[]; every name
     // below is declared in global.css, so each slot resolves.
@@ -137,7 +136,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
             <LedgerAdoptionProvider>
                 <DeviceResetRecovery>
                     <RouteGate hideSplash={hideSplash} splashHidden={splashHidden}>
-                        <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+                        <StatusBar style={isDark ? "light" : "dark"} />
 
                         <ThemeProvider
                             value={{

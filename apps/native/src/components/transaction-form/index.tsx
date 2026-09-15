@@ -17,7 +17,6 @@ import {
     StyleSheet,
     TextInput,
     View,
-    useColorScheme,
     useWindowDimensions,
 } from "react-native";
 import Animated, { FadeInDown, FadeOutDown, useDerivedValue, useSharedValue } from "react-native-reanimated";
@@ -83,6 +82,7 @@ import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji, glowFromImage } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
+import { useIsDark } from "@/theme/use-is-dark";
 
 import { AmountNumpad } from "../amount-numpad";
 import { CategoryIcon } from "../category-icon";
@@ -877,8 +877,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             ? HERO_REST_TOP_FALLBACK
             : heroWinY.get() - (windowHeight - containerHeight.get())
     );
-    const scheme = useColorScheme();
-    const isDark = scheme === "dark";
+    const isDark = useIsDark();
     const router = useRouter();
     const accountCreateRoute = useAccountCreateRoute();
 

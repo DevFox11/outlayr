@@ -2,7 +2,7 @@ import Constants from "expo-constants";
 import { openSettings } from "expo-linking";
 import { useRouter } from "expo-router";
 import { useRef } from "react";
-import { Linking, Platform, Share, useColorScheme } from "react-native";
+import { Linking, Platform, Share } from "react-native";
 
 import { ImportSheet } from "@/components/import-sheet/import-sheet";
 import type { ImportSheetHandle } from "@/components/import-sheet/import-sheet";
@@ -43,6 +43,7 @@ import { useReminderSync } from "@/lib/reminder-sync";
 import { supportMailto } from "@/lib/support-mailto";
 import type { SupportDiagnostics } from "@/lib/support-mailto";
 import { THEME_OPTIONS } from "@/theme/theme-preference";
+import { useIsDark } from "@/theme/use-is-dark";
 
 /**
  * iOS owns the per-app language, so the row is a signpost rather than a control:
@@ -103,7 +104,7 @@ export function Settings() {
     const haptics = settings.number("haptics");
     const accentColor = settings.number("accentColor");
     const colorScheme = settings.number("colorScheme");
-    const scheme = useColorScheme() === "dark" ? "dark" : "light";
+    const scheme = useIsDark() ? "dark" : "light";
 
     const diagnostics = supportDiagnostics(APP_VERSION, APP_BUILD);
 
