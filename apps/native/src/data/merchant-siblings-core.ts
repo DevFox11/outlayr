@@ -1,7 +1,8 @@
-import { and, desc, eq, isNull, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, ne, or } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { transactions, transactionTags } from "@/db/schema";
+import { withTransaction } from "@/db/transaction";
 import { newId } from "@/domain/ids";
 import { merchantKey } from "@/domain/merchant-resolver";
 
@@ -172,12 +173,17 @@ export async function applyMerchantToSiblings(db: Database, input: MerchantSibli
 }
 
 /**
- * Attaches the tags to a row that still carries none, in one statement: the
- * live-row check, the "no tags of its own" check and the write are evaluated
- * together, so a rename or a tag chosen by the user between a read and a
- * write cannot slip in. A link retired earlier for the same pair is revived
- * rather than duplicated, as `tagsRepo.setTagsFor` does — the pair is unique
- * and the revived link keeps the identity other devices already know.
+ * Attaches the tags to a row that still carries none. The live-row check, the
+ * "no tags of its own" check and the writes share one transaction, so a rename
+ * or a tag chosen by the user between the read and the write cannot slip in.
+ * A link retired earlier for the same pair is revived rather than duplicated,
+ * so the revived link keeps the identity other devices already know.
+ *
+ * The revival is a look-up followed by an `UPDATE ... WHERE id = ?`, the same
+ * shape as `tagsRepo.setTagsFor`, rather than `ON CONFLICT(transactionId,
+ * tagId)`: the pair's unique index is partial, and a partial index cannot be a
+ * conflict target. It is partial because a tombstoned link must not hold the
+ * pair's slot against an incoming one from another device.
  */
 async function attachTagsIfStill(
     db: Database,
@@ -186,24 +192,53 @@ async function attachTagsIfStill(
     stamp: Date,
     tagIds: readonly string[]
 ): Promise<boolean> {
-    const now = Date.now();
-    const links = sql.join(
-        tagIds.map((tagId) => sql`SELECT ${newId()} AS id, ${tagId} AS tagId`),
-        sql` UNION ALL `
-    );
-    const result = await db.run(sql`
-        INSERT INTO ${transactionTags} (id, transactionId, tagId, updatedAt, deletedAt)
-        SELECT link.id, ${transactionId}, link.tagId, ${now}, NULL
-        FROM (${links}) AS link
-        WHERE EXISTS (
-            SELECT 1 FROM ${transactions} AS row
-            WHERE row.id = ${transactionId} AND row.note = ${note} AND row.updatedAt = ${stamp.getTime()}
-        )
-        AND NOT EXISTS (
-            SELECT 1 FROM ${transactionTags} AS own
-            WHERE own.transactionId = ${transactionId} AND own.deletedAt IS NULL
-        )
-        ON CONFLICT(transactionId, tagId) DO UPDATE SET deletedAt = NULL, updatedAt = excluded.updatedAt
-    `);
-    return result.changes > 0;
+    const now = new Date();
+    let wrote = false;
+    await withTransaction(db, async () => {
+        const still = await db
+            .select({ id: transactions.id })
+            .from(transactions)
+            .where(
+                and(eq(transactions.id, transactionId), eq(transactions.note, note), eq(transactions.updatedAt, stamp))
+            )
+            .limit(1);
+        if (still.length === 0) {
+            return;
+        }
+        const own = await db
+            .select({ id: transactionTags.id })
+            .from(transactionTags)
+            .where(and(eq(transactionTags.transactionId, transactionId), isNull(transactionTags.deletedAt)))
+            .limit(1);
+        if (own.length > 0) {
+            return;
+        }
+        // The row carries no live link, so anything found here is tombstoned.
+        const retired = await db
+            .select({ id: transactionTags.id, tagId: transactionTags.tagId })
+            .from(transactionTags)
+            .where(and(eq(transactionTags.transactionId, transactionId), inArray(transactionTags.tagId, [...tagIds])));
+        const revivable = new Map(retired.map((row) => [row.tagId, row.id]));
+        /* oxlint-disable no-await-in-loop -- expo-sqlite's withTransactionAsync shares one connection, so statements issued concurrently inside the callback interleave with the transaction boundary */
+        for (const tagId of tagIds) {
+            const revived = revivable.get(tagId);
+            if (revived === undefined) {
+                await db.insert(transactionTags).values({
+                    deletedAt: null,
+                    id: newId(),
+                    tagId,
+                    transactionId,
+                    updatedAt: now,
+                });
+                continue;
+            }
+            await db
+                .update(transactionTags)
+                .set({ deletedAt: null, updatedAt: now })
+                .where(eq(transactionTags.id, revived));
+        }
+        /* oxlint-enable no-await-in-loop */
+        wrote = tagIds.length > 0;
+    });
+    return wrote;
 }
