@@ -7,7 +7,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 
 export type SvgElement = [string, Record<string, string>];
 
@@ -25,7 +25,7 @@ const SCALES = [1, 2, 3];
  * A consumer that does NOT template it draws the pixels as they are — SwiftUI's
  * `Image.uiImage` is one — so those sets have to bake the colour they need.
  */
-export const DEFAULT_INK = "#000000";
+const INK = "#000000";
 
 function attributeName(key: string): string {
     return key.replaceAll(/[A-Z]/g, (char) => `-${char.toLowerCase()}`);
@@ -42,9 +42,8 @@ function escapeAttribute(value: string): string {
  * for the surfaces that need a heavier line to sit next to SF Symbols. It is
  * meaningless for the solid weight, which is filled rather than stroked.
  *
- * `ink` is the colour baked into the pixels — see {@link DEFAULT_INK}.
  */
-export function toSvg(elements: SvgElement[], strokeWidth?: number, ink: string = DEFAULT_INK): string {
+export function toSvg(elements: SvgElement[], strokeWidth?: number): string {
     const markup = elements
         .map(([tag, attributes]) => {
             const serialized = Object.entries(attributes)
@@ -53,7 +52,7 @@ export function toSvg(elements: SvgElement[], strokeWidth?: number, ink: string 
                     const resolved =
                         key === "strokeWidth" && strokeWidth !== undefined
                             ? String(strokeWidth)
-                            : value.replace("currentColor", ink);
+                            : value.replace("currentColor", INK);
                     return `${attributeName(key)}="${escapeAttribute(resolved)}"`;
                 })
                 .join(" ");
@@ -97,9 +96,7 @@ export function requireRsvgConvert() {
 
 /** Empties the output directory so a renamed icon leaves no orphan PNG behind. */
 export function resetDirectory(directory: string) {
-    if (existsSync(directory)) {
-        rmSync(directory, { recursive: true });
-    }
+    rmSync(directory, { force: true, recursive: true });
     mkdirSync(directory, { recursive: true });
 }
 

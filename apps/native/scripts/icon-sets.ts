@@ -19,8 +19,6 @@ export interface IconEntry {
     size?: number;
     /** Output basename, and the key its consumer imports it by. */
     slug: string;
-    /** Overrides the width derived from the set's stroke. */
-    strokeWidth?: number;
     /** Defaults to the set's weight. */
     weight?: IconWeight;
     /** Also writes `<slug>-selected` from the solid weight, for on/off pairs. */
@@ -33,11 +31,6 @@ export interface IconSet {
     /** Output directory, `assets/<dir>`. Also the name `gen:icons` filters on. */
     dir: string;
     entries: IconEntry[];
-    /**
-     * Colour baked into the pixels. Only matters for a consumer that draws the
-     * bitmap as-is rather than templating it — see `DEFAULT_INK`.
-     */
-    ink?: string;
     /** Points every entry renders at unless it overrides. */
     size: number;
     /**
@@ -45,8 +38,6 @@ export interface IconSet {
      * render smaller. Omit to keep the 1.5 the package bakes in.
      */
     stroke?: number;
-    /** Defaults to stroke. */
-    weight?: IconWeight;
 }
 
 /** Points. Swift's `LogView.menuIconSize` for a row inside a menu. */

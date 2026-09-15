@@ -4,7 +4,7 @@
  * `brew install librsvg`.
  *
  * Pass a directory name to redo one set only:
- *   `pnpm --filter @outlayr/native gen:icons row-action-icons`
+ *   `pnpm --filter @outlayr/native gen:icons toolbar-icons`
  *
  * Each set empties its own output directory first, so a renamed slug leaves no
  * orphan PNG behind — which is also why a filtered run never touches the sets it
@@ -25,26 +25,23 @@ async function writeSet(set: IconSet): Promise<number> {
 
     let written = 0;
     for (const entry of set.entries) {
-        const weight = entry.weight ?? set.weight ?? "stroke";
+        const weight = entry.weight ?? "stroke";
         const size = entry.size ?? set.size;
 
         // A solid glyph is filled rather than stroked, so a width is meaningless on
         // it. Otherwise the set's stroke is proportional: an entry that renders
         // smaller than the set's size gets a correspondingly lighter line, so every
         // glyph in the set reads at the same weight.
-        const strokeWidth =
-            weight === "solid"
-                ? undefined
-                : (entry.strokeWidth ?? (set.stroke === undefined ? undefined : (set.stroke * size) / set.size));
+        const strokeWidth = weight === "solid" || set.stroke === undefined ? undefined : (set.stroke * size) / set.size;
 
         // oxlint-disable-next-line no-await-in-loop -- rasterize shells out through execFileSync, which blocks the loop anyway, and each entry prints its progress line under its own set header
         const elements = await loadIcon(weight, entry.icon);
-        rasterize(toSvg(elements, strokeWidth, set.ink), join(outDir, entry.slug), size);
+        rasterize(toSvg(elements, strokeWidth), join(outDir, entry.slug), size);
         written += SCALE_COUNT;
 
         if (entry.withSelected) {
             const solid = await loadIcon("solid", entry.icon);
-            rasterize(toSvg(solid, undefined, set.ink), join(outDir, `${entry.slug}-selected`), size);
+            rasterize(toSvg(solid), join(outDir, `${entry.slug}-selected`), size);
             written += SCALE_COUNT;
         }
 
