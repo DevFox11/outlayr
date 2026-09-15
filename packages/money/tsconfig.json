@@ -1,3 +1,6 @@
 {
-    "extends": "@outlayr/config/tsconfig.base.json"
+    "extends": "@outlayr/config/tsconfig.base.json",
+    "compilerOptions": {
+        "allowImportingTsExtensions": true
+    }
 }

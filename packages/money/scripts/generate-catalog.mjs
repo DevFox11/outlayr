@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
 
-import { buildCatalog } from "./lib/build-catalog.mjs";
+import { buildCatalog } from "./lib/build-catalog.mts";
 
 const OUTPUT = new URL("../src/catalog.generated.ts", import.meta.url);
 

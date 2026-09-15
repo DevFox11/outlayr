@@ -3,15 +3,28 @@ import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 
+export type CatalogDecimals = 0 | 2 | 3;
+
+export interface CatalogMeta {
+    name: string;
+    symbol: string;
+}
+
+export interface BuiltCatalog {
+    codes: string[];
+    decimals: Record<string, CatalogDecimals>;
+    meta: Record<string, CatalogMeta>;
+}
+
 /**
  * The only fraction-digit counts the money engine, display formatter, and the
  * `CURRENCY_DECIMALS` literal type support. A provider currency outside this set
  * (e.g. a 4-digit accounting unit like CLF) must fail the build loudly rather
  * than ship an exponent the rounding path cannot express.
  */
-const ALLOWED_DECIMALS = new Set([0, 2, 3]);
+const ALLOWED_DECIMALS = new Set<number>([0, 2, 3]);
 
-function readJson(relativePath) {
+function readJson(relativePath: string) {
     return JSON.parse(readFileSync(new URL(relativePath, import.meta.url), "utf-8"));
 }
 
@@ -26,15 +39,15 @@ function readJson(relativePath) {
  * Resolution order per field: override wins, then CLDR, then the bare code as a
  * last-resort fallback (matches the runtime bare-code display fallback).
  */
-export function buildCatalog() {
-    const codes = readJson("../provider-codes.json");
-    const overrides = readJson("../overrides.json");
+export function buildCatalog(): BuiltCatalog {
+    const codes: string[] = readJson("../provider-codes.json");
+    const overrides: Record<string, Partial<CatalogMeta>> = readJson("../overrides.json");
     const cldrCurrencies = require("cldr-numbers-modern/main/en/currencies.json").main.en.numbers.currencies;
     const cldrFractions = require("cldr-core/supplemental/currencyData.json").supplemental.currencyData.fractions;
     const defaultDigits = Number(cldrFractions.DEFAULT._digits);
 
-    const decimals = {};
-    const meta = {};
+    const decimals: Record<string, CatalogDecimals> = {};
+    const meta: Record<string, CatalogMeta> = {};
     for (const code of codes) {
         const override = overrides[code] ?? {};
         const cldr = cldrCurrencies[code] ?? {};
@@ -44,7 +57,7 @@ export function buildCatalog() {
                 `Currency ${code} carries ${digits} fraction digits; only 0, 2, or 3 are supported. Handle the new exponent before regenerating the catalog.`
             );
         }
-        decimals[code] = digits;
+        decimals[code] = digits as CatalogDecimals;
         meta[code] = {
             name: override.name ?? cldr.displayName ?? code,
             symbol: override.symbol ?? cldr.symbol ?? cldr["symbol-alt-narrow"] ?? code,

@@ -1,5 +1,4 @@
-import { CURRENCY_DECIMALS } from "@outlayr/money/catalog";
-import { currencyDisplayFor } from "@outlayr/money/currency";
+import { currencyDisplayFor, decimalsFor } from "@outlayr/money/currency";
 import { roundMoney } from "@outlayr/money/round";
 
 import type { Language } from "@/i18n/languages";
@@ -40,14 +39,7 @@ export function numberLocale(language: Language = runtimeLanguage()): NumberLoca
     return NUMBER_LOCALES[language];
 }
 
-/**
- * Currency exponents come from the `@outlayr/money` catalog (0 for JPY-style, 2
- * for most, 3 for KWD-style dinars); an unknown code falls back to 2.
- */
-export function minorUnitsFor(code: string): number {
-    // SAFETY: guarded by the `in` check on the same line.
-    return code in CURRENCY_DECIMALS ? CURRENCY_DECIMALS[code as keyof typeof CURRENCY_DECIMALS] : 2;
-}
+export { decimalsFor as minorUnitsFor } from "@outlayr/money/currency";
 
 export function currencySymbol(code: string): string {
     return currencyDisplayFor(code).symbol;
@@ -55,7 +47,7 @@ export function currencySymbol(code: string): string {
 
 /** Exact half-even rounding to whatever precision the code actually stores. */
 export function roundToMinorUnits(amount: number, code: string): number {
-    return roundMoney(amount, minorUnitsFor(code));
+    return roundMoney(amount, decimalsFor(code));
 }
 
 export interface AmountParts {
@@ -86,7 +78,7 @@ export function amountParts(
     language: Language = runtimeLanguage()
 ): AmountParts {
     const locale = numberLocale(language);
-    const minorUnits = showCents ? minorUnitsFor(code) : 0;
+    const minorUnits = showCents ? decimalsFor(code) : 0;
     const rounded = roundMoney(Math.abs(amount), minorUnits);
     const fixed = rounded.toFixed(minorUnits);
     const [intRaw = "0", fractionRaw = ""] = fixed.split(".");

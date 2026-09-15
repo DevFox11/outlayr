@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCatalog } from "../scripts/lib/build-catalog.mjs";
+import { buildCatalog } from "../scripts/lib/build-catalog.mts";
 import { CURRENCY_DECIMALS, CURRENCY_META, PICKABLE_CURRENCY_CODES } from "./catalog.generated";
 
 /**
