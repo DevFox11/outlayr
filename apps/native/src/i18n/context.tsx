@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { createContext, use, useCallback, useMemo } from "react";
-import { IntlayerProvider } from "react-native-intlayer";
 
 import { CATALOGS, EN } from "./catalog";
 import type { TranslatableKey } from "./catalog";
@@ -23,8 +22,6 @@ const LanguageContext = createContext<LanguageContextValue | undefined>(undefine
 /**
  * The language is the device's, always: iOS owns it per app under
  * Settings › Outlayr › Language, so there is nothing here to store or restore.
- * `IntlayerProvider` is nested below so `useIntlayer`/`useLocale` stay available
- * and read the same locale.
  */
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
@@ -50,11 +47,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     const value = useMemo(() => ({ language, t }), [language, t]);
 
-    return (
-        <LanguageContext.Provider value={value}>
-            <IntlayerProvider locale={language}>{children}</IntlayerProvider>
-        </LanguageContext.Provider>
-    );
+    return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
 function useLanguageContext(): LanguageContextValue {
