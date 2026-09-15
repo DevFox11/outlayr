@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import { eq } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
-import { accounts, budgets, categories, mainBudget, transactions } from "@/db/schema";
+import { accounts, budgets, categories, mainBudget, outbox, transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
@@ -37,6 +37,18 @@ async function addTransaction(target: Database, id: string, deletedAt: Date | nu
         month: now,
         updatedAt: now,
     });
+}
+
+/**
+ * The outbox rows for one table, by local id.
+ *
+ * `outboxPendingCount` cannot answer "did the ledger get queued": `seedCategories`
+ * puts ~14 rows in before any test body runs, so a count threshold is met before
+ * the transaction under test exists.
+ */
+async function queuedIds(target: Database, table: string): Promise<string[]> {
+    const rows = await target.select({ localId: outbox.localId }).from(outbox).where(eq(outbox.tableName, table));
+    return rows.map((row) => row.localId).sort();
 }
 
 let db: Database;
@@ -228,7 +240,7 @@ describe("running an adoption", () => {
             wipeLocal: false,
         });
         await expect(isSyncEnabled(db)).resolves.toBe(true);
-        expect((await outboxPendingCount(db)) > 1).toBeTruthy();
+        await expect(queuedIds(db, "transactions")).resolves.toStrictEqual(["t1"]);
     });
 
     it("rolls back tentative account sync when enqueue fails", async () => {
@@ -351,7 +363,7 @@ describe("running an adoption", () => {
             wipeLocal: false,
         });
         expect(engine.calls).toStrictEqual(["discardAccountLedger"]);
-        expect((await outboxPendingCount(db)) > 1).toBeTruthy();
+        await expect(queuedIds(db, "transactions")).resolves.toStrictEqual(["t1"]);
     });
 
     it("leaves both sides untouched when the engine refuses", async () => {
