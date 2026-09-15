@@ -19,14 +19,6 @@ const INCLUDE_ALL = "ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS";
 const withAlternateIcons: ConfigPlugin<{ icons: string[] }> = (config, { icons }) => {
     const names = icons.map((icon) => path.basename(icon, ".icon"));
 
-    for (const icon of icons) {
-        if (path.extname(icon) !== ".icon") {
-            throw new Error(
-                `withAlternateIcons: "${icon}" is not a .icon bundle. Alternates have to be the same Icon Composer format as ios.icon.`
-            );
-        }
-    }
-
     const withCopiedBundles = withDangerousMod(config, [
         "ios",
         async (dangerousConfig) => {

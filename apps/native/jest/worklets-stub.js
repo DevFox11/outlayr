@@ -101,31 +101,11 @@ function isWorkerRuntime() {
     return globalThis.__RUNTIME_KIND === RuntimeKind.Worker;
 }
 
-let runOnUIQueue = [];
-function flushUIQueue() {
-    queueMicrotask(() => {
-        const queue = runOnUIQueue;
-        runOnUIQueue = [];
-        mockedRequestAnimationFrame(() => {
-            for (const [worklet, args, resolve] of queue) {
-                const result = worklet(...args);
-                resolve?.(result);
-            }
-        });
-    });
-}
 function enqueueUI(worklet, args, resolve) {
-    if (IS_JEST) {
-        mockedRequestAnimationFrame(() => {
-            const result = worklet(...args);
-            resolve?.(result);
-        });
-        return;
-    }
-    runOnUIQueue.push([worklet, args, resolve]);
-    if (runOnUIQueue.length === 1) {
-        flushUIQueue();
-    }
+    mockedRequestAnimationFrame(() => {
+        const result = worklet(...args);
+        resolve?.(result);
+    });
 }
 
 function scheduleOnUI(worklet, ...args) {
