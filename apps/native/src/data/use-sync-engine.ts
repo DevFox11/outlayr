@@ -95,6 +95,7 @@ export function useSyncEngine(db: Database | null, paused: boolean): void {
                 })
                 .catch((error) => {
                     console.warn("[outlayr] sync schedule check failed", error);
+                    schedule.schedule();
                 });
         };
 

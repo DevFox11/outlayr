@@ -30,6 +30,16 @@ jest.mock("@/lib/convex", () => ({
 
 jest.mock("./table-invalidation", () => ({ invalidateAll: jest.fn() }));
 
+let mockCountFails = false;
+jest.mock("./sync-outbox-core", () => {
+    const actual = jest.requireActual<typeof import("./sync-outbox-core")>("./sync-outbox-core");
+    return {
+        ...actual,
+        outboxPendingCount: (...args: Parameters<typeof actual.outboxPendingCount>) =>
+            mockCountFails ? Promise.reject(new Error("database is closed")) : actual.outboxPendingCount(...args),
+    };
+});
+
 import { useSyncEngine } from "./use-sync-engine";
 
 function emitChange(tableName: string): void {
@@ -43,6 +53,7 @@ describe("useSyncEngine", () => {
 
     beforeEach(() => {
         mockListeners.clear();
+        mockCountFails = false;
         mockRunSync.mockReset();
         mockRunSync.mockResolvedValue({ tables: [] });
         db = migratedDatabase({ foreignKeys: false });
@@ -71,6 +82,23 @@ describe("useSyncEngine", () => {
         });
         const afterMount = mockRunSync.mock.calls.length;
         await db.run("INSERT INTO outbox (tableName, localId, enqueuedAt) VALUES ('transactions', 'tx-1', 1)");
+
+        await act(async () => {
+            emitChange("transactions");
+        });
+        await act(async () => {
+            jest.advanceTimersByTime(10_000);
+        });
+
+        expect(mockRunSync.mock.calls.length).toBeGreaterThan(afterMount);
+    });
+
+    it("still syncs when the pending count itself cannot be read", async () => {
+        await act(async () => {
+            renderHook(() => useSyncEngine(db, false));
+        });
+        const afterMount = mockRunSync.mock.calls.length;
+        mockCountFails = true;
 
         await act(async () => {
             emitChange("transactions");
