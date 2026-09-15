@@ -48,6 +48,13 @@ describe("cn keeps a size and a tone from cancelling", () => {
         expect(out.includes("tracking-eyebrow")).toBeTruthy();
         expect(out.includes("text-eyebrow")).toBeTruthy();
     });
+
+    // The line above survives deleting the `tracking` group: stock tailwind-merge
+    // does not recognise these names, so it passes them through untouched either
+    // way. Two of them in conflict is the only thing the group decides.
+    it("lets a later tracking token replace an earlier one", () => {
+        expect(cn("tracking-eyebrow", "tracking-hero")).toBe("tracking-hero");
+    });
 });
 
 describe("cn still deduplicates what it should", () => {
