@@ -202,11 +202,16 @@ function GoalTargetBody({ target, onCommit }: { onCommit: GoalTargetSheetProps["
 
     // The same measure the goal will report once it exists, asked here of the
     // figure being typed — so the cost is on screen before it is committed to.
-    const { pace } = goalProgress(target.balance ?? 0, amount, {
-        startAmount: target.balance ?? 0,
-        startDate: new Date(),
-        targetDate: date,
-    });
+    const { pace } = goalProgress(
+        target.balance ?? 0,
+        amount,
+        {
+            startAmount: target.balance ?? 0,
+            startDate: new Date(),
+            targetDate: date,
+        },
+        minorUnits
+    );
 
     // What the figure being typed costs, stated before it is committed to. Until
     // there is one, the line explains what a goal is instead.

@@ -11,6 +11,8 @@
  * is the only forward-looking number the app can give — see {@link goalProgress}.
  */
 
+import { roundMoney } from "@outlayr/money/round";
+
 import { addLocalDays, daysBetween, startOfLocalDay } from "./local-day";
 
 interface GoalPace {
@@ -31,8 +33,8 @@ interface GoalPace {
  * drift is not yet a verdict; the floor keeps a very short or very small goal
  * from getting a sub-cent band.
  */
-function onPaceBand(target: number, startAmount: number, totalDays: number): number {
-    return round(Math.max(1, Math.abs(target - startAmount) / totalDays));
+function onPaceBand(target: number, startAmount: number, totalDays: number, decimals: number): number {
+    return round(Math.max(1, Math.abs(target - startAmount) / totalDays), decimals);
 }
 
 interface GoalStanding {
@@ -89,13 +91,13 @@ const DAYS_PER_MONTH = 30.44;
  * on. The standing is what makes the goal worth opening a second time: it is the
  * difference between "you have $2,140" and "you are $212 ahead of the date".
  */
-export function goalProgress(saved: number, target: number, span?: GoalSpan): GoalProgress {
+export function goalProgress(saved: number, target: number, span?: GoalSpan, decimals = 2): GoalProgress {
     if (!(Number.isFinite(target) && target > 0)) {
         return { fraction: 0, pace: null, reached: false, remaining: 0, standing: null };
     }
 
     const held = Number.isFinite(saved) ? Math.max(0, saved) : 0;
-    const remaining = Math.max(0, round(target - held));
+    const remaining = Math.max(0, round(target - held, decimals));
     const reached = remaining === 0;
     const fraction = reached ? 1 : Math.min(1, held / target);
 
@@ -105,21 +107,21 @@ export function goalProgress(saved: number, target: number, span?: GoalSpan): Go
 
     return {
         fraction,
-        pace: reached ? null : paceFor(remaining, span),
+        pace: reached ? null : paceFor(remaining, span, decimals),
         reached,
         remaining,
-        standing: reached ? null : standingFor(held, target, span),
+        standing: reached ? null : standingFor(held, target, span, decimals),
     };
 }
 
-function paceFor(remaining: number, { now, targetDate }: GoalSpan): GoalPace {
+function paceFor(remaining: number, { now, targetDate }: GoalSpan, decimals: number): GoalPace {
     const from = now ?? new Date();
     const days = (targetDate.getTime() - from.getTime()) / MS_PER_DAY;
     const monthsLeft = Math.max(0, Math.floor(days / DAYS_PER_MONTH));
     // On or past the date with money still to find, the whole remainder is due
     // now — dividing by a zero or negative horizon would report Infinity, and
     // "everything, now" is both true and the more useful thing to read.
-    return { monthsLeft, perMonth: monthsLeft === 0 ? remaining : round(remaining / monthsLeft) };
+    return { monthsLeft, perMonth: monthsLeft === 0 ? remaining : round(remaining / monthsLeft, decimals) };
 }
 
 /**
@@ -135,7 +137,8 @@ function normalisedStart(startAmount: number): number {
 function standingFor(
     held: number,
     target: number,
-    { now, startAmount, startDate, targetDate }: GoalSpan
+    { now, startAmount, startDate, targetDate }: GoalSpan,
+    decimals: number
 ): GoalStanding | null {
     // Whole LOCAL days, not instants. The line is modelled as advancing continuously,
     // but nothing tells the app the hour has changed: `useNow` publishes at local
@@ -160,8 +163,8 @@ function standingFor(
     // Clamped to the target: past the date the line has arrived, and "behind" then
     // means the whole remainder, which is exactly what the pace already says.
     const start = normalisedStart(startAmount);
-    const expected = round(start + (target - start) * elapsed);
-    const against = round(held - expected);
+    const expected = round(start + (target - start) * elapsed, decimals);
+    const against = round(held - expected, decimals);
     return {
         against,
         elapsed,
@@ -174,7 +177,7 @@ function standingFor(
         // one. Now that the line advances in whole days, a goal set yesterday and
         // not yet contributed to sits exactly one day behind — the commonest state
         // a new goal is in, and not a verdict it has earned.
-        onPace: Math.abs(against) <= onPaceBand(target, start, totalDays),
+        onPace: Math.abs(against) <= onPaceBand(target, start, totalDays, decimals),
     };
 }
 
@@ -219,6 +222,11 @@ export function goalRequiredLine(
     return points;
 }
 
-function round(value: number): number {
-    return Math.round(value * 100) / 100;
+/**
+ * KWD, BHD, OMR, JOD, TND and LYD carry three decimals. Rounding every goal
+ * figure to two reported a 1,000.000 KWD goal as REACHED while 4 fils short,
+ * because `remaining` collapsed to 0 and `reached` is `remaining === 0`.
+ */
+function round(value: number, decimals: number): number {
+    return roundMoney(value, decimals);
 }

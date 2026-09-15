@@ -10,6 +10,7 @@ import type { CurrencyCell } from "@/domain/currency-totals";
 import { goalBalanceSeries } from "@/domain/goal-balance-series";
 import type { GoalLinePoint } from "@/domain/goal-pace-geometry";
 import { startOfLocalDay } from "@/domain/local-day";
+import { minorUnitsFor } from "@/domain/money";
 import { goalProgress } from "@/domain/savings-goal";
 import type { GoalProgress } from "@/domain/savings-goal";
 import { convertUsdSum } from "@/domain/valuation";
@@ -141,7 +142,10 @@ export function useSavingsGoals(db: Database, nowMs: number): SavingsGoalWithPro
                                   startDate: goal.dateCreated,
                                   targetDate: goal.targetDate,
                               }
-                            : undefined
+                            : undefined,
+                        // The figures are stated in the display currency, so they
+                        // round to its minor units — three for KWD and its peers.
+                        minorUnitsFor(displayCurrency)
                     ),
                     saved,
                     start: start.value,

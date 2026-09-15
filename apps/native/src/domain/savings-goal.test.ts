@@ -273,3 +273,34 @@ describe("the required line", () => {
         expect(line.at(0)?.value).toBe(4000);
     });
 });
+
+describe("a goal held in a 3-decimal currency", () => {
+    /**
+     * `reached` is `remaining === 0`, and `remaining` was rounded to two decimals
+     * whatever the currency. KWD, BHD, OMR, JOD, TND and LYD carry three, so a
+     * goal declared itself reached while still 4 fils short and the screen printed
+     * "0.000 remaining".
+     */
+    it("is not reached while it is still four fils short", () => {
+        const twoDecimals = goalProgress(999.996, 1000);
+        const threeDecimals = goalProgress(999.996, 1000, undefined, 3);
+
+        expect(twoDecimals.remaining).toBe(0);
+        expect(twoDecimals.reached).toBe(true);
+
+        expect(threeDecimals.remaining).toBe(0.004);
+        expect(threeDecimals.reached).toBe(false);
+    });
+
+    it("keeps the third decimal in what it asks for per month", () => {
+        const span = {
+            now: new Date(2026, 0, 1),
+            startAmount: 0,
+            startDate: new Date(2026, 0, 1),
+            targetDate: new Date(2026, 3, 1),
+        };
+
+        expect(goalProgress(0, 100.005, span).pace?.perMonth).toBe(50);
+        expect(goalProgress(0, 100.005, span, 3).pace?.perMonth).toBe(50.002);
+    });
+});
