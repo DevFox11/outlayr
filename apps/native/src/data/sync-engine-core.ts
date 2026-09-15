@@ -560,15 +560,6 @@ async function applyInTransaction(
     const touched = new Set<SyncedTable>();
     let applied = 0;
 
-    // The snapshot, the reads it is compared against and the decision all happen
-    // INSIDE the transaction. They used to run before it opened, which left a
-    // window: a local write landing in it was judged against a stale `pending`
-    // set — so the incoming row won a contest it should have lost — and was then
-    // swept up by the clear below, which deletes by `(table, localId)`. The edit
-    // was reverted on screen and never reached the server.
-    //
-    // `settings-core` and `budgets-core` write with a bare `db.insert`, so there
-    // was nothing on their side holding that window shut either.
     await withTransaction(db, async () => {
         const outboxEntries = await db.select({ localId: outbox.localId, tableName: outbox.tableName }).from(outbox);
         const pending = new Set(outboxEntries.map((entry) => `${entry.tableName}\0${entry.localId}`));
@@ -701,11 +692,6 @@ async function resolveBudgetCategory(db: Database, row: PulledRow, now: Date): P
     return incomingLoses;
 }
 
-/**
- * One live link per `(transactionId, tagId)` locally, none on the server — the
- * same shape as `resolveBudgetCategory`, except the loser is tombstoned rather
- * than released, since both halves of the pair are NOT NULL.
- */
 async function resolveTagLink(db: Database, row: PulledRow, now: Date): Promise<boolean> {
     const tagId = wireId.safeParse(row.fields.tagId);
     const transactionId = wireId.safeParse(row.fields.transactionId);

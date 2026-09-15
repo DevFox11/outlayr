@@ -13,11 +13,6 @@ import { useLiveValue } from "./live-query";
  * currency render against this.
  */
 export function useGlobalCurrency(db: Database): string {
-    // `useLiveValue`, not `useLiveQuery`: `appMeta` is one invalidation channel
-    // for the whole table, so every settings toggle and every sync cycle's
-    // `syncedAt` write invalidates this read. Returning the string rather than a
-    // fresh row array lets React compare it and sit still — which matters here
-    // more than anywhere, because this hook has 38 call sites.
     return useLiveValue(
         appMeta,
         () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.currency)),

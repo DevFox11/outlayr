@@ -156,13 +156,6 @@ describe("enqueueAllForSync", () => {
         await expect(outboxPendingCount(db)).resolves.toBe(4);
     });
 
-    /**
-     * `schema.ts` states it: "re-queuing an already pending row issues a NEW seq:
-     * a drain that pushes seqs 1-500 and then deletes them cannot delete an edit
-     * that arrived while it was pushing." `onConflictDoUpdate` mutated the row in
-     * place and kept the old seq, reopening exactly that window for a ledger
-     * adoption overlapping an in-flight drain.
-     */
     it("re-queues an already pending row under a new seq", async () => {
         await setSyncEnabled(db, true);
         await addTransaction(db, "t1");

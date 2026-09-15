@@ -16,7 +16,6 @@ export function useTransactionCount(db: Database): number {
  * Derived from the projection, so widening the column map widens the type and
  * the two cannot drift apart.
  */
-/** A category's display fields, attached to a row by {@link useDecoratedRows}. */
 export interface CategoryDisplay {
     categoryName: string | null;
     categoryColor: string | null;
@@ -28,18 +27,6 @@ export type TransactionWithCategory = {
     [K in keyof typeof LOG_COLUMNS]: Transaction[K];
 } & CategoryDisplay;
 
-/**
- * Attaches each row's category colour, icon, emoji and name.
- *
- * Read from {@link useCategoryMeta} rather than joined: a join would leave every
- * row showing a renamed category's old name and colour until some *transaction*
- * was written.
- *
- * One hook rather than one per query — the Log window, the search, the Insights
- * drill-down, a budget's rows and an account's history all need the same four
- * fields, and each used to hold its own `useCategoryMeta` subscription to build
- * them the same way.
- */
 export function useDecoratedRows<Row extends { categoryId: string | null }>(
     db: Database,
     rows: readonly Row[]

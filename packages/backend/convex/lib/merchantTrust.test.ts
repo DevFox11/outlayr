@@ -90,10 +90,6 @@ describe(shouldPublish, () => {
     });
 });
 
-// `enrichment.ts` sanitizes down to these and `shouldPublish` re-checks them.
-// The re-check is the last thing between a personal string and a row every
-// account can read, so it must keep refusing what the sanitizer would have
-// trimmed — which it can only do while both sides read the same numbers.
 describe("the limits the sanitizer and the filter share", () => {
     const sources = [{ url: "https://farmatodo.com/es" }];
 

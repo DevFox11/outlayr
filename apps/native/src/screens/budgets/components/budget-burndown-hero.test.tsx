@@ -17,12 +17,10 @@ jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
 jest.mock("@/contexts/display-settings-context", () => ({
     useDisplaySettings: () => ({ state: { showCents: true } }),
 }));
-// The chart reaches Skia, which jest-expo does not transform.
 jest.mock("./budget-burndown-chart", () => ({ BudgetBurndownChart: () => null }));
 
 const NOW = new Date("2026-07-15T12:00:00");
 
-/** Limit 500 with 120 carried in, so the window actually runs on 620. */
 function carriedBudget(): MainBudgetView {
     return {
         amount: 620,
@@ -44,12 +42,6 @@ function carriedBudget(): MainBudgetView {
 }
 
 describe("budgetBurndownHero", () => {
-    /**
-     * The hero number is `leftover`, which is `amount - spent`, and the chart on the
-     * same card draws its line at `amount`. Printing the pre-carry `limit` in the
-     * strip put three figures on one card that cannot all be true: $500 limit,
-     * $600 spent, $20 left.
-     */
     it("states the limit the window actually runs on, carry included", async () => {
         const { queryByText } = await render(
             <BudgetBurndownHero
@@ -63,7 +55,6 @@ describe("budgetBurndownHero", () => {
             />
         );
 
-        // The strip prints whole units.
         expect(queryByText("$620")).toBeTruthy();
         expect(queryByText("$500")).toBeNull();
     });

@@ -35,10 +35,6 @@ describe("useOnboardingSettled", () => {
         expect(result.current).toBe(false);
     });
 
-    // The flow asks more than one question now, so stating a currency is step
-    // one rather than completion. The pure `isOnboardingSettled` cannot hold this
-    // line — it only ever sees the `onboardingComplete` value — so it has to be
-    // held here, on the hook that decides which key to read.
     it("does not let a chosen currency out of the flow on its own", async () => {
         await setMeta(db, META_KEYS.currencyChosen, "true");
 

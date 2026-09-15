@@ -187,11 +187,6 @@ describe("formatChargeDate", () => {
     });
 });
 
-/**
- * `jest/global-setup.js` pins TZ to America/Caracas, which has had no DST since
- * 2007, and jest caches the zone the first time any `Date` is touched — so a
- * clock shift is only reachable from a fresh process.
- */
 function headerInMadrid(...parts: number[]): string {
     const probe = join(import.meta.dirname, "dates-dst-probe.ts");
     return execFileSync(process.execPath, ["--import", "tsx", probe, ...parts.map(String)], {
@@ -201,15 +196,11 @@ function headerInMadrid(...parts: number[]): string {
 }
 
 describe("naming yesterday across a clock shift", () => {
-    // Both sides are local midnights, so subtracting a fixed 86_400_000 lands an
-    // hour off on the day after a shift and the header falls through to a date.
     it("still says YESTERDAY the day after springing forward", () => {
-        // Madrid moves to summer time on 30 March 2025, so that day is 23 hours long.
         expect(headerInMadrid(2025, 2, 30, 9, 0, 2025, 2, 31, 10, 0)).toBe("YESTERDAY");
     });
 
     it("still says YESTERDAY the day after falling back", () => {
-        // 26 October 2025 is 25 hours long.
         expect(headerInMadrid(2025, 9, 26, 9, 0, 2025, 9, 27, 10, 0)).toBe("YESTERDAY");
     });
 

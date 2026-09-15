@@ -9,15 +9,6 @@ export interface ExistingRow {
     note: string;
 }
 
-/**
- * Three decimals, not two: KWD, BHD, OMR, JOD, TND and LYD are 3-decimal
- * currencies, and rounding to 2 made two distinct purchases on the same day at
- * the same merchant — 12.341 and 12.344 — the same row, so the second was
- * flagged as a duplicate of a transaction it is not and the user skipped it.
- *
- * Still rounded rather than stringified raw, because that is what keeps an
- * amount that has been through arithmetic from missing its own match.
- */
 export function dedupFingerprint(row: ExistingRow): string {
     return `${startOfDay(row.date).getTime()}|${row.amount.toFixed(3)}|${row.income ? 1 : 0}|${merchantKey(row.note)}`;
 }

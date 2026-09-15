@@ -163,14 +163,11 @@ describe("requestUpload", () => {
         expect(key).toBe(photoKeyFor(owner.userId, PHOTO));
     });
 
-    // The quota reads every row the account owns, so it must not run for a name
-    // that was never going to be accepted.
     test("rejects an unusable name without weighing the account first", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await storeSize(t, photoKeyFor(owner.userId, "big.jpg"), PHOTO_QUOTA_BYTES);
 
-        // Both refusals are ConvexError, so the message is what says which ran.
         await expect(
             authenticatedAs(t, owner).mutation(api.photos.requestUpload, { name: "../other/a.jpg" })
         ).rejects.toThrow("Not a photo file name");
@@ -228,12 +225,6 @@ describe("confirmUpload", () => {
         ).rejects.toThrow(ConvexError);
     });
 
-    /**
-     * `key` is ownership-checked; `storageId` was checked against nothing, and it
-     * selects a file. Binding a stranger's object to a key of your own would hand
-     * you a read url for it through `readUrls`, and `releaseUnreferenced` would
-     * later reach `ctx.storage.delete` on it.
-     */
     test("refuses a storage object already bound to another photo", async () => {
         const t = harness();
         const owner = await seedProUser(t);
@@ -412,10 +403,6 @@ describe("releaseUnreferenced", () => {
         const stranger = await seedProUser(t);
         const key = photoKeyFor(owner.userId, PHOTO);
         await push(t, stranger, [transactionRow("t1", { imageKey: key })]);
-        // Bound to Convex storage so the release reports an outcome rather than
-        // failing on R2 credentials this deployment has not been given. A bare
-        // `rejects.toThrow()` here could not tell those two apart — nor either of
-        // them from the ownership refusal above.
         const storageId = await t.run(async (ctx) => await ctx.storage.store(new Blob(["bytes"])));
         await authenticatedAs(t, owner).action(api.photos.confirmUpload, { key, storageId });
 

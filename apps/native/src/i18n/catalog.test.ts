@@ -96,10 +96,6 @@ describe("catalog parity", () => {
         }
     });
 
-    // The tag and split chips spelled their two forms with a ternary over separate
-    // keys, which the two guards above cannot see: an orphaned form or an `_other`
-    // with no count read as an ordinary key. Calling them by their stem is what
-    // brings them under those guards, so it is worth holding that they resolve.
     it.each([
         ["transaction.sentence.set.tag", 1, "1 tag", "1 etiqueta"],
         ["transaction.sentence.set.tag", 3, "3 tags", "3 etiquetas"],

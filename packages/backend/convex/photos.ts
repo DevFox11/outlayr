@@ -135,8 +135,6 @@ export const requestUpload = mutation({
     handler: async (ctx, args) => {
         const userId = await requireUserId(ctx);
         await requirePro(ctx, userId);
-        // Before the quota, which reads every row this account owns. A name that
-        // was never going to be accepted should not cost that.
         if (!isPhotoName(args.name)) {
             throw new ConvexError(`Not a photo file name: ${args.name}`);
         }
@@ -287,10 +285,6 @@ async function forgetPhotoSize(ctx: MutationCtx, key: string): Promise<void> {
 export const mapStorageId = internalMutation({
     args: { key: v.string(), storageId: v.id("_storage") },
     handler: async (ctx, args) => {
-        // `key` is ownership-checked by the caller; `storageId` is not checked by
-        // anything, and it selects a file. Binding one already mapped to another
-        // key would hand this caller a read url for it through `readUrls`, and
-        // `releaseUnreferenced` would later delete it.
         const boundElsewhere = await ctx.db
             .query("photoObjects")
             .withIndex("by_storageId", (q) => q.eq("storageId", args.storageId))

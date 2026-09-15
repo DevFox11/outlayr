@@ -170,9 +170,6 @@ describe("accountsBlock", () => {
         expect(onOpenAll).toHaveBeenCalledTimes(1);
     });
 
-    // The visible text carries a decorative `›`. With no explicit label VoiceOver
-    // composes one from the children and reads that glyph aloud as punctuation,
-    // in the middle of the summary at the top of the app's primary screen.
     it("keeps the pointer glyph out of what VoiceOver announces", async () => {
         const { getByTestId } = await render(
             <AccountsBlock
@@ -189,8 +186,6 @@ describe("accountsBlock", () => {
         expect(card.props.accessibilityLabel).toBe("accounts.overview.heading · 1");
         expect(card.props.accessibilityLabel).not.toContain("\u203A");
         expect(card.props.accessibilityValue?.text).toBe("$10.00");
-        // A hint says what activation does; repeating the noun already in the label
-        // just makes VoiceOver say "Accounts" twice.
         expect(card.props.accessibilityHint).toBe("accounts.overview.openHint");
     });
 

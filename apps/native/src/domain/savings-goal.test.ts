@@ -275,12 +275,6 @@ describe("the required line", () => {
 });
 
 describe("a goal held in a 3-decimal currency", () => {
-    /**
-     * `reached` is `remaining === 0`, and `remaining` was rounded to two decimals
-     * whatever the currency. KWD, BHD, OMR, JOD, TND and LYD carry three, so a
-     * goal declared itself reached while still 4 fils short and the screen printed
-     * "0.000 remaining".
-     */
     it("is not reached while it is still four fils short", () => {
         const twoDecimals = goalProgress(999.996, 1000);
         const threeDecimals = goalProgress(999.996, 1000, undefined, 3);

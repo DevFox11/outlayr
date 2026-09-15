@@ -238,11 +238,6 @@ export function Log() {
         () => (showUpcomingSection ? upcoming.rows.filter((row) => row.id !== pendingId) : []),
         [showUpcomingSection, upcoming.rows, pendingId]
     );
-    // The schedules feed the "per month" line, and the rows feed the heading
-    // total. Filtering only the rows left the monthly cost still charging for a
-    // subscription the user had just deleted, for the whole undo window — and
-    // `settings/upcoming` already corrects both, so the same delete read
-    // differently on two screens.
     const upcomingSchedules = useMemo(
         () => upcoming.schedules.filter((row) => row.id !== pendingId),
         [upcoming.schedules, pendingId]

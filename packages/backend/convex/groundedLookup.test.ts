@@ -478,9 +478,6 @@ describe("grounded abort budget", () => {
 });
 
 describe("budgetConfig integration", () => {
-    // `shards` and `kind` are the same whether the config is built per call or
-    // registered once, so they cannot answer the question in the name. The rate
-    // can: only a per-call `budgetConfig()` sees an env change.
     test("groundedBudgetMicros is checked with the live-configured ceiling, not a static registration", () => {
         vi.stubEnv("GROUNDED_BUDGET_MICROS", "0");
         expect(budgetConfig().rate).toBe(0);

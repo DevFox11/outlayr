@@ -222,11 +222,6 @@ export function goalRequiredLine(
     return points;
 }
 
-/**
- * KWD, BHD, OMR, JOD, TND and LYD carry three decimals. Rounding every goal
- * figure to two reported a 1,000.000 KWD goal as REACHED while 4 fils short,
- * because `remaining` collapsed to 0 and `reached` is `remaining === 0`.
- */
 function round(value: number, decimals: number): number {
     return roundMoney(value, decimals);
 }

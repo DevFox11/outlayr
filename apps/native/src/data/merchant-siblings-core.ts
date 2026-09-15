@@ -172,11 +172,6 @@ export async function applyMerchantToSiblings(db: Database, input: MerchantSibli
     return touched;
 }
 
-/**
- * Attaches the tags to a row that still carries none, reviving a retired link
- * for the same pair by id — the pair index is partial, so it cannot be an
- * `ON CONFLICT` target.
- */
 async function attachTagsIfStill(
     db: Database,
     transactionId: string,
@@ -228,7 +223,6 @@ async function attachTagsIfStill(
                 .set({ deletedAt: null, updatedAt: now })
                 .where(eq(transactionTags.id, revived));
         }
-        /* oxlint-enable no-await-in-loop */
         wrote = tagIds.length > 0;
     });
     return wrote;

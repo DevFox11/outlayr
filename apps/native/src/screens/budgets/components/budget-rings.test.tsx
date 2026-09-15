@@ -191,8 +191,6 @@ describe("budgetRings", () => {
         }
     );
 
-    // The table above only carries the rows that expect 0, so hardcoding
-    // `animationDuration={0}` satisfied it and the animatedCharts setting went dead.
     it("uses the shared reveal duration when both motion controls allow animation", async () => {
         mockAnimatedCharts.mockReturnValue(true);
         mockReduceMotion.mockReturnValue(false);

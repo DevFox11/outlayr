@@ -41,12 +41,6 @@ describe("dedupFingerprint", () => {
         expect(a).not.toBe(b);
     });
 
-    /**
-     * KWD, BHD, OMR, JOD, TND and LYD carry three decimals. Rounding the
-     * fingerprint to two made these one row, so importing the second one flagged
-     * it as a duplicate of a purchase it is not — and the user skips a real
-     * transaction, which is the one outcome dedup must never cause.
-     */
     it("tells two amounts apart in the third decimal", () => {
         const a = dedupFingerprint(entry({ amount: 12.341 }));
         const b = dedupFingerprint(entry({ amount: 12.344 }));

@@ -187,12 +187,6 @@ describe("conversionOf", () => {
         expect(conversion?.amount).toBe(442.28);
     });
 
-    /**
-     * `exchangeRates` stores a bare number, so a zero or NaN row is reachable. The
-     * PAID leg was guarded and the LEDGER leg was not: a zero there made `rate`
-     * zero, and the review then showed "≈ 0.00" as though that were a real
-     * conversion rather than saying it could not price the receipt.
-     */
     it("refuses a conversion when either leg is not a usable rate", () => {
         const receipt = resolve(DRAFT);
 

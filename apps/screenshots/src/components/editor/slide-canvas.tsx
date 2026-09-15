@@ -41,14 +41,6 @@ type FrameComp = React.ComponentType<{
   hideEmpty?: boolean;
 }>;
 
-/**
- * The resolution the deck is composed at: each device's largest required export.
- *
- * Read off `getExportSizes` rather than a second table. `captureSlide` renders
- * at this size and lets `drawImage` scale into the export size, so the two
- * disagreeing stretches every PNG — at a file size App Store Connect accepts,
- * with nothing to notice. They used to be twelve numbers written out twice.
- */
 export function getCanvas(device: Device, orientation: Orientation) {
   const [largest] = getExportSizes(device, orientation);
   return { cW: largest.w, cH: largest.h };
@@ -89,7 +81,6 @@ function getFrameForDevice(device: Device, orientation: Orientation): {
   }
 }
 
-/** Whether this deck draws `Phone`, the one bezel loaded from a file rather than CSS. */
 export function usesMockupFrame(device: Device, orientation: Orientation): boolean {
   return getFrameForDevice(device, orientation).Comp === Phone;
 }

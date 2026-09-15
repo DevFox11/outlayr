@@ -301,17 +301,6 @@ describe("useImportReview", () => {
         alertSpy.mockRestore();
     });
 
-    /**
-     * The guard read `flow.commit.phase` as captured at RENDER, so two calls from
-     * the same rendered closure both passed and both wrote. Every selected row
-     * lands twice, with nothing to catch it: `flagDuplicates` only runs against
-     * rows that existed before the plan was built, and `settled` freezes the
-     * flagged set at `writing`.
-     *
-     * `import-sheet.tsx` reads `importDraftStore.getSnapshot()` for its own guard,
-     * and `transfer-editor` documents the hazard outright — "two taps inside one
-     * React batch both read the old state and both pass".
-     */
     it("onCommit writes once when it is called twice before React re-renders", async () => {
         const db = dbHolder.current as Database;
         await seedCategories(db);

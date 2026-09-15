@@ -57,11 +57,6 @@ export function formatTimeOfDay(
     return formatTime(at, use24Hour, language);
 }
 
-/**
- * `"unknown"` is not an answer from iOS — it is what the lookup reports when it
- * THREW. Collapsing that into `"denied"` made a transient failure look like the
- * user saying no, which is destructive: see `reminderReconcile`.
- */
 export type ReminderPermission = "granted" | "denied" | "undetermined" | "unknown";
 
 export type EnableReminderStep = "schedule" | "request" | "open-settings";
@@ -99,9 +94,6 @@ export function reminderReconcile(enabled: boolean, permission: ReminderPermissi
     if (!enabled) {
         return "none";
     }
-    // A failed lookup is not a refusal. `disable` cancels every armed reminder AND
-    // writes the user's setting to false, and nothing re-arms it afterwards — so
-    // doing that because a call threw would lose the setting on one bad sweep.
     if (permission === "unknown") {
         return "none";
     }

@@ -212,13 +212,6 @@ export async function enqueueAllForSync(db: Database): Promise<void> {
         for (let from = 0; from < entries.length; from += ENQUEUE_CHUNK) {
             const chunk = entries.slice(from, from + ENQUEUE_CHUNK);
             /* oxlint-disable no-await-in-loop -- the chunks share the one SQLite connection this transaction is open on, so issuing them together interleaves statements against that transaction */
-            // Delete then insert, never `DO UPDATE`: an update mutates the row in
-            // place and keeps its old `seq`, and `schema.ts` states the opposite —
-            // "re-queuing an already pending row issues a NEW seq: a drain that
-            // pushes seqs 1-500 and then deletes them cannot delete an edit that
-            // arrived while it was pushing". The triggers do it this way too.
-            // Matched on the whole key, not just `localId`: the queue is unique on
-            // `(tableName, localId)` and a chunk spans tables.
             await db
                 .delete(outbox)
                 .where(
@@ -229,7 +222,6 @@ export async function enqueueAllForSync(db: Database): Promise<void> {
                     )
                 );
             await db.insert(outbox).values(chunk);
-            /* oxlint-enable no-await-in-loop */
         }
     });
 }

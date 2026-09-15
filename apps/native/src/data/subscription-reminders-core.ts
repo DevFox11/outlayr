@@ -22,12 +22,6 @@ export interface SubscriptionReminderCandidate extends ReminderCandidate {
 const CANDIDATE_COLUMNS = {
     amount: transactions.amount,
     currency: transactions.currency,
-    // What the projection advances from, and what `recurringAnchorDay` falls
-    // back to. NOT `day`: that column is midnight in the zone of the device that
-    // WROTE the row, so a subscription authored across a wide gap reads as a
-    // different calendar day here — and `nextLanding` already normalises the
-    // clock time off `date` through `startOfDay`, which is the hazard `day` was
-    // reached for. Both writers (`recurrence-backfill`) project from `date`.
     date: transactions.date,
     id: transactions.id,
     note: transactions.note,
@@ -69,11 +63,6 @@ export async function reminderCandidates(db: Database, now: Date): Promise<Subsc
 
     return rows.flatMap((row) => {
         const landing = nextLanding(
-            // Normalised HERE rather than read off `day`: the landing has to be a
-            // midnight (the notice is scheduled from it), but `day` is midnight in
-            // the zone of the device that WROTE the row, so a subscription
-            // authored across a wide gap armed the notice a day off the
-            // occurrence this device's sweep goes on to write.
             startOfDay(row.date),
             row.recurringType,
             row.recurringCoefficient,

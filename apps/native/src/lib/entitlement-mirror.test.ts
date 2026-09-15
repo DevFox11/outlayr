@@ -4,8 +4,6 @@ import { mirrorEntitlement } from "./entitlement-mirror";
 
 const mockCloudAction = jest.fn<(path: string, args: Record<string, never>) => Promise<boolean>>();
 
-// `convex` is read inside `mirrorEntitlement`, not at import, so a getter lets a
-// test swap the configured build for an unconfigured one.
 let mockConvex: object | null = {};
 jest.mock("@/lib/convex", () => ({
     cloudAction: (path: string, args: Record<string, never>) => mockCloudAction(path, args),
@@ -20,8 +18,6 @@ beforeEach(() => {
 });
 
 describe("mirrorEntitlement", () => {
-    // The paywall suite can only see its own stand-in for this, so the action
-    // path lives here: rename it on either side and nothing else goes red.
     it("asks the backend to copy the store's entitlement onto the account", async () => {
         mockCloudAction.mockResolvedValue(true);
 
@@ -35,8 +31,6 @@ describe("mirrorEntitlement", () => {
         await expect(mirrorEntitlement()).resolves.toBe(false);
     });
 
-    // A paid user opening the paywall offline must not be told their entitlement
-    // is mirrored, or `requirePro` gates them on a value nothing wrote.
     it("reports the mirror behind when the call fails", async () => {
         mockCloudAction.mockRejectedValue(new Error("offline"));
 

@@ -10,8 +10,6 @@ type FrameProps = {
   hideEmpty?: boolean;
 };
 
-// The only bezel drawn from a bitmap. Every other frame below is CSS, so it
-// cannot 404 — this one can, and a frameless export still writes a valid PNG.
 export const PHONE_MOCKUP_SRC = "/mockup.png";
 
 // iPhone — uses pre-measured mockup.png overlay

@@ -310,12 +310,6 @@ describe("time left across a spring-forward", () => {
         expect(inMadrid("hours", 2025, 2, 31, 0, 0, 2025, 2, 30, 0, 0, 2025, 2, 30, 23, 30)).toBe(1);
     });
 
-    /**
-     * `budgetPace` kept flooring raw milliseconds after its two neighbours here
-     * were fixed. On the last day of a month holding a shift that leaves a day of
-     * allowance that does not exist, which `isBehindPace` then reads as behind on
-     * a day the user is not.
-     */
     it("has no allowance left on the last day of a month that lost an hour", () => {
         expect(inMadrid("pace", 2025, 3, 1, 0, 0, 2025, 2, 1, 0, 0, 2025, 2, 31, 0, 30)).toBe(0);
     });

@@ -738,11 +738,6 @@ describe("transactionForm", () => {
             </Providers>
         );
 
-        // `toJSON()` being truthy is true of every render this component can
-        // produce. What the seed is for is `isSubscription`, which decides
-        // whether the repeat chip offers a schedule or names the one already
-        // set — and this is the only test in the suite that seeds
-        // `recurringType` through `initial`.
         expect(view.queryByText("transaction.sentence.set.repeatYearly")).not.toBeNull();
         expect(view.queryByText("transaction.sentence.add.repeat")).toBeNull();
     });
@@ -890,8 +885,6 @@ describe("transactionForm", () => {
         });
 
         const hookOrderViolations = errorSpy.mock.calls.filter(([message]) =>
-            // React LOGS this wording. "Rendered more hooks" is what it THROWS,
-            // and `act` surfaces that on its own.
             typeof message === "string" ? /change in the order of Hooks/.test(message) : false
         );
         expect(hookOrderViolations).toHaveLength(0);
@@ -970,8 +963,6 @@ describe("transactionForm", () => {
         });
 
         const hookOrderViolations = errorSpy.mock.calls.filter(([message]) =>
-            // React LOGS this wording. "Rendered more hooks" is what it THROWS,
-            // and `act` surfaces that on its own.
             typeof message === "string" ? /change in the order of Hooks/.test(message) : false
         );
         expect(hookOrderViolations).toHaveLength(0);

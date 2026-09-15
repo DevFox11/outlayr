@@ -9,17 +9,6 @@ import { importDraftStore } from "@/lib/import-draft-store";
 
 export function useChooseImportFile() {
     const [status, setStatus] = useState<"idle" | "loading">("idle");
-    /**
-     * A ref, not `status`: a second press inside one React batch reads the old
-     * state and passes. And unlike the DB paths, `pickCsvFile` is a real native
-     * round trip, so the window is the whole document-picker presentation.
-     *
-     * The second call is what does the damage rather than the first. It rejects —
-     * a picker is already presenting — and writes `fileError`, which `dispatch`
-     * never clears, so the first pick's `fileParsed` lands underneath a
-     * "we couldn't read that file" banner and `FileStep`'s error branch wins.
-     * The user is looking at a failure message over a file that parsed perfectly.
-     */
     const picking = useRef(false);
 
     const choose = async () => {

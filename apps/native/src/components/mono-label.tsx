@@ -3,11 +3,6 @@ import { Text } from "react-native";
 import { cn } from "./tw";
 
 interface MonoLabelProps {
-    /**
-     * `"header"` when the label titles a section. Without it the VoiceOver rotor's
-     * Headings mode finds nothing, and the only way past a section is to swipe
-     * through every row in it.
-     */
     accessibilityRole?: "header";
     children: string;
     className?: string;

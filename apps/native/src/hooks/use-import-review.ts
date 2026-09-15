@@ -182,11 +182,6 @@ export function useImportReview(): ImportReviewResult {
     }, []);
 
     const onCommit = useCallback(() => {
-        // The live snapshot, not the render-captured `flow`: two presses inside one
-        // React batch both read the old copy and both write, and every selected row
-        // lands twice. Nothing downstream catches it — `flagDuplicates` only runs
-        // against rows that existed before the plan was built. `import-sheet` guards
-        // its own dismiss this way, and `transfer-editor` documents the hazard.
         if (importDraftStore.getSnapshot().flow.commit.phase === "writing") {
             return;
         }

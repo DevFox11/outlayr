@@ -130,8 +130,6 @@ describe(resolveEntryRate, () => {
     });
 
     it("rejects a negative entry rate rather than flipping the amount's sign", async () => {
-        // `computeAmountUSD` takes this leg as an argument rather than resolving
-        // it, so `resolveEntryRate`'s guard never sees it.
         await expect(
             computeAmountUSD(lookup, {
                 baseAmount: 100,
@@ -155,7 +153,6 @@ describe(resolveEntryRate, () => {
 
     it("rejects a negative EUR leg rather than flipping the amount's sign", async () => {
         // The second leg of an `eur_reference` conversion is a divisor too, so a
-        // negative EUR rate turns a VES expense into income.
         const badEur = makeRateLookup([
             { date: "2026-06-01", quote: "VES", rate: 747.33, rateType: "eur_reference" },
             { date: "2026-06-01", quote: "EUR", rate: -0.87, rateType: "official" },
@@ -173,8 +170,6 @@ describe(resolveEntryRate, () => {
 });
 
 describe("roundMoney (banker's rounding, half-even)", () => {
-    // Moved here from the Convex shim's suite, which tested this package through
-    // a re-export nothing imported.
     it("rounds a halfway value down to the even neighbor", () => {
         expect(roundMoney(2.5, 0)).toBe(2);
         expect(roundMoney(0.125, 2)).toBe(0.12);

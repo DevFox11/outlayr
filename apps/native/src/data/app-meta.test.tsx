@@ -21,7 +21,6 @@ jest.mock("expo-sqlite", () => ({
 import { useGlobalCurrency } from "./app-meta";
 import { META_KEYS, setMeta } from "./app-meta-core";
 
-/** One `appMeta` write, as expo-sqlite reports it. */
 function announceMetaWrite(): void {
     for (const listener of mockListeners) {
         listener({ tableName: "appMeta" });
@@ -43,10 +42,6 @@ describe("useGlobalCurrency", () => {
         expect(result.current).toBe("EUR");
     });
 
-    // `appMeta` is one invalidation channel for the whole table, so a settings
-    // toggle and every sync cycle's `syncedAt` write reach this read. Handing
-    // back a fresh row array re-rendered all 38 call sites for a value none of
-    // them had seen change.
     it("does not re-render its callers when an unrelated setting is written", async () => {
         let renders = 0;
         const { result } = await renderHook(() => {

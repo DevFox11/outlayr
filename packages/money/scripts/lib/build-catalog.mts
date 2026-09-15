@@ -10,10 +10,6 @@ export interface CatalogMeta {
     symbol: string;
 }
 
-/**
- * What `overrides.json` may state. `decimals` is separate from `CatalogMeta`
- * because it is not metadata — it changes the arithmetic.
- */
 interface CatalogOverride extends Partial<CatalogMeta> {
     decimals?: CatalogDecimals;
 }
@@ -64,8 +60,6 @@ export function buildCatalog(): BuiltCatalog {
     for (const code of codes) {
         const override = overrides[code] ?? {};
         const cldr = cldrCurrencies[code] ?? {};
-        // The override first: CLDR carries no fraction digits for a metal, and its
-        // DEFAULT is far too coarse for a unit worth thousands of dollars.
         const digits = Number(override.decimals ?? cldrFractions[code]?._digits ?? defaultDigits);
         if (!ALLOWED_DECIMALS.has(digits)) {
             throw new Error(

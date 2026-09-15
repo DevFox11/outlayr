@@ -134,10 +134,6 @@ export function formatDayHeader(day: Date, now: Date = new Date(), language: Lan
     if (target === today) {
         return dateName("common.today", language).toUpperCase();
     }
-    // Walked back through the calendar, not by 86_400_000ms. Both sides are local
-    // midnights, and the day after a clock shift is 23 or 25 hours long — so a
-    // fixed day's worth of milliseconds lands an hour off and YESTERDAY is lost
-    // for the whole day, twice a year.
     if (target === startOfDay(addDays(now, -1)).getTime()) {
         return dateName("common.yesterday", language).toUpperCase();
     }

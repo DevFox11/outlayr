@@ -54,9 +54,6 @@ export function AccountsBlock({ accounts, overview, currency, showCents, onOpen,
     return (
         <View className="gap-1.25 pt-2.5 pb-4.5">
             <Pressable
-                // Naming it explicitly is what keeps the decorative `›` out: with no
-                // label VoiceOver composes one from the children, and reads the glyph
-                // aloud as "right-pointing angle quotation mark" mid-sentence.
                 accessibilityHint={t("accounts.overview.openHint")}
                 accessibilityLabel={`${t("accounts.overview.heading")} · ${overview.count}`}
                 accessibilityRole="button"

@@ -26,10 +26,6 @@ async function seed(db: Database, rateType: string = VALUATION_RATE_TYPE): Promi
 
 describe("what the Log's currency chip may offer", () => {
     it("offers a favourite the rate table can reach", async () => {
-        // The regression this file exists for (#237). The chip used to test
-        // convertibility against the rate table for the currency ALREADY ON SCREEN,
-        // which holds one currency, so it answered no for every favourite and the
-        // chip silently offered none of them.
         const db = migratedDatabase({ foreignKeys: false });
         await seed(db);
         const { result } = await renderHook(() => useValuedCurrencies(db));
@@ -45,9 +41,6 @@ describe("what the Log's currency chip may offer", () => {
     });
 
     it("answers for the valuation rate type alone", async () => {
-        // A `binance` row is market data the app may quote, but it never
-        // canonicalizes — offering a currency only that reaches would put a figure
-        // on screen no conversion can produce.
         const db = migratedDatabase({ foreignKeys: false });
         await seed(db, "binance");
         const { result } = await renderHook(() => useValuedCurrencies(db));

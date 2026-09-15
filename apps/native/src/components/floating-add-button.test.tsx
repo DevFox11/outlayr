@@ -142,16 +142,6 @@ describe("floatingAddButton", () => {
         expect(mockPush).toHaveBeenCalledWith("/transactions/create");
     });
 
-    /**
-     * The dial's close is a spring (~450-500ms), and panelui keeps the action
-     * mounted and hit-testable for its whole duration — the slot animates opacity
-     * without setting `pointerEvents: "none"`, and the closing scrim is only
-     * rendered while `open`. So a normal double-tap, or an impatient second tap
-     * while the modal transition starts, reaches the handler twice.
-     *
-     * Two `/transactions/voice` routes then mount two VoiceEntry screens: two
-     * Convex threads, and two recorders on one microphone.
-     */
     it("pushes once however many times the action is tapped", async () => {
         await render(<FloatingAddButton />);
         await openDial();

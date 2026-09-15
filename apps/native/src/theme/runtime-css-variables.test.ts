@@ -35,8 +35,6 @@ function runtimeReads(): { file: string; name: string }[] {
     return [...seen.values()];
 }
 
-// A name panelui's theme.css declares resolves to panelui's palette at runtime unless
-// global.css re-declares it in both variant blocks; the inline bridge does not count.
 describe("variables read at runtime", () => {
     const reads = runtimeReads();
 

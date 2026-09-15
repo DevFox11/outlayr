@@ -32,13 +32,6 @@ describe("useChooseImportFile", () => {
         importDraftStore.clear();
     });
 
-    /**
-     * `pickCsvFile` is a real native round trip, so the window is the whole
-     * document-picker presentation. A second press rejects — a picker is already
-     * presenting — and writes `fileError`, which `dispatch` never clears. The
-     * first pick's `fileParsed` then landed UNDER a "we couldn't read that file"
-     * banner, because `FileStep` renders its error branch ahead of the loaded one.
-     */
     it("ignores a second press while the picker is already open", async () => {
         let resolvePick!: (value: null) => void;
         mockPickCsvFile.mockReturnValue(

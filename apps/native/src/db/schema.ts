@@ -106,15 +106,6 @@ export const transfers = sqliteTable(
 export const transactions = sqliteTable(
     "transactions",
     {
-        /**
-         * ⚠️ This `onDelete` is NOT in the live DDL. The column arrived by
-         * `ALTER TABLE ... ADD COLUMN` (migration 0015), and SQLite cannot carry an
-         * `ON DELETE` clause on an added column — the shipped schema reads
-         * `\`accountId\` text REFERENCES accounts(id)`, i.e. NO ACTION. Nothing
-         * hard-deletes an account (rows are tombstoned), so it is latent; but with
-         * `foreign_keys = ON`, which `client.ts` sets on a clean store, a hard
-         * delete would be REFUSED rather than nulling this column.
-         */
         accountId: text("accountId").references(() => accounts.id, {
             onDelete: "set null",
         }),
@@ -204,13 +195,6 @@ export const transactions = sqliteTable(
          * a fee is ordinary spending and every aggregate must keep counting it, so
          * nothing filters on this column.
          */
-        /**
-         * ⚠️ Same as `accountId` above: added by `ALTER TABLE` (migration 0018), so
-         * the live DDL is a bare `REFERENCES transfers(id)` and this cascade does
-         * not exist in the database. Deleting a transfer does NOT delete its legs
-         * here — `transfersRepo` tombstones both sides itself, which is what
-         * actually keeps them together.
-         */
         transferId: text("transferId").references(() => transfers.id, {
             onDelete: "cascade",
         }),
@@ -223,12 +207,6 @@ export const transactions = sqliteTable(
         index("transactions_categoryId_idx").on(table.categoryId),
         index("transactions_accountId_idx").on(table.accountId),
         index("transactions_deletedAt_idx").on(table.deletedAt),
-        // Partial, because every live row shares the NULL `deletedAt` key and
-        // `transactions_deletedAt_idx` therefore cannot narrow this at all.
-        // Three readers ask it: the subscription-reminder sweep at every launch,
-        // the recurrence back-fill, and a `useLiveQuery` in `log-filtered` that
-        // re-runs on every write to this table. Measured at 20k rows, 200 runs:
-        // `SCAN transactions` 113ms, `SEARCH ... USING INDEX` 5ms.
         index("transactions_recurring_idx")
             .on(table.recurringType)
             .where(sql`${table.deletedAt} IS NULL AND ${table.recurringType} > 0`),

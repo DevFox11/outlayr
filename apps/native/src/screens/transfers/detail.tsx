@@ -43,8 +43,6 @@ export default function TransferDetail({ id }: { id: string }) {
     const rowGround = groupedRows(colors);
     const transfer = rows[0] ?? null;
     // SAFETY: `exchangeRateType` is one of ENTRY_RATE_TYPES and every member has a
-    // `transfers.rate.*` entry, which is what `transfer-editor` relies on to build
-    // the picker this row reads back.
     const rateSource =
         transfer?.exchangeRateType == null
             ? "—"

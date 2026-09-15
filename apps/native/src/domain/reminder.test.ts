@@ -106,12 +106,6 @@ describe("reconciling a stored setting against iOS", () => {
         expect(reminderReconcile(true, "undetermined")).toBe("disable");
     });
 
-    /**
-     * `reminderPermission()` used to answer "denied" when the lookup THREW, and
-     * this runs on every foreground sweep. One transient failure therefore
-     * cancelled every armed reminder and wrote the user's setting to false, with
-     * nothing to re-arm it afterwards — the switch just read Off.
-     */
     it("does nothing when the permission could not be read at all", () => {
         expect(reminderReconcile(true, "unknown")).toBe("none");
     });

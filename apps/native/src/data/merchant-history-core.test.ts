@@ -148,9 +148,6 @@ describe("reading the merchants this ledger already knows", () => {
         await expect(recent(2)).resolves.toStrictEqual(["C shop", "B shop"]);
     });
 
-    // Asking for more names than the window holds is the point: at the default
-    // limit of 6 the fillers crowd Panaderia out on their own, and the query's
-    // own `.limit(RECENT_MERCHANT_WINDOW)` could be deleted without anyone noticing.
     it("forgets a merchant pushed out of the recency window", async () => {
         log("Panaderia", "food");
         for (let filler = 0; filler < RECENT_MERCHANT_WINDOW; filler += 1) {

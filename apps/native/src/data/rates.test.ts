@@ -20,9 +20,6 @@ describe("chunkRows", () => {
     });
 
     it("keeps a chunk under SQLite's bound-parameter cap", () => {
-        // 6 bound params per row against SQLite's 32,766 ceiling. Arithmetic over
-        // the constant, which is all this one can be — the test that proves the
-        // constant is USED lives with `pullRatesIfDue`.
         expect(RATE_ROWS_PER_CHUNK * 6).toBeLessThan(32_766);
     });
 });
@@ -165,10 +162,6 @@ describe("pullRatesIfDue", () => {
         expect((await storedRates(db)).map((row) => row.quote)).toStrictEqual(["EUR", "GBP", "JPY"]);
     });
 
-    // A rate row binds 6 parameters against SQLite's 32,766 ceiling, so anything
-    // past 5,461 rows is rejected outright as one statement. Asserting
-    // `RATE_ROWS_PER_CHUNK * 6 < 32_766` proves the constant is small enough; only
-    // a snapshot this size proves anything splits on it.
     it("writes a snapshot too large for one insert", async () => {
         const db = makeDb();
         const oversized = Array.from({ length: 6000 }, (_, index) => wireRow(`Q${index}`, "2026-07-28"));
@@ -288,15 +281,9 @@ describe("pullRatesIfDue", () => {
         expect(atBump).toStrictEqual([{ date: "2026-07-28", quote: "EUR" }]);
     });
 
-    // The ordering that matters is not "after the inserts" — the subscriber reads
-    // the same connection the transaction is open on, so it would see them either
-    // way. It is "after the COMMIT": a bump inside the transaction invalidates
-    // every screen's rate table against rows a rollback is about to take back.
     it("does not bump when the replacement rolls back", async () => {
         const db = makeDb();
         await db.insert(exchangeRates).values(wireRow("VES", "2020-01-01"));
-        // A duplicate of the first row, far enough in to land in a later chunk, so
-        // the write fails after some of it has already been applied.
         const rows = Array.from({ length: RATE_ROWS_PER_CHUNK + 1 }, (_, index) =>
             wireRow(index === RATE_ROWS_PER_CHUNK ? "Q0" : `Q${index}`, "2026-07-28")
         );
@@ -306,7 +293,6 @@ describe("pullRatesIfDue", () => {
         await expect(pullRatesIfDue(db, pull, { now: NOW })).rejects.toThrow();
 
         expect(ratesRevision()).toBe(before);
-        // And the cache the screens are still pointing at is the one they had.
         await expect(storedRates(db)).resolves.toStrictEqual([{ date: "2020-01-01", quote: "VES" }]);
     });
 });

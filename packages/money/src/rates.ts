@@ -114,10 +114,6 @@ function divideToUsd(numerator: ScaledInt, denominators: ScaledInt[]): number {
  */
 export async function computeAmountUSD(lookup: RateLookup, input: ComputeAmountUSDInput): Promise<number> {
     const numerator = toScaledInt(input.baseAmount);
-    // The entry's own rate, guarded like the EUR leg below it. Without this the
-    // doc above is a promise only the second leg keeps: `exchangeRate: -40`
-    // divides to a finite negative, passes the overflow check, and stores an
-    // expense as income.
     const denominators: ScaledInt[] = [
         toScaledInt(requirePositiveRate(input.exchangeRate, "the entry", input.exchangeRateType, input.date)),
     ];

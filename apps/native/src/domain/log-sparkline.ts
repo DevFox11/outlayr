@@ -38,9 +38,6 @@ function sampleEdges(
         let edge = addMonths(next, -12);
         while (edge.getTime() < next.getTime()) {
             // Swift labels each monthly sample with the day before its boundary, so
-            // the point reads as the month that just closed. It has to be the END of
-            // that day: the edge is exclusive, so a midnight here charged the month's
-            // own last day to the month after it.
             edges.push(endOfDay(addDays(edge, -1)));
             edge = addMonths(edge, 1);
         }
@@ -55,9 +52,6 @@ function sampleEdges(
         edges.push(edge);
         edge = addDays(edge, 1);
     }
-    // Every other edge is the end of the day it labels, and the bucket loop takes
-    // rows strictly before it. A midnight here left the last bucket one second
-    // wide, so today's rows fell into no bucket at all.
     edges.push(endOfDay(today));
     return { edges, unit: "day" };
 }

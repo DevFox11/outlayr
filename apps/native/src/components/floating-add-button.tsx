@@ -115,16 +115,6 @@ export function FloatingAddButton() {
     const [open, setOpen] = useState(false);
     const haptics = useHaptics();
 
-    /**
-     * The dial's close is a spring, and panelui keeps the action mounted and
-     * hit-testable for its whole ~450ms: the slot animates opacity without
-     * setting `pointerEvents: "none"`, and the closing scrim is only rendered
-     * while `open`. So a normal double-tap reached the handler twice and pushed
-     * the same route twice — two screens stacked, and for voice two Convex
-     * threads and two recorders on one microphone.
-     *
-     * Re-armed on focus, which this effect already runs on the way back in.
-     */
     const navigating = useRef(false);
     const go = useCallback((href: Parameters<typeof router.push>[0]) => {
         if (navigating.current) {

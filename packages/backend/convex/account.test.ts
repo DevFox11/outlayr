@@ -58,7 +58,6 @@ function transactionRow(localId: string): PushRows[number] {
     };
 }
 
-/** Drains the purge the way `accountDeletion.advance` does, and reports the passes taken. */
 async function purgeAll(t: TestClient, userId: string): Promise<number> {
     let passes = 0;
     let done = false;

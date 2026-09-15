@@ -197,8 +197,6 @@ export default defineSchema({
         storageId: v.id("_storage"),
     })
         .index("by_key", ["key"])
-        // Reverse lookup for `mapStorageId`'s ownership check. Internal-only, like
-        // every reader of this table, so it adds no enumeration surface.
         .index("by_storageId", ["storageId"]),
 
     /**
@@ -221,9 +219,6 @@ export default defineSchema({
         userId: v.string(),
     })
         .index("by_user", ["userId"])
-        // `bytes` second so the unconfirmed-upload cap is an index range rather
-        // than a post-index filter: without it, an account with nothing
-        // outstanding walks its whole photo history to learn that.
         .index("by_user_and_bytes", ["userId", "bytes"])
         .index("by_key", ["key"]),
 

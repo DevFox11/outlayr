@@ -20,10 +20,6 @@ const mockRevenueCat = {
     isMirrored: false,
     isPro: false,
     isResolved: true,
-    // Stands in for the provider's own mirror. It routes through mockCloudAction
-    // only so the tests below can drive what the mirror answers; the action path
-    // it passes is this file's invention, and is pinned for real by
-    // `lib/entitlement-mirror.test.ts`.
     mirrorEntitlement: jest.fn<() => Promise<boolean>>(() => mockCloudAction("revenuecat:syncFromStore", {})),
     purchasePackage: jest.fn<(offer: PurchasesPackage) => Promise<PurchaseOutcome>>(),
     restorePurchases: jest.fn<() => Promise<boolean>>(),

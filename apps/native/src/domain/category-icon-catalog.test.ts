@@ -23,9 +23,6 @@ describe("iconKeysMatching", () => {
         expect(iconKeysMatching("   ")).toStrictEqual(ALL_KEYS);
     });
 
-    // Each of these asserts an exclusion as well as a hit. Presence alone is
-    // satisfied by a superset, so `isMatch = true` — the picker filtering nothing
-    // and returning all 163 icons for every query — passed every one of them.
     it("matches on a keyword synonym", () => {
         const keys = iconKeysMatching("groceries");
         expect(keys).toContain("ShoppingCart01");

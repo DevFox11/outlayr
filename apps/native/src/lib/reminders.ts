@@ -43,9 +43,6 @@ export async function requestReminderPermission(): Promise<ReminderPermission> {
             })
         );
     } catch {
-        // Same reason as above: a throw means the ask never happened, and reporting
-        // it as a refusal would send the user to iOS Settings to un-deny something
-        // they were never asked about.
         return "unknown";
     }
 }

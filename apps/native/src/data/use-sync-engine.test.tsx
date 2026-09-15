@@ -32,7 +32,6 @@ jest.mock("./table-invalidation", () => ({ invalidateAll: jest.fn() }));
 
 import { useSyncEngine } from "./use-sync-engine";
 
-/** What the database itself reports after a write, which is a table, not a key. */
 function emitChange(tableName: string): void {
     for (const listener of mockListeners) {
         listener({ tableName });
@@ -50,19 +49,12 @@ describe("useSyncEngine", () => {
         jest.useFakeTimers();
     });
 
-    /**
-     * A clean cycle ends by writing `syncedAt`, which is an `appMeta` write, and
-     * the listener is told only the table. Scheduling on the name alone meant
-     * every successful sync armed the next one: a foregrounded app hit the
-     * backend every two seconds with nothing to send.
-     */
     it("does not schedule another round trip after a cycle that had nothing to send", async () => {
         await act(async () => {
             renderHook(() => useSyncEngine(db, false));
         });
         const afterMount = mockRunSync.mock.calls.length;
 
-        // The bookkeeping write the cycle itself just made.
         await act(async () => {
             emitChange("appMeta");
         });
@@ -80,8 +72,6 @@ describe("useSyncEngine", () => {
         const afterMount = mockRunSync.mock.calls.length;
         await db.run("INSERT INTO outbox (tableName, localId, enqueuedAt) VALUES ('transactions', 'tx-1', 1)");
 
-        // The listener asks the outbox before it arms the debounce, so the answer
-        // has to land before the clock moves.
         await act(async () => {
             emitChange("transactions");
         });

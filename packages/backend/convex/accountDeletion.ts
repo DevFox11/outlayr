@@ -329,21 +329,6 @@ export const resumeUserId = internalQuery({
 
 const CLEANUP_BATCH = 200;
 
-/**
- * ⚠️ `sync.push` refuses every write while ANY job of this user is past
- * `prepared`, so a job that is abandoned there locks the account out of writing
- * forever: nothing advances it, there is no cancel, and `prepare` caps a user at
- * 20 jobs so they cannot even start a fresh deletion.
- *
- * `googleLocalReceipt` is the phase that gets there having destroyed nothing —
- * it is reached by proving possession of a challenge `prepare` itself just
- * handed the client, before anything upstream is revoked. So its `expiresAt`
- * means what it says and the job can be reclaimed.
- *
- * `appleServerRevoked` is NOT swept: that one really has revoked the user's
- * Apple credential, and a job describing an irreversible step is not garbage.
- * The other phases are mid-purge and must finish.
- */
 export const cleanupExpired = internalMutation({
     args: {},
     handler: async (ctx) => {

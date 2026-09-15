@@ -39,13 +39,6 @@ async function addTransaction(target: Database, id: string, deletedAt: Date | nu
     });
 }
 
-/**
- * The outbox rows for one table, by local id.
- *
- * `outboxPendingCount` cannot answer "did the ledger get queued": `seedCategories`
- * puts ~14 rows in before any test body runs, so a count threshold is met before
- * the transaction under test exists.
- */
 async function queuedIds(target: Database, table: string): Promise<string[]> {
     const rows = await target.select({ localId: outbox.localId }).from(outbox).where(eq(outbox.tableName, table));
     return rows.map((row) => row.localId).sort();

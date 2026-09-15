@@ -17,9 +17,6 @@ function Probe() {
 }
 
 describe("useMark", () => {
-    // Naming the tier is the point: `ink.fill` is an rgba() string for every
-    // tier, so a truthiness check let the default fall to any of the three.
-    // Takeover is the loudest, and it is what a full-screen empty state wants.
     it("resolves via use() outside a MarkInk provider", async () => {
         const { getByTestId } = await render(<Probe />);
         expect(getByTestId("probe").props.children).toBe(ghostInk("#000000", "takeover").fill);

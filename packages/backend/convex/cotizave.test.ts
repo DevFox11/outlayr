@@ -277,8 +277,6 @@ describe("cotizave.fetchRates", () => {
         await t.action(internal.cotizave.fetchRates, {});
 
         const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
-        // The length first: `[].every()` is true, so without it any regression
-        // that writes nothing at all passes this as "every row is dated right".
         expect(rows).toHaveLength(3);
         expect(rows.every((row) => row.date === "2026-01-02")).toBeTruthy();
     });

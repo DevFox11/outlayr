@@ -5,17 +5,6 @@ import type { Infer } from "convex/values";
 export { PICKABLE_CURRENCY_CODES } from "@outlayr/money/catalog";
 export { utcDateString } from "@outlayr/money/dates";
 
-/**
- * The currency vocabulary Convex needs: the validators the schema and the
- * mutation args are built from, plus the catalog and date helpers those
- * functions read.
- *
- * Deliberately NOT a wrapper over `@outlayr/money`'s arithmetic. Canonical USD
- * is computed on the device (`apps/native/src/domain/canonical-usd.ts`), which
- * imports the package directly, so a Convex-side mirror of it was a boundary
- * nobody crossed.
- */
-
 export type MarketRateType = MoneyMarketRateType;
 
 /**

@@ -447,9 +447,6 @@ describe("tier 2: remote fallback", () => {
         expect(calls[1].args.regionCode).toBe("VE");
     });
 
-    // The idle tick is at 1.8s and the fast pass has a 4s budget, so "the fast
-    // pass has not answered yet" is a routine state at the moment this fires —
-    // not a reason to abandon the follow-up. Nothing else re-arms it.
     it("still follows up when the fast pass answers after the idle tick", async () => {
         const { fn, calls } = deferredTransport();
         const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
@@ -458,7 +455,6 @@ describe("tier 2: remote fallback", () => {
         await act(async () => {
             jest.advanceTimersByTime(DEBOUNCE_MS);
         });
-        // Idle tick fires with the fast pass still out.
         await act(async () => {
             jest.advanceTimersByTime(GROUNDED_IDLE_MS);
         });

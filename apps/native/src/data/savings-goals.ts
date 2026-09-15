@@ -143,8 +143,6 @@ export function useSavingsGoals(db: Database, nowMs: number): SavingsGoalWithPro
                                   targetDate: goal.targetDate,
                               }
                             : undefined,
-                        // The figures are stated in the display currency, so they
-                        // round to its minor units — three for KWD and its peers.
                         minorUnitsFor(displayCurrency)
                     ),
                     saved,

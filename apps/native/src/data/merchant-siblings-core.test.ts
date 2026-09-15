@@ -195,15 +195,8 @@ describe("applyMerchantToSiblings", () => {
         expect((await row(db, "renamed")).imageUri).toBeNull();
     });
 
-    // A row with nothing to patch never runs the UPDATE, so its `still` predicate
-    // is skipped and the EXISTS clause inside attachTagsIfStill is the only thing
-    // left holding the line. Moving the row before the call cannot test that —
-    // the sibling filter drops it first. The edit has to land DURING the run, and
-    // persistLogo is the one await the loop yields at.
     it("attaches tags only behind the same live-row check when there is nothing else to write", async () => {
         await seedRow(db, "first", { date: new Date(NOW.getTime() + 1000) });
-        // An emoji is a chosen identity, so this row takes no logo and no
-        // category: the tag write is all that is left to do to it.
         await seedRow(db, "moved", { emoji: "🛒" });
 
         const touched = await applyMerchantToSiblings(

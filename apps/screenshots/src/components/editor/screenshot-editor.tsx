@@ -303,11 +303,6 @@ export function ScreenshotEditor() {
         (target.tagName === "INPUT" ||
           target.tagName === "TEXTAREA" ||
           (target as HTMLElement).isContentEditable);
-      // Above the export guard on purpose: that guard is there to keep mutations
-      // out of the export loop, and Escape mutates nothing the loop reads. The
-      // off-screen DeckCanvas below renders from the frozen `exportDeck` and is
-      // passed neither `selectedElement` nor `editable`, so clearing the
-      // selection cannot change a captured pixel.
       if (e.key === "Escape") {
         setSelectedElement(null);
         if (target && "blur" in target && typeof target.blur === "function") target.blur();
@@ -413,9 +408,6 @@ export function ScreenshotEditor() {
         slide.screenshot &&
         !slide.screenshotSecondary,
     );
-    // The bezel is a file, so it can 404 where the CSS frames cannot, and the
-    // export still finishes and reports success — just with no phone around the
-    // screenshot. Nothing else here looks at it.
     const framelessExport =
       didFail(PHONE_MOCKUP_SRC) &&
       usesMockupFrame(state.device, state.orientation) &&

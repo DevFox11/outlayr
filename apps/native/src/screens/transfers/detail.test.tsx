@@ -58,10 +58,6 @@ beforeEach(() => {
     mockTransferRows[0] = { ...SAME_CURRENCY_TRANSFER };
 });
 
-/**
- * Every string the screen renders. `SwiftText` puts its content in `props.text`
- * rather than in children, so walking children alone finds nothing.
- */
 function allText(node: JsonNode | JsonNode[] | null, found: string[] = []): string[] {
     if (node == null) {
         return found;
@@ -138,8 +134,6 @@ async function deleteRowModifiers(): Promise<Modifier[]> {
 }
 
 describe("transferDetail", () => {
-    // The rate rows only exist on a cross-currency transfer, which the fixture
-    // above is not — so nothing else in this file reaches them.
     it("names the rate source through the catalog, not as the stored enum", async () => {
         mockTransferRows[0] = {
             ...SAME_CURRENCY_TRANSFER,

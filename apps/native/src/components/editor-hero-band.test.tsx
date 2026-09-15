@@ -130,9 +130,6 @@ describe("categoryEditorHeroBand", () => {
         expect(toJSON()).toBeTruthy();
     });
 
-    // Nothing else in this file looks at the picked symbol — the reset-badge test
-    // below only checks the badge — so `toJSON()` being truthy let EmojiTile
-    // return null with the suite still green.
     it("draws the emoji once one is picked", async () => {
         const { getByText } = await render(<Harness emoji="🎯" />);
         expect(getByText("🎯")).toBeTruthy();
@@ -200,8 +197,6 @@ describe("categoryEditorHeroBand", () => {
         });
 
         const hookOrderViolations = errorSpy.mock.calls.filter(([message]) =>
-            // React LOGS this wording. "Rendered more hooks" is what it THROWS,
-            // and `act` surfaces that on its own.
             typeof message === "string" ? /change in the order of Hooks/.test(message) : false
         );
         expect(hookOrderViolations).toHaveLength(0);
@@ -220,8 +215,6 @@ describe("categoryEditorHeroBand", () => {
         });
 
         const hookOrderViolations = errorSpy.mock.calls.filter(([message]) =>
-            // React LOGS this wording. "Rendered more hooks" is what it THROWS,
-            // and `act` surfaces that on its own.
             typeof message === "string" ? /change in the order of Hooks/.test(message) : false
         );
         expect(hookOrderViolations).toHaveLength(0);

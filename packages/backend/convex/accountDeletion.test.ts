@@ -115,12 +115,6 @@ describe("preparing a deletion", () => {
 });
 
 describe("sweeping abandoned jobs", () => {
-    /**
-     * `sync.push` refuses every write while any job of this user is past
-     * `prepared`, so a job abandoned at `providersRevoked` locked the account out
-     * of writing forever — nothing advances it, there is no cancel, and the
-     * per-user cap stops them starting a fresh deletion.
-     */
     async function sweepWith(phase: DeletionJob["phase"], provider: DeletionJob["provider"]): Promise<number> {
         const t = convexTest(schema, modules);
         revenuecatTest.register(t);
