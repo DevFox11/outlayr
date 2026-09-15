@@ -8,7 +8,7 @@ import { syncTransport, watchSyncWatermark } from "@/lib/convex";
 import { debounce } from "@/lib/sync-cadence";
 
 import { runSync } from "./sync-engine-core";
-import { getSyncCursor, isSyncEnabled, SYNCED_TABLES, setSyncedAt } from "./sync-outbox-core";
+import { getSyncCursor, isSyncEnabled, outboxPendingCount, SYNCED_TABLES, setSyncedAt } from "./sync-outbox-core";
 import { invalidateAll } from "./table-invalidation";
 
 /**
@@ -86,9 +86,31 @@ export function useSyncEngine(db: Database | null, paused: boolean): void {
 
         cycle();
 
+        // Gated on the outbox rather than on the table name alone. A clean cycle
+        // ends by writing `syncedAt`, which is an `appMeta` write, and the change
+        // listener only learns the TABLE — so scheduling on the name meant every
+        // successful sync armed the next one and the app polled the backend every
+        // two seconds for as long as it stayed foregrounded, with nothing to send.
+        //
+        // The triggers already draw the line this needs: they enqueue for the
+        // replicated keys only, and `syncedAt` is not one of them. So a non-empty
+        // outbox is exactly "a local write worth a round trip". Pull-only wake-ups
+        // still arrive through foreground and the watermark subscription below.
+        const scheduleIfPending = () => {
+            outboxPendingCount(db)
+                .then((pending) => {
+                    if (pending > 0) {
+                        schedule.schedule();
+                    }
+                })
+                .catch((error) => {
+                    console.warn("[outlayr] sync schedule check failed", error);
+                });
+        };
+
         const listener = addDatabaseChangeListener((event) => {
             if (REPLICATED.has(event.tableName)) {
-                schedule.schedule();
+                scheduleIfPending();
             }
         });
 
