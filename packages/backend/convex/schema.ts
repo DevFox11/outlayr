@@ -195,7 +195,11 @@ export default defineSchema({
     photoObjects: defineTable({
         key: v.string(),
         storageId: v.id("_storage"),
-    }).index("by_key", ["key"]),
+    })
+        .index("by_key", ["key"])
+        // Reverse lookup for `mapStorageId`'s ownership check. Internal-only, like
+        // every reader of this table, so it adds no enumeration surface.
+        .index("by_storageId", ["storageId"]),
 
     /**
      * What each stored object weighs, so an account's total is one indexed read

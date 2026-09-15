@@ -227,6 +227,39 @@ describe("confirmUpload", () => {
             })
         ).rejects.toThrow(ConvexError);
     });
+
+    /**
+     * `key` is ownership-checked; `storageId` was checked against nothing, and it
+     * selects a file. Binding a stranger's object to a key of your own would hand
+     * you a read url for it through `readUrls`, and `releaseUnreferenced` would
+     * later reach `ctx.storage.delete` on it.
+     */
+    test("refuses a storage object already bound to another photo", async () => {
+        const t = harness();
+        const owner = await seedProUser(t);
+        const stranger = await seedProUser(t);
+        const strangersKey = photoKeyFor(stranger.userId, PHOTO);
+        const storageId = await t.run(async (ctx) => await ctx.storage.store(new Blob(["bytes"])));
+        await authenticatedAs(t, stranger).action(api.photos.confirmUpload, { key: strangersKey, storageId });
+
+        const ownKey = photoKeyFor(owner.userId, PHOTO);
+        await expect(
+            authenticatedAs(t, owner).action(api.photos.confirmUpload, { key: ownKey, storageId })
+        ).rejects.toThrow(ConvexError);
+    });
+
+    test("still lets a key rebind its own object, which a retry does", async () => {
+        const t = harness();
+        const owner = await seedProUser(t);
+        const key = photoKeyFor(owner.userId, PHOTO);
+        const storageId = await t.run(async (ctx) => await ctx.storage.store(new Blob(["bytes"])));
+
+        await authenticatedAs(t, owner).action(api.photos.confirmUpload, { key, storageId });
+
+        await expect(
+            authenticatedAs(t, owner).action(api.photos.confirmUpload, { key, storageId })
+        ).resolves.toBeNull();
+    });
 });
 
 describe("readUrls", () => {

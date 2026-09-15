@@ -287,6 +287,17 @@ async function forgetPhotoSize(ctx: MutationCtx, key: string): Promise<void> {
 export const mapStorageId = internalMutation({
     args: { key: v.string(), storageId: v.id("_storage") },
     handler: async (ctx, args) => {
+        // `key` is ownership-checked by the caller; `storageId` is not checked by
+        // anything, and it selects a file. Binding one already mapped to another
+        // key would hand this caller a read url for it through `readUrls`, and
+        // `releaseUnreferenced` would later delete it.
+        const boundElsewhere = await ctx.db
+            .query("photoObjects")
+            .withIndex("by_storageId", (q) => q.eq("storageId", args.storageId))
+            .first();
+        if (boundElsewhere && boundElsewhere.key !== args.key) {
+            throw new ConvexError("That upload does not belong to this photo");
+        }
         const existing = await ctx.db
             .query("photoObjects")
             .withIndex("by_key", (q) => q.eq("key", args.key))
