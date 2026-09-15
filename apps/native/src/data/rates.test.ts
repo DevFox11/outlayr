@@ -19,9 +19,11 @@ describe("chunkRows", () => {
         expect(chunkRows([], 10)).toStrictEqual([]);
     });
 
-    it("keeps a full snapshot under SQLite's bound-parameter cap", () => {
-        // 6 bound params per row against SQLite's 32,766 ceiling.
-        expect(RATE_ROWS_PER_CHUNK * 6 < 32_766).toBeTruthy();
+    it("keeps a chunk under SQLite's bound-parameter cap", () => {
+        // 6 bound params per row against SQLite's 32,766 ceiling. Arithmetic over
+        // the constant, which is all this one can be — the test that proves the
+        // constant is USED lives with `pullRatesIfDue`.
+        expect(RATE_ROWS_PER_CHUNK * 6).toBeLessThan(32_766);
     });
 });
 
@@ -183,6 +185,19 @@ describe("pullRatesIfDue", () => {
         await expect(pullRatesIfDue(db, pull, { now: NOW })).resolves.toBe(true);
         expect(calls).toStrictEqual([undefined, 1, 2]);
         expect((await storedRates(db)).map((row) => row.quote)).toStrictEqual(["EUR", "GBP", "JPY"]);
+    });
+
+    // A rate row binds 6 parameters against SQLite's 32,766 ceiling, so anything
+    // past 5,461 rows is rejected outright as one statement. Asserting
+    // `RATE_ROWS_PER_CHUNK * 6 < 32_766` proves the constant is small enough; only
+    // a snapshot this size proves anything splits on it.
+    it("writes a snapshot too large for one insert", async () => {
+        const db = makeDb();
+        const oversized = Array.from({ length: 6000 }, (_, index) => wireRow(`Q${index}`, "2026-07-28"));
+        const { pull } = pagedPuller([oversized]);
+
+        await expect(pullRatesIfDue(db, pull, { now: NOW })).resolves.toBe(true);
+        await expect(storedRates(db)).resolves.toHaveLength(6000);
     });
 
     it("replaces the whole cache rather than merging into it", async () => {
