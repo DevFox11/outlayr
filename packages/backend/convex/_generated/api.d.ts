@@ -27,6 +27,7 @@ import type * as lib_ledgerPrompt from "../lib/ledgerPrompt.js";
 import type * as lib_merchantKey from "../lib/merchantKey.js";
 import type * as lib_merchantTrust from "../lib/merchantTrust.js";
 import type * as lib_photoKeys from "../lib/photoKeys.js";
+import type * as lib_sanitizeLimits from "../lib/sanitizeLimits.js";
 import type * as lib_sha256Hex from "../lib/sha256Hex.js";
 import type * as lib_spend from "../lib/spend.js";
 import type * as lib_syncTables from "../lib/syncTables.js";
@@ -64,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   "lib/merchantKey": typeof lib_merchantKey;
   "lib/merchantTrust": typeof lib_merchantTrust;
   "lib/photoKeys": typeof lib_photoKeys;
+  "lib/sanitizeLimits": typeof lib_sanitizeLimits;
   "lib/sha256Hex": typeof lib_sha256Hex;
   "lib/spend": typeof lib_spend;
   "lib/syncTables": typeof lib_syncTables;

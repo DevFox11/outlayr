@@ -1,12 +1,9 @@
 // oxlint-disable unicorn/filename-case -- Convex keys the module by its path — `_generated/api.d.ts:53` carries "lib/merchantTrust" — and regenerating that is not a lint fix
 
-const DOMAIN_PATTERN = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
-const MAX_DOMAIN_LENGTH = 253;
+import { DOMAIN_PATTERN, MAX_DOMAIN_LENGTH, MAX_TAG_LENGTH, MAX_TAGS, PICTOGRAPHIC } from "./sanitizeLimits";
+
 /** A merchant key, optionally scoped to a currency — see `knowledgeKey`. */
 const KEY_PATTERN = /^[a-z0-9 ]{3,64}(\|[a-z]{3})?$/;
-const EMOJI_PATTERN = /\p{Extended_Pictographic}/u;
-const MAX_TAGS = 3;
-const MAX_TAG_LENGTH = 24;
 
 /**
  * The 33 preset expense/income category names from
@@ -95,7 +92,7 @@ function emojiIsSanitized(emoji: string | null): boolean {
     if (trimmed !== emoji || trimmed.length === 0 || [...trimmed].length > 3) {
         return false;
     }
-    return EMOJI_PATTERN.test(trimmed);
+    return PICTOGRAPHIC.test(trimmed);
 }
 
 /**

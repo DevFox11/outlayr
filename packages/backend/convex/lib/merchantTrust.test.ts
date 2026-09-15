@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { CANONICAL_CATEGORY_NAMES, corroborates, shouldPublish } from "./merchantTrust";
+import { MAX_DOMAIN_LENGTH, MAX_TAG_LENGTH, MAX_TAGS } from "./sanitizeLimits";
 
 const BASE_CANDIDATE = {
     categoryName: "Healthcare",
@@ -86,6 +87,33 @@ describe(shouldPublish, () => {
         expect(
             shouldPublish({ ...BASE_CANDIDATE, tags: ["a", "b", "c", "d"] }, [{ url: "https://farmatodo.com/es" }])
         ).toBeFalsy();
+    });
+});
+
+// `enrichment.ts` sanitizes down to these and `shouldPublish` re-checks them.
+// The re-check is the last thing between a personal string and a row every
+// account can read, so it must keep refusing what the sanitizer would have
+// trimmed — which it can only do while both sides read the same numbers.
+describe("the limits the sanitizer and the filter share", () => {
+    const sources = [{ url: "https://farmatodo.com/es" }];
+
+    test("refuses more tags than the sanitizer would have kept", () => {
+        const tags = Array.from({ length: MAX_TAGS + 1 }, (_, index) => `tag${index}`);
+        expect(shouldPublish({ ...BASE_CANDIDATE, tags }, sources)).toBeFalsy();
+    });
+
+    test("refuses a tag longer than the sanitizer would have cut it", () => {
+        const tags = ["x".repeat(MAX_TAG_LENGTH + 1)];
+        expect(shouldPublish({ ...BASE_CANDIDATE, tags }, sources)).toBeFalsy();
+    });
+
+    test("refuses a domain longer than the protocol allows", () => {
+        const domain = `${"a".repeat(MAX_DOMAIN_LENGTH)}.com`;
+        expect(shouldPublish({ ...BASE_CANDIDATE, domain }, [{ url: `https://${domain}/x` }])).toBeFalsy();
+    });
+
+    test("refuses a domain that is not a bare apex", () => {
+        expect(shouldPublish({ ...BASE_CANDIDATE, domain: "https://farmatodo.com" }, sources)).toBeFalsy();
     });
 });
 

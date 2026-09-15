@@ -13,6 +13,7 @@ import { PICKABLE_CURRENCY_CODES } from "./lib/currencies";
 import { describeTree } from "./lib/ledgerPrompt";
 import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { knowledgeKey } from "./lib/merchantKey";
+import { DOMAIN_PATTERN, MAX_DOMAIN_LENGTH, MAX_TAG_LENGTH, MAX_TAGS, PICTOGRAPHIC } from "./lib/sanitizeLimits";
 import { isPro } from "./revenuecat";
 
 /**
@@ -28,15 +29,10 @@ export const ENRICHMENT_MODEL_ID = "grok-4.20-non-reasoning";
 
 const MIN_NAME_LENGTH = 3;
 const MAX_NAME_LENGTH = 64;
-const MAX_TAGS = 3;
-const MAX_TAG_LENGTH = 24;
 const MAX_CATEGORY_NAME_LENGTH = 40;
-const MAX_DOMAIN_LENGTH = 253;
 const MAX_KNOWN_CATEGORY_NAMES = 60;
 /** The action's own budget under the client's 4s `Promise.race` abort. */
 export const REQUEST_TIMEOUT_MS = 3500;
-const DOMAIN_PATTERN = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
-const PICTOGRAPHIC = /\p{Extended_Pictographic}/u;
 
 /**
  * The action's only arguments — a privacy boundary, not just a shape.
