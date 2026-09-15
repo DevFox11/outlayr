@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -H 127.0.0.1",
     "build": "next build",
+    "check-types": "tsc --noEmit",
     "start": "next start -H 127.0.0.1"
   },
   "dependencies": {
