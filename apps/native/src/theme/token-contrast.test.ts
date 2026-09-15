@@ -476,7 +476,26 @@ describe("every accent a user can pick", () => {
         }
     });
 
-    it("carries a stable stored value for each accent", () => {
-        expect(ACCENTS.map((accent) => accent.value)).toStrictEqual([...ACCENTS.keys()]);
+    // `Append only; never renumber` — the value is in every user's `accentColor`
+    // setting, so moving one repaints their app. Comparing the values to
+    // `ACCENTS.keys()` could not catch that: both sides are dense and ordered, so
+    // deleting an accent and renumbering the rest passes.
+    //
+    // Pinned literally, which means adding an accent has to touch this list. That
+    // is the point: appending is legal, and everything else should be loud.
+    it("keeps each accent's stored value where the settings that hold it expect", () => {
+        expect(ACCENTS.map(({ key, value }) => [key, value])).toStrictEqual([
+            ["vermilion", 0],
+            ["plum", 1],
+            ["ochre", 2],
+            ["prussian", 3],
+            ["pine", 4],
+        ]);
+    });
+
+    it("gives no two accents the same stored value, which would shadow one", () => {
+        // `accentForValue` answers with the first match, so a duplicate makes one
+        // accent unreachable from a setting the picker can still write.
+        expect(new Set(ACCENTS.map((accent) => accent.value)).size).toBe(ACCENTS.length);
     });
 });
