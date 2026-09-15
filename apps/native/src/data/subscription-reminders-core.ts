@@ -2,6 +2,7 @@ import { and, gt, isNotNull, isNull } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
+import { startOfDay } from "@/domain/dates";
 import { DEFAULT_CURRENCY } from "@/domain/money";
 import { anchorDayOf, nextLanding, RECURRING_TYPE } from "@/domain/recurrence";
 import type { TimeOfDay } from "@/domain/reminder";
@@ -21,12 +22,13 @@ export interface SubscriptionReminderCandidate extends ReminderCandidate {
 const CANDIDATE_COLUMNS = {
     amount: transactions.amount,
     currency: transactions.currency,
-    // Only the anchor's fallback: `recurringAnchorDay` is what the projection
-    // actually advances from.
+    // What the projection advances from, and what `recurringAnchorDay` falls
+    // back to. NOT `day`: that column is midnight in the zone of the device that
+    // WROTE the row, so a subscription authored across a wide gap reads as a
+    // different calendar day here — and `nextLanding` already normalises the
+    // clock time off `date` through `startOfDay`, which is the hazard `day` was
+    // reached for. Both writers (`recurrence-backfill`) project from `date`.
     date: transactions.date,
-    // `day` and not `date`: the schedule advances in whole days, and a carrier's
-    // `date` still carries the clock time of the charge it last took.
-    day: transactions.day,
     id: transactions.id,
     note: transactions.note,
     recurringAnchorDay: transactions.recurringAnchorDay,
@@ -67,7 +69,12 @@ export async function reminderCandidates(db: Database, now: Date): Promise<Subsc
 
     return rows.flatMap((row) => {
         const landing = nextLanding(
-            row.day,
+            // Normalised HERE rather than read off `day`: the landing has to be a
+            // midnight (the notice is scheduled from it), but `day` is midnight in
+            // the zone of the device that WROTE the row, so a subscription
+            // authored across a wide gap armed the notice a day off the
+            // occurrence this device's sweep goes on to write.
+            startOfDay(row.date),
             row.recurringType,
             row.recurringCoefficient,
             row.recurringEndDate,

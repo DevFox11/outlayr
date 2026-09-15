@@ -25,6 +25,12 @@ interface CarrierOverrides {
     currency?: string | null;
     /** Its LAST charge, clock time included — the landing must not be read off it. */
     date: Date;
+    /**
+     * Midnight in the zone of the device that WROTE the row, which is not this
+     * device's midnight once the two are far enough apart. Defaults to agreeing
+     * with `date`, as a single-device ledger always does.
+     */
+    day?: Date;
     deletedAt?: Date | null;
     id?: string;
     note?: string;
@@ -42,7 +48,7 @@ async function seedCarrier(db: Database, overrides: CarrierOverrides): Promise<s
         categoryId: "bills",
         currency: overrides.currency === undefined ? "USD" : overrides.currency,
         date: overrides.date,
-        day: startOfDay(overrides.date),
+        day: overrides.day ?? startOfDay(overrides.date),
         deletedAt: overrides.deletedAt ?? null,
         details: null,
         id,
@@ -98,6 +104,23 @@ describe("reminderCandidates", () => {
         expect(candidate?.landing.getHours()).toBe(0);
         expect(candidate?.landing.getMinutes()).toBe(0);
         expect(candidate?.landing.getTime()).toBe(at(2025, 7, 15).getTime());
+    });
+
+    // `day` is midnight in the WRITING device's zone. A subscription authored on
+    // a phone far enough east stores a `day` that reads as the previous calendar
+    // day here — and the sweep that writes the next occurrence projects from
+    // `date`, so a notice projected from `day` was armed for a charge that never
+    // lands on that date.
+    it("arms from the charge's own instant, not the zone the row was written in", async () => {
+        await seedCarrier(db, {
+            date: at(2025, 3, 15, 8, 0),
+            day: at(2025, 3, 14, 12, 0),
+            reminderLeadDays: 0,
+        });
+
+        const [candidate] = await reminderCandidates(db, NOW);
+
+        expect(candidate?.landing).toStrictEqual(at(2025, 7, 15));
     });
 
     it("advances from the day the chain was written for, not the short month it was clamped into", async () => {
