@@ -2,14 +2,13 @@ import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Ico
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Pressable, View } from "react-native";
 
+import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { IMPORT_SOURCES } from "@/domain/import-sources";
 import { useTranslation } from "@/i18n/context";
 import { importDraftStore } from "@/lib/import-draft-store";
 import { useColors } from "@/theme/use-colors";
-
-import { EyebrowRow } from "../eyebrow-row";
 
 const ICON_TILE_SIZE = 30;
 
@@ -20,13 +19,15 @@ export function SourceStep() {
 
     return (
         <View className="flex-1 px-5">
-            <EyebrowRow
-                label={t("import.sourceEyebrow")}
-                value={t("import.sourceCount", {
-                    count: available,
-                    total: IMPORT_SOURCES.length,
-                })}
-            />
+            <View className="gap-1.25">
+                <View className="flex-row items-baseline justify-between gap-2">
+                    <MonoLabel numberOfLines={1}>{t("import.sourceEyebrow")}</MonoLabel>
+                    <MonoLabel numberOfLines={1}>
+                        {t("import.sourceCount", { count: available, total: IMPORT_SOURCES.length })}
+                    </MonoLabel>
+                </View>
+                <View className="bg-border h-px" />
+            </View>
             {IMPORT_SOURCES.map((source) => (
                 <Pressable
                     accessibilityRole="button"

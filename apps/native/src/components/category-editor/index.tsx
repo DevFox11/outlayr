@@ -11,6 +11,7 @@ import Animated, { FadeInDown, FadeOutDown, useDerivedValue, useSharedValue } fr
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { EditorCta } from "@/components/editor-cta";
+import { EditorHeroBand } from "@/components/editor-hero-band";
 import {
     CAPTION_CLEARANCE,
     CTA_BOTTOM_PADDING,
@@ -43,7 +44,6 @@ import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
 import { CategoryEditorDetailsSection } from "./details-section";
-import { CategoryEditorHeroBand } from "./hero-band";
 
 const MAX_EXPENSE_CATEGORIES = 24;
 
@@ -488,7 +488,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
 
             {/* Follows the `Host` in the tree so the header's scroll-edge lookup still
 			    finds the form first. */}
-            <CategoryEditorHeroBand
+            <EditorHeroBand
                 captionClearance={captionClearance}
                 color={tint}
                 emoji={draft.emoji}
@@ -506,6 +506,8 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
                         photoUri: null,
                     })
                 }
+                photoUri={null}
+                variant="category"
             />
 
             {/* The CTA is an RN view now, so the picker's SwiftUI blur/opacity

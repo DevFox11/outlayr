@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AmountEntrySheet } from "@/components/amount-entry-sheet";
 import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
 import { EditorCta } from "@/components/editor-cta";
+import { EditorHeroBand } from "@/components/editor-hero-band";
 import {
     CTA_BOTTOM_PADDING,
     CTA_HEIGHT,
@@ -52,7 +53,6 @@ import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
 import { AccountEditorDetailsSection } from "./details-section";
-import { AccountEditorHeroBand } from "./hero-band";
 
 export type AccountEditorProps = { mode: "create" } | { mode: "edit"; id: string };
 
@@ -406,8 +406,9 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                 </Host>
             </View>
 
-            <AccountEditorHeroBand
+            <EditorHeroBand
                 captionClearance={0}
+                income={false}
                 color={tint}
                 emoji={draft.emoji}
                 floatProgress={floatProgress}
@@ -425,6 +426,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                     });
                 }}
                 photoUri={draft.photoUri}
+                variant="transaction"
             />
 
             {/* The CTA is an RN view now, so the picker's SwiftUI blur/opacity

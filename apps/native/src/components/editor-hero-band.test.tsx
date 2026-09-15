@@ -7,7 +7,7 @@ import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
 import { testLocalData as mockTestLocalData } from "@/contexts/test-local-data";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
-import { CategoryEditorHeroBand } from "./hero-band";
+import { EditorHeroBand } from "./editor-hero-band";
 
 jest.mock<Partial<typeof import("@react-native-async-storage/async-storage")>>(
     "@react-native-async-storage/async-storage",
@@ -107,7 +107,7 @@ function Harness({
     const floatProgress = useSharedValue(0);
     return (
         <IdentityDraftProvider>
-            <CategoryEditorHeroBand
+            <EditorHeroBand
                 captionClearance={captionClearance}
                 color={color}
                 emoji={emoji}
@@ -117,6 +117,8 @@ function Harness({
                 onLayout={onLayout}
                 onPress={onPress}
                 onReset={onReset}
+                photoUri={null}
+                variant="category"
             />
         </IdentityDraftProvider>
     );

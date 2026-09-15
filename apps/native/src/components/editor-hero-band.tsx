@@ -5,34 +5,33 @@ import type { SharedValue } from "react-native-reanimated";
 import { HEADER_HEIGHT, HERO_BOTTOM_PADDING, HERO_TOP_PADDING } from "@/components/editor-style";
 import { IdentityHero } from "@/components/identity-hero";
 
-interface AccountEditorHeroBandProps {
+interface EditorHeroBandProps {
     captionClearance: number;
     color: string;
     emoji: string | null;
     floatProgress: SharedValue<number>;
     icon: string | null;
+    income: boolean;
     onLayout: (event: LayoutChangeEvent) => void;
     onPress: () => void;
     onReset: () => void;
     photoUri: string | null;
+    variant: "category" | "transaction";
 }
 
-/**
- * `IdentityHero` imports `react-native-reanimated`, which crashes jest at
- * module-load time (see `src/domain/curtain-hues.ts`), so like the category
- * band this component's only coverage is on-device.
- */
-export function AccountEditorHeroBand({
+export function EditorHeroBand({
     captionClearance,
     color,
     emoji,
     floatProgress,
     icon,
+    income,
     photoUri,
+    variant,
     onLayout,
     onPress,
     onReset,
-}: AccountEditorHeroBandProps) {
+}: EditorHeroBandProps) {
     return (
         <View
             onLayout={onLayout}
@@ -52,11 +51,11 @@ export function AccountEditorHeroBand({
                 emoji={emoji}
                 floatProgress={floatProgress}
                 icon={icon}
-                income={false}
+                income={income}
                 onPress={onPress}
                 onReset={onReset}
                 photoUri={photoUri}
-                variant="transaction"
+                variant={variant}
             />
         </View>
     );

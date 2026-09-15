@@ -5,7 +5,7 @@ import { ScrollView, View } from "react-native";
 
 import { AccountPickerSheet } from "@/components/account-picker-sheet";
 import { CategoryPickerSheet } from "@/components/category-picker-sheet";
-import { useCategoryPickerField } from "@/components/form/category-picker-field";
+import type { CategoryPickerSheetRef } from "@/components/category-picker-sheet";
 import { MonoLabel } from "@/components/mono-label";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useSettingBool, useSettingNumber } from "@/contexts/display-settings-context";
@@ -25,6 +25,7 @@ import {
     useUnbudgetedScopes,
 } from "@/data/budgets";
 import { useCategoryMeta } from "@/data/categories";
+import type { Category } from "@/data/categories-core";
 import { useSavingsGoals } from "@/data/savings-goals";
 import { GoalValuationError, savingsGoalsRepo } from "@/data/savings-goals-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
@@ -211,11 +212,9 @@ export function Budgets() {
         }
     };
 
-    const {
-        present: presentCategoryPicker,
-        ref: categoryPickerRef,
-        select: selectCategory,
-    } = useCategoryPickerField((picked) =>
+    const categoryPickerRef = useRef<CategoryPickerSheetRef>(null);
+    const presentCategoryPicker = () => categoryPickerRef.current?.present();
+    const selectCategory = (picked: Category) => {
         openLimit({
             categoryId: picked.id,
             color: picked.color,
@@ -224,8 +223,9 @@ export function Budgets() {
             limit: null,
             name: picked.name ?? t("budgets.name.default"),
             type: BUDGET_TYPE.month,
-        })
-    );
+        });
+        categoryPickerRef.current?.dismiss();
+    };
 
     const commitEverything = async ({ limit, type }: LimitCommit) => {
         try {

@@ -24,7 +24,6 @@ import { AmountEntrySheet } from "./amount-entry-sheet";
 import { CategoryIconTile } from "./category-icon-tile";
 import { CategoryPickerSheet } from "./category-picker-sheet";
 import type { CategoryPickerSheetRef } from "./category-picker-sheet";
-import { useNumpadAmountField } from "./form/numpad-amount-field";
 import { Text } from "./text";
 
 interface SplitSheetProps {
@@ -73,22 +72,12 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
     const left = unallocated(total, allocations);
     const balanced = isBalanced(total, allocations);
 
-    const amountField = useNumpadAmountField({
-        code,
-        minorUnits,
-        onChange: (next) => {
-            setAmountText(next);
-            if (editing != null) {
-                onChange(setPartAmount(total, allocations, editing, numpadToNumber(next)));
-            }
-        },
-        value: amountText,
-    });
+    const amountSheetRef = useRef<BottomSheetModal>(null);
 
     const editAmount = (index: number) => {
         setEditing(index);
         setAmountText(numberToNumpad(allocations[index].amount, minorUnits));
-        amountField.present();
+        amountSheetRef.current?.present();
     };
 
     const pickCategory = (index: number) => {
@@ -235,7 +224,19 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
                     editing != null && editing < allocations.length ? (allocations[editing].categoryId ?? null) : null
                 }
             />
-            <AmountEntrySheet {...amountField.sheetProps} />
+            <AmountEntrySheet
+                code={code}
+                minorUnits={minorUnits}
+                onChange={(next) => {
+                    setAmountText(next);
+                    if (editing != null) {
+                        onChange(setPartAmount(total, allocations, editing, numpadToNumber(next)));
+                    }
+                }}
+                onDone={() => amountSheetRef.current?.dismiss()}
+                ref={amountSheetRef}
+                value={amountText}
+            />
         </BottomSheetModal>
     );
 }
