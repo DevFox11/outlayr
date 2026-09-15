@@ -16,7 +16,23 @@ describe("sparklineSeries", () => {
     it("samples a week period at eight points ending today", () => {
         const points = sparklineSeries([], "net", "week", NOW);
         expect(points).toHaveLength(8);
-        expect(points.at(-1)?.date.getTime()).toBe(new Date("2026-07-27T00:00:00").getTime());
+        // The END of today, as every other edge is the end of the day it labels.
+        // A midnight here left the final bucket one second wide.
+        expect(points.at(-1)?.date.getTime()).toBe(new Date("2026-07-27T23:59:59").getTime());
+    });
+
+    // The suite seeded rows on 22-25 July only, so no test ever dated a row today
+    // — and the one assertion about the tail checked its date, never its amount.
+    it("counts today's rows, which are the whole point of the right-hand edge", () => {
+        const points = sparklineSeries(
+            [row("2026-07-26T09:00:00", 40), row("2026-07-27T09:00:00", 99)],
+            "out",
+            "week",
+            NOW
+        );
+
+        expect(points.at(-2)?.amount).toBe(40);
+        expect(points.at(-1)?.amount).toBe(99);
     });
 
     it("walks net forward as a running balance, including entries before the window", () => {
@@ -62,6 +78,22 @@ describe("sparklineSeries", () => {
     it("samples a year period monthly", () => {
         const points = sparklineSeries([], "net", "year", NOW);
         expect(points).toHaveLength(13);
+    });
+
+    // The only other year-period test runs on an empty row set, so nothing ever
+    // landed in a monthly bucket. A month's last day belongs to that month.
+    it("keeps a month's last day in that month", () => {
+        const points = sparklineSeries(
+            [row("2026-05-31T09:00:00", 80), row("2026-06-01T09:00:00", 5)],
+            "out",
+            "year",
+            NOW
+        );
+        const charged = points.filter((point) => point.amount > 0);
+
+        expect(charged.map((point) => point.amount)).toStrictEqual([80, 5]);
+        expect(charged[0]?.date.getMonth()).toBe(4);
+        expect(charged[1]?.date.getMonth()).toBe(5);
     });
 });
 
