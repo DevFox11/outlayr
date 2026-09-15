@@ -88,7 +88,11 @@ export function BudgetBurndownHero({
     const perDay = budget.leftover < 0 ? null : leftPerDay(budget.leftover, budget.window, now);
     const measures: MeasureStripCell[] = [
         {
-            figure: formatAmount(budget.limit, currency, false, language),
+            // `amount`, not `limit`: the hero number above is `leftover`, which is
+            // `amount - spent`, and the chart below draws its line at `amount` too.
+            // Printing the pre-carry `limit` here put three figures on one card
+            // that cannot all be true — 500 limit, 600 spent, 20 left.
+            figure: formatAmount(budget.amount, currency, false, language),
             key: "limit",
             label: t("budgets.measure.limit"),
         },
