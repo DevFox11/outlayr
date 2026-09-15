@@ -592,8 +592,8 @@ const settings = {
             es: "Cada tarde",
         }),
         "settings.notifications.eveningDetail": t({
-            en: "A nudge at 8:00 PM, once the day is mostly done.",
-            es: "Un aviso a las 8:00 p. m., cuando el día ya casi termina.",
+            en: "A nudge at {time}, once the day is mostly done.",
+            es: "Un aviso a las {time}, cuando el día ya casi termina.",
         }),
         "settings.notifications.footer": t({
             en: "One reminder a day, from this device. Outlayr never sends anything from a server.",
@@ -604,8 +604,8 @@ const settings = {
             es: "Cada mañana",
         }),
         "settings.notifications.morningDetail": t({
-            en: "A nudge at 8:00 AM, before the day has spent anything.",
-            es: "Un aviso a las 8:00 a. m., antes de que el día haya gastado nada.",
+            en: "A nudge at {time}, before the day has spent anything.",
+            es: "Un aviso a las {time}, antes de que el día haya gastado nada.",
         }),
         "settings.notifications.nextAt": t({
             en: "Next reminder at {time}.",

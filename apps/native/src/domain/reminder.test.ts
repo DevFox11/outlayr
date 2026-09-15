@@ -70,6 +70,16 @@ describe("time of day label", () => {
     it("pads the minute", () => {
         expect(formatTimeOfDay({ hour: 9, minute: 7 })).toBe("9:07 AM");
     });
+
+    it("writes the meridiem in the reader's language", () => {
+        expect(formatTimeOfDay({ hour: 20, minute: 0 }, false, "es")).toBe("8:00 p. m.");
+        expect(formatTimeOfDay({ hour: 8, minute: 0 }, false, "es")).toBe("8:00 a. m.");
+    });
+
+    it("honours the 24-hour clock the rest of the app already honours", () => {
+        expect(formatTimeOfDay({ hour: 20, minute: 0 }, true)).toBe("20:00");
+        expect(formatTimeOfDay({ hour: 8, minute: 5 }, true)).toBe("08:05");
+    });
 });
 
 describe("turning reminders on", () => {

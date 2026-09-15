@@ -4,7 +4,7 @@ import { Alert, View } from "react-native";
 import { ChoiceRow, SettingsSection, ToggleRow } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
-import { useAppSettings } from "@/contexts/display-settings-context";
+import { useAppSettings, useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { setBoolSetting, setNumberSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
@@ -19,7 +19,7 @@ import {
 } from "@/domain/reminder";
 import type { TimeOfDay } from "@/domain/reminder";
 import type { TranslationKey } from "@/i18n/catalog";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { translateNow } from "@/i18n/runtime";
 import { armReminder, useReminderSync } from "@/lib/reminder-sync";
 import {
@@ -127,6 +127,8 @@ export function Notifications() {
 
     const colors = useColors();
     const t = useTranslation();
+    const { language } = useLanguage();
+    const { use24Hour } = useDisplaySettings().state;
     const { state: settings } = useAppSettings();
     const enabled = settings.bool("showNotifications");
     const subscriptionsEnabled = settings.bool("subscriptionReminders");
@@ -168,13 +170,23 @@ export function Notifications() {
             {enabled ? (
                 <SettingsSection
                     footer={t("settings.notifications.nextAt", {
-                        time: formatTimeOfDay(scheduled),
+                        time: formatTimeOfDay(scheduled, use24Hour, language),
                     })}
                     title={t("settings.notifications.whenSection")}
                 >
                     {OPTIONS.map((choice) => (
                         <ChoiceRow
-                            detail={"detail" in choice ? t(choice.detail) : undefined}
+                            detail={
+                                "detail" in choice
+                                    ? t(choice.detail, {
+                                          time: formatTimeOfDay(
+                                              reminderTime(choice.value, custom),
+                                              use24Hour,
+                                              language
+                                          ),
+                                      })
+                                    : undefined
+                            }
                             key={choice.value}
                             label={t(choice.label)}
                             onPress={() => chooseOption(choice.value)}

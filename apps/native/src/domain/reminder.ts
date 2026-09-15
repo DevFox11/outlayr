@@ -1,3 +1,8 @@
+import type { Language } from "@/i18n/languages";
+import { runtimeLanguage } from "@/i18n/runtime";
+
+import { formatTime } from "./dates";
+
 export const REMINDER_MORNING = 1;
 export const REMINDER_EVENING = 2;
 export const REMINDER_CUSTOM = 3;
@@ -35,13 +40,21 @@ export function reminderTime(option: number, custom: TimeOfDay): TimeOfDay {
 }
 
 /**
- * Hand-rolled rather than `toLocaleTimeString`: Hermes ships without ICU, so
- * every locale would read back as the en-US default anyway.
+ * The reminder's time, written the way every other clock in the app is.
+ *
+ * `formatTime` takes a `Date` because that is what its callers hold; a reminder
+ * is a wall-clock time with no day attached, so one is stood up here. It is
+ * still hand-rolled underneath rather than `toLocaleTimeString`, because Hermes
+ * ships without ICU and every locale would read back as the en-US default.
  */
-export function formatTimeOfDay({ hour, minute }: TimeOfDay): string {
-    const suffix = hour < 12 ? "AM" : "PM";
-    const twelve = hour % 12 === 0 ? 12 : hour % 12;
-    return `${twelve}:${String(minute).padStart(2, "0")} ${suffix}`;
+export function formatTimeOfDay(
+    { hour, minute }: TimeOfDay,
+    use24Hour = false,
+    language: Language = runtimeLanguage()
+): string {
+    const at = new Date();
+    at.setHours(hour, minute, 0, 0);
+    return formatTime(at, use24Hour, language);
 }
 
 export type ReminderPermission = "granted" | "denied" | "undetermined";
