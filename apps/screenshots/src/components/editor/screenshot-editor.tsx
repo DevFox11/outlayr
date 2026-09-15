@@ -473,6 +473,13 @@ export function ScreenshotEditor() {
           try {
             const dataUrl = await captureSlide(el, cW, cH, size.w, size.h);
             const base64 = dataUrl.split(",")[1] || "";
+            // `html-to-image` answers "data:," for a zero-area or unrenderable
+            // node instead of throwing, so without this a 0-byte PNG lands in the
+            // bundle under a valid name, counts as a success, and is only caught
+            // when App Store Connect rejects the upload.
+            if (!base64) {
+              throw new Error("capture produced no image");
+            }
             const filename = `${String(i + 1).padStart(2, "0")}-${slide.layout}.png`;
             const path = `${platform}/${state.device}/${size.w}x${size.h}/${locale}/${filename}`;
             zip.file(path, base64, { base64: true });
