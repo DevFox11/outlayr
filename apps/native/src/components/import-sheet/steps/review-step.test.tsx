@@ -203,6 +203,27 @@ describe("reviewStep", () => {
         } as ImportReviewResult;
     }
 
+    it("keeps two currencies apart instead of adding them into one figure", async () => {
+        // A CSV may carry a currency column — the app's own export writes one per
+        // row. Each row already renders in its own, so a header that adds them
+        // contradicts the lines directly above it.
+        const foreign = { ...ENTRY, amount: 300, currency: "MXN" };
+        const review = baseReview({
+            plan: { earliest: null, entries: [ENTRY, foreign], latest: null, skipped: [] },
+            rows: [
+                { duplicate: false, entry: ENTRY, index: 0, key: "entry-0", kind: "entry" },
+                { duplicate: false, entry: foreign, index: 1, key: "entry-1", kind: "entry" },
+            ],
+            selectedCount: 2,
+        });
+
+        const { queryByText, queryAllByText } = await render(<ReviewStep review={review} />);
+
+        // Never the sum, and never the sum labelled in either currency.
+        expect(queryByText("-$312.50")).toBeNull();
+        expect(queryAllByText(/312\.50/)).toHaveLength(0);
+    });
+
     it("pins the measure strip with the live selection count and out total", async () => {
         const { getAllByText, getByText } = await render(<ReviewStep review={baseReview()} />);
         expect(getByText("import.reviewToImportLabel")).toBeTruthy();

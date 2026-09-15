@@ -13,6 +13,8 @@ import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { ImportEntry, SkipReason } from "@/data/transfer-core";
+import { currencyTotals } from "@/domain/currency-totals";
+import type { CurrencyBucket, CurrencyEntry } from "@/domain/currency-totals";
 import { formatDayHeader, formatSentenceDate } from "@/domain/dates";
 import { FALLBACK_IDENTITY_COLOR } from "@/domain/transaction-identity";
 import type { ImportReviewResult, ReviewCategoryTile } from "@/hooks/use-import-review";
@@ -156,25 +158,20 @@ export const EntryRow = memo(
 );
 EntryRow.displayName = "EntryRow";
 
-const DayHeader = memo(
-    ({ day, total, currency, first }: { day: Date; total: number; currency: string; first: boolean }) => {
-        const { showCents } = useDisplaySettings().state;
-        const { language } = useLanguage();
-        return (
-            <View className={first ? "gap-1.25 pt-2.5" : "gap-1.25 pt-7"}>
-                <View className="flex-row items-baseline justify-between gap-2">
-                    <MonoLabel>{formatDayHeader(day, undefined, language)}</MonoLabel>
-                    <DayTotal
-                        showCents={showCents}
-                        totals={[{ amount: total, currencyCode: currency, transactionCount: 0 }]}
-                    />
-                </View>
-                {/* A 1.3 stroke with round caps, matching the Log's day rule. */}
-                <View className="bg-border" style={{ borderRadius: 0.65, height: 1.3 }} />
+const DayHeader = memo(({ day, totals, first }: { day: Date; first: boolean; totals: readonly CurrencyBucket[] }) => {
+    const { showCents } = useDisplaySettings().state;
+    const { language } = useLanguage();
+    return (
+        <View className={first ? "gap-1.25 pt-2.5" : "gap-1.25 pt-7"}>
+            <View className="flex-row items-baseline justify-between gap-2">
+                <MonoLabel>{formatDayHeader(day, undefined, language)}</MonoLabel>
+                <DayTotal showCents={showCents} totals={totals} />
             </View>
-        );
-    }
-);
+            {/* A 1.3 stroke with round caps, matching the Log's day rule. */}
+            <View className="bg-border" style={{ borderRadius: 0.65, height: 1.3 }} />
+        </View>
+    );
+});
 DayHeader.displayName = "DayHeader";
 
 interface ReviewStepProps {
@@ -215,22 +212,48 @@ export function ReviewStep({ review }: ReviewStepProps) {
         return [...byDay.values()];
     }, [entryRows]);
 
-    const { outMagnitude, dayTotals } = useMemo(() => {
-        let out = 0;
-        const totals = new Map<string, number>();
+    // Bucketed per currency, never added across them. A CSV may carry a currency
+    // column — the app's own export writes one per row — and each row already
+    // renders in its own. Summing a 120 USD row and a 300 MXN row into "MX$420"
+    // contradicts the two lines directly above it, which is exactly what
+    // `amount-text` forbids: "A day that spent two currencies gets two figures
+    // separated by a slash, never added."
+    const { outTotals, dayTotals } = useMemo(() => {
+        const perDay = new Map<string, CurrencyEntry[]>();
+        const out: CurrencyEntry[] = [];
         for (const row of entryRows) {
             if (review.excluded.has(row.index)) {
                 continue;
             }
+            const cell: CurrencyEntry = {
+                amount: row.entry.amount,
+                amountUsd: null,
+                currency: row.entry.currency ?? review.currency,
+                income: row.entry.income,
+            };
             if (!row.entry.income) {
-                out += row.entry.amount;
+                out.push(cell);
             }
             const key = dayKeyOf(row.entry.date);
-            const signed = row.entry.income ? row.entry.amount : -row.entry.amount;
-            totals.set(key, (totals.get(key) ?? 0) + signed);
+            const bucket = perDay.get(key);
+            if (bucket) {
+                bucket.push(cell);
+            } else {
+                perDay.set(key, [cell]);
+            }
         }
-        return { dayTotals: totals, outMagnitude: out };
-    }, [entryRows, review.excluded]);
+        return {
+            dayTotals: new Map(
+                [...perDay].map(([key, cells]) => [key, currencyTotals(cells, review.currency)] as const)
+            ),
+            // Nothing selected still shows a figure rather than an empty cell —
+            // zero is zero in any currency, so the ledger's is not a claim.
+            outTotals:
+                out.length === 0
+                    ? [{ amount: 0, currencyCode: review.currency, transactionCount: 0 }]
+                    : currencyTotals(out, review.currency),
+        };
+    }, [entryRows, review.excluded, review.currency]);
 
     const renderItem = useCallback(
         ({ item }: { item: ReviewEntryListRow }) => (
@@ -253,13 +276,12 @@ export function ReviewStep({ review }: ReviewStepProps) {
     const renderSectionHeader = useCallback(
         ({ section }: { section: ReviewDaySection }) => (
             <DayHeader
-                currency={review.currency}
                 day={section.day}
                 first={sections[0] === section}
-                total={dayTotals.get(dayKeyOf(section.day)) ?? 0}
+                totals={dayTotals.get(dayKeyOf(section.day)) ?? []}
             />
         ),
-        [review.currency, sections, dayTotals]
+        [sections, dayTotals]
     );
 
     const skippedFooter =
@@ -341,15 +363,22 @@ export function ReviewStep({ review }: ReviewStepProps) {
                     {
                         key: "out",
                         label: t("log.measure.out"),
-                        value: (
-                            <MeasureCellAmount
-                                code={review.currency}
-                                income={false}
-                                magnitude={outMagnitude}
-                                positive={false}
-                                showCents={showCents}
-                            />
-                        ),
+                        // One currency keeps the single bold figure it always had.
+                        // Several get `DayTotal`, for the same reason the day
+                        // headers use it: the strip must not add a USD row to an
+                        // MXN one and then label the result in either.
+                        value:
+                            outTotals.length > 1 ? (
+                                <DayTotal showCents={showCents} sizeClass="text-body" totals={outTotals} />
+                            ) : (
+                                <MeasureCellAmount
+                                    code={outTotals[0]?.currencyCode ?? review.currency}
+                                    income={false}
+                                    magnitude={Math.abs(outTotals[0]?.amount ?? 0)}
+                                    positive={false}
+                                    showCents={showCents}
+                                />
+                            ),
                     },
                 ]}
                 className="mx-5"
