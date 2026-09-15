@@ -25,7 +25,16 @@ function resolveSiteUrl() {
     return process.env.SITE_URL || process.env.CONVEX_SITE_URL || "http://localhost:3000";
 }
 
-const nativeAppUrl = process.env.NATIVE_APP_URL || "outlayr://";
+/**
+ * Same reason, and it was one line under that sentence while being read at module
+ * scope: a warm isolate that had already imported this file never saw
+ * `convex env set NATIVE_APP_URL`, so `trustedOrigins` kept the `outlayr://`
+ * fallback and Better Auth refused the deep-link redirect with nothing to say the
+ * variable had been ignored.
+ */
+function resolveNativeAppUrl() {
+    return process.env.NATIVE_APP_URL || "outlayr://";
+}
 
 export const authComponent = createClient<DataModel>(components.betterAuth);
 
@@ -74,6 +83,7 @@ async function generateAppleClientSecret(clientId: string, teamId: string, keyId
 
 function createAuth(ctx: GenericCtx<DataModel>) {
     const siteUrl = resolveSiteUrl();
+    const nativeAppUrl = resolveNativeAppUrl();
 
     return betterAuth({
         account: { encryptOAuthTokens: true },
