@@ -19,6 +19,10 @@ describe("useAuthSession", () => {
         });
     });
 
+    it("keeps the quarantine cover up after the cold-start restore budget has lapsed", () => {
+        expect(sessionView({ user: { id: "provisional-user" } }, false, true, true).gate).toBe("restoring");
+    });
+
     it("resolves the unconfigured default via use() outside a provider", async () => {
         const { getByTestId } = await render(<Probe />);
         expect(getByTestId("probe").props.children).toBe(JSON.stringify({ accountId: null, gate: "unconfigured" }));

@@ -68,7 +68,7 @@ export function sessionView(
         gate: authGate({
             configured: true,
             hasSession: accountId != null,
-            restoreExpired,
+            restoreExpired: restoreExpired && !provisional,
             restoring: isPending || provisional,
         }),
     };
