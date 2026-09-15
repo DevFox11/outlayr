@@ -20,7 +20,6 @@ type Props = {
   theme: Theme;
   locale: string;
   appName?: string;
-  appIcon?: string;
   connectedCanvas: boolean;
   onSelect: () => void;
   onDelete: () => void;
@@ -40,7 +39,6 @@ export function SlideThumb({
   theme,
   locale,
   appName,
-  appIcon,
   connectedCanvas,
   onSelect,
   onDelete,
@@ -121,7 +119,6 @@ export function SlideThumb({
               theme={theme}
               locale={locale}
               appName={appName}
-              appIcon={appIcon}
               connectedCanvas={connectedCanvas}
               editable={false}
             />

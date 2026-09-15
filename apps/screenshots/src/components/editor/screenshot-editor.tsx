@@ -4,6 +4,7 @@ import JSZip from "jszip";
 import { toPng } from "html-to-image";
 import { Toaster, toast } from "sonner";
 import {
+  APP_ICON_SRC,
   getExportSizes,
   hasTheme,
   supportsLandscape,
@@ -75,7 +76,7 @@ export function ScreenshotEditor() {
   const assetPaths = React.useMemo(() => {
     const paths = new Set<string>();
     paths.add(PHONE_MOCKUP_SRC);
-    if (state.appIcon) paths.add(state.appIcon);
+    paths.add(APP_ICON_SRC);
     // Preload every locale variant so bulk export doesn't race image loads.
     const allSlides: Slide[] = Object.values(state.slidesByDevice).flat();
     for (const s of allSlides) {
@@ -89,7 +90,7 @@ export function ScreenshotEditor() {
       }
     }
     return Array.from(paths).sort();
-  }, [state.slidesByDevice, state.appIcon, state.locales]);
+  }, [state.slidesByDevice, state.locales]);
   const assetSig = assetPaths.join("|");
 
   React.useEffect(() => {
@@ -643,7 +644,6 @@ export function ScreenshotEditor() {
             theme={theme}
             locale={state.locale}
             appName={state.appName}
-            appIcon={state.appIcon}
             connectedCanvas={state.connectedCanvas}
             disabled={busy}
             onReorder={reorderSlides}
@@ -664,7 +664,6 @@ export function ScreenshotEditor() {
               theme={theme}
               locale={state.locale}
               appName={state.appName}
-              appIcon={state.appIcon}
               connectedCanvas={state.connectedCanvas}
               selectedElement={selectedElement}
               onActiveSlideChange={setActiveSlideId}
@@ -746,7 +745,6 @@ export function ScreenshotEditor() {
                 theme={theme}
                 locale={exportLocaleOverride ?? state.locale}
                 appName={state.appName}
-                appIcon={state.appIcon}
                 connectedCanvas={state.connectedCanvas}
                 hideEmpty
               />

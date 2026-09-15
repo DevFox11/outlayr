@@ -116,7 +116,6 @@ export const DEFAULT_PROJECT: ProjectState = {
   locale: DEFAULT_LOCALE,
   device: "iphone",
   orientation: "portrait",
-  appIcon: "",
   slidesByDevice: {
     iphone: makeStarterSlides(),
     android: makeStarterSlides(),

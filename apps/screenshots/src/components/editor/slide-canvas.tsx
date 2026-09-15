@@ -14,6 +14,7 @@ import type {
   Theme,
 } from "@/lib/types";
 import {
+  APP_ICON_SRC,
   FRAME_ASPECT,
   androidPhoneW,
   getExportSizes,
@@ -117,7 +118,6 @@ type DeckCanvasProps = {
   theme: Theme;
   locale: string;
   appName?: string;
-  appIcon?: string;
   connectedCanvas?: boolean;
   editable?: boolean;
   edit?: DeckEditHandlers;
@@ -453,7 +453,6 @@ export function DeckCanvas({
   theme,
   locale,
   appName,
-  appIcon,
   connectedCanvas = true,
   editable,
   edit,
@@ -502,7 +501,6 @@ export function DeckCanvas({
                 theme={theme}
                 locale={locale}
                 appName={appName}
-                appIcon={appIcon}
                 editable={editable}
                 edit={{
                   onHeadlineChange: (v) => edit?.onHeadlineChange?.(slide.id, v),
@@ -652,7 +650,6 @@ function FeatureGraphicCanvas({
   theme,
   locale,
   appName,
-  appIcon,
   editable,
   edit,
 }: {
@@ -661,7 +658,6 @@ function FeatureGraphicCanvas({
   theme: Theme;
   locale: string;
   appName?: string;
-  appIcon?: string;
   editable?: boolean;
   edit?: EditHandlers;
 }) {
@@ -694,9 +690,9 @@ function FeatureGraphicCanvas({
         }}
       />
       <div style={{ display: "flex", alignItems: "center", gap: cW * 0.03, zIndex: 2 }}>
-        {appIcon && img(appIcon) ? (
+        {img(APP_ICON_SRC) ? (
           <img
-            src={img(appIcon)}
+            src={img(APP_ICON_SRC)}
             alt=""
             style={{
               width: cW * 0.13,

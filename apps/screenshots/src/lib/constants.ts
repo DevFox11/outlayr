@@ -63,6 +63,9 @@ export const PHONE_SCREEN = {
   RY: (126 / 1990) * 100,
 };
 
+/** The deck is one app's, so its icon is not project state — there is no UI to change it. */
+export const APP_ICON_SRC = "/app-icon.png";
+
 // ---------- Width formula helpers ----------
 export function androidPhoneW(cW: number, cH: number, clamp = 0.84) {
   return Math.min(clamp, 0.72 * (cH / cW) * FRAME_ASPECT.android);
