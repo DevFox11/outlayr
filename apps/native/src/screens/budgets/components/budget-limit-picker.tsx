@@ -437,11 +437,7 @@ export function BudgetLimitPicker({
                     {t("budgets.sheet.lastWindows", { over: overCount, total: sampled.length })}
                 </Text>
             )}
-            {perDayLine() ? (
-                <Text className="text-footnote text-muted pt-0.5" style={{ fontVariant: ["tabular-nums"] }}>
-                    {perDayLine()}
-                </Text>
-            ) : null}
+            {perDayLine() ? <Text className="text-footnote text-muted pt-0.5 tabular-nums">{perDayLine()}</Text> : null}
         </View>
     );
 }

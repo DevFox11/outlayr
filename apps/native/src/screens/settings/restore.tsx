@@ -7,7 +7,6 @@ import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
 import { restoreArchive } from "@/data/archive-core";
-import type { Database } from "@/db/client";
 import { archiveRowCount, parseArchive } from "@/domain/archive";
 import type { ArchiveDocument } from "@/domain/archive";
 import { useTranslation } from "@/i18n/context";
@@ -18,10 +17,6 @@ import { useColors } from "@/theme/use-colors";
 
 export function RestoreData() {
     const db = useDatabase();
-    return <RestoreDataContent db={db} />;
-}
-
-function RestoreDataContent({ db }: { db: Database }) {
     const colors = useColors();
     const router = useRouter();
     const t = useTranslation();

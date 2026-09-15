@@ -167,9 +167,7 @@ function CurrencyRowFace({
     return (
         <>
             <View className="w-9 items-center">
-                <Text className="text-body text-muted" style={{ fontVariant: ["tabular-nums"] }}>
-                    {meta.symbol}
-                </Text>
+                <Text className="text-body text-muted tabular-nums">{meta.symbol}</Text>
             </View>
             <View className="flex-1">
                 <Text className="text-body text-foreground">{code}</Text>

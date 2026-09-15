@@ -81,10 +81,6 @@ async function toggleAppLock(db: Database, next: boolean): Promise<void> {
 
 export function Settings() {
     const db = useDatabase();
-    return <SettingsContent db={db} />;
-}
-
-function SettingsContent({ db }: { db: Database }) {
     const router = useRouter();
     const t = useTranslation();
     const { isPro } = useRevenueCat();

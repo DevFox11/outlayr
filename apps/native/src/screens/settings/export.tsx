@@ -9,7 +9,6 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { buildArchive } from "@/data/archive-core";
 import { useTransactionCount } from "@/data/transactions";
 import { exportFileName, exportTransactionsCsv } from "@/data/transfer-core";
-import type { Database } from "@/db/client";
 import { archiveFileName, serializeArchive } from "@/domain/archive";
 import { CSV_HEADER } from "@/domain/transaction-csv";
 import type { TranslationKey } from "@/i18n/catalog";
@@ -33,10 +32,6 @@ const OMITTED = [
 
 export function ExportData() {
     const db = useDatabase();
-    return <ExportDataContent db={db} />;
-}
-
-function ExportDataContent({ db }: { db: Database }) {
     const colors = useColors();
     const t = useTranslation();
     const count = useTransactionCount(db);

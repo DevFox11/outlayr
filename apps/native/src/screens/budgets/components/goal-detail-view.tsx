@@ -200,9 +200,8 @@ function Measure({ label, tone, value }: { label: string; tone?: string; value: 
         <View className="flex-1 py-3">
             <Text className="text-micro text-muted tracking-eyebrow font-mono uppercase">{label}</Text>
             <Text
-                className={cn("font-sans-semibold text-subtitle pt-0.5", tone ?? "text-foreground")}
+                className={cn("tabular-nums", "font-sans-semibold text-subtitle pt-0.5", tone ?? "text-foreground")}
                 numberOfLines={1}
-                style={{ fontVariant: ["tabular-nums"] }}
             >
                 {value}
             </Text>

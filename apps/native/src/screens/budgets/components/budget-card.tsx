@@ -96,9 +96,12 @@ export function BudgetCard({
             </View>
 
             <Text
-                className={cn("font-sans-semibold text-body", over ? "text-over-budget" : "text-foreground")}
+                className={cn(
+                    "tabular-nums",
+                    "font-sans-semibold text-body",
+                    over ? "text-over-budget" : "text-foreground"
+                )}
                 numberOfLines={1}
-                style={{ fontVariant: ["tabular-nums"] }}
             >
                 {differenceLabel}
                 <Text className="font-sans-medium text-label text-muted">

@@ -1,5 +1,1 @@
-import { ReceiptScanScreen } from "@/screens/transaction/scan";
-
-export default function ReceiptScanRoute() {
-    return <ReceiptScanScreen />;
-}
+export { ReceiptScanScreen as default } from "@/screens/transaction/scan";

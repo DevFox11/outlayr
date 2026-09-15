@@ -165,11 +165,11 @@ function AlsoPill({ figures, measure, showCents }: { figures: LogFigures; measur
             <MonoLabel>{figures.currencyCode}</MonoLabel>
             <Text
                 className={cn(
+                    "tabular-nums",
                     "font-sans-semibold text-footnote",
                     measureIsIncome(measure) ? "text-income" : "text-foreground"
                 )}
                 numberOfLines={1}
-                style={{ fontVariant: ["tabular-nums"] }}
             >
                 {amount}
             </Text>

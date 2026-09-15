@@ -1,5 +1,1 @@
-import { Log } from "@/screens/log";
-
-export default function LogScreen() {
-    return <Log />;
-}
+export { Log as default } from "@/screens/log";

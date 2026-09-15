@@ -9,7 +9,6 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { eraseData } from "@/data/erase";
 import type { EraseResidue, EraseScope } from "@/data/erase";
 import { useTransactionCount } from "@/data/transactions";
-import type { Database } from "@/db/client";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
 import { notifyFailure } from "@/lib/notify";
@@ -20,10 +19,6 @@ const RESIDUE: EraseResidue = { clearSpotlight, clearStoredPhotos };
 
 export function EraseData() {
     const db = useDatabase();
-    return <EraseDataContent db={db} />;
-}
-
-function EraseDataContent({ db }: { db: Database }) {
     const router = useRouter();
     const t = useTranslation();
     const count = useTransactionCount(db);

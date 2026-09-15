@@ -27,9 +27,7 @@ export function EditorRow({
         >
             <View className="flex-row items-center gap-3">
                 <Text className="text-body text-foreground flex-1">{label}</Text>
-                <Text className="text-body text-muted" style={{ fontVariant: ["tabular-nums"] }}>
-                    {value}
-                </Text>
+                <Text className="text-body text-muted tabular-nums">{value}</Text>
                 <HugeiconsIcon color={colors.subtle} icon={ArrowRight01Icon} size={16} strokeWidth={2.2} />
             </View>
             {detail ? <Text className="text-muted text-subtitle pt-1 leading-snug">{detail}</Text> : null}

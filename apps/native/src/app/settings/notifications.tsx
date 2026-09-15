@@ -1,5 +1,1 @@
-import { Notifications } from "@/screens/settings/notifications";
-
-export default function NotificationsScreen() {
-    return <Notifications />;
-}
+export { Notifications as default } from "@/screens/settings/notifications";

@@ -144,11 +144,11 @@ export function BudgetRow({
                                 </Text>
                                 <Text
                                     className={cn(
+                                        "tabular-nums",
                                         "font-sans-semibold text-body",
                                         over ? "text-over-budget" : "text-foreground"
                                     )}
                                     numberOfLines={1}
-                                    style={{ fontVariant: ["tabular-nums"] }}
                                 >
                                     {formatAmount(difference, currency, showCents, language)}
                                     <Text className="font-sans-medium text-label text-muted">

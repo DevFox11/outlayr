@@ -12,7 +12,6 @@ import { setBoolSetting } from "@/data/settings-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
-import type { Database } from "@/db/client";
 import { useTranslation } from "@/i18n/context";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { LogUpcoming } from "@/screens/log/components/log-upcoming";
@@ -46,10 +45,6 @@ function TimelineStops() {
 
 export function Upcoming() {
     const db = useDatabase();
-    return <UpcomingContent db={db} />;
-}
-
-function UpcomingContent({ db }: { db: Database }) {
     const router = useRouter();
     const t = useTranslation();
     const { state: settings } = useAppSettings();

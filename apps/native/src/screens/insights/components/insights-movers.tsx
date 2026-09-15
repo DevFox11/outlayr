@@ -63,11 +63,7 @@ function MoverRow({
             <Text className="font-sans-medium text-caption text-foreground flex-1" numberOfLines={1}>
                 {mover.name}
             </Text>
-            <Text
-                className={cn("font-sans-medium text-caption", toneClass)}
-                numberOfLines={1}
-                style={{ fontVariant: ["tabular-nums"] }}
-            >
+            <Text className={cn("tabular-nums", "font-sans-medium text-caption", toneClass)} numberOfLines={1}>
                 {rose ? "+" : "-"}
                 {formatAmount(Math.abs(mover.delta), code, showCents, language)}
             </Text>

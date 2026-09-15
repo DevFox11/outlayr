@@ -1,5 +1,1 @@
-import { Search } from "@/screens/search";
-
-export default function SearchScreen() {
-    return <Search />;
-}
+export { Search as default } from "@/screens/search";

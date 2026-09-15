@@ -7,7 +7,6 @@ import { cn } from "@/components/tw";
 import { useDatabase } from "@/contexts/local-data-context";
 import { finishOnboarding, markReminderChosen } from "@/data/onboarding-core";
 import { setNumberSetting } from "@/data/settings-core";
-import type { Database } from "@/db/client";
 import { formatTimeOfDay, REMINDER_EVENING, reminderTime } from "@/domain/reminder";
 import { useTranslation } from "@/i18n/context";
 
@@ -37,10 +36,6 @@ function MockNotification({ body, back }: { body: string; back?: boolean }) {
 
 export function OnboardingRhythm() {
     const db = useDatabase();
-    return <OnboardingRhythmContent db={db} />;
-}
-
-function OnboardingRhythmContent({ db }: { db: Database }) {
     const t = useTranslation();
 
     // The flow's terminal step either way: `finishOnboarding` settles the root

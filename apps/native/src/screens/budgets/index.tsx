@@ -53,15 +53,11 @@ import { SavingsGoalsSection } from "./components/savings-goals-section";
 import { UnbudgetedRail } from "./components/unbudgeted-rail";
 import { pairs } from "./pairs";
 
-export function Budgets() {
-    const db = useDatabase();
-    return <BudgetContent db={db} />;
-}
-
 /** `gap-3` between the two columns of the card grid. */
 const CARD_GUTTER = 12;
 
-function BudgetContent({ db }: { db: Database }) {
+export function Budgets() {
+    const db = useDatabase();
     const router = useRouter();
     const accountCreateRoute = useAccountCreateRoute();
     const [gridWidth, setGridWidth] = useState<number | null>(null);

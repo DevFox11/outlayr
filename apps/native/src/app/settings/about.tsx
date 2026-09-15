@@ -1,5 +1,1 @@
-import { About } from "@/screens/settings/about";
-
-export default function AboutScreen() {
-    return <About />;
-}
+export { About as default } from "@/screens/settings/about";

@@ -1,5 +1,1 @@
-import { AppIcon } from "@/screens/settings/app-icon";
-
-export default function AppIconScreen() {
-    return <AppIcon />;
-}
+export { AppIcon as default } from "@/screens/settings/app-icon";

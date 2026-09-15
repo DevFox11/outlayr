@@ -1,5 +1,1 @@
-import { OnboardingCurrency } from "@/screens/onboarding/currency";
-
-export default function OnboardingCurrencyScreen() {
-    return <OnboardingCurrency />;
-}
+export { OnboardingCurrency as default } from "@/screens/onboarding/currency";

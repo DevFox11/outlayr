@@ -13,7 +13,6 @@ import { useSearchedTransactions } from "@/data/log-search";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
-import type { Database } from "@/db/client";
 import { cellFigures, toCells } from "@/domain/currency-totals";
 import type { CurrencyFigures } from "@/domain/currency-totals";
 import { groupByDay } from "@/domain/day-sections";
@@ -21,11 +20,6 @@ import { useTranslation } from "@/i18n/context";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 
 import { SearchEmptyState } from "./components/search-empty-state";
-
-export function Search() {
-    const db = useDatabase();
-    return <SearchContent db={db} />;
-}
 
 function emptyState(query: string, rowCount: number) {
     if (query.trim() === "") {
@@ -41,7 +35,8 @@ function emptyState(query: string, rowCount: number) {
  * A modal rather than a field on the Log: pinning the field open there forces the
  * title inline and costs the large title.
  */
-function SearchContent({ db }: { db: Database }) {
+export function Search() {
+    const db = useDatabase();
     const router = useRouter();
     const t = useTranslation();
     const { displayCurrency: currency, rates } = useValuation(db);

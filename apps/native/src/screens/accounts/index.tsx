@@ -66,10 +66,6 @@ const CHEVRON = font({
 
 export function Accounts() {
     const db = useDatabase();
-    return <AccountsReady db={db} />;
-}
-
-function AccountsReady({ db }: { db: Database }) {
     const router = useRouter();
     const t = useTranslation();
     const colors = useColors();

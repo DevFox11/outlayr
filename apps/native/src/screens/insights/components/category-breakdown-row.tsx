@@ -58,11 +58,7 @@ export function CategoryBreakdownRow({
                 <Text className="font-sans-semibold text-body text-foreground flex-1" numberOfLines={1}>
                     {entry.name}
                 </Text>
-                <Text
-                    className={cn("font-sans-semibold text-body", toneClass)}
-                    numberOfLines={1}
-                    style={{ fontVariant: ["tabular-nums"] }}
-                >
+                <Text className={cn("tabular-nums", "font-sans-semibold text-body", toneClass)} numberOfLines={1}>
                     {sign}
                     {formatAmount(entry.amount, code, showCents, language)}
                 </Text>

@@ -22,7 +22,6 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { finishOnboarding } from "@/data/onboarding-core";
 import { setCurrency } from "@/data/settings-core";
-import type { Database } from "@/db/client";
 import { useTranslation } from "@/i18n/context";
 import { notifyFailure } from "@/lib/notify";
 
@@ -85,10 +84,6 @@ function CurrencyGlyph({ symbol }: { symbol: string }) {
 
 export function OnboardingCurrency() {
     const db = useDatabase();
-    return <OnboardingCurrencyContent db={db} />;
-}
-
-function OnboardingCurrencyContent({ db }: { db: Database }) {
     const router = useRouter();
     const stored = useGlobalCurrency(db);
     const sheet = useRef<BottomSheetModal>(null);

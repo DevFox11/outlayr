@@ -1,5 +1,1 @@
-import { Account } from "@/screens/settings/account";
-
-export default function AccountScreen() {
-    return <Account />;
-}
+export { Account as default } from "@/screens/settings/account";

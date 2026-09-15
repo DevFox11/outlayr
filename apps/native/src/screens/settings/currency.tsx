@@ -8,17 +8,12 @@ import { useGlobalCurrency } from "@/data/app-meta";
 import { useFavouriteCurrencies } from "@/data/favourite-currencies";
 import { toggleFavouriteCurrency } from "@/data/favourite-currencies-core";
 import { setCurrency } from "@/data/settings-core";
-import type { Database } from "@/db/client";
 import { isFavourite } from "@/domain/favourite-currencies";
 import { useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
 
 export function Currency() {
     const db = useDatabase();
-    return <CurrencyPicker db={db} />;
-}
-
-function CurrencyPicker({ db }: { db: Database }) {
     const router = useRouter();
     const t = useTranslation();
     const haptics = useHaptics();

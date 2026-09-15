@@ -1,5 +1,1 @@
-import { OnboardingWelcome } from "@/screens/onboarding/welcome";
-
-export default function OnboardingScreen() {
-    return <OnboardingWelcome />;
-}
+export { OnboardingWelcome as default } from "@/screens/onboarding/welcome";

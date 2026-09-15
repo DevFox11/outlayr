@@ -12,7 +12,6 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { runAdoption } from "@/data/ledger-adoption";
 import { setSyncEnabled } from "@/data/sync-outbox-core";
 import { useSyncStatus } from "@/data/use-sync-status";
-import type { Database } from "@/db/client";
 import { formatDayHeader, formatTime } from "@/domain/dates";
 import type { AdoptionActions } from "@/domain/ledger-adoption";
 import { effectiveCapabilityStatus, ownsSyncSwitch, syncPresentation, syncRunnable } from "@/domain/sync-status";
@@ -39,10 +38,6 @@ const RESUME: AdoptionActions = {
 
 export function Sync() {
     const db = useDatabase();
-    return <SyncSettings db={db} />;
-}
-
-function SyncSettings({ db }: { db: Database }) {
     const t = useTranslation();
     const router = useRouter();
     const entitled = useProEntitled();

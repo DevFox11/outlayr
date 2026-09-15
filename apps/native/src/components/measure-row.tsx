@@ -34,11 +34,7 @@ export function MeasureRow({ measures }: MeasureRowProps) {
 						    than only its own content. */}
                         {index > 0 ? <View className="bg-border absolute inset-y-0 left-0 w-px" /> : null}
                         <MonoLabel>{measure.label}</MonoLabel>
-                        <Text
-                            className="font-sans-semibold text-body text-foreground"
-                            numberOfLines={1}
-                            style={{ fontVariant: ["tabular-nums"] }}
-                        >
+                        <Text className="font-sans-semibold text-body text-foreground tabular-nums" numberOfLines={1}>
                             {measure.value}
                         </Text>
                     </View>

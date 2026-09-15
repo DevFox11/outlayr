@@ -75,7 +75,7 @@ export function UnbudgetedRail({
                         <View className="flex-1 gap-0.5">
                             <Text className="text-body text-foreground">{t("budgets.scope.everything")}</Text>
                             {everythingTypical === null ? null : (
-                                <Text className="text-muted text-subtitle" style={{ fontVariant: ["tabular-nums"] }}>
+                                <Text className="text-muted text-subtitle tabular-nums">
                                     {typicalLine(everythingTypical)}
                                 </Text>
                             )}
@@ -93,9 +93,7 @@ export function UnbudgetedRail({
                         <CategoryIconTile color={scope.color} emoji={scope.emoji} icon={scope.icon} size={30} />
                         <View className="flex-1 gap-0.5">
                             <Text className="text-body text-foreground">{scope.name}</Text>
-                            <Text className="text-muted text-subtitle" style={{ fontVariant: ["tabular-nums"] }}>
-                                {typicalLine(scope.typical)}
-                            </Text>
+                            <Text className="text-muted text-subtitle tabular-nums">{typicalLine(scope.typical)}</Text>
                         </View>
                         <Text className="text-tint text-subtitle">{t("budgets.rail.set")}</Text>
                     </Pressable>

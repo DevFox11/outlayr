@@ -89,10 +89,6 @@ const HAS_SHARED_SHORTCUT = WALLET_SHORTCUT_URL != null && TRIGGERS_IN_SHORTCUTS
 
 export function Wallet() {
     const db = useDatabase();
-    return <WalletSettings db={db} />;
-}
-
-function WalletSettings({ db }: { db: Database }) {
     const t = useTranslation();
     const added = useLiveValue(
         appMeta,

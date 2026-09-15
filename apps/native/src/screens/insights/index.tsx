@@ -38,7 +38,6 @@ import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useInsights } from "@/data/use-insights";
 import type { UseInsightsResult } from "@/data/use-insights";
 import { useNow } from "@/data/use-now";
-import type { Database } from "@/db/client";
 import {
     insightsMeasureAlternatives,
     insightsMeasureFromStored,
@@ -272,10 +271,6 @@ function balanceAt(running: readonly number[], index: number | null, isNet: bool
 
 export function Insights() {
     const db = useDatabase();
-    return <InsightsContent db={db} />;
-}
-
-function InsightsContent({ db }: { db: Database }) {
     const t = useTranslation();
     const router = useRouter();
     const currency = useGlobalCurrency(db);
@@ -780,11 +775,7 @@ function ChildRow({ name, color, icon, emoji, amount, fraction, code, showCents 
             <Text className="font-sans-medium text-caption text-foreground flex-1" numberOfLines={1}>
                 {name}
             </Text>
-            <Text
-                className="font-sans-medium text-caption text-muted"
-                numberOfLines={1}
-                style={{ fontVariant: ["tabular-nums"] }}
-            >
+            <Text className="font-sans-medium text-caption text-muted tabular-nums" numberOfLines={1}>
                 {formatAmount(amount, code, showCents, language)}
             </Text>
             <Text className="text-label text-muted font-mono" style={{ minWidth: 34, textAlign: "right" }}>

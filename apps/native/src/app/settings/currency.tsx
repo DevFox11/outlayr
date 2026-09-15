@@ -1,5 +1,1 @@
-import { Currency } from "@/screens/settings/currency";
-
-export default function CurrencyScreen() {
-    return <Currency />;
-}
+export { Currency as default } from "@/screens/settings/currency";

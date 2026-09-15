@@ -1,5 +1,1 @@
-import { RecentlyDeleted } from "@/screens/settings/deleted";
-
-export default function DeletedScreen() {
-    return <RecentlyDeleted />;
-}
+export { RecentlyDeleted as default } from "@/screens/settings/deleted";

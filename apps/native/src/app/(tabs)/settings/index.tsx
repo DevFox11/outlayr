@@ -1,5 +1,1 @@
-import { Settings } from "@/screens/settings";
-
-export default function SettingsScreen() {
-    return <Settings />;
-}
+export { Settings as default } from "@/screens/settings";

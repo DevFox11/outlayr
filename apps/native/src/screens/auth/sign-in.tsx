@@ -42,8 +42,11 @@ function FlyleafLine({ template, value, quiet }: { template: string; value: stri
         <Text className={quiet ? "text-fr-muted text-label" : "font-sans-medium text-callout text-fr-ink leading-8"}>
             {before}
             <Text
-                className={quiet ? "text-fr-ink text-micro font-mono" : "font-mono-medium text-body text-fr-ink"}
-                style={{ fontVariant: ["tabular-nums"] }}
+                className={
+                    quiet
+                        ? "text-fr-ink text-micro font-mono tabular-nums"
+                        : "font-mono-medium text-body text-fr-ink tabular-nums"
+                }
             >
                 {value}
             </Text>

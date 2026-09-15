@@ -211,7 +211,7 @@ function BudgetSummary({
             </View>
             <Text className="text-footnote text-muted pt-0.5">{label}</Text>
             {leftPerDayAmount == null ? null : (
-                <Text className="text-footnote text-muted pt-0.5" style={{ fontVariant: ["tabular-nums"] }}>
+                <Text className="text-footnote text-muted pt-0.5 tabular-nums">
                     {t("budgets.detail.leftEachDay", {
                         amount: formatAmount(leftPerDayAmount, currency, showCents, language),
                     })}

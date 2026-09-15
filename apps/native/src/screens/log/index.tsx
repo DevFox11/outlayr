@@ -52,11 +52,6 @@ import { LogUpcoming } from "./components/log-upcoming";
 import { SwipeableTransactionRow } from "./components/swipeable-transaction-row";
 import { filterScopeLabel } from "./labels";
 
-export function Log() {
-    const db = useDatabase();
-    return <LogContent db={db} />;
-}
-
 /**
  * Kept out of `LogInsights` so that component stays presentational and the
  * (possibly whole-table) read happens in one place.
@@ -100,7 +95,8 @@ function useSparkline(
     }, [rows, measure, period, firstWeekday, enabled, nowMs]);
 }
 
-function LogContent({ db }: { db: Database }) {
+export function Log() {
+    const db = useDatabase();
     const router = useRouter();
     const t = useTranslation();
     // Screen state, never a setting: writing the choice to `appMeta` would also

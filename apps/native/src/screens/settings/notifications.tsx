@@ -123,10 +123,6 @@ async function setSubscriptionReminders(db: Database, next: boolean): Promise<vo
 
 export function Notifications() {
     const db = useDatabase();
-    return <NotificationsContent db={db} />;
-}
-
-function NotificationsContent({ db }: { db: Database }) {
     useReminderSync(db);
 
     const colors = useColors();

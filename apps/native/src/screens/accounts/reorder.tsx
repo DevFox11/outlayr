@@ -10,17 +10,12 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useAccounts } from "@/data/accounts";
 import { accountsRepo } from "@/data/accounts-core";
 import type { Account } from "@/data/accounts-core";
-import type { Database } from "@/db/client";
 import { applyMove } from "@/domain/reorder";
 import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 export function AccountReorder() {
     const db = useDatabase();
-    return <AccountReorderReady db={db} />;
-}
-
-function AccountReorderReady({ db }: { db: Database }) {
     const t = useTranslation();
     const colors = useColors();
     const rows = useAccounts(db);

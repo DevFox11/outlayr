@@ -76,11 +76,7 @@ export function GoalCard({ currency, entry, onPress, width }: GoalCardProps) {
             <View className="flex-row items-start justify-between">
                 <GoalArc fraction={exact ? progress.fraction : 0} tone={tone} />
                 {exact ? (
-                    <Text
-                        className="text-micro text-muted font-mono"
-                        numberOfLines={1}
-                        style={{ fontVariant: ["tabular-nums"] }}
-                    >
+                    <Text className="text-micro text-muted font-mono tabular-nums" numberOfLines={1}>
                         {`${percent}%`}
                     </Text>
                 ) : null}
@@ -100,9 +96,12 @@ export function GoalCard({ currency, entry, onPress, width }: GoalCardProps) {
 
             <View className={exact ? undefined : "hidden"}>
                 <Text
-                    className={cn("font-sans-semibold text-body", reached ? "text-income" : "text-foreground")}
+                    className={cn(
+                        "tabular-nums",
+                        "font-sans-semibold text-body",
+                        reached ? "text-income" : "text-foreground"
+                    )}
                     numberOfLines={1}
-                    style={{ fontVariant: ["tabular-nums"] }}
                 >
                     {reached ? money(saved) : money(progress.remaining)}
                 </Text>

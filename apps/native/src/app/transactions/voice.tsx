@@ -1,5 +1,1 @@
-import { VoiceEntryScreen } from "@/screens/transaction/voice";
-
-export default function VoiceEntryRoute() {
-    return <VoiceEntryScreen />;
-}
+export { VoiceEntryScreen as default } from "@/screens/transaction/voice";

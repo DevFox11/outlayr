@@ -1,5 +1,1 @@
-import { ExportData } from "@/screens/settings/export";
-
-export default function ExportScreen() {
-    return <ExportData />;
-}
+export { ExportData as default } from "@/screens/settings/export";

@@ -1,5 +1,1 @@
-import { FeatureLab } from "@/screens/settings/feature-lab";
-
-export default function FeatureLabScreen() {
-    return <FeatureLab />;
-}
+export { FeatureLab as default } from "@/screens/settings/feature-lab";
