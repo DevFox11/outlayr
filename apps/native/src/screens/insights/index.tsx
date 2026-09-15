@@ -401,6 +401,10 @@ export function Insights() {
     // Only a single day reads better ungrouped — every row would share one header.
     const listGrouped = !(lockedBucket && period !== "year");
 
+    if (!result.hasHistory) {
+        return <InsightsSample onAddTransaction={() => router.push("/transactions/create")} />;
+    }
+
     const chart = (
         <ChartSlot
             average={result.measureAverage}
@@ -417,10 +421,6 @@ export function Insights() {
             selectedIndex={lockedIndex}
         />
     );
-
-    if (!result.hasHistory) {
-        return <InsightsSample onAddTransaction={() => router.push("/transactions/create")} />;
-    }
 
     return (
         <>
@@ -727,46 +727,25 @@ function SubBreakdown({
     return (
         <View className="gap-2 pt-2 pb-3 pl-4">
             {entries.map((child) => (
-                <ChildRow
-                    amount={child.amount}
-                    code={code}
-                    color={child.color}
-                    emoji={child.emoji}
-                    fraction={child.fraction}
-                    icon={child.icon}
-                    key={child.id}
-                    name={child.name}
-                    showCents={showCents}
-                />
+                <ChildRow code={code} entry={child} key={child.id} showCents={showCents} />
             ))}
         </View>
     );
 }
 
-interface ChildRowProps {
-    amount: number;
-    code: string;
-    color: string;
-    emoji: string | null;
-    fraction: number;
-    icon: string | null;
-    name: string;
-    showCents: boolean;
-}
-
-function ChildRow({ name, color, icon, emoji, amount, fraction, code, showCents }: ChildRowProps) {
+function ChildRow({ entry, code, showCents }: { code: string; entry: CategoryBreakdownEntry; showCents: boolean }) {
     const { language } = useLanguage();
     return (
         <View className="flex-row items-center gap-2.5">
-            <CategoryIconTile color={color} emoji={emoji} icon={icon} size={26} />
+            <CategoryIconTile color={entry.color} emoji={entry.emoji} icon={entry.icon} size={26} />
             <Text className="font-sans-medium text-caption text-foreground flex-1" numberOfLines={1}>
-                {name}
+                {entry.name}
             </Text>
             <Text className="font-sans-medium text-caption text-muted tabular-nums" numberOfLines={1}>
-                {formatAmount(amount, code, showCents, language)}
+                {formatAmount(entry.amount, code, showCents, language)}
             </Text>
             <Text className="text-label text-muted font-mono" style={{ minWidth: 34, textAlign: "right" }}>
-                {Math.round(fraction * 100)}%
+                {Math.round(entry.fraction * 100)}%
             </Text>
         </View>
     );
