@@ -37,13 +37,13 @@ export function storedLogPeriod(period: LogPeriod): number {
 }
 
 /** `null` for all-time, which has no lower bound. */
-function periodStart(period: LogPeriod, now: Date): Date | null {
+export function logPeriodStart(period: LogPeriod, now: Date, firstWeekday: number): Date | null {
     switch (period) {
         case "day": {
             return startOfDay(now);
         }
         case "week": {
-            return startOfWeek(now);
+            return startOfWeek(now, firstWeekday);
         }
         case "month": {
             return firstOfMonth(now);
@@ -134,13 +134,14 @@ export function useLogInsights(
     db: Database,
     nowMs: number,
     period: LogPeriod,
+    firstWeekday: number,
     globalCurrency: string,
     rates?: RateTable
 ): LogInsights {
     const now = new Date(nowMs);
-    const start = periodStart(period, now);
+    const start = logPeriodStart(period, now, firstWeekday);
 
-    const rows = useLiveQuery(transactions, () => logCellQuery(db, start, now), [nowMs, period]);
+    const rows = useLiveQuery(transactions, () => logCellQuery(db, start, now), [nowMs, period, firstWeekday]);
 
     return useMemo(() => {
         const ordered = cellFigures(toCurrencyCells(rows), globalCurrency, rates);

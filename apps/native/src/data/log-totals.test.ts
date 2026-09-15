@@ -6,7 +6,7 @@ import { transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
 import { buildRateTable } from "@/domain/valuation";
 
-import { useSparklineRows } from "./log-totals";
+import { logPeriodStart, useSparklineRows } from "./log-totals";
 
 const NOW = new Date(Date.UTC(2026, 6, 15, 12));
 
@@ -50,5 +50,23 @@ describe("useSparklineRows pending custom valuation", () => {
         await seedPendingCustom(db);
 
         await expect(sparklineAmounts(db, "EUR")).resolves.toStrictEqual([0]);
+    });
+});
+
+/**
+ * The header's week has to start where the rest of the Log's week does. It used
+ * to call `startOfWeek(now)` with the default first weekday, so a ledger set to
+ * "week starts on Monday" reported only Sunday's figures on a Sunday while the
+ * sparkline beside it still showed Mon–Sun.
+ */
+describe("the week the header totals", () => {
+    const SUNDAY = new Date(2025, 8, 14, 12, 0, 0);
+
+    it("starts on Monday when the setting says Monday", () => {
+        expect(logPeriodStart("week", SUNDAY, 2)).toStrictEqual(new Date(2025, 8, 8));
+    });
+
+    it("starts on Sunday when the setting says Sunday", () => {
+        expect(logPeriodStart("week", SUNDAY, 1)).toStrictEqual(new Date(2025, 8, 14));
     });
 });

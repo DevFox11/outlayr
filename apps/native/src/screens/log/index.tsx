@@ -168,7 +168,7 @@ export function Log() {
         income,
     });
     const upcoming = useUpcomingTransactions(db, nowMs, showUpcomingSoon);
-    const insights = useLogInsights(db, nowMs, period, currency, rates);
+    const insights = useLogInsights(db, nowMs, period, firstWeekday, currency, rates);
     const currencyOptions = useMemo(
         () =>
             logCurrencyOptions({
