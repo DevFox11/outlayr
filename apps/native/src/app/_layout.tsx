@@ -103,7 +103,6 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const [splashHidden, setSplashHidden] = useState(false);
-    // Bare names: panelui's theme.css also declares the `--color-*` ones and wins at runtime.
     // SAFETY: uniwind types the batched read as (string | undefined)[]; every name
     // below is declared in global.css, so each slot resolves.
     const [background, card, text, border, primary] = useCSSVariable([

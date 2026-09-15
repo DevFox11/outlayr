@@ -6,7 +6,6 @@ import { CloseToolbar } from "@/components/close-toolbar";
 import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 
 export default function AccountCreateScreen() {
-    // Latched: the route is live (store resolution, account count) and a later flip would replace the open form.
     const [createRoute] = useState(useAccountCreateRoute());
 
     // The route is externally addressable through the app's URL scheme, so the

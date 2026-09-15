@@ -25,7 +25,6 @@ export interface BuiltCatalog {
  * `CURRENCY_DECIMALS` literal type support. A provider currency outside this set
  * (e.g. a 4-digit accounting unit like CLF) must fail the build loudly rather
  * than ship an exponent the rounding path cannot express.
- * 6 is the metals (XAU/XAG/XPT/XPD), which CLDR leaves unset.
  */
 const ALLOWED_DECIMALS = new Set<number>([0, 2, 3, 6]);
 
