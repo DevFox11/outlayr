@@ -962,9 +962,12 @@ describe("the Pro gate", () => {
 
         await grantPro(t, owner);
 
+        // Not `toBeDefined()`: `push` always answers with an object, so that only
+        // proves it did not throw — a body that accepted nothing would pass.
         await expect(
             authenticatedAs(t, owner).mutation(api.sync.push, { deviceId: DEVICE_A, rows: [transactionRow("a", 1)] })
-        ).resolves.toBeDefined();
+        ).resolves.toMatchObject({ accepted: 1, skipped: 0 });
+        await expect(t.run((ctx) => ctx.db.query("transactions").collect())).resolves.toHaveLength(1);
     });
 });
 
@@ -1001,9 +1004,13 @@ describe("push during account deletion", () => {
         const owner = await seedProUser(t);
         await seedJob(t, owner.userId, "prepared", 0);
 
+        // The row has to LAND. "Did not throw" is also true of a guard that
+        // silently accepts nothing, which would stop replication for every user
+        // who ever opened a deletion request and then changed their mind.
         await expect(
             authenticatedAs(t, owner).mutation(api.sync.push, { deviceId: DEVICE_A, rows: [transactionRow("a", 1)] })
-        ).resolves.toBeDefined();
+        ).resolves.toMatchObject({ accepted: 1, skipped: 0 });
+        await expect(t.run((ctx) => ctx.db.query("transactions").collect())).resolves.toHaveLength(1);
     });
 
     // The guard used to read a page of jobs, so a client could bury the one that
