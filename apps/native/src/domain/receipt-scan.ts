@@ -161,6 +161,11 @@ export interface Conversion {
  * (currency PER USD), so the receipt's currency is divided out and the
  * ledger's multiplied in; USD on either side is the identity leg.
  */
+/** A stored rate is only usable as a divisor when it is a real, positive number. */
+function usableRate(rate: number | null): rate is number {
+    return rate !== null && Number.isFinite(rate) && rate > 0;
+}
+
 export function conversionOf(receipt: ResolvedReceipt, ledgerCurrency: string, rates: RateTable): Conversion | null {
     if (receipt.currency === ledgerCurrency) {
         return null;
@@ -168,7 +173,11 @@ export function conversionOf(receipt: ResolvedReceipt, ledgerCurrency: string, r
     const dateKey = utcDateString(receipt.date.getTime());
     const perUsdPaid = receipt.currency === "USD" ? 1 : rates.get(receipt.currency, dateKey);
     const perUsdLedger = ledgerCurrency === "USD" ? 1 : rates.get(ledgerCurrency, dateKey);
-    if (perUsdPaid === null || perUsdLedger === null || perUsdPaid <= 0) {
+    // Both legs, and finite: `exchangeRates` stores a bare number, so a zero
+    // ledger rate made `rate` zero and the review showed "0.00" as if that were a
+    // real conversion, and a NaN passed a `<= 0` check outright. `perUsd` in
+    // `transfer-rate-options.ts` and `usdOf` in `valuation.ts` both check the pair.
+    if (!(usableRate(perUsdPaid) && usableRate(perUsdLedger))) {
         return null;
     }
     const rate = perUsdLedger / perUsdPaid;

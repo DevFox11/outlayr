@@ -187,6 +187,39 @@ describe("conversionOf", () => {
         expect(conversion?.amount).toBe(442.28);
     });
 
+    /**
+     * `exchangeRates` stores a bare number, so a zero or NaN row is reachable. The
+     * PAID leg was guarded and the LEDGER leg was not: a zero there made `rate`
+     * zero, and the review then showed "≈ 0.00" as though that were a real
+     * conversion rather than saying it could not price the receipt.
+     */
+    it("refuses a conversion when either leg is not a usable rate", () => {
+        const receipt = resolve(DRAFT);
+
+        for (const bad of [0, -1, Number.NaN]) {
+            expect(
+                conversionOf(
+                    receipt,
+                    "MXN",
+                    buildRateTable([
+                        { date: "2026-09-04", quote: "EUR", rate: 0.86 },
+                        { date: "2026-09-04", quote: "MXN", rate: bad },
+                    ])
+                )
+            ).toBeNull();
+            expect(
+                conversionOf(
+                    receipt,
+                    "MXN",
+                    buildRateTable([
+                        { date: "2026-09-04", quote: "EUR", rate: bad },
+                        { date: "2026-09-04", quote: "MXN", rate: 18.5 },
+                    ])
+                )
+            ).toBeNull();
+        }
+    });
+
     it("is null for the ledger's own currency and for a day the table cannot price", () => {
         expect(conversionOf(resolve({ ...DRAFT, currency: null }), "USD", rates)).toBeNull();
         expect(conversionOf(resolve({ ...DRAFT, currency: "GBP" }), "USD", rates)).toBeNull();
