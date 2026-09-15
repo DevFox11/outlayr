@@ -118,6 +118,19 @@ describe("syncFromStore", () => {
         await expect(t.run((ctx) => isPro(ctx, identity.userId))).resolves.toBeFalsy();
     });
 
+    test("a token whose session is gone mirrors nothing, even with a valid subject", async () => {
+        const t = convexTest(schema, modules);
+        rateLimiterTest.register(t);
+        revenuecatTest.register(t);
+        const identity = await seedAuthUser(t);
+        const fetchMock = vi.fn(async () => new Response(null, { status: 200 }));
+        vi.stubGlobal("fetch", fetchMock);
+
+        const revoked = t.withIdentity({ sessionId: "session-no-longer-exists", subject: identity.subject });
+        await expect(revoked.action(api.revenuecat.syncFromStore, {})).resolves.toBeFalsy();
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
     test("an unauthenticated caller mirrors nothing", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);

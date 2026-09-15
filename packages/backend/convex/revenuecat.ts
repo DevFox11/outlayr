@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { components, internal } from "./_generated/api";
 import { action, internalMutation, internalQuery } from "./_generated/server";
+import { optionalUserId } from "./lib/auth";
 
 export const PRO_ENTITLEMENT_ID = "pro";
 
@@ -86,6 +87,12 @@ export const mirroredEntitlement = internalQuery({
  * and for the cases where the store cannot be reached or has been asked too
  * often. Refusing there would strand a customer the webhook already covered.
  */
+export const sessionUserId = internalQuery({
+    args: {},
+    handler: async (ctx) => await optionalUserId(ctx),
+    returns: v.union(v.string(), v.null()),
+});
+
 export const syncFromStore = action({
     args: {},
     handler: async (ctx): Promise<boolean> => {
@@ -93,8 +100,12 @@ export const syncFromStore = action({
         if (identity === null) {
             return false;
         }
+        const userId: string | null = await ctx.runQuery(internal.revenuecat.sessionUserId, {});
+        if (userId === null) {
+            return false;
+        }
         const mirrored = async (): Promise<boolean> =>
-            ctx.runQuery(internal.revenuecat.mirroredEntitlement, { appUserId: identity.subject });
+            ctx.runQuery(internal.revenuecat.mirroredEntitlement, { appUserId: userId });
         if (!env.REVENUECAT_SECRET_KEY) {
             return await mirrored();
         }
@@ -108,13 +119,10 @@ export const syncFromStore = action({
         // inside, so a real mirroring failure still surfaces.
         let subscriber: z.infer<typeof subscriberResponse>["subscriber"];
         try {
-            const response = await fetch(
-                `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(identity.subject)}`,
-                {
-                    headers: { Authorization: `Bearer ${env.REVENUECAT_SECRET_KEY}` },
-                    signal: AbortSignal.timeout(REVENUECAT_TIMEOUT_MS),
-                }
-            );
+            const response = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`, {
+                headers: { Authorization: `Bearer ${env.REVENUECAT_SECRET_KEY}` },
+                signal: AbortSignal.timeout(REVENUECAT_TIMEOUT_MS),
+            });
             if (!response.ok) {
                 return await mirrored();
             }
@@ -128,7 +136,7 @@ export const syncFromStore = action({
             return await mirrored();
         }
         return await ctx.runMutation(internal.revenuecat.mirrorSubscriber, {
-            appUserId: identity.subject,
+            appUserId: userId,
             subscriber,
         });
     },
