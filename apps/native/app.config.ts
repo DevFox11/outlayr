@@ -1,6 +1,19 @@
 import "dotenv/config";
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
+/**
+ * ⚠️ This flips `ios.icon` and `extra.primaryAppIcon`, and `runtimeVersion` is
+ * the fingerprint policy — which hashes both the stringified config and the
+ * `.icon` bundle's files. So the two profiles have genuinely different runtime
+ * versions, which is correct: they are different binaries.
+ *
+ * What is easy to get wrong is publishing. `EAS_BUILD_PROFILE` is set by
+ * `eas build`, never by `eas update`, so a bare `eas update --branch production`
+ * computes the NON-production fingerprint and publishes under a runtime version
+ * no store binary carries. The CLI reports success and nobody receives it.
+ *
+ * Publish through `pnpm update:production` / `pnpm update:preview`, which set it.
+ */
 const isProduction = process.env.EAS_BUILD_PROFILE === "production";
 
 const APP_GROUP = "group.com.tryoutlayr.app";
