@@ -253,8 +253,11 @@ export function useTransferDraft(db: Database, seed?: TransferSeed): TransferDra
     const feeDecimals = feeSide === "destination" ? toDecimals : fromDecimals;
     const feeCurrency = feeSide === "destination" ? toCurrency : fromCurrency;
 
-    const fee = numpadToNumber(feeText);
-    const sent = numpadToNumber(sentText);
+    // At the currency's own units, and re-derived per render — so moving the fee
+    // to the other side, which changes `feeDecimals`, re-quantizes it rather than
+    // solving the reconciliation against a figure the slip no longer shows.
+    const fee = roundMoney(numpadToNumber(feeText), feeDecimals);
+    const sent = roundMoney(numpadToNumber(sentText), fromDecimals);
     const math = reconcile(
         rate === null ? null : { fee, feeSide, rate, sent },
         arrivalPinned ? numpadToNumber(arrivedText) : null,

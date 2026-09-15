@@ -55,7 +55,7 @@ import { computeCurtainHues } from "@/domain/curtain-hues";
 import { formatSentenceDate } from "@/domain/dates";
 import { merchantKey } from "@/domain/merchant-resolver";
 import { suggestMerchants } from "@/domain/merchant-suggest";
-import { formatAmount, minorUnitsFor } from "@/domain/money";
+import { formatAmount, minorUnitsFor, roundToMinorUnits } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { ensureRecurringType, RECURRING_TYPE } from "@/domain/recurrence";
 import { enableReminderStep } from "@/domain/reminder";
@@ -583,7 +583,14 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 
             const input = buildTransactionInput({
                 accountId: value.account?.id ?? null,
-                amount: numpadToNumber(value.amount),
+                // At the currency's own units. Changing the currency mid-entry
+                // changes how the sentence and keypad render the figure but leaves
+                // the typed digits alone, so 12.34 entered in USD and switched to
+                // JPY read as ¥12 on screen while the row kept 12.34 — a fraction
+                // the currency has no units for. `account-editor` already rounds
+                // at save; this is the same rule, and `draft.currency` is nullable
+                // so the pure builder cannot apply it.
+                amount: roundToMinorUnits(numpadToNumber(value.amount), value.txCurrency ?? globalCurrency),
                 categoryId,
                 coefficient: value.coefficient,
                 currency: value.txCurrency,
