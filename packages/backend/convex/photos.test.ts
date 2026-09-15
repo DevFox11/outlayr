@@ -220,7 +220,7 @@ describe("readUrls", () => {
     test("refuses a caller with no session", async () => {
         const t = harness();
 
-        await expect(t.query(api.photos.readUrls, { keys: [] })).rejects.toThrow(ConvexError);
+        await expect(t.mutation(api.photos.readUrls, { keys: [] })).rejects.toThrow(ConvexError);
     });
 
     test("refuses a batch bigger than the limit", async () => {
@@ -230,14 +230,14 @@ describe("readUrls", () => {
             photoKeyFor(owner.userId, `p${i}.jpg`)
         );
 
-        await expect(authenticatedAs(t, owner).query(api.photos.readUrls, { keys })).rejects.toThrow(ConvexError);
+        await expect(authenticatedAs(t, owner).mutation(api.photos.readUrls, { keys })).rejects.toThrow(ConvexError);
     });
 
     test("mints nothing for an empty batch without reaching R2", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
-        await expect(authenticatedAs(t, owner).query(api.photos.readUrls, { keys: [] })).resolves.toStrictEqual([]);
+        await expect(authenticatedAs(t, owner).mutation(api.photos.readUrls, { keys: [] })).resolves.toStrictEqual([]);
     });
 
     test("drops a key belonging to another account rather than minting for it", async () => {
@@ -246,7 +246,7 @@ describe("readUrls", () => {
         const stranger = await seedProUser(t);
 
         await expect(
-            authenticatedAs(t, owner).query(api.photos.readUrls, {
+            authenticatedAs(t, owner).mutation(api.photos.readUrls, {
                 keys: [photoKeyFor(stranger.userId, PHOTO)],
             })
         ).resolves.toStrictEqual([]);
@@ -388,7 +388,7 @@ describe("merchant cache keys stay unowned (T8)", () => {
         const owner = await seedProUser(t);
 
         await expect(
-            authenticatedAs(t, owner).query(api.photos.readUrls, {
+            authenticatedAs(t, owner).mutation(api.photos.readUrls, {
                 keys: ["merchant/farmatodo"],
             })
         ).resolves.toStrictEqual([]);
@@ -412,7 +412,7 @@ describe("the convex storage fallback", () => {
             key,
             storageId,
         });
-        const urls = await authenticatedAs(t, owner).query(api.photos.readUrls, {
+        const urls = await authenticatedAs(t, owner).mutation(api.photos.readUrls, {
             keys: [key],
         });
 

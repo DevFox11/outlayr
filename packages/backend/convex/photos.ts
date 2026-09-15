@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 
 import { components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { action, internalMutation, internalQuery, mutation } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
 import { isPhotoName, ownsPhotoKey, photoKeyFor, photoOwnerFromKey } from "./lib/photoKeys";
@@ -318,8 +318,15 @@ export const mapStorageId = internalMutation({
  * url written to a row would be a reference that rots. A key the caller does
  * not own is dropped rather than refused, so one stale key in a batch does not
  * cost a device the whole page of photos.
+ *
+ * A mutation rather than a query precisely BECAUSE of that expiry, even though
+ * it writes nothing. Convex caches a query's result until something in its read
+ * set changes, and nothing here is in the read set of a photo download — so a
+ * device that retried a url after the signature aged out was served the same
+ * expired url from cache, forever. The client treats a 403 as "try again next
+ * pass" (`lib/convex.ts`), which is a livelock against a cached answer.
  */
-export const readUrls = query({
+export const readUrls = mutation({
     args: { keys: v.array(v.string()) },
     handler: async (ctx, args) => {
         const userId = await requireUserId(ctx);

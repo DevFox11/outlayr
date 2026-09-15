@@ -351,7 +351,10 @@ export function photoTransport(): PhotoTransport {
                 return null;
             }
         },
-        readUrls: async (keys) => cloudQuery("photos:readUrls", { keys: [...keys] }),
+        // A mutation, though it writes nothing: a query's result is cached until
+        // its read set changes, and an expired signed url served from that cache
+        // is one the retry below can never get past. See `photos.readUrls`.
+        readUrls: async (keys) => cloudMutation("photos:readUrls", { keys: [...keys] }),
         release: async (key) => {
             await cloudMutation("photos:releaseUnreferenced", { key });
         },
