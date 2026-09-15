@@ -9,9 +9,13 @@ import { fetchMerchantImage } from "@/lib/logo-fetch";
 import { useReviewEnrichment } from "./use-review-enrichment";
 
 const mockCacheUris = new Map<string, string>();
+const cacheReads: string[] = [];
 
 jest.mock<Partial<typeof import("@/lib/logo-cache")>>("@/lib/logo-cache", () => ({
-    cachedLogoUri: (key: string) => mockCacheUris.get(key) ?? null,
+    cachedLogoUri: (key: string) => {
+        cacheReads.push(key);
+        return mockCacheUris.get(key) ?? null;
+    },
     logoCacheKey: (name: string, domain: string | null) => `${name}|${domain ?? ""}`.toLowerCase(),
 }));
 
@@ -24,6 +28,7 @@ jest.mock("@/lib/logo-fetch", () => ({
 
 beforeEach(() => {
     jest.mocked(fetchMerchantImage).mockClear();
+    cacheReads.length = 0;
     mockCacheUris.clear();
     mockCacheUris.set("netflix.com|netflix.com", "file:///cache/netflix");
     clearEnrichmentCache();
@@ -93,5 +98,17 @@ describe("useReviewEnrichment", () => {
         const first = result.current;
         await rerender(undefined);
         expect(result.current).toBe(first);
+    });
+});
+
+describe("logo cache reads", () => {
+    it("reads the disk once per merchant, not once per row", async () => {
+        // `cachedLogoUri` is several blocking filesystem calls and can mkdir and
+        // unlink, so a read per row is what made a large import expensive.
+        const entries = Array.from({ length: 20 }, () => entry("NETFLIX 12345678901"));
+
+        await renderHook(() => useReviewEnrichment(entries));
+
+        expect(cacheReads.filter((key) => key === "netflix.com|netflix.com")).toHaveLength(1);
     });
 });
