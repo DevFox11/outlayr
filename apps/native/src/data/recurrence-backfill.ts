@@ -1,3 +1,4 @@
+import { utcDateString } from "@outlayr/money/dates";
 import type { EntryRateType } from "@outlayr/money/rates";
 import { and, eq, gt, isNotNull, isNull } from "drizzle-orm";
 
@@ -53,11 +54,12 @@ const OCCURRENCE_NAMESPACE = "0f2b9f1e-6d3a-4c58-9a71-2c8f5d6e4b31";
  * subscription. Derived from the pair that actually identifies the occurrence,
  * both devices compute the same id and the second one upserts.
  *
- * The day, not the timestamp: the sweep walks the schedule in whole days, and
- * two devices in different time zones must still land on one id.
+ * The UTC day, not the local one: `startOfDay` here made the seed depend on the
+ * sweeping device's zone, so a phone in Madrid and an iPad in New York derived
+ * two ids for one charge and both rows replicated.
  */
 function occurrenceId(parentLocalId: string, holding: Date): string {
-    return uuidV5(`${parentLocalId}:${startOfDay(holding).getTime()}`, OCCURRENCE_NAMESPACE);
+    return uuidV5(`${parentLocalId}:${utcDateString(holding.getTime())}`, OCCURRENCE_NAMESPACE);
 }
 
 /**
