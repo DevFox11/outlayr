@@ -11,6 +11,7 @@ import { utcDateString } from "./dates";
 import { MoneyValidationError } from "./errors";
 import { makeRateLookup } from "./fixtures";
 import { computeAmountUSD, resolveEntryRate } from "./rates";
+import { roundMoney } from "./round";
 
 const FINITE_PATTERN = /amountUSD must be a finite number/;
 const EPOCH_PATTERN = /epoch-milliseconds/;
@@ -168,5 +169,45 @@ describe(resolveEntryRate, () => {
                 exchangeRateType: "eur_reference",
             })
         ).rejects.toThrow(MoneyValidationError);
+    });
+});
+
+describe("roundMoney (banker's rounding, half-even)", () => {
+    // Moved here from the Convex shim's suite, which tested this package through
+    // a re-export nothing imported.
+    it("rounds a halfway value down to the even neighbor", () => {
+        expect(roundMoney(2.5, 0)).toBe(2);
+        expect(roundMoney(0.125, 2)).toBe(0.12);
+    });
+
+    it("rounds a halfway value up to the even neighbor", () => {
+        expect(roundMoney(3.5, 0)).toBe(4);
+        expect(roundMoney(0.375, 2)).toBe(0.38);
+        expect(roundMoney(0.135, 2)).toBe(0.14);
+    });
+
+    it("applies half-even to negative halfway values", () => {
+        expect(roundMoney(-2.5, 0)).toBe(-2);
+        expect(roundMoney(-0.125, 2)).toBe(-0.12);
+    });
+
+    it("rounds non-halfway values to the nearest cent", () => {
+        expect(roundMoney(1.014, 2)).toBe(1.01);
+        expect(roundMoney(1.016, 2)).toBe(1.02);
+    });
+
+    it("defaults to two decimals and is identity on whole values", () => {
+        expect(roundMoney(10)).toBe(10);
+        expect(roundMoney(10.006)).toBe(10.01);
+    });
+
+    it("rounds once after full-precision summation (aggregate rule)", () => {
+        const unrounded = [10.125, 20.125, 30.125];
+        const sum = unrounded.reduce((total, value) => total + value, 0);
+        expect(roundMoney(sum, 2)).toBe(60.38);
+        const roundEachFirst = unrounded
+            .map((value) => roundMoney(value, 2))
+            .reduce((total, value) => total + value, 0);
+        expect(roundMoney(roundEachFirst, 2)).toBe(60.36);
     });
 });

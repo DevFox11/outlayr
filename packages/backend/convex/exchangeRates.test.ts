@@ -5,7 +5,6 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { api, internal } from "./_generated/api";
 import { nextPruneStep } from "./exchangeRates";
-import { resolveRateOnDate } from "./lib/currencies";
 import type { MarketRateType, RateSource } from "./lib/currencies";
 import schema from "./schema";
 
@@ -136,57 +135,6 @@ describe("upsertRates", () => {
         const all = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
         expect(all).toHaveLength(1);
         expect(all[0]).toMatchObject({ quote: "EUR", rate: 0.92 });
-    });
-});
-
-describe(resolveRateOnDate, () => {
-    const gappedSeeds: SeedRate[] = [
-        {
-            date: "2026-03-11",
-            fetchedAt: 100,
-            quote: "VES",
-            rate: 38,
-            rateType: "official",
-            source: "frankfurter",
-        },
-        {
-            date: "2026-03-13",
-            fetchedAt: 300,
-            quote: "VES",
-            rate: 40,
-            rateType: "official",
-            source: "frankfurter",
-        },
-    ];
-
-    test("returns the exact-date rate when one exists", async () => {
-        const t = convexTest(schema, modules);
-        for (const row of gappedSeeds) {
-            await seed(t, row);
-        }
-
-        const result = await t.run(async (ctx) => await resolveRateOnDate(ctx.db, "VES", "official", "2026-03-13"));
-        expect(result).toMatchObject({ date: "2026-03-13", fetchedAt: 300, rate: 40 });
-    });
-
-    test("falls back to the newest earlier date across a weekend gap", async () => {
-        const t = convexTest(schema, modules);
-        for (const row of gappedSeeds) {
-            await seed(t, row);
-        }
-
-        const saturday = await t.run(async (ctx) => await resolveRateOnDate(ctx.db, "VES", "official", "2026-03-14"));
-        expect(saturday).toMatchObject({ date: "2026-03-13", fetchedAt: 300, rate: 40 });
-    });
-
-    test("returns null when no row is on or before the requested date", async () => {
-        const t = convexTest(schema, modules);
-        for (const row of gappedSeeds) {
-            await seed(t, row);
-        }
-
-        const before = await t.run(async (ctx) => await resolveRateOnDate(ctx.db, "VES", "official", "2026-03-01"));
-        expect(before).toBeNull();
     });
 });
 

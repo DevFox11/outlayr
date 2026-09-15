@@ -126,9 +126,9 @@ export default defineSchema({
      * bounded by `pruneStale`.
      *
      * `date` is a UTC `YYYY-MM-DD` string rather than an epoch so the composite
-     * index reads as a calendar and `resolveRateOnDate` can ask for "the newest row
-     * on or before this day", which is what covers the weekend and holiday gaps in
-     * the provider feed.
+     * index reads as a calendar: a descending seek on `by_quote_and_rateType_and_date`
+     * answers "the newest row on or before this day", which is what covers the
+     * weekend and holiday gaps in the provider feed.
      */
     exchangeRates: defineTable({
         date: v.string(),
