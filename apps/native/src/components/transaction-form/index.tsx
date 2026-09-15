@@ -951,12 +951,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     };
     const tagCountOf = (tagIds: readonly string[], pendingTagNames: readonly string[]) =>
         allTags.filter((tag) => effectiveTagIdsOf(tagIds).includes(tag.id)).length + pendingTagNames.length;
-    // No ICU plurals in this catalogue, so the singular is its own key rather than
-    // a "1 tags" the interpolation would otherwise produce.
-    const tagLabel = (count: number) =>
-        count === 1 ? t("transaction.sentence.set.tagOne") : t("transaction.sentence.set.tagMany", { count });
-    const splitLabel = (count: number) =>
-        count === 1 ? t("transaction.sentence.set.splitOne") : t("transaction.sentence.set.splitWays", { count });
+    const tagLabel = (count: number) => t("transaction.sentence.set.tag", { count });
+    const splitLabel = (count: number) => t("transaction.sentence.set.split", { count });
     const repeatChipLabel = () => {
         if (recurringType === RECURRING_TYPE.daily) {
             return t("transaction.sentence.set.repeatDaily");

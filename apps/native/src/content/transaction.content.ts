@@ -595,21 +595,21 @@ const transaction = {
             en: "yearly",
             es: "anual",
         }),
-        "transaction.sentence.set.splitOne": t({
+        "transaction.sentence.set.split_one": t({
             en: "1 way",
             es: "1 parte",
         }),
-        "transaction.sentence.set.splitWays": t({
+        "transaction.sentence.set.split_other": t({
             en: "{count} ways",
             es: "{count} partes",
         }),
-        "transaction.sentence.set.tagMany": t({
-            en: "{count} tags",
-            es: "{count} etiquetas",
-        }),
-        "transaction.sentence.set.tagOne": t({
+        "transaction.sentence.set.tag_one": t({
             en: "1 tag",
             es: "1 etiqueta",
+        }),
+        "transaction.sentence.set.tag_other": t({
+            en: "{count} tags",
+            es: "{count} etiquetas",
         }),
         "transaction.sentence.when.on": t({
             en: "on {date}",

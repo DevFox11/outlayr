@@ -3,7 +3,7 @@ import { getIntlayer } from "intlayer";
 
 import { CATALOGS, DICTIONARY_KEYS, EN, ES } from "./catalog";
 import { SUPPORTED_LANGUAGES } from "./languages";
-import { interpolate } from "./translate";
+import { interpolate, translate } from "./translate";
 
 const PLACEHOLDER = /\{(\w+)\}/g;
 const PLURAL_SUFFIX = /_(one|other)$/;
@@ -94,6 +94,20 @@ describe("catalog parity", () => {
                 expect(placeholders(template).has("count")).toBeTruthy();
             }
         }
+    });
+
+    // The tag and split chips spelled their two forms with a ternary over separate
+    // keys, which the two guards above cannot see: an orphaned form or an `_other`
+    // with no count read as an ordinary key. Calling them by their stem is what
+    // brings them under those guards, so it is worth holding that they resolve.
+    it.each([
+        ["transaction.sentence.set.tag", 1, "1 tag", "1 etiqueta"],
+        ["transaction.sentence.set.tag", 3, "3 tags", "3 etiquetas"],
+        ["transaction.sentence.set.split", 1, "1 way", "1 parte"],
+        ["transaction.sentence.set.split", 4, "4 ways", "4 partes"],
+    ])("resolves %s at count %i to both forms", (key, count, en, es) => {
+        expect(translate(key, { catalog: EN, fallback: EN, params: { count } })).toBe(en);
+        expect(translate(key, { catalog: ES, fallback: EN, params: { count } })).toBe(es);
     });
 
     it("leaves no empty string in either catalog", () => {
