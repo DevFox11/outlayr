@@ -1,6 +1,3 @@
-import { useEffect } from "react";
-import { AppState } from "react-native";
-
 import { readBoolSetting, setBoolSetting } from "@/data/settings-core";
 import { pendingReminderPlan } from "@/data/subscription-reminders-core";
 import type { Database } from "@/db/client";
@@ -9,6 +6,7 @@ import { formatAmount } from "@/domain/money";
 import { reminderReconcile } from "@/domain/reminder";
 import { orphanedReminderIds } from "@/domain/subscription-reminder";
 import { translateNow } from "@/i18n/runtime";
+import { useForegroundSweep } from "@/lib/use-foreground-sweep";
 
 import { readReminderTime } from "./reminder-sync";
 import { cancelReminders, pendingReminderIds, reminderPermission, scheduleDatedReminder } from "./reminders";
@@ -82,23 +80,5 @@ async function reconcileSubscriptionReminders(db: Database): Promise<void> {
  * have already been taken.
  */
 export function useSubscriptionReminderSync(db: Database): void {
-    useEffect(() => {
-        const sweep = () => {
-            syncSubscriptionReminders(db).catch((error) => {
-                console.error("Subscription reminder sync failed", error);
-            });
-        };
-
-        sweep();
-
-        const subscription = AppState.addEventListener("change", (state) => {
-            if (state === "active") {
-                sweep();
-            }
-        });
-
-        return () => {
-            subscription.remove();
-        };
-    }, [db]);
+    useForegroundSweep(db, syncSubscriptionReminders, "Subscription reminder sync");
 }

@@ -1,10 +1,8 @@
-import { useEffect } from "react";
-import { AppState } from "react-native";
-
 import { readBoolSetting, readNumberSetting, setBoolSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import { clampTimeOfDay, reminderReconcile, reminderTime } from "@/domain/reminder";
 import type { TimeOfDay } from "@/domain/reminder";
+import { useForegroundSweep } from "@/lib/use-foreground-sweep";
 
 import { cancelReminder, reminderPermission, scheduleReminder } from "./reminders";
 
@@ -45,23 +43,5 @@ async function syncReminder(db: Database): Promise<void> {
  * against a reminder iOS has stopped delivering.
  */
 export function useReminderSync(db: Database): void {
-    useEffect(() => {
-        const reconcile = () => {
-            syncReminder(db).catch((error) => {
-                console.error("Reminder sync failed", error);
-            });
-        };
-
-        reconcile();
-
-        const subscription = AppState.addEventListener("change", (state) => {
-            if (state === "active") {
-                reconcile();
-            }
-        });
-
-        return () => {
-            subscription.remove();
-        };
-    }, [db]);
+    useForegroundSweep(db, syncReminder, "Reminder sync");
 }
