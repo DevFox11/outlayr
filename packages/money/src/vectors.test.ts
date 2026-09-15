@@ -117,6 +117,22 @@ const CONVERT_FROM_USD_VECTORS: ConvertVector[] = [
         name: "negative amount keeps its sign through half-even rounding",
         rate: 0.87428,
     },
+    {
+        // A hard USD peg, which a `base=USD` feed quotes at exactly 1.0. The
+        // identity shortcut is USD to USD, not any rate of one.
+        amountUsd: 87.428333,
+        code: "BSD",
+        expected: 87.43,
+        name: "a USD-pegged code rounds at its own exponent despite a rate of 1",
+        rate: 1,
+    },
+    {
+        amountUsd: 87.428333,
+        code: "JPY",
+        expected: 87,
+        name: "a zero-decimal code takes no fraction at a rate of 1",
+        rate: 1,
+    },
 ];
 
 describe("golden vectors — convertFromUsd", () => {
