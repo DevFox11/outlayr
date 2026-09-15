@@ -87,7 +87,6 @@ const accounts = {
             en: "Money I owe",
             es: "Dinero que debo",
         }),
-
         "accounts.field.name": t({
             en: "Name",
             es: "Nombre",
@@ -115,6 +114,10 @@ const accounts = {
         "accounts.overview.more": t({
             en: "and {count} more",
             es: "y {count} más",
+        }),
+        "accounts.overview.openHint": t({
+            en: "Opens all accounts",
+            es: "Abre todas las cuentas",
         }),
         "accounts.overview.owe": t({
             en: "Owe",
