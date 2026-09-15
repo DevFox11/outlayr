@@ -5,7 +5,7 @@ import { convexTest } from "convex-test";
 import type { TestConvex } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { api, components } from "./_generated/api";
+import { api, components, internal } from "./_generated/api";
 import { consumeGoogleLocalReceipt, DELETION_JOBS_PER_USER } from "./accountDeletion";
 import type { DeletionJob } from "./accountDeletion";
 import { sha256Hex } from "./lib/sha256Hex";
@@ -111,6 +111,42 @@ describe("preparing a deletion", () => {
         await expect(authenticatedAs(t, owner).mutation(api.accountDeletion.prepare, {})).rejects.toThrow(
             "too many open deletion requests"
         );
+    });
+});
+
+describe("sweeping abandoned jobs", () => {
+    /**
+     * `sync.push` refuses every write while any job of this user is past
+     * `prepared`, so a job abandoned at `providersRevoked` locked the account out
+     * of writing forever — nothing advances it, there is no cancel, and the
+     * per-user cap stops them starting a fresh deletion.
+     */
+    async function sweepWith(phase: DeletionJob["phase"], provider: DeletionJob["provider"]): Promise<number> {
+        const t = convexTest(schema, modules);
+        revenuecatTest.register(t);
+        await t.run(async (ctx) => {
+            await ctx.db.insert("accountDeletionJobs", { ...job, expiresAt: 0, phase, provider });
+        });
+
+        await t.mutation(internal.accountDeletion.cleanupExpired, {});
+
+        return await t.run(async (ctx) => (await ctx.db.query("accountDeletionJobs").collect()).length);
+    }
+
+    test("reclaims one abandoned after a Google local receipt, which revoked nothing upstream", async () => {
+        await expect(sweepWith("providersRevoked", "googleLocalReceipt")).resolves.toBe(0);
+    });
+
+    test("keeps one that already revoked the user's Apple credential", async () => {
+        await expect(sweepWith("providersRevoked", "appleServerRevoked")).resolves.toBe(1);
+    });
+
+    test("still reclaims an expired prepared job", async () => {
+        await expect(sweepWith("prepared", null)).resolves.toBe(0);
+    });
+
+    test("leaves a mid-purge job alone", async () => {
+        await expect(sweepWith("purged", null)).resolves.toBe(1);
     });
 });
 

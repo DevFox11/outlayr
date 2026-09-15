@@ -329,13 +329,34 @@ export const resumeUserId = internalQuery({
 
 const CLEANUP_BATCH = 200;
 
+/**
+ * ⚠️ `sync.push` refuses every write while ANY job of this user is past
+ * `prepared`, so a job that is abandoned there locks the account out of writing
+ * forever: nothing advances it, there is no cancel, and `prepare` caps a user at
+ * 20 jobs so they cannot even start a fresh deletion.
+ *
+ * `googleLocalReceipt` is the phase that gets there having destroyed nothing —
+ * it is reached by proving possession of a challenge `prepare` itself just
+ * handed the client, before anything upstream is revoked. So its `expiresAt`
+ * means what it says and the job can be reclaimed.
+ *
+ * `appleServerRevoked` is NOT swept: that one really has revoked the user's
+ * Apple credential, and a job describing an irreversible step is not garbage.
+ * The other phases are mid-purge and must finish.
+ */
 export const cleanupExpired = internalMutation({
     args: {},
     handler: async (ctx) => {
         const jobs = await ctx.db
             .query("accountDeletionJobs")
             .withIndex("by_expiresAt", (q) => q.lt("expiresAt", Date.now()))
-            .filter((q) => q.or(q.eq(q.field("phase"), "prepared"), q.eq(q.field("phase"), "complete")))
+            .filter((q) =>
+                q.or(
+                    q.eq(q.field("phase"), "prepared"),
+                    q.eq(q.field("phase"), "complete"),
+                    q.and(q.eq(q.field("phase"), "providersRevoked"), q.eq(q.field("provider"), "googleLocalReceipt"))
+                )
+            )
             .take(CLEANUP_BATCH);
         await Promise.all(jobs.map(async (job) => await ctx.db.delete(job._id)));
     },
