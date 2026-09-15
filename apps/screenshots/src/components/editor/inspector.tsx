@@ -72,6 +72,27 @@ export function Inspector({
   onChange,
   onSelectElement,
 }: Props) {
+  // A `{locale}` path is one screenshot per language. `Slide.screenshot` is a
+  // plain string with no per-locale slot, so an upload written here replaces the
+  // template for EVERY language at once and the other language's path is gone —
+  // silently, and only visible once the wrong image reaches App Store Connect.
+  // Until the field is localised the way `headline` and `label` already are,
+  // this at least refuses to do it quietly.
+  const replaceScreenshot = (key: "screenshot" | "screenshotSecondary") => (next: string) => {
+    const current = key === "screenshot" ? slide.screenshot : slide.screenshotSecondary;
+    if (current?.includes("{locale}") && !next.includes("{locale}")) {
+      const confirmed = window.confirm(
+        `This slide uses one screenshot per language (${current}).\n\n` +
+          `Replacing it while editing ${locale.toUpperCase()} sets the same image for every language, ` +
+          `and the per-language paths are lost.\n\nReplace anyway?`,
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+    onChange({ [key]: next } as Partial<Slide>);
+  };
+
   const isFeatureGraphic = device === "feature-graphic" || slide.layout === "feature-graphic";
   const isNoDevice = slide.layout === "no-device";
   const layoutValue = device === "feature-graphic" ? "feature-graphic" : slide.layout;
@@ -171,7 +192,7 @@ export function Inspector({
               label="Primary"
               value={slide.screenshot}
               locale={locale}
-              onChange={(v) => onChange({ screenshot: v })}
+              onChange={replaceScreenshot("screenshot")}
             />
           </div>
         )}
@@ -183,7 +204,7 @@ export function Inspector({
               label="Secondary (back layer)"
               value={slide.screenshotSecondary || ""}
               locale={locale}
-              onChange={(v) => onChange({ screenshotSecondary: v })}
+              onChange={replaceScreenshot("screenshotSecondary")}
             />
           </div>
         )}
