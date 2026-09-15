@@ -1,0 +1,57 @@
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { renderHook } from "@testing-library/react-native";
+
+import type { Database } from "@/db/client";
+import { migratedDatabase } from "@/db/test-database";
+
+type ChangeListener = (event: { tableName: string }) => void;
+
+const mockListeners = new Set<ChangeListener>();
+jest.mock("expo-sqlite", () => ({
+    addDatabaseChangeListener: (listener: ChangeListener) => {
+        mockListeners.add(listener);
+        return {
+            remove: () => {
+                mockListeners.delete(listener);
+            },
+        };
+    },
+}));
+
+import { META_KEYS, setMeta } from "./app-meta-core";
+import { useOnboardingSettled } from "./onboarding";
+
+describe("useOnboardingSettled", () => {
+    let db: Database;
+
+    beforeEach(() => {
+        mockListeners.clear();
+        db = migratedDatabase({ foreignKeys: false });
+    });
+
+    it("holds a fresh install in the flow", async () => {
+        const { result } = await renderHook(() => useOnboardingSettled(db));
+
+        expect(result.current).toBe(false);
+    });
+
+    // The flow asks more than one question now, so stating a currency is step
+    // one rather than completion. The pure `isOnboardingSettled` cannot hold this
+    // line — it only ever sees the `onboardingComplete` value — so it has to be
+    // held here, on the hook that decides which key to read.
+    it("does not let a chosen currency out of the flow on its own", async () => {
+        await setMeta(db, META_KEYS.currencyChosen, "true");
+
+        const { result } = await renderHook(() => useOnboardingSettled(db));
+
+        expect(result.current).toBe(false);
+    });
+
+    it("lets a finished run through", async () => {
+        await setMeta(db, META_KEYS.onboardingComplete, "true");
+
+        const { result } = await renderHook(() => useOnboardingSettled(db));
+
+        expect(result.current).toBe(true);
+    });
+});

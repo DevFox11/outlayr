@@ -18,10 +18,6 @@ describe("onboarding gate", () => {
         expect(isOnboardingSettled(null)).toBe(false);
     });
 
-    it("no longer settles on currency alone — the flow asks more than one question now", () => {
-        expect(isOnboardingSettled(null)).toBe(false);
-    });
-
     it("lets a finished run through", () => {
         expect(isOnboardingSettled("true")).toBe(true);
     });
