@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from "@jest/globals";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 
 import { unusedDatabase as mockUnusedDatabase } from "@/db/test-database";
@@ -14,7 +14,7 @@ jest.mock("@/db/schema", () => ({
 jest.mock("@/data/live-query", () => {
     const schema = require("@/db/schema");
     return {
-        useLiveQuery: (table: unknown) => (table === schema.transfers ? transferRows : feeRows),
+        useLiveQuery: (table: unknown) => (table === schema.transfers ? mockTransferRows : mockFeeRows),
     };
 });
 
@@ -41,20 +41,51 @@ jest.mock("expo-router", () => ({
     useRouter: () => ({ back: jest.fn() }),
 }));
 
-const transferRows = [
-    {
-        exchangeRate: 1,
-        exchangeRateType: null,
-        fromAccountId: "from",
-        fromAmount: 5000,
-        fromCurrency: "USD",
-        id: "transfer-1",
-        toAccountId: "to",
-        toAmount: 5000,
-        toCurrency: "USD",
-    },
-];
-const feeRows: unknown[] = [];
+const SAME_CURRENCY_TRANSFER = {
+    exchangeRate: 1,
+    exchangeRateType: null as string | null,
+    fromAccountId: "from",
+    fromAmount: 5000,
+    fromCurrency: "USD",
+    id: "transfer-1",
+    toAccountId: "to",
+    toAmount: 5000,
+    toCurrency: "USD",
+};
+const mockTransferRows = [{ ...SAME_CURRENCY_TRANSFER }];
+
+beforeEach(() => {
+    mockTransferRows[0] = { ...SAME_CURRENCY_TRANSFER };
+});
+
+/**
+ * Every string the screen renders. `SwiftText` puts its content in `props.text`
+ * rather than in children, so walking children alone finds nothing.
+ */
+function allText(node: JsonNode | JsonNode[] | null, found: string[] = []): string[] {
+    if (node == null) {
+        return found;
+    }
+    if (Array.isArray(node)) {
+        for (const child of node) {
+            allText(child, found);
+        }
+        return found;
+    }
+    const text = node.props?.text;
+    if (typeof text === "string") {
+        found.push(text);
+    }
+    for (const child of node.children ?? []) {
+        if (typeof child === "string") {
+            found.push(child);
+        } else {
+            allText(child, found);
+        }
+    }
+    return found;
+}
+const mockFeeRows: unknown[] = [];
 
 interface Modifier {
     $type: string;
@@ -107,6 +138,36 @@ async function deleteRowModifiers(): Promise<Modifier[]> {
 }
 
 describe("transferDetail", () => {
+    // The rate rows only exist on a cross-currency transfer, which the fixture
+    // above is not — so nothing else in this file reaches them.
+    it("names the rate source through the catalog, not as the stored enum", async () => {
+        mockTransferRows[0] = {
+            ...SAME_CURRENCY_TRANSFER,
+            exchangeRate: 0.92,
+            exchangeRateType: "eur_reference",
+            toCurrency: "EUR",
+        };
+
+        const { toJSON } = await render(<TransferDetail id="transfer-1" />);
+
+        const text = allText(toJSON() as JsonNode);
+        expect(text).toContain("transfers.rate.eur_reference");
+        expect(text).not.toContain("eur_reference");
+    });
+
+    it("spells the rate the way every other rate readout does", async () => {
+        mockTransferRows[0] = {
+            ...SAME_CURRENCY_TRANSFER,
+            exchangeRate: 36,
+            exchangeRateType: "official",
+            toCurrency: "VES",
+        };
+
+        const { toJSON } = await render(<TransferDetail id="transfer-1" />);
+
+        expect(allText(toJSON() as JsonNode)).toContain("36");
+    });
+
     it("announces its delete row as a button, since a tap gesture alone gives VoiceOver nothing to press", async () => {
         const modifiers = await deleteRowModifiers();
 

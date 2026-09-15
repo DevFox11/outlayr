@@ -18,11 +18,11 @@ import { useLiveQuery } from "@/data/live-query";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { transactions, transfers } from "@/db/schema";
 import { formatAmount } from "@/domain/money";
+import { formatEntryRate } from "@/domain/transaction-entry-rate";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { hitArea, outline } from "@/lib/swift-ui-geometry";
 import { useColors } from "@/theme/use-colors";
 
-const RATE_DECIMALS = 4;
 const ROW_LABEL = foregroundStyle({ style: "secondary", type: "hierarchical" } as const);
 
 export default function TransferDetail({ id }: { id: string }) {
@@ -42,6 +42,13 @@ export default function TransferDetail({ id }: { id: string }) {
     );
     const rowGround = groupedRows(colors);
     const transfer = rows[0] ?? null;
+    // SAFETY: `exchangeRateType` is one of ENTRY_RATE_TYPES and every member has a
+    // `transfers.rate.*` entry, which is what `transfer-editor` relies on to build
+    // the picker this row reads back.
+    const rateSource =
+        transfer?.exchangeRateType == null
+            ? "—"
+            : t(`transfers.rate.${transfer.exchangeRateType}` as "transfers.rate.official");
     const fee = feeRows.find((row) => row.deletedAt === null) ?? null;
     const names = useMemo(() => new Map(accounts.map((account) => [account.id, account.name])), [accounts]);
 
@@ -90,12 +97,12 @@ export default function TransferDetail({ id }: { id: string }) {
                         <HStack>
                             <SwiftText modifiers={[ROW_LABEL]}>{t("transfers.field.rate")}</SwiftText>
                             <Spacer />
-                            <SwiftText>{(transfer.exchangeRate ?? 0).toFixed(RATE_DECIMALS)}</SwiftText>
+                            <SwiftText>{formatEntryRate(transfer.exchangeRate ?? 0)}</SwiftText>
                         </HStack>
                         <HStack>
                             <SwiftText modifiers={[ROW_LABEL]}>{t("transfers.detail.rateSource")}</SwiftText>
                             <Spacer />
-                            <SwiftText>{transfer.exchangeRateType ?? "—"}</SwiftText>
+                            <SwiftText>{rateSource}</SwiftText>
                         </HStack>
                     </Section>
                 )}
