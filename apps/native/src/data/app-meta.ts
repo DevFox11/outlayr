@@ -5,7 +5,7 @@ import { appMeta } from "@/db/schema";
 import { DEFAULT_CURRENCY } from "@/domain/money";
 
 import { META_KEYS } from "./app-meta-core";
-import { useLiveQuery } from "./live-query";
+import { useLiveValue } from "./live-query";
 
 /**
  * Bootstrap writes the resolved value before the splash lifts, so the USD
@@ -13,6 +13,14 @@ import { useLiveQuery } from "./live-query";
  * currency render against this.
  */
 export function useGlobalCurrency(db: Database): string {
-    const rows = useLiveQuery(appMeta, () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.currency)));
-    return rows[0]?.value ?? DEFAULT_CURRENCY;
+    // `useLiveValue`, not `useLiveQuery`: `appMeta` is one invalidation channel
+    // for the whole table, so every settings toggle and every sync cycle's
+    // `syncedAt` write invalidates this read. Returning the string rather than a
+    // fresh row array lets React compare it and sit still — which matters here
+    // more than anywhere, because this hook has 38 call sites.
+    return useLiveValue(
+        appMeta,
+        () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.currency)),
+        (rows) => rows[0]?.value ?? DEFAULT_CURRENCY
+    );
 }
