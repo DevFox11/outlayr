@@ -38,11 +38,16 @@ import {
  */
 
 /**
- * Every replicated table carries exactly two indexes. `by_user_and_seq` is the
- * pull cursor — a fresh device walks it from 0 and an established one from its
- * watermark. `by_user_and_localId` is the push upsert lookup. Nothing else is
- * indexed because nothing else queries these tables: every read the app performs
+ * Every replicated table carries `by_user_and_seq`, the pull cursor — a fresh
+ * device walks it from 0 and an established one from its watermark — and
+ * `by_user_and_localId`, the push upsert lookup. Almost nothing else is indexed
+ * because almost nothing else queries these tables: every read the app performs
  * on this data runs against the local SQLite replica, not here.
+ *
+ * The exception is `by_user_and_imageKey`, on the three tables that carry an
+ * `imageKey`. `photos.releaseUnreferenced` has to ask the server whether any row
+ * still names an object before it frees the bytes, and that question cannot be
+ * answered on the device.
  */
 export default defineSchema({
     accountDeletionJobs: defineTable({
@@ -71,7 +76,8 @@ export default defineSchema({
      */
     accounts: defineTable({ ...replicated, ...accountFields })
         .index("by_user_and_seq", ["userId", "seq"])
-        .index("by_user_and_localId", ["userId", "localId"]),
+        .index("by_user_and_localId", ["userId", "localId"])
+        .index("by_user_and_imageKey", ["userId", "imageKey"]),
 
     /**
      * The syncable slice of the local `appMeta` key/value store. `key` stands in
@@ -240,7 +246,8 @@ export default defineSchema({
     /** A photo attached to an entry. The bytes travel out of band, as ever. */
     transactionPhotos: defineTable({ ...replicated, ...transactionPhotoFields })
         .index("by_user_and_seq", ["userId", "seq"])
-        .index("by_user_and_localId", ["userId", "localId"]),
+        .index("by_user_and_localId", ["userId", "localId"])
+        .index("by_user_and_imageKey", ["userId", "imageKey"]),
 
     /**
      * One entry's amount attributed to one category. No rows means the entry is
@@ -269,7 +276,8 @@ export default defineSchema({
      */
     transactions: defineTable({ ...replicated, ...transactionColumns })
         .index("by_user_and_seq", ["userId", "seq"])
-        .index("by_user_and_localId", ["userId", "localId"]),
+        .index("by_user_and_localId", ["userId", "localId"])
+        .index("by_user_and_imageKey", ["userId", "imageKey"]),
 
     /**
      * `fromAccountId` and `toAccountId` hold account `localId`s, staying in

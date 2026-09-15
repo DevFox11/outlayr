@@ -300,30 +300,39 @@ export const readUrls = query({
 });
 
 /**
+ * Every table carrying an `imageKey`. The device mints one key shape for all of
+ * them — `apps/native/src/data/photo-store-core.ts` lists them — so a table left
+ * out reads as unreferenced and its bytes are freed while a row still points at
+ * them.
+ */
+const IMAGE_KEY_TABLES = ["transactions", "accounts", "transactionPhotos"] as const;
+
+/**
  * Whether any row in the account still names `key`.
  *
- * Every table carrying an `imageKey` has to be asked. The device mints one key
- * shape for all of them — `apps/native/src/data/photo-store-core.ts` lists them
- * — so a table left out here reads as unreferenced and its bytes are freed
- * while a row still points at them.
+ * Asked per table against `by_user_and_imageKey`, which is why that index
+ * exists: scanning the account's transactions and accounts instead would read
+ * the whole ledger per released photo, and past the mutation's document ceiling
+ * it would stop answering at all — leaving the bytes unreclaimable for exactly
+ * the accounts big enough to need reclaiming.
  *
  * Tombstoned rows count. A tombstone is what the undo window restores from and
  * what a device that has not pulled yet is still rendering, so treating one as
  * unreferenced would delete bytes two live readers can name.
  */
 async function isReferenced(ctx: MutationCtx, userId: string, key: string): Promise<boolean> {
-    const transactionRows = await ctx.db
-        .query("transactions")
-        .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
-        .collect();
-    if (transactionRows.some((row) => row.imageKey === key)) {
-        return true;
+    /* oxlint-disable no-await-in-loop -- the first table that names the key answers the question; running all three would read rows nobody needs */
+    for (const table of IMAGE_KEY_TABLES) {
+        const row = await ctx.db
+            .query(table)
+            .withIndex("by_user_and_imageKey", (q) => q.eq("userId", userId).eq("imageKey", key))
+            .first();
+        if (row) {
+            return true;
+        }
     }
-    const accountRows = await ctx.db
-        .query("accounts")
-        .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
-        .collect();
-    return accountRows.some((row) => row.imageKey === key);
+    /* oxlint-enable no-await-in-loop */
+    return false;
 }
 
 /**

@@ -87,6 +87,21 @@ function accountRow(localId: string, options: { imageKey?: string | null } = {})
     };
 }
 
+function transactionPhotoRow(localId: string, options: { imageKey?: string | null } = {}): PushRows[number] {
+    return {
+        deletedAt: null,
+        fields: {
+            imageColor: null,
+            imageKey: options.imageKey ?? null,
+            sortOrder: 0,
+            transactionId: "t1",
+        },
+        localId,
+        table: "transactionPhotos",
+        updatedAt: 100,
+    };
+}
+
 function push(t: TestClient, who: SeededIdentity, rows: PushRows) {
     return authenticatedAs(t, who).mutation(api.sync.push, {
         deviceId: DEVICE,
@@ -284,6 +299,19 @@ describe("releaseUnreferenced", () => {
         const owner = await seedProUser(t);
         const key = photoKeyFor(owner.userId, PHOTO);
         await push(t, owner, [accountRow("a1", { imageKey: key })]);
+
+        await expect(
+            authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, {
+                key,
+            })
+        ).resolves.toStrictEqual({ released: false });
+    });
+
+    test("keeps an object only an attached photo row names", async () => {
+        const t = harness();
+        const owner = await seedProUser(t);
+        const key = photoKeyFor(owner.userId, PHOTO);
+        await push(t, owner, [transactionPhotoRow("p1", { imageKey: key })]);
 
         await expect(
             authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, {
