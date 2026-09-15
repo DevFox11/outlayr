@@ -6,7 +6,7 @@ import type { TestConvex } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { api, components } from "./_generated/api";
-import { consumeGoogleLocalReceipt } from "./accountDeletion";
+import { consumeGoogleLocalReceipt, DELETION_JOBS_PER_USER } from "./accountDeletion";
 import type { DeletionJob } from "./accountDeletion";
 import { sha256Hex } from "./lib/sha256Hex";
 import { isPro } from "./revenuecat";
@@ -93,6 +93,26 @@ async function purgedJob() {
     await expect(t.mutation(api.accountDeletion.advance, { resumeSecret })).resolves.toMatchObject({ phase: "purged" });
     return { owner, resumeSecret, t };
 }
+
+describe("preparing a deletion", () => {
+    // The cap is what makes `sync.refuseWhileDeleting`'s full read of a user's
+    // jobs cheap, and what stops a client burying the job that refuses a push.
+    test("refuses a new request once the account is holding the cap", async () => {
+        const t = convexTest(schema, modules);
+        revenuecatTest.register(t);
+        const owner = await seedAuthUser(t);
+        await grantPro(t, owner);
+
+        for (let n = 0; n < DELETION_JOBS_PER_USER; n += 1) {
+            // oxlint-disable-next-line no-await-in-loop -- each prepare must commit before the next one counts it
+            await authenticatedAs(t, owner).mutation(api.accountDeletion.prepare, {});
+        }
+
+        await expect(authenticatedAs(t, owner).mutation(api.accountDeletion.prepare, {})).rejects.toThrow(
+            "too many open deletion requests"
+        );
+    });
+});
 
 describe("billing erasure", () => {
     afterEach(() => {

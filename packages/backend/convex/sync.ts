@@ -376,9 +376,6 @@ async function upsert(
  * Sync is a Pro entitlement, checked immediately after `requireUserId` in
  * `push` and `pullSince` — on the server, where a client cannot route around it.
  */
-/** A user can prepare more than one deletion; none of them is a large number. */
-const DELETION_JOBS_PER_USER = 20;
-
 /**
  * Refuses a push from a device that has not learned the account is going.
  *
@@ -394,10 +391,15 @@ const DELETION_JOBS_PER_USER = 20;
  * confirmed, and may yet cancel.
  */
 async function refuseWhileDeleting(ctx: QueryCtx, userId: string): Promise<void> {
+    // Every job, not a page of them: this asks whether ANY job has moved past
+    // `prepared`, and a page can only answer that if the newest job is inside
+    // it. `accountDeletion.prepare` caps the set per user, which is what keeps
+    // the full read small — without that cap a client could bury the one job
+    // that refuses the push under a page of harmless prepared ones.
     const jobs = await ctx.db
         .query("accountDeletionJobs")
         .withIndex("by_userId", (q) => q.eq("userId", userId))
-        .take(DELETION_JOBS_PER_USER);
+        .collect();
     if (jobs.some((job) => job.phase !== "prepared")) {
         throw new ConvexError("This account is being deleted and can no longer accept changes");
     }

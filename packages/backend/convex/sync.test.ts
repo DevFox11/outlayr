@@ -8,6 +8,7 @@ import { ConvexError } from "convex/values";
 import { describe, expect, test } from "vitest";
 
 import { api } from "./_generated/api";
+import { DELETION_JOBS_PER_USER } from "./accountDeletion";
 import schema from "./schema";
 import { PUSH_BATCH_LIMIT } from "./sync";
 import { authenticatedAs, grantPro, seedAuthUser, seedProUser } from "./test.helpers";
@@ -964,5 +965,61 @@ describe("the Pro gate", () => {
         await expect(
             authenticatedAs(t, owner).mutation(api.sync.push, { deviceId: DEVICE_A, rows: [transactionRow("a", 1)] })
         ).resolves.toBeDefined();
+    });
+});
+
+describe("push during account deletion", () => {
+    /** A deletion job for `userId`, in whatever phase the caller needs. */
+    async function seedJob(t: TestClient, userId: string, phase: "prepared" | "providersRevoked", n: number) {
+        await t.run(
+            async (ctx) =>
+                await ctx.db.insert("accountDeletionJobs", {
+                    errorCode: null,
+                    expiresAt: Date.now() + 86_400_000,
+                    googleReceiptChallengeHash: `challenge-${phase}-${n}`,
+                    googleReceiptDigest: null,
+                    phase,
+                    provider: null,
+                    secretHash: `secret-${phase}-${n}`,
+                    userId,
+                })
+        );
+    }
+
+    test("refuses a push once a job has moved past prepared", async () => {
+        const t = harness();
+        const owner = await seedProUser(t);
+        await seedJob(t, owner.userId, "providersRevoked", 0);
+
+        await expect(
+            authenticatedAs(t, owner).mutation(api.sync.push, { deviceId: DEVICE_A, rows: [transactionRow("a", 1)] })
+        ).rejects.toThrow("being deleted");
+    });
+
+    test("still accepts a push while the owner has only asked", async () => {
+        const t = harness();
+        const owner = await seedProUser(t);
+        await seedJob(t, owner.userId, "prepared", 0);
+
+        await expect(
+            authenticatedAs(t, owner).mutation(api.sync.push, { deviceId: DEVICE_A, rows: [transactionRow("a", 1)] })
+        ).resolves.toBeDefined();
+    });
+
+    // The guard used to read a page of jobs, so a client could bury the one that
+    // refuses the push under a page of harmless prepared ones and re-create rows
+    // for a user id the purge is about to null.
+    test("cannot be walked past by burying the purging job under a page of prepared ones", async () => {
+        const t = harness();
+        const owner = await seedProUser(t);
+        for (let n = 0; n < DELETION_JOBS_PER_USER; n += 1) {
+            // oxlint-disable-next-line no-await-in-loop -- convex-test serialises writes; a Promise.all here interleaves them
+            await seedJob(t, owner.userId, "prepared", n);
+        }
+        await seedJob(t, owner.userId, "providersRevoked", 0);
+
+        await expect(
+            authenticatedAs(t, owner).mutation(api.sync.push, { deviceId: DEVICE_A, rows: [transactionRow("a", 1)] })
+        ).rejects.toThrow("being deleted");
     });
 });

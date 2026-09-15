@@ -94,11 +94,30 @@ function requireUnexpiredPreparedJob(job: DeletionJob) {
     }
 }
 
+/**
+ * How many open deletion jobs one account may hold.
+ *
+ * A user can genuinely prepare more than one — a lost resume secret, a second
+ * device, a retried flow — but never many. The cap is what makes that true:
+ * `sync.refuseWhileDeleting` reads a user's jobs to decide whether a push is
+ * landing on an account mid-purge, and an uncapped table would let a client
+ * bury the one job that says so under any number of harmless `prepared` ones.
+ */
+export const DELETION_JOBS_PER_USER = 20;
+
 export const prepare = mutation({
     args: {},
     handler: async (ctx) => {
         if (!env.REVENUECAT_SECRET_KEY) {
             throw new ConvexError("Account deletion needs REVENUECAT_SECRET_KEY before it can erase billing");
+        }
+        const userId = await requireUserId(ctx);
+        const open = await ctx.db
+            .query("accountDeletionJobs")
+            .withIndex("by_userId", (q) => q.eq("userId", userId))
+            .take(DELETION_JOBS_PER_USER);
+        if (open.length >= DELETION_JOBS_PER_USER) {
+            throw new ConvexError("This account already has too many open deletion requests");
         }
         const receiptChallenge = randomSecret();
         const resumeSecret = randomSecret();
@@ -110,7 +129,7 @@ export const prepare = mutation({
             phase: "prepared",
             provider: null,
             secretHash: await sha256Hex(resumeSecret),
-            userId: await requireUserId(ctx),
+            userId,
         });
         return { receiptChallenge, resumeSecret };
     },
