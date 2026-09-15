@@ -188,10 +188,8 @@ export default defineConfig({
                 //
                 // Both stay on in `src/`, where an unexplained cast is evidence
                 // of something.
-                // Code that runs on node rather than in the app: the suites, the
-                // fixtures they share, the jest setup stubs, and the build
-                // scripts. The counts below are what each rule reported over the
-                // whole tree with every carve-out removed.
+                // The counts below are what each rule reported over the whole
+                // tree with every carve-out removed.
                 files: NODE_SIDE_FILES,
                 rules: {
                     // anti-slop's evidence rules, 248 between them. A test
