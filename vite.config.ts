@@ -176,8 +176,8 @@ export default defineConfig({
                 // way to isolate a native module, so every one of those is a
                 // suppression, not a fix — the rule would live in the files
                 // instead of here, which is the same exception with more noise.
-                // What was genuinely shared setup has already left: 22 stubs now
-                // sit in `apps/native/jest/*-stub.js` (see `setupFiles`).
+                // What was genuinely shared setup has already left: it sits in
+                // `apps/native/jest/*-stub.js` now (see `setupFiles`).
                 //
                 // `require-safety-comment-for-type-assertion` reported 464 times,
                 // and the honest reason is the same sentence at nearly all of
@@ -203,7 +203,7 @@ export default defineConfig({
                     // driver bridge 49 suites each declared is now one commented
                     // assertion in `@/db/test-database`. `no-module-mocking` is
                     // here because jest-expo has no other way to isolate a native
-                    // module; the 22 mocks that were shared setup rather than a
+                    // module; the mocks that were shared setup rather than a
                     // decision have moved to `setupFiles`.
                     "anti-slop/no-chained-type-assertions": "off",
                     "anti-slop/no-known-value-widening": "off",
