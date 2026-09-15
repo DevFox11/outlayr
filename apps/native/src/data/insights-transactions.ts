@@ -6,6 +6,7 @@ import { transactions } from "@/db/schema";
 
 import { useCategoryMeta } from "./categories";
 import { useLiveQuery } from "./live-query";
+import { useDecoratedRows } from "./transactions";
 import type { TransactionWithCategory } from "./transactions";
 
 export interface WindowTransactionsQuery {
@@ -76,18 +77,5 @@ export function useWindowTransactions(db: Database, query: WindowTransactionsQue
             .orderBy(desc(transactions.date));
     }, [enabled, startMs, endMs, nowMs, income, contributingKey]);
 
-    return useMemo(
-        () =>
-            data.map((row) => {
-                const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
-                return {
-                    ...row,
-                    categoryColor: meta?.color ?? null,
-                    categoryEmoji: meta?.emoji ?? null,
-                    categoryIcon: meta?.icon ?? null,
-                    categoryName: meta?.name ?? null,
-                };
-            }),
-        [data, categoryMeta]
-    );
+    return useDecoratedRows(db, data);
 }

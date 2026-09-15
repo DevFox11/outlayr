@@ -14,7 +14,6 @@ import type { NetWorthSeriesPoint } from "@/domain/net-worth-series";
 import type { RateTable } from "@/domain/valuation";
 
 import type { Account } from "./accounts-core";
-import { useCategoryMeta } from "./categories";
 import {
     accountCellQuery,
     accountsCellQuery,
@@ -23,6 +22,7 @@ import {
     toCurrencyCell,
 } from "./cell-query";
 import { useLiveQuery } from "./live-query";
+import { useDecoratedRows } from "./transactions";
 import type { TransactionWithCategory } from "./transactions";
 import { accountTransactionsQuery } from "./transactions-core";
 import {
@@ -209,21 +209,7 @@ export function useNetWorthSeries(db: Database): NetWorthSeriesPoint[] {
  */
 export function useAccountTransactions(db: Database, accountId: string): TransactionWithCategory[] {
     const data = useLiveQuery(transactions, () => accountTransactionsQuery(db, accountId), [accountId]);
-    const categoryMeta = useCategoryMeta(db);
-    return useMemo(
-        () =>
-            data.map((row) => {
-                const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
-                return {
-                    ...row,
-                    categoryColor: meta?.color ?? null,
-                    categoryEmoji: meta?.emoji ?? null,
-                    categoryIcon: meta?.icon ?? null,
-                    categoryName: meta?.name ?? null,
-                };
-            }),
-        [data, categoryMeta]
-    );
+    return useDecoratedRows(db, data);
 }
 
 /**

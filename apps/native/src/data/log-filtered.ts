@@ -10,13 +10,9 @@ import { anchorDayOf, nextDate } from "@/domain/recurrence";
 
 import { useCategoryMeta } from "./categories";
 import { useLiveQuery } from "./live-query";
+import { useDecoratedRows } from "./transactions";
 import type { TransactionWithCategory } from "./transactions";
 import { LOG_COLUMNS } from "./transactions-core";
-
-type UndecoratedRow = Omit<
-    TransactionWithCategory,
-    "categoryName" | "categoryColor" | "categoryIcon" | "categoryEmoji"
->;
 
 export interface LogFilterScope {
     /** Null until a `category` filter resolves one. */
@@ -86,29 +82,6 @@ function filterPredicate(scope: LogFilterScope, now: Date, categoryIds: string[]
 }
 
 /**
- * Display fields come from {@link useCategoryMeta} rather than a join: a join
- * would leave every row showing a renamed category's old name and colour until
- * some *transaction* was written.
- */
-function useDecorated(db: Database, rows: UndecoratedRow[]): TransactionWithCategory[] {
-    const meta = useCategoryMeta(db);
-    return useMemo(
-        () =>
-            rows.map((row) => {
-                const found = row.categoryId ? meta.get(row.categoryId) : undefined;
-                return {
-                    ...row,
-                    categoryColor: found?.color ?? null,
-                    categoryEmoji: found?.emoji ?? null,
-                    categoryIcon: found?.icon ?? null,
-                    categoryName: found?.name ?? null,
-                };
-            }),
-        [rows, meta]
-    );
-}
-
-/**
  * `all` and `upcoming` return empty — the screen serves those from the paged
  * window and from {@link useUpcomingTransactions}.
  */
@@ -141,7 +114,7 @@ export function useFilteredTransactions(db: Database, nowMs: number, scope: LogF
         ]
     );
 
-    return useDecorated(db, rows);
+    return useDecoratedRows(db, rows);
 }
 
 export interface UpcomingTransactions {
@@ -181,7 +154,7 @@ export function useUpcomingTransactions(db: Database, nowMs: number, limited: bo
         [nowMs]
     );
 
-    const decorated = useDecorated(db, rows);
+    const decorated = useDecoratedRows(db, rows);
 
     // `nowMs` rather than `now`: a fresh Date is a fresh identity every render, so
     // depending on it would recompute the sort on each one.

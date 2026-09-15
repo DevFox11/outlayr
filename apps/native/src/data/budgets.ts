@@ -25,6 +25,7 @@ import type { ExpenseContribution } from "./budget-spent";
 import { budgetsRepo } from "./budgets-core";
 import { useCategoryMeta } from "./categories";
 import { useLiveQuery } from "./live-query";
+import { useDecoratedRows } from "./transactions";
 import type { TransactionWithCategory } from "./transactions";
 import { useValuation } from "./use-valuation";
 
@@ -552,20 +553,7 @@ export function useBudgetContributions(
         [contributingKey, startMs, endMs]
     );
 
-    return useMemo(
-        () =>
-            data.map((row) => {
-                const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
-                return {
-                    ...row,
-                    categoryColor: meta?.color ?? null,
-                    categoryEmoji: meta?.emoji ?? null,
-                    categoryIcon: meta?.icon ?? null,
-                    categoryName: meta?.name ?? null,
-                };
-            }),
-        [data, categoryMeta]
-    );
+    return useDecoratedRows(db, data);
 }
 
 export interface UnbudgetedScope {

@@ -6,6 +6,7 @@ import { transactions } from "@/db/schema";
 import { useCategoryMeta } from "./categories";
 import { useLiveQuery } from "./live-query";
 import { searchedTransactionsQuery } from "./log-search-core";
+import { useDecoratedRows } from "./transactions";
 import type { TransactionWithCategory } from "./transactions";
 import type { Transaction } from "./transactions-core";
 
@@ -43,18 +44,5 @@ export function useSearchedTransactions(db: Database, query: string, nowMs: numb
         [trimmed, categoryIds.join(","), nowMs]
     );
 
-    return useMemo(
-        () =>
-            rows.map((row) => {
-                const found = row.categoryId ? meta.get(row.categoryId) : undefined;
-                return {
-                    ...row,
-                    categoryColor: found?.color ?? null,
-                    categoryEmoji: found?.emoji ?? null,
-                    categoryIcon: found?.icon ?? null,
-                    categoryName: found?.name ?? null,
-                };
-            }),
-        [rows, meta]
-    );
+    return useDecoratedRows(db, rows);
 }
