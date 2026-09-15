@@ -3,12 +3,26 @@ import { eq, getTableColumns } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { accounts, budgets, categories, mainBudget, outbox, savingsGoals, transactions } from "@/db/schema";
-import { migratedSqlite, testDatabase } from "@/db/test-database";
+import { migratedSqlite, testDatabase, withAsyncTransactions } from "@/db/test-database";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { applyPulledRows, drainOutbox, incomingWinsLocally, pullAndApply, runSync, specFor } from "./sync-engine-core";
 import type { PulledRow, PushFn, WireRow } from "./sync-engine-core";
 import { getSyncCursor, outboxPendingCount, SYNCED_TABLES, setSyncEnabled } from "./sync-outbox-core";
+
+/**
+ * `withTransaction` runs its task BARE when the client has no async transaction
+ * API, which every other test here relies on. This one gives the apply a real
+ * transaction, because the whole decision now runs inside it — the reads, the
+ * winner contest, the writes and the outbox clear — and that is a far longer
+ * transaction than it used to hold.
+ */
+function makeTransactionalDb(): Database {
+    const sqlite = migratedSqlite();
+    sqlite.exec("PRAGMA foreign_keys = ON");
+    withAsyncTransactions(sqlite);
+    return testDatabase(sqlite);
+}
 
 function makeDb(): Database {
     const sqlite = migratedSqlite();
@@ -416,6 +430,31 @@ describe("applyPulledRows", () => {
         expect(row.amount).toBe(7.5);
         expect(row.updatedAt.getTime()).toBe(5000);
         await expect(getSyncCursor(db)).resolves.toBe(1);
+    });
+
+    it("commits the whole apply inside one real transaction", async () => {
+        const transactional = makeTransactionalDb();
+        await setMeta(transactional, META_KEYS.syncEnabled, "true");
+        await transactional.insert(transactions).values({
+            amount: 1,
+            date: new Date(1),
+            day: new Date(1),
+            id: "remote",
+            income: false,
+            month: new Date(1),
+            updatedAt: new Date(1000),
+        });
+
+        const result = await applyPulledRows(transactional, {
+            cursor: 9,
+            rows: [txRow("remote", 1, 5000, { fields: { amount: 7.5 } })],
+        });
+
+        const [row] = await transactional.select().from(transactions);
+        expect(result.applied).toBe(1);
+        expect(row.amount).toBe(7.5);
+        await expect(getSyncCursor(transactional)).resolves.toBe(9);
+        await expect(outboxPendingCount(transactional)).resolves.toBe(0);
     });
 
     it("round-trips dates and nulls", async () => {

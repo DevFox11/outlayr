@@ -557,57 +557,67 @@ async function applyInTransaction(
     page: { rows: readonly PulledRow[]; cursor: number },
     now: Date
 ): Promise<ApplyResult> {
-    const outboxEntries = await db.select({ localId: outbox.localId, tableName: outbox.tableName }).from(outbox);
-    const pending = new Set(outboxEntries.map((entry) => `${entry.tableName}\0${entry.localId}`));
-
-    const byTable = new Map<SyncedTable, PulledRow[]>();
-    for (const row of page.rows) {
-        if (!isReplicated(row)) {
-            continue;
-        }
-        const bucket = byTable.get(row.table) ?? [];
-        bucket.push(row);
-        byTable.set(row.table, bucket);
-    }
-
-    const existing = new Map<SyncedTable, Map<string, Row>>(
-        await Promise.all(
-            [...byTable].map(
-                async ([table, rows]) =>
-                    [
-                        table,
-                        await rowsById(
-                            db,
-                            table,
-                            rows.map((row) => row.localId)
-                        ),
-                    ] as const
-            )
-        )
-    );
-
-    const winners: PulledRow[] = [];
-    for (const row of page.rows) {
-        if (!isReplicated(row)) {
-            continue;
-        }
-        const local = existing.get(row.table)?.get(row.localId);
-        const localVersion =
-            local === undefined
-                ? null
-                : {
-                      deletedAt: row.table === "appMeta" ? null : toEpoch(local.deletedAt),
-                      updatedAt: row.table === "appMeta" ? null : (toEpoch(local.updatedAt) ?? 0),
-                  };
-        const isPending = pending.has(`${row.table}\0${row.localId}`);
-        if (incomingWinsLocally(row, localVersion, isPending)) {
-            winners.push(row);
-        }
-    }
-
     const touched = new Set<SyncedTable>();
+    let applied = 0;
 
+    // The snapshot, the reads it is compared against and the decision all happen
+    // INSIDE the transaction. They used to run before it opened, which left a
+    // window: a local write landing in it was judged against a stale `pending`
+    // set — so the incoming row won a contest it should have lost — and was then
+    // swept up by the clear below, which deletes by `(table, localId)`. The edit
+    // was reverted on screen and never reached the server.
+    //
+    // `settings-core` and `budgets-core` write with a bare `db.insert`, so there
+    // was nothing on their side holding that window shut either.
     await withTransaction(db, async () => {
+        const outboxEntries = await db.select({ localId: outbox.localId, tableName: outbox.tableName }).from(outbox);
+        const pending = new Set(outboxEntries.map((entry) => `${entry.tableName}\0${entry.localId}`));
+
+        const byTable = new Map<SyncedTable, PulledRow[]>();
+        for (const row of page.rows) {
+            if (!isReplicated(row)) {
+                continue;
+            }
+            const bucket = byTable.get(row.table) ?? [];
+            bucket.push(row);
+            byTable.set(row.table, bucket);
+        }
+
+        const existing = new Map<SyncedTable, Map<string, Row>>(
+            await Promise.all(
+                [...byTable].map(
+                    async ([table, rows]) =>
+                        [
+                            table,
+                            await rowsById(
+                                db,
+                                table,
+                                rows.map((row) => row.localId)
+                            ),
+                        ] as const
+                )
+            )
+        );
+
+        const winners: PulledRow[] = [];
+        for (const row of page.rows) {
+            if (!isReplicated(row)) {
+                continue;
+            }
+            const local = existing.get(row.table)?.get(row.localId);
+            const localVersion =
+                local === undefined
+                    ? null
+                    : {
+                          deletedAt: row.table === "appMeta" ? null : toEpoch(local.deletedAt),
+                          updatedAt: row.table === "appMeta" ? null : (toEpoch(local.updatedAt) ?? 0),
+                      };
+            const isPending = pending.has(`${row.table}\0${row.localId}`);
+            if (incomingWinsLocally(row, localVersion, isPending)) {
+                winners.push(row);
+            }
+        }
+
         const replicatedVerbatim: PulledRow[] = [];
         /* oxlint-disable no-await-in-loop -- R3 resolution inside writeRow reads the budgets an earlier winner left live, so the winners must be written one at a time */
         for (const row of winners) {
@@ -643,10 +653,11 @@ async function applyInTransaction(
             touched.add("mainBudget");
         }
 
+        applied = winners.length;
         await setSyncCursor(db, page.cursor);
     });
 
-    return { applied: winners.length, tables: [...touched] };
+    return { applied, tables: [...touched] };
 }
 
 /**
