@@ -23,4 +23,11 @@ describe("cron registration", () => {
         expect(job?.schedule).toStrictEqual({ hours: 24, type: "interval" });
         expect(job?.name).toBe("exchangeRates:pruneStale");
     });
+
+    test("registers the deletion-job sweep on a 24-hour interval", () => {
+        const job = crons.crons["drop expired deletion jobs"];
+        expect(job).toBeDefined();
+        expect(job?.schedule).toStrictEqual({ hours: 24, type: "interval" });
+        expect(job?.name).toBe("accountDeletion:cleanupExpired");
+    });
 });
