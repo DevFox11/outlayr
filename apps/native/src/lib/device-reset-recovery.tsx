@@ -23,10 +23,14 @@ export function DeviceResetRecovery({ children }: { children: ReactNode }) {
             }
             const database = db;
             const result = await createDeviceResetGate({
-                closeDatabase: async () => {
-                    retry();
-                    await closeDatabase(database);
-                },
+                // Close only. `retry()` belongs after the whole sweep, not inside
+                // it: it publishes `status: "opening"`, which un-gates this
+                // component in `_layout` and starts a reopen that races the
+                // `deleteDatabaseAsync` one line below `closeDatabase` — either
+                // the delete loses to a locked file, or the reopen re-seeds a
+                // ledger while the remaining stores are still being erased. The
+                // sibling path in `settings/account` closes the same way.
+                closeDatabase: async () => await closeDatabase(database),
                 completeCloudDeletion: async () => {
                     await resumePersistedCloudDeletion({ clearOnComplete: false, required: true });
                 },
@@ -34,6 +38,9 @@ export function DeviceResetRecovery({ children }: { children: ReactNode }) {
             if (result.failures.length > 0) {
                 throw new Error(`Device cleanup incomplete: ${result.failures.join(", ")}`);
             }
+            // The database file is gone, so the provider is holding a handle to
+            // nothing until this reopens it.
+            retry();
             setReady(true);
         } catch (cause) {
             setError(cause instanceof Error ? cause : new Error(String(cause)));

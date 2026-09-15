@@ -10,6 +10,7 @@ import { DeviceResetRecovery } from "./device-reset-recovery";
 const mockRecover = jest.fn<typeof import("@/lib/device-data-reset").recoverDeviceReset>();
 const mockResumePersistedCloudDeletion = jest.fn<typeof import("@/lib/deletion-resume").resumePersistedCloudDeletion>();
 let mockCompleteCloudDeletion: (() => Promise<void>) | undefined;
+let mockCloseDatabase: (() => Promise<void>) | undefined;
 const mockDatabase = mockUnusedDatabase();
 const mockRetry = jest.fn();
 jest.mock("@/contexts/local-data-context", () => ({
@@ -21,8 +22,15 @@ jest.mock("./deletion-resume", () => ({
         mockResumePersistedCloudDeletion(...args),
 }));
 jest.mock("./device-data-reset", () => ({
-    createDeviceResetGate: ({ completeCloudDeletion }: { completeCloudDeletion: () => Promise<void> }) => {
+    createDeviceResetGate: ({
+        closeDatabase,
+        completeCloudDeletion,
+    }: {
+        closeDatabase: () => Promise<void>;
+        completeCloudDeletion: () => Promise<void>;
+    }) => {
         mockCompleteCloudDeletion = completeCloudDeletion;
+        mockCloseDatabase = closeDatabase;
         return { recover: mockRecover };
     },
 }));
@@ -33,6 +41,7 @@ describe("deviceResetRecovery", () => {
         mockResumePersistedCloudDeletion.mockReset();
         mockRetry.mockReset();
         mockCompleteCloudDeletion = undefined;
+        mockCloseDatabase = undefined;
     });
 
     it("invokes persisted-marker recovery before rendering the root child", async () => {
@@ -72,6 +81,45 @@ describe("deviceResetRecovery", () => {
         await waitFor(() => expect(getByText("ledger")).toBeTruthy());
         expect(mockRecover).toHaveBeenCalledTimes(2);
         expect(mockResumePersistedCloudDeletion).toHaveBeenCalledTimes(2);
+    });
+
+    it("reopens the database only once every store is clear, never mid-sweep", async () => {
+        mockResumePersistedCloudDeletion.mockResolvedValue(true);
+        let retriesDuringSweep = -1;
+        mockRecover.mockImplementation(async () => {
+            await mockCompleteCloudDeletion?.();
+            // Where `clearSqlite` calls it: the `deleteDatabaseAsync` that follows
+            // races any reopen started here, and the stores after it are still
+            // unerased.
+            await mockCloseDatabase?.();
+            retriesDuringSweep = mockRetry.mock.calls.length;
+            return { failures: [] };
+        });
+        const { getByText } = await render(
+            <DeviceResetRecovery>
+                <Text>ledger</Text>
+            </DeviceResetRecovery>
+        );
+
+        await waitFor(() => expect(getByText("ledger")).toBeTruthy());
+        expect(retriesDuringSweep).toBe(0);
+        expect(mockRetry).toHaveBeenCalledTimes(1);
+    });
+
+    it("leaves the database closed when a store failed, rather than reopening onto a half-erased device", async () => {
+        mockResumePersistedCloudDeletion.mockResolvedValue(true);
+        mockRecover.mockImplementation(async () => {
+            await mockCompleteCloudDeletion?.();
+            return { failures: ["photos"] };
+        });
+        const { getByText } = await render(
+            <DeviceResetRecovery>
+                <Text>ledger</Text>
+            </DeviceResetRecovery>
+        );
+
+        await waitFor(() => expect(getByText("Device cleanup incomplete: photos")).toBeTruthy());
+        expect(mockRetry).not.toHaveBeenCalled();
     });
 
     it("keeps the root opaque when the cloud marker has no usable resume material", async () => {
