@@ -81,10 +81,17 @@ export function Inspector({
   const replaceScreenshot = (key: "screenshot" | "screenshotSecondary") => (next: string) => {
     const current = key === "screenshot" ? slide.screenshot : slide.screenshotSecondary;
     if (current?.includes("{locale}") && !next.includes("{locale}")) {
+      // The X button clears to "", which also fails the `{locale}` test and so
+      // lands here. Both actions do lose the per-language paths and both deserve
+      // the stop, but only one of them is a replace.
+      const consequence =
+        next === ""
+          ? `Clearing it removes the screenshot for every language, not just ${locale.toUpperCase()}.`
+          : `Replacing it while editing ${locale.toUpperCase()} sets the same image for every language, ` +
+            `and the per-language paths are lost.`;
       const confirmed = window.confirm(
-        `This slide uses one screenshot per language (${current}).\n\n` +
-          `Replacing it while editing ${locale.toUpperCase()} sets the same image for every language, ` +
-          `and the per-language paths are lost.\n\nReplace anyway?`,
+        `This slide uses one screenshot per language (${current}).\n\n${consequence}\n\n` +
+          `${next === "" ? "Clear" : "Replace"} anyway?`,
       );
       if (!confirmed) {
         return;
