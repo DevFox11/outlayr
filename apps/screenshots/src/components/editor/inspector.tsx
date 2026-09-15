@@ -137,13 +137,15 @@ export function Inspector({
           <Select
             value={layoutValue}
             onValueChange={(layout) => {
-              const next = layout as SlideLayout;
-              onChange({
-                layout: next,
-                transforms: undefined,
-                screenshotSecondary:
-                  next === "two-devices" ? slide.screenshotSecondary || slide.screenshot : undefined,
-              });
+              // `screenshotSecondary` is deliberately untouched. Only a
+              // `two-devices` layout has a rect for the back device, so the path
+              // is inert on every other one — and clearing it threw away a
+              // per-locale `{locale}` template that the confirm above exists to
+              // protect, through a door that confirm never watches. Pre-filling it
+              // with the primary on the way back was the other half: it wrote a
+              // silent copy instead of letting the export warn that the back
+              // device is reusing the front screenshot.
+              onChange({ layout: layout as SlideLayout, transforms: undefined });
             }}
           >
             <SelectTrigger>
