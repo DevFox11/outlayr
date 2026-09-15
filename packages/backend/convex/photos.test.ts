@@ -379,15 +379,28 @@ describe("releaseUnreferenced", () => {
         const stranger = await seedProUser(t);
         const key = photoKeyFor(owner.userId, PHOTO);
         await push(t, stranger, [transactionRow("t1", { imageKey: key })]);
+        // Bound to Convex storage so the release reports an outcome rather than
+        // failing on R2 credentials this deployment has not been given. A bare
+        // `rejects.toThrow()` here could not tell those two apart — nor either of
+        // them from the ownership refusal above.
+        const storageId = await t.run(async (ctx) => await ctx.storage.store(new Blob(["bytes"])));
+        await authenticatedAs(t, owner).action(api.photos.confirmUpload, { key, storageId });
 
-        // Reaching R2 is the proof: the reference check answered "unreferenced",
-        // which is the branch under test. The delete itself needs credentials this
-        // deployment has not been given.
+        const released = await authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, { key });
+
+        expect(released).toStrictEqual({ released: true });
+    });
+
+    test("refuses a key the caller does not own, and says so", async () => {
+        const t = harness();
+        const owner = await seedProUser(t);
+        const stranger = await seedProUser(t);
+
         await expect(
-            authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, {
-                key,
+            authenticatedAs(t, stranger).mutation(api.photos.releaseUnreferenced, {
+                key: photoKeyFor(owner.userId, PHOTO),
             })
-        ).rejects.toThrow();
+        ).rejects.toThrow("does not belong to this account");
     });
 });
 
