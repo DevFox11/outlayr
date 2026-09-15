@@ -19,7 +19,7 @@ function serializeCodes(pickableCodes) {
 
 function serializeDecimals(pickableCodes, decimalsByCode) {
     const lines = pickableCodes.map((code) => `  ${code}: ${decimalsByCode[code]},`).join("\n");
-    return `export const CURRENCY_DECIMALS: Record<PickableCode, 0 | 2 | 3> = {\n${lines}\n};`;
+    return `export const CURRENCY_DECIMALS: Record<PickableCode, 0 | 2 | 3 | 6> = {\n${lines}\n};`;
 }
 
 function serializeMeta(pickableCodes, metaByCode) {

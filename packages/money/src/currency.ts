@@ -23,6 +23,6 @@ export function currencyDisplayFor(code: string): {
     return isPickableCurrency(code) ? CURRENCY_META[code] : { name: code, symbol: code };
 }
 
-export function decimalsFor(code: string): 0 | 2 | 3 {
+export function decimalsFor(code: string): 0 | 2 | 3 | 6 {
     return isPickableCurrency(code) ? CURRENCY_DECIMALS[code] : DEFAULT_MONEY_DECIMALS;
 }

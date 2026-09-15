@@ -168,6 +168,29 @@ describe("currency fractional digits", () => {
         expect(CURRENCY_DECIMALS.BHD).toBe(3);
     });
 
+    /**
+     * CLDR carries no fraction entry for the metals, so they took its DEFAULT of
+     * 2 — quantizing gold to 0.01 troy oz, a ~$35 step at today's prices. The
+     * conversion vectors only ever covered currencies whose unit is worth about a
+     * dollar, so the coarse-exponent failure never appeared.
+     */
+    it("assigns six fractional digits to the metals, whose unit is worth thousands", () => {
+        expect(CURRENCY_DECIMALS.XAU).toBe(6);
+        expect(CURRENCY_DECIMALS.XAG).toBe(6);
+        expect(CURRENCY_DECIMALS.XPT).toBe(6);
+        expect(CURRENCY_DECIMALS.XPD).toBe(6);
+    });
+
+    it("prices a small holding of gold instead of rounding it away", () => {
+        // 0.0005 XAU per USD is $2,000/oz — the rate the backend's own feed test uses.
+        expect(convertFromUsd(10, 0.0005, "XAU")).toBe(0.005);
+
+        // And a conversion has to survive the round trip at $3,500/oz.
+        const perUsd = 1 / 3500;
+        const held = convertFromUsd(100, perUsd, "XAU");
+        expect(Number((held / perUsd).toFixed(2))).toBe(100);
+    });
+
     it("covers every pickable currency code exactly once", () => {
         for (const code of PICKABLE_CURRENCY_CODES) {
             expect(CURRENCY_DECIMALS[code]).toBeDefined();

@@ -3,10 +3,10 @@
     "IMP": { "name": "Isle of Man Pound", "symbol": "£" },
     "JEP": { "name": "Jersey Pound", "symbol": "£" },
     "XDR": { "name": "Special Drawing Rights", "symbol": "SDR" },
-    "XAU": { "name": "Gold (troy oz)", "symbol": "XAU" },
-    "XAG": { "name": "Silver (troy oz)", "symbol": "XAG" },
-    "XPT": { "name": "Platinum (troy oz)", "symbol": "XPT" },
-    "XPD": { "name": "Palladium (troy oz)", "symbol": "XPD" },
+    "XAU": { "name": "Gold (troy oz)", "symbol": "XAU", "decimals": 6 },
+    "XAG": { "name": "Silver (troy oz)", "symbol": "XAG", "decimals": 6 },
+    "XPT": { "name": "Platinum (troy oz)", "symbol": "XPT", "decimals": 6 },
+    "XPD": { "name": "Palladium (troy oz)", "symbol": "XPD", "decimals": 6 },
     "VES": { "symbol": "Bs." },
     "ZWG": { "name": "Zimbabwe Gold" }
 }
