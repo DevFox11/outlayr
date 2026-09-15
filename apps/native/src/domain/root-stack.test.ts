@@ -30,7 +30,7 @@ import type {
 
 import type { RootStackGroup } from "@/domain/auth-gate";
 
-import { CATEGORY_SHEETS, ROOT_STACK_SCREEN_NAMES, SETTINGS_SCREENS } from "./root-stack";
+import { MODAL_SCREENS, ROOT_STACK_SCREEN_NAMES, SHEET_SCREENS, TITLED_SCREENS } from "./root-stack";
 
 const GROUPS: readonly RootStackGroup[] = ["onboarding", "sign-in", "adopt", "ledger"];
 
@@ -179,8 +179,9 @@ interface RenderedScreen {
 type NamedList = readonly { name: string }[];
 
 const DYNAMIC_SCREEN_LISTS: Record<string, NamedList> = {
-    CATEGORY_SHEETS,
-    SETTINGS_SCREENS,
+    MODAL_SCREENS,
+    SHEET_SCREENS,
+    TITLED_SCREENS,
 };
 
 type JsxTag = JsxElement | JsxSelfClosingElement;

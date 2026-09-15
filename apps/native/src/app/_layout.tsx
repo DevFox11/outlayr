@@ -26,7 +26,7 @@ import { useAccountDeferred, useOnboardingSettled } from "@/data/onboarding";
 import { useSeededClockPreference } from "@/data/settings";
 import { DeferredDeleteProvider } from "@/data/use-deferred-delete";
 import { rootStackGroup } from "@/domain/auth-gate";
-import { CATEGORY_SHEETS, SETTINGS_SCREENS } from "@/domain/root-stack";
+import { MODAL_SCREENS, SHEET_SCREENS, TITLED_SCREENS } from "@/domain/root-stack";
 import { localShellReady, routeSettled } from "@/domain/splash-gate";
 import { LanguageProvider, useTranslation } from "@/i18n/context";
 import { translateNow } from "@/i18n/runtime";
@@ -34,7 +34,7 @@ import { AuthSessionProvider, useAuthSession } from "@/lib/auth-session";
 import { cloudRuntime } from "@/lib/cloud-runtime";
 import { DeviceResetRecovery } from "@/lib/device-reset-recovery";
 import { LedgerAdoptionProvider, useLedgerAdoption } from "@/lib/ledger-adoption";
-import { ACCOUNT_DETENT, identityPickerDetent, TRANSFER_DETENT } from "@/lib/sheet-detents";
+import { identityPickerDetent, TRANSFER_DETENT } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
 import { useAccent } from "@/theme/use-accent";
 import { useApplyThemePreference } from "@/theme/use-theme-preference";
@@ -311,53 +311,17 @@ function RootStack() {
                     <Stack.Header transparent />
                 </Stack.Screen>
 
-                {SETTINGS_SCREENS.map((screen) => (
+                {TITLED_SCREENS.map((screen) => (
                     <Stack.Screen key={screen.name} name={screen.name}>
                         <Stack.Header transparent />
                         <Stack.Screen.BackButton displayMode="minimal" />
                         <Stack.Screen.Title>{t(screen.titleKey)}</Stack.Screen.Title>
                     </Stack.Screen>
                 ))}
-                <Stack.Screen name="accounts/index">
-                    <Stack.Header transparent />
-                    <Stack.Screen.BackButton displayMode="minimal" />
-                    <Stack.Screen.Title>{t("accounts.title")}</Stack.Screen.Title>
-                </Stack.Screen>
                 <Stack.Screen name="accounts/reorder" />
                 <Stack.Screen name="accounts/[accountId]/index" />
-                <Stack.Screen
-                    name="accounts/create"
-                    options={{
-                        presentation: "formSheet",
-                        sheetAllowedDetents: [ACCOUNT_DETENT, 1],
-                        sheetGrabberVisible: true,
-                        title: t("accounts.nav.new"),
-                    }}
-                >
-                    <Stack.Header transparent />
-                    <Stack.Screen.BackButton displayMode="minimal" />
-                    <Stack.Screen.Title>{t("accounts.nav.new")}</Stack.Screen.Title>
-                </Stack.Screen>
-                <Stack.Screen
-                    name="accounts/[accountId]/edit"
-                    options={{
-                        presentation: "formSheet",
-                        sheetAllowedDetents: [ACCOUNT_DETENT, 1],
-                        sheetGrabberVisible: true,
-                        title: t("accounts.nav.edit"),
-                    }}
-                >
-                    <Stack.Header transparent />
-                    <Stack.Screen.BackButton displayMode="minimal" />
-                    <Stack.Screen.Title>{t("accounts.nav.edit")}</Stack.Screen.Title>
-                </Stack.Screen>
-                <Stack.Screen name="settings/categories/index">
-                    <Stack.Header transparent />
-                    <Stack.Screen.BackButton displayMode="minimal" />
-                    <Stack.Screen.Title>{t("nav.categories")}</Stack.Screen.Title>
-                </Stack.Screen>
                 <Stack.Screen name="settings/categories/reorder" />
-                {CATEGORY_SHEETS.map((sheet) => (
+                {SHEET_SCREENS.map((sheet) => (
                     <Stack.Screen
                         key={sheet.name}
                         name={sheet.name}
@@ -396,23 +360,15 @@ function RootStack() {
                     <Stack.Screen.BackButton displayMode="minimal" />
                     <Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title>
                 </Stack.Screen>
-                <Stack.Screen name="transactions/transfers/[id]" options={{ presentation: "modal" }}>
-                    <Stack.Header transparent />
-                    <Stack.Screen.BackButton displayMode="minimal" />
-                    <Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title>
-                </Stack.Screen>
-                <Stack.Screen name="transactions/create" options={{ presentation: "modal" }}>
-                    <Stack.Header transparent />
-                    <Stack.Screen.BackButton displayMode="minimal" />
-                    <Stack.Screen.Title>{t("nav.newTransaction")}</Stack.Screen.Title>
-                </Stack.Screen>
+                {MODAL_SCREENS.map((modal) => (
+                    <Stack.Screen key={modal.name} name={modal.name} options={{ presentation: "modal" }}>
+                        <Stack.Header transparent />
+                        <Stack.Screen.BackButton displayMode="minimal" />
+                        <Stack.Screen.Title>{t(modal.titleKey)}</Stack.Screen.Title>
+                    </Stack.Screen>
+                ))}
                 <Stack.Screen name="transactions/voice" options={{ headerShown: false, presentation: "modal" }} />
                 <Stack.Screen name="transactions/scan" options={{ headerShown: false, presentation: "modal" }} />
-                <Stack.Screen name="transactions/[id]" options={{ presentation: "modal" }}>
-                    <Stack.Header transparent />
-                    <Stack.Screen.BackButton displayMode="minimal" />
-                    <Stack.Screen.Title>{t("nav.editTransaction")}</Stack.Screen.Title>
-                </Stack.Screen>
                 <Stack.Screen
                     name="transactions/identity"
                     options={{

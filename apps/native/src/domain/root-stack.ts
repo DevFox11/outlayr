@@ -1,19 +1,21 @@
 import type { RootStackGroup } from "@/domain/auth-gate";
 import type { TranslationKey } from "@/i18n/catalog";
-import { CATEGORY_DETENT, SUBCATEGORY_DETENT } from "@/lib/sheet-detents";
+import { ACCOUNT_DETENT, CATEGORY_DETENT, SUBCATEGORY_DETENT } from "@/lib/sheet-detents";
 
 /**
- * Settings subscreens live outside `(tabs)` so pushing one drops the tab bar,
- * and on the root stack rather than a nested one so it keeps a back button.
- * `categories/index` is absent because it declares its own chrome.
+ * Pushed screens that carry a transparent header, a minimal back button and a
+ * title. They live outside `(tabs)` so pushing one drops the tab bar, and on
+ * the root stack rather than a nested one so they keep a back button.
  */
-export const SETTINGS_SCREENS: readonly {
+export const TITLED_SCREENS: readonly {
     name: string;
     titleKey: TranslationKey;
 }[] = [
+    { name: "accounts/index", titleKey: "accounts.title" },
     { name: "settings/about", titleKey: "nav.settings.about" },
     { name: "settings/account", titleKey: "nav.settings.account" },
     { name: "settings/app-icon", titleKey: "nav.settings.appIcon" },
+    { name: "settings/categories/index", titleKey: "nav.categories" },
     { name: "settings/currency", titleKey: "nav.settings.currency" },
     { name: "settings/deleted", titleKey: "settings.deleted.navTitle" },
     { name: "settings/erase", titleKey: "nav.settings.erase" },
@@ -27,11 +29,22 @@ export const SETTINGS_SCREENS: readonly {
     { name: "settings/wallet", titleKey: "nav.settings.wallet" },
 ];
 
-export const CATEGORY_SHEETS: readonly {
+/** Form sheets that open at their own detent with the same header chrome. */
+export const SHEET_SCREENS: readonly {
     name: string;
     titleKey: TranslationKey;
     detent: number;
 }[] = [
+    {
+        detent: ACCOUNT_DETENT,
+        name: "accounts/create",
+        titleKey: "accounts.nav.new",
+    },
+    {
+        detent: ACCOUNT_DETENT,
+        name: "accounts/[accountId]/edit",
+        titleKey: "accounts.nav.edit",
+    },
     {
         detent: CATEGORY_DETENT,
         name: "settings/categories/create",
@@ -54,28 +67,32 @@ export const CATEGORY_SHEETS: readonly {
     },
 ];
 
+/** Modals that carry the same header chrome as a pushed titled screen. */
+export const MODAL_SCREENS: readonly {
+    name: string;
+    titleKey: TranslationKey;
+}[] = [
+    { name: "transactions/create", titleKey: "nav.newTransaction" },
+    { name: "transactions/[id]", titleKey: "nav.editTransaction" },
+    { name: "transactions/transfers/[id]", titleKey: "transfers.title" },
+];
+
 export const ROOT_STACK_SCREEN_NAMES = {
     adopt: ["auth/adopt"],
     ledger: [
         "(tabs)",
         "search",
         "paywall",
-        ...SETTINGS_SCREENS.map((screen) => screen.name),
-        "accounts/index",
+        ...TITLED_SCREENS.map((screen) => screen.name),
+        ...SHEET_SCREENS.map((sheet) => sheet.name),
+        ...MODAL_SCREENS.map((modal) => modal.name),
         "accounts/reorder",
-        "accounts/create",
         "accounts/[accountId]/index",
-        "accounts/[accountId]/edit",
-        "settings/categories/index",
         "settings/categories/reorder",
-        ...CATEGORY_SHEETS.map((sheet) => sheet.name),
         "settings/category-symbol",
         "transactions/transfers/create",
-        "transactions/transfers/[id]",
-        "transactions/create",
         "transactions/voice",
         "transactions/scan",
-        "transactions/[id]",
         "transactions/identity",
     ],
     onboarding: ["onboarding/index", "onboarding/currency", "onboarding/grounding", "onboarding/rhythm"],
