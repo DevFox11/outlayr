@@ -4,7 +4,7 @@ import type { TestConvex } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { api, internal } from "./_generated/api";
-import { nextPruneStep } from "./exchangeRates";
+import { nextPruneStep, RATES_WINDOW_DAYS } from "./exchangeRates";
 import type { MarketRateType, RateSource } from "./lib/currencies";
 import schema from "./schema";
 
@@ -302,6 +302,16 @@ describe("pruneStale", () => {
         const pending = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
         expect(pending).toHaveLength(1);
         expect(pending[0]?.scheduledTime).toBeGreaterThan(Date.now());
+    });
+
+    test("pullRates floors a caller's instant so the window read stays bounded", async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
+        const t = convexTest(schema, modules);
+
+        const epoch = await t.query(api.exchangeRates.pullRates, { at: 0 });
+
+        expect(epoch.windowStart).toBe(daysAgoDate(3 * RATES_WINDOW_DAYS));
     });
 
     test("pullRates slices on the caller's instant, not the server's clock", async () => {

@@ -75,6 +75,7 @@ export function nextPruneStep(
  */
 export const RATES_WINDOW_DAYS = 90;
 const MS_PER_DAY = 86_400_000;
+const OLDEST_CALLER_INSTANT_MS = 2 * RATES_WINDOW_DAYS * MS_PER_DAY;
 
 /**
  * Single source of the rates-window boundary. `pullRates` serves exactly the
@@ -369,7 +370,7 @@ export const pullRates = query({
         // 12-hour cron, so a subscriber crossing UTC midnight would keep serving
         // yesterday's window for hours. Same reason `groundedSpend.monthlyTotal`
         // takes `at`.
-        const windowStart = ratesWindowStart(args.at);
+        const windowStart = ratesWindowStart(Math.max(args.at ?? Date.now(), Date.now() - OLDEST_CALLER_INSTANT_MS));
         const start = args.cursor ?? 0;
         const pagePairs = ANCHOR_PAIR_CATALOG.slice(start, start + PAIRS_PER_PAGE);
 
