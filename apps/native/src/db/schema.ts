@@ -106,6 +106,15 @@ export const transfers = sqliteTable(
 export const transactions = sqliteTable(
     "transactions",
     {
+        /**
+         * ⚠️ This `onDelete` is NOT in the live DDL. The column arrived by
+         * `ALTER TABLE ... ADD COLUMN` (migration 0015), and SQLite cannot carry an
+         * `ON DELETE` clause on an added column — the shipped schema reads
+         * `\`accountId\` text REFERENCES accounts(id)`, i.e. NO ACTION. Nothing
+         * hard-deletes an account (rows are tombstoned), so it is latent; but with
+         * `foreign_keys = ON`, which `client.ts` sets on a clean store, a hard
+         * delete would be REFUSED rather than nulling this column.
+         */
         accountId: text("accountId").references(() => accounts.id, {
             onDelete: "set null",
         }),
@@ -194,6 +203,13 @@ export const transactions = sqliteTable(
          * Set only on a transfer's fee. A lifecycle link, never an exclusion flag:
          * a fee is ordinary spending and every aggregate must keep counting it, so
          * nothing filters on this column.
+         */
+        /**
+         * ⚠️ Same as `accountId` above: added by `ALTER TABLE` (migration 0018), so
+         * the live DDL is a bare `REFERENCES transfers(id)` and this cascade does
+         * not exist in the database. Deleting a transfer does NOT delete its legs
+         * here — `transfersRepo` tombstones both sides itself, which is what
+         * actually keeps them together.
          */
         transferId: text("transferId").references(() => transfers.id, {
             onDelete: "cascade",
