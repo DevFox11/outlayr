@@ -15,6 +15,7 @@ import { ScopedVariables, useCSSVariable } from "uniwind";
 
 import { ImportSheet } from "@/components/import-sheet/import-sheet";
 import type { ImportSheetHandle } from "@/components/import-sheet/import-sheet";
+import { cn } from "@/components/tw";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccounts } from "@/data/accounts";
 import { useTranslation } from "@/i18n/context";
@@ -38,14 +39,10 @@ const CHIP_PADDING_Y = 8;
 
 type LabelLines = 1 | 2 | null;
 
+const LABEL_CLAMP = { 1: "line-clamp-1", 2: "line-clamp-2" } as const;
+
 function labelClassName(lines: LabelLines) {
-    if (lines === 1) {
-        return "line-clamp-1 max-w-[200px] text-base";
-    }
-    if (lines === 2) {
-        return "line-clamp-2 max-w-[200px] text-base";
-    }
-    return "max-w-[200px] text-base";
+    return cn(lines === null ? null : LABEL_CLAMP[lines], "max-w-[200px] text-base");
 }
 
 function chipLines(fontScale: number, lines: LabelLines) {

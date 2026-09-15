@@ -69,24 +69,12 @@ import { NetWorthCard } from "./components/net-worth-card";
 import { SpendingCalendar } from "./components/spending-calendar";
 import { MEASURE_KEY } from "./measure-label";
 
-// Keyed by the stored insights period setting, which is a plain number.
-const PERIOD_BY_VALUE = new Map<number, InsightsPeriod>([
-    [1, "week"],
-    [2, "month"],
-    [3, "year"],
-]);
-
-const PERIOD_OPTIONS: readonly { labelKey: TranslationKey; value: number }[] = [
-    { labelKey: "insights.period.week", value: 1 },
-    { labelKey: "insights.period.month", value: 2 },
-    { labelKey: "insights.period.year", value: 3 },
-];
-
-const PERIOD_LABEL_KEY = {
-    month: "insights.period.month",
-    week: "insights.period.week",
-    year: "insights.period.year",
-} satisfies Record<InsightsPeriod, TranslationKey>;
+/** `value` is the stored `insightsTimeFrame` setting, which is a plain number. */
+const PERIODS = [
+    { labelKey: "insights.period.week", period: "week", value: 1 },
+    { labelKey: "insights.period.month", period: "month", value: 2 },
+    { labelKey: "insights.period.year", period: "year", value: 3 },
+] as const satisfies readonly { labelKey: TranslationKey; period: InsightsPeriod; value: number }[];
 
 function heroMagnitudeFor(
     filteredEntry: CategoryBreakdownEntry | null,
@@ -279,7 +267,8 @@ export function Insights() {
     const netWorth = useNetWorthSeries(db);
 
     const incomeTracking = useSettingBool("incomeTracking");
-    const period = PERIOD_BY_VALUE.get(useSettingNumber("insightsTimeFrame")) ?? "week";
+    const storedPeriod = useSettingNumber("insightsTimeFrame");
+    const period = PERIODS.find((option) => option.value === storedPeriod)?.period ?? "week";
 
     // With income tracking off there is only one direction, so the measure is not
     // a choice.
@@ -441,10 +430,12 @@ export function Insights() {
         <>
             <Stack.Toolbar placement="right">
                 <Stack.Toolbar.Menu accessibilityLabel={t("insights.period.change")}>
-                    <Stack.Toolbar.Label>{t(PERIOD_LABEL_KEY[period])}</Stack.Toolbar.Label>
-                    {PERIOD_OPTIONS.map((option) => (
+                    <Stack.Toolbar.Label>
+                        {t(PERIODS.find((option) => option.period === period)?.labelKey ?? "insights.period.week")}
+                    </Stack.Toolbar.Label>
+                    {PERIODS.map((option) => (
                         <Stack.Toolbar.MenuAction
-                            isOn={PERIOD_BY_VALUE.get(option.value) === period}
+                            isOn={option.period === period}
                             key={option.value}
                             onPress={() => selectPeriod(option.value)}
                         >

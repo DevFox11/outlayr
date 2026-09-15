@@ -3,6 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useState } from "react";
 import { TextInput, View } from "react-native";
 
+import { SEARCH_FIELD } from "@/components/search-field-style";
 import { useColors } from "@/theme/use-colors";
 
 import { CurrencyPickerList } from "../../currency-picker-list";
@@ -55,13 +56,7 @@ export function StepCurrency({
                     placeholder={searchPlaceholder}
                     placeholderTextColor={colors.muted}
                     returnKeyType="search"
-                    style={{
-                        color: colors.foreground,
-                        flex: 1,
-                        fontFamily: "SFProRounded-Regular",
-                        fontSize: 16,
-                        padding: 0,
-                    }}
+                    style={[SEARCH_FIELD, { color: colors.foreground }]}
                     value={query}
                 />
             </View>

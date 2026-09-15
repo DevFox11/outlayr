@@ -12,6 +12,7 @@ import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 import { CurrencyPickerList } from "./currency-picker-list";
+import { SEARCH_FIELD } from "./search-field-style";
 import { Text } from "./text";
 
 interface CurrencyPickerSheetProps {
@@ -88,13 +89,7 @@ export function CurrencyPickerSheet({ selected, onSelect, ref }: CurrencyPickerS
                             onChangeText={setQuery}
                             placeholder={t("onboarding.currency.picker.searchPlaceholder")}
                             placeholderTextColor={colors.muted}
-                            style={{
-                                color: colors.foreground,
-                                flex: 1,
-                                fontFamily: "SFProRounded-Regular",
-                                fontSize: 16,
-                                padding: 0,
-                            }}
+                            style={[SEARCH_FIELD, { color: colors.foreground }]}
                             value={query}
                         />
                     </View>
