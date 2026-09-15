@@ -66,13 +66,8 @@ export type Slide = {
   textElements?: TextElement[];
 };
 
-export type ThemeId =
-  | "outlayr-paper"    // the shipped brand ground; the other five are scaffold presets
-  | "clean-light"
-  | "dark-bold"
-  | "warm-editorial"
-  | "ocean-fresh"
-  | "bloom-roast";
+/** The shipped brand ground. `themeById` falls back to it, and the editor warns when a saved project names another. */
+export type ThemeId = "outlayr-paper";
 
 export type Theme = {
   id: string;
