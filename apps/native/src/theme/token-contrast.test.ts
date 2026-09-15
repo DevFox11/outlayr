@@ -10,7 +10,6 @@ const nativeRoot = join(import.meta.dirname, "../..");
 /** WCAG 2.2 AA, normal text. */
 const AA_TEXT_CONTRAST = 4.5;
 /** WCAG 2.2 AA, large text and non-text; `font-sans-semibold` is 600 and does not reach it. */
-const AA_LARGE_CONTRAST = 3;
 const CHANNEL_WEIGHTS = [0.2126, 0.7152, 0.0722] as const;
 const SIX_HEX_DIGITS = /^[0-9a-f]{6}$/i;
 
@@ -140,20 +139,14 @@ const WHITE_TEXT_SITES = [
 ] as const;
 
 /**
- * Measured AA failures held open deliberately. Empty, and the machinery is kept
- * for the next time it is not.
- *
- * It held four pairs until the paper theme landed: dark `--surface` was #3a3a3c,
+ * The AA guard below once carried four exemptions: dark `--surface` was #3a3a3c,
  * an iOS elevated grey 3.6x the luminance of every other dark plane, and
  * `--subtle`, `--tint`, `--danger` and `--over-budget` were iOS system colours
  * that could not clear 4.5:1 against it without being replaced by pastels. The
- * warm dark face re-derived that ground to #2a251b, which is the design change
- * this guard said it did not own, and all four now pass on their own.
+ * paper theme re-derived that ground to #2a251b and all four now pass, so the
+ * list, the skip it fed, and the three tests that policed it are gone. Git has
+ * them if a pair ever has to be held open again.
  */
-const EXEMPT_PAIRS: readonly { theme: Theme; token: string; ground: string }[] = [];
-
-const EXEMPT = new Set(EXEMPT_PAIRS.map((pair) => pairKey(pair.theme, pair.token, pair.ground)));
-
 function pairKey(theme: Theme, token: string, ground: string): string {
     return `${theme}: --${token} on --${ground}`;
 }
@@ -333,9 +326,6 @@ describe("wCAG AA for text on every ground its theme paints", () => {
             for (const token of TEXT_TOKENS) {
                 for (const ground of GROUNDS) {
                     const key = pairKey(theme, token, ground);
-                    if (EXEMPT.has(key)) {
-                        continue;
-                    }
                     const ratio = contrastRatio(tokenValue(theme, token), tokenValue(theme, ground));
                     if (ratio < AA_TEXT_CONTRAST) {
                         failures.push(`${key} = ${ratio.toFixed(2)}:1`);
@@ -372,41 +362,6 @@ describe("wCAG AA for text on every ground its theme paints", () => {
             }
         }
         expect(failures).toStrictEqual([]);
-    });
-});
-
-describe("the exemptions", () => {
-    function measure(pair: (typeof EXEMPT_PAIRS)[number]): number {
-        return contrastRatio(tokenValue(pair.theme, pair.token), tokenValue(pair.theme, pair.ground));
-    }
-
-    it("keeps every exempt pair above the non-text floor", () => {
-        const failures: string[] = [];
-        for (const pair of EXEMPT_PAIRS) {
-            const ratio = measure(pair);
-            if (ratio < AA_LARGE_CONTRAST) {
-                failures.push(`${pairKey(pair.theme, pair.token, pair.ground)} = ${ratio.toFixed(2)}:1`);
-            }
-        }
-        expect(failures).toStrictEqual([]);
-    });
-
-    it("carries no exemption whose pair now passes", () => {
-        const stale: string[] = [];
-        for (const pair of EXEMPT_PAIRS) {
-            const ratio = measure(pair);
-            if (ratio >= AA_TEXT_CONTRAST) {
-                stale.push(`${pairKey(pair.theme, pair.token, pair.ground)} = ${ratio.toFixed(2)}:1`);
-            }
-        }
-        expect(stale).toStrictEqual([]);
-    });
-
-    it("exempts nothing that is not a text token on a ground", () => {
-        for (const pair of EXEMPT_PAIRS) {
-            expect(TEXT_TOKENS.some((token) => token === pair.token)).toBeTruthy();
-            expect(GROUNDS.some((ground) => ground === pair.ground)).toBeTruthy();
-        }
     });
 });
 
