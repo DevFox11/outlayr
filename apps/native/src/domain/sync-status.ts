@@ -12,7 +12,16 @@ export interface SyncLabel {
         | "settings.sync.never"
         | "settings.sync.pending"
         | "settings.sync.pendingOne"
-        | "settings.sync.paused";
+        | "settings.sync.paused"
+        | "settings.sync.off";
+}
+
+export interface SyncLabelProbe {
+    /** The stored switch. Off is a state of its own, not an idle queue. */
+    enabled: boolean;
+    paused: boolean;
+    pending: number;
+    syncedAt: Date | null;
 }
 
 export type EffectiveCapabilityStatus =
@@ -59,10 +68,16 @@ export function effectiveCapabilityStatus(probe: CapabilityStatusProbe): Effecti
  * `docs/convex-sync-design.md` settles the UX as silent-and-retrying — a count
  * that stops falling is honest about what is true without guessing at why.
  */
-export function syncStatusLabel(pending: number, syncedAt: Date | null, paused: boolean): SyncLabel {
-    // Ahead of the queue and the timestamp, both of which describe a cycle that
-    // is no longer running: "Up to date" off a stale timestamp is the one thing
-    // a paused row must not say.
+export function syncStatusLabel({ enabled, paused, pending, syncedAt }: SyncLabelProbe): SyncLabel {
+    // Ahead of everything else, and for the same reason `paused` is: the queue
+    // and the timestamp both describe a cycle that is no longer running.
+    // Turning sync off DELETES the outbox, so `pending` is 0 the moment the
+    // switch moves — the wipe is what made the wrong label confident.
+    if (!enabled) {
+        return { key: "settings.sync.off" };
+    }
+    // "Up to date" off a stale timestamp is the one thing a paused row must not
+    // say.
     if (paused) {
         return { key: "settings.sync.paused" };
     }

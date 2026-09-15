@@ -110,7 +110,12 @@ export function Settings() {
 
     const numberEntryDetail = choiceDetail(NUMBER_ENTRY_OPTIONS, numberEntryType);
 
-    const syncLabel = syncStatusLabel(sync.pending, sync.syncedAt, syncPaused(sync.enabled, proEntitled));
+    const syncLabel = syncStatusLabel({
+        enabled: sync.enabled,
+        paused: syncPaused(sync.enabled, proEntitled),
+        pending: sync.pending,
+        syncedAt: sync.syncedAt,
+    });
     const syncValue = syncLabel.count === undefined ? t(syncLabel.key) : t(syncLabel.key, { count: syncLabel.count });
 
     return (

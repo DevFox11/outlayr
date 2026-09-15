@@ -13,43 +13,61 @@ const AT = new Date(1_700_000_000_000);
 
 describe("syncStatusLabel", () => {
     it("reads an empty queue as up to date, not as zero pending", () => {
-        expect(syncStatusLabel(0, AT, false)).toStrictEqual({
+        expect(syncStatusLabel({ enabled: true, paused: false, pending: 0, syncedAt: AT })).toStrictEqual({
             key: "settings.sync.upToDate",
         });
     });
 
     it("does not claim up to date on a device that has never synced", () => {
-        expect(syncStatusLabel(0, null, false)).toStrictEqual({
+        expect(syncStatusLabel({ enabled: true, paused: false, pending: 0, syncedAt: null })).toStrictEqual({
             key: "settings.sync.never",
         });
     });
 
     it("counts a single pending row without pluralising it", () => {
-        expect(syncStatusLabel(1, AT, false)).toStrictEqual({
+        expect(syncStatusLabel({ enabled: true, paused: false, pending: 1, syncedAt: AT })).toStrictEqual({
             key: "settings.sync.pendingOne",
         });
     });
 
     it("carries the count once there is more than one", () => {
-        expect(syncStatusLabel(7, AT, false)).toStrictEqual({
+        expect(syncStatusLabel({ enabled: true, paused: false, pending: 7, syncedAt: AT })).toStrictEqual({
             count: 7,
             key: "settings.sync.pending",
         });
     });
 
     it("reports pending work even before a first successful cycle", () => {
-        expect(syncStatusLabel(3, null, false)).toStrictEqual({
+        expect(syncStatusLabel({ enabled: true, paused: false, pending: 3, syncedAt: null })).toStrictEqual({
             count: 3,
             key: "settings.sync.pending",
         });
     });
 
     it("never dates an idle queue as up to date while replication is paused", () => {
-        expect(syncStatusLabel(0, AT, true)).toStrictEqual({ key: "settings.sync.paused" });
+        expect(syncStatusLabel({ enabled: true, paused: true, pending: 0, syncedAt: AT })).toStrictEqual({
+            key: "settings.sync.paused",
+        });
+    });
+
+    it("says so when the switch is off, however recent the last cycle was", () => {
+        // Turning sync off deletes the outbox, so the queue is empty and the
+        // timestamp is fresh — every other input agrees on "Up to date".
+        expect(syncStatusLabel({ enabled: false, paused: false, pending: 0, syncedAt: AT })).toStrictEqual({
+            key: "settings.sync.off",
+        });
+    });
+
+    it("prefers the switch over a paused entitlement, which cannot pause a stopped engine", () => {
+        expect(syncStatusLabel({ enabled: false, paused: true, pending: 0, syncedAt: AT })).toStrictEqual({
+            key: "settings.sync.off",
+        });
     });
 
     it("reports a paused engine rather than the work it is not doing", () => {
-        expect(syncStatusLabel(4, AT, true)).toStrictEqual({ key: "settings.sync.paused" });
+        expect(syncStatusLabel({ enabled: true, paused: true, pending: 4, syncedAt: AT })).toStrictEqual({
+            key: "settings.sync.paused",
+        });
     });
 });
 
