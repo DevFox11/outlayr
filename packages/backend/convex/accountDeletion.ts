@@ -273,17 +273,16 @@ export const resumeUserId = internalQuery({
     },
 });
 
+const CLEANUP_BATCH = 200;
+
 export const cleanupExpired = internalMutation({
     args: {},
     handler: async (ctx) => {
         const jobs = await ctx.db
             .query("accountDeletionJobs")
             .withIndex("by_expiresAt", (q) => q.lt("expiresAt", Date.now()))
-            .collect();
-        await Promise.all(
-            jobs
-                .filter((job) => job.phase === "prepared" || job.phase === "complete")
-                .map(async (job) => await ctx.db.delete(job._id))
-        );
+            .filter((q) => q.or(q.eq(q.field("phase"), "prepared"), q.eq(q.field("phase"), "complete")))
+            .take(CLEANUP_BATCH);
+        await Promise.all(jobs.map(async (job) => await ctx.db.delete(job._id)));
     },
 });
