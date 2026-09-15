@@ -57,13 +57,6 @@ export function ScreenshotEditor() {
   }, [activeSlide?.id, selectedElement]);
 
   React.useEffect(() => {
-    if (!hydrated) return;
-    if (!activeSlide && currentSlides.length > 0) {
-      setActiveSlideId(currentSlides[0].id);
-    }
-  }, [hydrated, currentSlides, activeSlide]);
-
-  React.useEffect(() => {
     if (!supportsLandscape(state.device) && state.orientation !== "portrait") {
       setState((p) => ({ ...p, orientation: "portrait" }));
     }
