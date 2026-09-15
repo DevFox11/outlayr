@@ -253,6 +253,46 @@ describe("readUrls", () => {
     });
 });
 
+describe("minted uploads", () => {
+    test("records the key before handing out the url, so an unconfirmed one is still findable", async () => {
+        const t = harness();
+        const owner = await seedProUser(t);
+
+        const { key } = await authenticatedAs(t, owner).mutation(api.photos.requestUpload, { name: PHOTO });
+
+        // Nought bytes: the object is not weighed until `confirmUpload` reads it
+        // back out of R2. The row exists so the key is not invisible until then.
+        await expect(t.run((ctx) => ctx.db.query("photoSizes").collect())).resolves.toMatchObject([
+            { bytes: 0, key, userId: owner.userId },
+        ]);
+    });
+
+    test("refuses once too many minted keys are still unweighed", async () => {
+        const t = harness();
+        const owner = await seedProUser(t);
+        const caller = authenticatedAs(t, owner);
+        for (let index = 0; index < 50; index += 1) {
+            // Distinct names: a retry reuses its key and takes no new slot.
+            await caller.mutation(api.photos.requestUpload, { name: `photo-${index}.jpg` });
+        }
+
+        await expect(caller.mutation(api.photos.requestUpload, { name: "one-too-many.jpg" })).rejects.toThrow(
+            ConvexError
+        );
+    });
+
+    test("a retry of the same name takes no new slot", async () => {
+        const t = harness();
+        const owner = await seedProUser(t);
+        const caller = authenticatedAs(t, owner);
+
+        await caller.mutation(api.photos.requestUpload, { name: PHOTO });
+        await caller.mutation(api.photos.requestUpload, { name: PHOTO });
+
+        await expect(t.run((ctx) => ctx.db.query("photoSizes").collect())).resolves.toHaveLength(1);
+    });
+});
+
 describe("releaseUnreferenced", () => {
     test("refuses a key belonging to another account", async () => {
         const t = harness();

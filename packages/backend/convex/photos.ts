@@ -108,12 +108,27 @@ async function checkPhotoQuota(ctx: QueryCtx, userId: string): Promise<void> {
 }
 
 /**
+ * How many minted-but-unconfirmed keys one account may hold at once.
+ *
+ * Generous: a key is derived from the file name and reused on retry, so a device
+ * crashing repeatedly on the same photo occupies one slot, not many.
+ */
+const UNCONFIRMED_UPLOAD_LIMIT = 50;
+
+/**
  * Answers the signed PUT a device uploads through, and the key to record.
  *
  * The key is derived from the file name rather than allocated, so an upload
  * that dies mid-PUT is retried onto the same key. That is what keeps a retry
  * from leaving bytes nothing will ever reference — R2 has no transaction to
  * roll back, so the only safe retry is an idempotent one.
+ *
+ * The key is recorded at nought bytes before the url is handed out. Sizing still
+ * waits for `confirmUpload`, which weighs the object in R2 rather than trusting
+ * the device — but a key that was never confirmed is now a row somebody can
+ * find. Before this it was invisible: on the Convex-storage path nothing mapped
+ * it in `photoObjects`, so not even `purgeUserBatch` could reach the bytes, and
+ * a client that simply never called `confirmUpload` moved the quota not at all.
  */
 export const requestUpload = mutation({
     args: { name: v.string() },
@@ -125,6 +140,7 @@ export const requestUpload = mutation({
             throw new ConvexError(`Not a photo file name: ${args.name}`);
         }
         const key = photoKeyFor(userId, args.name);
+        await reserveUploadKey(ctx, userId, key);
         if (usingR2()) {
             return await r2.generateUploadUrl(key);
         }
@@ -132,6 +148,35 @@ export const requestUpload = mutation({
     },
     returns: v.object({ key: v.string(), url: v.string() }),
 });
+
+/**
+ * Claims `key` at nought bytes, and refuses once too many claims are unweighed.
+ *
+ * The cap is what the quota cannot do on its own: an unconfirmed object has no
+ * size to count, so without a ceiling on how many may be outstanding an account
+ * can mint urls forever and store bytes the ledger never sees.
+ */
+async function reserveUploadKey(ctx: MutationCtx, userId: string, key: string): Promise<void> {
+    const existing = await ctx.db
+        .query("photoSizes")
+        .withIndex("by_key", (q) => q.eq("key", key))
+        .unique();
+    if (existing) {
+        return;
+    }
+    const unweighed = await ctx.db
+        .query("photoSizes")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .filter((q) => q.eq(q.field("bytes"), 0))
+        .take(UNCONFIRMED_UPLOAD_LIMIT);
+    if (unweighed.length >= UNCONFIRMED_UPLOAD_LIMIT) {
+        throw new ConvexError({
+            code: "PHOTO_UPLOADS_UNCONFIRMED",
+            limit: UNCONFIRMED_UPLOAD_LIMIT,
+        });
+    }
+    await ctx.db.insert("photoSizes", { bytes: 0, key, userId });
+}
 
 /**
  * The ownership seam reached from an action, which has no `db` of its own and
