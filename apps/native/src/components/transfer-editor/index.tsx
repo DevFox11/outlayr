@@ -69,6 +69,7 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
     const [pad, setPad] = useState<"arrived" | "fee" | "rate" | "sent" | null>(null);
     const [listOpen, setListOpen] = useState(false);
     const feeCategorySheet = useRef<BottomSheetModal>(null);
+    const savingRef = useRef(false);
 
     const present = (ref: React.RefObject<BottomSheetModal | null>) => {
         Keyboard.dismiss();
@@ -103,9 +104,13 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
 
     const save = async () => {
         const { from, to, legs, effectiveRate, fee, feeSide, feeCategoryId, crossCurrency, rateType, date } = draft;
-        if (!(draft.canSave && from && to && legs && effectiveRate) || saving) {
+        // A ref, not the `saving` state: two taps inside one React batch both read
+        // the old state and both pass. `pressSubmit` guards the transaction form
+        // against exactly this by reading its live store instead.
+        if (!(draft.canSave && from && to && legs && effectiveRate) || savingRef.current) {
             return;
         }
+        savingRef.current = true;
         setSaving(true);
         setSaveFailure(null);
         try {
@@ -131,7 +136,13 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
                 toCurrency: draft.toCurrency,
             });
             if (fee > 0 && feeCategoryId) {
-                await rememberFeeCategory(db, feeCategoryId);
+                // Best effort, and deliberately not inside the transfer's own
+                // failure path: the transfer is already written by this point, so
+                // a failed preference reported as "save failed" would re-enable
+                // Save and the retry would write a SECOND transfer.
+                await rememberFeeCategory(db, feeCategoryId).catch((error) => {
+                    console.error("Failed to remember the fee category", error);
+                });
             }
             onDone();
         } catch (error) {
@@ -139,6 +150,7 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
             // raises are already gated by `draft.canSave` — so they are logged, and
             // the reader gets the line that tells them the tap did nothing.
             console.error("Failed to save the transfer", error);
+            savingRef.current = false;
             setSaving(false);
             setSaveFailure(t("transfers.save.failed"));
         }

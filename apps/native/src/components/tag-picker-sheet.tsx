@@ -1,6 +1,6 @@
 import { BottomSheetFlatList, BottomSheetModal, BottomSheetTextInput } from "@expo/ui/community/bottom-sheet";
 import { SymbolView } from "expo-symbols";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Ref } from "react";
 import { Pressable, View } from "react-native";
 
@@ -85,12 +85,28 @@ export function TagPickerSheet({
         [pendingTagNames, tags, trimmed]
     );
 
-    const create = () => {
-        onCreate(trimmed).then((id) => {
-            if (id) {
-                setQuery("");
-            }
-        });
+    // `canCreate` derives from the `tags` prop, which only changes once the insert
+    // commits — so without this the row stays pressable for the whole write and a
+    // second tap runs `ensureTag`'s check-then-insert again before the first row
+    // is visible to it.
+    const creating = useRef(false);
+    const createTag = (name: string) => {
+        if (creating.current) {
+            return;
+        }
+        creating.current = true;
+        onCreate(name)
+            .then((id) => {
+                if (id) {
+                    setQuery("");
+                }
+            })
+            .catch((error) => {
+                console.error("Failed to create the tag", error);
+            })
+            .finally(() => {
+                creating.current = false;
+            });
     };
 
     return (
@@ -129,10 +145,10 @@ export function TagPickerSheet({
                     </View>
                 </View>
 
-                {canCreate ? <CreateTagRow name={trimmed} onPress={create} /> : null}
+                {canCreate ? <CreateTagRow name={trimmed} onPress={() => createTag(trimmed)} /> : null}
 
                 {pendingToOffer.map((name) => (
-                    <CreateTagRow key={name} name={name} onPress={() => onCreate(normalizeTagName(name))} />
+                    <CreateTagRow key={name} name={name} onPress={() => createTag(normalizeTagName(name))} />
                 ))}
 
                 <BottomSheetFlatList

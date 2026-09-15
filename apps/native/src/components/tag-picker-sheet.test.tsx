@@ -1,6 +1,6 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import { describe, expect, it, jest } from "@jest/globals";
-import { act, render } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { createRef } from "react";
 
 import { testColors as mockTestColors } from "@/theme/test-colors";
@@ -112,5 +112,46 @@ describe("tagPickerSheet", () => {
         const tree = toJSON() as JsonNode;
         expect(containsText(tree, 'transaction.tags.create:{"name":"Streaming"}')).toBe(false);
         expect(containsText(tree, "Streaming")).toBe(true);
+    });
+
+    it("creates once when the affordance is tapped twice before the insert commits", async () => {
+        // `canCreate` reads the `tags` prop, which only gains the row once the
+        // insert has committed — so the affordance stays pressable for the whole
+        // write and nothing but the guard stops the second tap.
+        let settle: ((id: string) => void) | undefined;
+        const onCreate = jest.fn(
+            () =>
+                new Promise<string | null>((resolve) => {
+                    settle = resolve;
+                })
+        );
+        const ref = createRef<BottomSheetModal>();
+        await render(
+            <TagPickerSheet
+                onCreate={onCreate}
+                onToggle={() => {}}
+                pendingTagNames={["Streaming"]}
+                ref={ref}
+                selected={[]}
+                tags={[]}
+            />
+        );
+        await act(async () => {
+            ref.current?.present();
+        });
+
+        // Not `fireEvent.press`: the sheet's own host sits under `pointerEvents:
+        // "none"`, which the press helper honours. `category-picker-sheet` taps
+        // through the same `onClick` for the same reason.
+        const affordance = screen.getByRole("button", { name: 'transaction.tags.create:{"name":"Streaming"}' });
+        fireEvent(affordance, "click");
+        fireEvent(affordance, "click");
+        expect(onCreate).toHaveBeenCalledTimes(1);
+
+        await act(async () => {
+            settle?.("t1");
+        });
+        fireEvent(affordance, "click");
+        expect(onCreate).toHaveBeenCalledTimes(2);
     });
 });
