@@ -8,6 +8,7 @@ import { Text } from "@/components/text";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import { formatSignedAmount } from "@/domain/account-display";
 import { formatDayMonth } from "@/domain/dates";
+import { numberLocale } from "@/domain/money";
 import type { NetWorthSeriesPoint } from "@/domain/net-worth-series";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { CHART_DRAW, compactMagnitude } from "@/theme/chart";
@@ -106,7 +107,10 @@ export function NetWorthCard({ series, currency, showCents }: NetWorthCardProps)
                     <LineChart.Area color={colors.tint} dataKey="value" opacity={0.12} />
                     <LineChart.Line color={colors.tint} dataKey="value" strokeWidth={2.5} />
                     <LineChart.XAxis format={tooltipDate} ticks={3} />
-                    <LineChart.YAxis format={(value) => compactMagnitude(value)} ticks={2} />
+                    <LineChart.YAxis
+                        format={(value) => compactMagnitude(value, numberLocale(language).decimal)}
+                        ticks={2}
+                    />
                     <LineChart.Tooltip
                         formatValue={(value) => formatSignedAmount(value, currency, showCents, language)}
                         formatX={tooltipDate}

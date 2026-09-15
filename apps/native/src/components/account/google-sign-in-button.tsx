@@ -4,6 +4,7 @@ import Svg, { Path } from "react-native-svg";
 
 import { SIGN_IN_BUTTON_HEIGHT } from "@/components/account/apple-sign-in-button";
 import { Text } from "@/components/text";
+import { useTranslation } from "@/i18n/context";
 
 /**
  * Fixed by Google's identity guidelines, which is why they are literals rather
@@ -48,12 +49,13 @@ export function GoogleSignInButton({
     disabled: boolean;
     onPress: () => void;
 }) {
+    const t = useTranslation();
     const { theme } = useTheme();
     const brand = theme === "dark" ? BRAND.dark : BRAND.light;
 
     return (
         <Pressable
-            accessibilityLabel="Continue with Google"
+            accessibilityLabel={t("auth.google.continue")}
             accessibilityRole="button"
             accessibilityState={{ busy: pending, disabled }}
             className="w-full flex-row items-center justify-center gap-3 rounded-full border active:opacity-70"
@@ -73,7 +75,7 @@ export function GoogleSignInButton({
                     <GoogleLogo />
                     <View>
                         <Text className="font-sans-medium text-callout" style={{ color: brand.label }}>
-                            Continue with Google
+                            {t("auth.google.continue")}
                         </Text>
                     </View>
                 </>

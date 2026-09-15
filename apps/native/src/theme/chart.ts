@@ -54,19 +54,22 @@ export const CHART_DRAW = {
 } as const;
 
 /** Compact magnitude for an axis label: 950, 1.2k, 15k, 3M. */
-export function compactMagnitude(value: number): string {
+export function compactMagnitude(value: number, decimal = "."): string {
     const abs = Math.abs(value);
     if (abs >= 1_000_000) {
-        return `${trim(value / 1_000_000, abs >= 10_000_000)}M`;
+        return `${trim(value / 1_000_000, abs >= 10_000_000, decimal)}M`;
     }
     if (abs >= 1000) {
-        return `${trim(value / 1000, abs >= 10_000)}k`;
+        return `${trim(value / 1000, abs >= 10_000, decimal)}k`;
     }
     return String(Math.round(value));
 }
 
 const TRAILING_ZERO_DECIMAL = /\.0$/;
 
-function trim(value: number, whole: boolean): string {
-    return whole ? String(Math.round(value)) : value.toFixed(1).replace(TRAILING_ZERO_DECIMAL, "");
+function trim(value: number, whole: boolean, decimal: string): string {
+    if (whole) {
+        return String(Math.round(value));
+    }
+    return value.toFixed(1).replace(TRAILING_ZERO_DECIMAL, "").replace(".", decimal);
 }

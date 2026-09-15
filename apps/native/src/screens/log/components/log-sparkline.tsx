@@ -9,6 +9,7 @@ import { useSettingBool } from "@/contexts/display-settings-context";
 import { monthAbbrevTitle } from "@/domain/dates";
 import type { LogMeasure } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
+import { formatAmount } from "@/domain/money";
 import { sparklineLabelKey } from "@/domain/sparkline-trend";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
@@ -21,6 +22,8 @@ const INSET = 10;
 
 interface LogSparklineProps {
     byMonth: boolean;
+    /** The currency the points are already valued in. */
+    code: string;
     /** Decides whether the line has a direction worth speaking. */
     measure: LogMeasure;
     points: SparklinePoint[];
@@ -29,7 +32,7 @@ interface LogSparklineProps {
     range: number;
 }
 
-export function LogSparkline({ points, positive, range, byMonth, measure }: LogSparklineProps) {
+export function LogSparkline({ points, positive, range, byMonth, code, measure }: LogSparklineProps) {
     const colors = useColors();
     const t = useTranslation();
     const { language } = useLanguage();
@@ -210,7 +213,7 @@ export function LogSparkline({ points, positive, range, byMonth, measure }: LogS
                         {formatSample(scrubbed.date, byMonth, language)}
                     </Text>
                     <Text className="font-sans-semibold text-foreground text-label">
-                        {formatAmount(scrubbed.amount)}
+                        {formatAmount(scrubbed.amount, code, Math.abs(scrubbed.amount) < 1000, language)}
                     </Text>
                 </View>
             ) : null}
@@ -222,8 +225,4 @@ export function LogSparkline({ points, positive, range, byMonth, measure }: LogS
 function formatSample(date: Date, byMonth: boolean, language: Language): string {
     const month = monthAbbrevTitle(date, language);
     return byMonth ? `${month} ${String(date.getFullYear()).slice(-2)}` : `${date.getDate()} ${month}`;
-}
-
-function formatAmount(amount: number): string {
-    return Math.abs(amount) < 1000 ? amount.toFixed(2) : amount.toFixed(0);
 }

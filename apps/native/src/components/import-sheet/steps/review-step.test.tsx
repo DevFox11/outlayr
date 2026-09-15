@@ -131,14 +131,9 @@ describe("entryRow", () => {
 
         expect(getByText("Bakery Corner")).toBeTruthy();
         expect(getByText("Groceries")).toBeTruthy();
-        expect(
-            getByText(
-                ENTRY.date.toLocaleDateString(undefined, {
-                    day: "numeric",
-                    month: "short",
-                })
-            )
-        ).toBeTruthy();
+        // The literal, not a second `toLocaleDateString` call: asserting the row
+        // against the call it makes is true however wrong the format is.
+        expect(getByText("28 Jul")).toBeTruthy();
         expect(getByText("-$12.50")).toBeTruthy();
     });
 

@@ -9,6 +9,7 @@ import { accountBalanceSeries } from "@/domain/account-balance-series";
 import { formatSignedAmount } from "@/domain/account-display";
 import type { CurrencyCell } from "@/domain/currency-totals";
 import { formatDayMonth } from "@/domain/dates";
+import { numberLocale } from "@/domain/money";
 import type { RateTable } from "@/domain/valuation";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { CHART_DRAW, compactMagnitude } from "@/theme/chart";
@@ -96,7 +97,10 @@ export function AccountBalanceChart({ account, cells, now = new Date(), rates, s
                     <LineChart.Area color={colors.tint} dataKey="value" opacity={0.12} />
                     <LineChart.Line color={colors.tint} dataKey="value" strokeWidth={2.5} />
                     <LineChart.XAxis format={tooltipDate} ticks={3} />
-                    <LineChart.YAxis format={(value) => compactMagnitude(value)} ticks={2} />
+                    <LineChart.YAxis
+                        format={(value) => compactMagnitude(value, numberLocale(language).decimal)}
+                        ticks={2}
+                    />
                     <LineChart.Tooltip
                         formatValue={(value) => formatSignedAmount(value, account.currency, showCents, language)}
                         formatX={tooltipDate}

@@ -9,7 +9,7 @@ import { scheduleOnRN } from "react-native-worklets";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import { bucketDateLabel } from "@/data/insights";
 import type { InsightsBucket, InsightsMeasure, InsightsPeriod } from "@/data/insights";
-import { currencySymbol, formatAmount } from "@/domain/money";
+import { amountParts, formatAmount, withCurrencySymbol } from "@/domain/money";
 import { useChartDraw } from "@/hooks/use-chart-draw";
 import { useLanguage } from "@/i18n/context";
 import { CHART_BAR, CHART_DASH, CHART_SCRUB, compactMagnitude, dashArray } from "@/theme/chart";
@@ -141,7 +141,10 @@ export function InsightsBarChart({
     }, [count, pitch, lastLive, onScrub, onCommit, selectedIndex, reported]);
 
     const active = scrubIndex ?? selectedIndex;
-    const symbol = currencySymbol(code);
+    // Built through `withCurrencySymbol` rather than concatenated: Spanish puts
+    // the symbol after the figure, with an NBSP, and writes 1,2k not 1.2k.
+    const averageParts = amountParts(Math.abs(average), code, false, language);
+    const averageLabel = withCurrencySymbol(averageParts, compactMagnitude(average, averageParts.locale.decimal));
 
     const activeCount = values.filter((value) => value !== 0).length;
     const avgY = ((plot.top - average) / plot.span) * BAR_AREA;
@@ -210,7 +213,7 @@ export function InsightsBarChart({
                                     paddingVertical: 1,
                                 }}
                             >
-                                <AxisLabel color={colors.muted}>{`${symbol}${compactMagnitude(average)}`}</AxisLabel>
+                                <AxisLabel color={colors.muted}>{averageLabel}</AxisLabel>
                             </View>
                             <DashedRule color={colors.muted} />
                         </View>

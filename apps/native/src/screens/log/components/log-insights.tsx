@@ -136,6 +136,7 @@ export function LogInsights({
             {sparkline && sparkline.points.length > 1 ? (
                 <LogSparkline
                     byMonth={sparkline.byMonth}
+                    code={figures.currencyCode}
                     measure={measure}
                     points={sparkline.points}
                     positive={sparkline.positive}

@@ -67,6 +67,10 @@ const auth = {
             en: "Reconciling…",
             es: "Reconciliando…",
         }),
+        "auth.google.continue": t({
+            en: "Continue with Google",
+            es: "Continuar con Google",
+        }),
         "auth.restoring.title": t({
             en: "Opening your ledger",
             es: "Abriendo tu registro",

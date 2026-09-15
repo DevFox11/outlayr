@@ -13,7 +13,7 @@ import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { ImportEntry, SkipReason } from "@/data/transfer-core";
-import { formatDayHeader } from "@/domain/dates";
+import { formatDayHeader, formatSentenceDate } from "@/domain/dates";
 import { FALLBACK_IDENTITY_COLOR } from "@/domain/transaction-identity";
 import type { ImportReviewResult, ReviewCategoryTile } from "@/hooks/use-import-review";
 import { useReviewEnrichment } from "@/hooks/use-review-enrichment";
@@ -84,6 +84,7 @@ export const EntryRow = memo(
         onToggle,
     }: EntryRowProps) => {
         const t = useTranslation();
+        const { language } = useLanguage();
         const colors = useColors();
         const { showCents } = useDisplaySettings().state;
         const onPress = useCallback(() => onToggle(index), [onToggle, index]);
@@ -146,10 +147,7 @@ export const EntryRow = memo(
                         struck={!checked}
                     />
                     <Text className="text-footnote text-subtle" numberOfLines={1}>
-                        {entry.date.toLocaleDateString(undefined, {
-                            day: "numeric",
-                            month: "short",
-                        })}
+                        {formatSentenceDate(entry.date, language)}
                     </Text>
                 </View>
             </Pressable>
