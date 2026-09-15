@@ -406,15 +406,13 @@ export function ScreenshotEditor() {
             .map((locale) => `${locale} ${index + 1}`)
         : [],
     );
-    const reusedBackScreens = currentSlides
-      .map((slide, index) => ({ slide, index }))
-      .filter(
-        ({ slide }) =>
-          state.device !== "feature-graphic" &&
-          slide.layout === "two-devices" &&
-          slide.screenshot &&
-          !slide.screenshotSecondary,
-      );
+    const reusedBackScreens = currentSlides.filter(
+      (slide) =>
+        state.device !== "feature-graphic" &&
+        slide.layout === "two-devices" &&
+        slide.screenshot &&
+        !slide.screenshotSecondary,
+    );
     if (blankScreens.length > 0 || reusedBackScreens.length > 0) {
       const details = [
         blankScreens.length

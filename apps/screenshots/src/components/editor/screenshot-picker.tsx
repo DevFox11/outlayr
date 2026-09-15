@@ -2,7 +2,7 @@
 import * as React from "react";
 import { Image as ImageIcon, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { didFail, img, setImage } from "@/lib/image-cache";
+import { blobToDataUrl, didFail, img, setImage } from "@/lib/image-cache";
 import { resolveScreenshot } from "@/lib/locale";
 
 type Props = {
@@ -13,15 +13,6 @@ type Props = {
 };
 
 const ACCEPTED = ["image/png", "image/jpeg"];
-
-async function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 async function uploadDataUrl(dataUrl: string): Promise<string | null> {
   try {
@@ -60,7 +51,7 @@ export function ScreenshotPicker({ label, value, locale, onChange }: Props) {
     }
     let dataUrl: string;
     try {
-      dataUrl = await fileToDataUrl(file);
+      dataUrl = await blobToDataUrl(file);
     } catch {
       setError("Failed to read file");
       return;

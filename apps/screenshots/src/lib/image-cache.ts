@@ -5,17 +5,21 @@
 const cache = new Map<string, string>();
 const failed = new Set<string>();
 
+/** A Blob or File read as a base64 data URI. */
+export function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 async function fetchAsDataUrl(path: string): Promise<string | null> {
   try {
     const resp = await fetch(path);
     if (!resp.ok) return null;
-    const blob = await resp.blob();
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
+    return await blobToDataUrl(await resp.blob());
   } catch {
     return null;
   }

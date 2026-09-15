@@ -23,3 +23,11 @@ export function toTextElementId(id: string): TextElementId {
 export function textElementKey(id: TextElementId | ElementId): string {
   return isTextElementId(id) ? id.slice(TEXT_ELEMENT_PREFIX.length) : id;
 }
+
+/** Stacking order a layer takes before the user moves it. */
+export function defaultZ(id: ElementId): number {
+  if (isTextElementId(id)) return 5;
+  if (id === "deviceSecondary") return 2;
+  if (id === "device") return 3;
+  return 4; // caption on top
+}

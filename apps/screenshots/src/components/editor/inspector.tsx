@@ -31,6 +31,7 @@ import {
   isTextElementId,
   textElementKey,
   toTextElementId,
+  defaultZ,
 } from "@/lib/elements";
 import { pickText, writeLocalized } from "@/lib/locale";
 import type {
@@ -594,11 +595,4 @@ function LayerButton({
 function elementLabel(id: ElementId): string {
   if (isBuiltInElementId(id)) return ELEMENT_LABEL[id];
   return "Text";
-}
-
-function defaultZ(id: ElementId): number {
-  if (isTextElementId(id)) return 5;
-  if (id === "deviceSecondary") return 2;
-  if (id === "device") return 3;
-  return 4; // caption on top
 }
