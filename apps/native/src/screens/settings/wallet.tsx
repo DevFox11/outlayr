@@ -113,6 +113,10 @@ export function Wallet() {
     const inline = TRIGGERS_IN_SHORTCUTS ? IOS27_MANUAL_STEPS : MANUAL_STEPS;
     const steps = linked ? IOS27_AUTOMATION_STEPS : inline;
 
+    // Records that the link was taken, NOT that the shortcut exists: iOS hands
+    // the URL to Shortcuts and tells us nothing about what the user did there,
+    // so a Cancel looks exactly like an install. That is why the claim below
+    // waits for a run, and why the link stays reachable after this writes.
     const getShortcut = async () => {
         try {
             await openWalletShortcut();
@@ -145,7 +149,7 @@ export function Wallet() {
             <Proof db={db} lastEntry={lastEntry} lastRunAt={lastRunAt} />
 
             <SettingsSection title={t(working ? "settings.wallet.setupSection" : "settings.wallet.stepsSection")}>
-                {linked ? (
+                {linked && working ? (
                     <CheckRow detail={t("settings.wallet.shortcutName")} title={t("settings.wallet.installed")} />
                 ) : null}
                 {working ? (
@@ -177,7 +181,7 @@ export function Wallet() {
                 >
                     {t("settings.wallet.open")}
                 </Button>
-                {working && linked ? (
+                {linked ? (
                     <Button className="rounded-full" fullWidth onPress={getShortcut} size="md" variant="ghost">
                         {t("settings.wallet.getAgain")}
                     </Button>
