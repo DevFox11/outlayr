@@ -188,8 +188,8 @@ describe("formatChargeDate", () => {
 });
 
 function headerInMadrid(...parts: number[]): string {
-    const probe = join(import.meta.dirname, "dates-dst-probe.ts");
-    return execFileSync(process.execPath, ["--import", "tsx", probe, ...parts.map(String)], {
+    const probe = join(import.meta.dirname, "dst-probe.ts");
+    return execFileSync(process.execPath, ["--import", "tsx", probe, "header", ...parts.map(String)], {
         encoding: "utf-8",
         env: { ...process.env, TZ: "Europe/Madrid" },
     });

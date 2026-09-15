@@ -285,7 +285,7 @@ describe("budgetWindowLabel", () => {
  * remaining allowance with it.
  */
 function inMadrid(kind: "days" | "hours" | "pace", ...parts: number[]): number {
-    const probe = join(import.meta.dirname, "budget-dst-probe.ts");
+    const probe = join(import.meta.dirname, "dst-probe.ts");
     return Number(
         execFileSync(process.execPath, ["--import", "tsx", probe, kind, ...parts.map(String)], {
             encoding: "utf-8",

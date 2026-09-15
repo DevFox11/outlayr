@@ -32,8 +32,8 @@ interface DstProbeResult {
  * midnight" to the wrong instant.
  */
 function ticksInNewYork(dateArgs: [number, number, number, number][]): DstProbeResult[] {
-    const probe = join(import.meta.dirname, "clock-dst-probe.ts");
-    const out = execFileSync(process.execPath, ["--import", "tsx", probe, JSON.stringify(dateArgs)], {
+    const probe = join(import.meta.dirname, "dst-probe.ts");
+    const out = execFileSync(process.execPath, ["--import", "tsx", probe, "clock", JSON.stringify(dateArgs)], {
         encoding: "utf-8",
         env: { ...process.env, TZ: "America/New_York" },
         maxBuffer: 8 * 1024 * 1024,

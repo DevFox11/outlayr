@@ -110,13 +110,14 @@ describe("when a reminder fires", () => {
     // runs), so a later mutation of `process.env.TZ` is silently ignored — only
     // a fresh process started with `TZ` already set picks up a different zone.
     it("keeps the chosen hour across a DST change", () => {
-        const probe = join(import.meta.dirname, "subscription-reminder-dst-probe.ts");
+        const probe = join(import.meta.dirname, "dst-probe.ts");
         const out = execFileSync(
             process.execPath,
             [
                 "--import",
                 "tsx",
                 probe,
+                "reminder",
                 JSON.stringify([
                     [2026, 2, 15],
                     [2026, 2, 1],
