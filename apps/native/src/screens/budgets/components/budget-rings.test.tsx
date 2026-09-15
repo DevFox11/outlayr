@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 
 import { testDisplaySettingsValue as mockTestDisplaySettingsValue } from "@/contexts/test-settings";
 import type { CategoryBudgetView } from "@/data/budgets";
+import { CHART_DRAW } from "@/theme/chart";
 
 import { BudgetRings } from "./budget-rings";
 
@@ -189,4 +190,15 @@ describe("budgetRings", () => {
             );
         }
     );
+
+    // The table above only carries the rows that expect 0, so hardcoding
+    // `animationDuration={0}` satisfied it and the animatedCharts setting went dead.
+    it("uses the shared reveal duration when both motion controls allow animation", async () => {
+        mockAnimatedCharts.mockReturnValue(true);
+        mockReduceMotion.mockReturnValue(false);
+        await render(<BudgetRings budgets={[FOOD]} currency="USD" />);
+
+        const chartProps = mockBudgetRingChart.mock.calls.at(-1)?.[0] as { animationDuration: number };
+        expect(chartProps.animationDuration).toBe(CHART_DRAW.durationMs);
+    });
 });

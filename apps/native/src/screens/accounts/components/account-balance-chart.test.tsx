@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react-native";
 
 import type { CurrencyCell } from "@/domain/currency-totals";
 import { buildRateTable } from "@/domain/valuation";
+import { CHART_DRAW } from "@/theme/chart";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { AccountBalanceChart } from "./account-balance-chart";
@@ -227,4 +228,17 @@ describe("accountBalanceChart", () => {
             );
         }
     );
+
+    // The table above only carries the rows that expect 0, so hardcoding both
+    // durations to 0 satisfied it and the animatedCharts setting went dead.
+    it("uses the shared reveal duration when both motion controls allow animation", async () => {
+        mockAnimatedCharts.mockReturnValue(true);
+        mockReduceMotion.mockReturnValue(false);
+
+        await renderChart();
+
+        const props = mockLineChart.mock.calls[0]?.[0] as { animationDuration: number; domainDuration: number };
+        expect(props.animationDuration).toBe(CHART_DRAW.durationMs);
+        expect(props.domainDuration).toBe(CHART_DRAW.durationMs);
+    });
 });
