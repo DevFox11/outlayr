@@ -7,7 +7,7 @@ This project enforces strict code quality standards through automated formatting
 - **Format code**: `pnpm exec vp fmt`
 - **Check for issues**: `pnpm exec vp check`
 - **Fix what is fixable**: `pnpm exec vp check --fix`
-- **Diagnose setup**: `pnpm exec vp env doctor`
+- **Show the toolchain**: `pnpm exec vp toolchain`
 - **Run a workspace task**: `pnpm exec vp run -r <task>` (add `--no-cache` to force a real run)
 
 Most issues are automatically fixable. See `docs/linting.md` for which rules are off and why.

@@ -1,9 +1,7 @@
 <!--
 Title must follow Conventional Commits: type(scope): description
-e.g. feat(ios): rework categories toolbar
+e.g. feat(native): rework the categories toolbar
 -->
-
-Closes #
 
 ## Type
 
@@ -46,8 +44,6 @@ None
 
 ## Checklist
 
-- [ ] Linked an issue above
 - [ ] Added exactly one `type:*` label
 - [ ] Conventional commit format on every commit
 - [ ] No `Co-Authored-By` or AI attribution trailers
-- [ ] New source files registered in the Xcode project (it uses explicit file refs, not synchronized folders)
