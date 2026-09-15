@@ -14,10 +14,10 @@ import type {
   Theme,
 } from "@/lib/types";
 import {
-  CANVAS,
   FRAME_ASPECT,
   androidPhoneW,
   androidPhoneWSmall,
+  getExportSizes,
   ipadW,
   phoneW,
   phoneWSmall,
@@ -42,12 +42,17 @@ type FrameComp = React.ComponentType<{
   hideEmpty?: boolean;
 }>;
 
+/**
+ * The resolution the deck is composed at: each device's largest required export.
+ *
+ * Read off `getExportSizes` rather than a second table. `captureSlide` renders
+ * at this size and lets `drawImage` scale into the export size, so the two
+ * disagreeing stretches every PNG — at a file size App Store Connect accepts,
+ * with nothing to notice. They used to be twelve numbers written out twice.
+ */
 export function getCanvas(device: Device, orientation: Orientation) {
-  const c = CANVAS[device];
-  if ((device === "android-7" || device === "android-10") && orientation === "landscape") {
-    return { cW: c.wL!, cH: c.hL! };
-  }
-  return { cW: c.w, cH: c.h };
+  const [largest] = getExportSizes(device, orientation);
+  return { cW: largest.w, cH: largest.h };
 }
 
 // Read from the same map the bezels are drawn with, so the two cannot drift.

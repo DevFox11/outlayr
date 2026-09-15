@@ -1,15 +1,5 @@
 import type { Device, Orientation, SlideLayout, Theme, ThemeId } from "./types";
 
-// ---------- Canvas dimensions (design at largest required resolution) ----------
-export const CANVAS: Record<Device, { w: number; h: number; wL?: number; hL?: number }> = {
-  iphone:        { w: 1320, h: 2868 },
-  ipad:          { w: 2064, h: 2752 },
-  android:       { w: 1080, h: 1920 },
-  "android-7":   { w: 1200, h: 1920, wL: 1920, hL: 1200 },
-  "android-10":  { w: 1600, h: 2560, wL: 2560, hL: 1600 },
-  "feature-graphic": { w: 1024, h: 500 },
-};
-
 // ---------- Export sizes per device ----------
 type ExportSize = { label: string; w: number; h: number };
 
