@@ -55,7 +55,14 @@ export function SlideThumb({
   const { cW, cH } = getCanvas(device, orientation);
   const aspect = cW / cH;
   const tileH = Math.max(34, Math.min(120, Math.round(THUMB_W / aspect)));
-  const scale = THUMB_W / cW;
+  // Fitted to the tile the clamps actually produced, not to `THUMB_W` alone.
+  // The iPhone's 1320x2868 wants 130.4px of height in a 120px tile, and the tile
+  // clips — so the bottom 8%, which is exactly where `hero` and `device-bottom`
+  // put the phone, was cropped out of every iPhone thumbnail.
+  const scale = Math.min(THUMB_W / cW, tileH / cH);
+  // Centres what is now narrower than the tile, on top of the connected-canvas
+  // offset that scrolls the neighbouring slides into view.
+  const inset = (THUMB_W - cW * scale) / 2;
   const start = connectedCanvas ? Math.max(0, index - 1) : index;
   const visibleSlides = connectedCanvas ? slides.slice(start, Math.min(slides.length, index + 2)) : [slide];
   const localIndex = index - start;
@@ -101,7 +108,7 @@ export function SlideThumb({
               height: cH,
               position: "absolute",
               top: 0,
-              left: -localIndex * cW * scale,
+              left: inset - localIndex * cW * scale,
               transformOrigin: "top left",
               transform: `scale(${scale})`,
               pointerEvents: "none",
