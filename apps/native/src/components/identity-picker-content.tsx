@@ -31,7 +31,7 @@ import {
 import { Image } from "expo-image";
 import { launchImageLibraryAsync } from "expo-image-picker";
 import { SymbolView } from "expo-symbols";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { PlatformColor, Pressable, useWindowDimensions } from "react-native";
 
@@ -234,12 +234,26 @@ function IdentityPickerContent({
     // never having registered. It replaces the prompt under the well rather than
     // raising an alert: this picker is pushed inside a sheet, which covers the
     // toast viewport and would make an alert the second modal on the stack.
+    // A ref, not state: a second tap inside one React batch reads the old value
+    // and passes. Without it, two taps during the library's presentation both
+    // launch; the loser rejects and raises the banner, the winner resolves and
+    // applies its photo — so the "couldn't pick a photo" line the comment above
+    // exists to make failure legible ends up sitting under a photo that worked.
+    const picking = useRef(false);
     const pickPhoto = () => {
+        if (picking.current) {
+            return;
+        }
+        picking.current = true;
         setPhotoFailed(false);
-        adoptPickedPhoto().catch((cause: unknown) => {
-            console.error("Failed to pick a photo", cause);
-            setPhotoFailed(true);
-        });
+        adoptPickedPhoto()
+            .catch((cause: unknown) => {
+                console.error("Failed to pick a photo", cause);
+                setPhotoFailed(true);
+            })
+            .finally(() => {
+                picking.current = false;
+            });
     };
 
     let panel: ReactNode;
