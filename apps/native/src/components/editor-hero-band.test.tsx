@@ -130,9 +130,12 @@ describe("categoryEditorHeroBand", () => {
         expect(toJSON()).toBeTruthy();
     });
 
-    it("renders without crashing once an emoji is picked", async () => {
-        const { toJSON } = await render(<Harness emoji="🎯" />);
-        expect(toJSON()).toBeTruthy();
+    // Nothing else in this file looks at the picked symbol — the reset-badge test
+    // below only checks the badge — so `toJSON()` being truthy let EmojiTile
+    // return null with the suite still green.
+    it("draws the emoji once one is picked", async () => {
+        const { getByText } = await render(<Harness emoji="🎯" />);
+        expect(getByText("🎯")).toBeTruthy();
     });
 
     it("carries captionClearance into the wrapping view's bottom padding", async () => {
