@@ -3,6 +3,7 @@ import { R2 } from "@convex-dev/r2";
 import { components } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import { SYNCED_TABLES } from "./lib/syncTables";
+import { usingR2 } from "./photos";
 
 const r2 = new R2(components.r2);
 
@@ -88,5 +89,7 @@ async function releaseObject(ctx: MutationCtx, key: string): Promise<void> {
         await ctx.storage.delete(mapping.storageId);
         return;
     }
-    await r2.deleteObject(ctx, key);
+    if (usingR2()) {
+        await r2.deleteObject(ctx, key);
+    }
 }

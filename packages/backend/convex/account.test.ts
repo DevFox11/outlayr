@@ -180,4 +180,25 @@ describe("purging an account", () => {
         expect(passes).toBe(1);
         await expect(purgeAll(t, owner.userId)).resolves.toBe(1);
     });
+
+    test("finishes on a deployment without R2 when a reserved photo never confirmed", async () => {
+        const t = harness();
+        const owner = await seedProUser(t);
+        await t.run(async (ctx) => {
+            await ctx.db.insert("photoSizes", {
+                bytes: 0,
+                key: photoKeyFor(owner.userId, "never-confirmed"),
+                userId: owner.userId,
+            });
+        });
+
+        await expect(purgeAll(t, owner.userId)).resolves.toBeGreaterThan(0);
+        const left = await t.run(async (ctx) =>
+            ctx.db
+                .query("photoSizes")
+                .withIndex("by_user", (q) => q.eq("userId", owner.userId))
+                .collect()
+        );
+        expect(left).toStrictEqual([]);
+    });
 });

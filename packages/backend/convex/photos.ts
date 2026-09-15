@@ -37,13 +37,21 @@ const r2 = new R2(components.r2);
  * Read at call time rather than at module scope: a deployment that gains its R2
  * variables should start using them on the next call, not the next cold start.
  */
-function usingR2(): boolean {
+export function usingR2(): boolean {
     return (
         !!process.env.R2_BUCKET &&
         !!process.env.R2_ENDPOINT &&
         !!process.env.R2_ACCESS_KEY_ID &&
         !!process.env.R2_SECRET_ACCESS_KEY
     );
+}
+
+async function photoUrl(ctx: QueryCtx, key: string): Promise<string | null> {
+    const storageId = await storageIdFor(ctx, key);
+    if (storageId) {
+        return await ctx.storage.getUrl(storageId);
+    }
+    return usingR2() ? await r2.getUrl(key, { expiresIn: PHOTO_URL_TTL_SECONDS }) : null;
 }
 
 /** The Convex-storage id for `key`, or null when R2 holds the bytes. */
@@ -345,10 +353,7 @@ export const readUrls = mutation({
             owned.map(async (key) => {
                 // Routed per key, not per deployment: a photo stored before R2 was
                 // switched on still resolves through the backend that holds it.
-                const storageId = await storageIdFor(ctx, key);
-                const url = storageId
-                    ? await ctx.storage.getUrl(storageId)
-                    : await r2.getUrl(key, { expiresIn: PHOTO_URL_TTL_SECONDS });
+                const url = await photoUrl(ctx, key);
                 return url === null ? null : { key, url };
             })
         );
@@ -434,7 +439,9 @@ export const releaseUnreferenced = mutation({
             await forgetPhotoSize(ctx, args.key);
             return { released: true };
         }
-        await r2.deleteObject(ctx, args.key);
+        if (usingR2()) {
+            await r2.deleteObject(ctx, args.key);
+        }
         await forgetPhotoSize(ctx, args.key);
         return { released: true };
     },
