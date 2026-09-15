@@ -1,23 +1,13 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 
 import type { Database } from "@/db/client";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 import { FAVOURITE_CURRENCY_LIMIT } from "@/domain/favourite-currencies";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { readFavourites, toggleFavouriteCurrency, writeFavourites } from "./favourite-currencies-core";
 
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    sqlite.exec(`
-		CREATE TABLE appMeta (
-			key text PRIMARY KEY NOT NULL,
-			value text
-		);
-	`);
-    return testDatabase(sqlite);
-}
+const makeDb = migratedDatabase;
 
 const EIGHT = ["USD", "EUR", "GBP", "JPY", "AED", "AFN", "ALL", "AMD"];
 const NINTH = "ANG";

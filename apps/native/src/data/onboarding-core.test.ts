@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 
 import type { Database } from "@/db/client";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import {
@@ -12,16 +11,7 @@ import {
     shouldSettleLegacyLedger,
 } from "./onboarding-core";
 
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    sqlite.exec(`
-		CREATE TABLE appMeta (
-			key text PRIMARY KEY NOT NULL,
-			value text
-		);
-	`);
-    return testDatabase(sqlite);
-}
+const makeDb = migratedDatabase;
 
 describe("onboarding gate", () => {
     it("holds a fresh ledger back", () => {

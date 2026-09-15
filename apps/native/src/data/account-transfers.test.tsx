@@ -1,11 +1,10 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import { render } from "@testing-library/react-native";
-import BetterSqlite3 from "better-sqlite3";
 import { Text } from "react-native";
 
 import type { Database } from "@/db/client";
 import { accounts, transfers } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 import type { TransferLogRow } from "@/domain/transfer-log-rows";
 
 import { useAccountTransfers } from "./account-transfers";
@@ -13,51 +12,7 @@ import { useAccountTransfers } from "./account-transfers";
 const AUG_9 = new Date(Date.UTC(2026, 7, 9, 12));
 const AUG_10 = new Date(Date.UTC(2026, 7, 10, 12));
 
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    sqlite.exec(`
-		CREATE TABLE accounts (
-			id text PRIMARY KEY NOT NULL,
-			name text NOT NULL,
-			currency text NOT NULL,
-			customColor text,
-			emoji text,
-			icon text,
-			imageColor text,
-			imageKey text,
-			imageUri text,
-			initialBalance real NOT NULL DEFAULT 0,
-			initialBalanceDate integer NOT NULL,
-			kind text NOT NULL DEFAULT 'asset',
-			initialBalanceUsd real,
-			sortOrder integer NOT NULL DEFAULT 0,
-			dateCreated integer NOT NULL,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-		CREATE TABLE transfers (
-			id text PRIMARY KEY NOT NULL,
-			fromAccountId text NOT NULL,
-			toAccountId text NOT NULL,
-			fromAmount real NOT NULL,
-			fromCurrency text NOT NULL,
-			fromAmountUsd real,
-			toAmount real NOT NULL,
-			toCurrency text NOT NULL,
-			toAmountUsd real,
-			exchangeRate real,
-			exchangeRateType text,
-			date integer NOT NULL,
-			day integer NOT NULL,
-			month integer NOT NULL,
-			note text DEFAULT '' NOT NULL,
-			dateCreated integer NOT NULL,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-	`);
-    return testDatabase(sqlite);
-}
+const makeDb = migratedDatabase;
 
 async function addAccount(db: Database, id: string, name: string): Promise<void> {
     await db.insert(accounts).values({

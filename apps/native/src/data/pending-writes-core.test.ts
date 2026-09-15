@@ -1,97 +1,15 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 import { eq, ne } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { accounts, categories, transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 import type { PendingWrite } from "@/lib/pending-writes-core";
 
 import { applyPendingWrites, WALLET_DEDUPE_WINDOW_MS } from "./pending-writes-core";
 import { transactionsRepo } from "./transactions-core";
 
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    sqlite.exec(`
-		CREATE TABLE appMeta (
-			key text PRIMARY KEY NOT NULL,
-			value text
-		);
-		CREATE TABLE exchangeRates (
-			quote text NOT NULL,
-			rateType text NOT NULL,
-			date text NOT NULL,
-			rate real NOT NULL,
-			source text NOT NULL,
-			fetchedAt integer NOT NULL,
-			PRIMARY KEY (quote, rateType, date)
-		);
-		CREATE TABLE accounts (
-			id text PRIMARY KEY NOT NULL,
-			name text NOT NULL,
-			currency text NOT NULL,
-			kind text NOT NULL DEFAULT 'asset',
-			icon text,
-			emoji text,
-			customColor text,
-			imageColor text,
-			imageUri text,
-			imageKey text,
-			initialBalance real NOT NULL DEFAULT 0,
-			initialBalanceDate integer NOT NULL,
-			initialBalanceUsd real,
-			sortOrder integer NOT NULL DEFAULT 0,
-			dateCreated integer NOT NULL,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-		CREATE TABLE categories (
-			id text PRIMARY KEY NOT NULL,
-			name text,
-			color text DEFAULT '#FFFFFF',
-			icon text,
-			emoji text,
-			income integer NOT NULL DEFAULT 0,
-			sortOrder integer NOT NULL DEFAULT 0,
-			dateCreated integer,
-			parentId text,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-		CREATE TABLE transactions (
-			id text PRIMARY KEY NOT NULL,
-			amount real NOT NULL,
-			income integer NOT NULL,
-			currency text,
-			note text NOT NULL DEFAULT '',
-			details text,
-			date integer NOT NULL,
-			day integer NOT NULL,
-			month integer NOT NULL,
-			icon text,
-			emoji text,
-			customColor text,
-			imageColor text,
-			imageUri text,
-			imageKey text,
-			onceRecurring integer NOT NULL DEFAULT 0,
-			recurringType integer NOT NULL DEFAULT 0,
-			recurringCoefficient integer NOT NULL DEFAULT 1,
-			recurringEndDate integer,
-			recurringAnchorDay integer,
-			reminderLeadDays integer,
-			categoryId text,
-			accountId text,
-			amountUsd real,
-			exchangeRate real,
-			exchangeRateType text,
-			transferId text,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-	`);
-    return testDatabase(sqlite);
-}
+const makeDb = migratedDatabase;
 
 const NOW = new Date("2026-03-04T09:00:00Z");
 const PURCHASE = "wallet:expense:blue bottle:640";

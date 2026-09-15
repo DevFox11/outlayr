@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { accounts, exchangeRates, transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 import { accountBalance } from "@/domain/account-balance";
 import { buildRateTable } from "@/domain/valuation";
 
@@ -12,85 +11,7 @@ import { accountCellQuery, toCurrencyCells } from "./cell-query";
 import { candidateLogoIds } from "./logo-backfill-state";
 import { transactionsRepo } from "./transactions-core";
 
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    sqlite.exec(`
-		CREATE TABLE appMeta (
-			key text PRIMARY KEY NOT NULL,
-			value text
-		);
-		CREATE TABLE accounts (
-			id text PRIMARY KEY NOT NULL,
-			name text NOT NULL,
-			currency text NOT NULL,
-			initialBalance real NOT NULL DEFAULT 0,
-			initialBalanceUsd real,
-			initialBalanceDate integer NOT NULL,
-			kind text NOT NULL DEFAULT 'asset',
-			icon text,
-			emoji text,
-			customColor text,
-			imageColor text,
-			imageUri text,
-			imageKey text,
-			sortOrder integer NOT NULL DEFAULT 0,
-			dateCreated integer NOT NULL,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-		CREATE TABLE transfers (
-			id text PRIMARY KEY NOT NULL,
-			fromAccountId text NOT NULL, toAccountId text NOT NULL,
-			fromAmount real NOT NULL, fromCurrency text NOT NULL, fromAmountUsd real,
-			toAmount real NOT NULL, toCurrency text NOT NULL, toAmountUsd real,
-			exchangeRate real, exchangeRateType text,
-			date integer NOT NULL, day integer NOT NULL, month integer NOT NULL,
-			note text DEFAULT '' NOT NULL,
-			dateCreated integer NOT NULL, updatedAt integer NOT NULL, deletedAt integer
-		);
-		CREATE TABLE transactions (
-			id text PRIMARY KEY NOT NULL,
-			amount real NOT NULL,
-			income integer NOT NULL,
-			currency text,
-			note text NOT NULL DEFAULT '',
-			details text,
-			date integer NOT NULL,
-			day integer NOT NULL,
-			month integer NOT NULL,
-			icon text,
-			emoji text,
-			customColor text,
-			imageColor text,
-			imageUri text,
-			imageKey text,
-			onceRecurring integer NOT NULL DEFAULT 0,
-			recurringType integer NOT NULL DEFAULT 0,
-			recurringCoefficient integer NOT NULL DEFAULT 1,
-			recurringEndDate integer,
-			recurringAnchorDay integer,
-			reminderLeadDays integer,
-			categoryId text,
-			accountId text,
-			amountUsd real,
-			exchangeRate real,
-			exchangeRateType text,
-			transferId text,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-		CREATE TABLE exchangeRates (
-			quote text NOT NULL,
-			rateType text NOT NULL,
-			date text NOT NULL,
-			rate real NOT NULL,
-			source text NOT NULL,
-			fetchedAt integer NOT NULL,
-			PRIMARY KEY (quote, rateType, date)
-		);
-	`);
-    return testDatabase(sqlite);
-}
+const makeDb = () => migratedDatabase({ foreignKeys: false });
 
 async function addRate(db: Database, quote: string, date: string, rate: number): Promise<void> {
     await db.insert(exchangeRates).values({

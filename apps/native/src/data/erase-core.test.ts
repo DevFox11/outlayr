@@ -1,113 +1,14 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 import { getTableColumns, isNull } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { budgets, categories, mainBudget, transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 
 import { ERASED_TRANSACTION, eraseLedger } from "./erase-core";
 import { deletedTransactionsQuery } from "./transactions-core";
 
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    sqlite.exec(`
-		CREATE TABLE categories (
-			id text PRIMARY KEY NOT NULL,
-			name text,
-			color text DEFAULT '#FFFFFF',
-			icon text,
-			emoji text,
-			income integer NOT NULL DEFAULT 0,
-			sortOrder integer NOT NULL DEFAULT 0,
-			dateCreated integer,
-			parentId text,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-		CREATE TABLE transactions (
-			id text PRIMARY KEY NOT NULL,
-			amount real NOT NULL,
-			income integer NOT NULL,
-			currency text,
-			note text NOT NULL DEFAULT '',
-			details text,
-			date integer NOT NULL,
-			day integer NOT NULL,
-			month integer NOT NULL,
-			icon text,
-			emoji text,
-			customColor text,
-			imageColor text,
-			imageUri text,
-			imageKey text,
-			onceRecurring integer NOT NULL DEFAULT 0,
-			recurringType integer NOT NULL DEFAULT 0,
-			recurringCoefficient integer NOT NULL DEFAULT 1,
-			recurringEndDate integer,
-			recurringAnchorDay integer,
-			reminderLeadDays integer,
-			categoryId text,
-			accountId text,
-			amountUsd real,
-			exchangeRate real,
-			exchangeRateType text,
-			transferId text,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-		CREATE TABLE budgets (
-			id text PRIMARY KEY NOT NULL,
-			name text,
-			amount real NOT NULL,
-			type integer NOT NULL,
-			startDate integer,
-			dateCreated integer,
-			currency text,
-			amountUsd real,
-			green integer NOT NULL DEFAULT 0,
-			rollover integer NOT NULL DEFAULT 0,
-			categoryId text UNIQUE,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-		CREATE TABLE mainBudget (
-			id text PRIMARY KEY NOT NULL,
-			name text,
-			amount real NOT NULL,
-			type integer NOT NULL,
-			startDate integer,
-			dateCreated integer,
-			currency text,
-			amountUsd real,
-			green integer NOT NULL DEFAULT 0,
-			rollover integer NOT NULL DEFAULT 0,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-		CREATE TABLE transfers (
-			id text PRIMARY KEY NOT NULL,
-			fromAccountId text NOT NULL,
-			toAccountId text NOT NULL,
-			fromAmount real NOT NULL,
-			fromCurrency text NOT NULL,
-			fromAmountUsd real,
-			toAmount real NOT NULL,
-			toCurrency text NOT NULL,
-			toAmountUsd real,
-			exchangeRate real,
-			exchangeRateType text,
-			date integer NOT NULL,
-			day integer NOT NULL,
-			month integer NOT NULL,
-			note text DEFAULT '' NOT NULL,
-			dateCreated integer NOT NULL,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-	`);
-    return testDatabase(sqlite);
-}
+const makeDb = () => migratedDatabase({ foreignKeys: false });
 
 const AUTHORED = new Date("2026-03-04T10:00:00.000Z");
 

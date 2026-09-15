@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 import { asc, eq, isNull } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { exchangeRates, transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 import { startOfDay } from "@/domain/dates";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 
@@ -21,59 +20,7 @@ import { transactionsRepo } from "./transactions-core";
 const NOW = new Date(2025, 5, 15, 10, 30);
 const at = (y: number, m: number, day: number): Date => new Date(y, m - 1, day);
 
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    sqlite.exec(`
-		-- The back-fill canonicalizes each occurrence to USD, which reads the
-		-- ledger currency and the rate replica. Both are empty here, so every
-		-- occurrence resolves to a null amountUsd — exactly the offline case.
-		CREATE TABLE appMeta (
-			key text PRIMARY KEY NOT NULL,
-			value text
-		);
-		CREATE TABLE exchangeRates (
-			quote text NOT NULL,
-			rateType text NOT NULL,
-			date text NOT NULL,
-			rate real NOT NULL,
-			source text NOT NULL,
-			fetchedAt integer NOT NULL,
-			PRIMARY KEY (quote, rateType, date)
-		);
-		CREATE TABLE transactions (
-			id text PRIMARY KEY NOT NULL,
-			amount real NOT NULL,
-			income integer NOT NULL,
-			currency text,
-			note text NOT NULL DEFAULT '',
-			details text,
-			date integer NOT NULL,
-			day integer NOT NULL,
-			month integer NOT NULL,
-			icon text,
-			emoji text,
-			customColor text,
-			imageColor text,
-			imageUri text,
-			imageKey text,
-			onceRecurring integer NOT NULL DEFAULT 0,
-			recurringType integer NOT NULL DEFAULT 0,
-			recurringCoefficient integer NOT NULL DEFAULT 1,
-			recurringEndDate integer,
-			recurringAnchorDay integer,
-			reminderLeadDays integer,
-			categoryId text,
-			accountId text,
-			amountUsd real,
-			exchangeRate real,
-			exchangeRateType text,
-			transferId text,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-	`);
-    return testDatabase(sqlite);
-}
+const makeDb = () => migratedDatabase({ foreignKeys: false });
 
 interface SourceOverrides {
     accountId?: string | null;

@@ -1,10 +1,9 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { renderHook } from "@testing-library/react-native";
-import BetterSqlite3 from "better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 import { buildRateTable } from "@/domain/valuation";
 
 import { useInsights } from "./use-insights";
@@ -21,56 +20,7 @@ jest.mock("./use-valuation", () => ({
 
 const NOW = new Date(Date.UTC(2026, 6, 15, 12));
 
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    sqlite.exec(`
-		CREATE TABLE categories (
-			id text PRIMARY KEY NOT NULL,
-			name text,
-			color text DEFAULT '#FFFFFF',
-			icon text,
-			emoji text,
-			income integer NOT NULL DEFAULT 0,
-			sortOrder integer NOT NULL DEFAULT 0,
-			dateCreated integer,
-			parentId text,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-		CREATE TABLE transactions (
-			id text PRIMARY KEY NOT NULL,
-			amount real NOT NULL,
-			income integer NOT NULL,
-			currency text,
-			note text NOT NULL DEFAULT '',
-			details text,
-			date integer NOT NULL,
-			day integer NOT NULL,
-			month integer NOT NULL,
-			icon text,
-			emoji text,
-			customColor text,
-			imageColor text,
-			imageUri text,
-			imageKey text,
-			onceRecurring integer NOT NULL DEFAULT 0,
-			recurringType integer NOT NULL DEFAULT 0,
-			recurringCoefficient integer NOT NULL DEFAULT 1,
-			recurringEndDate integer,
-			recurringAnchorDay integer,
-			reminderLeadDays integer,
-			categoryId text,
-			accountId text,
-			amountUsd real,
-			exchangeRate real,
-			exchangeRateType text,
-			transferId text,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-	`);
-    return testDatabase(sqlite);
-}
+const makeDb = migratedDatabase;
 
 async function seedPendingCustom(db: Database): Promise<void> {
     await db.insert(categories).values({ id: "food", income: false, name: "Food", updatedAt: NOW });

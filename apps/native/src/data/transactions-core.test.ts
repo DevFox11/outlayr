@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
+import type BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { accounts, exchangeRates, outbox, transactions, transfers } from "@/db/schema";
-import { migratedSqlite, testDatabase } from "@/db/test-database";
+import { migratedDatabase, migratedSqlite, testDatabase } from "@/db/test-database";
 import { groupByDay } from "@/domain/day-sections";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
@@ -22,69 +22,7 @@ import {
 import type { TransactionInput } from "./transactions-core";
 import { transfersRepo } from "./transfers-core";
 
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    sqlite.exec(`
-		CREATE TABLE categories (
-			id text PRIMARY KEY NOT NULL,
-			name text,
-			color text DEFAULT '#FFFFFF',
-			icon text,
-			emoji text,
-			income integer NOT NULL DEFAULT 0,
-			sortOrder integer NOT NULL DEFAULT 0,
-			dateCreated integer,
-			parentId text,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-		CREATE TABLE appMeta (
-			key text PRIMARY KEY NOT NULL,
-			value text
-		);
-		CREATE TABLE exchangeRates (
-			quote text NOT NULL,
-			rateType text NOT NULL,
-			date text NOT NULL,
-			rate real NOT NULL,
-			source text NOT NULL,
-			fetchedAt integer NOT NULL,
-			PRIMARY KEY (quote, rateType, date)
-		);
-		CREATE TABLE transactions (
-			id text PRIMARY KEY NOT NULL,
-			amount real NOT NULL,
-			income integer NOT NULL,
-			currency text,
-			note text NOT NULL DEFAULT '',
-			details text,
-			date integer NOT NULL,
-			day integer NOT NULL,
-			month integer NOT NULL,
-			icon text,
-			emoji text,
-			customColor text,
-			imageColor text,
-			imageUri text,
-			imageKey text,
-			onceRecurring integer NOT NULL DEFAULT 0,
-			recurringType integer NOT NULL DEFAULT 0,
-			recurringCoefficient integer NOT NULL DEFAULT 1,
-			recurringEndDate integer,
-			recurringAnchorDay integer,
-			reminderLeadDays integer,
-			categoryId text,
-			accountId text,
-			amountUsd real,
-			exchangeRate real,
-			exchangeRateType text,
-			transferId text,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-	`);
-    return testDatabase(sqlite);
-}
+const makeDb = () => migratedDatabase({ foreignKeys: false });
 
 /**
  * The hand-rolled schema above carries no outbox and no triggers, so anything

@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 import { and, eq, isNull } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { budgets, categories, transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 
 import {
     CATEGORY_ERROR_MESSAGES,
@@ -20,71 +19,7 @@ import {
     validateCategoryEdit,
 } from "./categories-core";
 
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    sqlite.exec(`
-		CREATE TABLE categories (
-			id text PRIMARY KEY NOT NULL,
-			name text,
-			color text DEFAULT '#FFFFFF',
-			icon text,
-			emoji text,
-			income integer NOT NULL DEFAULT 0,
-			sortOrder integer NOT NULL DEFAULT 0,
-			dateCreated integer,
-			parentId text,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-		CREATE TABLE transactions (
-			id text PRIMARY KEY NOT NULL,
-			amount real NOT NULL,
-			income integer NOT NULL,
-			currency text,
-			note text NOT NULL DEFAULT '',
-			details text,
-			date integer NOT NULL,
-			day integer NOT NULL,
-			month integer NOT NULL,
-			icon text,
-			emoji text,
-			customColor text,
-			imageColor text,
-			imageUri text,
-			imageKey text,
-			onceRecurring integer NOT NULL DEFAULT 0,
-			recurringType integer NOT NULL DEFAULT 0,
-			recurringCoefficient integer NOT NULL DEFAULT 1,
-			recurringEndDate integer,
-			recurringAnchorDay integer,
-			reminderLeadDays integer,
-			categoryId text,
-			accountId text,
-			amountUsd real,
-			exchangeRate real,
-			exchangeRateType text,
-			transferId text,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-		CREATE TABLE budgets (
-			id text PRIMARY KEY NOT NULL,
-			name text,
-			amount real NOT NULL,
-			type integer NOT NULL,
-			startDate integer,
-			dateCreated integer,
-			green integer NOT NULL DEFAULT 0,
-			rollover integer NOT NULL DEFAULT 0,
-			currency text,
-			amountUsd real,
-			categoryId text UNIQUE,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-	`);
-    return testDatabase(sqlite);
-}
+const makeDb = migratedDatabase;
 
 async function addTransaction(
     db: Database,

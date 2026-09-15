@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 import { eq, sql } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 import { clearEnrichmentCache, getCachedEnrichment, setCachedEnrichment } from "@/domain/enrichment-cache";
 import type { RemoteEnrichmentResult } from "@/domain/enrichment-cache";
 
@@ -12,47 +11,7 @@ import { attachMissingLogos } from "./logo-backfill-core";
 import type { LogoBackfillDeps } from "./logo-backfill-core";
 import { rememberLogoCandidate, rememberLogoDismissal } from "./logo-backfill-state";
 
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    sqlite.exec(`
-		CREATE TABLE appMeta (
-			key text PRIMARY KEY NOT NULL,
-			value text
-		);
-		CREATE TABLE transactions (
-			id text PRIMARY KEY NOT NULL,
-			amount real NOT NULL,
-			income integer NOT NULL,
-			currency text,
-			note text NOT NULL DEFAULT '',
-			details text,
-			date integer NOT NULL,
-			day integer NOT NULL,
-			month integer NOT NULL,
-			icon text,
-			emoji text,
-			customColor text,
-			imageColor text,
-			imageUri text,
-			imageKey text,
-			onceRecurring integer NOT NULL DEFAULT 0,
-			recurringType integer NOT NULL DEFAULT 0,
-			recurringCoefficient integer NOT NULL DEFAULT 1,
-			recurringEndDate integer,
-			recurringAnchorDay integer,
-			reminderLeadDays integer,
-			categoryId text,
-			accountId text,
-			amountUsd real,
-			exchangeRate real,
-			exchangeRateType text,
-			transferId text,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-	`);
-    return testDatabase(sqlite);
-}
+const makeDb = migratedDatabase;
 
 const NOW = new Date("2026-09-07T21:00:00Z");
 const LOGO = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);

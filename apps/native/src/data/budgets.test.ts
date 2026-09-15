@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 import { and, eq, getTableColumns, isNull } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { appMeta, budgets, categories, exchangeRates, mainBudget, outbox } from "@/db/schema";
-import { migratedDatabase, testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 import { BUDGET_TYPE, shiftWindow, startOfPeriod } from "@/domain/budget-math";
 import { buildRateTable, limitIn } from "@/domain/valuation";
 
@@ -22,54 +21,7 @@ function getBudgetById(db: Database, id: string) {
     );
 }
 
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    sqlite.exec(`
-		CREATE TABLE appMeta (
-			key text PRIMARY KEY NOT NULL,
-			value text
-		);
-		CREATE TABLE exchangeRates (
-			quote text NOT NULL,
-			rateType text NOT NULL,
-			date text NOT NULL,
-			rate real NOT NULL,
-			source text NOT NULL,
-			fetchedAt integer NOT NULL,
-			PRIMARY KEY (quote, rateType, date)
-		);
-		CREATE TABLE budgets (
-			id text PRIMARY KEY NOT NULL,
-			name text,
-			amount real NOT NULL,
-			type integer NOT NULL,
-			startDate integer,
-			dateCreated integer,
-			green integer NOT NULL DEFAULT 0,
-			rollover integer NOT NULL DEFAULT 0,
-			currency text,
-			amountUsd real,
-			categoryId text UNIQUE,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-		CREATE TABLE mainBudget (
-			id text PRIMARY KEY NOT NULL,
-			name text,
-			amount real NOT NULL,
-			type integer NOT NULL,
-			startDate integer,
-			dateCreated integer,
-			green integer NOT NULL DEFAULT 0,
-			rollover integer NOT NULL DEFAULT 0,
-			currency text,
-			amountUsd real,
-			updatedAt integer NOT NULL,
-			deletedAt integer
-		);
-	`);
-    return testDatabase(sqlite);
-}
+const makeDb = () => migratedDatabase({ foreignKeys: false });
 
 async function queued(db: Database): Promise<[string, string][]> {
     const rows = await db.select({ localId: outbox.localId, tableName: outbox.tableName }).from(outbox);

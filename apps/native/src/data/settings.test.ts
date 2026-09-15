@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import BetterSqlite3 from "better-sqlite3";
 
 import type { Database } from "@/db/client";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 import { amountParts, formatAmount } from "@/domain/money";
 
 import { getMeta } from "./app-meta-core";
@@ -18,16 +17,7 @@ import {
     setNumberSetting,
 } from "./settings-core";
 
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    sqlite.exec(`
-		CREATE TABLE appMeta (
-			key text PRIMARY KEY NOT NULL,
-			value text
-		);
-	`);
-    return testDatabase(sqlite);
-}
+const makeDb = migratedDatabase;
 
 describe("settings defaults", () => {
     let db: Database;

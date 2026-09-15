@@ -69,12 +69,20 @@ export function applyMigrations(sqlite: BetterSqlite3.Database, include: (file: 
     }
 }
 
-/** A fresh in-memory handle with every shipped migration applied. */
-export function migratedSqlite(): BetterSqlite3.Database {
+/**
+ * A fresh in-memory handle with every shipped migration applied. better-sqlite3
+ * enforces foreign keys by default (and the rebuild migrations switch them back on); `foreignKeys: false` matches the app on a
+ * store with orphans (see `db/client.ts`) for a suite that seeds bare ids.
+ */
+export function migratedSqlite({ foreignKeys = true } = {}): BetterSqlite3.Database {
     const sqlite = new BetterSqlite3(":memory:");
     applyMigrations(sqlite);
+    if (!foreignKeys) {
+        sqlite.pragma("foreign_keys = OFF");
+    }
     return sqlite;
 }
 
 /** {@link migratedSqlite} wrapped as the app's {@link Database}. */
-export const migratedDatabase = (): Database => testDatabase(migratedSqlite());
+export const migratedDatabase = (options?: { foreignKeys?: boolean }): Database =>
+    testDatabase(migratedSqlite(options));

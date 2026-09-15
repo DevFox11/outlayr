@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, render, waitFor } from "@testing-library/react-native";
-import BetterSqlite3 from "better-sqlite3";
+import type BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { Text } from "react-native";
 
 import type { Database } from "@/db/client";
 import { appMeta } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 
 import { useLiveValue } from "./live-query";
 
@@ -34,16 +34,7 @@ async function fireAppMetaChange() {
     });
 }
 
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    sqlite.exec(`
-		CREATE TABLE appMeta (
-			key text PRIMARY KEY NOT NULL,
-			value text
-		);
-	`);
-    return testDatabase(sqlite);
-}
+const makeDb = migratedDatabase;
 
 function write(db: Database, key: string, value: string) {
     (db as unknown as { $client: BetterSqlite3.Database }).$client

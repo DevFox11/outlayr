@@ -1,12 +1,11 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, render, waitFor } from "@testing-library/react-native";
-import BetterSqlite3 from "better-sqlite3";
 import { Text } from "react-native";
 
 import { testLocalData as mockTestLocalData } from "@/contexts/test-local-data";
 import { setBoolSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
-import { testDatabase } from "@/db/test-database";
+import { migratedDatabase } from "@/db/test-database";
 
 import { AppSettingsProvider, useAppSettings, useDisplaySettings } from "./display-settings-context";
 
@@ -33,16 +32,7 @@ async function fireAppMetaChange() {
     });
 }
 
-function makeDb(): Database {
-    const sqlite = new BetterSqlite3(":memory:");
-    sqlite.exec(`
-		CREATE TABLE appMeta (
-			key text PRIMARY KEY NOT NULL,
-			value text
-		);
-	`);
-    return testDatabase(sqlite);
-}
+const makeDb = migratedDatabase;
 
 const mockDbHolder: { current: Database | null } = { current: null };
 
