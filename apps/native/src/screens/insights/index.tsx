@@ -67,6 +67,7 @@ import { InsightsSample } from "./components/insights-sample";
 import { InsightsTransactionList } from "./components/insights-transaction-list";
 import { NetWorthCard } from "./components/net-worth-card";
 import { SpendingCalendar } from "./components/spending-calendar";
+import { heroMagnitudeFor, heroPositiveFor } from "./hero";
 import { MEASURE_KEY } from "./measure-label";
 
 /** `value` is the stored `insightsTimeFrame` setting, which is a plain number. */
@@ -75,41 +76,6 @@ const PERIODS = [
     { labelKey: "insights.period.month", period: "month", value: 2 },
     { labelKey: "insights.period.year", period: "year", value: 3 },
 ] as const satisfies readonly { labelKey: TranslationKey; period: InsightsPeriod; value: number }[];
-
-function heroMagnitudeFor(
-    filteredEntry: CategoryBreakdownEntry | null,
-    readBalance: number | null,
-    readBucket: InsightsBucket | null,
-    measure: InsightsMeasure,
-    totals: InsightsTotals
-): number {
-    if (filteredEntry) {
-        return filteredEntry.amount;
-    }
-    if (readBalance != null) {
-        return Math.abs(readBalance);
-    }
-    if (readBucket) {
-        return Math.abs(readBucket.value);
-    }
-    return insightsMeasureMagnitude(measure, totals);
-}
-
-function heroPositiveFor(
-    readBalance: number | null,
-    readBucket: InsightsBucket | null,
-    isNet: boolean,
-    measure: InsightsMeasure,
-    totals: InsightsTotals
-): boolean {
-    if (readBalance != null) {
-        return readBalance >= 0;
-    }
-    if (readBucket && isNet) {
-        return readBucket.value >= 0;
-    }
-    return insightsMeasureIsPositive(measure, totals);
-}
 
 function bucketAt(buckets: readonly InsightsBucket[], index: number | null): InsightsBucket | null {
     if (index == null) {
@@ -346,7 +312,7 @@ export function Insights() {
 
     // The hero follows the narrowest thing selected.
     const heroMagnitude = heroMagnitudeFor(filteredEntry, readBalance, readBucket, measure, totals);
-    const heroPositive = heroPositiveFor(readBalance, readBucket, isNet, measure, totals);
+    const heroPositive = heroPositiveFor(filteredEntry, readBalance, readBucket, isNet, measure, totals);
 
     const eyebrow = eyebrowLabel(scrubBucket, isNet, period, measure, result.label, t);
 
