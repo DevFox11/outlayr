@@ -100,10 +100,27 @@ describe("spendingCalendarQuery", () => {
 
         const rows = await spendingCalendarQuery(db, NOW);
 
-        expect(rows.every((candidate) => candidate.date.getTime() === EARLIEST.getTime())).toBe(true);
+        expect(rows.every((candidate) => candidate.plotKey === "2026-02-10")).toBe(true);
         expect(rows.every((candidate) => candidate.currency === "USD" && !candidate.income)).toBe(true);
         expect(rows.reduce((total, candidate) => total + Number(candidate.amount), 0)).toBe(15);
         expect(rows.reduce((total, candidate) => total + Number(candidate.amountUsd), 0)).toBe(15);
+    });
+
+    it("plots a row on the local day of its instant, not the day the writing device stored", async () => {
+        const db = makeDb();
+        // What a row saved in a zone ahead of this one looks like: `day` is that
+        // device's midnight and lands on the calendar square before the instant's.
+        await insert(db, "travelled", at(2026, 8, 9, 12), {
+            amount: 5,
+            amountUsd: 5,
+            day: at(2026, 8, 8),
+        });
+
+        const rows = await spendingCalendarQuery(db, NOW);
+
+        // `groupByDay` keys the Log on the instant; the calendar has to agree, or
+        // one expense sits on two different days on two screens.
+        expect(rows.map((candidate) => candidate.plotKey)).toStrictEqual(["2026-08-09"]);
     });
 
     it("keeps UTC valuation days, currencies, and missing canonical values in separate groups", async () => {
@@ -118,7 +135,6 @@ describe("spendingCalendarQuery", () => {
             amount: 8,
             amountUsd: 10,
             currency: "EUR",
-            day: localDay,
         });
         await insert(db, "usd-offline", secondUtcDay, { amount: 3, amountUsd: null, day: localDay });
 
@@ -148,40 +164,33 @@ describe("spendingCalendarQuery", () => {
 describe("useSpendingCalendar", () => {
     it("preserves exact and fallback non-USD groups through the adapter", async () => {
         const db = makeDb();
-        const localDay = at(2026, 8, 9);
-        const valuationInstant = new Date(Date.UTC(2026, 7, 8, 23, 30));
+        const valuationInstant = at(2026, 8, 9, 12);
         await insert(db, "eur-exact", valuationInstant, {
             amount: 8,
             amountUsd: 10,
             currency: "EUR",
-            day: localDay,
         });
         await insert(db, "eur-fallback", valuationInstant, {
             amount: 7,
             amountUsd: null,
             currency: "EUR",
-            day: localDay,
         });
         await insert(db, "ves-pending-custom", valuationInstant, {
             amount: 40,
             amountUsd: null,
             currency: "VES",
-            day: localDay,
             exchangeRate: null,
             exchangeRateType: "custom",
         });
         jest.mocked(useValuation).mockReturnValue({
             displayCurrency: "CAD",
-            rates: buildRateTable([
-                { date: "2026-08-08", quote: "CAD", rate: 2 },
-                { date: "2026-08-09", quote: "CAD", rate: 3 },
-            ]),
+            rates: buildRateTable([{ date: "2026-08-09", quote: "CAD", rate: 3 }]),
         });
 
         const { result } = await renderHook(() =>
             useSpendingCalendar(db as unknown as Parameters<typeof useSpendingCalendar>[0], NOW.getTime())
         );
 
-        expect(result.current).toStrictEqual([{ date: "2026-08-09", exact: false, value: 27 }]);
+        expect(result.current).toStrictEqual([{ date: "2026-08-09", exact: false, value: 37 }]);
     });
 });

@@ -12,10 +12,11 @@ export interface SpendingCalendarRow {
     amount: number;
     amountUsd: number | null;
     currency: string | null;
-    date: Date;
     exchangeRate?: number | null;
     exchangeRateType?: string | null;
     income: boolean;
+    /** The local calendar day this row is drawn on, `YYYY-MM-DD`. */
+    plotKey: string;
     valuationDate: Date;
 }
 
@@ -25,7 +26,8 @@ export interface SpendingCalendarEntry {
     value: number;
 }
 
-function localDateKey(date: Date): string {
+/** Only `now` needs deriving; every row arrives already keyed by the query. */
+function localDayKey(date: Date): string {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
@@ -43,7 +45,7 @@ function compareStrings(left: string, right: string): number {
 }
 
 function compareRows(left: SpendingCalendarRow, right: SpendingCalendarRow): number {
-    const localDateComparison = compareStrings(localDateKey(left.date), localDateKey(right.date));
+    const localDateComparison = compareStrings(left.plotKey, right.plotKey);
     if (localDateComparison !== 0) {
         return localDateComparison;
     }
@@ -59,7 +61,8 @@ export function spendingCalendarEntries(
     valuation: SpendingCalendarValuation,
     now: Date
 ): SpendingCalendarEntry[] {
-    const expenses = rows.filter((row) => !row.income && row.date.getTime() <= now.getTime()).sort(compareRows);
+    const today = localDayKey(now);
+    const expenses = rows.filter((row) => !row.income && row.plotKey <= today).sort(compareRows);
     const values = valueDatedRowsIn(
         expenses.map((row) => ({ ...row, date: row.valuationDate })),
         valuation.displayCurrency,
@@ -69,7 +72,7 @@ export function spendingCalendarEntries(
 
     for (let index = 0; index < expenses.length; index += 1) {
         const row = expenses[index];
-        const date = localDateKey(row.date);
+        const date = row.plotKey;
         const total = totals.get(date) ?? { exact: true, value: 0 };
         total.exact &&=
             valueExactIn(

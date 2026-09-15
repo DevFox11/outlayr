@@ -9,13 +9,20 @@ const at = (year: number, month: number, day: number, hour = 0, minute = 0, seco
 
 const NOW = at(2026, 8, 10, 23, 59, 59);
 
-function row(overrides: Partial<SpendingCalendarRow> = {}): SpendingCalendarRow {
+/** Mirrors the `LOCAL_DAY` key the query hands the aggregate. */
+const plotKeyFor = (date: Date): string =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+function row({
+    date = at(2026, 8, 10, 9),
+    ...overrides
+}: Partial<SpendingCalendarRow> & { date?: Date } = {}): SpendingCalendarRow {
     return {
         amount: 0,
         amountUsd: 0,
         currency: "USD",
-        date: at(2026, 8, 10, 9),
         income: false,
+        plotKey: plotKeyFor(date),
         valuationDate: new Date(Date.UTC(2026, 7, 10, 13)),
         ...overrides,
     };
