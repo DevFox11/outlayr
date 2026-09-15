@@ -115,17 +115,9 @@ const transfers = {
             en: "EUR ref",
             es: "Ref. EUR",
         }),
-        "transfers.rate.lastUsed": t({
-            en: "Last used {date}",
-            es: "Usada por última vez el {date}",
-        }),
         "transfers.rate.official": t({
             en: "Official",
             es: "Oficial",
-        }),
-        "transfers.rate.perUnit": t({
-            en: "{quote} per {base}",
-            es: "{quote} por {base}",
         }),
         "transfers.rate.unavailable": t({
             en: "No rate for this pair — enter one",

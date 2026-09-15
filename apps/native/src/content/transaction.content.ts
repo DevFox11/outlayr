@@ -83,14 +83,6 @@ const transaction = {
             en: "Search categories",
             es: "Buscar categorías",
         }),
-        "transaction.category.suggested": t({
-            en: "Suggested",
-            es: "Sugerida",
-        }),
-        "transaction.category.willBeCreated": t({
-            en: "Will be created",
-            es: "Se creará",
-        }),
         "transaction.cta.add": t({
             en: "Add Transaction",
             es: "Agregar transacción",
@@ -275,14 +267,6 @@ const transaction = {
             en: "{count} years",
             es: "{count} años",
         }),
-        "transaction.kind.once": t({
-            en: "One-time",
-            es: "Único",
-        }),
-        "transaction.kind.subscription": t({
-            en: "Subscription",
-            es: "Suscripción",
-        }),
         "transaction.localData.body": t({
             en: "Outlayr could not open your data. This is often temporary — try again first. Your ledger is still on this device.",
             es: "Outlayr no pudo abrir tus datos. Suele ser temporal — inténtalo de nuevo. Tu registro sigue en este dispositivo.",
@@ -460,10 +444,6 @@ const transaction = {
             en: "Next charges",
             es: "Próximos cargos",
         }),
-        "transaction.schedule.repeats": t({
-            en: "Repeats every {interval}",
-            es: "Se repite cada {interval}",
-        }),
         // Says what the schedule does now, not what it used to: the charge moves
         // for that one month and the anchor day comes back after it.
         "transaction.schedule.shortMonthNote": t({
@@ -483,10 +463,6 @@ const transaction = {
         "transaction.schedule.stopRepeat": t({
             en: "Stop repeating",
             es: "Dejar de repetir",
-        }),
-        "transaction.schedule.unit": t({
-            en: "Unit",
-            es: "Unidad",
         }),
         "transaction.sentence.add.icon": t({
             en: "icon",

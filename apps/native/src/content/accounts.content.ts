@@ -119,10 +119,6 @@ const accounts = {
             en: "Opens all accounts",
             es: "Abre todas las cuentas",
         }),
-        "accounts.overview.owe": t({
-            en: "Owe",
-            es: "Debo",
-        }),
         "accounts.overview.owed": t({
             en: "Owed",
             es: "Deuda",
