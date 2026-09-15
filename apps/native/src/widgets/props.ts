@@ -291,9 +291,10 @@ export async function buildWidgetProps(db: SpendDb, now: Date = new Date()): Pro
         .from(categoriesTable)
         .where(isNull(categoriesTable.deletedAt));
     const categoriesById = new Map(categoryRows.map((row) => [row.id, row]));
+    const budgets = await budgetFigures(db, now, contributions, valuation);
 
     return {
-        Budget: await buildBudget(db, now, contributions, categoriesById, money, whole, valuation),
+        Budget: buildBudget(budgets, now, categoriesById, money, whole),
         Insights: {
             chrome: WIDGET_PALETTE,
             defaultPeriod: period,
@@ -310,7 +311,7 @@ export async function buildWidgetProps(db: SpendDb, now: Date = new Date()): Pro
             todaySpent: money(sumExpenses(contributions, startOfDay(now), now, null)),
             url: DEEP_LINKS.newExpense,
         },
-        intentBudgets: await buildIntentBudgets(db, now, contributions, categoriesById, money, whole, valuation),
+        intentBudgets: buildIntentBudgets(budgets, categoriesById, money, whole),
     };
 }
 
@@ -322,15 +323,50 @@ type EntryMoney = (value: number, code: string | null) => string;
  * The overall budget and the worst-off per-category one, plus the automatic
  * pick between them — the overall budget when there is one.
  */
-async function buildBudget(
-    db: SpendDb,
+/**
+ * Every budget with the figures both builders need, read once. `buildBudget` and
+ * `buildIntentBudgets` are assembled in the same pass, so without this they each
+ * ran the same two selects and re-derived the same window, limit and spend.
+ */
+async function budgetFigures(db: SpendDb, now: Date, contributions: readonly Contribution[], valuation: Valuation) {
+    const measure = (
+        row: {
+            amount: number;
+            amountUsd: number | null;
+            currency: string | null;
+            startDate: Date | null;
+            type: number;
+        },
+        categoryId: string | null
+    ) => {
+        const window = advanceBudgetWindow(row.startDate ?? now, row.type, now);
+        return {
+            limit: limitIn(row, window.start, valuation.displayCurrency, valuation.rates),
+            spent: sumExpenses(contributions, window.start, now, categoryId),
+            window,
+        };
+    };
+
+    const [main] = await db.select().from(mainBudgetTable).where(isNull(mainBudgetTable.deletedAt)).limit(1);
+    const categoryRows = await db
+        .select()
+        .from(budgetsTable)
+        .where(isNull(budgetsTable.deletedAt))
+        .orderBy(asc(budgetsTable.dateCreated));
+
+    return {
+        categories: categoryRows.map((row) => ({ row, ...measure(row, row.categoryId) })),
+        main: main ? { row: main, ...measure(main, null) } : null,
+    };
+}
+
+function buildBudget(
+    figures: Awaited<ReturnType<typeof budgetFigures>>,
     now: Date,
-    contributions: readonly Contribution[],
     categoriesById: ReadonlyMap<string, CategoryRow>,
     money: Money,
-    whole: Money,
-    valuation: Valuation
-): Promise<BudgetWidgetProps> {
+    whole: Money
+): BudgetWidgetProps {
     const empty: BudgetViewProps = {
         elapsedFraction: 0,
         endsAt: 0,
@@ -349,40 +385,22 @@ async function buildBudget(
         url: DEEP_LINKS.budgets,
     };
 
-    const [main] = await db.select().from(mainBudgetTable).where(isNull(mainBudgetTable.deletedAt)).limit(1);
-
     let overall = empty;
-    if (main) {
-        const window = advanceBudgetWindow(main.startDate ?? now, main.type, now);
+    if (figures.main) {
+        const { row, limit, spent, window } = figures.main;
         overall = present(
-            main.name?.trim() ? main.name.trim() : translateNow("budgets.scope.everything"),
+            row.name?.trim() ? row.name.trim() : translateNow("budgets.scope.everything"),
             true,
-            limitIn(main, window.start, valuation.displayCurrency, valuation.rates),
-            sumExpenses(contributions, window.start, now, null),
-            main.type,
+            limit,
+            spent,
+            row.type,
             window,
             DEEP_LINKS.overallBudget
         );
     }
 
-    const categoryRows = await db
-        .select()
-        .from(budgetsTable)
-        .where(isNull(budgetsTable.deletedAt))
-        .orderBy(asc(budgetsTable.dateCreated));
-
     let worst = empty;
-    const [ranked] = categoryRows
-        .map((row) => {
-            const window = advanceBudgetWindow(row.startDate ?? now, row.type, now);
-            return {
-                limit: limitIn(row, window.start, valuation.displayCurrency, valuation.rates),
-                row,
-                spent: sumExpenses(contributions, window.start, now, row.categoryId),
-                window,
-            };
-        })
-        .sort((a, b) => b.spent / b.limit - a.spent / a.limit);
+    const [ranked] = [...figures.categories].sort((a, b) => b.spent / b.limit - a.spent / a.limit);
     if (ranked) {
         // Name precedence mirrors `usePerCategoryBudgets`.
         const rankedCategory = ranked.row.categoryId ? categoriesById.get(ranked.row.categoryId) : undefined;
@@ -437,15 +455,12 @@ async function buildBudget(
 }
 
 /** Every budget the user has, overall first, each with its current figures. */
-async function buildIntentBudgets(
-    db: SpendDb,
-    now: Date,
-    contributions: readonly Contribution[],
+function buildIntentBudgets(
+    figures: Awaited<ReturnType<typeof budgetFigures>>,
     categoriesById: ReadonlyMap<string, CategoryRow>,
     money: Money,
-    whole: Money,
-    valuation: Valuation
-): Promise<IntentBudgetProps[]> {
+    whole: Money
+): IntentBudgetProps[] {
     const view = (id: string, name: string, amount: number, spent: number, type: number): IntentBudgetProps => ({
         id,
         limit: whole(amount),
@@ -459,34 +474,27 @@ async function buildIntentBudgets(
 
     const out: IntentBudgetProps[] = [];
 
-    const [main] = await db.select().from(mainBudgetTable).where(isNull(mainBudgetTable.deletedAt)).limit(1);
-    if (main) {
-        const window = advanceBudgetWindow(main.startDate ?? now, main.type, now);
+    if (figures.main) {
+        const { row, limit, spent } = figures.main;
         out.push(
             view(
                 OVERALL_BUDGET_ID,
-                main.name?.trim() ? main.name.trim() : translateNow("budgets.scope.everything"),
-                limitIn(main, window.start, valuation.displayCurrency, valuation.rates),
-                sumExpenses(contributions, window.start, now, null),
-                main.type
+                row.name?.trim() ? row.name.trim() : translateNow("budgets.scope.everything"),
+                limit,
+                spent,
+                row.type
             )
         );
     }
 
-    const rows = await db
-        .select()
-        .from(budgetsTable)
-        .where(isNull(budgetsTable.deletedAt))
-        .orderBy(asc(budgetsTable.dateCreated));
-    for (const row of rows) {
-        const window = advanceBudgetWindow(row.startDate ?? now, row.type, now);
+    for (const { row, limit, spent } of figures.categories) {
         const meta = row.categoryId ? categoriesById.get(row.categoryId) : undefined;
         out.push(
             view(
                 row.id,
                 row.name?.trim() ? row.name.trim() : (meta?.name ?? translateNow("budgets.name.default")),
-                limitIn(row, window.start, valuation.displayCurrency, valuation.rates),
-                sumExpenses(contributions, window.start, now, row.categoryId),
+                limit,
+                spent,
                 row.type
             )
         );
