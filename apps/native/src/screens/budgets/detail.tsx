@@ -11,14 +11,7 @@ import { budgetsRepo, useCategoryBudget } from "@/data/budgets";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
-import {
-    budgetPace,
-    budgetPeriodPhrase,
-    budgetWindowLabel,
-    isBehindPace,
-    leftPerDay,
-    shouldShowPaceMarker,
-} from "@/domain/budget-math";
+import { budgetDetailPace, budgetPeriodPhrase, budgetWindowLabel } from "@/domain/budget-math";
 import { useTranslation } from "@/i18n/context";
 import { notifyFailure } from "@/lib/notify";
 import { useHaptics } from "@/lib/use-haptics";
@@ -81,12 +74,7 @@ export function BudgetDetail({ db, id, onDone }: { db: Database; id: string; onD
         }
     };
 
-    const now = new Date(nowMs);
-    const closed = periodOffset < 0;
-    const pace = budgetPace(budget.window, now);
-    const showMarker = !closed && shouldShowPaceMarker(budget.type, pace.remaining, budget.overBudget);
-    const behind = isBehindPace(pace.remaining, budget.amount, budget.leftover);
-    const perDay = closed || budget.overBudget ? null : leftPerDay(budget.leftover, budget.window, now);
+    const { closed, behind, perDay, paceRemaining } = budgetDetailPace(budget, new Date(nowMs), periodOffset);
 
     return (
         <>
@@ -124,8 +112,8 @@ export function BudgetDetail({ db, id, onDone }: { db: Database; id: string; onD
                 leftPerDayAmount={perDay}
                 onPressTransaction={(txId) => router.push(`/transactions/${txId}`)}
                 overBudget={budget.overBudget}
-                paceBehind={!closed && behind}
-                paceRemaining={showMarker ? pace.remaining : null}
+                paceBehind={behind}
+                paceRemaining={paceRemaining}
                 period={closed ? budgetWindowLabel(budget.window, budget.type) : t(budgetPeriodPhrase(budget.type))}
                 spent={budget.spent}
                 stepper={

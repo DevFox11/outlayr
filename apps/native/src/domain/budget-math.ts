@@ -337,3 +337,37 @@ function clampFill(value: number): number {
     }
     return Math.max(0, Math.min(1, value));
 }
+
+/** What a detail screen shows about pace, for the window it is looking at. */
+export interface BudgetDetailPace {
+    behind: boolean;
+    closed: boolean;
+    /** Null when the window is closed or already over, where a rate says nothing. */
+    perDay: number | null;
+    /** Null when no marker should be drawn. */
+    paceRemaining: number | null;
+}
+
+/**
+ * Both budget detail screens — the category one and the overall one — read this.
+ *
+ * They are separate screens because their data hooks and their toolbars differ,
+ * but the pace they report must not: a marker shown on one and withheld on the
+ * other is the same budget contradicting itself. Keeping the rule here is what
+ * stops the two drifting, the way their editors once did.
+ */
+export function budgetDetailPace(
+    budget: { amount: number; leftover: number; overBudget: boolean; type: number; window: BudgetWindow },
+    now: Date,
+    periodOffset: number
+): BudgetDetailPace {
+    const closed = periodOffset < 0;
+    const pace = budgetPace(budget.window, now);
+    const showMarker = !closed && shouldShowPaceMarker(budget.type, pace.remaining, budget.overBudget);
+    return {
+        behind: !closed && isBehindPace(pace.remaining, budget.amount, budget.leftover),
+        closed,
+        paceRemaining: showMarker ? pace.remaining : null,
+        perDay: closed || budget.overBudget ? null : leftPerDay(budget.leftover, budget.window, now),
+    };
+}

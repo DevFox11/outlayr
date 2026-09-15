@@ -9,6 +9,7 @@ import * as budgetMath from "./budget-math";
 import {
     advanceBudgetWindow,
     BUDGET_TYPE,
+    budgetDetailPace,
     budgetPeriodPhrase,
     budgetRail,
     budgetWindowLabel,
@@ -307,5 +308,45 @@ describe("time left across a spring-forward", () => {
 
     it("reports one hour left half an hour before a shortened day ends", () => {
         expect(inMadrid("hours", 2025, 2, 31, 0, 0, 2025, 2, 30, 0, 0, 2025, 2, 30, 23, 30)).toBe(1);
+    });
+});
+
+describe("budgetDetailPace", () => {
+    // Half way through a 30-day month, a third of the limit spent.
+    const budget = {
+        amount: 300,
+        leftover: 200,
+        overBudget: false,
+        type: BUDGET_TYPE.month,
+        window: { end: d(2025, 4, 1), start: d(2025, 3, 1) },
+    };
+
+    it("reports a marker and a daily rate for a live window", () => {
+        // Literals, not the same helpers the subject calls: an expectation
+        // derived the way the implementation derives it agrees with any answer.
+        // 16 of 31 days gone leaves 15/31 of the window and $200 over 16 days.
+        expect(budgetDetailPace(budget, d(2025, 3, 16), 0)).toStrictEqual({
+            behind: false,
+            closed: false,
+            paceRemaining: 15 / 31,
+            perDay: 12.5,
+        });
+    });
+
+    it("withholds both on a closed window, where a rate would say nothing", () => {
+        // A past period is a record. The old screens each decided this for
+        // themselves, which is how a marker could show on one and not the other.
+        expect(budgetDetailPace(budget, d(2025, 3, 16), -1)).toStrictEqual({
+            behind: false,
+            closed: true,
+            paceRemaining: null,
+            perDay: null,
+        });
+    });
+
+    it("withholds the daily rate once the budget is over", () => {
+        const over = { ...budget, leftover: -50, overBudget: true };
+
+        expect(budgetDetailPace(over, d(2025, 3, 16), 0).perDay).toBeNull();
     });
 });
