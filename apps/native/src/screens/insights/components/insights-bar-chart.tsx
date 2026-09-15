@@ -12,10 +12,10 @@ import type { InsightsBucket, InsightsMeasure, InsightsPeriod } from "@/data/ins
 import { currencySymbol, formatAmount } from "@/domain/money";
 import { useChartDraw } from "@/hooks/use-chart-draw";
 import { useLanguage } from "@/i18n/context";
-import { panGesture } from "@/lib/gestures";
 import { CHART_BAR, CHART_DASH, CHART_SCRUB, compactMagnitude, dashArray } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 
+import { scrubGesture } from "./scrub-gesture";
 import { showXLabel } from "./x-label";
 
 const BAR_AREA = 150;
@@ -137,27 +137,7 @@ export function InsightsBarChart({
             }
         };
 
-        return panGesture()
-            .minDistance(0)
-            .shouldCancelWhenOutside(false)
-            .onBegin((event) => {
-                "worklet";
-                report(event.x);
-            })
-            .onChange((event) => {
-                "worklet";
-                report(event.x);
-            })
-            .onFinalize(() => {
-                "worklet";
-                const landed = reported.get();
-                reported.set(-1);
-                scheduleOnRN(setScrubIndex, null);
-                scheduleOnRN(onScrub, null);
-                if (landed >= 0) {
-                    scheduleOnRN(commit, landed);
-                }
-            });
+        return scrubGesture({ commit, onScrub, report, reported, setScrubIndex });
     }, [count, pitch, lastLive, onScrub, onCommit, selectedIndex, reported]);
 
     const active = scrubIndex ?? selectedIndex;

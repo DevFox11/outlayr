@@ -13,11 +13,11 @@ import { formatAmount } from "@/domain/money";
 import { useChartDraw } from "@/hooks/use-chart-draw";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { hatchPathD } from "@/lib/chart-paths";
-import { panGesture } from "@/lib/gestures";
 import { CHART_SCRUB } from "@/theme/chart";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
+import { scrubGesture } from "./scrub-gesture";
 import { showXLabel } from "./x-label";
 
 const HEIGHT = 150;
@@ -137,27 +137,7 @@ export function InsightsNetChart({
             }
         };
 
-        return panGesture()
-            .minDistance(0)
-            .shouldCancelWhenOutside(false)
-            .onBegin((event) => {
-                "worklet";
-                report(event.x);
-            })
-            .onChange((event) => {
-                "worklet";
-                report(event.x);
-            })
-            .onFinalize(() => {
-                "worklet";
-                const landed = reported.get();
-                reported.set(-1);
-                scheduleOnRN(setScrubIndex, null);
-                scheduleOnRN(onScrub, null);
-                if (landed >= 0) {
-                    scheduleOnRN(commit, landed);
-                }
-            });
+        return scrubGesture({ commit, onScrub, report, reported, setScrubIndex });
     }, [count, step, onScrub, onCommit, selectedIndex, reported]);
 
     const onLayout = (event: LayoutChangeEvent) => {
