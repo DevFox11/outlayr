@@ -49,47 +49,31 @@ export function Phone({ src, style, hideEmpty }: FrameProps) {
   );
 }
 
-export function AndroidPhone({ src, style, hideEmpty }: FrameProps) {
+type BezelSpec = {
+  aspectRatio: string;
+  /** The outer shell: corner radius, gradient and shadow. */
+  body: React.CSSProperties;
+  /** The camera dot, positioned against the shell. */
+  dot: React.CSSProperties;
+  /** The cutout the screenshot fills. */
+  screen: React.CSSProperties;
+};
+
+function Bezel({ spec, src, style, hideEmpty }: { spec: BezelSpec } & FrameProps) {
   const resolved = img(src);
   return (
-    <div style={{ position: "relative", aspectRatio: "9 / 19.5", ...style }}>
+    <div style={{ position: "relative", aspectRatio: spec.aspectRatio, ...style }}>
       <div
         style={{
           width: "100%",
           height: "100%",
-          borderRadius: "8% / 4%",
-          background: "linear-gradient(160deg, #2a2a2e 0%, #18181b 100%)",
-          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08), 0 8px 40px rgba(0,0,0,0.55)",
           position: "relative",
           overflow: "hidden",
+          ...spec.body,
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            top: "1.5%",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "3%",
-            height: "1.4%",
-            borderRadius: "50%",
-            background: "#0d0d0f",
-            border: "1px solid rgba(255,255,255,0.06)",
-            zIndex: 20,
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            left: "3.5%",
-            top: "2%",
-            width: "93%",
-            height: "96%",
-            borderRadius: "5.5% / 2.6%",
-            overflow: "hidden",
-            background: "#000",
-          }}
-        >
+        <div style={{ position: "absolute", borderRadius: "50%", zIndex: 20, ...spec.dot }} />
+        <div style={{ position: "absolute", overflow: "hidden", background: "#000", ...spec.screen }}>
           {resolved ? (
             <img
               src={resolved}
@@ -106,172 +90,93 @@ export function AndroidPhone({ src, style, hideEmpty }: FrameProps) {
   );
 }
 
-export function AndroidTabletP({ src, style, hideEmpty }: FrameProps) {
-  const resolved = img(src);
-  return (
-    <div style={{ position: "relative", aspectRatio: "5 / 8", ...style }}>
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          borderRadius: "4.5% / 2.8%",
-          background: "linear-gradient(160deg, #2a2a2e 0%, #18181b 100%)",
-          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08), 0 8px 48px rgba(0,0,0,0.6)",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: "1.2%",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "1.4%",
-            height: "0.88%",
-            borderRadius: "50%",
-            background: "#0d0d0f",
-            zIndex: 20,
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            left: "3.5%",
-            top: "2.2%",
-            width: "93%",
-            height: "95.6%",
-            borderRadius: "2.5% / 1.6%",
-            overflow: "hidden",
-            background: "#000",
-          }}
-        >
-          {resolved ? (
-            <img
-              src={resolved}
-              alt=""
-              style={{ display: "block", width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
-              draggable={false}
-            />
-          ) : hideEmpty ? null : (
-            <EmptySlot />
-          )}
-        </div>
-      </div>
-    </div>
-  );
+const ANDROID_PHONE: BezelSpec = {
+  aspectRatio: "9 / 19.5",
+  body: {
+    borderRadius: "8% / 4%",
+    background: "linear-gradient(160deg, #2a2a2e 0%, #18181b 100%)",
+    boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08), 0 8px 40px rgba(0,0,0,0.55)",
+  },
+  dot: {
+    top: "1.5%",
+    left: "50%",
+    transform: "translateX(-50%)",
+    width: "3%",
+    height: "1.4%",
+    background: "#0d0d0f",
+    border: "1px solid rgba(255,255,255,0.06)",
+  },
+  screen: { left: "3.5%", top: "2%", width: "93%", height: "96%", borderRadius: "5.5% / 2.6%" },
+};
+
+const ANDROID_TABLET_PORTRAIT: BezelSpec = {
+  aspectRatio: "5 / 8",
+  body: {
+    borderRadius: "4.5% / 2.8%",
+    background: "linear-gradient(160deg, #2a2a2e 0%, #18181b 100%)",
+    boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08), 0 8px 48px rgba(0,0,0,0.6)",
+  },
+  dot: {
+    top: "1.2%",
+    left: "50%",
+    transform: "translateX(-50%)",
+    width: "1.4%",
+    height: "0.88%",
+    background: "#0d0d0f",
+  },
+  screen: { left: "3.5%", top: "2.2%", width: "93%", height: "95.6%", borderRadius: "2.5% / 1.6%" },
+};
+
+const ANDROID_TABLET_LANDSCAPE: BezelSpec = {
+  aspectRatio: "8 / 5",
+  body: {
+    borderRadius: "2.8% / 4.5%",
+    background: "linear-gradient(160deg, #2a2a2e 0%, #18181b 100%)",
+    boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08), 0 8px 48px rgba(0,0,0,0.6)",
+  },
+  dot: {
+    left: "1.2%",
+    top: "50%",
+    transform: "translateY(-50%)",
+    width: "0.88%",
+    height: "1.4%",
+    background: "#0d0d0f",
+  },
+  screen: { left: "2.2%", top: "3.5%", width: "95.6%", height: "93%", borderRadius: "1.6% / 2.5%" },
+};
+
+const IPAD: BezelSpec = {
+  aspectRatio: "770 / 1000",
+  body: {
+    borderRadius: "5% / 3.6%",
+    background: "linear-gradient(180deg, #2C2C2E 0%, #1C1C1E 100%)",
+    boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.1), 0 8px 40px rgba(0,0,0,0.6)",
+  },
+  dot: {
+    top: "1.2%",
+    left: "50%",
+    transform: "translateX(-50%)",
+    width: "0.9%",
+    height: "0.65%",
+    background: "#111113",
+  },
+  screen: { left: "4%", top: "2.8%", width: "92%", height: "94.4%", borderRadius: "2.2% / 1.6%" },
+};
+
+export function AndroidPhone(props: FrameProps) {
+  return <Bezel spec={ANDROID_PHONE} {...props} />;
 }
 
-export function AndroidTabletL({ src, style, hideEmpty }: FrameProps) {
-  const resolved = img(src);
-  return (
-    <div style={{ position: "relative", aspectRatio: "8 / 5", ...style }}>
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          borderRadius: "2.8% / 4.5%",
-          background: "linear-gradient(160deg, #2a2a2e 0%, #18181b 100%)",
-          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08), 0 8px 48px rgba(0,0,0,0.6)",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            left: "1.2%",
-            top: "50%",
-            transform: "translateY(-50%)",
-            width: "0.88%",
-            height: "1.4%",
-            borderRadius: "50%",
-            background: "#0d0d0f",
-            zIndex: 20,
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            left: "2.2%",
-            top: "3.5%",
-            width: "95.6%",
-            height: "93%",
-            borderRadius: "1.6% / 2.5%",
-            overflow: "hidden",
-            background: "#000",
-          }}
-        >
-          {resolved ? (
-            <img
-              src={resolved}
-              alt=""
-              style={{ display: "block", width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
-              draggable={false}
-            />
-          ) : hideEmpty ? null : (
-            <EmptySlot />
-          )}
-        </div>
-      </div>
-    </div>
-  );
+export function AndroidTabletP(props: FrameProps) {
+  return <Bezel spec={ANDROID_TABLET_PORTRAIT} {...props} />;
 }
 
-export function IPad({ src, style, hideEmpty }: FrameProps) {
-  const resolved = img(src);
-  return (
-    <div style={{ position: "relative", aspectRatio: "770 / 1000", ...style }}>
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          borderRadius: "5% / 3.6%",
-          background: "linear-gradient(180deg, #2C2C2E 0%, #1C1C1E 100%)",
-          position: "relative",
-          overflow: "hidden",
-          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.1), 0 8px 40px rgba(0,0,0,0.6)",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: "1.2%",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "0.9%",
-            height: "0.65%",
-            borderRadius: "50%",
-            background: "#111113",
-            zIndex: 20,
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            left: "4%",
-            top: "2.8%",
-            width: "92%",
-            height: "94.4%",
-            borderRadius: "2.2% / 1.6%",
-            overflow: "hidden",
-            background: "#000",
-          }}
-        >
-          {resolved ? (
-            <img
-              src={resolved}
-              alt=""
-              style={{ display: "block", width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
-              draggable={false}
-            />
-          ) : hideEmpty ? null : (
-            <EmptySlot />
-          )}
-        </div>
-      </div>
-    </div>
-  );
+export function AndroidTabletL(props: FrameProps) {
+  return <Bezel spec={ANDROID_TABLET_LANDSCAPE} {...props} />;
+}
+
+export function IPad(props: FrameProps) {
+  return <Bezel spec={IPAD} {...props} />;
 }
 
 function EmptySlot() {

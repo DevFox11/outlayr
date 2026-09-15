@@ -8,7 +8,7 @@
     "es"
   ],
   "locale": "en",
-  "device": "iphone",
+  "device": "android",
   "orientation": "portrait",
   "appIcon": "/app-icon.png",
   "slidesByDevice": {
