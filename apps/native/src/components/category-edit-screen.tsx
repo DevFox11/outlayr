@@ -3,6 +3,7 @@ import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 
 import CategoryEditor from "@/components/category-editor";
+import { CloseToolbar } from "@/components/close-toolbar";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useDatabase } from "@/contexts/local-data-context";
 import { getCategoryById } from "@/data/categories-core";
@@ -58,13 +59,7 @@ export function CategoryEditScreen({ id }: { id: string }) {
         <>
             <Stack.Screen.Title>{title}</Stack.Screen.Title>
 
-            <Stack.Toolbar placement="left">
-                <Stack.Toolbar.Button
-                    {...toolbarIcon("close")}
-                    accessibilityLabel={t("common.close")}
-                    onPress={() => router.back()}
-                />
-            </Stack.Toolbar>
+            <CloseToolbar placement="left" />
             <Stack.Toolbar placement="right">
                 <Stack.Toolbar.Button
                     {...toolbarIcon("delete")}

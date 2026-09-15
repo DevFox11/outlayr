@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useAccounts } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
 import type { Database } from "@/db/client";
+import { useMergedRef } from "@/hooks/use-merged-ref";
 import { useTranslation } from "@/i18n/context";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
@@ -39,22 +40,7 @@ export function AccountPickerSheet({
     const accounts = useAccounts(db);
     const sheetRef = useRef<BottomSheetModal>(null);
 
-    const setRefs = useCallback(
-        (node: BottomSheetModal | null) => {
-            sheetRef.current = node;
-            if (!ref) {
-                return;
-            }
-            // React's `Ref` is a callback or an object with `current`; only the
-            // second has the property, which is what tells the two apart.
-            if ("current" in ref) {
-                ref.current = node;
-            } else {
-                ref(node);
-            }
-        },
-        [ref]
-    );
+    const setRefs = useMergedRef(sheetRef, ref);
 
     const pick = useCallback(
         (account: Account | null) => {

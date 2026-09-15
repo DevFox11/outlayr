@@ -1,19 +1,20 @@
 import { Canvas, Circle as SkCircle, Group as SkGroup, Path as SkPath } from "@shopify/react-native-skia";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Text as RNText, View } from "react-native";
 import type { LayoutChangeEvent } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
-import { Easing, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import { useReducedMotion, useSharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
 import { useSettingBool } from "@/contexts/display-settings-context";
 import { bucketDateLabel } from "@/data/insights";
 import type { InsightsBucket, InsightsPeriod } from "@/data/insights";
 import { formatAmount } from "@/domain/money";
+import { useChartDraw } from "@/hooks/use-chart-draw";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { hatchPathD } from "@/lib/chart-paths";
 import { panGesture } from "@/lib/gestures";
-import { CHART_DRAW, CHART_SCRUB } from "@/theme/chart";
+import { CHART_SCRUB } from "@/theme/chart";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
@@ -56,26 +57,8 @@ export function InsightsNetChart({
     const [width, setWidth] = useState(0);
     const [scrubIndex, setScrubIndex] = useState<number | null>(null);
 
-    const draw = useSharedValue(animated ? 0 : 1);
+    const draw = useChartDraw(animated);
     const reported = useSharedValue(-1);
-    const drawn = useRef(false);
-
-    useEffect(() => {
-        if (!animated) {
-            draw.set(1);
-            return;
-        }
-        if (drawn.current) {
-            return;
-        }
-        drawn.current = true;
-        draw.set(
-            withTiming(1, {
-                duration: CHART_DRAW.durationMs,
-                easing: Easing.out(Easing.cubic),
-            })
-        );
-    }, [animated, draw]);
 
     const liveCount = useMemo(() => {
         let count = buckets.length;

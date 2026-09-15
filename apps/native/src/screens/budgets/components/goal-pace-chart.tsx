@@ -1,12 +1,13 @@
 import { Canvas, DashPathEffect, Circle as SkCircle, Path as SkPath } from "@shopify/react-native-skia";
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { View } from "react-native";
-import { Easing, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import { useReducedMotion } from "react-native-reanimated";
 
 import { useSettingBool } from "@/contexts/display-settings-context";
 import type { GoalLinePoint } from "@/domain/goal-pace-geometry";
 import { makeGeometry } from "@/domain/goal-pace-geometry";
-import { CHART_DASH, CHART_DRAW } from "@/theme/chart";
+import { useChartDraw } from "@/hooks/use-chart-draw";
+import { CHART_DASH } from "@/theme/chart";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
@@ -48,20 +49,7 @@ export function GoalPaceChart({
     const colors = useColors();
     const reduceMotion = useReducedMotion();
     const animatedCharts = useSettingBool("animatedCharts") && !reduceMotion;
-    const draw = useSharedValue(0);
-    const drawn = useRef(false);
-
-    useEffect(() => {
-        if (!animatedCharts) {
-            draw.set(1);
-            return;
-        }
-        if (drawn.current) {
-            return;
-        }
-        drawn.current = true;
-        draw.set(withTiming(1, { duration: CHART_DRAW.durationMs, easing: Easing.out(Easing.cubic) }));
-    }, [animatedCharts, draw]);
+    const draw = useChartDraw(animatedCharts);
 
     const geometry = useMemo(
         () => makeGeometry({ actual, height, nowMs, required, startTime, target, targetTime, width }),

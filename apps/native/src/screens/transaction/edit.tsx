@@ -1,7 +1,7 @@
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 
-import { toolbarIcon } from "@/components/toolbar-icons";
+import { CloseToolbar } from "@/components/close-toolbar";
 import { TransactionForm } from "@/components/transaction-form";
 import { useDatabase } from "@/contexts/local-data-context";
 import { getTransactionById } from "@/data/transactions-core";
@@ -43,13 +43,7 @@ export function EditTransaction({ id }: { id: string }) {
         <>
             <Stack.Header transparent />
             <Stack.Screen.Title>{t("transaction.edit.title")}</Stack.Screen.Title>
-            <Stack.Toolbar placement="left">
-                <Stack.Toolbar.Button
-                    {...toolbarIcon("close")}
-                    accessibilityLabel={t("common.close")}
-                    onPress={() => router.back()}
-                />
-            </Stack.Toolbar>
+            <CloseToolbar placement="left" />
             <TransactionForm
                 db={db}
                 initial={initial}

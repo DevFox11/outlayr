@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 
-import { toolbarIcon } from "@/components/toolbar-icons";
+import { CloseToolbar } from "@/components/close-toolbar";
 import TransferEditor from "@/components/transfer-editor";
 import { useTranslation } from "@/i18n/context";
 
@@ -39,13 +39,7 @@ export default function TransferCreateScreen() {
     return (
         <>
             <Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title>
-            <Stack.Toolbar placement="right">
-                <Stack.Toolbar.Button
-                    {...toolbarIcon("close")}
-                    accessibilityLabel={t("common.close")}
-                    onPress={() => router.back()}
-                />
-            </Stack.Toolbar>
+            <CloseToolbar placement="right" />
 
             <TransferEditor onDone={() => router.back()} seed={seed} />
         </>

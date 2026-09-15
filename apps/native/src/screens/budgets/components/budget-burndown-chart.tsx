@@ -5,19 +5,20 @@ import {
     Group as SkGroup,
     Path as SkPath,
 } from "@shopify/react-native-skia";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
-import { Easing, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import { useReducedMotion, useSharedValue } from "react-native-reanimated";
 import type { SharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
 import { useSettingBool } from "@/contexts/display-settings-context";
 import type { Burndown } from "@/domain/budget-burndown";
+import { useChartDraw } from "@/hooks/use-chart-draw";
 import { useTranslation } from "@/i18n/context";
 import { hatchPathD } from "@/lib/chart-paths";
 import { panGesture } from "@/lib/gestures";
-import { CHART_DASH, CHART_DRAW, CHART_SCRUB } from "@/theme/chart";
+import { CHART_DASH, CHART_SCRUB } from "@/theme/chart";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
@@ -252,25 +253,7 @@ export function BudgetBurndownChart({
 
     const scrubX = useSharedValue(-1);
     const activeDay = useSharedValue(-1);
-    const draw = useSharedValue(0);
-    const drawn = useRef(false);
-
-    useEffect(() => {
-        if (!animatedCharts) {
-            draw.set(1);
-            return;
-        }
-        if (drawn.current) {
-            return;
-        }
-        drawn.current = true;
-        draw.set(
-            withTiming(1, {
-                duration: CHART_DRAW.durationMs,
-                easing: Easing.out(Easing.cubic),
-            })
-        );
-    }, [animatedCharts, draw]);
+    const draw = useChartDraw(animatedCharts);
 
     const geometry = useMemo(
         () => makeGeometry(burndown, limit, width, height, domain),

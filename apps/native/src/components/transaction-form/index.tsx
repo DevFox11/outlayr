@@ -37,7 +37,6 @@ import { useCategoriesByNamespace } from "@/data/categories";
 import { ensureCategoryByName, getCategoryById } from "@/data/categories-core";
 import type { Category } from "@/data/categories-core";
 import { useFavouriteCurrencies } from "@/data/favourite-currencies";
-import { toggleFavouriteCurrency } from "@/data/favourite-currencies-core";
 import { useRecentMerchants } from "@/data/merchant-history";
 import { rememberedCategoryFor } from "@/data/merchant-history-core";
 import { applyMerchantToSiblings } from "@/data/merchant-siblings-core";
@@ -54,7 +53,6 @@ import type { Database } from "@/db/client";
 import { CONFETTI_FLIGHT_MS } from "@/domain/confetti";
 import { computeCurtainHues } from "@/domain/curtain-hues";
 import { formatSentenceDate } from "@/domain/dates";
-import { isFavourite } from "@/domain/favourite-currencies";
 import { merchantKey } from "@/domain/merchant-resolver";
 import { suggestMerchants } from "@/domain/merchant-suggest";
 import { formatAmount, minorUnitsFor } from "@/domain/money";
@@ -73,6 +71,7 @@ import { isMissingCategory, transactionFormErrors } from "@/domain/transaction-f
 import { useLocaleTag } from "@/hooks/use-locale-tag";
 import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 import { useRegionCode } from "@/hooks/use-region-code";
+import { useToggleFavouriteCurrency } from "@/hooks/use-toggle-favourite-currency";
 import { useTransactionEnrichment } from "@/hooks/use-transaction-enrichment";
 import type { EnrichmentSuggestion, PendingCategory } from "@/hooks/use-transaction-enrichment";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -913,15 +912,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         stageStep,
     });
     const favouriteCurrencies = useFavouriteCurrencies(db);
-    // Read off the list the write produced, not off the array at press time:
-    // toggles are serialised, so a row rendered a tick before another landed
-    // would otherwise mis-read the cap.
-    const toggleFavourite = (code: string, favourite: boolean) => {
-        toggleFavouriteCurrency(db, code).then((next) => {
-            // oxlint-disable-next-line promise/no-callback-in-promise -- a press handler is not a promise chain, so the haptic has nowhere else to be sequenced from
-            haptics(favourite || isFavourite(next, code) ? "light" : "warning");
-        });
-    };
+    const toggleFavourite = useToggleFavouriteCurrency(db);
     const selectCategory = (picked: Category) => {
         form.setFieldValue("category", picked);
         form.setFieldValue("pendingCategory", null);

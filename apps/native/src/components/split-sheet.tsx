@@ -4,7 +4,7 @@ import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
 import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Button } from "panelui-native";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Ref } from "react";
 import { Pressable, View } from "react-native";
 
@@ -16,6 +16,7 @@ import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { isBalanced, unallocated } from "@/domain/split";
 import type { Allocation } from "@/domain/split";
 import { addPart, removePart, setPartAmount, setPartCategory } from "@/domain/split-draft";
+import { useMergedRef } from "@/hooks/use-merged-ref";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
@@ -56,22 +57,7 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
     const [editing, setEditing] = useState<number | null>(null);
     const [amountText, setAmountText] = useState("");
 
-    const setRefs = useCallback(
-        (node: BottomSheetModal | null) => {
-            sheetRef.current = node;
-            if (!ref) {
-                return;
-            }
-            // React's `Ref` is a callback or an object with `current`; only the
-            // second has the property, which is what tells the two apart.
-            if ("current" in ref) {
-                ref.current = node;
-            } else {
-                ref(node);
-            }
-        },
-        [ref]
-    );
+    const setRefs = useMergedRef(sheetRef, ref);
 
     const byId = useMemo(() => {
         const map = new Map<string, Category>();

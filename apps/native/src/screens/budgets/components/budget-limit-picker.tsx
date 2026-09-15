@@ -23,7 +23,7 @@ import { LIMIT_STEP } from "@/domain/budget-limit-step";
 import { daysLeftInWindow, leftPerDay } from "@/domain/budget-math";
 import type { BudgetWindow } from "@/domain/budget-math";
 import { windowsOver } from "@/domain/budget-typical";
-import { monthAbbrev } from "@/domain/dates";
+import { monthAbbrevTitle } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
@@ -88,8 +88,7 @@ function curvePathD(
 
 /** "23 Jul". */
 function formatDayMonth(date: Date, language: Language): string {
-    const month = monthAbbrev(date, language);
-    return `${date.getDate()} ${month[0]}${month.slice(1).toLowerCase()}`;
+    return `${date.getDate()} ${monthAbbrevTitle(date, language)}`;
 }
 
 /**

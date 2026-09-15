@@ -17,6 +17,7 @@ import { useRecentCategoryIds } from "@/data/category-recents";
 import type { Database } from "@/db/client";
 import { expandedForSelectedCategory, searchCategoryTree } from "@/domain/category-search";
 import type { CategoryMatch } from "@/domain/category-search";
+import { useMergedRef } from "@/hooks/use-merged-ref";
 import { useTranslation } from "@/i18n/context";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
@@ -88,22 +89,7 @@ export function CategoryPickerSheet({
     const [query, setQuery] = useState("");
     const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
 
-    const setRefs = useCallback(
-        (node: BottomSheetModal | null) => {
-            sheetRef.current = node;
-            if (!ref) {
-                return;
-            }
-            // React's `Ref` is a callback or an object with `current`; only the
-            // second has the property, which is what tells the two apart.
-            if ("current" in ref) {
-                ref.current = node;
-            } else {
-                ref(node);
-            }
-        },
-        [ref]
-    );
+    const setRefs = useMergedRef(sheetRef, ref);
 
     const seededFor = useRef<string | null | undefined>(undefined);
     useEffect(() => {

@@ -7,10 +7,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useLocalData } from "@/contexts/local-data-context";
 import { useFavouriteCurrencies } from "@/data/favourite-currencies";
-import { toggleFavouriteCurrency } from "@/data/favourite-currencies-core";
-import { isFavourite } from "@/domain/favourite-currencies";
+import { useToggleFavouriteCurrency } from "@/hooks/use-toggle-favourite-currency";
 import { useTranslation } from "@/i18n/context";
-import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
 import { CurrencyPickerList } from "./currency-picker-list";
@@ -47,25 +45,13 @@ export function CurrencyPickerSheet({ selected, onSelect, ref }: CurrencyPickerS
         SEARCH_HEIGHT;
     const [query, setQuery] = useState("");
     const t = useTranslation();
-    const haptics = useHaptics();
     // The nullable `db` from the context, not `useDatabase()`: the sheet is mounted
     // by forms whose own callers can sit above the root splash gate, where
     // `useDatabase()` throws.
     const { db } = useLocalData();
     const favourites = useFavouriteCurrencies(db);
 
-    // Read off the list the write produced, not off `favourites.length` at press
-    // time: toggles are serialised, so a row rendered a tick before another landed
-    // would otherwise mis-read the cap.
-    const onToggleFavourite = (code: string, favourite: boolean) => {
-        if (db === null) {
-            return;
-        }
-        toggleFavouriteCurrency(db, code).then((next) => {
-            // oxlint-disable-next-line promise/no-callback-in-promise -- a press handler is not a promise chain, so the haptic has nowhere else to be sequenced from
-            haptics(favourite || isFavourite(next, code) ? "light" : "warning");
-        });
-    };
+    const onToggleFavourite = useToggleFavouriteCurrency(db);
 
     return (
         <BottomSheetModal

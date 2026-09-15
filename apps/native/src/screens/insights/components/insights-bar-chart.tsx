@@ -1,14 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Text as RNText, View } from "react-native";
 import type { LayoutChangeEvent } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
-import Animated, {
-    Easing,
-    useAnimatedStyle,
-    useReducedMotion,
-    useSharedValue,
-    withTiming,
-} from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue } from "react-native-reanimated";
 import Svg, { Line } from "react-native-svg";
 import { scheduleOnRN } from "react-native-worklets";
 
@@ -16,9 +10,10 @@ import { useSettingBool } from "@/contexts/display-settings-context";
 import { bucketDateLabel } from "@/data/insights";
 import type { InsightsBucket, InsightsMeasure, InsightsPeriod } from "@/data/insights";
 import { currencySymbol, formatAmount } from "@/domain/money";
+import { useChartDraw } from "@/hooks/use-chart-draw";
 import { useLanguage } from "@/i18n/context";
 import { panGesture } from "@/lib/gestures";
-import { CHART_BAR, CHART_DASH, CHART_DRAW, CHART_SCRUB, compactMagnitude, dashArray } from "@/theme/chart";
+import { CHART_BAR, CHART_DASH, CHART_SCRUB, compactMagnitude, dashArray } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 
 import { showXLabel } from "./x-label";
@@ -99,26 +94,8 @@ export function InsightsBarChart({
     const [width, setWidth] = useState(0);
     const [scrubIndex, setScrubIndex] = useState<number | null>(null);
 
-    const grow = useSharedValue(animated ? 0 : 1);
+    const grow = useChartDraw(animated);
     const reported = useSharedValue(-1);
-    const drawn = useRef(false);
-
-    useEffect(() => {
-        if (!animated) {
-            grow.set(1);
-            return;
-        }
-        if (drawn.current) {
-            return;
-        }
-        drawn.current = true;
-        grow.set(
-            withTiming(1, {
-                duration: CHART_DRAW.durationMs,
-                easing: Easing.out(Easing.cubic),
-            })
-        );
-    }, [animated, grow]);
 
     const gap = gapFor(period);
     const values = buckets.map((bucket) => Math.abs(bucket.value));
