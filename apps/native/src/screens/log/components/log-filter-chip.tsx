@@ -3,21 +3,20 @@ import { View } from "react-native";
 
 import { MeasureCellAmount } from "@/components/amount-text";
 import { LedgerHead } from "@/components/ledger-head";
-import type { LedgerCell } from "@/components/ledger-head";
 import { MonoLabel } from "@/components/mono-label";
 import { ScopeChip } from "@/components/scope-chip";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { CategoryMetaRow } from "@/data/categories";
 import type { LogFilter } from "@/domain/log-filter";
 import { filterHasMenu, filterPeriodUnit } from "@/domain/log-filter";
-import { measureAlternatives, measureIsIncome, measureIsPositive, measureMagnitude } from "@/domain/log-measure";
+import { measureIsIncome, measureIsPositive, measureMagnitude } from "@/domain/log-measure";
 import type { LogFigures, LogMeasure } from "@/domain/log-measure";
 import { canStepForward, stepCursor } from "@/domain/log-period-cursor";
 import type { ScopeTotals } from "@/domain/log-scope-figures";
 import { useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
 
-import { FILTER_LABEL_KEY, MEASURE_WORD_KEY, scopeMeasureLabel } from "../labels";
+import { FILTER_LABEL_KEY, measureCells, scopeMeasureLabel } from "../labels";
 import { LogHeroNumber } from "./log-hero-number";
 
 interface LogFilterChipProps {
@@ -149,17 +148,7 @@ function ScopeFigures({
                 />
             </View>
             <View className="pt-3">
-                <LedgerHead
-                    cells={measureAlternatives(measure).map((alternative): LedgerCell => ({
-                        income: measureIsIncome(alternative),
-                        key: alternative,
-                        label: t(MEASURE_WORD_KEY[alternative]),
-                        magnitude: measureMagnitude(alternative, shown),
-                        onPress: () => onMeasure(alternative),
-                        positive: measureIsPositive(alternative, shown),
-                    }))}
-                    code={shown.currencyCode}
-                />
+                <LedgerHead cells={measureCells(measure, shown, t, onMeasure)} code={shown.currencyCode} />
             </View>
             {others.length > 0 ? (
                 <View className="gap-1.5 pt-3">

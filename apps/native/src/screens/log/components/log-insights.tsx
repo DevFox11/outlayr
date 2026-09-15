@@ -4,19 +4,18 @@ import { HugeiconsIcon } from "@hugeicons/react-native";
 import { View } from "react-native";
 
 import { LedgerHead } from "@/components/ledger-head";
-import type { LedgerCell } from "@/components/ledger-head";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { LogInsights as LogInsightsData, LogPeriod } from "@/data/log-totals";
-import { measureAlternatives, measureIsIncome, measureIsPositive, measureMagnitude } from "@/domain/log-measure";
+import { measureIsIncome, measureIsPositive, measureMagnitude } from "@/domain/log-measure";
 import type { LogFigures, LogMeasure } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
-import { MEASURE_WORD_KEY, PERIOD_PHRASE_KEY } from "../labels";
+import { measureCells, MEASURE_WORD_KEY, PERIOD_PHRASE_KEY } from "../labels";
 import { LogHeroNumber } from "./log-hero-number";
 import { LogSparkline } from "./log-sparkline";
 
@@ -68,7 +67,6 @@ export function LogInsights({
     // name one when nothing in the period could be placed there.
     const figures = insights.perCurrency.find((f) => f.currencyCode === displayCurrency) ?? insights.dominant;
     const alsoThisPeriod = insights.perCurrency.filter((f) => f.currencyCode !== figures.currencyCode);
-    const alternatives = measureAlternatives(measure);
 
     return (
         <View className="pt-3.5 pb-1.5">
@@ -101,17 +99,7 @@ export function LogInsights({
             </View>
 
             <View className="pt-3">
-                <LedgerHead
-                    cells={alternatives.map((alternative): LedgerCell => ({
-                        income: measureIsIncome(alternative),
-                        key: alternative,
-                        label: t(MEASURE_WORD_KEY[alternative]),
-                        magnitude: measureMagnitude(alternative, figures),
-                        onPress: () => onMeasure(alternative),
-                        positive: measureIsPositive(alternative, figures),
-                    }))}
-                    code={figures.currencyCode}
-                />
+                <LedgerHead cells={measureCells(measure, figures, t, onMeasure)} code={figures.currencyCode} />
             </View>
 
             {alsoThisPeriod.length > 0 ? (

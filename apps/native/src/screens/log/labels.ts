@@ -1,6 +1,8 @@
+import type { LedgerCell } from "@/components/ledger-head";
 import type { LogPeriod } from "@/data/log-totals";
 import type { LogFilter } from "@/domain/log-filter";
-import type { LogMeasure } from "@/domain/log-measure";
+import { measureAlternatives, measureIsIncome, measureIsPositive, measureMagnitude } from "@/domain/log-measure";
+import type { LogFigures, LogMeasure } from "@/domain/log-measure";
 import type { TranslationKey } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
 
@@ -34,6 +36,29 @@ export const MEASURE_WORD_KEY = {
     net: "log.measure.net",
     out: "log.measure.out",
 } satisfies Record<LogMeasure, TranslationKey>;
+
+/**
+ * The other two measures, as cells the ledger head can draw and press.
+ *
+ * The head is the same on the Log and behind the filter chip, and the two must
+ * offer the same alternatives on the same figures or the screen contradicts
+ * itself when a filter goes on.
+ */
+export function measureCells(
+    measure: LogMeasure,
+    figures: LogFigures,
+    t: TranslateFn,
+    onMeasure: (next: LogMeasure) => void
+): LedgerCell[] {
+    return measureAlternatives(measure).map((alternative) => ({
+        income: measureIsIncome(alternative),
+        key: alternative,
+        label: t(MEASURE_WORD_KEY[alternative]),
+        magnitude: measureMagnitude(alternative, figures),
+        onPress: () => onMeasure(alternative),
+        positive: measureIsPositive(alternative, figures),
+    }));
+}
 
 /**
  * The eyebrow over the filtered scope's figure. `shownCurrency` is what that

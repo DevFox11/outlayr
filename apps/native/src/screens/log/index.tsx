@@ -246,6 +246,17 @@ export function Log() {
         setNumberSetting(db, "logInsightsType", storedLogMeasure(next));
     };
 
+    const accountsBlock = (
+        <AccountsBlock
+            accounts={accountRows}
+            currency={currency}
+            onOpen={openAccount}
+            onOpenAll={() => router.push("/accounts")}
+            overview={accountsOverview}
+            showCents={showCents}
+        />
+    );
+
     const toolbar = (
         <LogToolbar
             period={period}
@@ -271,14 +282,7 @@ export function Log() {
                         contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20 }}
                         contentInsetAdjustmentBehavior="automatic"
                     >
-                        <AccountsBlock
-                            accounts={accountRows}
-                            currency={currency}
-                            onOpen={openAccount}
-                            onOpenAll={() => router.push("/accounts")}
-                            overview={accountsOverview}
-                            showCents={showCents}
-                        />
+                        {accountsBlock}
                         <LogEmptyState />
                     </ScrollView>
                 ) : (
@@ -357,16 +361,7 @@ export function Log() {
                                 displayCurrency={currency}
                             />
                         )}
-                        {filter === "all" ? (
-                            <AccountsBlock
-                                accounts={accountRows}
-                                currency={currency}
-                                onOpen={openAccount}
-                                onOpenAll={() => router.push("/accounts")}
-                                overview={accountsOverview}
-                                showCents={showCents}
-                            />
-                        ) : null}
+                        {filter === "all" ? accountsBlock : null}
                         {showUpcomingSection ? (
                             <LogUpcoming
                                 transactions={upcomingRows}

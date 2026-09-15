@@ -240,16 +240,6 @@ function verdictFor(
     });
 }
 
-function applyWindowAction(event: string, step: (direction: 1 | -1) => void, toNow: () => void): void {
-    if (event === "earlier") {
-        step(-1);
-    } else if (event === "later") {
-        step(1);
-    } else if (event === "now") {
-        toNow();
-    }
-}
-
 function balanceAt(running: readonly number[], index: number | null, isNet: boolean): number | null {
     if (!isNet || index == null) {
         return null;
@@ -391,7 +381,13 @@ export function Insights() {
     ];
 
     const onWindowAction = (event: string) => {
-        applyWindowAction(event, step, () => setOffset(0));
+        if (event === "earlier") {
+            step(-1);
+        } else if (event === "later") {
+            step(1);
+        } else if (event === "now") {
+            setOffset(0);
+        }
     };
 
     const listQuery = windowQuery(lockedBucket, filterId, measure, nowMs, result.start, result.end);
