@@ -803,10 +803,6 @@ const settings = {
             en: "Sync",
             es: "Sincronización",
         }),
-        "settings.row.syncUnavailable": t({
-            en: "Not available",
-            es: "No disponible",
-        }),
         "settings.row.theme": t({
             en: "Theme",
             es: "Tema",

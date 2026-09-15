@@ -10,10 +10,6 @@ const language = {
             en: "Outlayr follows your device language. Change it in Settings.",
             es: "Outlayr sigue el idioma de tu dispositivo. Cámbialo en Ajustes.",
         }),
-        "language.title": t({
-            en: "Language",
-            es: "Idioma",
-        }),
     },
     key: "language" as const,
 } satisfies Dictionary;

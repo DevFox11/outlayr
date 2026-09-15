@@ -119,26 +119,6 @@ const importSheet = {
             en: "Open Feature Lab",
             es: "Abrir Laboratorio de funciones",
         }),
-        "import.resolveCategoriseCta": t({
-            en: "Categorise {count} merchants",
-            es: "Categorizar {count} comercios",
-        }),
-        "import.resolveConsentBulletCategories": t({
-            en: "Your own category names, so suggestions land in categories you already have.",
-            es: "Tus propias categorías, para que las sugerencias usen categorías que ya tienes.",
-        }),
-        "import.resolveConsentBulletLabels": t({
-            en: "Merchant names we couldn't match on device — up to 200.",
-            es: "Nombres de comercios que no pudimos identificar en el dispositivo — hasta 200.",
-        }),
-        "import.resolveConsentBulletNever": t({
-            en: "Never: your amounts, your dates, or the file itself.",
-            es: "Nunca: tus montos, tus fechas, ni el archivo en sí.",
-        }),
-        "import.resolveConsentHeading": t({
-            en: "What leaves your device",
-            es: "Qué sale de tu dispositivo",
-        }),
         "import.resolveDetailMatched": t({
             en: "{matched} of {total} merchants",
             es: "{matched} de {total} comercios",

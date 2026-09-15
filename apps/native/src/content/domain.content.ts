@@ -141,10 +141,6 @@ const domain = {
             en: "{count} {noun} too many.",
             es: "{count} {noun} de más.",
         }),
-        "daySlots.purchase": t({
-            en: "purchase",
-            es: "compra",
-        }),
         "daySlots.room": t({
             en: "Room for one more.",
             es: "Alcanza para uno más.",

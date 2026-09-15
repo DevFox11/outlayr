@@ -103,10 +103,6 @@ const transfers = {
             en: "The movement",
             es: "El movimiento",
         }),
-        "transfers.needTwoAccounts": t({
-            en: "Transfers need two accounts. Add another one first.",
-            es: "Las transferencias necesitan dos cuentas. Agregá otra primero.",
-        }),
         "transfers.notePlaceholder": t({
             en: "Optional",
             es: "Opcional",

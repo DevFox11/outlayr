@@ -80,10 +80,6 @@ const voice = {
             en: "Done speaking",
             es: "Terminé de hablar",
         }),
-        "voice.mic.retry": t({
-            en: "Say it again",
-            es: "Repetir",
-        }),
         // The review reads as one line: "$12.50 at Starbucks · Coffee · yesterday".
         "voice.review.at": t({
             en: "at",
@@ -114,10 +110,6 @@ const voice = {
             en: "Transfer",
             es: "Transferencia",
         }),
-        "voice.saved": t({
-            en: "Saved",
-            es: "Guardado",
-        }),
         "voice.state.listening": t({
             en: "Listening…",
             es: "Escuchando…",
@@ -129,10 +121,6 @@ const voice = {
         "voice.state.thinking": t({
             en: "Writing it down…",
             es: "Anotando…",
-        }),
-        "voice.title": t({
-            en: "Speak an entry",
-            es: "Dictar un registro",
         }),
         // The thread strip: what was said, and what each answer changed.
         "voice.turn.draft": t({

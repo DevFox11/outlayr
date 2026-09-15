@@ -3,17 +3,9 @@ import type { Dictionary } from "intlayer";
 
 const budgets = {
     content: {
-        "budgets.action.cancel": t({
-            en: "Cancel",
-            es: "Cancelar",
-        }),
         "budgets.action.changeLimit": t({
             en: "Change limit",
             es: "Cambiar límite",
-        }),
-        "budgets.action.close": t({
-            en: "Close",
-            es: "Cerrar",
         }),
         "budgets.action.delete": t({
             en: "Delete",
@@ -171,10 +163,6 @@ const budgets = {
             en: "{name}, {amount} over budget",
             es: "{name}, {amount} excedido",
         }),
-        "budgets.hero.endsShort": t({
-            en: "ENDS {amount} SHORT",
-            es: "FALTARÁN {amount}",
-        }),
         "budgets.hero.eyebrow": t({
             en: "EVERYTHING · {period}",
             es: "TODO · {period}",
@@ -187,17 +175,9 @@ const budgets = {
             en: "{label} on {date}",
             es: "{label} el {date}",
         }),
-        "budgets.hero.onTrack": t({
-            en: "ON TRACK",
-            es: "EN CAMINO",
-        }),
         "budgets.hero.overBudget": t({
             en: "over budget",
             es: "excedido",
-        }),
-        "budgets.hero.ranOut": t({
-            en: "RAN OUT {date}",
-            es: "SE ACABÓ {date}",
         }),
         // Appended to whichever verdict fired, so the sentence names what did it
         // rather than only when it happened. Percent, not a worded fraction: "four
@@ -245,10 +225,6 @@ const budgets = {
         "budgets.name.default": t({
             en: "Budget",
             es: "Presupuesto",
-        }),
-        "budgets.new.a11y": t({
-            en: "New budget",
-            es: "Nuevo presupuesto",
         }),
         "budgets.perDay": t({
             en: "{amount}/day",
@@ -417,10 +393,6 @@ const budgets = {
         "budgets.sheet.lastWindows": t({
             en: "{over} of the last {total} went over",
             es: "{over} de los últimos {total} se excedieron",
-        }),
-        "budgets.sheet.noHistory": t({
-            en: "Nothing spent on {scope} yet.",
-            es: "Aún no has gastado en {scope}.",
         }),
         "budgets.sheet.perDay": t({
             en: "{amount} a day for the {days} left",

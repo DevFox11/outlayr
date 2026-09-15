@@ -51,10 +51,6 @@ const accounts = {
             en: "Balance history. Approximately {amount} on {date}.",
             es: "Historial del saldo. Aproximadamente {amount} el {date}.",
         }),
-        "accounts.delete.row": t({
-            en: "Delete Account",
-            es: "Eliminar cuenta",
-        }),
         "accounts.detail.empty": t({
             en: "Nothing attached yet — this account's transactions will gather here.",
             es: "Aún no hay nada adjunto: las transacciones de esta cuenta se reunirán aquí.",
@@ -66,10 +62,6 @@ const accounts = {
         "accounts.empty": t({
             en: "Money lives in places. Give yours its first one.",
             es: "El dinero vive en lugares. Dale a tu dinero el primero.",
-        }),
-        "accounts.error.deleteFailed": t({
-            en: "Couldn't delete this account. Try again.",
-            es: "No se pudo eliminar la cuenta. Inténtalo de nuevo.",
         }),
         "accounts.error.deleteTitle": t({
             en: "Couldn't Delete Account",
@@ -131,10 +123,6 @@ const accounts = {
         "accounts.overview.owed": t({
             en: "Owed",
             es: "Deuda",
-        }),
-        "accounts.overview.own": t({
-            en: "Own",
-            es: "Tengo",
         }),
         "accounts.rebaseNote": t({
             en: "Changing the initial balance or currency re-bases this account's balance.",

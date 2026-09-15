@@ -3,14 +3,6 @@ import type { Dictionary } from "intlayer";
 
 const common = {
     content: {
-        "common.add": t({
-            en: "Add",
-            es: "Agregar",
-        }),
-        "common.all": t({
-            en: "All",
-            es: "Todo",
-        }),
         "common.back": t({
             en: "Back",
             es: "Atrás",
@@ -27,10 +19,6 @@ const common = {
             en: "Continue",
             es: "Continuar",
         }),
-        "common.custom": t({
-            en: "Custom",
-            es: "Personalizado",
-        }),
         "common.delete": t({
             en: "Delete",
             es: "Eliminar",
@@ -43,10 +31,6 @@ const common = {
             en: "Edit",
             es: "Editar",
         }),
-        "common.error": t({
-            en: "Something went wrong",
-            es: "Algo salió mal",
-        }),
         "common.expense": t({
             en: "Expense",
             es: "Gasto",
@@ -58,10 +42,6 @@ const common = {
         "common.income": t({
             en: "Income",
             es: "Ingreso",
-        }),
-        "common.loading": t({
-            en: "Loading",
-            es: "Cargando",
         }),
         "common.never": t({
             en: "Never",
@@ -79,45 +59,17 @@ const common = {
             en: "On",
             es: "Activado",
         }),
-        "common.remove": t({
-            en: "Remove",
-            es: "Quitar",
-        }),
-        "common.reset": t({
-            en: "Reset",
-            es: "Restablecer",
-        }),
         "common.retry": t({
             en: "Try Again",
             es: "Reintentar",
-        }),
-        "common.save": t({
-            en: "Save",
-            es: "Guardar",
-        }),
-        "common.search": t({
-            en: "Search",
-            es: "Buscar",
         }),
         "common.shown": t({
             en: "Shown",
             es: "Visible",
         }),
-        "common.skip": t({
-            en: "Skip",
-            es: "Omitir",
-        }),
-        "common.system": t({
-            en: "System",
-            es: "Sistema",
-        }),
         "common.today": t({
             en: "Today",
             es: "Hoy",
-        }),
-        "common.tomorrow": t({
-            en: "Tomorrow",
-            es: "Mañana",
         }),
         "common.undo": t({
             en: "Undo",

@@ -67,10 +67,6 @@ const transaction = {
             en: "All categories",
             es: "Todas las categorías",
         }),
-        "transaction.category.choose": t({
-            en: "Choose",
-            es: "Elegir",
-        }),
         "transaction.category.createNamed": t({
             en: "Create “{query}”",
             es: "Crear «{query}»",
@@ -94,10 +90,6 @@ const transaction = {
         "transaction.category.willBeCreated": t({
             en: "Will be created",
             es: "Se creará",
-        }),
-        "transaction.category.willBeCreatedUnder": t({
-            en: "Will be created under {parent}",
-            es: "Se creará dentro de {parent}",
         }),
         "transaction.cta.add": t({
             en: "Add Transaction",
@@ -162,14 +154,6 @@ const transaction = {
         "transaction.field.schedule": t({
             en: "Schedule",
             es: "Programación",
-        }),
-        "transaction.field.tags": t({
-            en: "Tags",
-            es: "Etiquetas",
-        }),
-        "transaction.field.type": t({
-            en: "Type",
-            es: "Tipo",
         }),
         "transaction.identity.autoDetected": t({
             en: "Auto-detected",
@@ -693,10 +677,6 @@ const transaction = {
             en: "Remove category",
             es: "Quitar categoría",
         }),
-        "transaction.split.row": t({
-            en: "Split",
-            es: "Dividido",
-        }),
         "transaction.split.title": t({
             en: "Split",
             es: "Dividir",
@@ -728,10 +708,6 @@ const transaction = {
         "transaction.tags.failedTitle": t({
             en: "Couldn't save the tags",
             es: "No se pudieron guardar las etiquetas",
-        }),
-        "transaction.tags.none": t({
-            en: "None",
-            es: "Ninguna",
         }),
         "transaction.tags.searchPlaceholder": t({
             en: "Search or add",

@@ -156,10 +156,6 @@ const receipt = {
             en: "Total",
             es: "Total",
         }),
-        "receipt.saved": t({
-            en: "Saved",
-            es: "Guardado",
-        }),
         "receipt.state.preparing": t({
             en: "Preparing the photo…",
             es: "Preparando la foto…",
