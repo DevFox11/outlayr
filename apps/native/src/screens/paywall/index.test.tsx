@@ -20,8 +20,10 @@ const mockRevenueCat = {
     isMirrored: false,
     isPro: false,
     isResolved: true,
-    // Stands in for the provider's own mirror, so the assertions below still
-    // watch the action the screen is expected to reach.
+    // Stands in for the provider's own mirror. It routes through mockCloudAction
+    // only so the tests below can drive what the mirror answers; the action path
+    // it passes is this file's invention, and is pinned for real by
+    // `lib/entitlement-mirror.test.ts`.
     mirrorEntitlement: jest.fn<() => Promise<boolean>>(() => mockCloudAction("revenuecat:syncFromStore", {})),
     purchasePackage: jest.fn<(offer: PurchasesPackage) => Promise<PurchaseOutcome>>(),
     restorePurchases: jest.fn<() => Promise<boolean>>(),
@@ -135,8 +137,10 @@ describe("paywall", () => {
 
         await fireEvent.press(screen.getByTestId("paywall-cta"));
 
-        await waitFor(() => expect(mockCloudAction).toHaveBeenCalledWith("revenuecat:syncFromStore", {}));
-        expect(mockCloudAction.mock.invocationCallOrder[0]).toBeLessThan(mockBack.mock.invocationCallOrder[0]);
+        await waitFor(() => expect(mockRevenueCat.mirrorEntitlement).toHaveBeenCalledTimes(1));
+        expect(mockRevenueCat.mirrorEntitlement.mock.invocationCallOrder[0]).toBeLessThan(
+            mockBack.mock.invocationCallOrder[0]
+        );
     });
 
     it("names the restore when its own confirmation has not landed", async () => {
