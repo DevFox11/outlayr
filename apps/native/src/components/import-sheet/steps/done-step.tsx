@@ -3,8 +3,9 @@ import { Pressable, View } from "react-native";
 import { MeasureCellAmount } from "@/components/amount-text";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
+import { monthLongTitle } from "@/domain/dates";
 import type { ImportReviewResult } from "@/hooks/use-import-review";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 import { MeasureStrip } from "../measure-strip";
@@ -19,6 +20,7 @@ interface DoneStepProps {
 
 export function DoneStep({ review, onDone }: DoneStepProps) {
     const t = useTranslation();
+    const { language } = useLanguage();
     const colors = useColors();
     const { showCents } = useDisplaySettings().state;
 
@@ -26,8 +28,10 @@ export function DoneStep({ review, onDone }: DoneStepProps) {
         return null;
     }
     const { count, outAmount, duplicatesSkipped } = review.commit;
-    const month =
-        review.plan.latest == null ? null : review.plan.latest.toLocaleDateString(undefined, { month: "long" });
+    // The app's language, not the device's: the sentence around this month is
+    // translated, so `toLocaleDateString` put "September" inside a Spanish line
+    // on any phone left in English.
+    const month = review.plan.latest == null ? null : monthLongTitle(review.plan.latest, language);
 
     return (
         <View className="flex-1 gap-6 px-5 pt-4">

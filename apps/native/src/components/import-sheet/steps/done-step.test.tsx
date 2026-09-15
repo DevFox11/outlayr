@@ -109,9 +109,6 @@ describe("doneStep", () => {
     });
 
     it("names the skipped duplicates and the month now on the Log", async () => {
-        const month = new Date(2026, 6, 28).toLocaleDateString(undefined, {
-            month: "long",
-        });
         const { getByText } = await render(
             <DoneStep
                 onDone={jest.fn()}
@@ -125,17 +122,17 @@ describe("doneStep", () => {
                 })}
             />
         );
-        expect(getByText(`import.doneSubline:{"count":1,"month":"${month}"}`)).toBeTruthy();
+        // The literal, not `toLocaleDateString` again: deriving the expectation the
+        // same way the component does passes whatever locale the runner is in,
+        // which is exactly the bug this covers.
+        expect(getByText('import.doneSubline:{"count":1,"month":"July"}')).toBeTruthy();
     });
 
     it("drops the duplicates clause when none were skipped", async () => {
-        const month = new Date(2026, 6, 28).toLocaleDateString(undefined, {
-            month: "long",
-        });
         const review = doneReview({ excluded: new Set<number>() });
         review.rows = [review.rows[0]];
         const { getByText } = await render(<DoneStep onDone={jest.fn()} review={review} />);
-        expect(getByText(`import.doneSublineNoDuplicates:{"month":"${month}"}`)).toBeTruthy();
+        expect(getByText('import.doneSublineNoDuplicates:{"month":"July"}')).toBeTruthy();
     });
 
     it("shows the added count and out amount in the measure strip", async () => {
