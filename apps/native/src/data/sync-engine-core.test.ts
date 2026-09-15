@@ -13,28 +13,14 @@ import {
     transactions,
     transactionTags,
 } from "@/db/schema";
-import { migratedSqlite, testDatabase, withAsyncTransactions } from "@/db/test-database";
+import { migratedDatabase, transactionalDatabase } from "@/db/test-database";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { applyPulledRows, drainOutbox, incomingWinsLocally, pullAndApply, runSync, specFor } from "./sync-engine-core";
 import type { PulledRow, PushFn, WireRow } from "./sync-engine-core";
 import { getSyncCursor, outboxPendingCount, SYNCED_TABLES, setSyncEnabled } from "./sync-outbox-core";
 
-function makeTransactionalDb(): Database {
-    const sqlite = migratedSqlite();
-    sqlite.exec("PRAGMA foreign_keys = ON");
-    withAsyncTransactions(sqlite);
-    return testDatabase(sqlite);
-}
-
-function makeDb(): Database {
-    const sqlite = migratedSqlite();
-    // Matches `db/client.ts` on a store that checks out clean. Without it the
-    // applier's `PRAGMA foreign_keys = OFF` would be a no-op here and the
-    // out-of-order page below would pass for the wrong reason.
-    sqlite.exec("PRAGMA foreign_keys = ON");
-    return testDatabase(sqlite);
-}
+const makeDb = (): Database => migratedDatabase();
 
 /**
  * A minimal server: one seq counter, one row per `(table, localId)`, and the
@@ -436,7 +422,7 @@ describe("applyPulledRows", () => {
     });
 
     it("commits the whole apply inside one real transaction", async () => {
-        const transactional = makeTransactionalDb();
+        const transactional = transactionalDatabase();
         await setMeta(transactional, META_KEYS.syncEnabled, "true");
         await transactional.insert(transactions).values({
             amount: 1,

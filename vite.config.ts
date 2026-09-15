@@ -176,8 +176,6 @@ export default defineConfig({
                 // way to isolate a native module, so every one of those is a
                 // suppression, not a fix — the rule would live in the files
                 // instead of here, which is the same exception with more noise.
-                // What was genuinely shared setup has already left: it sits in
-                // `apps/native/jest/*-stub.js` now (see `setupFiles`).
                 //
                 // `require-safety-comment-for-type-assertion` reported 464 times,
                 // and the honest reason is the same sentence at nearly all of
