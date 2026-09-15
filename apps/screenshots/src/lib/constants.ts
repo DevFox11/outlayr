@@ -68,15 +68,8 @@ export function androidPhoneW(cW: number, cH: number, clamp = 0.84) {
   return Math.min(clamp, 0.72 * (cH / cW) * FRAME_ASPECT.android);
 }
 
-export function androidPhoneWSmall(cW: number, cH: number) {
-  return androidPhoneW(cW, cH, 0.66);
-}
-
 export function phoneW(cW: number, cH: number, clamp = 0.84) {
   return Math.min(clamp, 0.72 * (cH / cW) * FRAME_ASPECT.iphone);
-}
-export function phoneWSmall(cW: number, cH: number) {
-  return phoneW(cW, cH, 0.66);
 }
 export function tabletPW(cW: number, cH: number, clamp = 0.80) {
   return Math.min(clamp, 0.72 * (cH / cW) * FRAME_ASPECT.tabletPortrait);

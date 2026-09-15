@@ -16,11 +16,9 @@ import type {
 import {
   FRAME_ASPECT,
   androidPhoneW,
-  androidPhoneWSmall,
   getExportSizes,
   ipadW,
   phoneW,
-  phoneWSmall,
   tabletLW,
   tabletPW,
 } from "@/lib/constants";
@@ -74,11 +72,11 @@ function getFrameForDevice(device: Device, orientation: Orientation): {
 } {
   switch (device) {
     case "iphone":
-      return { Comp: Phone, widthFn: phoneW, smallWidthFn: phoneWSmall };
+      return { Comp: Phone, widthFn: phoneW, smallWidthFn: (cW, cH) => phoneW(cW, cH, 0.66) };
     case "ipad":
       return { Comp: IPad, widthFn: ipadW, smallWidthFn: (cW, cH) => ipadW(cW, cH, 0.6) };
     case "android":
-      return { Comp: AndroidPhone, widthFn: androidPhoneW, smallWidthFn: androidPhoneWSmall };
+      return { Comp: AndroidPhone, widthFn: androidPhoneW, smallWidthFn: (cW, cH) => androidPhoneW(cW, cH, 0.66) };
     case "android-7":
     case "android-10":
       if (orientation === "landscape") {
@@ -86,7 +84,7 @@ function getFrameForDevice(device: Device, orientation: Orientation): {
       }
       return { Comp: AndroidTabletP, widthFn: tabletPW, smallWidthFn: (cW, cH) => tabletPW(cW, cH, 0.62) };
     default:
-      return { Comp: Phone, widthFn: phoneW, smallWidthFn: phoneWSmall };
+      return { Comp: Phone, widthFn: phoneW, smallWidthFn: (cW, cH) => phoneW(cW, cH, 0.66) };
   }
 }
 
