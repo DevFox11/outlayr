@@ -39,18 +39,13 @@ export function ExportData() {
 
     // The archive is the one that can be restored from; the CSV is for
     // spreadsheets. Kept as separate actions rather than a format toggle so the
-    // difference is legible before the file is written, not after.
-    const runArchive = () => {
+    // difference is legible before the file is written, not after — but the two
+    // differ only in what they build and what they call it, so the busy flag and
+    // the failure report are written once.
+    const runExport = (build: () => Promise<string>, name: string, mime: string, shareTitle: TranslationKey) => {
         setBusy(true);
-        buildArchive(db, new Date())
-            .then((document) =>
-                shareFile(
-                    serializeArchive(document),
-                    archiveFileName(new Date()),
-                    "application/json",
-                    t("settings.export.archiveShareTitle")
-                )
-            )
+        build()
+            .then((payload) => shareFile(payload, name, mime, t(shareTitle)))
             .catch((cause: unknown) => {
                 notifyFailure({
                     body: cause instanceof TransferError ? t(cause.key) : t("settings.export.failedBody"),
@@ -60,18 +55,21 @@ export function ExportData() {
             .finally(() => setBusy(false));
     };
 
-    const run = () => {
-        setBusy(true);
-        exportTransactionsCsv(db)
-            .then((csv) => shareFile(csv, exportFileName(new Date()), "text/csv", t("settings.export.shareTitle")))
-            .catch((cause: unknown) => {
-                notifyFailure({
-                    body: cause instanceof TransferError ? t(cause.key) : t("settings.export.failedBody"),
-                    title: t("settings.export.failedTitle"),
-                });
-            })
-            .finally(() => setBusy(false));
-    };
+    const runArchive = () =>
+        runExport(
+            async () => serializeArchive(await buildArchive(db, new Date())),
+            archiveFileName(new Date()),
+            "application/json",
+            "settings.export.archiveShareTitle"
+        );
+
+    const run = () =>
+        runExport(
+            () => exportTransactionsCsv(db),
+            exportFileName(new Date()),
+            "text/csv",
+            "settings.export.shareTitle"
+        );
 
     return (
         <SettingsScreen footer={t("settings.export.footer")}>
