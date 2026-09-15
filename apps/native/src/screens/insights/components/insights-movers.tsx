@@ -58,7 +58,11 @@ function MoverRow({
     const toneClass = favourable ? "text-income" : "text-danger";
 
     return (
-        <View className="flex-row items-center gap-2.5 py-1.5">
+        // `accessible` collapses the four figures into one stop, the way the
+        // `Pressable` around the structurally identical `CategoryBreakdownRow`
+        // does. Without it a mover reads as a name, then a number, then a
+        // percent, with nothing relating them.
+        <View accessible className="flex-row items-center gap-2.5 py-1.5">
             <CategoryIconTile color={mover.color} emoji={mover.emoji} icon={mover.icon} size={26} />
             <Text className="font-sans-medium text-caption text-foreground flex-1" numberOfLines={1}>
                 {mover.name}

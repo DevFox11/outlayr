@@ -68,7 +68,10 @@ export function StageOption({ accessibilityLabel, label, leading, onPress, selec
             hitSlop={HIT_SLOP}
             onPress={onPress}
         >
-            <Animated.View className="h-[38px] flex-row items-center gap-2 rounded-[19px] border px-3.5" style={fill}>
+            <Animated.View
+                className="min-h-[38px] flex-row items-center gap-2 rounded-[19px] border px-3.5 py-1.5"
+                style={fill}
+            >
                 {leading}
                 <Text className="text-foreground text-subtitle">{label}</Text>
             </Animated.View>

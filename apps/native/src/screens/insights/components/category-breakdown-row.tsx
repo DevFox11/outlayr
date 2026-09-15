@@ -68,7 +68,7 @@ export function CategoryBreakdownRow({
                         accessibilityLabel={t("insights.category.clearFilter")}
                         accessibilityRole="button"
                         className="bg-surface size-[26px] items-center justify-center rounded-full active:opacity-70"
-                        hitSlop={8}
+                        hitSlop={9}
                         onPress={onClear}
                     >
                         <HugeiconsIcon color={colors.muted} icon={Cancel01Icon} size={13} strokeWidth={2.5} />

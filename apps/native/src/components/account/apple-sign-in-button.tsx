@@ -40,7 +40,14 @@ export function AppleSignInButton({
     }
 
     return (
-        <View pointerEvents={disabled ? "none" : "auto"}>
+        // `pointerEvents` alone leaves the native button focusable and announced
+        // as enabled, so VoiceOver activates something that does nothing. The
+        // Google button beside it already states `disabled` on its own control.
+        <View
+            accessibilityElementsHidden={disabled}
+            importantForAccessibility={disabled ? "no-hide-descendants" : "auto"}
+            pointerEvents={disabled ? "none" : "auto"}
+        >
             <AppleAuthenticationButton
                 buttonStyle={isDark ? AppleAuthenticationButtonStyle.WHITE : AppleAuthenticationButtonStyle.BLACK}
                 buttonType={AppleAuthenticationButtonType.CONTINUE}

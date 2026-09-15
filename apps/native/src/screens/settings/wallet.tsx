@@ -2,7 +2,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { Image } from "expo-image";
 import { Button, Carousel } from "panelui-native";
 import { useState } from "react";
-import { Platform, View } from "react-native";
+import { Platform, Pressable, View } from "react-native";
 import type { ImageRequireSource } from "react-native";
 
 import boundFrame from "@/assets/images/recipe/bound.jpg";
@@ -314,6 +314,8 @@ function AccountsSection({ db }: { db: Database }) {
 
 const FRAME_WIDTH = 150;
 const FRAME_HEIGHT = 325;
+/** Three lines of caption: the longest step title wraps to three in Spanish. */
+const CAPTION_HEIGHT = 62;
 const FRAME_GAP = 12;
 const FRAME_RADIUS = 12;
 
@@ -328,7 +330,7 @@ function FrameStrip({ steps }: { steps: readonly Step[] }) {
     }
     return (
         <Carousel align="start" className="-mx-5 pt-3" itemSize={FRAME_WIDTH + FRAME_GAP}>
-            <Carousel.Content style={{ height: FRAME_HEIGHT + 44 }}>
+            <Carousel.Content style={{ height: FRAME_HEIGHT + CAPTION_HEIGHT }}>
                 {framed.map((step) => (
                     <Carousel.Item className="gap-1.5 pl-5" key={step.title}>
                         <Image
@@ -336,7 +338,7 @@ function FrameStrip({ steps }: { steps: readonly Step[] }) {
                             source={step.frame}
                             style={{ borderRadius: FRAME_RADIUS, height: FRAME_HEIGHT, width: FRAME_WIDTH }}
                         />
-                        <Text className="text-muted text-subtitle" numberOfLines={2} style={{ width: FRAME_WIDTH }}>
+                        <Text className="text-muted text-subtitle" numberOfLines={3} style={{ width: FRAME_WIDTH }}>
                             <Text className="text-foreground font-mono" style={TABULAR}>
                                 {String(step.number)}
                             </Text>
@@ -397,18 +399,21 @@ function CheckRow({ title, detail }: { detail: string; title: string }) {
 function ToggleStepsRow({ linked, shown, onPress }: { linked: boolean; onPress: () => void; shown: boolean }) {
     const t = useTranslation();
     return (
-        <Text
+        <Pressable
+            accessibilityLabel={t("settings.wallet.automationRow")}
             accessibilityRole="button"
-            className="border-border text-body text-foreground border-b py-3"
+            accessibilityState={{ expanded: shown }}
+            className="border-border border-b py-3"
             onPress={onPress}
-            suppressHighlighting
         >
-            {t("settings.wallet.automationRow")}
-            <Text className="text-muted">{`  ${t(shown ? "settings.wallet.hide" : "settings.wallet.show")} ›`}</Text>
-            {"\n"}
-            <Text className="text-muted text-subtitle">
-                {t(linked ? "settings.wallet.automationDetail" : "settings.wallet.automationDetailInline")}
+            <Text className="text-body text-foreground">
+                {t("settings.wallet.automationRow")}
+                <Text className="text-muted">{`  ${t(shown ? "settings.wallet.hide" : "settings.wallet.show")} ›`}</Text>
+                {"\n"}
+                <Text className="text-muted text-subtitle">
+                    {t(linked ? "settings.wallet.automationDetail" : "settings.wallet.automationDetailInline")}
+                </Text>
             </Text>
-        </Text>
+        </Pressable>
     );
 }
