@@ -114,6 +114,11 @@ function createAuth(ctx: GenericCtx<DataModel>) {
             }),
         ],
         socialProviders: {
+            // Better Auth awaits this factory and then drops the provider whole
+            // on `enabled: false` — `createAuthContext` returns null for it, so
+            // `signIn.social({ provider: "apple" })` answers PROVIDER_NOT_FOUND.
+            // The unconfigured branch below wants exactly that; the configured
+            // one must not, or the four `APPLE_*` variables buy nothing.
             apple: async () => {
                 if (!appleConfig) {
                     return {
@@ -133,7 +138,7 @@ function createAuth(ctx: GenericCtx<DataModel>) {
                         appleConfig.keyId,
                         appleConfig.privateKey
                     ),
-                    enabled: false,
+                    enabled: true,
                 };
             },
             google: googleConfig

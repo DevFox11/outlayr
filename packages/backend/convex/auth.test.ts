@@ -10,6 +10,13 @@ import { authenticatedAs, seedAuthUser } from "./test.helpers";
 
 const modules = import.meta.glob("./**/*.ts");
 
+/** A throwaway P-256 key, only so `generateAppleClientSecret` has something to sign with. */
+const APPLE_TEST_KEY = `-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgXkjMeO1+ck8HgMHC
+ipgW4DI3YYzFM8Yv1eUf0Bv2ID6hRANCAASSDa0TEa2kqSLgNw30wzl0sObor81R
+Hz8YSjsV6hhmjjG3X5hJep3DQh4aSLJLnzqlGwbmhKpI+3vuaqtsaErm
+-----END PRIVATE KEY-----`;
+
 const baseUrlWith = async (vars: Record<string, string>) => {
     for (const [name, value] of Object.entries(vars)) {
         vi.stubEnv(name, value);
@@ -59,6 +66,29 @@ describe("auth", () => {
         const handlerType = await t.run(async (ctx) => typeof createAuth(ctx).handler);
 
         expect(handlerType).toBe("function");
+    });
+
+    // The four APPLE_* variables are read at module scope, so the module has to be
+    // re-imported after they are stubbed.
+    test("enables the Apple provider once its credentials are configured", async () => {
+        vi.stubEnv("APPLE_CLIENT_ID", "com.tryoutlayr.app");
+        vi.stubEnv("APPLE_TEAM_ID", "TEAM123456");
+        vi.stubEnv("APPLE_KEY_ID", "KEY1234567");
+        vi.stubEnv("APPLE_PRIVATE_KEY", APPLE_TEST_KEY);
+        vi.resetModules();
+        const { createAuth: build } = await import("./auth");
+        const t = convexTest(schema, modules);
+
+        const apple = await t.run(async (ctx) => {
+            const factory = build(ctx).options.socialProviders?.apple;
+            return typeof factory === "function" ? await factory() : factory;
+        });
+
+        // Better Auth drops a provider whole on `enabled: false`, so this being
+        // false is not "configured but off" — it is the Apple button answering
+        // PROVIDER_NOT_FOUND on every tap.
+        expect(apple?.enabled).toBeTruthy();
+        expect(apple?.clientId).toBe("com.tryoutlayr.app");
     });
 
     test("disables Better Auth public deletion while the resumable job owns deletion", async () => {
