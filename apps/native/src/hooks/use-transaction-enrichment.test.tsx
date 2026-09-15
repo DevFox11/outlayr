@@ -447,6 +447,57 @@ describe("tier 2: remote fallback", () => {
         expect(calls[1].args.regionCode).toBe("VE");
     });
 
+    // The idle tick is at 1.8s and the fast pass has a 4s budget, so "the fast
+    // pass has not answered yet" is a routine state at the moment this fires —
+    // not a reason to abandon the follow-up. Nothing else re-arms it.
+    it("still follows up when the fast pass answers after the idle tick", async () => {
+        const { fn, calls } = deferredTransport();
+        const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
+
+        result.current.onNameChange(UNKNOWN);
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+        // Idle tick fires with the fast pass still out.
+        await act(async () => {
+            jest.advanceTimersByTime(GROUNDED_IDLE_MS);
+        });
+        expect(calls).toHaveLength(1);
+
+        await act(async () => {
+            calls[0].settle({ categoryName: "Entertainment", domain: null, isNewCategory: false, tags: [] });
+        });
+        await act(async () => {
+            jest.advanceTimersByTime(GROUNDED_IDLE_MS);
+        });
+
+        expect(calls).toHaveLength(2);
+        expect(calls[1].args.groundedLookup).toBe(true);
+    });
+
+    it("gives up on the follow-up once the fast pass answers with a domain", async () => {
+        const { fn, calls } = deferredTransport();
+        const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
+
+        result.current.onNameChange(UNKNOWN);
+        await act(async () => {
+            jest.advanceTimersByTime(DEBOUNCE_MS + GROUNDED_IDLE_MS);
+        });
+        await act(async () => {
+            calls[0].settle({
+                categoryName: "Entertainment",
+                domain: "example.com",
+                isNewCategory: false,
+                tags: [],
+            });
+        });
+        await act(async () => {
+            jest.advanceTimersByTime(GROUNDED_IDLE_MS * 3);
+        });
+
+        expect(calls).toHaveLength(1);
+    });
+
     it("the fast 600ms pass always sends groundedLookup false", async () => {
         const { fn, calls } = deferredTransport();
         const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));

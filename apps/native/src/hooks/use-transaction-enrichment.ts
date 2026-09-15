@@ -226,6 +226,13 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
     const forcingRef = useRef(false);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const groundedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    /**
+     * `runGroundedFollowUp` reaching itself, so its idle tick can come back when
+     * the fast pass is still out. A `useCallback` cannot name itself.
+     */
+    const groundedFollowUpRef = useRef<() => void>(() => {
+        // Replaced by the effect below, before any timer this could reach fires.
+    });
     const recheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const clearTimers = useCallback(() => {
         for (const ref of [timerRef, groundedTimerRef, recheckTimerRef]) {
@@ -466,7 +473,20 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         }
         const key = merchantKey(nameRef.current);
         const outcome = lastRemoteOutcomeRef.current;
-        if (outcome == null || outcome.key !== key || outcome.hasDomain) {
+        if (outcome == null || outcome.key !== key) {
+            // The fast pass for this name has not answered yet. Its budget is
+            // `REMOTE_TIMEOUT_MS`, which is longer than the idle delay that
+            // scheduled this tick, so "no outcome recorded" is routinely just
+            // "still out" — and nothing else re-arms this timer, so returning
+            // here dropped the follow-up for good. Bounded by the request
+            // actually being in flight, and cancelled by the next keystroke,
+            // which clears every timer.
+            if (inFlightRef.current.has(key)) {
+                groundedTimerRef.current = setTimeout(() => groundedFollowUpRef.current(), GROUNDED_IDLE_MS);
+            }
+            return;
+        }
+        if (outcome.hasDomain) {
             return;
         }
         const call = resolveTransport();
@@ -611,6 +631,10 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         }
         await runRemote(key);
     }, [emit, emitNothing, emitRemoteResult, recallFromLedger, runRemote, supersedeInFlight]);
+
+    useEffect(() => {
+        groundedFollowUpRef.current = runGroundedFollowUp;
+    }, [runGroundedFollowUp]);
 
     const onNameChange = useCallback(
         (next: string) => {
