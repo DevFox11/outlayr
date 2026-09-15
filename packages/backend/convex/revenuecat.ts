@@ -9,6 +9,9 @@ import { action, internalMutation, internalQuery } from "./_generated/server";
 
 export const PRO_ENTITLEMENT_ID = "pro";
 
+/** A user waits on both of these: one behind "Delete account", one behind a restore. */
+const REVENUECAT_TIMEOUT_MS = 10_000;
+
 export const revenuecat = new RevenueCat(components.revenuecat, {
     REVENUECAT_WEBHOOK_AUTH: env.REVENUECAT_WEBHOOK_AUTH,
 });
@@ -24,6 +27,7 @@ export async function eraseUpstreamCustomer(appUserId: string): Promise<void> {
     const response = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}`, {
         headers: { Authorization: `Bearer ${env.REVENUECAT_SECRET_KEY}` },
         method: "DELETE",
+        signal: AbortSignal.timeout(REVENUECAT_TIMEOUT_MS),
     });
     if (!response.ok && response.status !== 404) {
         throw new Error(`RevenueCat customer erase failed with ${response.status}`);
@@ -106,7 +110,10 @@ export const syncFromStore = action({
         try {
             const response = await fetch(
                 `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(identity.subject)}`,
-                { headers: { Authorization: `Bearer ${env.REVENUECAT_SECRET_KEY}` } }
+                {
+                    headers: { Authorization: `Bearer ${env.REVENUECAT_SECRET_KEY}` },
+                    signal: AbortSignal.timeout(REVENUECAT_TIMEOUT_MS),
+                }
             );
             if (!response.ok) {
                 return await mirrored();

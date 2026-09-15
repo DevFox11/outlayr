@@ -7,6 +7,7 @@ import { utcDateString } from "./lib/currencies";
 import type { MarketRateType } from "./lib/currencies";
 
 const COTIZAVE_URL = "https://api.cotizave.com/v1/fx/rates";
+const RATES_TIMEOUT_MS = 20_000;
 
 const VES_QUOTE = "VES";
 
@@ -74,6 +75,7 @@ export const fetchRates = internalAction({
         try {
             const response = await fetch(COTIZAVE_URL, {
                 headers: { "X-API-Key": apiKey },
+                signal: AbortSignal.timeout(RATES_TIMEOUT_MS),
             });
             if (!response.ok) {
                 console.error(`Cotizave fetch failed with HTTP ${response.status}`);

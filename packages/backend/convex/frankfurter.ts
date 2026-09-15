@@ -17,6 +17,7 @@ import { ratesWindowStart } from "./exchangeRates";
  * bound lives downstream in `pullRates` (catalog pairs plus pagination).
  */
 const FRANKFURTER_URL = "https://api.frankfurter.dev/v2/rates?base=USD";
+const RATES_TIMEOUT_MS = 20_000;
 const EFFECTIVE_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const CURRENCY_CODE_PATTERN = /^[A-Z]{3}$/;
 
@@ -63,7 +64,9 @@ export const fetchRates = internalAction({
     handler: async (ctx) => {
         let payload: unknown;
         try {
-            const response = await fetch(windowUrl(ratesWindowStart()));
+            const response = await fetch(windowUrl(ratesWindowStart()), {
+                signal: AbortSignal.timeout(RATES_TIMEOUT_MS),
+            });
             if (!response.ok) {
                 console.error(`Frankfurter fetch failed with HTTP ${response.status}`);
                 return null;

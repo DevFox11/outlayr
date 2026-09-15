@@ -84,6 +84,8 @@ export async function grantAppleCredential(
     }
 }
 
+/** Sign-in and account deletion both block on Apple answering. */
+const APPLE_TIMEOUT_MS = 10_000;
 const APPLE_ISSUER = "https://appleid.apple.com";
 const APPLE_JWKS = createRemoteJWKSet(new URL("https://appleid.apple.com/auth/keys"));
 
@@ -165,6 +167,7 @@ async function appleTokenRequest(config: AppleServerConfig, parameters: Record<s
         }),
         headers: { "content-type": "application/x-www-form-urlencoded" },
         method: "POST",
+        signal: AbortSignal.timeout(APPLE_TIMEOUT_MS),
     });
     if (!response.ok) {
         throw new Error("Apple token exchange failed");
@@ -220,6 +223,7 @@ function appleCredentialLifecycleDependencies(config: AppleServerConfig, context
                 }),
                 headers: { "content-type": "application/x-www-form-urlencoded" },
                 method: "POST",
+                signal: AbortSignal.timeout(APPLE_TIMEOUT_MS),
             });
             if (!response.ok) {
                 throw new Error("Apple token cleanup failed");
