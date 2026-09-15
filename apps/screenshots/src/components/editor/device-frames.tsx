@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { PHONE_SCREEN } from "@/lib/constants";
+import { FRAME_ASPECT, PHONE_SCREEN } from "@/lib/constants";
 import { img } from "@/lib/image-cache";
 
 type FrameProps = {
@@ -14,7 +14,7 @@ type FrameProps = {
 export function Phone({ src, style, hideEmpty }: FrameProps) {
   const resolved = img(src);
   return (
-    <div style={{ position: "relative", aspectRatio: "1022 / 2082", ...style }}>
+    <div style={{ position: "relative", aspectRatio: FRAME_ASPECT.iphone, ...style }}>
       <img
         src={img("/mockup.png")}
         alt=""
@@ -50,7 +50,7 @@ export function Phone({ src, style, hideEmpty }: FrameProps) {
 }
 
 type BezelSpec = {
-  aspectRatio: string;
+  aspectRatio: number;
   /** The outer shell: corner radius, gradient and shadow. */
   body: React.CSSProperties;
   /** The camera dot, positioned against the shell. */
@@ -91,7 +91,7 @@ function Bezel({ spec, src, style, hideEmpty }: { spec: BezelSpec } & FrameProps
 }
 
 const ANDROID_PHONE: BezelSpec = {
-  aspectRatio: "9 / 19.5",
+  aspectRatio: FRAME_ASPECT.android,
   body: {
     borderRadius: "8% / 4%",
     background: "linear-gradient(160deg, #2a2a2e 0%, #18181b 100%)",
@@ -110,7 +110,7 @@ const ANDROID_PHONE: BezelSpec = {
 };
 
 const ANDROID_TABLET_PORTRAIT: BezelSpec = {
-  aspectRatio: "5 / 8",
+  aspectRatio: FRAME_ASPECT.tabletPortrait,
   body: {
     borderRadius: "4.5% / 2.8%",
     background: "linear-gradient(160deg, #2a2a2e 0%, #18181b 100%)",
@@ -128,7 +128,7 @@ const ANDROID_TABLET_PORTRAIT: BezelSpec = {
 };
 
 const ANDROID_TABLET_LANDSCAPE: BezelSpec = {
-  aspectRatio: "8 / 5",
+  aspectRatio: FRAME_ASPECT.tabletLandscape,
   body: {
     borderRadius: "2.8% / 4.5%",
     background: "linear-gradient(160deg, #2a2a2e 0%, #18181b 100%)",
@@ -146,7 +146,7 @@ const ANDROID_TABLET_LANDSCAPE: BezelSpec = {
 };
 
 const IPAD: BezelSpec = {
-  aspectRatio: "770 / 1000",
+  aspectRatio: FRAME_ASPECT.ipad,
   body: {
     borderRadius: "5% / 3.6%",
     background: "linear-gradient(180deg, #2C2C2E 0%, #1C1C1E 100%)",

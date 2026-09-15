@@ -15,8 +15,9 @@ import type {
 } from "@/lib/types";
 import {
   CANVAS,
-  IPAD_RATIO,
-  MK_RATIO,
+  FRAME_ASPECT,
+  androidPhoneW,
+  androidPhoneWSmall,
   ipadW,
   phoneW,
   phoneWSmall,
@@ -49,14 +50,14 @@ export function getCanvas(device: Device, orientation: Orientation) {
   return { cW: c.w, cH: c.h };
 }
 
-// Aspect ratio (w/h) of each device frame — must match device-frames.tsx
+// Read from the same map the bezels are drawn with, so the two cannot drift.
 function getFrameAspect(device: Device, orientation: Orientation) {
   switch (device) {
-    case "iphone":      return MK_RATIO;
-    case "android":     return 9 / 19.5;
-    case "ipad":        return IPAD_RATIO;
+    case "iphone":      return FRAME_ASPECT.iphone;
+    case "android":     return FRAME_ASPECT.android;
+    case "ipad":        return FRAME_ASPECT.ipad;
     case "android-7":
-    case "android-10":  return orientation === "landscape" ? 8 / 5 : 5 / 8;
+    case "android-10":  return orientation === "landscape" ? FRAME_ASPECT.tabletLandscape : FRAME_ASPECT.tabletPortrait;
     default:            return 1;
   }
 }
@@ -72,7 +73,7 @@ function getFrameForDevice(device: Device, orientation: Orientation): {
     case "ipad":
       return { Comp: IPad, widthFn: ipadW, smallWidthFn: (cW, cH) => ipadW(cW, cH, 0.6) };
     case "android":
-      return { Comp: AndroidPhone, widthFn: phoneW, smallWidthFn: phoneWSmall };
+      return { Comp: AndroidPhone, widthFn: androidPhoneW, smallWidthFn: androidPhoneWSmall };
     case "android-7":
     case "android-10":
       if (orientation === "landscape") {

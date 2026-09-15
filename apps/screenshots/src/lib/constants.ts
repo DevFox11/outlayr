@@ -18,7 +18,9 @@ export const EXPORT_SIZES: Record<Device, ExportSize[]> = {
     { label: '6.9"', w: 1320, h: 2868 },
     { label: '6.5"', w: 1284, h: 2778 },
     { label: '6.3"', w: 1206, h: 2622 },
-    { label: '6.1"', w: 1125, h: 2436 },
+    // 1125x2436 is iPhone X / XS / 11 Pro, which App Store Connect files under
+    // 5.8". Apple's 6.1" slot is 1179x2556.
+    { label: '5.8"', w: 1125, h: 2436 },
   ],
   ipad: [
     { label: '13" iPad',       w: 2064, h: 2752 },
@@ -48,10 +50,18 @@ export function getExportSizes(device: Device, orientation: Orientation): Export
 }
 
 // ---------- Frame aspect ratios ----------
-export const MK_RATIO    = 1022 / 2082; // iPhone PNG mockup
-export const TAB_P_RATIO = 0.667;        // tablet portrait
-export const TAB_L_RATIO = 1.5;          // tablet landscape
-export const IPAD_RATIO  = 0.770;        // iPad
+// The single source of truth, consumed BOTH by the bezels in `device-frames.tsx`
+// and by the default-placement maths below. They used to be written out twice,
+// and had drifted: the tablet pair read 0.667/1.5 against bezels of 5/8 and 8/5,
+// and the Android phone was measured with the iPhone mockup's ratio — so the
+// default device sat about 6% off its own frame on three of the five devices.
+export const FRAME_ASPECT = {
+  android: 9 / 19.5,
+  ipad: 770 / 1000,
+  iphone: 1022 / 2082,
+  tabletLandscape: 8 / 5,
+  tabletPortrait: 5 / 8,
+} as const;
 
 // iPhone mockup screen overlay (pre-measured)
 export const PHONE_SCREEN = {
@@ -64,20 +74,28 @@ export const PHONE_SCREEN = {
 };
 
 // ---------- Width formula helpers ----------
+export function androidPhoneW(cW: number, cH: number, clamp = 0.84) {
+  return Math.min(clamp, 0.72 * (cH / cW) * FRAME_ASPECT.android);
+}
+
+export function androidPhoneWSmall(cW: number, cH: number) {
+  return androidPhoneW(cW, cH, 0.66);
+}
+
 export function phoneW(cW: number, cH: number, clamp = 0.84) {
-  return Math.min(clamp, 0.72 * (cH / cW) * MK_RATIO);
+  return Math.min(clamp, 0.72 * (cH / cW) * FRAME_ASPECT.iphone);
 }
 export function phoneWSmall(cW: number, cH: number) {
   return phoneW(cW, cH, 0.66);
 }
 export function tabletPW(cW: number, cH: number, clamp = 0.80) {
-  return Math.min(clamp, 0.72 * (cH / cW) * TAB_P_RATIO);
+  return Math.min(clamp, 0.72 * (cH / cW) * FRAME_ASPECT.tabletPortrait);
 }
 export function tabletLW(cW: number, cH: number, clamp = 0.62) {
-  return Math.min(clamp, 0.75 * (cH / cW) * TAB_L_RATIO);
+  return Math.min(clamp, 0.75 * (cH / cW) * FRAME_ASPECT.tabletLandscape);
 }
 export function ipadW(cW: number, cH: number, clamp = 0.75) {
-  return Math.min(clamp, 0.72 * (cH / cW) * IPAD_RATIO);
+  return Math.min(clamp, 0.72 * (cH / cW) * FRAME_ASPECT.ipad);
 }
 
 // ---------- Themes ----------
