@@ -10,13 +10,17 @@ type FrameProps = {
   hideEmpty?: boolean;
 };
 
+// The only bezel drawn from a bitmap. Every other frame below is CSS, so it
+// cannot 404 — this one can, and a frameless export still writes a valid PNG.
+export const PHONE_MOCKUP_SRC = "/mockup.png";
+
 // iPhone — uses pre-measured mockup.png overlay
 export function Phone({ src, style, hideEmpty }: FrameProps) {
   const resolved = img(src);
   return (
     <div style={{ position: "relative", aspectRatio: FRAME_ASPECT.iphone, ...style }}>
       <img
-        src={img("/mockup.png")}
+        src={img(PHONE_MOCKUP_SRC)}
         alt=""
         style={{ display: "block", width: "100%", height: "100%" }}
         draggable={false}

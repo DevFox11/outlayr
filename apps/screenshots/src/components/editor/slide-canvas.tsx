@@ -90,6 +90,11 @@ function getFrameForDevice(device: Device, orientation: Orientation): {
   }
 }
 
+/** Whether this deck draws `Phone`, the one bezel loaded from a file rather than CSS. */
+export function usesMockupFrame(device: Device, orientation: Orientation): boolean {
+  return getFrameForDevice(device, orientation).Comp === Phone;
+}
+
 type EditHandlers = {
   onLabelChange?: (v: string) => void;
   onHeadlineChange?: (v: string) => void;

@@ -22,10 +22,11 @@ import type {
   SelectedElement,
   Slide,
 } from "@/lib/types";
+import { PHONE_MOCKUP_SRC } from "./device-frames";
 import { Inspector } from "./inspector";
 import { PreviewStage } from "./preview-stage";
 import { Sidebar } from "./sidebar";
-import { DeckCanvas, getCanvas } from "./slide-canvas";
+import { DeckCanvas, getCanvas, usesMockupFrame } from "./slide-canvas";
 import { Toolbar } from "./toolbar";
 
 export function ScreenshotEditor() {
@@ -73,7 +74,7 @@ export function ScreenshotEditor() {
 
   const assetPaths = React.useMemo(() => {
     const paths = new Set<string>();
-    paths.add("/mockup.png");
+    paths.add(PHONE_MOCKUP_SRC);
     if (state.appIcon) paths.add(state.appIcon);
     // Preload every locale variant so bulk export doesn't race image loads.
     const allSlides: Slide[] = Object.values(state.slidesByDevice).flat();
@@ -406,7 +407,14 @@ export function ScreenshotEditor() {
         slide.screenshot &&
         !slide.screenshotSecondary,
     );
-    if (blankScreens.length > 0 || reusedBackScreens.length > 0) {
+    // The bezel is a file, so it can 404 where the CSS frames cannot, and the
+    // export still finishes and reports success — just with no phone around the
+    // screenshot. Nothing else here looks at it.
+    const framelessExport =
+      didFail(PHONE_MOCKUP_SRC) &&
+      usesMockupFrame(state.device, state.orientation) &&
+      currentSlides.some((slide) => slideNeedsScreenshot(state.device, slide));
+    if (blankScreens.length > 0 || reusedBackScreens.length > 0 || framelessExport) {
       const details = [
         blankScreens.length
           ? `${blankScreens.length} screen${blankScreens.length === 1 ? "" : "s"} will export with an empty device (${blankScreens.join(", ")}).`
@@ -414,6 +422,7 @@ export function ScreenshotEditor() {
         reusedBackScreens.length
           ? `${reusedBackScreens.length} two-device screen${reusedBackScreens.length === 1 ? "" : "s"} will reuse the primary screenshot in back.`
           : null,
+        framelessExport ? `${PHONE_MOCKUP_SRC} did not load, so every screen exports without its phone frame.` : null,
       ].filter(Boolean);
       toast.warning("Export includes placeholder screenshots", {
         description: details.join(" "),
