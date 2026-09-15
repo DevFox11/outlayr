@@ -3,7 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { budgets, categories, transactions } from "@/db/schema";
-import { migratedDatabase } from "@/db/test-database";
+import { migratedDatabase, transactionalDatabase } from "@/db/test-database";
 
 import {
     CATEGORY_ERROR_MESSAGES,
@@ -464,6 +464,42 @@ describe("categoriesRepo.reorder", () => {
         expect((await getCategoryById(db, c))?.sortOrder).toBe(0);
         expect((await getCategoryById(db, a))?.sortOrder).toBe(1);
         expect((await getCategoryById(db, b))?.sortOrder).toBe(2);
+    });
+
+    // A drag rewrites every position in the scope. Half of them landing leaves
+    // two categories sharing a `sortOrder`, and the list orders by that alone —
+    // so the pair swaps places between openings depending on what SQLite returns.
+    it("writes every position or none, rather than leaving two sharing one", async () => {
+        // `withTransaction` runs the task bare against a client with no async
+        // transaction API, which would make this vacuous — so the boundary under
+        // test is injected, mirroring expo-sqlite's own.
+        const rollbackDb = transactionalDatabase();
+        const a = await categoriesRepo.create(rollbackDb, {
+            color: "#279AF4",
+            icon: "IconA",
+            income: false,
+            name: "A",
+        });
+        const b = await categoriesRepo.create(rollbackDb, {
+            color: "#279AF4",
+            icon: "IconB",
+            income: false,
+            name: "B",
+        });
+        const c = await categoriesRepo.create(rollbackDb, {
+            color: "#279AF4",
+            icon: "IconC",
+            income: false,
+            name: "C",
+        });
+
+        // The third update throws: SQLite cannot bind an object as an id.
+        await expect(categoriesRepo.reorder(db, [c, a, { notAnId: true } as unknown as string])).rejects.toThrow();
+
+        // c was at 2 and the failed run would have moved it to 0.
+        expect((await getCategoryById(rollbackDb, c))?.sortOrder).toBe(2);
+        expect((await getCategoryById(rollbackDb, a))?.sortOrder).toBe(0);
+        expect((await getCategoryById(rollbackDb, b))?.sortOrder).toBe(1);
     });
 });
 

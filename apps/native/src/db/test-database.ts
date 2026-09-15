@@ -86,3 +86,34 @@ export function migratedSqlite({ foreignKeys = true } = {}): BetterSqlite3.Datab
 /** {@link migratedSqlite} wrapped as the app's {@link Database}. */
 export const migratedDatabase = (options?: { foreignKeys?: boolean }): Database =>
     testDatabase(migratedSqlite(options));
+
+/**
+ * Gives a better-sqlite3 handle the async transaction API expo-sqlite has.
+ *
+ * `withTransaction` runs its task BARE against a client that lacks one — see
+ * `db/transaction.ts` — which keeps most suites meaningful but makes an
+ * atomicity assertion vacuous. This mirrors expo-sqlite's own
+ * `withTransactionAsync` (`SQLiteDatabase.ts:140-149`) statement for statement,
+ * so a rollback test exercises the boundary production takes.
+ */
+export function withAsyncTransactions(sqlite: BetterSqlite3.Database): void {
+    Object.assign(sqlite, {
+        withTransactionAsync: async (task: () => Promise<void>) => {
+            try {
+                sqlite.exec("BEGIN");
+                await task();
+                sqlite.exec("COMMIT");
+            } catch (error) {
+                sqlite.exec("ROLLBACK");
+                throw error;
+            }
+        },
+    });
+}
+
+/** {@link migratedDatabase} that actually rolls back, for atomicity tests. */
+export function transactionalDatabase(options?: { foreignKeys?: boolean }): Database {
+    const sqlite = migratedSqlite(options);
+    withAsyncTransactions(sqlite);
+    return testDatabase(sqlite);
+}

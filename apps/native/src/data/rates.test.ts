@@ -3,7 +3,7 @@ import BetterSqlite3 from "better-sqlite3";
 
 import type { Database } from "@/db/client";
 import { appMeta, exchangeRates } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { testDatabase, withAsyncTransactions } from "@/db/test-database";
 import { chunkRows } from "@/lib/chunk";
 
 import { isThrottled, pullRatesIfDue, RATE_ROWS_PER_CHUNK, RATES_THROTTLE_MS } from "./rates";
@@ -46,28 +46,6 @@ describe("isThrottled", () => {
         expect(isThrottled(now + 60_000, now)).toBe(false);
     });
 });
-
-/**
- * better-sqlite3 has no async transaction API, and `withTransaction` runs the
- * task bare against a client that lacks one — which would make an atomicity
- * assertion vacuous. This mirrors expo-sqlite's own `withTransactionAsync`
- * (`SQLiteDatabase.ts:140-149`) statement for statement so the boundary under
- * test is the one production takes.
- */
-function withAsyncTransactions(sqlite: BetterSqlite3.Database): void {
-    Object.assign(sqlite, {
-        withTransactionAsync: async (task: () => Promise<void>) => {
-            try {
-                sqlite.exec("BEGIN");
-                await task();
-                sqlite.exec("COMMIT");
-            } catch (error) {
-                sqlite.exec("ROLLBACK");
-                throw error;
-            }
-        },
-    });
-}
 
 function makeDb(): Database {
     const sqlite = new BetterSqlite3(":memory:");

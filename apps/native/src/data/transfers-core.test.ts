@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { transactions, transfers } from "@/db/schema";
-import { testDatabase } from "@/db/test-database";
+import { testDatabase, withAsyncTransactions } from "@/db/test-database";
 import { firstOfMonth, startOfDay } from "@/domain/dates";
 
 import { accountsRepo } from "./accounts-core";
@@ -68,22 +68,10 @@ function makeDb(): Database {
 		INSERT INTO exchangeRates (quote, rateType, date, rate, fetchedAt, source)
 		VALUES ('VES', 'official', '${utcDateString(DAY.getTime())}', ${OFFICIAL_VES_PER_USD}, 0, 'test');
 	`);
-    const db = testDatabase(sqlite);
     // withTransaction runs its task bare when the client has no async transaction
     // API, which would make every rollback assertion below vacuously true.
-    Object.assign(db.$client as object, {
-        withTransactionAsync: async (task: () => Promise<void>) => {
-            sqlite.exec("BEGIN");
-            try {
-                await task();
-                sqlite.exec("COMMIT");
-            } catch (error) {
-                sqlite.exec("ROLLBACK");
-                throw error;
-            }
-        },
-    });
-    return db;
+    withAsyncTransactions(sqlite);
+    return testDatabase(sqlite);
 }
 
 function severTheDetach(db: Database): void {

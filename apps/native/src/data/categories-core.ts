@@ -557,11 +557,19 @@ export const categoriesRepo = {
      */
     async reorder(db: Database, orderedIds: string[]): Promise<void> {
         const now = new Date();
-        await Promise.all(
-            orderedIds.map((id, index) =>
-                db.update(categories).set({ sortOrder: index, updatedAt: now }).where(eq(categories.id, id))
-            )
-        );
+        // One transaction, as `accountsRepo.reorder` does: a drag rewrites every
+        // position in the scope, and a run that stops partway leaves two
+        // categories sharing a `sortOrder`. The list orders by it alone, so they
+        // then swap places between openings depending on what SQLite returns.
+        await withTransaction(db, async () => {
+            for (let index = 0; index < orderedIds.length; index += 1) {
+                // oxlint-disable-next-line no-await-in-loop -- one expo-sqlite connection backs the surrounding withTransaction, so concurrent statements would interleave inside the same transaction
+                await db
+                    .update(categories)
+                    .set({ sortOrder: index, updatedAt: now })
+                    .where(eq(categories.id, orderedIds[index]));
+            }
+        });
     },
 
     /** A reparented category inherits its new parent's income namespace. */
