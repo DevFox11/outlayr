@@ -234,8 +234,14 @@ export function useProject() {
   // Autosave: localStorage on every change, so closing the tab inside the
   // debounce loses nothing, and the file (git-trackable) debounced.
   useEffect(() => {
-    if (!hydrated || !fileReady) return;
+    if (!hydrated) return;
+    // Written before the file gate rather than behind it. A project whose file
+    // could not be read is exactly when losing the session hurts most, and this
+    // cache is what the note above promises survives a closed tab — gating it on
+    // `fileReady` meant one failed GET silently ended ALL persistence for the
+    // session, while the banner said only that the file could not be loaded.
     const localResult = saveToLocalStorage(state);
+    if (!fileReady) return;
     const seq = ++saveSeq.current;
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
