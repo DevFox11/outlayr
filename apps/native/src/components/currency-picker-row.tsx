@@ -1,4 +1,3 @@
-import { MenuView } from "@expo/ui/community/menu";
 import type { MenuAction, NativeActionEvent } from "@expo/ui/community/menu";
 import StarSolidIcon from "@hugeicons-pro/core-solid-rounded/StarIcon";
 import StarIcon from "@hugeicons-pro/core-stroke-rounded/StarIcon";
@@ -28,6 +27,7 @@ import { useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
+import { StretchedMenuView } from "./action-menu";
 import { MonoLabel } from "./mono-label";
 import { Text } from "./text";
 import { cn } from "./tw";
@@ -328,7 +328,7 @@ export function CurrencyRow({
             {/* Not `@expo/ui/swift-ui`'s ContextMenu: that needs a SwiftUI `Host` per
 			    row, which cannot be told to fill its parent's width, so every row
 			    sat as its own inset card. */}
-            <MenuView
+            <StretchedMenuView
                 actions={actions}
                 onPressAction={onPressAction}
                 shouldOpenOnLongPress
@@ -342,7 +342,7 @@ export function CurrencyRow({
                 >
                     <CurrencyRowFace code={code} selected={selected} tickEnters />
                 </Pressable>
-            </MenuView>
+            </StretchedMenuView>
         </ReanimatedSwipeable>
     );
 }

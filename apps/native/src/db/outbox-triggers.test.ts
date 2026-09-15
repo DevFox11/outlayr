@@ -125,6 +125,19 @@ describe("outbox triggers", () => {
         expect(seqs[0] < seqs[1] && seqs[1] < seqs[2]).toBeTruthy();
     });
 
+    it("keeps accepting a setting while its queue entry is still waiting", () => {
+        enableSync(sqlite);
+
+        setMeta(sqlite, "showCents", "false");
+        const first = outbox(sqlite)[0].seq;
+        setMeta(sqlite, "showCents", "true");
+
+        expect(sqlite.prepare("SELECT value FROM appMeta WHERE key = 'showCents'").pluck().get()).toBe("true");
+        const rows = outbox(sqlite);
+        expect(rows).toHaveLength(1);
+        expect(rows[0].seq > first).toBeTruthy();
+    });
+
     it("holds one row per row a bulk write touches, however often it runs", () => {
         for (const id of ["t1", "t2", "t3", "t4", "t5"]) {
             addTransaction(sqlite, id);
