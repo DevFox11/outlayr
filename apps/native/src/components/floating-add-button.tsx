@@ -115,13 +115,32 @@ export function FloatingAddButton() {
     const [open, setOpen] = useState(false);
     const haptics = useHaptics();
 
+    /**
+     * The dial's close is a spring, and panelui keeps the action mounted and
+     * hit-testable for its whole ~450ms: the slot animates opacity without
+     * setting `pointerEvents: "none"`, and the closing scrim is only rendered
+     * while `open`. So a normal double-tap reached the handler twice and pushed
+     * the same route twice — two screens stacked, and for voice two Convex
+     * threads and two recorders on one microphone.
+     *
+     * Re-armed on focus, which this effect already runs on the way back in.
+     */
+    const navigating = useRef(false);
+    const go = useCallback((href: Parameters<typeof router.push>[0]) => {
+        if (navigating.current) {
+            return;
+        }
+        navigating.current = true;
+        router.push(href);
+    }, []);
+
     useFocusEffect(
-        useCallback(
-            () => () => {
+        useCallback(() => {
+            navigating.current = false;
+            return () => {
                 setOpen(false);
-            },
-            []
-        )
+            };
+        }, [])
     );
     const { fontScale, height: windowHeight } = useWindowDimensions();
     const importSheetRef = useRef<ImportSheetHandle>(null);
@@ -139,7 +158,7 @@ export function FloatingAddButton() {
             icon: ReceiptDollarIcon,
             key: "transaction",
             label: t("log.add.transaction"),
-            onPress: () => router.push("/transactions/create"),
+            onPress: () => go("/transactions/create"),
         },
         ...(canTransfer
             ? [
@@ -147,14 +166,15 @@ export function FloatingAddButton() {
                       icon: ArrowDataTransferHorizontalIcon,
                       key: "transfer",
                       label: t("log.add.transfer"),
-                      onPress: () => router.push("/transactions/transfers/create"),
+                      onPress: () => go("/transactions/transfers/create"),
                   },
               ]
             : []),
-        { icon: Mic01Icon, key: "voice", label: t("log.add.voice"), onPress: () => router.push("/transactions/voice") },
-        { icon: ScanIcon, key: "scan", label: t("log.add.scan"), onPress: () => router.push("/transactions/scan") },
+        { icon: Mic01Icon, key: "voice", label: t("log.add.voice"), onPress: () => go("/transactions/voice") },
+        { icon: ScanIcon, key: "scan", label: t("log.add.scan"), onPress: () => go("/transactions/scan") },
         { icon: FileImportIcon, key: "import", label: t("log.add.import"), onPress: presentImport },
     ];
+    // oxlint-disable-next-line react/react-compiler -- same shape as the disable below: `go` reads its latch when the action is pressed, never during render, and the rule follows the function value into the array rather than the ref itself
     const { kept, lines } = fitDial(ranked.length, room, fontScale);
     // The dial reads top to bottom, so the least-reached-for action sits furthest from the thumb.
     // oxlint-disable-next-line react/react-compiler -- `presentImport` reads the sheet's ref when it is pressed, never during render; the rule tracks the function value into any array it lands in, and the alternative is not putting the import in the list at all
