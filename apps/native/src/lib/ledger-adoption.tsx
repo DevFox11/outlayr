@@ -64,9 +64,11 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
     const [failed, setFailed] = useState(false);
     const confirmedFree = useProLocked();
     const entitlementPending = useProPending();
-    const retryByAccount = useRef<{ accountId: string; retry: ReturnType<typeof createSingleAdoptionRetry> } | null>(
-        null
-    );
+    const retryByAccount = useRef<{
+        accountId: string;
+        inFlight: Promise<AdoptionStatus> | null;
+        retry: ReturnType<typeof createSingleAdoptionRetry>;
+    } | null>(null);
 
     useEffect(() => {
         // Held rather than settled while the entitlement is still being
@@ -92,43 +94,45 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
         }
         let cancelled = false;
         if (retryByAccount.current?.accountId !== accountId) {
-            retryByAccount.current = { accountId, retry: createSingleAdoptionRetry() };
+            retryByAccount.current = { accountId, inFlight: null, retry: createSingleAdoptionRetry() };
         }
-        const { retry } = retryByAccount.current;
+        const slot = retryByAccount.current;
+        const { retry } = slot;
         setStatus("resolving");
         setFailed(false);
 
-        const reconcile = async () => {
+        const runReconcile = async (): Promise<AdoptionStatus> => {
             try {
                 await prepareAccountAdoption(db, accountId);
                 const engine = adoptionEngine(db);
                 const remote = engine ? await engine.accountLedger() : "unknown";
                 const plan = adoptionPlan(await localLedgerState(db), remote);
-                if (cancelled) {
-                    return;
-                }
                 if (plan === "ask") {
-                    setStatus("ask");
-                    return;
+                    return "ask";
                 }
                 if (plan === "defer") {
                     retry.schedule();
-                    setStatus("settled");
-                    return;
+                    return "settled";
                 }
                 const actions = adoptionActions(plan);
                 if (actions) {
                     await completeAdoption(db, engine, actions, accountId);
                 }
-                if (!cancelled) {
-                    setStatus("settled");
-                }
+                return "settled";
             } catch (error: unknown) {
                 console.warn("[outlayr] ledger adoption deferred", error);
                 retry.schedule();
-                if (!cancelled) {
-                    setStatus("settled");
-                }
+                return "settled";
+            }
+        };
+
+        const reconcile = async () => {
+            slot.inFlight ??= runReconcile().finally(() => {
+                slot.inFlight = null;
+            });
+            const outcome = await slot.inFlight;
+            if (!cancelled) {
+                setStatus(outcome);
             }
         };
 
