@@ -303,13 +303,18 @@ export function ScreenshotEditor() {
         (target.tagName === "INPUT" ||
           target.tagName === "TEXTAREA" ||
           (target as HTMLElement).isContentEditable);
-      if (exporting) return;
-
+      // Above the export guard on purpose: that guard is there to keep mutations
+      // out of the export loop, and Escape mutates nothing the loop reads. The
+      // off-screen DeckCanvas below renders from the frozen `exportDeck` and is
+      // passed neither `selectedElement` nor `editable`, so clearing the
+      // selection cannot change a captured pixel.
       if (e.key === "Escape") {
         setSelectedElement(null);
         if (target && "blur" in target && typeof target.blur === "function") target.blur();
         return;
       }
+
+      if (exporting) return;
 
       // Let focused inputs and contenteditable text keep their native undo,
       // redo, selection, and deletion behavior.
