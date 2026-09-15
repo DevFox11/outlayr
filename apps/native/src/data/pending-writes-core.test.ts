@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "@jest/globals";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { eq, ne } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
@@ -6,7 +6,7 @@ import { accounts, categories, transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
 import type { PendingWrite } from "@/lib/pending-writes-core";
 
-import { applyPendingWrites, WALLET_DEDUPE_WINDOW_MS } from "./pending-writes-core";
+import { applyPendingWrites, drainPendingWrites, WALLET_DEDUPE_WINDOW_MS } from "./pending-writes-core";
 import { transactionsRepo } from "./transactions-core";
 
 const makeDb = migratedDatabase;
@@ -258,5 +258,52 @@ describe("applyPendingWrites", () => {
 
         expect(applied).toBe(0);
         await expect(liveRows(db)).resolves.toHaveLength(0);
+    });
+});
+
+describe("drainPendingWrites", () => {
+    let db: Database;
+
+    beforeEach(async () => {
+        db = makeDb();
+        await seedCategories(db);
+    });
+
+    it("applies a job once when two drains overlap", async () => {
+        const job = walletWrite("wallet-1");
+        let released = 0;
+        // The real claim: it re-returns an unreleased claim on purpose, so a
+        // crash mid-drain is recovered. That is what makes the overlap dangerous.
+        const claim = () => ({ jobs: [job], names: ["claimed-1.jsonl"] });
+        const release = () => {
+            released += 1;
+        };
+
+        // Both catch-up paths firing at once: the effect body at mount, and the
+        // first AppState "active" a few hundred milliseconds later.
+        const [first, second] = await Promise.all([
+            drainPendingWrites(db, claim, release),
+            drainPendingWrites(db, claim, release),
+        ]);
+
+        await expect(db.select().from(transactions)).resolves.toHaveLength(1);
+        expect(first).toBe(1);
+        expect(second).toBe(1);
+        expect(released).toBe(1);
+    });
+
+    it("drains again once the first pass has finished", async () => {
+        const claim = jest
+            .fn<() => { jobs: PendingWrite[]; names: string[] }>()
+            .mockReturnValueOnce({ jobs: [walletWrite("wallet-1")], names: ["a.jsonl"] })
+            .mockReturnValueOnce({
+                jobs: [walletWrite("wallet-2", { dedupeKey: "wallet:expense:other:100" })],
+                names: ["b.jsonl"],
+            });
+
+        await drainPendingWrites(db, claim, () => undefined);
+        await drainPendingWrites(db, claim, () => undefined);
+
+        await expect(db.select().from(transactions)).resolves.toHaveLength(2);
     });
 });

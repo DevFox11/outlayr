@@ -4,7 +4,7 @@ import { AppState } from "react-native";
 
 import { getMeta, META_KEYS, setMeta } from "@/data/app-meta-core";
 import { backfillBudgetUsd, backfillCanonicalUsd, stampLedgerCurrency } from "@/data/canonicalize-backfill";
-import { applyPendingWrites } from "@/data/pending-writes-core";
+import { drainPendingWrites } from "@/data/pending-writes-core";
 import { pullRatesIfDue } from "@/data/rates";
 import type { Database } from "@/db/client";
 import { ratesPuller } from "@/lib/convex";
@@ -45,7 +45,7 @@ export function useSystemSync(db: Database | null): void {
             mirrorWalletRun(db).catch((error) => {
                 console.warn("[outlayr] wallet run stamp failed", error);
             });
-            drainQueue(db)
+            drainPendingWrites(db, claimPendingWrites, releasePendingWrites)
                 .then((applied) => {
                     if (applied === 0) {
                         publish.schedule();
@@ -131,16 +131,6 @@ async function mirrorWalletRun(db: Database): Promise<void> {
         return;
     }
     await setMeta(db, META_KEYS.walletLastRunAt, stamp);
-}
-
-async function drainQueue(db: Database): Promise<number> {
-    const claimed = claimPendingWrites();
-    if (claimed.names.length === 0) {
-        return 0;
-    }
-    const applied = await applyPendingWrites(db, claimed.jobs);
-    releasePendingWrites(claimed);
-    return applied;
 }
 
 /**

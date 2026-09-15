@@ -7,7 +7,7 @@ import { withTransaction } from "@/db/transaction";
 import { detectCurrency } from "@/domain/detect-currency";
 import { matchCardAccount } from "@/domain/match-card-account";
 import { parseNotification } from "@/domain/parse-notification";
-import type { PendingWrite } from "@/lib/pending-writes-core";
+import type { ClaimedWrites, PendingWrite } from "@/lib/pending-writes-core";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { transactionsRepo } from "./transactions-core";
@@ -299,4 +299,47 @@ async function resolveCategory(db: Database, job: PendingWrite): Promise<string 
         .where(and(eq(categories.income, job.income), isNull(categories.parentId), isNull(categories.deletedAt)))
         .limit(1);
     return fallback[0]?.id ?? null;
+}
+
+let draining: Promise<number> | null = null;
+
+/**
+ * Claims the queue, applies it, and releases it — one drain at a time.
+ *
+ * The guard is the point. `claimPendingWrites` deliberately re-returns a claim
+ * an earlier pass has not released yet, because that is how a crash mid-drain is
+ * recovered — so a second drain starting while the first is still awaiting its
+ * per-job SQLite transactions receives the very same jobs. Both read the
+ * idempotency ledger before either has written to it, so both pass
+ * `alreadyApplied` and both insert: one Wallet tap or Siri entry lands in the
+ * ledger twice.
+ *
+ * That overlap is ordinary, not exotic. The catch-up runs from the effect body
+ * at mount and again on the first `AppState` "active", which on a cold launch
+ * arrives a few hundred milliseconds later. `logo-backfill` holds its own pass
+ * the same way.
+ */
+export function drainPendingWrites(
+    db: Database,
+    claim: () => ClaimedWrites,
+    release: (claimed: ClaimedWrites) => void
+): Promise<number> {
+    draining ??= runDrain(db, claim, release).finally(() => {
+        draining = null;
+    });
+    return draining;
+}
+
+async function runDrain(
+    db: Database,
+    claim: () => ClaimedWrites,
+    release: (claimed: ClaimedWrites) => void
+): Promise<number> {
+    const claimed = claim();
+    if (claimed.names.length === 0) {
+        return 0;
+    }
+    const applied = await applyPendingWrites(db, claimed.jobs);
+    release(claimed);
+    return applied;
 }
