@@ -20,7 +20,7 @@ import { closedWindowsBefore, EVERY_SCOPE, spendPerWindow, typicalOf } from "@/d
 import { limitIn, sumValuedIn, valueDatedRowsIn } from "@/domain/valuation";
 import { translateNow } from "@/i18n/runtime";
 
-import { expenseContributionQuery, spentForCategory, spentForMain } from "./budget-spent";
+import { expenseContributionQuery, lastMsBefore, spentForCategory, spentForMain } from "./budget-spent";
 import type { ExpenseContribution } from "./budget-spent";
 import { budgetsRepo } from "./budgets-core";
 import { useCategoryMeta } from "./categories";
@@ -173,7 +173,7 @@ export function useMainBudget(
                   anchor: row.dateCreated ?? window.start,
                   current: window,
                   limit,
-                  spentIn: (start, end) => spentForMain(contributions, start, end),
+                  spentIn: (start, end) => spentForMain(contributions, start, lastMsBefore(end)),
                   type: row.type,
               }).credit
             : 0;
@@ -292,7 +292,7 @@ export function usePerCategoryBudgets(
                           // SAFETY: this branch is the category-budget one, and a category budget
                           // always has a categoryId — the column is nullable for the overall budget.
                           spentIn: (start, end) =>
-                              spentForCategory(contributions, row.categoryId as string, start, end),
+                              spentForCategory(contributions, row.categoryId as string, start, lastMsBefore(end)),
                           type: row.type,
                       }).credit
                     : 0;
@@ -414,7 +414,8 @@ export function useCategoryBudget(db: Database, id: string, nowMs: number, perio
                       current: window,
                       limit,
                       // SAFETY: the category branch again, as above.
-                      spentIn: (start, end) => spentForCategory(contributions, row.categoryId as string, start, end),
+                      spentIn: (start, end) =>
+                          spentForCategory(contributions, row.categoryId as string, start, lastMsBefore(end)),
                       type: row.type,
                   }).credit
                 : 0;

@@ -7,7 +7,7 @@ import { categories, transactions } from "@/db/schema";
 import * as schema from "@/db/schema";
 import { buildRateTable, sumValuedIn, valueDatedRowsIn, valueIn } from "@/domain/valuation";
 
-import { expenseContributionQuery, spentForCategory, spentForMain } from "./budget-spent";
+import { expenseContributionQuery, lastMsBefore, spentForCategory, spentForMain } from "./budget-spent";
 import type { ExpenseContribution } from "./budget-spent";
 
 type TestDb = ReturnType<typeof makeDb>;
@@ -309,5 +309,32 @@ describe("a budget's spend does not depend on which list it is summed from", () 
 
         expect(fromDetail).toBe(80);
         expect(fromDetail).toBe(fromShared);
+    });
+});
+
+/**
+ * `rolloverCarry` hands `spentIn` a half-open `[start, end)`, but both spend
+ * functions count a row dated exactly on their upper bound. A CSV import dates
+ * every row at local midnight, so a row landing on a window boundary used to be
+ * charged to the closed window (shrinking the carry) AND to the new one.
+ */
+describe("a transaction dated exactly on a window boundary", () => {
+    const FEB = at(2025, 2, 1);
+    const MAR = at(2025, 3, 1);
+    const onTheBoundary: ExpenseContribution[] = [{ amount: 40, categoryId: null, date: MAR, parentId: null }];
+
+    it("is not counted in the window that ends there", () => {
+        expect(spentForMain(onTheBoundary, FEB, lastMsBefore(MAR))).toBe(0);
+    });
+
+    it("is counted in the window that starts there", () => {
+        expect(spentForMain(onTheBoundary, MAR, at(2025, 3, 31))).toBe(40);
+    });
+
+    it("counts once for a category budget too", () => {
+        const rows: ExpenseContribution[] = [{ amount: 40, categoryId: "food", date: MAR, parentId: null }];
+
+        expect(spentForCategory(rows, "food", FEB, lastMsBefore(MAR))).toBe(0);
+        expect(spentForCategory(rows, "food", MAR, at(2025, 3, 31))).toBe(40);
     });
 });

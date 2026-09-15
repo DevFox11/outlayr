@@ -53,6 +53,16 @@ export function contributesTo(row: ExpenseContribution, categoryId: string | nul
 }
 
 /**
+ * The inclusive upper bound `spentForMain` and `spentForCategory` take, from
+ * the exclusive end of a window. Both functions count a row dated exactly on
+ * their upper bound, so handing one a window's own end counts a boundary-dated
+ * transaction in that window AND in the next one.
+ */
+export function lastMsBefore(end: Date): Date {
+    return new Date(end.getTime() - 1);
+}
+
+/**
  * Already filtered to non-deleted expenses dated on or before now, and carrying
  * its category's `parentId`.
  */

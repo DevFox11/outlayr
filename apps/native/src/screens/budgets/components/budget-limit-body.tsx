@@ -11,7 +11,7 @@ import { revealEntering } from "@/components/sentence/sentence-motion";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import type { ExpenseContribution } from "@/data/budget-spent";
-import { spentForCategory, spentForMain } from "@/data/budget-spent";
+import { lastMsBefore, spentForCategory, spentForMain } from "@/data/budget-spent";
 import { earliestDate } from "@/data/budgets";
 import { buildBurndown } from "@/domain/budget-burndown";
 import { suggestedLimit } from "@/domain/budget-limit-step";
@@ -119,9 +119,8 @@ export function BudgetLimitBody({
     const spentIn = useMemo(() => {
         const { categoryId } = target;
         return categoryId
-            ? (start: Date, end: Date) =>
-                  spentForCategory(contributions, categoryId, start, new Date(end.getTime() - 1))
-            : (start: Date, end: Date) => spentForMain(contributions, start, new Date(end.getTime() - 1));
+            ? (start: Date, end: Date) => spentForCategory(contributions, categoryId, start, lastMsBefore(end))
+            : (start: Date, end: Date) => spentForMain(contributions, start, lastMsBefore(end));
     }, [contributions, target]);
 
     // `since` bounds the walk at the ledger's own first expense. Without it a
