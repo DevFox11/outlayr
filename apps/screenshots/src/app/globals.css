@@ -38,7 +38,14 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  [contenteditable]:empty::before {
+  /*
+   * `="true"`, not the bare attribute: React renders `contentEditable={false}`
+   * as `contenteditable="false"`, which a presence selector matches. Sidebar
+   * thumbnails pass `editable={false}`, so an empty slide rendered the literal
+   * "LABEL" and "Headline goes here" as if they were its copy. The export canvas
+   * escaped it only by omitting the prop entirely.
+   */
+  [contenteditable="true"]:empty::before {
     content: attr(data-placeholder);
     opacity: 0.4;
   }
