@@ -1,3 +1,4 @@
+import { inArray } from "drizzle-orm";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 
 import type { Database } from "@/db/client";
@@ -5,6 +6,8 @@ import { accounts, appMeta, budgets, categories, mainBudget, transactions, trans
 import { withTransaction } from "@/db/transaction";
 import { ARCHIVE_FORMAT, ARCHIVE_TABLES, ARCHIVE_VERSION, decodeArchiveRow, encodeArchiveRow } from "@/domain/archive";
 import type { ArchiveDocument, ArchiveRow, ArchiveTable, TableRow } from "@/domain/archive";
+
+import { SYNCED_META_KEYS } from "./sync-outbox-core";
 
 const TABLES = {
     accounts,
@@ -29,7 +32,17 @@ export async function buildArchive(db: Database, now: Date): Promise<ArchiveDocu
     const tables = {} as Record<ArchiveTable, ArchiveRow[]>;
     await Promise.all(
         ARCHIVE_TABLES.map(async (table) => {
-            const rows: TableRow[] = await db.select().from(TABLES[table]);
+            // `appMeta` holds this phone's own state next to the account's, and
+            // only the account's belongs in a file another phone will read.
+            // `SYNCED_META_KEYS` is the same line `replaceLocalFromAccount` draws,
+            // for the same reason it draws it.
+            const rows: TableRow[] =
+                table === "appMeta"
+                    ? await db
+                          .select()
+                          .from(appMeta)
+                          .where(inArray(appMeta.key, [...SYNCED_META_KEYS]))
+                    : await db.select().from(TABLES[table]);
             tables[table] = rows.map((row) => encodeArchiveRow(row));
         })
     );
@@ -58,7 +71,9 @@ export async function restoreArchive(db: Database, document: ArchiveDocument): P
     await withTransaction(db, async () => {
         for (const table of [...ARCHIVE_TABLES].reverse()) {
             // oxlint-disable-next-line no-await-in-loop -- children must be deleted before their parents, so the reversed ARCHIVE_TABLES order has to be walked one table at a time
-            await db.delete(TABLES[table]);
+            await (table === "appMeta"
+                ? db.delete(appMeta).where(inArray(appMeta.key, [...SYNCED_META_KEYS]))
+                : db.delete(TABLES[table]));
         }
         for (const table of ARCHIVE_TABLES) {
             const rows = document.tables[table].map((row) => decodeArchiveRow(table, row));

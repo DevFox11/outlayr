@@ -5,6 +5,7 @@ import { accounts, categories, transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
 import { parseArchive, serializeArchive } from "@/domain/archive";
 
+import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { buildArchive, restoreArchive } from "./archive-core";
 
 const CATEGORY = {
@@ -168,5 +169,44 @@ describe("archiving a ledger", () => {
 
         const fresh = migratedDatabase();
         await restoreArchive(fresh, parsed);
+    });
+});
+
+describe("archive and the device's own state", () => {
+    // `appMeta` holds this phone's identity next to the account's settings, and
+    // `replaceLocalFromAccount` refuses to wipe the table for exactly this
+    // reason: "Wiping the table would take `syncDeviceId`, `syncCursor` and
+    // `onboardingComplete` with it — device state that no pull will ever hand
+    // back."
+    it("leaves this device's sync identity alone through a restore", async () => {
+        const source = migratedDatabase();
+        await setMeta(source, META_KEYS.currency, "EUR");
+        await setMeta(source, META_KEYS.syncDeviceId, "device-from-the-iphone");
+        await setMeta(source, META_KEYS.syncCursor, "5000");
+        const document = await buildArchive(source, new Date());
+
+        const target = migratedDatabase();
+        await setMeta(target, META_KEYS.currency, "USD");
+        await setMeta(target, META_KEYS.syncDeviceId, "device-on-the-ipad");
+        await setMeta(target, META_KEYS.syncCursor, "200");
+
+        await restoreArchive(target, document);
+
+        // The account's settings travel.
+        await expect(getMeta(target, META_KEYS.currency)).resolves.toBe("EUR");
+        // The device's do not — a stolen device id breaks the same-millisecond
+        // tie-break between the two handsets, and a cursor that jumped forward
+        // skips every sequence in between, permanently.
+        await expect(getMeta(target, META_KEYS.syncDeviceId)).resolves.toBe("device-on-the-ipad");
+        await expect(getMeta(target, META_KEYS.syncCursor)).resolves.toBe("200");
+    });
+
+    it("does not carry the device keys into the file at all", async () => {
+        const db = migratedDatabase();
+        await setMeta(db, META_KEYS.syncDeviceId, "device-from-the-iphone");
+
+        const document = await buildArchive(db, new Date());
+
+        expect(JSON.stringify(document.tables.appMeta)).not.toContain("device-from-the-iphone");
     });
 });
