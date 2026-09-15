@@ -9,7 +9,7 @@ import { openDraft } from "@/domain/split-draft";
 export interface SplitDraft {
     allocations: Allocation[];
     /** Seeds an untouched draft from what the entry already says. */
-    openSplit: (total: number, categoryId: string | null) => void;
+    openSplit: (total: number, categoryId: string | null, decimals: number) => void;
     setAllocations: (next: Allocation[]) => void;
 }
 
@@ -43,8 +43,8 @@ export function useSplitDraft(db: Database, mode: "create" | "edit", initial: Tr
         };
     }, [db, mode, initial]);
 
-    const openSplit = (total: number, categoryId: string | null) => {
-        setAllocations((current) => (current.length === 0 ? openDraft(total, categoryId) : current));
+    const openSplit = (total: number, categoryId: string | null, decimals: number) => {
+        setAllocations((current) => (current.length === 0 ? openDraft(total, categoryId, decimals) : current));
     };
 
     return { allocations, openSplit, setAllocations };

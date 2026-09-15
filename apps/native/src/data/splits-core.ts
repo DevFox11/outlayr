@@ -66,9 +66,10 @@ export const splitsRepo = {
         db: Database,
         transactionId: string,
         total: number,
-        allocations: readonly Allocation[]
+        allocations: readonly Allocation[],
+        decimals: number
     ): Promise<void> {
-        if (allocations.length > 0 && !isBalanced(total, allocations)) {
+        if (allocations.length > 0 && !isBalanced(total, allocations, decimals)) {
             const allocated = allocations.reduce((sum, one) => sum + one.amount, 0);
             throw new UnbalancedSplitError(total, allocated);
         }

@@ -69,8 +69,8 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
         return map;
     }, [categories]);
 
-    const left = unallocated(total, allocations);
-    const balanced = isBalanced(total, allocations);
+    const left = unallocated(total, allocations, minorUnits);
+    const balanced = isBalanced(total, allocations, minorUnits);
 
     const amountSheetRef = useRef<BottomSheetModal>(null);
 
@@ -160,7 +160,7 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
                                 <Pressable
                                     accessibilityLabel={t("transaction.split.removePart")}
                                     accessibilityRole="button"
-                                    onPress={() => onChange(removePart(allocations, index))}
+                                    onPress={() => onChange(removePart(allocations, index, minorUnits))}
                                 >
                                     <HugeiconsIcon color={colors.muted} icon={Cancel01Icon} size={18} />
                                 </Pressable>
@@ -202,7 +202,8 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
                                     total,
                                     allocations,
                                     allocations.length - 1,
-                                    (allocations.at(-1)?.amount ?? 0) + left
+                                    (allocations.at(-1)?.amount ?? 0) + left,
+                                    minorUnits
                                 )
                             )
                         }
@@ -230,7 +231,7 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
                 onChange={(next) => {
                     setAmountText(next);
                     if (editing != null) {
-                        onChange(setPartAmount(total, allocations, editing, numpadToNumber(next)));
+                        onChange(setPartAmount(total, allocations, editing, numpadToNumber(next), minorUnits));
                     }
                 }}
                 onDone={() => amountSheetRef.current?.dismiss()}

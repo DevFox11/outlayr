@@ -42,10 +42,16 @@ describe("splitsRepo", () => {
     });
 
     it("writes the parts in the order they were given", async () => {
-        await splitsRepo.setSplit(db, "t1", 40, [
-            { amount: 25, categoryId: "food" },
-            { amount: 15, categoryId: "travel" },
-        ]);
+        await splitsRepo.setSplit(
+            db,
+            "t1",
+            40,
+            [
+                { amount: 25, categoryId: "food" },
+                { amount: 15, categoryId: "travel" },
+            ],
+            2
+        );
 
         expect((await splitsForQuery(db, "t1")).map((row) => [row.categoryId, row.amount])).toStrictEqual([
             ["food", 25],
@@ -55,18 +61,24 @@ describe("splitsRepo", () => {
 
     it("refuses a split that does not add up", async () => {
         // The only guard there is: SQLite cannot express the constraint.
-        await expect(splitsRepo.setSplit(db, "t1", 40, [{ amount: 25, categoryId: "food" }])).rejects.toThrow(
+        await expect(splitsRepo.setSplit(db, "t1", 40, [{ amount: 25, categoryId: "food" }], 2)).rejects.toThrow(
             UnbalancedSplitError
         );
         await expect(splitsForQuery(db, "t1")).resolves.toStrictEqual([]);
     });
 
     it("replaces a split wholesale rather than merging into it", async () => {
-        await splitsRepo.setSplit(db, "t1", 40, [
-            { amount: 25, categoryId: "food" },
-            { amount: 15, categoryId: "travel" },
-        ]);
-        await splitsRepo.setSplit(db, "t1", 40, [{ amount: 40, categoryId: "travel" }]);
+        await splitsRepo.setSplit(
+            db,
+            "t1",
+            40,
+            [
+                { amount: 25, categoryId: "food" },
+                { amount: 15, categoryId: "travel" },
+            ],
+            2
+        );
+        await splitsRepo.setSplit(db, "t1", 40, [{ amount: 40, categoryId: "travel" }], 2);
 
         expect((await splitsForQuery(db, "t1")).map((row) => [row.categoryId, row.amount])).toStrictEqual([
             ["travel", 40],
@@ -75,18 +87,24 @@ describe("splitsRepo", () => {
 
     it("clears a split so the entry goes back to its own category", async () => {
         // No rows is the implicit whole, not "attributed to nothing".
-        await splitsRepo.setSplit(db, "t1", 40, [
-            { amount: 25, categoryId: "food" },
-            { amount: 15, categoryId: "travel" },
-        ]);
-        await splitsRepo.setSplit(db, "t1", 40, []);
+        await splitsRepo.setSplit(
+            db,
+            "t1",
+            40,
+            [
+                { amount: 25, categoryId: "food" },
+                { amount: 15, categoryId: "travel" },
+            ],
+            2
+        );
+        await splitsRepo.setSplit(db, "t1", 40, [], 2);
 
         await expect(splitsForQuery(db, "t1")).resolves.toStrictEqual([]);
     });
 
     it("leaves the replaced rows as tombstones so the change travels", async () => {
-        await splitsRepo.setSplit(db, "t1", 40, [{ amount: 40, categoryId: "food" }]);
-        await splitsRepo.setSplit(db, "t1", 40, []);
+        await splitsRepo.setSplit(db, "t1", 40, [{ amount: 40, categoryId: "food" }], 2);
+        await splitsRepo.setSplit(db, "t1", 40, [], 2);
 
         const all = await db.select().from(transactionSplits);
         expect(all).toHaveLength(1);
@@ -96,10 +114,16 @@ describe("splitsRepo", () => {
     it("retires the parts of an entry that is going", async () => {
         // A live split under a tombstoned entry keeps feeding its categories: the
         // entry is gone from every list and its parts are not.
-        await splitsRepo.setSplit(db, "t1", 40, [
-            { amount: 25, categoryId: "food" },
-            { amount: 15, categoryId: "travel" },
-        ]);
+        await splitsRepo.setSplit(
+            db,
+            "t1",
+            40,
+            [
+                { amount: 25, categoryId: "food" },
+                { amount: 15, categoryId: "travel" },
+            ],
+            2
+        );
 
         await splitsRepo.clearForTransactions(db, ["t1"]);
 
@@ -107,7 +131,7 @@ describe("splitsRepo", () => {
     });
 
     it("does nothing when given no entries to clear", async () => {
-        await splitsRepo.setSplit(db, "t1", 40, [{ amount: 40, categoryId: "food" }]);
+        await splitsRepo.setSplit(db, "t1", 40, [{ amount: 40, categoryId: "food" }], 2);
         await splitsRepo.clearForTransactions(db, []);
         await expect(splitsForQuery(db, "t1")).resolves.toHaveLength(1);
     });
@@ -116,10 +140,16 @@ describe("splitsRepo", () => {
         // A tombstoned entry is read by no aggregate, so its parts cannot feed a
         // category even though the rows are still live. That is why delete does
         // not touch them — and why undo cannot lose them.
-        await splitsRepo.setSplit(db, "t1", 40, [
-            { amount: 25, categoryId: "food" },
-            { amount: 15, categoryId: "travel" },
-        ]);
+        await splitsRepo.setSplit(
+            db,
+            "t1",
+            40,
+            [
+                { amount: 25, categoryId: "food" },
+                { amount: 15, categoryId: "travel" },
+            ],
+            2
+        );
         await transactionsRepo.remove(db, "t1");
 
         // The rows survive, so an undo needs no repair and replication still

@@ -667,7 +667,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     db,
                     savedId,
                     numpadToNumber(value.amount),
-                    isRealSplit(splitAllocations) ? splitAllocations : []
+                    isRealSplit(splitAllocations) ? splitAllocations : [],
+                    minorUnitsFor(value.txCurrency ?? globalCurrency)
                 );
             } catch (error) {
                 console.error("Failed to save the split", error);
@@ -2131,7 +2132,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                             // than under it, and the field it belongs to is gone
                                                             // from the screen by then.
                                                             Keyboard.dismiss();
-                                                            openSplit(amountNumber, category?.id ?? null);
+                                                            openSplit(amountNumber, category?.id ?? null, minorUnits);
                                                             splitSheetRef.current?.present();
                                                         },
                                                     },

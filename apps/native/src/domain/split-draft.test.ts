@@ -7,17 +7,17 @@ const TOTAL = 84;
 
 describe("opening a split", () => {
     it("starts as the entry already reads: one part holding everything", () => {
-        expect(openDraft(TOTAL, "groceries")).toStrictEqual([{ amount: 84, categoryId: "groceries" }]);
+        expect(openDraft(TOTAL, "groceries", 2)).toStrictEqual([{ amount: 84, categoryId: "groceries" }]);
     });
 
     it("is not yet a split, because one part says what the entry already says", () => {
-        expect(isRealSplit(openDraft(TOTAL, "groceries"))).toBe(false);
+        expect(isRealSplit(openDraft(TOTAL, "groceries", 2))).toBe(false);
     });
 });
 
 describe("adding a category", () => {
     it("leaves the amounts already typed alone", () => {
-        const draft = addPart(openDraft(TOTAL, "groceries"), "home");
+        const draft = addPart(openDraft(TOTAL, "groceries", 2), "home");
         expect(draft).toStrictEqual([
             { amount: 84, categoryId: "groceries" },
             { amount: 0, categoryId: "home" },
@@ -25,76 +25,76 @@ describe("adding a category", () => {
     });
 
     it("keeps the draft balanced, so adding never makes it unsaveable", () => {
-        const draft = addPart(openDraft(TOTAL, "groceries"), "home");
-        expect(isBalanced(TOTAL, draft)).toBe(true);
+        const draft = addPart(openDraft(TOTAL, "groceries", 2), "home");
+        expect(isBalanced(TOTAL, draft, 2)).toBe(true);
     });
 
     it("counts as a split once there are two parts", () => {
-        expect(isRealSplit(addPart(openDraft(TOTAL, "groceries"), "home"))).toBe(true);
+        expect(isRealSplit(addPart(openDraft(TOTAL, "groceries", 2), "home"))).toBe(true);
     });
 });
 
 describe("typing an amount", () => {
     it("moves the difference out of a neighbour rather than leaving a remainder", () => {
-        const draft = setPartAmount(TOTAL, addPart(openDraft(TOTAL, "groceries"), "home"), 1, 34);
+        const draft = setPartAmount(TOTAL, addPart(openDraft(TOTAL, "groceries", 2), "home"), 1, 34, 2);
         expect(draft).toStrictEqual([
             { amount: 50, categoryId: "groceries" },
             { amount: 34, categoryId: "home" },
         ]);
-        expect(unallocated(TOTAL, draft)).toBe(0);
+        expect(unallocated(TOTAL, draft, 2)).toBe(0);
     });
 
     it("stays balanced across three parts, added and filled in turn", () => {
-        let draft = addPart(openDraft(TOTAL, "groceries"), "home");
-        draft = setPartAmount(TOTAL, draft, 1, 34);
+        let draft = addPart(openDraft(TOTAL, "groceries", 2), "home");
+        draft = setPartAmount(TOTAL, draft, 1, 34, 2);
         draft = addPart(draft, "pets");
-        draft = setPartAmount(TOTAL, draft, 2, 10);
-        expect(isBalanced(TOTAL, draft)).toBe(true);
+        draft = setPartAmount(TOTAL, draft, 2, 10, 2);
+        expect(isBalanced(TOTAL, draft, 2)).toBe(true);
         expect(draft.map((one) => one.amount)).toStrictEqual([50, 24, 10]);
     });
 
     it("never shows a negative part when there is nothing left to take from", () => {
         // Both categories added before anything was typed, so the draft is 84/0/0
         // and filling the middle one has no slack to absorb it.
-        let draft = addPart(addPart(openDraft(TOTAL, "groceries"), "home"), "pets");
-        draft = setPartAmount(TOTAL, draft, 1, 24);
+        let draft = addPart(addPart(openDraft(TOTAL, "groceries", 2), "home"), "pets");
+        draft = setPartAmount(TOTAL, draft, 1, 24, 2);
 
         expect(draft.every((one) => one.amount >= 0)).toBe(true);
         // Honest about the consequence rather than hiding it in a negative.
-        expect(isBalanced(TOTAL, draft)).toBe(false);
-        expect(unallocated(TOTAL, draft)).toBe(-24);
+        expect(isBalanced(TOTAL, draft, 2)).toBe(false);
+        expect(unallocated(TOTAL, draft, 2)).toBe(-24);
     });
 });
 
 describe("removing a category", () => {
     it("hands the freed amount to the last part left, so the draft stays saveable", () => {
-        let draft = addPart(openDraft(TOTAL, "groceries"), "home");
-        draft = setPartAmount(TOTAL, draft, 1, 34);
+        let draft = addPart(openDraft(TOTAL, "groceries", 2), "home");
+        draft = setPartAmount(TOTAL, draft, 1, 34, 2);
         draft = addPart(draft, "pets");
-        draft = setPartAmount(TOTAL, draft, 2, 10);
+        draft = setPartAmount(TOTAL, draft, 2, 10, 2);
 
-        const without = removePart(draft, 1);
+        const without = removePart(draft, 1, 2);
         expect(without).toStrictEqual([
             { amount: 50, categoryId: "groceries" },
             { amount: 34, categoryId: "pets" },
         ]);
-        expect(isBalanced(TOTAL, without)).toBe(true);
+        expect(isBalanced(TOTAL, without, 2)).toBe(true);
     });
 
     it("stops being a split when it is back to one part", () => {
-        const draft = addPart(openDraft(TOTAL, "groceries"), "home");
-        expect(isRealSplit(removePart(draft, 1))).toBe(false);
+        const draft = addPart(openDraft(TOTAL, "groceries", 2), "home");
+        expect(isRealSplit(removePart(draft, 1, 2))).toBe(false);
     });
 
     it("ignores an index that is not there", () => {
-        const draft = openDraft(TOTAL, "groceries");
-        expect(removePart(draft, 4)).toStrictEqual(draft);
+        const draft = openDraft(TOTAL, "groceries", 2);
+        expect(removePart(draft, 4, 2)).toStrictEqual(draft);
     });
 });
 
 describe("changing a part's category", () => {
     it("leaves every amount where it was", () => {
-        const draft = setPartAmount(TOTAL, addPart(openDraft(TOTAL, "groceries"), "home"), 1, 34);
+        const draft = setPartAmount(TOTAL, addPart(openDraft(TOTAL, "groceries", 2), "home"), 1, 34, 2);
         expect(setPartCategory(draft, 1, "pets")).toStrictEqual([
             { amount: 50, categoryId: "groceries" },
             { amount: 34, categoryId: "pets" },
@@ -104,9 +104,9 @@ describe("changing a part's category", () => {
 
 describe("when the entry's own amount changes under a split", () => {
     it("goes unbalanced, which is the state the save has to refuse", () => {
-        const draft = setPartAmount(TOTAL, addPart(openDraft(TOTAL, "groceries"), "home"), 1, 34);
+        const draft = setPartAmount(TOTAL, addPart(openDraft(TOTAL, "groceries", 2), "home"), 1, 34, 2);
         // The user goes back and makes it $100.
-        expect(isBalanced(100, draft)).toBe(false);
-        expect(unallocated(100, draft)).toBe(16);
+        expect(isBalanced(100, draft, 2)).toBe(false);
+        expect(unallocated(100, draft, 2)).toBe(16);
     });
 });

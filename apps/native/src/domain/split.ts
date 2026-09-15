@@ -15,6 +15,8 @@
  * disagreeing with the row the user is looking at.
  */
 
+import { roundMoney } from "@outlayr/money/round";
+
 export interface Allocation {
     /** Unsigned, like the row's own amount: direction comes from `income`. */
     amount: number;
@@ -46,8 +48,8 @@ export function allocationsFor(entry: SplittableEntry, explicit: readonly Alloca
  * Positive means under-allocated, negative over. The UI needs the signed figure
  * to say which, so this does not clamp.
  */
-export function unallocated(total: number, allocations: readonly Allocation[]): number {
-    return round(total - allocations.reduce((sum, one) => sum + one.amount, 0));
+export function unallocated(total: number, allocations: readonly Allocation[], decimals: number): number {
+    return roundMoney(total - allocations.reduce((sum, one) => sum + one.amount, 0), decimals);
 }
 
 /**
@@ -61,8 +63,8 @@ export function unallocated(total: number, allocations: readonly Allocation[]): 
  * A single allocation is not a split — it is the implicit case written down —
  * so it is allowed but pointless, and the UI is what declines to offer it.
  */
-export function isBalanced(total: number, allocations: readonly Allocation[]): boolean {
-    return allocations.length > 0 && unallocated(total, allocations) === 0;
+export function isBalanced(total: number, allocations: readonly Allocation[], decimals: number): boolean {
+    return allocations.length > 0 && unallocated(total, allocations, decimals) === 0;
 }
 
 /**
@@ -77,28 +79,19 @@ export function rebalance(
     total: number,
     allocations: readonly Allocation[],
     index: number,
-    amount: number
+    amount: number,
+    decimals: number
 ): Allocation[] {
     const next = allocations.map((allocation) => ({ ...allocation }));
     if (index < 0 || index >= next.length) {
         return next;
     }
-    next[index] = { ...next[index], amount: round(Math.max(0, amount)) };
+    next[index] = { ...next[index], amount: roundMoney(Math.max(0, amount), decimals) };
     const absorber = next.length - 1 === index ? next.length - 2 : next.length - 1;
     if (absorber < 0) {
         return next;
     }
     const others = next.reduce((sum, one, at) => (at === absorber ? sum : sum + one.amount), 0);
-    next[absorber] = { ...next[absorber], amount: round(total - others) };
+    next[absorber] = { ...next[absorber], amount: roundMoney(total - others, decimals) };
     return next;
-}
-
-/**
- * Two decimals, matching what the amounts are stored and displayed at.
- *
- * Every arithmetic result here goes through it, so a split's parts can be summed
- * back to the whole without a float tail turning `isBalanced` into a coin toss.
- */
-export function round(value: number): number {
-    return Math.round(value * 100) / 100;
 }

@@ -1,4 +1,6 @@
-import { rebalance, round } from "./split";
+import { roundMoney } from "@outlayr/money/round";
+
+import { rebalance } from "./split";
 import type { Allocation } from "./split";
 
 /**
@@ -14,8 +16,8 @@ import type { Allocation } from "./split";
  * says: an unsplit entry is attributed wholly to its own category. Starting
  * from anything else would make opening the sheet an edit.
  */
-export function openDraft(total: number, categoryId: string | null): Allocation[] {
-    return [{ amount: round(total), categoryId }];
+export function openDraft(total: number, categoryId: string | null, decimals: number): Allocation[] {
+    return [{ amount: roundMoney(total, decimals), categoryId }];
 }
 
 /**
@@ -36,7 +38,7 @@ export function addPart(allocations: readonly Allocation[], categoryId: string |
  * The alternative is leaving the total short and the split unsaveable, which
  * turns removing a category into two chores.
  */
-export function removePart(allocations: readonly Allocation[], index: number): Allocation[] {
+export function removePart(allocations: readonly Allocation[], index: number, decimals: number): Allocation[] {
     if (index < 0 || index >= allocations.length) {
         return allocations.map((one) => ({ ...one }));
     }
@@ -46,7 +48,7 @@ export function removePart(allocations: readonly Allocation[], index: number): A
         return next;
     }
     const last = next.length - 1;
-    next[last] = { ...next[last], amount: round(next[last].amount + freed) };
+    next[last] = { ...next[last], amount: roundMoney(next[last].amount + freed, decimals) };
     return next;
 }
 
@@ -65,9 +67,12 @@ export function setPartAmount(
     total: number,
     allocations: readonly Allocation[],
     index: number,
-    amount: number
+    amount: number,
+    decimals: number
 ): Allocation[] {
-    return rebalance(total, allocations, index, amount).map((one) => (one.amount < 0 ? { ...one, amount: 0 } : one));
+    return rebalance(total, allocations, index, amount, decimals).map((one) =>
+        one.amount < 0 ? { ...one, amount: 0 } : one
+    );
 }
 
 /** Sets one part's category, leaving every amount alone. */
