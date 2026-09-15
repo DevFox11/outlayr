@@ -1,3 +1,6 @@
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
+
 import { describe, expect, it } from "@jest/globals";
 
 import { EN, ES } from "@/i18n/catalog";
@@ -270,5 +273,39 @@ describe("budgetWindowLabel", () => {
         expect(budgetWindowLabel({ end: d(2026, 1, 1), start: d(2025, 1, 1) }, BUDGET_TYPE.year)).toBe(
             "1 JAN 25 – 31 DEC 25"
         );
+    });
+});
+
+/**
+ * The two days a year a clock shifts are 23 and 25 hours long. Both counters
+ * used to floor raw milliseconds since the window opened, which reads an hour
+ * short for the whole of the first local day after a spring-forward — so the
+ * last day of March reported two days left, and `leftPerDay` halved the
+ * remaining allowance with it.
+ */
+function inMadrid(kind: "days" | "hours", ...parts: number[]): number {
+    const probe = join(import.meta.dirname, "budget-dst-probe.ts");
+    return Number(
+        execFileSync(process.execPath, ["--import", "tsx", probe, kind, ...parts.map(String)], {
+            encoding: "utf-8",
+            env: { ...process.env, TZ: "Europe/Madrid" },
+        })
+    );
+}
+
+describe("time left across a spring-forward", () => {
+    // Madrid moves to summer time on 30 March 2025, so that day is 23 hours long.
+    const MARCH = [2025, 3, 1, 0, 0, 2025, 2, 1, 0, 0];
+
+    it("reports one day left on the last day of the month", () => {
+        expect(inMadrid("days", ...MARCH, 2025, 2, 31, 0, 30)).toBe(1);
+    });
+
+    it("still reports the whole month on its first day", () => {
+        expect(inMadrid("days", ...MARCH, 2025, 2, 1, 0, 0)).toBe(31);
+    });
+
+    it("reports one hour left half an hour before a shortened day ends", () => {
+        expect(inMadrid("hours", 2025, 2, 31, 0, 0, 2025, 2, 30, 0, 0, 2025, 2, 30, 23, 30)).toBe(1);
     });
 });

@@ -13,6 +13,7 @@ import {
     startOfYear,
 } from "./dates";
 import type { CalendarSettings } from "./dates";
+import { daysBetween } from "./local-day";
 import { addMonths } from "./recurrence";
 
 /** Mirrors the Swift `Budget.type` codes. */
@@ -269,17 +270,21 @@ export function budgetPace(window: BudgetWindow, now: Date): BudgetPace {
     };
 }
 
-/** Whole days remaining in the window (Swift `numberOfDays - numberOfDaysPast`). */
+/**
+ * Whole days remaining in the window, counted from today's own midnight.
+ *
+ * Counted forward to the end rather than backward from a total: flooring raw
+ * milliseconds since the window opened reads an hour short for the whole of the
+ * first local day after a clock shift, so on the last day of a month containing
+ * one the label said two days left.
+ */
 export function daysLeftInWindow(window: BudgetWindow, now: Date): number {
-    const totalDays = Math.max(1, Math.round((window.end.getTime() - window.start.getTime()) / DAY_MS));
-    const daysPast = Math.max(0, Math.floor((now.getTime() - window.start.getTime()) / DAY_MS));
-    return Math.max(0, totalDays - daysPast);
+    return Math.max(0, daysBetween(startOfDay(now).getTime(), window.end.getTime()));
 }
 
-/** Whole hours remaining in a daily window (Swift `24 - hoursPast`). */
+/** Whole hours remaining in a daily window, rounded up so the last part-hour still counts as one. */
 export function hoursLeftInDay(window: BudgetWindow, now: Date): number {
-    const hoursPast = Math.max(0, Math.floor((now.getTime() - window.start.getTime()) / HOUR_MS));
-    return Math.max(0, 24 - hoursPast);
+    return Math.max(0, Math.ceil((window.end.getTime() - now.getTime()) / HOUR_MS));
 }
 
 export function budgetTimeLeftLabel(window: BudgetWindow, type: number, now: Date, t: TranslateFn): string {
