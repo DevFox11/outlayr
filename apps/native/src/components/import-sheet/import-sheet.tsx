@@ -95,8 +95,12 @@ export function ImportSheet({ ref }: ImportSheetProps) {
     const t = useTranslation();
     const sheetRef = useRef<BottomSheetModal>(null);
     const [presented, setPresented] = useState(false);
+    // The bare name: panelui's theme.css declares `--color-background` in its own
+    // `@variant` blocks and we do not re-declare it, so reading that one paints
+    // the sheet panelui's #ffffff / #141414 instead of our paper. See the note in
+    // `app/_layout.tsx`, and `runtime-css-variables.test.ts` for the rule.
     // SAFETY: declared in global.css for both schemes, as in `outlayr-mark`.
-    const backgroundColor = useCSSVariable("--color-background") as string;
+    const backgroundColor = useCSSVariable("--background") as string;
 
     const dismiss = useCallback(() => {
         sheetRef.current?.dismiss();
