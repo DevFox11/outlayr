@@ -57,6 +57,21 @@ function addAccount(sqlite: BetterSqlite3.Database, id: string): void {
         .run(id, id);
 }
 
+/**
+ * What the pull applier fires, which is the shape the triggers have to survive:
+ * `sync-engine-core.ts` writes every incoming row with
+ * `insert(...).onConflictDoUpdate({ target: spec.id })`.
+ */
+function applyPulledTransaction(sqlite: BetterSqlite3.Database, id: string, amount: number): void {
+    sqlite
+        .prepare(
+            `INSERT INTO transactions (id, amount, income, date, day, month, updatedAt)
+             VALUES (?, ?, 0, 1, 1, 1, 2)
+             ON CONFLICT(id) DO UPDATE SET amount = excluded.amount, updatedAt = excluded.updatedAt`
+        )
+        .run(id, amount);
+}
+
 describe("outbox triggers", () => {
     let sqlite: BetterSqlite3.Database;
 
@@ -254,5 +269,39 @@ describe("outbox triggers", () => {
         sqlite.prepare("DELETE FROM transactions WHERE id = 't1'").run();
 
         expect(outbox(sqlite)).toStrictEqual([]);
+    });
+
+    /**
+     * ⚠️ SQLite drops a trigger body's conflict clause in favour of the FIRING
+     * statement's. The bodies said `INSERT OR REPLACE INTO outbox`, and the pull
+     * applier fires `ON CONFLICT ... DO UPDATE` — so writing a row that was already
+     * queued raised `UNIQUE constraint failed: outbox.tableName, outbox.localId`,
+     * which rolled back the whole page INCLUDING the cursor. `use-sync-engine`
+     * swallows that into a console.warn, so every later pull re-fetched the same
+     * page and threw again: sync stopped, permanently and silently.
+     *
+     * Migration 0025 fixed it for appMeta. This holds the other eleven tables,
+     * which 0026 brought in line.
+     */
+    it("survives the applier's upsert on a row that is already queued", () => {
+        enableSync(sqlite);
+        addCategory(sqlite, "c1");
+        addTransaction(sqlite, "t1");
+        const queued = outbox(sqlite);
+
+        expect(() => applyPulledTransaction(sqlite, "t1", 99)).not.toThrow();
+
+        // And under a NEW seq, which is the invariant `schema.ts` states: a drain
+        // that pushed the old seq cannot delete the edit that arrived after it.
+        const after = outbox(sqlite).find((row) => row.localId === "t1");
+        expect(after?.seq).toBeGreaterThan(queued.find((row) => row.localId === "t1")?.seq ?? 0);
+    });
+
+    it("leaves no trigger still relying on OR REPLACE", () => {
+        const stale = sqlite
+            .prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND sql LIKE '%OR REPLACE%'")
+            .all() as { name: string }[];
+
+        expect(stale.map((row) => row.name)).toStrictEqual([]);
     });
 });
