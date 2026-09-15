@@ -13,7 +13,7 @@ import type { LogInsights as LogInsightsData, LogPeriod } from "@/data/log-total
 import { measureAlternatives, measureIsIncome, measureIsPositive, measureMagnitude } from "@/domain/log-measure";
 import type { LogFigures, LogMeasure } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
-import { amountDigits, amountParts, withCurrencySymbol } from "@/domain/money";
+import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
 import { MEASURE_WORD_KEY, PERIOD_PHRASE_KEY } from "../labels";
@@ -152,9 +152,9 @@ function Hairline() {
 
 function AlsoPill({ figures, measure, showCents }: { figures: LogFigures; measure: LogMeasure; showCents: boolean }) {
     const { language } = useLanguage();
-    const parts = amountParts(measureMagnitude(measure, figures), figures.currencyCode, showCents, language);
+
     const sign = measureIsPositive(measure, figures) ? "+" : "-";
-    const amount = `${sign}${withCurrencySymbol(parts, amountDigits(parts))}`;
+    const amount = `${sign}${formatAmount(measureMagnitude(measure, figures), figures.currencyCode, showCents, language)}`;
 
     return (
         <View

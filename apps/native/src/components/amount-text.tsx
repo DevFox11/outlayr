@@ -4,7 +4,7 @@ import { View } from "react-native";
 import { rowAmountLabel } from "@/domain/amount-label";
 import type { RowAmountLabelInput } from "@/domain/amount-label";
 import type { CurrencyBucket } from "@/domain/currency-totals";
-import { amountDigits, amountParts, splitSymbol, withCurrencySymbol } from "@/domain/money";
+import { amountParts, formatAmount, splitSymbol } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 
@@ -105,7 +105,6 @@ export function RowAmount({
 }: RowAmountProps) {
     const t = useTranslation();
     const { language } = useLanguage();
-    const parts = amountParts(amount, code, showCents, language);
     const sign = transfer ? "" : signFor(income);
     return (
         <Text
@@ -117,7 +116,7 @@ export function RowAmount({
             style={TABULAR}
         >
             {sign}
-            {withCurrencySymbol(parts, amountDigits(parts))}
+            {formatAmount(amount, code, showCents, language)}
         </Text>
     );
 }
@@ -136,13 +135,12 @@ interface MeasureCellAmountProps {
 /** Symbol, sign and digits share one tone, unlike the hero's muted symbol. */
 export function MeasureCellAmount({ magnitude, positive, income, code, showCents = true }: MeasureCellAmountProps) {
     const { language } = useLanguage();
-    const parts = amountParts(magnitude, code, showCents, language);
     const toneClass = income ? "text-income" : "text-foreground";
     const sign = positive ? "+" : "-";
     return (
         <Text className={cn("font-sans-semibold text-body", toneClass)} numberOfLines={1} style={TABULAR}>
             {sign}
-            {withCurrencySymbol(parts, amountDigits(parts))}
+            {formatAmount(magnitude, code, showCents, language)}
         </Text>
     );
 }
@@ -157,9 +155,7 @@ interface DayTotalProps {
 }
 
 function signedAmount(amount: number, code: string, showCents: boolean, language: Language): string {
-    const parts = amountParts(amount, code, showCents, language);
-    const sign = amount < 0 ? "-" : "+";
-    return `${sign}${withCurrencySymbol(parts, amountDigits(parts))}`;
+    return `${amount < 0 ? "-" : "+"}${formatAmount(amount, code, showCents, language)}`;
 }
 
 /**
