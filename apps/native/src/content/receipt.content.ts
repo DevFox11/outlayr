@@ -97,6 +97,18 @@ const receipt = {
             en: "A photo of the ticket is enough. The total, the store, the date and every line, read for you.",
             es: "Basta una foto del ticket. El total, la tienda, la fecha y cada línea, leídos por ti.",
         }),
+        "receipt.limit.last": t({
+            en: "Last scan for now",
+            es: "Último escaneo por ahora",
+        }),
+        "receipt.limit.next": t({
+            en: "Next scan in {time}",
+            es: "Siguiente escaneo en {time}",
+        }),
+        "receipt.limit.paused": t({
+            en: "Scanning is paused",
+            es: "El escaneo está en pausa",
+        }),
         // The review reads as one line: "€20.56 at Mercadona · Groceries · yesterday".
         "receipt.review.at": t({
             en: "at",

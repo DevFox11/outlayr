@@ -1,5 +1,3 @@
-import { HOUR } from "@convex-dev/rate-limiter";
-
 export interface CategoryBranch {
     children: string[];
     name: string;
@@ -27,17 +25,6 @@ const MAX_CHILDREN_PER_BRANCH = 50;
 export const MAX_NAME_LENGTH = 80;
 const MAX_TOTAL_NAMES = 400;
 const DAY_MS = 86_400_000;
-
-/** A per-user token bucket whose capacity `npx convex env set <envName>` can raise without a deploy. */
-export function perUserTokenBucket(envName: string, rate: number, capacity = 10) {
-    const override = Number(process.env[envName]);
-    return {
-        capacity: Number.isInteger(override) && override > 0 ? override : capacity,
-        kind: "token bucket",
-        period: HOUR,
-        rate,
-    } as const;
-}
 
 /** True when the names the client sent fit the prompt's budget. */
 export function namesWithinBudget(tree: readonly CategoryBranch[], accounts: readonly string[]): boolean {

@@ -12,8 +12,9 @@ import { components, internal } from "./_generated/api";
 import { action } from "./_generated/server";
 import { maybeScheduleGrounded, sanitizeRegionCode } from "./enrichment";
 import type { GroundedScheduleCtx } from "./enrichment";
-import { describeTree, perUserTokenBucket } from "./lib/ledgerPrompt";
+import { describeTree } from "./lib/ledgerPrompt";
 import type { CategoryBranch } from "./lib/ledgerPrompt";
+import { perUserBurst } from "./lib/limits";
 import { merchantKey } from "./lib/merchantKey";
 import { isPro } from "./revenuecat";
 
@@ -102,10 +103,6 @@ function buildPrompt(args: RunClassifyArgs): string {
         "For each label, respond with mapping entries of { label, categoryName }. Reuse one of the listed category names verbatim, or set categoryName to null when none fit. Never invent a new category name.",
     ].join(" ");
 }
-
-const DEFAULT_PER_USER_CAPACITY = 2;
-
-export const perUserLimitConfig = () => perUserTokenBucket("CSV_IMPORT_CAPACITY", 6, DEFAULT_PER_USER_CAPACITY);
 
 /**
  * `shards: 10` is copied from `enrichment.ts:118` and is load-bearing — an
@@ -254,7 +251,7 @@ export const csvImport = action({
         }
 
         const perUser = await rateLimiter.limit(ctx, "csvImportPerUser", {
-            config: perUserLimitConfig(),
+            config: perUserBurst("csvImport", true),
             key: identity.tokenIdentifier,
         });
         if (!perUser.ok) {

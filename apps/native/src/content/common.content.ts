@@ -167,6 +167,10 @@ const common = {
             en: "Upcoming Logs",
             es: "Próximos registros",
         }),
+        "nav.settings.usage": t({
+            en: "Usage",
+            es: "Uso",
+        }),
         "nav.settings.wallet": t({
             en: "Apple Pay",
             es: "Apple Pay",

@@ -8,6 +8,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { api } from "./_generated/api";
 import { captureLimiter, FREE_CAPTURE_CONFIG } from "./lib/captures";
 import { LANGUAGE_PATTERN, namesWithinBudget } from "./lib/ledgerPrompt";
+import { perUserBurst } from "./lib/limits";
 import {
     buildPrompt,
     looksLikeJpeg,
@@ -15,7 +16,6 @@ import {
     MAX_ITEMS,
     normalizeDraft,
     normalizeItems,
-    perUserLimitConfig,
     rateLimiter,
     receiptScanArgs,
 } from "./receiptScan";
@@ -347,8 +347,8 @@ describe("scan guard ladder", () => {
 
         await t.run(async (ctx) =>
             rateLimiter.limit(ctx, "receiptScanPerUser", {
-                config: perUserLimitConfig(),
-                count: perUserLimitConfig().capacity,
+                config: perUserBurst("receiptScan", false),
+                count: perUserBurst("receiptScan", false).capacity,
                 key: tokenIdentifier,
             })
         );

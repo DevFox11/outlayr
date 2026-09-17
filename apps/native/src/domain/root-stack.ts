@@ -26,6 +26,7 @@ export const TITLED_SCREENS: readonly {
     { name: "settings/sync", titleKey: "settings.sync.navTitle" },
     { name: "settings/time", titleKey: "nav.settings.time" },
     { name: "settings/upcoming", titleKey: "nav.settings.upcoming" },
+    { name: "settings/usage", titleKey: "nav.settings.usage" },
     { name: "settings/wallet", titleKey: "nav.settings.wallet" },
 ];
 

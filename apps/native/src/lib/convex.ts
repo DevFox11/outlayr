@@ -7,6 +7,7 @@ import type { PhotoTransport } from "@/data/photo-sync-core";
 import type { PullRatesFn } from "@/data/rates";
 import type { PullFn, PushFn } from "@/data/sync-engine-core";
 import type { RemoteEnrichmentResult } from "@/domain/enrichment-cache";
+import type { UsageLimits } from "@/domain/usage-limits";
 
 import { cloudRuntime } from "./cloud-runtime";
 import type { CloudRuntime } from "./cloud-runtime";
@@ -115,6 +116,7 @@ export interface CategoryBranch {
 }
 
 export interface EnrichmentRequest {
+    background?: boolean;
     /** Names only — the shape of the ledger, never its figures. */
     categoryTree: CategoryBranch[];
     /**
@@ -276,6 +278,10 @@ export const VOICE_TURNS_QUERY = makeFunctionReference<
     { paginationOpts: PaginationOptions; streamArgs?: StreamArgs; threadId: string },
     PaginationResult<UIMessage> & { streams: SyncStreamsReturnValue }
 >("voiceEntry:listTurns");
+
+export const USAGE_LIMITS_QUERY = makeFunctionReference<"query", Record<string, never>, UsageLimits | null>(
+    "limits:mine"
+);
 
 export interface StartThreadResult {
     status: "ok" | "unauthenticated" | "rateLimited";

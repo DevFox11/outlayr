@@ -8,14 +8,8 @@ import { convexTest } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { api } from "./_generated/api";
-import {
-    classify,
-    csvImportArgs,
-    GROUNDED_IMPORT_MAX,
-    perUserLimitConfig,
-    rateLimiter,
-    scheduleImportGrounded,
-} from "./csvImport";
+import { classify, csvImportArgs, GROUNDED_IMPORT_MAX, rateLimiter, scheduleImportGrounded } from "./csvImport";
+import { perUserBurst } from "./lib/limits";
 import { merchantKey } from "./lib/merchantKey";
 import schema from "./schema";
 import { authenticatedAs, grantPro, seedAuthUser } from "./test.helpers";
@@ -152,8 +146,8 @@ describe("csvImport guard ladder", () => {
 
         await t.run(async (ctx) =>
             rateLimiter.limit(ctx, "csvImportPerUser", {
-                config: perUserLimitConfig(),
-                count: 2,
+                config: perUserBurst("csvImport", true),
+                count: perUserBurst("csvImport", true).capacity,
                 key: tokenIdentifier,
             })
         );
@@ -229,17 +223,17 @@ describe("csvImport guard ladder", () => {
     });
 });
 
-describe(perUserLimitConfig, () => {
-    test("defaults to a two-import burst when CSV_IMPORT_CAPACITY is unset", () => {
+describe(perUserBurst, () => {
+    test("defaults to a ten-import burst when CSV_IMPORT_CAPACITY is unset", () => {
         vi.stubEnv("CSV_IMPORT_CAPACITY", undefined);
 
-        expect(perUserLimitConfig().capacity).toBe(2);
+        expect(perUserBurst("csvImport", true).capacity).toBe(10);
     });
 
     test("honours a positive integer CSV_IMPORT_CAPACITY", () => {
         vi.stubEnv("CSV_IMPORT_CAPACITY", "25");
 
-        expect(perUserLimitConfig().capacity).toBe(25);
+        expect(perUserBurst("csvImport", true).capacity).toBe(25);
     });
 
     test.each(["", "nonsense", "0", "-3", "2.5", "Infinity"])(
@@ -247,18 +241,18 @@ describe(perUserLimitConfig, () => {
         (value) => {
             vi.stubEnv("CSV_IMPORT_CAPACITY", value);
 
-            expect(perUserLimitConfig().capacity).toBe(2);
+            expect(perUserBurst("csvImport", true).capacity).toBe(10);
         }
     );
 
     test("leaves the refill rate alone, so only the burst is tunable", () => {
         vi.stubEnv("CSV_IMPORT_CAPACITY", "25");
 
-        expect(perUserLimitConfig()).toStrictEqual({
+        expect(perUserBurst("csvImport", true)).toStrictEqual({
             capacity: 25,
             kind: "token bucket",
             period: HOUR,
-            rate: 6,
+            rate: 30,
         });
     });
 

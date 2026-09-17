@@ -33,11 +33,12 @@ import {
     MAX_NAME_LENGTH,
     namesWithinBudget,
     normalizeDomain,
-    perUserTokenBucket,
     pickKnown,
     trimTo,
 } from "./lib/ledgerPrompt";
 import type { LedgerContext } from "./lib/ledgerPrompt";
+import { perUserBurst } from "./lib/limits";
+import { isPro } from "./revenuecat";
 
 /** `XAI_MODEL_ID` overrides this without a deploy, matching `enrichment.ts`. */
 const VOICE_ENTRY_MODEL_ID = "grok-4.20-0309-non-reasoning";
@@ -207,15 +208,6 @@ export const modelOutputSchema = z.object({
 });
 
 export type ModelOutput = z.infer<typeof modelOutputSchema>;
-
-export const perUserLimitConfig = () => perUserTokenBucket("VOICE_ENTRY_CAPACITY", 40);
-
-/**
- * A thread costs component rows and a scheduled expiry, so opening one is
- * metered like speaking on it: one visit to the screen is one thread, and
- * twenty an hour is already a person closing and reopening it in a loop.
- */
-export const perUserThreadLimitConfig = { capacity: 10, kind: "token bucket", period: HOUR, rate: 20 } as const;
 
 /** `shards: 10` is copied from `enrichment.ts:118` and is load-bearing. */
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
@@ -405,7 +397,7 @@ export const startThread = mutation({
             return { status: "unauthenticated", threadId: null };
         }
         const perUser = await rateLimiter.limit(ctx, "voiceThreadPerUser", {
-            config: perUserThreadLimitConfig,
+            config: perUserBurst("voiceThread", await isPro(ctx, identity.subject)),
             key: identity.tokenIdentifier,
         });
         if (!perUser.ok) {
@@ -535,7 +527,7 @@ export const speak = action({
         }
 
         const perUser = await rateLimiter.limit(ctx, "voiceEntryPerUser", {
-            config: perUserLimitConfig(),
+            config: perUserBurst("voiceEntry", await isPro(ctx, identity.subject)),
             key: identity.tokenIdentifier,
         });
         if (!perUser.ok) {

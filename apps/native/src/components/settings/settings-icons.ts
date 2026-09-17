@@ -7,10 +7,12 @@ import Bug01Icon from "@hugeicons-pro/core-stroke-rounded/Bug01Icon";
 import Calculator01Icon from "@hugeicons-pro/core-stroke-rounded/Calculator01Icon";
 import Calendar01Icon from "@hugeicons-pro/core-stroke-rounded/Calendar01Icon";
 import CalendarClockIcon from "@hugeicons-pro/core-stroke-rounded/CalendarClockIcon";
+import Camera01Icon from "@hugeicons-pro/core-stroke-rounded/Camera01Icon";
 import ChartLineData01Icon from "@hugeicons-pro/core-stroke-rounded/ChartLineData01Icon";
 import CloudIcon from "@hugeicons-pro/core-stroke-rounded/CloudIcon";
 import CurrencyIcon from "@hugeicons-pro/core-stroke-rounded/CurrencyIcon";
 import DarkModeIcon from "@hugeicons-pro/core-stroke-rounded/DarkModeIcon";
+import DashboardSpeed01Icon from "@hugeicons-pro/core-stroke-rounded/DashboardSpeed01Icon";
 import DashboardSquare01Icon from "@hugeicons-pro/core-stroke-rounded/DashboardSquare01Icon";
 import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
 import FavouriteIcon from "@hugeicons-pro/core-stroke-rounded/FavouriteIcon";
@@ -22,6 +24,7 @@ import LanguageSkillIcon from "@hugeicons-pro/core-stroke-rounded/LanguageSkillI
 import LayoutTable01Icon from "@hugeicons-pro/core-stroke-rounded/LayoutTable01Icon";
 import LicenseIcon from "@hugeicons-pro/core-stroke-rounded/LicenseIcon";
 import Logout01Icon from "@hugeicons-pro/core-stroke-rounded/Logout01Icon";
+import Mic01Icon from "@hugeicons-pro/core-stroke-rounded/Mic01Icon";
 import MoneyAdd01Icon from "@hugeicons-pro/core-stroke-rounded/MoneyAdd01Icon";
 import NewTwitterIcon from "@hugeicons-pro/core-stroke-rounded/NewTwitterIcon";
 import Notification03Icon from "@hugeicons-pro/core-stroke-rounded/Notification03Icon";
@@ -54,10 +57,12 @@ const REGISTRY = {
     Calculator01: Calculator01Icon,
     Calendar01: Calendar01Icon,
     CalendarClock: CalendarClockIcon,
+    Camera01: Camera01Icon,
     ChartLineData01: ChartLineData01Icon,
     Cloud: CloudIcon,
     Currency: CurrencyIcon,
     DarkMode: DarkModeIcon,
+    DashboardSpeed01: DashboardSpeed01Icon,
     DashboardSquare01: DashboardSquare01Icon,
     Delete02: Delete02Icon,
     Favourite: FavouriteIcon,
@@ -69,6 +74,7 @@ const REGISTRY = {
     LayoutTable01: LayoutTable01Icon,
     License: LicenseIcon,
     Logout01: Logout01Icon,
+    Mic01: Mic01Icon,
     MoneyAdd01: MoneyAdd01Icon,
     NewTwitter: NewTwitterIcon,
     Notification03: Notification03Icon,

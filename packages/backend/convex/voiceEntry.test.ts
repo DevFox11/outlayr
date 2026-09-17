@@ -11,14 +11,13 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { api, components } from "./_generated/api";
 import { captureLimiter, FREE_CAPTURE_CONFIG } from "./lib/captures";
 import { namesWithinBudget } from "./lib/ledgerPrompt";
+import { perUserBurst } from "./lib/limits";
 import schema from "./schema";
 import { authenticatedAs, seedAuthUser } from "./test.helpers";
 import {
     buildPrompt,
     MAX_AUDIO_BYTES,
     normalizeDraft,
-    perUserLimitConfig,
-    perUserThreadLimitConfig,
     PROPOSE_DRAFT_TOOL,
     rateLimiter,
     transcribeClip,
@@ -377,8 +376,8 @@ describe("voice thread + speak guard ladder", () => {
         }
         await t.run(async (ctx) =>
             rateLimiter.limit(ctx, "voiceThreadPerUser", {
-                config: perUserThreadLimitConfig,
-                count: perUserThreadLimitConfig.capacity,
+                config: perUserBurst("voiceThread", false),
+                count: perUserBurst("voiceThread", false).capacity,
                 key: tokenIdentifier,
             })
         );
@@ -427,8 +426,8 @@ describe("voice thread + speak guard ladder", () => {
         }
         await t.run(async (ctx) =>
             rateLimiter.limit(ctx, "voiceEntryPerUser", {
-                config: perUserLimitConfig(),
-                count: perUserLimitConfig().capacity,
+                config: perUserBurst("voiceEntry", false),
+                count: perUserBurst("voiceEntry", false).capacity,
                 key: tokenIdentifier,
             })
         );

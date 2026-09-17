@@ -19,6 +19,7 @@ import type { SharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { intervalPhrase } from "@/components/custom-schedule-sheet";
+import { LimitToast } from "@/components/limit-toast";
 import { VoiceOrb } from "@/components/voice/voice-orb";
 import type { VoiceOrbState } from "@/components/voice/voice-orb";
 import { useDatabase } from "@/contexts/local-data-context";
@@ -54,6 +55,7 @@ import type {
 import { useIsMounted } from "@/hooks/use-is-mounted";
 import { useMerchantMark } from "@/hooks/use-merchant-mark";
 import { useProEntitled } from "@/hooks/use-pro-locked";
+import { isLimitRefusal, useLimitNotice } from "@/hooks/use-usage-limits";
 import { useVoiceEntry } from "@/hooks/use-voice-entry";
 import type { VoiceFailure, VoicePhase } from "@/hooks/use-voice-entry";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -160,12 +162,14 @@ function VoiceShell({
     children,
     closeDisabled = false,
     onClose,
+    overlay,
 }: {
     bottom: React.ReactNode;
     children: React.ReactNode;
     /** A save in flight owns the screen; leaving under it would let its callbacks land on the wrong route. */
     closeDisabled?: boolean;
     onClose: () => void;
+    overlay?: React.ReactNode;
 }) {
     const t = useTranslation();
     const colors = useColors();
@@ -192,6 +196,7 @@ function VoiceShell({
             <View className="gap-2 px-5" style={{ paddingBottom: Math.max(insets.bottom, 20) }}>
                 {bottom}
             </View>
+            {overlay}
         </View>
     );
 }
@@ -582,6 +587,8 @@ function VoiceThreadScreen() {
     );
 
     const { phase, level, finish, listenAgain, cancel, turns } = useVoiceEntry({ context, request });
+    const refusal = phase.kind === "failed" && isLimitRefusal(phase.reason) ? phase.reason : null;
+    const limit = useLimitNotice("voiceEntry", refusal);
 
     const resolved = useMemo(
         () =>
@@ -800,7 +807,7 @@ function VoiceThreadScreen() {
                 <TransferReviewLine draft={transfer} />
             </Animated.View>
         );
-    } else if (status) {
+    } else if (status && refusal === null) {
         caption = <StatusLine waiting={phase.kind !== "failed"}>{status}</StatusLine>;
     }
 
@@ -872,7 +879,12 @@ function VoiceThreadScreen() {
     const orb = orbActionOf(phase, saving, { finish, listenAgain, seePro }, t, entitled);
 
     return (
-        <VoiceShell bottom={bottom} closeDisabled={saving} onClose={close}>
+        <VoiceShell
+            bottom={bottom}
+            closeDisabled={saving}
+            onClose={close}
+            overlay={<LimitToast feature="voiceEntry" {...limit} />}
+        >
             <OrbControl
                 label={orb.label}
                 level={level}

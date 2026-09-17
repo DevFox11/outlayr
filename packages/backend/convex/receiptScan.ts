@@ -20,11 +20,12 @@ import {
     LANGUAGE_PATTERN,
     namesWithinBudget,
     normalizeDomain,
-    perUserTokenBucket,
     pickKnown,
     trimTo,
 } from "./lib/ledgerPrompt";
 import type { LedgerContext } from "./lib/ledgerPrompt";
+import { perUserBurst } from "./lib/limits";
+import { isPro } from "./revenuecat";
 
 /**
  * Grok 4.20 reads images as well as text. `XAI_VISION_MODEL_ID` overrides it
@@ -195,8 +196,6 @@ export type ModelOutput = z.infer<typeof modelOutputSchema>;
 const REGION_PATTERN = /^[A-Z]{2}$/;
 /** The currencies exchange rates are fetched for — the only ones a receipt may be filed in. */
 const KNOWN_CURRENCIES: ReadonlySet<string> = new Set(PICKABLE_CURRENCY_CODES);
-
-export const perUserLimitConfig = () => perUserTokenBucket("RECEIPT_SCAN_CAPACITY", 30);
 
 /** `shards: 10` is copied from `enrichment.ts:118` and is load-bearing. */
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
@@ -407,7 +406,7 @@ export const scan = action({
         }
 
         const perUser = await rateLimiter.limit(ctx, "receiptScanPerUser", {
-            config: perUserLimitConfig(),
+            config: perUserBurst("receiptScan", await isPro(ctx, identity.subject)),
             key: identity.tokenIdentifier,
         });
         if (!perUser.ok) {

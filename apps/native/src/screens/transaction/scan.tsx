@@ -11,6 +11,7 @@ import { Linking, ScrollView, Text, useWindowDimensions, View } from "react-nati
 import Animated, { FadeIn, FadeInDown, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LimitToast } from "@/components/limit-toast";
 import { PhotoStage } from "@/components/receipt/photo-stage";
 import type { StageBox } from "@/components/receipt/photo-stage";
 import { ReceiptFrame } from "@/components/receipt/receipt-frame";
@@ -39,6 +40,7 @@ import { useProEntitled } from "@/hooks/use-pro-locked";
 import { useReceiptScan } from "@/hooks/use-receipt-scan";
 import type { ScanFailure, ScanPhoto } from "@/hooks/use-receipt-scan";
 import { useRegionCode } from "@/hooks/use-region-code";
+import { isLimitRefusal, useLimitNotice } from "@/hooks/use-usage-limits";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
@@ -120,12 +122,14 @@ function ScanShell({
     children,
     closeDisabled = false,
     onClose,
+    overlay,
     scroll = false,
 }: {
     bottom: React.ReactNode;
     children: React.ReactNode;
     closeDisabled?: boolean;
     onClose: () => void;
+    overlay?: React.ReactNode;
     /** The review is taller than the screen on a long receipt; everything else is centred. */
     scroll?: boolean;
 }) {
@@ -167,6 +171,7 @@ function ScanShell({
             >
                 {bottom}
             </View>
+            {overlay}
         </View>
     );
 }
@@ -630,6 +635,11 @@ function ScanFlowScreen() {
     );
 
     const { phase, takePhoto, chooseFromLibrary, retry, reset } = useReceiptScan({ context, request });
+    const limit = useLimitNotice(
+        "receiptScan",
+        phase.kind === "failed" && isLimitRefusal(phase.reason) ? phase.reason : null
+    );
+    const limitToast = <LimitToast feature="receiptScan" {...limit} />;
 
     const receipt = useMemo(
         () =>
@@ -763,6 +773,7 @@ function ScanFlowScreen() {
                 }
                 closeDisabled={saving}
                 onClose={close}
+                overlay={limitToast}
                 scroll
             >
                 <ReviewSheet
@@ -786,6 +797,7 @@ function ScanFlowScreen() {
                     </Button>
                 }
                 onClose={close}
+                overlay={limitToast}
             >
                 <PhotoStage box={stageBox(phase.photo)} scanning tint={colors.tint} uri={phase.photo.uri} />
                 <StatusLine waiting>{t("receipt.state.reading")}</StatusLine>
@@ -816,7 +828,11 @@ function ScanFlowScreen() {
             secondary = libraryAction;
         }
         return (
-            <ScanShell bottom={<BottomBar primary={primary} secondary={secondary} />} onClose={close}>
+            <ScanShell
+                bottom={<BottomBar primary={primary} secondary={secondary} />}
+                onClose={close}
+                overlay={limitToast}
+            >
                 {phase.photo ? (
                     <PhotoStage
                         box={stageBox(phase.photo)}
@@ -834,7 +850,7 @@ function ScanFlowScreen() {
                         width={FRAME_WIDTH}
                     />
                 )}
-                <StatusLine>{t(FAILURE_KEY[phase.reason])}</StatusLine>
+                {isLimitRefusal(phase.reason) ? null : <StatusLine>{t(FAILURE_KEY[phase.reason])}</StatusLine>}
             </ScanShell>
         );
     }
@@ -844,6 +860,7 @@ function ScanFlowScreen() {
         <ScanShell
             bottom={<BottomBar disabled={picking} primary={cameraAction} secondary={libraryAction} />}
             onClose={close}
+            overlay={limitToast}
         >
             <ReceiptFrame
                 height={FRAME_HEIGHT}

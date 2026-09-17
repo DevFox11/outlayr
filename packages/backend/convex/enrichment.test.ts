@@ -19,6 +19,7 @@ import {
     sanitizeRegionCode,
     suggestArgs,
 } from "./enrichment";
+import { perUserBurst } from "./lib/limits";
 import { merchantKey } from "./lib/merchantKey";
 import schema from "./schema";
 import { authenticatedAs, seedAuthUser } from "./test.helpers";
@@ -78,6 +79,7 @@ describe("suggest args validation", () => {
         // `currency` is a code, never a figure.
         expect(Object.keys(suggestArgs).sort()).toStrictEqual(
             [
+                "background",
                 "categoryTree",
                 "currency",
                 "groundedLookup",
@@ -146,13 +148,9 @@ describe("suggest guard ladder", () => {
             throw new Error("Expected an authenticated identity");
         }
 
-        // A fresh key's bucket starts at full capacity (8, the configured max a
-        // single call may request); draining it in one call is deterministic
-        // because it is the very first write for this key — the component takes
-        // its single-shard fast path with no random sampling.
         await t.run(async (ctx) =>
             rateLimiter.limit(ctx, "enrichmentPerUser", {
-                count: 8,
+                count: perUserBurst("enrichment", false).capacity,
                 key: tokenIdentifier,
             })
         );
@@ -181,6 +179,18 @@ describe("suggest guard ladder", () => {
             EMPTY
         );
         expect(limitSpy).toHaveBeenCalledWith(expect.anything(), "enrichmentGlobal");
+    });
+
+    test("a background lookup draws its own bucket, not the form's", async () => {
+        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        const t = convexTest(schema, modules);
+        const identity = await seedAuthUser(t);
+        const limitSpy = vi.spyOn(rateLimiter, "limit").mockResolvedValue({ ok: false, retryAfter: 1000 });
+
+        await authenticatedAs(t, identity).action(api.enrichment.suggest, { ...BASE_ARGS, background: true });
+
+        expect(limitSpy).toHaveBeenCalledWith(expect.anything(), "enrichmentBackground", expect.anything());
+        expect(limitSpy).not.toHaveBeenCalledWith(expect.anything(), "enrichmentPerUser", expect.anything());
     });
 });
 

@@ -1031,6 +1031,66 @@ const settings = {
             en: "On the Log",
             es: "En el registro",
         }),
+        "settings.usage.captures": t({
+            en: "of {count} captures",
+            es: "de {count} capturas",
+        }),
+        "settings.usage.capturesKinds": t({
+            en: "Voice and receipts",
+            es: "Voz y recibos",
+        }),
+        "settings.usage.fullIn": t({
+            en: "Full in {time}",
+            es: "Completo en {time}",
+        }),
+        "settings.usage.imports": t({
+            en: "CSV imports",
+            es: "Importaciones CSV",
+        }),
+        "settings.usage.left": t({
+            en: "{count} left",
+            es: "Quedan {count}",
+        }),
+        "settings.usage.receipts": t({
+            en: "Receipt scans",
+            es: "Escaneos de recibos",
+        }),
+        "settings.usage.resets": t({
+            en: "Resets {date}",
+            es: "Se reinicia el {date}",
+        }),
+        "settings.usage.suggestions": t({
+            en: "Suggestions",
+            es: "Sugerencias",
+        }),
+        "settings.usage.thisHour": t({
+            en: "This hour",
+            es: "Esta hora",
+        }),
+        "settings.usage.toast.empty": t({
+            en: "No captures left",
+            es: "No te quedan capturas",
+        }),
+        "settings.usage.toast.last": t({
+            en: "That was your last capture",
+            es: "Esa fue tu última captura",
+        }),
+        "settings.usage.toast.moreOn": t({
+            en: "{count} more on {date}",
+            es: "{count} más el {date}",
+        }),
+        "settings.usage.toast.pro": t({
+            en: "Pro",
+            es: "Pro",
+        }),
+        "settings.usage.toast.usage": t({
+            en: "Usage",
+            es: "Uso",
+        }),
+        "settings.usage.voice": t({
+            en: "Voice",
+            es: "Voz",
+        }),
         "settings.wallet.accountsFooter": t({
             en: "Name an account like its card in Wallet. A card that matches none still logs, unattached.",
             es: "Nombra una cuenta como su tarjeta en Wallet. Una tarjeta sin coincidencia igual se registra, sin cuenta.",

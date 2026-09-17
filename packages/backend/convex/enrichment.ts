@@ -12,6 +12,7 @@ import { optionalUserId } from "./lib/auth";
 import { PICKABLE_CURRENCY_CODES } from "./lib/currencies";
 import { describeTree } from "./lib/ledgerPrompt";
 import type { CategoryBranch } from "./lib/ledgerPrompt";
+import { perUserBurst } from "./lib/limits";
 import { knowledgeKey } from "./lib/merchantKey";
 import { DOMAIN_PATTERN, MAX_DOMAIN_LENGTH, MAX_TAG_LENGTH, MAX_TAGS, PICTOGRAPHIC } from "./lib/sanitizeLimits";
 import { isPro } from "./revenuecat";
@@ -42,6 +43,7 @@ export const REQUEST_TIMEOUT_MS = 3500;
  * directly rather than re-deriving it from the wrapped action.
  */
 export const suggestArgs = {
+    background: v.optional(v.boolean()),
     categoryTree: v.array(v.object({ children: v.array(v.string()), name: v.string() })),
     /**
      * The ISO 4217 code the purchase was charged in — a code, never an amount.
@@ -145,6 +147,7 @@ const modelOutputSchema = z.object({
  * than racing the component's random shard sampling through the action.
  */
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
+    enrichmentBackground: perUserBurst("enrichmentBackground", false),
     // An unsharded global counter is one hot document and throws OCC write
     // conflicts under concurrency — `shards: 10` is load-bearing, not tuning.
     enrichmentGlobal: {
@@ -153,12 +156,7 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
         rate: 2000,
         shards: 10,
     },
-    enrichmentPerUser: {
-        capacity: 8,
-        kind: "token bucket",
-        period: HOUR,
-        rate: 30,
-    },
+    enrichmentPerUser: perUserBurst("enrichment", false),
     // Kills both a user retyping the same unknown name and a
     // thundering herd across many users hitting one new merchant at once.
     // Checked inside `groundedLookup.run`, never here.
@@ -548,7 +546,7 @@ export const suggest = action({
             return EMPTY;
         }
 
-        const perUser = await rateLimiter.limit(ctx, "enrichmentPerUser", {
+        const perUser = await rateLimiter.limit(ctx, args.background ? "enrichmentBackground" : "enrichmentPerUser", {
             key: identity.tokenIdentifier,
         });
         if (!perUser.ok) {

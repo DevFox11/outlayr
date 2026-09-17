@@ -76,6 +76,18 @@ const voice = {
             en: "Didn't catch a transaction in that.",
             es: "No entendí una transacción ahí.",
         }),
+        "voice.limit.last": t({
+            en: "Last clip for now",
+            es: "Último clip por ahora",
+        }),
+        "voice.limit.next": t({
+            en: "Next clip in {time}",
+            es: "Siguiente clip en {time}",
+        }),
+        "voice.limit.paused": t({
+            en: "Voice is paused",
+            es: "La voz está en pausa",
+        }),
         "voice.mic.finish": t({
             en: "Done speaking",
             es: "Terminé de hablar",

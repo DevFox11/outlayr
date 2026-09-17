@@ -104,6 +104,7 @@ async function runBackfill(db: Database, cancelled: () => boolean): Promise<numb
                           return null;
                       }
                       const result = await transport({
+                          background: true,
                           categoryTree: [],
                           currency: args.currency ?? undefined,
                           groundedLookup,

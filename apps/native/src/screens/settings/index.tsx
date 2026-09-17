@@ -9,6 +9,7 @@ import type { ImportSheetHandle } from "@/components/import-sheet/import-sheet";
 import { AccountRow } from "@/components/settings/account-row";
 import { LinkRow, PickerRow, SettingsSection, ToggleRow } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
+import { UsageRow } from "@/components/settings/usage-row";
 import { useAppSettings, useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useRevenueCat } from "@/contexts/revenuecat-context";
@@ -128,6 +129,7 @@ export function Settings() {
                     title={t("pro.entry.title")}
                     value={isPro ? t("pro.entry.valuePro") : t("pro.entry.value")}
                 />
+                <UsageRow />
                 <LinkRow
                     icon="Cloud"
                     onPress={() => router.push("/settings/sync")}
