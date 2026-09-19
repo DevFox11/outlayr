@@ -21,7 +21,8 @@ import {
 } from "./enrichment";
 import { describeTree } from "./lib/ledgerPrompt";
 import type { CategoryBranch } from "./lib/ledgerPrompt";
-import { CANONICAL_CATEGORY_NAMES, shouldPublish } from "./lib/merchantTrust";
+import { knowledgeKeys } from "./lib/merchantKey";
+import { CANONICAL_CATEGORY_NAMES, KEY_PATTERN, shouldPublish } from "./lib/merchantTrust";
 import type { KnowledgeCandidate } from "./lib/merchantTrust";
 import { GROK_MODEL_ID } from "./lib/models";
 import { budgetConfig, estimateMicros, measureMicros } from "./lib/spend";
@@ -303,11 +304,17 @@ export async function groundedAnswer(
             categoryName: outcome.candidate.categoryName,
             domain: outcome.candidate.domain,
             emoji: outcome.candidate.emoji,
-            key: outcome.candidate.key,
+            keys: [
+                outcome.candidate.key,
+                ...knowledgeKeys(args.name, args.currency, outcome.candidate.merchantName).filter((key) =>
+                    KEY_PATTERN.test(key)
+                ),
+            ],
             merchantName: outcome.candidate.merchantName ?? undefined,
             modelId,
             parentCategoryName: null,
             resolvedAt: Date.now(),
+            source: "web",
             tags: [...outcome.candidate.tags],
         });
     }

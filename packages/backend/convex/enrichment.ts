@@ -13,7 +13,7 @@ import { PICKABLE_CURRENCY_CODES } from "./lib/currencies";
 import { describeTree } from "./lib/ledgerPrompt";
 import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
-import { knowledgeKey } from "./lib/merchantKey";
+import { knowledgeKey, knowledgeKeys } from "./lib/merchantKey";
 import { GROK_MODEL_ID } from "./lib/models";
 import { DOMAIN_PATTERN, MAX_DOMAIN_LENGTH, MAX_TAG_LENGTH, MAX_TAGS, PICTOGRAPHIC } from "./lib/sanitizeLimits";
 import { isPro } from "./revenuecat";
@@ -22,8 +22,8 @@ const MIN_NAME_LENGTH = 3;
 export const MAX_NAME_LENGTH = 64;
 const MAX_CATEGORY_NAME_LENGTH = 40;
 const MAX_KNOWN_CATEGORY_NAMES = 60;
-/** The action's own budget under the client's 4s `Promise.race` abort. */
-export const REQUEST_TIMEOUT_MS = 3500;
+/** The action's own budget under the client's 9s `Promise.race` abort. */
+export const REQUEST_TIMEOUT_MS = 8000;
 
 /**
  * The action's only arguments — a privacy boundary, not just a shape.
@@ -388,7 +388,7 @@ export async function runSuggest(model: LanguageModel, args: RunSuggestArgs): Pr
     const { output } = await generateText({
         abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         // The SDK default is 2 retries, which alone would triple worst-case
-        // latency past the client's own 4s `Promise.race` abort.
+        // latency past the client's own 9s `Promise.race` abort.
         maxRetries: 0,
         model,
         output: Output.object({ schema: modelOutputSchema }),
@@ -531,7 +531,8 @@ export const suggest = action({
         // limit bucket below — checked before `XAI_API_KEY` so a hit still works
         // even when that key is unset (design's degradation matrix).
         const cached = await ctx.runQuery(internal.merchantKnowledge.lookup, {
-            key: knowledgeKey(trimmedName, currency),
+            keys: knowledgeKeys(trimmedName, currency),
+            now: Date.now(),
         });
         if (cached !== null) {
             return {

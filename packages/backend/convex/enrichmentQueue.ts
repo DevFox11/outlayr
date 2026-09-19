@@ -20,7 +20,8 @@ import {
 import { groundedAnswer } from "./groundedLookup";
 import type { GroundedCallDeps } from "./groundedLookup";
 import { optionalUserId, requireUserId } from "./lib/auth";
-import { knowledgeKey } from "./lib/merchantKey";
+import { knowledgeKey, knowledgeKeys } from "./lib/merchantKey";
+import { CANONICAL_CATEGORY_NAMES, KEY_PATTERN } from "./lib/merchantTrust";
 import { GROK_MODEL_ID } from "./lib/models";
 import { isPro } from "./revenuecat";
 import { enrichmentResult } from "./schema";
@@ -104,14 +105,44 @@ export interface ResolveDeps {
     grounded?: GroundedCallDeps;
 }
 
+type JobCtx = Pick<ActionCtx, "runMutation" | "runQuery">;
+
+async function share(ctx: JobCtx, row: Doc<"enrichmentJobs">, answer: EnrichmentResult): Promise<EnrichmentResult> {
+    const { categoryName, domain, merchantName } = answer;
+    if (
+        categoryName === null ||
+        domain === null ||
+        merchantName === null ||
+        !CANONICAL_CATEGORY_NAMES.has(categoryName)
+    ) {
+        return answer;
+    }
+    await ctx.runMutation(internal.merchantKnowledge.record, {
+        categoryName,
+        domain,
+        emoji: answer.emoji,
+        keys: knowledgeKeys(row.name, row.currency, merchantName).filter((key) => KEY_PATTERN.test(key)),
+        merchantName,
+        modelId: process.env.XAI_MODEL_ID || GROK_MODEL_ID,
+        parentCategoryName: null,
+        resolvedAt: Date.now(),
+        source: "model",
+        tags: answer.tags,
+    });
+    return answer;
+}
+
 export async function resolveJob(
-    ctx: Pick<ActionCtx, "runMutation" | "runQuery">,
+    ctx: JobCtx,
     row: Doc<"enrichmentJobs">,
     deps: ResolveDeps = {}
 ): Promise<EnrichmentResult | null> {
     const key = knowledgeKey(row.name, row.currency);
-    const cached = await ctx.runQuery(internal.merchantKnowledge.lookup, { key });
-    if (cached?.merchantName !== undefined) {
+    const cached = await ctx.runQuery(internal.merchantKnowledge.lookup, {
+        keys: knowledgeKeys(row.name, row.currency),
+        now: Date.now(),
+    });
+    if (cached !== null && (!row.grounded || (cached.source === "web" && cached.merchantName !== undefined))) {
         return applyToTree(row.categoryTree, cached);
     }
     if (row.grounded) {
@@ -129,7 +160,7 @@ export async function resolveJob(
             deps.grounded
         );
         if (deep !== null && (deep.categoryName !== null || deep.domain !== null || deep.merchantName !== null)) {
-            return applyToTree(row.categoryTree, { ...deep, parentCategoryName: null });
+            return await share(ctx, row, applyToTree(row.categoryTree, { ...deep, parentCategoryName: null }));
         }
     }
     let model = deps.fast;
@@ -148,7 +179,7 @@ export async function resolveJob(
         name: row.name,
         regionCode: row.regionCode,
     });
-    return fast;
+    return await share(ctx, row, fast);
 }
 
 export const work = internalAction({

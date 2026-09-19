@@ -1,15 +1,22 @@
 import { v } from "convex/values";
+import type { Infer } from "convex/values";
 
+import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery } from "./_generated/server";
+import { MODEL_TTL_MS, WEB_TTL_MS } from "./lib/merchantTrust";
 
 /**
  * `lookup`/`record`/`purge` are all `internal*` and stay that way — a public
  * exact-key oracle over a shared, non-user-scoped table is a
  * dictionary-enumeration surface (threat T5). `lookup` is reachable only from
- * `enrichment.ts:suggest` and `csvImport.ts:csvImport`, both rate-limited; no
- * function here collects or paginates a listing
+ * `enrichment.ts:suggest`, `csvImport.ts:csvImport` and the enrichment queue,
+ * all rate-limited; no function here collects or paginates a listing
  * over `by_key`, or takes a prefix/range.
  */
+
+const MAX_KEYS = 5;
+
+const source = v.union(v.literal("model"), v.literal("web"));
 
 const knowledgeFields = {
     categoryName: v.string(),
@@ -24,48 +31,77 @@ const knowledgeFields = {
 const knowledgeRecord = v.object({
     key: v.string(),
     resolvedAt: v.number(),
+    source,
     ...knowledgeFields,
 });
 
+function sourceOf(row: Doc<"merchantKnowledge">): Infer<typeof source> {
+    return row.source ?? "web";
+}
+
+function expiresAt(row: Doc<"merchantKnowledge">): number {
+    return row.expiresAt ?? row.resolvedAt + WEB_TTL_MS;
+}
+
 export const lookup = internalQuery({
-    args: { key: v.string() },
+    args: { keys: v.array(v.string()), now: v.number() },
     handler: async (ctx, args) => {
-        const row = await ctx.db
-            .query("merchantKnowledge")
-            .withIndex("by_key", (q) => q.eq("key", args.key))
-            .unique();
-        if (row === null) {
-            return null;
+        for (const key of args.keys.slice(0, MAX_KEYS)) {
+            // oxlint-disable-next-line no-await-in-loop -- the keys are tried in order of trust, raw name first, and the first live row answers
+            const row = await ctx.db
+                .query("merchantKnowledge")
+                .withIndex("by_key", (q) => q.eq("key", key))
+                .unique();
+            if (row !== null && expiresAt(row) > args.now) {
+                return {
+                    categoryName: row.categoryName,
+                    domain: row.domain,
+                    emoji: row.emoji,
+                    key: row.key,
+                    merchantName: row.merchantName,
+                    modelId: row.modelId,
+                    parentCategoryName: row.parentCategoryName,
+                    resolvedAt: row.resolvedAt,
+                    source: sourceOf(row),
+                    tags: row.tags,
+                };
+            }
         }
-        return {
-            categoryName: row.categoryName,
-            domain: row.domain,
-            emoji: row.emoji,
-            key: row.key,
-            merchantName: row.merchantName,
-            modelId: row.modelId,
-            parentCategoryName: row.parentCategoryName,
-            resolvedAt: row.resolvedAt,
-            tags: row.tags,
-        };
+        return null;
     },
     returns: v.union(knowledgeRecord, v.null()),
 });
 
 export const record = internalMutation({
     args: {
-        key: v.string(),
+        keys: v.array(v.string()),
         resolvedAt: v.number(),
+        source,
         ...knowledgeFields,
     },
-    handler: async (ctx, args) => {
-        const existing = await ctx.db
-            .query("merchantKnowledge")
-            .withIndex("by_key", (q) => q.eq("key", args.key))
-            .unique();
-        await (existing === null
-            ? ctx.db.insert("merchantKnowledge", args)
-            : ctx.db.patch("merchantKnowledge", existing._id, args));
+    handler: async (ctx, { keys, ...args }) => {
+        const row = {
+            ...args,
+            expiresAt: args.resolvedAt + (args.source === "web" ? WEB_TTL_MS : MODEL_TTL_MS),
+        };
+        for (const key of keys.slice(0, MAX_KEYS)) {
+            // oxlint-disable-next-line no-await-in-loop -- one indexed point read and write per key, inside one transaction
+            const existing = await ctx.db
+                .query("merchantKnowledge")
+                .withIndex("by_key", (q) => q.eq("key", key))
+                .unique();
+            if (existing === null) {
+                // oxlint-disable-next-line no-await-in-loop -- see above
+                await ctx.db.insert("merchantKnowledge", { ...row, key });
+            } else if (
+                args.source === "web" ||
+                sourceOf(existing) === "model" ||
+                expiresAt(existing) <= args.resolvedAt
+            ) {
+                // oxlint-disable-next-line no-await-in-loop -- see above
+                await ctx.db.patch("merchantKnowledge", existing._id, { ...row, key });
+            }
+        }
         return null;
     },
     returns: v.null(),

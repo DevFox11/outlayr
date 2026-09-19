@@ -69,6 +69,7 @@ export const META_KEYS = {
     logoBackfillRetries: "logoBackfillRetries",
     logoCandidates: "logoCandidates",
     logoDismissals: "logoDismissals",
+    merchantBook: "merchantBook",
     /**
      * Written when the first-run flow finishes. `firstLaunch` cannot stand in for
      * it: bootstrap writes that one before any screen exists, so by the time the

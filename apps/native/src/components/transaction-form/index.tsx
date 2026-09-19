@@ -37,6 +37,7 @@ import { ensureCategoryByName, getCategoryById } from "@/data/categories-core";
 import type { Category } from "@/data/categories-core";
 import { queueEnrichment } from "@/data/enrichment-queue-core";
 import { useFavouriteCurrencies } from "@/data/favourite-currencies";
+import { recallMerchant } from "@/data/merchant-book-core";
 import { useRecentMerchants } from "@/data/merchant-history";
 import { rememberedCategoryFor } from "@/data/merchant-history-core";
 import { applyMerchantToSiblings } from "@/data/merchant-siblings-core";
@@ -999,6 +1000,11 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         [db]
     );
 
+    const recallBookMerchant = useCallback(
+        (name: string, forCurrency: string | undefined) => recallMerchant(db, name, forCurrency),
+        [db]
+    );
+
     const resolveLocal = useCallback((suggestion: EnrichmentSuggestion): EnrichmentSuggestion => {
         let { categoryId, pendingCategory: suggestedCategory } = suggestion;
         if (categoryId == null && suggestedCategory != null) {
@@ -1303,6 +1309,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         initialName: nameSeed,
         locale,
         onSuggest: applySuggestion,
+        recallMerchant: recallBookMerchant,
         regionCode,
         remoteEnabled: aiEnrichment,
         resolveHistory,

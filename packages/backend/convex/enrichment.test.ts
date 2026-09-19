@@ -246,6 +246,33 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
         ).resolves.toMatchObject({ domain: "sushiway.fr" });
     });
 
+    test("a new descriptor for a known merchant is answered from the cache, with no model configured", async () => {
+        vi.stubEnv("XAI_API_KEY", "");
+        const t = convexTest(schema, modules);
+        const identity = await seedAuthUser(t);
+        await t.run((ctx) =>
+            ctx.db.insert("merchantKnowledge", {
+                categoryName: "Travel",
+                domain: "airbnb.com",
+                emoji: null,
+                key: "airbnb|eur",
+                merchantName: "Airbnb",
+                modelId: "test-model",
+                parentCategoryName: null,
+                resolvedAt: Date.now(),
+                tags: ["lodging"],
+            })
+        );
+
+        await expect(
+            authenticatedAs(t, identity).action(api.enrichment.suggest, {
+                ...BASE_ARGS,
+                currency: "EUR",
+                name: "AIRBNB * ZX81KQ7",
+            })
+        ).resolves.toMatchObject({ domain: "airbnb.com", merchantName: "Airbnb" });
+    });
+
     test("a cache hit serves category, tags and domain without consuming either rate-limit bucket", async () => {
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
@@ -329,8 +356,8 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
 });
 
 describe("latency/retry regression guard (task 3.13)", () => {
-    test("REQUEST_TIMEOUT_MS is unchanged at 3500ms", () => {
-        expect(REQUEST_TIMEOUT_MS).toBe(3500);
+    test("REQUEST_TIMEOUT_MS stays at 8000ms, inside the client's 9s wait", () => {
+        expect(REQUEST_TIMEOUT_MS).toBe(8000);
     });
 
     test("runSuggest never retries a thrown provider error (maxRetries: 0)", async () => {

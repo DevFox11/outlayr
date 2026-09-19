@@ -69,8 +69,8 @@ afterEach(() => {
 });
 
 describe("latency contract", () => {
-    it("rEMOTE_TIMEOUT_MS is unchanged at 4000ms", () => {
-        expect(REMOTE_TIMEOUT_MS).toBe(4000);
+    it("rEMOTE_TIMEOUT_MS stays at 9000ms, past the server's 8s budget", () => {
+        expect(REMOTE_TIMEOUT_MS).toBe(9000);
     });
 });
 
@@ -332,6 +332,42 @@ describe("tier 1.75: the caller's own on-device domain tier", () => {
         });
 
         expect(fn).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe("tier 1.9: the merchant book this device already filled", () => {
+    it("answers a remembered merchant without asking the backend", async () => {
+        const onSuggest = jest.fn();
+        const transport = deferredTransport();
+        const recallMerchant = jest.fn(async () => REMOTE_RESULT);
+        const { result } = await renderHook(() =>
+            useTransactionEnrichment(baseArgs({ onSuggest, recallMerchant, transport: transport.fn }))
+        );
+
+        await act(async () => {
+            result.current.onNameChange(UNKNOWN);
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+
+        expect(transport.fn).not.toHaveBeenCalled();
+        expect(recallMerchant).toHaveBeenCalledWith(UNKNOWN, undefined);
+        const suggestion = onSuggest.mock.calls.at(-1)?.[0] as EnrichmentSuggestion;
+        expect(suggestion).toMatchObject({ domain: "example.com", source: "remote" });
+    });
+
+    it("still asks the backend for a merchant it has never seen", async () => {
+        const transport = deferredTransport();
+        const recallMerchant = jest.fn(async () => null);
+        const { result } = await renderHook(() =>
+            useTransactionEnrichment(baseArgs({ recallMerchant, transport: transport.fn }))
+        );
+
+        await act(async () => {
+            result.current.onNameChange(UNKNOWN);
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+
+        expect(transport.fn).toHaveBeenCalledTimes(1);
     });
 });
 

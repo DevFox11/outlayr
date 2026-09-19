@@ -8,6 +8,7 @@ import type { LogoOutcome, MerchantImageRequest } from "@/lib/logo-fetch";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { ensureCategoryByName, presetForName } from "./categories-core";
+import { rememberMerchant } from "./merchant-book-core";
 import { tagIdsForQuery, tagsRepo } from "./tags-core";
 
 export interface EnrichmentAnswer {
@@ -193,6 +194,7 @@ export async function applyEnrichmentAnswer(db: Database, job: AnsweredJob, deps
     if (answer == null || before == null) {
         return;
     }
+    await rememberMerchant(db, job.name, before.currency, { ...answer, emoji: answer.emoji, tags: [...answer.tags] });
     const renamed =
         before.note === job.name &&
         answer.merchantName != null &&

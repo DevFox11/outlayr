@@ -3,7 +3,11 @@
 import { DOMAIN_PATTERN, MAX_DOMAIN_LENGTH, MAX_TAG_LENGTH, MAX_TAGS, PICTOGRAPHIC } from "./sanitizeLimits";
 
 /** A merchant key, optionally scoped to a currency — see `knowledgeKey`. */
-const KEY_PATTERN = /^[a-z0-9 ]{3,64}(\|[a-z]{3})?$/;
+export const KEY_PATTERN = /^[a-z0-9 ]{3,64}(\|[a-z]{3})?$/;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+export const MODEL_TTL_MS = 30 * DAY_MS;
+export const WEB_TTL_MS = 90 * DAY_MS;
 
 /**
  * The 33 preset expense/income category names from

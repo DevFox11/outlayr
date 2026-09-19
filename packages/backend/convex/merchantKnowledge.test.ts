@@ -7,6 +7,7 @@ import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 
 import { internal } from "./_generated/api";
+import { MODEL_TTL_MS } from "./lib/merchantTrust";
 import * as merchantKnowledge from "./merchantKnowledge";
 import schema from "./schema";
 
@@ -59,11 +60,76 @@ describe("lookup returns the stored metadata verbatim", () => {
         );
 
         const result = await t.query(internal.merchantKnowledge.lookup, {
-            key: "farmatodo",
+            keys: ["farmatodo"],
+            now: Date.now(),
         });
 
         expect(result).toMatchObject({ categoryName: "Healthcare" });
         expect(result).not.toHaveProperty("logoKey");
         expect(result).not.toHaveProperty("logoUrl");
+    });
+});
+
+describe("time-bounded knowledge", () => {
+    const ANSWER = {
+        categoryName: "Travel",
+        domain: "care4bag.gr",
+        emoji: null,
+        merchantName: "Care4Bag",
+        modelId: "test-model",
+        parentCategoryName: null,
+        tags: ["luggage"],
+    };
+
+    test("answers from the first key with a live row, and not from an expired one", async () => {
+        const t = convexTest(schema, modules);
+        const now = Date.UTC(2026, 8, 19);
+        await t.mutation(internal.merchantKnowledge.record, {
+            ...ANSWER,
+            keys: ["care4bag ae|eur", "care4bag|eur"],
+            resolvedAt: now,
+            source: "model",
+        });
+
+        await expect(
+            t.query(internal.merchantKnowledge.lookup, { keys: ["nothing|eur", "care4bag|eur"], now })
+        ).resolves.toMatchObject({ key: "care4bag|eur", merchantName: "Care4Bag", source: "model" });
+        await expect(
+            t.query(internal.merchantKnowledge.lookup, { keys: ["care4bag|eur"], now: now + MODEL_TTL_MS + 1 })
+        ).resolves.toBeNull();
+    });
+
+    test("keeps a fresh web-verified answer over a later model one, and lets the web replace the model", async () => {
+        const t = convexTest(schema, modules);
+        const now = Date.UTC(2026, 8, 19);
+        await t.mutation(internal.merchantKnowledge.record, {
+            ...ANSWER,
+            keys: ["care4bag|eur"],
+            resolvedAt: now,
+            source: "web",
+        });
+        await t.mutation(internal.merchantKnowledge.record, {
+            ...ANSWER,
+            domain: "care4bag.com",
+            keys: ["care4bag|eur"],
+            resolvedAt: now + 1,
+            source: "model",
+        });
+
+        await expect(
+            t.query(internal.merchantKnowledge.lookup, { keys: ["care4bag|eur"], now: now + 2 })
+        ).resolves.toMatchObject({ domain: "care4bag.gr", source: "web" });
+
+        await t.mutation(internal.merchantKnowledge.record, {
+            ...ANSWER,
+            domain: "care4bag.eu",
+            keys: ["care4bag|eur"],
+            resolvedAt: now + 3,
+            source: "web",
+        });
+
+        await expect(
+            t.query(internal.merchantKnowledge.lookup, { keys: ["care4bag|eur"], now: now + 4 })
+        ).resolves.toMatchObject({ domain: "care4bag.eu" });
     });
 });

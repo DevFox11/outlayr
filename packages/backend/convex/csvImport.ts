@@ -15,7 +15,7 @@ import type { GroundedScheduleCtx } from "./enrichment";
 import { describeTree } from "./lib/ledgerPrompt";
 import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
-import { merchantKey } from "./lib/merchantKey";
+import { knowledgeKeys, merchantKey } from "./lib/merchantKey";
 import { GROK_MODEL_ID } from "./lib/models";
 import { isPro } from "./revenuecat";
 
@@ -271,7 +271,10 @@ export const csvImport = action({
         const looked = await Promise.all(
             args.labels.map(async (label) => ({
                 label,
-                row: await ctx.runQuery(internal.merchantKnowledge.lookup, { key: merchantKey(label) }),
+                row: await ctx.runQuery(internal.merchantKnowledge.lookup, {
+                    keys: knowledgeKeys(label, undefined),
+                    now: Date.now(),
+                }),
             }))
         );
         for (const { label, row } of looked) {

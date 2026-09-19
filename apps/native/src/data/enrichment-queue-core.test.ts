@@ -9,6 +9,7 @@ import { getMeta, META_KEYS } from "./app-meta-core";
 import { categoriesRepo } from "./categories-core";
 import { applyEnrichmentAnswer, queueEnrichment, sendQueuedEnrichment } from "./enrichment-queue-core";
 import type { ApplyDeps, EnrichmentAnswer, EnrichmentJobRequest } from "./enrichment-queue-core";
+import { recallMerchant } from "./merchant-book-core";
 import { tagIdsForQuery } from "./tags-core";
 
 const NOW = new Date("2026-09-19T12:00:00Z");
@@ -117,6 +118,7 @@ describe("applyEnrichmentAnswer", () => {
             .where(eq(categories.id, row?.categoryId ?? ""));
         expect(category?.name).toBe("Travel");
         await expect(tagIdsForQuery(db, "tx-1")).resolves.toHaveLength(2);
+        await expect(recallMerchant(db, "CARE4BAG AE", "EUR")).resolves.toMatchObject({ domain: "care4bag.gr" });
     });
 
     it("leaves what the owner already chose, without fetching a logo it has nowhere to put", async () => {

@@ -83,6 +83,7 @@ export interface UseTransactionEnrichmentArgs {
      */
     resolveHistory?: (key: string, income: boolean) => Promise<string | null>;
     resolveLocal: (suggestion: EnrichmentSuggestion) => EnrichmentSuggestion;
+    recallMerchant?: (name: string, currency: string | undefined) => Promise<RemoteEnrichmentResult | null>;
     /**
      * An on-device tier consulted between the curated map and the model, for a
      * domain the curated map has no opinion about. Answering here skips the
@@ -123,7 +124,7 @@ const GROUNDED_IDLE_MS = 1800;
 const GROUNDED_RECHECK_MS = 8000;
 const GROUNDED_RECHECK_RETRY_MS = 12_000;
 const MIN_KEY_LENGTH = 3;
-export const REMOTE_TIMEOUT_MS = 4000;
+export const REMOTE_TIMEOUT_MS = 9000;
 
 function toCuratedSuggestion(match: MerchantMatch): EnrichmentSuggestion {
     const preset = findCategoryPreset(match.categoryName);
@@ -177,6 +178,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         resolveLocal,
         resolveHistory,
         resolveDomain,
+        recallMerchant,
         onSuggest,
         remoteEnabled = true,
         locale,
@@ -256,6 +258,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         income,
         locale,
         onSuggest,
+        recallMerchant,
         regionCode,
         remoteEnabled,
         resolveDomain,
@@ -562,6 +565,18 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         if (localDomain != null) {
             const base = curatedFallback ? curatedFallbackRef.current?.suggestion : undefined;
             emit({ ...(base ?? NOTHING), domain: localDomain });
+            supersedeInFlight();
+            return;
+        }
+        const recalled = force
+            ? null
+            : ((await latest.current.recallMerchant?.(nameRef.current, latest.current.currency)) ?? null);
+        if (merchantKey(nameRef.current) !== key) {
+            return;
+        }
+        if (recalled != null) {
+            lastRemoteOutcomeRef.current = { hasDomain: recalled.domain != null, key };
+            emitRemoteResult(key, recalled);
             supersedeInFlight();
             return;
         }

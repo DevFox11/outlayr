@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { merchantKey, resolveMerchant } from "./merchant-resolver";
+import { descriptorKey, merchantKey, resolveMerchant } from "./merchant-resolver";
 
 describe("normalizing a raw name into a matching key", () => {
     it("lowercases, trims, and collapses whitespace", () => {
@@ -123,5 +123,24 @@ describe("fuzzy matching", () => {
 
     it("rejects a name with no curated candidate at all", () => {
         expect(resolveMerchant("xyzcorp random note 12345")).toBeNull();
+    });
+});
+
+describe("descriptorKey", () => {
+    it.each([
+        ["AIRBNB * HMASFW2JP2", "airbnb"],
+        ["AIRBNB * ZX81KQ7", "airbnb"],
+        ["NYX*VenetisABEET", "venetis"],
+        ["CARE4BAG AE", "care4bag"],
+        ["SQ *BLUE BOTTLE COFFEE", "blue bottle coffee"],
+        ["PAYPAL *STEAM GAMES", "steam games"],
+        ["TST* SUSHI WAY LES HA", "sushi way les ha"],
+        ["BLUE BOTTLE COFFEE #08761", "blue bottle coffee"],
+        ["FIUMICINO AEROPORTO SS", "fiumicino aeroporto ss"],
+        ["UBER *EATS PENDING", "uber eats pending"],
+        ["PayPal", "paypal"],
+        ["Panadería San José", "panaderia san jose"],
+    ])("%s decodes to %s, the same as the backend's copy", (raw, expected) => {
+        expect(descriptorKey(raw)).toBe(expected);
     });
 });

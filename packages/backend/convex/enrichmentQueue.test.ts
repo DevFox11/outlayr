@@ -7,9 +7,10 @@ import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { resolveJob } from "./enrichmentQueue";
+import { knowledgeKeys } from "./lib/merchantKey";
 import schema from "./schema";
 import { authenticatedAs, seedAuthUser, seedProUser } from "./test.helpers";
 
@@ -105,7 +106,7 @@ describe(resolveJob, () => {
                 merchantName: "Care4Bag",
                 modelId: "test",
                 parentCategoryName: null,
-                resolvedAt: 0,
+                resolvedAt: Date.now(),
                 tags: ["luggage"],
             })
         );
@@ -139,6 +140,46 @@ describe(resolveJob, () => {
         const answer = await t.action((ctx) => resolveJob(ctx, queuedRow({ grounded: false }), { fast }));
 
         expect(answer).toMatchObject({ categoryName: "Travel", domain: null, merchantName: "Care4Bag" });
+    });
+});
+
+describe("shared answers", () => {
+    test("a model answer is kept under the merchant's aliases, so another descriptor for it hits", async () => {
+        const t = setup();
+        const fast = fastModel({
+            brand: "Airbnb",
+            categoryName: "Travel",
+            domain: "airbnb.com",
+            domainConfidence: "high",
+            isNewCategory: false,
+            tags: ["lodging"],
+        });
+
+        await t.action((ctx) => resolveJob(ctx, queuedRow({ grounded: false, name: "AIRBNB * HMASFW2JP2" }), { fast }));
+
+        const later = await t.query(internal.merchantKnowledge.lookup, {
+            keys: knowledgeKeys("AIRBNB * ZX81KQ7", "EUR"),
+            now: Date.now(),
+        });
+        expect(later).toMatchObject({ domain: "airbnb.com", merchantName: "Airbnb", source: "model" });
+    });
+
+    test("keeps an answer filed under a category of the owner's own off the shared table", async () => {
+        const t = setup();
+        const fast = fastModel({
+            brand: "Care4Bag",
+            categoryName: "Trips",
+            domain: "care4bag.gr",
+            domainConfidence: "high",
+            isNewCategory: true,
+            tags: [],
+        });
+
+        await t.action((ctx) =>
+            resolveJob(ctx, queuedRow({ categoryTree: [{ children: [], name: "Trips" }] }), { fast })
+        );
+
+        await expect(t.run((ctx) => ctx.db.query("merchantKnowledge").collect())).resolves.toStrictEqual([]);
     });
 });
 

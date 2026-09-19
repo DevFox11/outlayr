@@ -199,11 +199,13 @@ export default defineSchema({
         categoryName: v.string(),
         domain: v.string(),
         emoji: v.union(v.string(), v.null()),
+        expiresAt: v.optional(v.number()),
         key: v.string(),
         merchantName: v.optional(v.string()),
         modelId: v.string(),
         parentCategoryName: v.union(v.string(), v.null()),
         resolvedAt: v.number(),
+        source: v.optional(v.union(v.literal("model"), v.literal("web"))),
         tags: v.array(v.string()),
     }).index("by_key", ["key"]),
 
