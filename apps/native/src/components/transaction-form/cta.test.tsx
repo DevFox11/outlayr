@@ -1,6 +1,20 @@
 import { describe, expect, it, jest } from "@jest/globals";
+import { render } from "@testing-library/react-native";
+import type { ReactNode } from "react";
 
-import { transactionFormCtaActions } from "./cta";
+import { TransactionFormCta, transactionFormCtaActions } from "./cta";
+
+const mockToolbarRenders = jest.fn();
+
+jest.mock<Partial<typeof import("expo-router")>>("expo-router", () => {
+    const stub = require("../../../jest/expo-router-stub");
+    const Toolbar = (props: { children: ReactNode }) => {
+        mockToolbarRenders();
+        return stub.Stack.Toolbar(props);
+    };
+    Toolbar.Button = stub.Stack.Toolbar.Button;
+    return { ...stub, Stack: { Toolbar } };
+});
 
 const BASE = {
     canSave: true,
@@ -112,5 +126,22 @@ describe("transactionFormCtaActions", () => {
             saveLabel: "Save changes",
         });
         expect(actions.map((a) => a.accessibilityLabel)).toStrictEqual(["Delete entry", "Save changes"]);
+    });
+});
+
+describe("toolbar", () => {
+    it("is not rebuilt by a render that only changes the handlers, and presses reach the latest one", async () => {
+        const first = jest.fn();
+        const second = jest.fn();
+        const view = await render(<TransactionFormCta canSave onPress={first} saveLabel="Save" />);
+        await view.rerender(<TransactionFormCta canSave onPress={second} saveLabel="Save" />);
+        expect(mockToolbarRenders).toHaveBeenCalledTimes(1);
+        const button = view.toJSON();
+        if (button === null || Array.isArray(button)) {
+            throw new Error("expected a single toolbar button");
+        }
+        button.props.onButtonPress();
+        expect(second).toHaveBeenCalledTimes(1);
+        expect(first).not.toHaveBeenCalled();
     });
 });

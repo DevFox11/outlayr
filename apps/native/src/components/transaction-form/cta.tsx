@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import type { StackHeaderItemSharedProps } from "expo-router";
+import { memo, useCallback, useLayoutEffect, useRef } from "react";
 
 import { toolbarIcon } from "@/components/toolbar-icons";
 import type { ToolbarIconName } from "@/components/toolbar-icons";
@@ -89,7 +90,7 @@ export function transactionFormCtaActions({
     return actions;
 }
 
-export function TransactionFormCta(props: TransactionFormCtaProps) {
+function CtaToolbarBody(props: TransactionFormCtaProps) {
     return (
         <Stack.Toolbar placement="right">
             {transactionFormCtaActions(props).map((action) => (
@@ -105,5 +106,33 @@ export function TransactionFormCta(props: TransactionFormCtaProps) {
                 />
             ))}
         </Stack.Toolbar>
+    );
+}
+
+const CtaToolbar = memo(CtaToolbarBody);
+
+export function TransactionFormCta(props: TransactionFormCtaProps) {
+    const handlers = useRef(props);
+    useLayoutEffect(() => {
+        handlers.current = props;
+    });
+    const press = useCallback(() => handlers.current.onPress(), []);
+    const remove = useCallback(() => handlers.current.onDelete?.(), []);
+    const lookup = useCallback(() => handlers.current.onLookup?.(), []);
+    const lookable = props.onLookup !== undefined;
+    return (
+        <CtaToolbar
+            blockedTint={props.blockedTint}
+            busy={props.busy}
+            canSave={props.canSave}
+            deleteLabel={props.deleteLabel}
+            deleteTint={props.deleteTint}
+            lookupBusy={lookable && props.lookupBusy === true}
+            lookupLabel={props.lookupLabel}
+            onDelete={props.onDelete === undefined ? undefined : remove}
+            onLookup={lookable ? lookup : undefined}
+            onPress={press}
+            saveLabel={props.saveLabel}
+        />
     );
 }

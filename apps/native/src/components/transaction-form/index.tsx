@@ -2198,11 +2198,12 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     <InlineFailure message={saveFailure} />
                 </View>
 
-                <form.Subscribe
+                <SubscribeFields
                     selector={(s) => ({
                         busy: s.isSubmitting,
                         complete: numpadToNumber(s.values.amount) > 0,
                     })}
+                    store={form.store}
                 >
                     {({ busy, complete }) => (
                         <TransactionFormCta
@@ -2226,7 +2227,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                             saveLabel={ctaLabel}
                         />
                     )}
-                </form.Subscribe>
+                </SubscribeFields>
 
                 {showToast ? (
                     <Animated.View
