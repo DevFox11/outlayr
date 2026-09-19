@@ -23,10 +23,10 @@ import { describeTree } from "./lib/ledgerPrompt";
 import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { CANONICAL_CATEGORY_NAMES, shouldPublish } from "./lib/merchantTrust";
 import type { KnowledgeCandidate } from "./lib/merchantTrust";
+import { GROK_MODEL_ID } from "./lib/models";
 import { budgetConfig, estimateMicros, measureMicros } from "./lib/spend";
 
-export const GROUNDED_MODEL_ID = "grok-4.20-0309-reasoning";
-export const GROUNDED_REQUEST_TIMEOUT_MS = 60_000;
+export const GROUNDED_REQUEST_TIMEOUT_MS = 120_000;
 const CANONICAL_NAMES_LIST = [...CANONICAL_CATEGORY_NAMES].join(", ");
 
 /**
@@ -262,14 +262,14 @@ export async function groundedAnswer(
     }
 
     let deps = overrideDeps;
-    let modelId: string = GROUNDED_MODEL_ID;
+    let modelId: string = GROK_MODEL_ID;
     if (!deps) {
         const apiKey = process.env.XAI_API_KEY;
         if (!apiKey) {
             return null;
         }
         const xaiProvider = createXai({ apiKey });
-        modelId = process.env.XAI_GROUNDED_MODEL_ID || GROUNDED_MODEL_ID;
+        modelId = process.env.XAI_GROUNDED_MODEL_ID || GROK_MODEL_ID;
         const model = xaiProvider(modelId);
         deps = {
             grounding: model,

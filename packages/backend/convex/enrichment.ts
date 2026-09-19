@@ -14,18 +14,9 @@ import { describeTree } from "./lib/ledgerPrompt";
 import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
 import { knowledgeKey } from "./lib/merchantKey";
+import { GROK_MODEL_ID } from "./lib/models";
 import { DOMAIN_PATTERN, MAX_DOMAIN_LENGTH, MAX_TAG_LENGTH, MAX_TAGS, PICTOGRAPHIC } from "./lib/sanitizeLimits";
 import { isPro } from "./revenuecat";
-
-/**
- * `grok-4-fast-non-reasoning` and `grok-3-mini` — the original design's pick
- * and fallback — do not exist in this account's model lineup (`GET
- * https://api.x.ai/v1/models`). Measured live against a real
- * merchant-extraction prompt: the `grok-4.20-0309` non-reasoning snapshot
- * settled in 841ms with correct structured output; `grok-4.5` took 2.69s.
- * `XAI_MODEL_ID` overrides the primary id without a deploy.
- */
-export const ENRICHMENT_MODEL_ID = "grok-4.20-non-reasoning";
 
 const MIN_NAME_LENGTH = 3;
 export const MAX_NAME_LENGTH = 64;
@@ -402,6 +393,7 @@ export async function runSuggest(model: LanguageModel, args: RunSuggestArgs): Pr
         model,
         output: Output.object({ schema: modelOutputSchema }),
         prompt: buildPrompt(args.name, args.income, args.locale, args.regionCode, args.currency, tree),
+        reasoning: "low",
     });
 
     return {
@@ -571,7 +563,7 @@ export const suggest = action({
 
         try {
             const xaiProvider = createXai({ apiKey });
-            const modelId = process.env.XAI_MODEL_ID || ENRICHMENT_MODEL_ID;
+            const modelId = process.env.XAI_MODEL_ID || GROK_MODEL_ID;
             const result = await runSuggest(xaiProvider(modelId), {
                 categoryTree: args.categoryTree,
                 currency,

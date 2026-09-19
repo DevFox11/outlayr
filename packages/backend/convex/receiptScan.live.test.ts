@@ -20,6 +20,7 @@ import { readFile } from "node:fs/promises";
 import { createXai } from "@ai-sdk/xai";
 import { describe, expect, test } from "vitest";
 
+import { GROK_MODEL_ID } from "./lib/models";
 import { readReceipt } from "./receiptScan";
 
 const live = process.env.RUN_LIVE_MODEL_TESTS === "1" && Boolean(process.env.XAI_API_KEY);
@@ -34,7 +35,7 @@ describe.skipIf(!live)("receipt scan, live", () => {
     test("a euro supermarket ticket becomes a draft in EUR with its lines", async () => {
         const xai = createXai({ apiKey: process.env.XAI_API_KEY });
         const result = await readReceipt(
-            xai(process.env.XAI_VISION_MODEL_ID || "grok-4.20-0309-non-reasoning"),
+            xai(process.env.XAI_VISION_MODEL_ID || GROK_MODEL_ID),
             await imageBytes(RECEIPT_PATH),
             {
                 accounts: ["Visa Sabadell", "Cash"],

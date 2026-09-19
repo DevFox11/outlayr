@@ -3,10 +3,10 @@ import { DAY } from "@convex-dev/rate-limiter";
 
 /** $0.005 per xAI web-search call — https://docs.x.ai/docs/pricing (verified). */
 const DEFAULT_SEARCH_PRICE_MICROS = 5000;
-/** $1.25 per 1M input tokens on `grok-4.20-0309-non-reasoning`. */
-const DEFAULT_INPUT_PRICE_MICROS_PER_TOKEN = 1.25;
-/** $2.50 per 1M output tokens on `grok-4.20-0309-non-reasoning`. */
-const DEFAULT_OUTPUT_PRICE_MICROS_PER_TOKEN = 2.5;
+/** $2.00 per 1M input tokens on `grok-4.6`. */
+const DEFAULT_INPUT_PRICE_MICROS_PER_TOKEN = 2;
+/** $6.00 per 1M output tokens on `grok-4.6`. */
+const DEFAULT_OUTPUT_PRICE_MICROS_PER_TOKEN = 6;
 /** The monthly ceiling, in micro-dollars. */
 export const DEFAULT_BUDGET_CEILING_MICROS = 200_000_000;
 const BUDGET_PERIOD_MS = 30 * DAY;

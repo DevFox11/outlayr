@@ -11,7 +11,6 @@ import { internalAction, internalMutation, internalQuery, mutation, query } from
 import type { ActionCtx } from "./_generated/server";
 import {
     applyToTree,
-    ENRICHMENT_MODEL_ID,
     MAX_NAME_LENGTH,
     rateLimiter,
     runSuggest,
@@ -22,6 +21,7 @@ import { groundedAnswer } from "./groundedLookup";
 import type { GroundedCallDeps } from "./groundedLookup";
 import { optionalUserId, requireUserId } from "./lib/auth";
 import { knowledgeKey } from "./lib/merchantKey";
+import { GROK_MODEL_ID } from "./lib/models";
 import { isPro } from "./revenuecat";
 import { enrichmentResult } from "./schema";
 
@@ -138,7 +138,7 @@ export async function resolveJob(
         if (!apiKey) {
             return null;
         }
-        model = createXai({ apiKey })(process.env.XAI_MODEL_ID || ENRICHMENT_MODEL_ID);
+        model = createXai({ apiKey })(process.env.XAI_MODEL_ID || GROK_MODEL_ID);
     }
     const { grounding: _grounding, ...fast } = await runSuggest(model, {
         categoryTree: row.categoryTree,

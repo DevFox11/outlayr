@@ -24,6 +24,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import { api } from "./_generated/api";
 import { classify } from "./csvImport";
+import { GROK_MODEL_ID } from "./lib/models";
 import schema from "./schema";
 import { authenticatedAs, seedAuthUser } from "./test.helpers";
 
@@ -32,7 +33,7 @@ const modules = import.meta.glob("./**/*.ts");
 const apiKey = process.env.XAI_API_KEY ?? "";
 const enabled = process.env.RUN_LIVE_MODEL_TESTS === "1" && apiKey !== "";
 
-const MODEL_ID = process.env.XAI_MODEL_ID ?? "grok-4.20-0309-non-reasoning";
+const MODEL_ID = process.env.XAI_MODEL_ID ?? GROK_MODEL_ID;
 
 /** Merchants absent from the on-device map, so the model is the only tier left. */
 const LABELS = ["Panaderia La Espiga SC", "Ferreteria Don Pepe", "Cafe Tostado Rincon"];

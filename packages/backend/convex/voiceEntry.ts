@@ -38,10 +38,8 @@ import {
 } from "./lib/ledgerPrompt";
 import type { LedgerContext } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
+import { GROK_MODEL_ID } from "./lib/models";
 import { isPro } from "./revenuecat";
-
-/** `XAI_MODEL_ID` overrides this without a deploy, matching `enrichment.ts`. */
-const VOICE_ENTRY_MODEL_ID = "grok-4.20-0309-non-reasoning";
 
 /**
  * A spoken entry is a sentence, not a dictation: one minute of AAC at the
@@ -557,7 +555,7 @@ export const speak = action({
             language: args.language,
             today: args.today,
         };
-        const modelId = process.env.XAI_MODEL_ID || VOICE_ENTRY_MODEL_ID;
+        const modelId = process.env.XAI_MODEL_ID || GROK_MODEL_ID;
         const agent = voiceAgent(xaiProvider(modelId), context);
         const { message, messageId } = await saveMessage(ctx, components.agent, {
             prompt: heard.text,
@@ -572,6 +570,7 @@ export const speak = action({
                     abortSignal: AbortSignal.timeout(PARSE_TIMEOUT_MS),
                     maxRetries: 0,
                     promptMessageId: messageId,
+                    reasoning: "low",
                     system: buildPrompt(context),
                     toolChoice: "required",
                 },

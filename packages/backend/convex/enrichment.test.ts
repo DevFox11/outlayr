@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
-import { MockLanguageModelV3 } from "ai/test";
+import { MockLanguageModelV4 } from "ai/test";
 import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -40,7 +40,7 @@ afterEach(() => {
  * needs to return the JSON payload as a single text content part.
  */
 function mockModel(payload: unknown) {
-    return new MockLanguageModelV3({
+    return new MockLanguageModelV4({
         doGenerate: async () => ({
             content: [{ text: JSON.stringify(payload), type: "text" }],
             finishReason: { raw: undefined, unified: "stop" },
@@ -335,7 +335,7 @@ describe("latency/retry regression guard (task 3.13)", () => {
 
     test("runSuggest never retries a thrown provider error (maxRetries: 0)", async () => {
         let calls = 0;
-        const throwing = new MockLanguageModelV3({
+        const throwing = new MockLanguageModelV4({
             doGenerate: async () => {
                 calls += 1;
                 throw new Error("network down");
@@ -839,6 +839,14 @@ describe("runSuggest regionCode", () => {
 
         const sent = JSON.stringify(model.doGenerateCalls[0]?.prompt);
         expect(sent).toContain("charged in EUR");
+    });
+
+    test("asks for low reasoning effort, so an answer lands inside the form's budget", async () => {
+        const model = mockModel({ categoryName: null, domain: null, isNewCategory: false, tags: [] });
+
+        await runSuggest(model, { ...BASE_ARGS, categoryTree: [] });
+
+        expect(model.doGenerateCalls[0]?.reasoning).toBe("low");
     });
 
     test("asks for a best-guess domain and a confidence, and says what the name looks like", async () => {

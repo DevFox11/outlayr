@@ -16,10 +16,8 @@ import { describeTree } from "./lib/ledgerPrompt";
 import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
 import { merchantKey } from "./lib/merchantKey";
+import { GROK_MODEL_ID } from "./lib/models";
 import { isPro } from "./revenuecat";
-
-/** `XAI_MODEL_ID` overrides this without a deploy, matching `enrichment.ts`. */
-const CSV_IMPORT_MODEL_ID = "grok-4.20-0309-non-reasoning";
 
 const MAX_LABELS = 200;
 /** The action's own budget under the client's 15s hard `Promise.race` abort. */
@@ -134,6 +132,7 @@ export async function classify(model: LanguageModel, args: RunClassifyArgs): Pro
             model,
             output: Output.object({ schema: modelOutputSchema }),
             prompt: buildPrompt(args),
+            reasoning: "low",
         });
 
         const known = new Set(args.categoryTree.flatMap((branch) => [branch.name, ...branch.children]));
@@ -299,7 +298,7 @@ export const csvImport = action({
         }
 
         const xaiProvider = createXai({ apiKey });
-        const modelId = process.env.XAI_MODEL_ID || CSV_IMPORT_MODEL_ID;
+        const modelId = process.env.XAI_MODEL_ID || GROK_MODEL_ID;
         const classified = await classify(xaiProvider(modelId), {
             categoryTree: args.categoryTree,
             labels: remaining,

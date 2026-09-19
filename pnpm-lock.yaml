@@ -75,7 +75,7 @@ importers:
         version: 1.6.15(58dbdb4c51fbd15ef74de12f8b756961)
       '@convex-dev/agent':
         specifier: 'catalog:'
-        version: 0.7.1(@ai-sdk/provider-utils@5.0.18(zod@4.4.3))(@ai-sdk/provider@4.0.4)(ai@7.0.48(zod@4.4.3))(convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)(zod@4.4.3))(convex@1.45.0(react@19.2.3))(react@19.2.3)
+        version: 0.7.1(@ai-sdk/provider-utils@5.0.45(zod@4.4.3))(@ai-sdk/provider@4.0.17)(ai@7.0.107(zod@4.4.3))(convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)(zod@4.4.3))(convex@1.45.0(react@19.2.3))(react@19.2.3)
       '@convex-dev/better-auth':
         specifier: 'catalog:'
         version: 0.12.5(@standard-schema/spec@1.1.0)(better-auth@1.6.15(@opentelemetry/api@1.9.1)(better-sqlite3@13.0.3)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@9.6.0)(better-sqlite3@13.0.3)(expo-sqlite@57.0.3(expo@57.0.22)(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(kysely@0.29.4))(next@15.5.25(@babel/core@7.29.7(supports-color@8.1.1))(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(babel-plugin-react-compiler@1.0.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vitest@4.1.10))(convex@1.45.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)
@@ -436,14 +436,14 @@ importers:
   packages/backend:
     dependencies:
       '@ai-sdk/xai':
-        specifier: ^4.0.25
-        version: 4.0.25(zod@4.4.3)
+        specifier: ^5.0.4
+        version: 5.0.4(zod@4.4.3)
       '@better-auth/expo':
         specifier: 'catalog:'
         version: 1.6.15(1d37934463df3cada47a05940bfb490d)
       '@convex-dev/agent':
         specifier: 'catalog:'
-        version: 0.7.1(@ai-sdk/provider-utils@5.0.18(zod@4.4.3))(@ai-sdk/provider@4.0.4)(ai@7.0.48(zod@4.4.3))(convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)(zod@4.4.3))(convex@1.45.0(react@19.2.3))(react@19.2.3)
+        version: 0.7.1(@ai-sdk/provider-utils@5.0.45(zod@4.4.3))(@ai-sdk/provider@4.0.17)(ai@7.0.107(zod@4.4.3))(convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)(zod@4.4.3))(convex@1.45.0(react@19.2.3))(react@19.2.3)
       '@convex-dev/better-auth':
         specifier: 'catalog:'
         version: 0.12.5(@standard-schema/spec@1.1.0)(better-auth@1.6.15(@opentelemetry/api@1.9.1)(better-sqlite3@12.11.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@9.6.0)(better-sqlite3@12.11.1)(expo-sqlite@57.0.3(expo@57.0.22)(react-native@0.86.3(@babel/core@8.0.1)(@react-native/jest-preset@0.86.3(@babel/core@8.0.1)(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@8.0.1)(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(kysely@0.29.4))(next@15.5.25(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(babel-plugin-react-compiler@1.0.0(@babel/core@8.0.1)(supports-color@8.1.1))(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vitest@4.1.10))(convex@1.45.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)
@@ -463,8 +463,8 @@ importers:
         specifier: workspace:*
         version: link:../money
       ai:
-        specifier: ^7.0.48
-        version: 7.0.48(zod@4.4.3)
+        specifier: ^7.0.107
+        version: 7.0.107(zod@4.4.3)
       better-auth:
         specifier: 'catalog:'
         version: 1.6.15(@opentelemetry/api@1.9.1)(better-sqlite3@12.11.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@9.6.0)(better-sqlite3@12.11.1)(expo-sqlite@57.0.3(expo@57.0.22)(react-native@0.86.3(@babel/core@8.0.1)(@react-native/jest-preset@0.86.3(@babel/core@8.0.1)(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@8.0.1)(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(kysely@0.29.4))(next@15.5.25(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(babel-plugin-react-compiler@1.0.0(@babel/core@8.0.1)(supports-color@8.1.1))(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vitest@4.1.10)
@@ -557,30 +557,24 @@ importers:
 
 packages:
 
-  '@ai-sdk/gateway@4.0.37':
-    resolution: {integrity: sha512-YBCTsSlX0ETVsjo0ihfBOeJ3p3y1wXKXDzF9Ygp9dscUY06dzOGmyWJSGsKg+khKVArzBWUW4UCSAKms20ZDmg==}
+  '@ai-sdk/gateway@4.0.87':
+    resolution: {integrity: sha512-6wJmX/D5OO7tvDJbtFdXdBuRt8AkCnW+FLK+W35UHe/tHgolAa4hclXtJcMSYnlTDy/t5DNRgdesVaoMXtwzow==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/openai-compatible@3.0.20':
-    resolution: {integrity: sha512-RsPg+HilsKc/d+jy4zItG7v7RJQm+caUu+iU0a5bx3eyyX5tkayMGDRklXMMMAPa4l34luzQwT3t4cmeHfdiWw==}
+  '@ai-sdk/provider-utils@5.0.45':
+    resolution: {integrity: sha512-gLuaCups8OCIRz3eO6WWz5op7VLYNNtFzyH0sWUr0FE9v7cTxR0qxDpQdrKnGcql+9WWttobjnZsJVsuEbsPQQ==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/provider-utils@5.0.18':
-    resolution: {integrity: sha512-UBNCrkxS5llgN2/RXLBRkjCFTIuL6YB1Goq5c+yRecnznhtX4XPjTwLHz2hrsTltTVZ0rqVegtnwFXdPBkjDHA==}
-    engines: {node: '>=22'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
-  '@ai-sdk/provider@4.0.4':
-    resolution: {integrity: sha512-tbHKNLirllUNF3ZlkCsXnwab2ZV1Sl4b1H/Cp9ruCce15IBmskE8Gwkk0yo9xDWY+jho2of7lVXtwSsyrq7cwQ==}
+  '@ai-sdk/provider@4.0.17':
+    resolution: {integrity: sha512-VYMBxIQdcHqbIf1j+YZlI9Ati6LZ4wJe0GGd4z4a5H/KxTggjeOiyaVYTnfF7LHZK5jMQ+rofmzz4QPqf++NUw==}
     engines: {node: '>=22'}
 
-  '@ai-sdk/xai@4.0.25':
-    resolution: {integrity: sha512-kAdim8ZwIMldYc3SD1d3MVz+rOsa5oh4YOoaUR3UqXS5rmyVwrOsZqccBfh+PMWiGiP2pvflp61SE39ieJRbsw==}
+  '@ai-sdk/xai@5.0.4':
+    resolution: {integrity: sha512-Cg3xUB0H6OA4fvcX+uamkZXuzxdjhi7HH15glxpE8boZUijFmfz3YPM3Y/HvQkuCb6D/ixCe7lpcwVjidLhw9w==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -4591,8 +4585,8 @@ packages:
     engines: {node: '>=18.18'}
     hasBin: true
 
-  ai@7.0.48:
-    resolution: {integrity: sha512-QmqshWFEDdkFFqSgdJ4cogaoDIYaedqbv73q/NXEYNkSIocJCzXnGFVyM9lrtAGTSBfm+5hq3/292ooXJ1jDSw==}
+  ai@7.0.107:
+    resolution: {integrity: sha512-PVYQ3W9kR8oYiGQxbg4aFIlhQzKskZm8UV+4E0zB2uKOzFr8ju3bXQncOOZtLsOgJY8vdpgyu3cXtomsfcdQYg==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -9001,37 +8995,30 @@ packages:
 
 snapshots:
 
-  '@ai-sdk/gateway@4.0.37(zod@4.4.3)':
+  '@ai-sdk/gateway@4.0.87(zod@4.4.3)':
     dependencies:
-      '@ai-sdk/provider': 4.0.4
-      '@ai-sdk/provider-utils': 5.0.18(zod@4.4.3)
+      '@ai-sdk/provider': 4.0.17
+      '@ai-sdk/provider-utils': 5.0.45(zod@4.4.3)
       '@vercel/oidc': 3.2.0
       zod: 4.4.3
 
-  '@ai-sdk/openai-compatible@3.0.20(zod@4.4.3)':
+  '@ai-sdk/provider-utils@5.0.45(zod@4.4.3)':
     dependencies:
-      '@ai-sdk/provider': 4.0.4
-      '@ai-sdk/provider-utils': 5.0.18(zod@4.4.3)
-      zod: 4.4.3
-
-  '@ai-sdk/provider-utils@5.0.18(zod@4.4.3)':
-    dependencies:
-      '@ai-sdk/provider': 4.0.4
+      '@ai-sdk/provider': 4.0.17
       '@standard-schema/spec': 1.1.0
       '@workflow/serde': 4.1.0
       eventsource-parser: 3.1.0
       undici: 7.29.0
       zod: 4.4.3
 
-  '@ai-sdk/provider@4.0.4':
+  '@ai-sdk/provider@4.0.17':
     dependencies:
       json-schema: 0.4.0
 
-  '@ai-sdk/xai@4.0.25(zod@4.4.3)':
+  '@ai-sdk/xai@5.0.4(zod@4.4.3)':
     dependencies:
-      '@ai-sdk/openai-compatible': 3.0.20(zod@4.4.3)
-      '@ai-sdk/provider': 4.0.4
-      '@ai-sdk/provider-utils': 5.0.18(zod@4.4.3)
+      '@ai-sdk/provider': 4.0.17
+      '@ai-sdk/provider-utils': 5.0.45(zod@4.4.3)
       zod: 4.4.3
 
   '@alloc/quick-lru@5.3.0': {}
@@ -10479,11 +10466,11 @@ snapshots:
     dependencies:
       convex: 1.45.0(react@19.2.3)
 
-  '@convex-dev/agent@0.7.1(@ai-sdk/provider-utils@5.0.18(zod@4.4.3))(@ai-sdk/provider@4.0.4)(ai@7.0.48(zod@4.4.3))(convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)(zod@4.4.3))(convex@1.45.0(react@19.2.3))(react@19.2.3)':
+  '@convex-dev/agent@0.7.1(@ai-sdk/provider-utils@5.0.45(zod@4.4.3))(@ai-sdk/provider@4.0.17)(ai@7.0.107(zod@4.4.3))(convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)(zod@4.4.3))(convex@1.45.0(react@19.2.3))(react@19.2.3)':
     dependencies:
-      '@ai-sdk/provider': 4.0.4
-      '@ai-sdk/provider-utils': 5.0.18(zod@4.4.3)
-      ai: 7.0.48(zod@4.4.3)
+      '@ai-sdk/provider': 4.0.17
+      '@ai-sdk/provider-utils': 5.0.45(zod@4.4.3)
+      ai: 7.0.107(zod@4.4.3)
       convex: 1.45.0(react@19.2.3)
       convex-helpers: 0.1.123(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)(zod@4.4.3)
     optionalDependencies:
@@ -13679,11 +13666,11 @@ snapshots:
 
   agent-cli-detector@0.1.7: {}
 
-  ai@7.0.48(zod@4.4.3):
+  ai@7.0.107(zod@4.4.3):
     dependencies:
-      '@ai-sdk/gateway': 4.0.37(zod@4.4.3)
-      '@ai-sdk/provider': 4.0.4
-      '@ai-sdk/provider-utils': 5.0.18(zod@4.4.3)
+      '@ai-sdk/gateway': 4.0.87(zod@4.4.3)
+      '@ai-sdk/provider': 4.0.17
+      '@ai-sdk/provider-utils': 5.0.45(zod@4.4.3)
       zod: 4.4.3
 
   ajv-formats@2.1.1(ajv@8.20.0):

@@ -37,6 +37,10 @@ catalog:
 minimumReleaseAgeExclude:
     - ultracite@7.10.4
     - panelui-native@0.75.1
+    - "@ai-sdk/gateway@4.0.87"
+    - "@ai-sdk/provider-utils@5.0.45"
+    - "@ai-sdk/xai@5.0.4"
+    - ai@7.0.107
 
 patchedDependencies:
     expo-widgets@57.0.19: patches/expo-widgets@57.0.19.patch

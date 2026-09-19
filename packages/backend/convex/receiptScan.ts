@@ -25,13 +25,8 @@ import {
 } from "./lib/ledgerPrompt";
 import type { LedgerContext } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
+import { GROK_MODEL_ID } from "./lib/models";
 import { isPro } from "./revenuecat";
-
-/**
- * Grok 4.20 reads images as well as text. `XAI_VISION_MODEL_ID` overrides it
- * without a deploy, the way `XAI_MODEL_ID` does for the text models.
- */
-const RECEIPT_SCAN_MODEL_ID = "grok-4.20-0309-non-reasoning";
 
 /**
  * A Convex value tops out at 1MB, and the photo travels as one. The client
@@ -352,6 +347,7 @@ export async function readReceipt(
             ],
             model,
             output: Output.object({ schema: modelOutputSchema }),
+            reasoning: "low",
             system: buildPrompt(context),
         });
         const receipt = normalizeDraft(output, context);
@@ -424,7 +420,7 @@ export const scan = action({
         }
 
         const xaiProvider = createXai({ apiKey });
-        const modelId = process.env.XAI_VISION_MODEL_ID || process.env.XAI_MODEL_ID || RECEIPT_SCAN_MODEL_ID;
+        const modelId = process.env.XAI_VISION_MODEL_ID || process.env.XAI_MODEL_ID || GROK_MODEL_ID;
         return readReceipt(xaiProvider(modelId), args.image, {
             accounts: args.accounts,
             categoryTree: args.categoryTree,
