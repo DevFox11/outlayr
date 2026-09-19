@@ -13,6 +13,7 @@ import { describeUpdate } from "@/domain/app-update";
 import { formatChargeDate } from "@/domain/dates";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { APP_VERSION } from "@/lib/app-version";
+import { useColors } from "@/theme/use-colors";
 
 const CHECKS_UPDATES = isEnabled && !__DEV__;
 
@@ -24,6 +25,7 @@ const CHECKS_UPDATES = isEnabled && !__DEV__;
 export function UpdateSheet() {
     const t = useTranslation();
     const { language } = useLanguage();
+    const colors = useColors();
     const { availableUpdate, downloadedUpdate } = useUpdates();
     const update = describeUpdate(availableUpdate);
     const onTabs = useSegments()[0] === "(tabs)";
@@ -87,6 +89,7 @@ export function UpdateSheet() {
     return (
         <BottomSheet
             native
+            nativeBackground={colors.background}
             onOpenChange={(next) => {
                 if (!next) {
                     dismiss();
