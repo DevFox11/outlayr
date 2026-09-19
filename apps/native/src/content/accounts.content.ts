@@ -12,8 +12,8 @@ const accounts = {
             es: "Editar cuenta",
         }),
         "accounts.a11y.editBalance": t({
-            en: "Edit initial balance",
-            es: "Editar el saldo inicial",
+            en: "Edit balance",
+            es: "Editar el saldo",
         }),
         "accounts.a11y.new": t({
             en: "New account",
@@ -75,13 +75,13 @@ const accounts = {
             en: "Couldn't save this account. Try again.",
             es: "No se pudo guardar la cuenta. Inténtalo de nuevo.",
         }),
+        "accounts.field.balance": t({
+            en: "Balance",
+            es: "Saldo",
+        }),
         "accounts.field.currency": t({
             en: "Currency",
             es: "Moneda",
-        }),
-        "accounts.field.initialBalance": t({
-            en: "Initial balance",
-            es: "Saldo inicial",
         }),
         "accounts.field.kind": t({
             en: "Money I owe",
@@ -122,10 +122,6 @@ const accounts = {
         "accounts.overview.owed": t({
             en: "Owed",
             es: "Deuda",
-        }),
-        "accounts.rebaseNote": t({
-            en: "Changing the initial balance or currency re-bases this account's balance.",
-            es: "Cambiar el saldo inicial o la moneda recalcula la base del saldo de esta cuenta.",
         }),
         "accounts.reorderTitle": t({
             en: "Reorder Accounts",

@@ -9,6 +9,7 @@ import { accountsOverview, initialInDisplay } from "@/domain/account-display";
 import type { DisplayedBalance, AccountsOverview } from "@/domain/account-display";
 import type { CurrencyCell } from "@/domain/currency-totals";
 import type { PlottedCell } from "@/domain/goal-balance-series";
+import { roundToMinorUnits } from "@/domain/money";
 import { netWorthSeries } from "@/domain/net-worth-series";
 import type { NetWorthSeriesPoint } from "@/domain/net-worth-series";
 import type { RateTable } from "@/domain/valuation";
@@ -37,6 +38,7 @@ import {
     transfersOutboundQuery,
 } from "./transfer-cells";
 import { useValuation, useValuationIn } from "./use-valuation";
+import { loadValuationIn } from "./valuation-source";
 import type { Valuation } from "./valuation-source";
 
 /** Live accounts in manual order, tombstones excluded. */
@@ -308,4 +310,25 @@ export async function settledBalanceAt(
     const opening = initialInDisplay(account, displayCurrency, rates);
     const flow = accountBalance({ currency: displayCurrency, initialBalance: 0 }, cells, rates);
     return { exact: opening.exact && flow.exact, value: opening.value + flow.total };
+}
+
+export async function openingForBalance(
+    db: Database,
+    accountId: string,
+    balance: number,
+    currency: string
+): Promise<number> {
+    const [rows, outbound, inbound, { rates }] = await Promise.all([
+        accountCellQuery(db, accountId),
+        transferOutboundQuery(db, accountId),
+        transferInboundQuery(db, accountId),
+        loadValuationIn(db, currency),
+    ]);
+    const cells = [
+        ...rows.map(toCurrencyCell),
+        ...outbound.map((row) => toTransferCell(row, false)),
+        ...inbound.map((row) => toTransferCell(row, true)),
+    ];
+    const flow = accountBalance({ currency, initialBalance: 0 }, cells, rates).total;
+    return roundToMinorUnits(balance - flow, currency);
 }

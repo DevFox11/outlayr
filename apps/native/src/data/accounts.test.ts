@@ -6,7 +6,7 @@ import { transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
 import { buildRateTable } from "@/domain/valuation";
 
-import { useAccountCells, useAccountsOverviewIn } from "./accounts";
+import { openingForBalance, useAccountCells, useAccountsOverviewIn } from "./accounts";
 import { accountsCellQuery, toCurrencyCell } from "./cell-query";
 import type { CellRow } from "./cell-query";
 
@@ -77,6 +77,19 @@ describe("accountsCellQuery", () => {
         expect(rows).toHaveLength(1);
         expect(rows[0].accountId).toBe("a1");
         expect(toCurrencyCell(rows[0]).amount).toBe(4);
+    });
+});
+
+describe("openingForBalance", () => {
+    it("back-solves the opening from the account's own flows so the balance reads the target", async () => {
+        const db = makeDb();
+        await addTransaction(db, { accountId: "a1", amount: 10, id: "t1" });
+        await addTransaction(db, { accountId: "a1", amount: 3, id: "t2", income: true });
+        await addTransaction(db, { accountId: "a1", amount: 40, deletedAt: JUNE_1, id: "t3" });
+        await addTransaction(db, { accountId: "a2", amount: 99, id: "t4" });
+
+        await expect(openingForBalance(db, "a1", 50, "USD")).resolves.toBe(57);
+        await expect(openingForBalance(db, "a1", -20, "USD")).resolves.toBe(-13);
     });
 });
 

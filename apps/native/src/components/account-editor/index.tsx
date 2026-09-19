@@ -33,6 +33,7 @@ import { toolbarIcon } from "@/components/toolbar-icons";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { EMPTY_DRAFT, useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
 import { useDatabase } from "@/contexts/local-data-context";
+import { openingForBalance, useAccountBalance } from "@/data/accounts";
 import { accountsRepo, getAccountById } from "@/data/accounts-core";
 import type { Account } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
@@ -120,14 +121,20 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
     const currencySheetRef = useRef<BottomSheetModal>(null);
     const balanceSheetRef = useRef<BottomSheetModal>(null);
 
+    const startingCurrency = loaded?.currency ?? globalCurrency;
+    const currentBalance = useAccountBalance(db, {
+        currency: startingCurrency,
+        id: loaded?.id ?? "",
+        initialBalance: loaded?.initialBalance ?? 0,
+    }).total;
     const [initialValues] = useState(() => {
-        const startingCurrency = loaded?.currency ?? globalCurrency;
+        const startingBalance = roundToMinorUnits(currentBalance, startingCurrency);
         return {
-            balanceText: numberToNumpad(Math.abs(loaded?.initialBalance ?? 0), minorUnitsFor(startingCurrency)),
+            balanceText: numberToNumpad(Math.abs(startingBalance), minorUnitsFor(startingCurrency)),
             currency: startingCurrency,
             liability: toAccountKind(loaded?.kind) === "liability",
             name: loaded?.name ?? "",
-            negative: (loaded?.initialBalance ?? 0) < 0,
+            negative: startingBalance < 0,
         };
     });
     const form = useForm({
@@ -144,6 +151,11 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
             // A currency swapped after typing can leave more precision in the pad
             // than the new code has minor units — JPY cannot hold "12.34".
             const magnitude = roundToMinorUnits(numpadToNumber(value.balanceText), value.currency);
+            const balance = value.negative ? -magnitude : magnitude;
+            const balanceChanged =
+                value.balanceText !== initialValues.balanceText ||
+                value.negative !== initialValues.negative ||
+                value.currency !== initialValues.currency;
             const input = {
                 currency: value.currency,
                 customColor: draft.color ?? null,
@@ -151,18 +163,22 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                 icon: draft.icon ?? null,
                 imageColor: draft.photoColor ?? null,
                 imageUri: draft.photoUri ?? null,
-                initialBalance: value.negative ? -magnitude : magnitude,
                 kind: value.liability ? ("liability" as const) : ("asset" as const),
                 name: value.name.trim(),
             };
             try {
                 if (mode === "create") {
-                    await accountsRepo.create(db, input);
+                    await accountsRepo.create(db, { ...input, initialBalance: balance });
                 } else {
                     if (loaded == null) {
                         return;
                     }
-                    await accountsRepo.update(db, loaded.id, input);
+                    await accountsRepo.update(db, loaded.id, {
+                        ...input,
+                        initialBalance: balanceChanged
+                            ? await openingForBalance(db, loaded.id, balance, value.currency)
+                            : loaded.initialBalance,
+                    });
                 }
                 haptics("success");
                 router.back();
@@ -366,10 +382,9 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                         <VStack modifiers={[padding({ horizontal: 20, top: FORM_TOP_MARGIN })]} spacing={0}>
                             <AccountEditorDetailsSection
                                 balanceEditA11y={t("accounts.a11y.editBalance")}
-                                balanceLabel={t("accounts.field.initialBalance")}
+                                balanceLabel={t("accounts.field.balance")}
                                 balanceSignA11y={t("accounts.a11y.balanceSign")}
                                 balanceValue={formatAmount(numpadToNumber(balanceText), currency, true, language)}
-                                caption={mode === "edit" ? t("accounts.rebaseNote") : null}
                                 currencyCode={currency}
                                 currencyLabel={t("accounts.field.currency")}
                                 hairline={[overlay({ color: withAlpha(colors.foreground, 0.08) })]}

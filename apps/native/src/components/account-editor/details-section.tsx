@@ -21,14 +21,13 @@ import {
     multilineTextAlignment,
     onSubmit,
     onTapGesture,
-    padding,
     submitLabel,
     textInputAutocapitalization,
     tint,
 } from "@expo/ui/swift-ui/modifiers";
 import type { RefObject } from "react";
 
-import { BODY, CAPTION, ROW, rowLabel } from "@/components/transaction-form/style";
+import { BODY, ROW, rowLabel } from "@/components/transaction-form/style";
 import { hitArea, outline } from "@/lib/swift-ui-geometry";
 
 const SIGN_FONT = font({
@@ -44,7 +43,6 @@ interface AccountEditorDetailsSectionProps {
     balanceSignA11y: string;
     /** Already formatted for the active language and currency. */
     balanceValue: string;
-    caption: string | null;
     currencyCode: string;
     currencyLabel: string;
     /** `overlay` in the rule colour — supplied by the editor, which owns the theme. */
@@ -74,7 +72,6 @@ interface AccountEditorDetailsSectionProps {
  * unmodified label falls back to the system font.
  */
 export function AccountEditorDetailsSection({
-    caption,
     currencyCode,
     currencyLabel,
     balanceLabel,
@@ -181,12 +178,6 @@ export function AccountEditorDetailsSection({
             </HStack>
 
             <Divider modifiers={hairline} />
-
-            {caption ? (
-                <SwiftText modifiers={[CAPTION, foregroundStyle(mutedColor), padding({ top: 10 })]}>
-                    {caption}
-                </SwiftText>
-            ) : null}
         </VStack>
     );
 }
