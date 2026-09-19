@@ -3,6 +3,7 @@ import { makeFunctionReference } from "convex/server";
 import type { PaginationOptions, PaginationResult } from "convex/server";
 import { z } from "zod";
 
+import type { AnsweredJob, EnrichmentJobRequest } from "@/data/enrichment-queue-core";
 import type { PhotoTransport } from "@/data/photo-sync-core";
 import type { PullRatesFn } from "@/data/rates";
 import type { PullFn, PushFn } from "@/data/sync-engine-core";
@@ -152,6 +153,55 @@ export type EnrichmentFn = (args: EnrichmentRequest) => Promise<RemoteEnrichment
  */
 export function enrichmentTransport(): EnrichmentFn {
     return async (args) => cloudAction("enrichment:suggest", args);
+}
+
+const answeredJobs = z.array(
+    z.object({
+        localId: z.string(),
+        name: z.string(),
+        result: z
+            .object({
+                categoryName: z.string().nullable(),
+                domain: z.string().nullable(),
+                emoji: z.string().nullable(),
+                isNewCategory: z.boolean(),
+                merchantName: z.string().nullable(),
+                parentCategoryName: z.string().nullable(),
+                tags: z.array(z.string()),
+            })
+            .nullable(),
+    })
+);
+
+export interface EnrichmentQueueTransport {
+    ack: (localIds: string[]) => Promise<null>;
+    enqueue: (request: EnrichmentJobRequest) => Promise<boolean>;
+}
+
+export function enrichmentQueueTransport(): EnrichmentQueueTransport {
+    return {
+        ack: async (localIds) => cloudMutation("enrichmentQueue:ack", { localIds }),
+        enqueue: async (request) => cloudMutation("enrichmentQueue:enqueue", request),
+    };
+}
+
+export function watchEnrichmentResults(onJobs: (jobs: AnsweredJob[]) => void): () => void {
+    if (cloudRuntime === null) {
+        return () => undefined;
+    }
+    // SAFETY: addressed by path for the reason given on `cloudQuery`.
+    const watch = cloudRuntime.convex.watchQuery("enrichmentQueue:results" as never, {} as never);
+    return watch.onUpdate(() => {
+        let jobs: ReturnType<typeof answeredJobs.safeParse> | null = null;
+        try {
+            jobs = answeredJobs.safeParse(watch.localQueryResult());
+        } catch {
+            jobs = null;
+        }
+        if (jobs?.success && jobs.data.length > 0) {
+            onJobs(jobs.data);
+        }
+    });
 }
 
 export interface LabelSuggestion {

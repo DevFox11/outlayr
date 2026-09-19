@@ -471,6 +471,65 @@ describe("runGroundedLookupCall domain guard (model-hallucinated denylisted doma
     });
 });
 
+describe("runGroundedLookupCall for a queued row", () => {
+    const TREE_ARGS = {
+        categoryTree: [{ children: [], name: "Trips" }],
+        income: false,
+        key: "care4bag ae|eur",
+        name: "CARE4BAG AE",
+    };
+
+    test("answers in the owner's category and publishes only the canonical one", async () => {
+        const grounding = mockTextModel(
+            JSON.stringify({
+                canonicalCategory: "Travel",
+                categoryName: "Trips",
+                domain: "care4bag.gr",
+                domainConfidence: "high",
+                emoji: null,
+                merchantName: "Care4Bag",
+                tags: ["luggage"],
+            }),
+            { sourceUrl: "https://www.care4bag.gr/" }
+        );
+
+        const outcome = await runGroundedLookupCall(
+            { grounding, groundingTools: { web_search: fakeWebSearchTool } },
+            TREE_ARGS
+        );
+
+        expect(outcome.answer).toStrictEqual({
+            categoryName: "Trips",
+            domain: "care4bag.gr",
+            emoji: null,
+            merchantName: "Care4Bag",
+            tags: ["luggage"],
+        });
+        expect(outcome.candidate).toMatchObject({ categoryName: "Travel", merchantName: "Care4Bag" });
+        expect(JSON.stringify(grounding.doGenerateCalls[0]?.prompt)).toContain("Trips");
+    });
+
+    test("keeps a guessed domain off the answer", async () => {
+        const grounding = mockTextModel(
+            JSON.stringify({
+                canonicalCategory: "Travel",
+                categoryName: "Trips",
+                domain: "care4bag.com",
+                domainConfidence: "low",
+                merchantName: "Care4Bag",
+                tags: [],
+            })
+        );
+
+        const outcome = await runGroundedLookupCall(
+            { grounding, groundingTools: { web_search: fakeWebSearchTool } },
+            TREE_ARGS
+        );
+
+        expect(outcome.answer.domain).toBeNull();
+    });
+});
+
 describe("grounded abort budget", () => {
     test("stays generous: a live grounded search measures ~3.75s+, and the old 3.5s budget aborted nearly every scheduled run", () => {
         expect(GROUNDED_REQUEST_TIMEOUT_MS).toBeGreaterThanOrEqual(10_000);

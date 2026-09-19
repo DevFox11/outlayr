@@ -15,6 +15,7 @@ import type * as cotizave from "../cotizave.js";
 import type * as crons from "../crons.js";
 import type * as csvImport from "../csvImport.js";
 import type * as enrichment from "../enrichment.js";
+import type * as enrichmentQueue from "../enrichmentQueue.js";
 import type * as exchangeRates from "../exchangeRates.js";
 import type * as frankfurter from "../frankfurter.js";
 import type * as groundedLookup from "../groundedLookup.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   csvImport: typeof csvImport;
   enrichment: typeof enrichment;
+  enrichmentQueue: typeof enrichmentQueue;
   exchangeRates: typeof exchangeRates;
   frankfurter: typeof frankfurter;
   groundedLookup: typeof groundedLookup;
@@ -114,4 +116,5 @@ export declare const components: {
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   revenuecat: import("convex-revenuecat/_generated/component.js").ComponentApi<"revenuecat">;
+  enrichmentPool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"enrichmentPool">;
 };

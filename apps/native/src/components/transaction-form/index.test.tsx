@@ -2387,6 +2387,41 @@ describe("transactionForm pending category and tag materialization", () => {
 
         createSpy.mockRestore();
     });
+
+    it("saves a named merchant nothing could file yet, and queues it for the lookup", async () => {
+        const db = dbHolder.current as Database;
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} seed={{ amount: 25 }} />
+            </Providers>
+        );
+
+        await changeMerchant(screen, "CARE4BAG AE");
+        await act(async () => {
+            findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add")?.props.onButtonPress();
+        });
+
+        const saved = await db.select().from(transactions);
+        expect(saved).toHaveLength(1);
+        expect(saved[0]?.categoryId).toBeNull();
+        expect(JSON.parse((await getMeta(db, META_KEYS.enrichmentOutbox)) ?? "[]")).toStrictEqual([saved[0]?.id]);
+    });
+
+    it("still holds the save for a category when there is no merchant to look up", async () => {
+        const db = dbHolder.current as Database;
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} seed={{ amount: 25 }} />
+            </Providers>
+        );
+
+        await act(async () => {
+            findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add")?.props.onButtonPress();
+        });
+
+        await expect(db.select().from(transactions)).resolves.toHaveLength(0);
+        expect(slotFlagged(screen.toJSON() as JsonNode, "transaction.field.category")).toBe(true);
+    });
 });
 
 describe("transactionForm account attachment", () => {

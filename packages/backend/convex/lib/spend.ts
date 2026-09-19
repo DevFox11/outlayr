@@ -7,8 +7,8 @@ const DEFAULT_SEARCH_PRICE_MICROS = 5000;
 const DEFAULT_INPUT_PRICE_MICROS_PER_TOKEN = 1.25;
 /** $2.50 per 1M output tokens on `grok-4.20-0309-non-reasoning`. */
 const DEFAULT_OUTPUT_PRICE_MICROS_PER_TOKEN = 2.5;
-/** The user's fixed $25/month ceiling, in micro-dollars. */
-export const DEFAULT_BUDGET_CEILING_MICROS = 25_000_000;
+/** The monthly ceiling, in micro-dollars. */
+export const DEFAULT_BUDGET_CEILING_MICROS = 200_000_000;
 const BUDGET_PERIOD_MS = 30 * DAY;
 /** Cost-model worst case: up to 3 search rounds per lookup. */
 const WORST_CASE_SEARCH_CALLS = 3;

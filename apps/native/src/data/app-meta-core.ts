@@ -25,6 +25,7 @@ export const META_KEYS = {
      * code cannot be told apart from one nobody ever chose.
      */
     currencyChosen: "currencyChosen",
+    enrichmentOutbox: "enrichmentOutbox",
     /**
      * The codes pinned to the top of every currency picker. Raw `appMeta` and not
      * a setting because `SETTING_DEFAULTS` admits only booleans and numbers, so

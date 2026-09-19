@@ -157,7 +157,7 @@ export interface TransactionInput {
     /** The account this entry moves money in or out of; null is unattached. */
     accountId?: string | null;
     amount: number;
-    categoryId: string;
+    categoryId: string | null;
     /** null = adopt the ledger's currency, which the write stamps in. */
     currency: string | null;
     /** Identity color override (hex). */
@@ -194,7 +194,7 @@ export interface TransactionInput {
 async function toRow(db: Database, id: string, input: TransactionInput): Promise<typeof transactions.$inferInsert> {
     const trimmedNote = input.note.trim();
     let note = trimmedNote;
-    if (note === "") {
+    if (note === "" && input.categoryId != null) {
         const category = await getCategoryById(db, input.categoryId);
         note = category?.name ?? "";
     }

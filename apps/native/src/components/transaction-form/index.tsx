@@ -35,6 +35,7 @@ import { useGlobalCurrency } from "@/data/app-meta";
 import { useCategoriesByNamespace } from "@/data/categories";
 import { ensureCategoryByName, getCategoryById } from "@/data/categories-core";
 import type { Category } from "@/data/categories-core";
+import { queueEnrichment } from "@/data/enrichment-queue-core";
 import { useFavouriteCurrencies } from "@/data/favourite-currencies";
 import { useRecentMerchants } from "@/data/merchant-history";
 import { rememberedCategoryFor } from "@/data/merchant-history-core";
@@ -74,6 +75,7 @@ import { useToggleFavouriteCurrency } from "@/hooks/use-toggle-favourite-currenc
 import { useTransactionEnrichment } from "@/hooks/use-transaction-enrichment";
 import type { EnrichmentSuggestion, PendingCategory } from "@/hooks/use-transaction-enrichment";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { sendEnrichmentQueue } from "@/lib/enrichment-queue";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
 import { notifyFailure } from "@/lib/notify";
 import { openNotificationSettings, reminderPermission, requestReminderPermission } from "@/lib/reminders";
@@ -563,7 +565,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             setSaveFailure(null);
             haptics("success");
 
-            let categoryId: string;
+            let categoryId: string | null = null;
             if (value.category) {
                 categoryId = value.category.id;
             } else if (value.pendingCategory) {
@@ -575,10 +577,6 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     flagMissingCategory();
                     return;
                 }
-            } else {
-                // `validators.onChange` gates submission on the same rule, so this is
-                // unreachable — kept only to narrow `categoryId` for the compiler.
-                return;
             }
 
             const input = buildTransactionInput({
@@ -649,6 +647,13 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     console.error("Failed to save tags", error);
                     notifyFailure({ body: t("transaction.tags.failedBody"), title: t("transaction.tags.failedTitle") });
                 }
+            }
+            if (mode === "create" && queueable(value.merchant)) {
+                queueEnrichment(db, savedId)
+                    .then(() => sendEnrichmentQueue(db))
+                    .catch((error) => {
+                        console.error("Failed to queue the merchant lookup", error);
+                    });
             }
             const answered = lookupAnsweredRef.current;
             const carryCurrency = value.txCurrency ?? globalCurrency;
@@ -738,7 +743,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             if (noAmount) {
                 flagMissingAmount();
             }
-            if (isMissingCategory(value)) {
+            const missingCategory = isMissingCategory(value) && !queueable(value.merchant);
+            if (missingCategory) {
                 flagMissingCategory();
             }
             // Marking the sentence alone leaves the answer further away than the
@@ -747,7 +753,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             // rate must stay on the rate step, which is already showing why.
             if (noAmount) {
                 enterStep("amount");
-            } else if (isMissingCategory(value)) {
+            } else if (missingCategory) {
                 enterStep("category");
             }
         },
@@ -755,6 +761,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             onChange: ({ value }) =>
                 transactionFormErrors({
                     ...value,
+                    categoryDeferred: queueable(value.merchant),
                     currency: value.txCurrency ?? globalCurrency,
                     exchangeRate: value.exchangeRateText === "" ? null : numpadToNumber(value.exchangeRateText),
                 }),
@@ -852,6 +859,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const [showToast, setShowToast] = useState(false);
     const celebrate = useAppSettings().state.bool("confetti");
     const aiEnrichment = useAppSettings().state.bool("aiEnrichment");
+    const queueable = (merchant: string) => aiEnrichment && merchant.trim() !== "";
     const groundedLookup = useAppSettings().state.bool("groundedLookup");
     const [burstSeed, setBurstSeed] = useState(0);
     // Shared values, not state: the fly-up is the only reader and it reads them from
@@ -1557,7 +1565,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             return merchant.trim() !== "";
         }
         if (step === "category") {
-            return categoryLabel !== null;
+            return categoryLabel !== null || queueable(merchant);
         }
         return account != null;
     };

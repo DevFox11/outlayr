@@ -11,6 +11,7 @@ import { useSyncEngine } from "@/data/use-sync-engine";
 import { openDatabase } from "@/db/client";
 import type { Database } from "@/db/client";
 import { useProEntitled } from "@/hooks/use-pro-locked";
+import { useEnrichmentQueue } from "@/lib/enrichment-queue";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useSystemSync } from "@/lib/use-system-sync";
 
@@ -120,6 +121,7 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
     // Ordered after the sweep so a subscription that advanced on this foreground
     // is already in the table when the widgets are rebuilt from it.
     useSystemSync(db);
+    useEnrichmentQueue(db);
     // Inert until the sign-in flow opens the device-local sync gate, and held
     // down entirely without a confirmed entitlement — the server refuses both a
     // lapsed customer and one it cannot verify.

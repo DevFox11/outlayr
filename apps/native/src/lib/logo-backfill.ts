@@ -69,7 +69,7 @@ let cancelGeneration = 0;
 let lastDb: Database | null = null;
 let halted: Database | null = null;
 
-function discardLogo(imageUri: string): void {
+export function discardLogo(imageUri: string): void {
     try {
         new File(imageUri).delete();
     } catch {

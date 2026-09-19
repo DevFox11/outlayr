@@ -49,6 +49,16 @@ import {
  * still names an object before it frees the bytes, and that question cannot be
  * answered on the device.
  */
+export const enrichmentResult = v.object({
+    categoryName: v.union(v.string(), v.null()),
+    domain: v.union(v.string(), v.null()),
+    emoji: v.union(v.string(), v.null()),
+    isNewCategory: v.boolean(),
+    merchantName: v.union(v.string(), v.null()),
+    parentCategoryName: v.union(v.string(), v.null()),
+    tags: v.array(v.string()),
+});
+
 export default defineSchema({
     accountDeletionJobs: defineTable({
         errorCode: v.union(v.string(), v.null()),
@@ -122,6 +132,28 @@ export default defineSchema({
         .index("by_user_and_localId", ["userId", "localId"]),
 
     /**
+     * The grounded-lookup invoice. No key, no user, no merchant name — only what
+     * was spent and whether it published, so `groundedSpend.monthlyTotal` (the
+     * only reader, internal-only) can tighten the env-configured unit prices
+     * from observed data without ever exposing a per-merchant spend trail.
+     */
+    enrichmentJobs: defineTable({
+        categoryTree: v.array(v.object({ children: v.array(v.string()), name: v.string() })),
+        currency: v.optional(v.string()),
+        grounded: v.boolean(),
+        income: v.boolean(),
+        localId: v.string(),
+        locale: v.optional(v.string()),
+        name: v.string(),
+        regionCode: v.optional(v.string()),
+        result: v.optional(enrichmentResult),
+        status: v.union(v.literal("queued"), v.literal("done"), v.literal("failed")),
+        userId: v.string(),
+    })
+        .index("by_user_and_localId", ["userId", "localId"])
+        .index("by_user_and_status", ["userId", "status"]),
+
+    /**
      * Market exchange rates, quoted per USD. Written only by the fetcher crons and
      * bounded by `pruneStale`.
      *
@@ -141,12 +173,6 @@ export default defineSchema({
         .index("by_quote_and_rateType_and_date", ["quote", "rateType", "date"])
         .index("by_date", ["date"]),
 
-    /**
-     * The grounded-lookup invoice. No key, no user, no merchant name — only what
-     * was spent and whether it published, so `groundedSpend.monthlyTotal` (the
-     * only reader, internal-only) can tighten the env-configured unit prices
-     * from observed data without ever exposing a per-merchant spend trail.
-     */
     groundedSpend: defineTable({
         actualMicros: v.number(),
         at: v.number(),
@@ -174,6 +200,7 @@ export default defineSchema({
         domain: v.string(),
         emoji: v.union(v.string(), v.null()),
         key: v.string(),
+        merchantName: v.optional(v.string()),
         modelId: v.string(),
         parentCategoryName: v.union(v.string(), v.null()),
         resolvedAt: v.number(),

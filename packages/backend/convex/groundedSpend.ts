@@ -33,7 +33,7 @@ function monthStartMs(at: number): number {
 
 /**
  * A bound on rows read even though the range is already self-limiting: the
- * $25 ceiling caps how many lookups (and therefore rows) a month can ever
+ * $200 ceiling caps how many lookups (and therefore rows) a month can ever
  * produce, so 10,000 is generous headroom rather than a real limit in
  * practice.
  */

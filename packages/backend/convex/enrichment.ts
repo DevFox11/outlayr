@@ -23,13 +23,12 @@ import { isPro } from "./revenuecat";
  * https://api.x.ai/v1/models`). Measured live against a real
  * merchant-extraction prompt: the `grok-4.20-0309` non-reasoning snapshot
  * settled in 841ms with correct structured output; `grok-4.5` took 2.69s.
- * `XAI_MODEL_ID` overrides the primary id without a deploy. Exported so
- * `groundedLookup.ts` shares the same default.
+ * `XAI_MODEL_ID` overrides the primary id without a deploy.
  */
 export const ENRICHMENT_MODEL_ID = "grok-4.20-non-reasoning";
 
 const MIN_NAME_LENGTH = 3;
-const MAX_NAME_LENGTH = 64;
+export const MAX_NAME_LENGTH = 64;
 const MAX_CATEGORY_NAME_LENGTH = 40;
 const MAX_KNOWN_CATEGORY_NAMES = 60;
 /** The action's own budget under the client's 4s `Promise.race` abort. */
@@ -78,6 +77,7 @@ const suggestion = v.object({
     /** A grounded lookup was scheduled — the client must not cache this as a final null result. */
     grounding: v.boolean(),
     isNewCategory: v.boolean(),
+    merchantName: v.union(v.string(), v.null()),
     /** Set only when the suggestion belongs under an existing category. */
     parentCategoryName: v.union(v.string(), v.null()),
     tags: v.array(v.string()),
@@ -85,6 +85,7 @@ const suggestion = v.object({
 
 export interface Suggestion {
     categoryName: string | null;
+    merchantName: string | null;
     domain: string | null;
     emoji: string | null;
     grounding: boolean;
@@ -99,6 +100,7 @@ export const EMPTY: Suggestion = {
     emoji: null,
     grounding: false,
     isNewCategory: false,
+    merchantName: null,
     parentCategoryName: null,
     tags: [],
 };
@@ -112,7 +114,7 @@ function domainAccepted(confidence: (typeof DOMAIN_CONFIDENCE)[number] | null | 
 /** The model's own output is untrusted input — this is only the JSON shape. */
 const modelOutputSchema = z.object({
     /**
-     * Never read. Asking the model to write the brand's own name before its
+     * Asking the model to write the brand's own name before its
      * domain is what measurably fixes the domain's spelling: on 13 hyphenated
      * or regional merchants x 10 runs, correct domains rose from 88 to 106 of
      * 130 (with the spelling sentence in `DOMAIN_LINE`), against 96 for that
@@ -157,6 +159,7 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
         shards: 10,
     },
     enrichmentPerUser: perUserBurst("enrichment", false),
+    enrichmentQueue: perUserBurst("enrichmentQueue", false),
     // Kills both a user retyping the same unknown name and a
     // thundering herd across many users hitting one new merchant at once.
     // Checked inside `groundedLookup.run`, never here.
@@ -209,6 +212,11 @@ export function sanitizeDomain(domain: string | null): string | null {
     return DOMAIN_PATTERN.test(apex) ? apex : null;
 }
 
+export function sanitizeMerchantName(name: string | null): string | null {
+    const trimmed = name?.trim() ?? "";
+    return trimmed.length === 0 || trimmed.length > MAX_NAME_LENGTH ? null : trimmed;
+}
+
 export function sanitizeCategoryName(name: string | null): string | null {
     if (name === null) {
         return null;
@@ -258,7 +266,7 @@ export function sanitizeCurrencyCode(currency: string | undefined): string | und
  * the model has never heard of.
  */
 export const DESCRIPTOR_LINE =
-    "The name is usually a card-terminal or bank-statement descriptor: it may be truncated, abbreviated, uppercase, or carry a city, country or store number.";
+    'The name is usually a card-terminal or bank-statement descriptor rather than a clean brand name, so decode it first: a word before "*" is often a payment processor or terminal provider (SQ, TST, SP, PAYPAL, NYX, SUMUP, IZ, ZTL, PP, GOOGLE, APPLE.COM) rather than the merchant, unless that company is itself the seller; letters and digits after "*" are often a booking or reference code; a trailing legal-entity suffix (AE, ABEE, ABEET, EPE, IKE, SA, SAS, SL, SRL, SPA, GMBH, AG, LTD, LLC, INC, BV) is not part of the name; and the name may be truncated, abbreviated, run together without spaces, uppercase, or carry a city, airport, store number or country.';
 
 /**
  * Measured against the live model: "only if you are confident" answered null
@@ -268,7 +276,7 @@ export const DESCRIPTOR_LINE =
  * private note still comes back null.
  */
 export const DOMAIN_LINE =
-    "Set brand to the business's official name written the way the brand itself writes it, or null. Set domain to the primary web domain of the brand you recognise (a chain, retailer, restaurant group, transit operator, utility, service or app): the apex domain of its main site, never a subdomain. Write the domain exactly as the brand's own website address is spelled, keeping hyphens, digits, dots and country suffixes; it is often not the brand name with spaces, accents and punctuation removed (for example coca-cola.com, hm.com, bahn.de). Set domainConfidence to high when you recognise the brand, medium when it is a plausible match, low when you are guessing. Set domain to null only when the name does not identify any specific business you know of (a person, a private note, an unknown local shop).";
+    "Set brand to the business's clean display name, written the way the brand itself writes it (for example Airbnb, Blue Bottle Coffee), or null. Set domain to the primary web domain of the brand you recognise (a chain, retailer, restaurant group, transit operator, utility, service or app): the apex domain of its main site, never a subdomain. Write the domain exactly as the brand's own website address is spelled, keeping hyphens, digits, dots and country suffixes; it is often not the brand name with spaces, accents and punctuation removed (for example coca-cola.com, hm.com, bahn.de). Set domainConfidence to high when you recognise the brand, medium when it is a plausible match, low when you are guessing. Set domain to null only when the name does not identify any specific business you know of (a person, a private note, an unknown local shop).";
 
 /**
  * Where the purchase happened outranks where the device is registered. The
@@ -335,6 +343,7 @@ export function sanitizeEmoji(emoji: string | null): string | null {
 
 export interface TreeCandidate {
     categoryName: string | null;
+    merchantName?: string | null;
     domain: string | null;
     emoji: string | null;
     parentCategoryName: string | null;
@@ -371,6 +380,7 @@ export function applyToTree(tree: readonly CategoryBranch[], candidate: TreeCand
         domain: candidate.domain,
         emoji: candidate.emoji,
         isNewCategory,
+        merchantName: candidate.merchantName ?? null,
         parentCategoryName,
         tags: [...candidate.tags],
     };
@@ -403,6 +413,7 @@ export async function runSuggest(model: LanguageModel, args: RunSuggestArgs): Pr
             // is a guess too; only a null here lets the grounded tier take over.
             domain: domainAccepted(output.domainConfidence) ? sanitizeDomain(output.domain) : null,
             emoji: sanitizeEmoji(output.emoji ?? null),
+            merchantName: sanitizeMerchantName(output.brand ?? null),
             parentCategoryName: sanitizeCategoryName(output.parentCategoryName ?? null),
             tags: sanitizeTags(output.tags),
         }),

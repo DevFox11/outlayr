@@ -11,19 +11,22 @@ import { internalAction } from "./_generated/server";
 import type { ActionCtx } from "./_generated/server";
 import {
     DESCRIPTOR_LINE,
-    ENRICHMENT_MODEL_ID,
     placeLines,
     rateLimiter,
     sanitizeCategoryName,
     sanitizeDomain,
     sanitizeEmoji,
+    sanitizeMerchantName,
     sanitizeTags,
 } from "./enrichment";
+import { describeTree } from "./lib/ledgerPrompt";
+import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { CANONICAL_CATEGORY_NAMES, shouldPublish } from "./lib/merchantTrust";
 import type { KnowledgeCandidate } from "./lib/merchantTrust";
 import { budgetConfig, estimateMicros, measureMicros } from "./lib/spend";
 
-export const GROUNDED_REQUEST_TIMEOUT_MS = 25_000;
+export const GROUNDED_MODEL_ID = "grok-4.20-0309-reasoning";
+export const GROUNDED_REQUEST_TIMEOUT_MS = 60_000;
 const CANONICAL_NAMES_LIST = [...CANONICAL_CATEGORY_NAMES].join(", ");
 
 /**
@@ -41,6 +44,7 @@ function isForbiddenLogoOrigin(domain: string): boolean {
 }
 
 export interface GroundedRunArgs {
+    categoryTree?: readonly CategoryBranch[];
     currency?: string;
     income: boolean;
     key: string;
@@ -55,9 +59,12 @@ export interface GroundedCallDeps {
 }
 
 const groundedOutputSchema = z.object({
+    canonicalCategory: z.string().nullish(),
     categoryName: z.string().nullable(),
     domain: z.string().nullable(),
+    domainConfidence: z.enum(["high", "medium", "low"]).nullish(),
     emoji: z.string().nullish(),
+    merchantName: z.string().nullish(),
     tags: z.array(z.string()),
 });
 
@@ -69,27 +76,32 @@ const UNPARSEABLE_GROUNDED_OUTPUT: z.infer<typeof groundedOutputSchema> = {
 };
 
 const JSON_CONTRACT =
-    '{"categoryName": string | null, "emoji": string | null, "tags": string[], "domain": string | null}';
+    '{"merchantName": string | null, "domain": string | null, "domainConfidence": "high" | "medium" | "low", "categoryName": string | null, "canonicalCategory": string | null, "emoji": string | null, "tags": string[]}';
 
-/** No `categoryTree` parameter anywhere in this file — structurally, not by convention. */
-function buildGroundedPrompt(
-    name: string,
-    income: boolean,
-    locale: string | undefined,
-    regionCode: string | undefined,
-    currency: string | undefined
-): string {
-    const kind = income ? "income" : "expense";
+function categoryLines(tree: readonly CategoryBranch[] | undefined): string[] {
+    if (tree === undefined || tree.length === 0) {
+        return [`Set categoryName to exactly one of: ${CANONICAL_NAMES_LIST}; or null if none fit confidently.`];
+    }
     return [
-        `Identify this real-world ${kind} merchant or business: "${name}".`,
+        `Set categoryName to one of the user's categories verbatim when it fits: ${describeTree(tree)}; otherwise to a short new category name.`,
+        `Set canonicalCategory to exactly one of: ${CANONICAL_NAMES_LIST}; or null if none fit confidently.`,
+    ];
+}
+
+function buildGroundedPrompt(args: GroundedRunArgs): string {
+    const kind = args.income ? "income" : "expense";
+    return [
+        `Identify the real business behind this ${kind} bank-statement transaction: "${args.name}".`,
         DESCRIPTOR_LINE,
-        "Use web search to confirm its primary website domain before answering.",
+        "Search the web as many times as you need: try the decoded name, the name with its country or city, and the legal-entity name. Confirm the business's official website before naming a domain, and never give a domain you have not seen in the results. Prefer the specific business (the shop, restaurant or chain) over the place it sits in (an airport or a mall), and name the place's operator only when the specific business cannot be identified.",
         `Respond with ONLY one JSON object, no markdown fence, no other text, shaped exactly as: ${JSON_CONTRACT}.`,
-        `Set categoryName to exactly one of: ${CANONICAL_NAMES_LIST}; or null if none fit confidently.`,
+        "Set merchantName to the business's clean display name, written the way the brand itself writes it, or null when the text names no business (a person, a private note).",
+        "Set domain to the apex domain of its official website, or null. Set domainConfidence to high when a search result confirms the domain, medium when it is plausible, low when you are guessing.",
+        ...categoryLines(args.categoryTree),
         "Set emoji to a single emoji that suits the category, or null.",
-        "Suggest at most 3 short tags, and its primary web domain only if a search result confirms it, else null.",
-        locale ? `The user's locale is ${locale}.` : "",
-        ...placeLines(regionCode, currency),
+        "Suggest at most 3 short tags.",
+        args.locale ? `The user's locale is ${args.locale}.` : "",
+        ...placeLines(args.regionCode, args.currency),
     ]
         .filter((line) => line.length > 0)
         .join(" ");
@@ -132,8 +144,17 @@ function parseGroundedOutput(text: string): z.infer<typeof groundedOutputSchema>
     return parsed.success ? parsed.data : UNPARSEABLE_GROUNDED_OUTPUT;
 }
 
+export interface GroundedAnswer {
+    categoryName: string | null;
+    domain: string | null;
+    emoji: string | null;
+    merchantName: string | null;
+    tags: string[];
+}
+
 export interface GroundedCallOutcome {
-    candidate: KnowledgeCandidate;
+    answer: GroundedAnswer;
+    candidate: KnowledgeCandidate & { merchantName: string | null };
     inputTokens: number;
     outputTokens: number;
     searchCalls: number;
@@ -159,7 +180,7 @@ export async function runGroundedLookupCall(
         abortSignal: AbortSignal.timeout(GROUNDED_REQUEST_TIMEOUT_MS),
         maxRetries: 0,
         model: deps.grounding,
-        prompt: buildGroundedPrompt(args.name, args.income, args.locale, args.regionCode, args.currency),
+        prompt: buildGroundedPrompt(args),
         stopWhen: isStepCount(4),
         tools: deps.groundingTools,
     });
@@ -167,18 +188,31 @@ export async function runGroundedLookupCall(
     const output = parseGroundedOutput(result.text);
 
     const sanitizedDomain = sanitizeDomain(output.domain);
+    // A domain the model claims cannot be one of the image hosts this app
+    // itself denylists — see `isForbiddenLogoOrigin`.
+    const domain = sanitizedDomain !== null && isForbiddenLogoOrigin(sanitizedDomain) ? null : sanitizedDomain;
+    const categoryName = sanitizeCategoryName(output.categoryName);
+    const emoji = sanitizeEmoji(output.emoji ?? null);
+    const merchantName = sanitizeMerchantName(output.merchantName ?? null);
+    const tags = sanitizeTags(output.tags);
 
-    const candidate: KnowledgeCandidate = {
-        // No user tree exists for a globally-shared record — the model
-        // is asked to pick from the closed canonical set instead.
-        categoryName: sanitizeCategoryName(output.categoryName),
-        // A domain the model claims cannot be one of the image hosts this app
-        // itself denylists — see `isForbiddenLogoOrigin`.
-        domain: sanitizedDomain !== null && isForbiddenLogoOrigin(sanitizedDomain) ? null : sanitizedDomain,
-        emoji: sanitizeEmoji(output.emoji ?? null),
+    const candidate = {
+        // No user tree reaches a globally-shared record — only the closed
+        // canonical set does.
+        categoryName: args.categoryTree?.length ? sanitizeCategoryName(output.canonicalCategory ?? null) : categoryName,
+        domain,
+        emoji,
         key: args.key,
+        merchantName,
         parentCategoryName: null,
-        tags: sanitizeTags(output.tags),
+        tags,
+    };
+    const answer: GroundedAnswer = {
+        categoryName,
+        domain: output.domainConfidence === "high" || output.domainConfidence === "medium" ? domain : null,
+        emoji,
+        merchantName,
+        tags,
     };
 
     // `corroborates` only ever needs a url; document-type sources (no `.url`)
@@ -189,6 +223,7 @@ export async function runGroundedLookupCall(
         .map((source) => ({ url: source.url }));
 
     return {
+        answer,
         candidate,
         inputTokens: result.usage.inputTokens ?? 0,
         outputTokens: result.usage.outputTokens ?? 0,
@@ -207,43 +242,34 @@ export async function runGroundedLookupCall(
 export type GroundedLookupCtx = Pick<ActionCtx, "runQuery" | "runMutation">;
 
 /**
- * Continues the same rate-limit ordering: `groundedPerKey` then
- * `groundedBudgetMicros` (both live here, never in `suggest`).
  * `overrideDeps` is a test-only seam — production never passes it, so the
  * real xAI provider is always constructed fresh per call
  * (`XAI_GROUNDED_MODEL_ID`/`XAI_API_KEY` read live, matching `enrichment.ts`'s
  * own rollback-lever pattern).
  */
-export async function runGroundedLookup(
+export async function groundedAnswer(
     ctx: GroundedLookupCtx,
     args: GroundedRunArgs,
     overrideDeps?: GroundedCallDeps
-): Promise<void> {
-    const perKey = await rateLimiter.limit(ctx, "groundedPerKey", {
-        key: args.key,
-    });
-    if (!perKey.ok) {
-        return;
-    }
-
+): Promise<GroundedAnswer | null> {
     const estimated = estimateMicros();
     const budget = await rateLimiter.limit(ctx, "groundedBudgetMicros", {
         config: budgetConfig(),
         count: estimated,
     });
     if (!budget.ok) {
-        return;
+        return null;
     }
 
     let deps = overrideDeps;
-    let modelId: string = ENRICHMENT_MODEL_ID;
+    let modelId: string = GROUNDED_MODEL_ID;
     if (!deps) {
         const apiKey = process.env.XAI_API_KEY;
         if (!apiKey) {
-            return;
+            return null;
         }
         const xaiProvider = createXai({ apiKey });
-        modelId = process.env.XAI_GROUNDED_MODEL_ID || process.env.XAI_MODEL_ID || ENRICHMENT_MODEL_ID;
+        modelId = process.env.XAI_GROUNDED_MODEL_ID || GROUNDED_MODEL_ID;
         const model = xaiProvider(modelId);
         deps = {
             grounding: model,
@@ -268,7 +294,7 @@ export async function runGroundedLookup(
             published: false,
             searchCalls: 0,
         });
-        return;
+        return null;
     }
     const published = shouldPublish(outcome.candidate, outcome.sources);
 
@@ -278,6 +304,7 @@ export async function runGroundedLookup(
             domain: outcome.candidate.domain,
             emoji: outcome.candidate.emoji,
             key: outcome.candidate.key,
+            merchantName: outcome.candidate.merchantName ?? undefined,
             modelId,
             parentCategoryName: null,
             resolvedAt: Date.now(),
@@ -299,6 +326,25 @@ export async function runGroundedLookup(
         published,
         searchCalls: outcome.searchCalls,
     });
+    return outcome.answer;
+}
+
+/**
+ * Continues the same rate-limit ordering: `groundedPerKey` then
+ * `groundedBudgetMicros` (both live here, never in `suggest`).
+ */
+export async function runGroundedLookup(
+    ctx: GroundedLookupCtx,
+    args: GroundedRunArgs,
+    overrideDeps?: GroundedCallDeps
+): Promise<void> {
+    const perKey = await rateLimiter.limit(ctx, "groundedPerKey", {
+        key: args.key,
+    });
+    if (!perKey.ok) {
+        return;
+    }
+    await groundedAnswer(ctx, args, overrideDeps);
 }
 
 export const run = internalAction({

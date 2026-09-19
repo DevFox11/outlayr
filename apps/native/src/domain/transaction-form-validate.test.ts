@@ -57,6 +57,16 @@ describe("transactionFormErrors", () => {
         });
     });
 
+    it("lets a missing category through when the queue will look it up", () => {
+        expect(
+            transactionFormErrors({
+                ...VALID_VALUES,
+                category: null,
+                categoryDeferred: true,
+            })
+        ).toBeNull();
+    });
+
     it("flags both when the entry is empty", () => {
         expect(
             transactionFormErrors({

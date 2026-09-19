@@ -7,7 +7,7 @@ import { RECURRING_TYPE } from "./recurrence";
 export interface TransactionSaveDraft {
     accountId: string | null;
     amount: number;
-    categoryId: string;
+    categoryId: string | null;
     coefficient: number;
     currency: string | null;
     customColor: string | null;

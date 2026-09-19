@@ -17,6 +17,7 @@ export interface TransactionFormCategoryValues {
 
 export interface TransactionFormValidationValues extends TransactionFormCategoryValues {
     readonly amount: string;
+    readonly categoryDeferred?: boolean;
     readonly currency: string;
     readonly exchangeRate: number | null;
     readonly exchangeRateType: EntryRateType | null;
@@ -39,7 +40,7 @@ export function transactionFormErrors(
     if (numpadToNumber(value.amount) <= 0) {
         fields.amount = TRANSACTION_FORM_ERROR.amountRequired;
     }
-    if (isMissingCategory(value)) {
+    if (isMissingCategory(value) && value.categoryDeferred !== true) {
         fields.category = TRANSACTION_FORM_ERROR.categoryRequired;
     }
     if (value.currency !== "USD") {

@@ -13,9 +13,9 @@ afterEach(() => {
 });
 
 describe("pricing defaults", () => {
-    test("budget ceiling defaults to $25 in micro-dollars", () => {
-        expect(budgetCeilingMicros()).toBe(25_000_000);
-        expect(DEFAULT_BUDGET_CEILING_MICROS).toBe(25_000_000);
+    test("budget ceiling defaults to $200 in micro-dollars", () => {
+        expect(budgetCeilingMicros()).toBe(200_000_000);
+        expect(DEFAULT_BUDGET_CEILING_MICROS).toBe(200_000_000);
     });
 
     test("an env override replaces the default ceiling without a deploy", () => {
@@ -25,7 +25,7 @@ describe("pricing defaults", () => {
 
     test("a non-numeric env override falls back to the default", () => {
         vi.stubEnv("GROUNDED_BUDGET_MICROS", "not-a-number");
-        expect(budgetCeilingMicros()).toBe(25_000_000);
+        expect(budgetCeilingMicros()).toBe(200_000_000);
     });
 
     test("budgetConfig is a sharded 30-day fixed window", () => {

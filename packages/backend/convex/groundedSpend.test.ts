@@ -73,7 +73,7 @@ describe("groundedSpend", () => {
             at: Date.UTC(2026, 6, 1),
         });
 
-        expect(result.ceilingMicros).toBe(25_000_000);
+        expect(result.ceilingMicros).toBe(200_000_000);
     });
 
     test("monthlyTotal reflects a live env-var ceiling override", async () => {
