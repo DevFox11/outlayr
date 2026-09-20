@@ -888,7 +888,8 @@ describe("runSuggest regionCode", () => {
 
         const sent = JSON.stringify(model.doGenerateCalls[0]?.prompt);
         expect(sent).toContain("domainConfidence");
-        expect(sent).toContain("Set brand to the business's clean display name");
+        expect(sent).toContain("Set brand to the clean display name of the business or place");
+        expect(sent).toContain("museum, landmark, attraction, venue, park or public body");
         expect(sent).toContain("keeping hyphens, digits, dots and country suffixes");
         expect(sent).toContain("card-terminal or bank-statement descriptor");
         expect(sent).toContain("booking or reference code");

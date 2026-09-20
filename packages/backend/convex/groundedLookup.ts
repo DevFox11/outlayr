@@ -92,12 +92,12 @@ function categoryLines(tree: readonly CategoryBranch[] | undefined): string[] {
 function buildGroundedPrompt(args: GroundedRunArgs): string {
     const kind = args.income ? "income" : "expense";
     return [
-        `Identify the real business behind this ${kind} bank-statement transaction: "${args.name}".`,
+        `Identify the real business, venue or organisation behind this ${kind} bank-statement transaction: "${args.name}".`,
         DESCRIPTOR_LINE,
-        "Search the web as many times as you need: try the decoded name, the name with its country or city, and the legal-entity name. Confirm the business's official website before naming a domain, and never give a domain you have not seen in the results. Prefer the specific business (the shop, restaurant or chain) over the place it sits in (an airport or a mall), and name the place's operator only when the specific business cannot be identified.",
+        "Search the web as many times as you need: try the decoded name, the name with its country or city, and the legal-entity name. Confirm the official website before naming a domain, and never give a domain you have not seen in the results. Prefer the specific business (the shop, restaurant or chain) over the place it sits in (an airport or a mall), and name the place's operator only when the specific business cannot be identified.",
         `Respond with ONLY one JSON object, no markdown fence, no other text, shaped exactly as: ${JSON_CONTRACT}.`,
-        "Set merchantName to the business's clean display name, written the way the brand itself writes it, or null when the text names no business (a person, a private note).",
-        "Set domain to the apex domain of its official website, or null. Set domainConfidence to high when a search result confirms the domain, medium when it is plausible, low when you are guessing.",
+        "Set merchantName to the clean display name of the business or place, written the way it writes its own name, or null when the text names neither (a person, a private note).",
+        "Set domain to the apex domain of its official website, or null. A museum, landmark, attraction, park or other public venue counts: when it runs no site of its own, use the official page its operator, city or tourism authority publishes for it, in preference to null. Set domainConfidence to high when a search result confirms the domain, medium when it is plausible, low when you are guessing.",
         ...categoryLines(args.categoryTree),
         "Set emoji to a single emoji that suits the category, or null.",
         "Suggest at most 3 short tags.",

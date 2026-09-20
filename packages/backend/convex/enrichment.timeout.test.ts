@@ -1,0 +1,79 @@
+/// <reference types="vite/client" />
+
+import rateLimiterTest from "@convex-dev/rate-limiter/test";
+import { MockLanguageModelV4 } from "ai/test";
+import revenuecatTest from "convex-revenuecat/test";
+import { convexTest } from "convex-test";
+import { beforeEach, describe, expect, test, vi } from "vitest";
+
+import { api } from "./_generated/api";
+import { EMPTY } from "./enrichment";
+import schema from "./schema";
+import { authenticatedAs, seedProUser } from "./test.helpers";
+
+vi.mock(import("@ai-sdk/xai"), async (importOriginal) => {
+    const original = await importOriginal();
+    return {
+        ...original,
+        createXai: (options) =>
+            Object.assign(
+                () =>
+                    new MockLanguageModelV4({
+                        doGenerate: () =>
+                            Promise.reject(
+                                Object.assign(new Error("The operation was aborted due to timeout"), {
+                                    name: "TimeoutError",
+                                })
+                            ),
+                    }),
+                original.createXai(options)
+            ),
+    };
+});
+
+const modules = import.meta.glob("./**/*.ts");
+
+const BASE_ARGS = {
+    categoryTree: [{ children: [], name: "Travel" }],
+    groundedLookup: true,
+    income: false,
+    name: "FONTANA DI TREVI",
+};
+
+async function scheduledGroundedRuns(t: ReturnType<typeof convexTest>) {
+    const rows = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+    return rows.filter((row) => row.name.includes("groundedLookup"));
+}
+
+beforeEach(() => {
+    vi.stubEnv("XAI_API_KEY", "test-xai-key");
+});
+
+describe("an inline call that timed out", () => {
+    test("still schedules the grounded lookup it never reached", async () => {
+        const t = convexTest(schema, modules);
+        rateLimiterTest.register(t);
+        revenuecatTest.register(t);
+        const identity = await seedProUser(t);
+
+        const result = await authenticatedAs(t, identity).action(api.enrichment.suggest, BASE_ARGS);
+
+        expect(result).toStrictEqual({ ...EMPTY, grounding: true });
+        await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(1);
+    });
+
+    test("reports no grounding when the client withheld consent", async () => {
+        const t = convexTest(schema, modules);
+        rateLimiterTest.register(t);
+        revenuecatTest.register(t);
+        const identity = await seedProUser(t);
+
+        const result = await authenticatedAs(t, identity).action(api.enrichment.suggest, {
+            ...BASE_ARGS,
+            groundedLookup: false,
+        });
+
+        expect(result).toStrictEqual(EMPTY);
+        await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(0);
+    });
+});

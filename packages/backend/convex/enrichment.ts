@@ -25,6 +25,8 @@ const MAX_KNOWN_CATEGORY_NAMES = 60;
 /** The action's own budget under the client's 9s `Promise.race` abort. */
 export const REQUEST_TIMEOUT_MS = 8000;
 
+export const BACKGROUND_REQUEST_TIMEOUT_MS = 60_000;
+
 /**
  * The action's only arguments — a privacy boundary, not just a shape.
  * Amounts, dates, accounts, balances, and identity must never appear here;
@@ -267,7 +269,7 @@ export const DESCRIPTOR_LINE =
  * private note still comes back null.
  */
 export const DOMAIN_LINE =
-    "Set brand to the business's clean display name, written the way the brand itself writes it (for example Airbnb, Blue Bottle Coffee), or null. Set domain to the primary web domain of the brand you recognise (a chain, retailer, restaurant group, transit operator, utility, service or app): the apex domain of its main site, never a subdomain. Write the domain exactly as the brand's own website address is spelled, keeping hyphens, digits, dots and country suffixes; it is often not the brand name with spaces, accents and punctuation removed (for example coca-cola.com, hm.com, bahn.de). Set domainConfidence to high when you recognise the brand, medium when it is a plausible match, low when you are guessing. Set domain to null only when the name does not identify any specific business you know of (a person, a private note, an unknown local shop).";
+    "Set brand to the clean display name of the business or place, written the way it writes its own name (for example Airbnb, Blue Bottle Coffee, Fontana di Trevi), or null. Set domain to the primary web domain of what you recognise — a chain, retailer, restaurant group, transit operator, utility, service or app, and equally a museum, landmark, attraction, venue, park or public body: the apex domain of its main site, never a subdomain. Write the domain exactly as that site's address is spelled, keeping hyphens, digits, dots and country suffixes; it is often not the name with spaces, accents and punctuation removed (for example coca-cola.com, hm.com, bahn.de). A landmark or public venue with no site of its own is reached through the official page its operator, city or tourism authority runs for it — name that site rather than null. Set domainConfidence to high when you recognise it, medium when it is a plausible match, low when you are guessing. Set domain to null only when the name identifies no specific business or place you know of (a person, a private note, an unknown local shop).";
 
 /**
  * Where the purchase happened outranks where the device is registered. The
@@ -314,6 +316,7 @@ export interface RunSuggestArgs {
     locale?: string;
     name: string;
     regionCode?: string;
+    timeoutMs?: number;
 }
 
 /**
@@ -386,7 +389,7 @@ export async function runSuggest(model: LanguageModel, args: RunSuggestArgs): Pr
     const tree = args.categoryTree.slice(0, MAX_KNOWN_CATEGORY_NAMES);
 
     const { output } = await generateText({
-        abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        abortSignal: AbortSignal.timeout(args.timeoutMs ?? REQUEST_TIMEOUT_MS),
         // The SDK default is 2 retries, which alone would triple worst-case
         // latency past the client's own 9s `Promise.race` abort.
         maxRetries: 0,
@@ -601,10 +604,21 @@ export const suggest = action({
                 `[enrichment] xAI call threw for "${trimmedName}":`,
                 error instanceof Error ? `${error.name}: ${error.message}` : String(error)
             );
+            const scheduled =
+                args.groundedLookup &&
+                (await isPro(ctx, identity.subject)) &&
+                (await maybeScheduleGrounded(ctx, identity.tokenIdentifier, {
+                    currency,
+                    groundedLookup: args.groundedLookup,
+                    income: args.income,
+                    locale: args.locale,
+                    name: trimmedName,
+                    regionCode,
+                }));
             // A rejected xAI call surfaces here as a normal degradation, not a
             // thrown ConvexError — throwing would fill function logs with stack
             // traces for an entirely ordinary timeout or provider outage.
-            return EMPTY;
+            return { ...EMPTY, grounding: scheduled };
         }
     },
     returns: suggestion,

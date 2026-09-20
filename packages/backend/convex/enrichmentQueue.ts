@@ -11,6 +11,7 @@ import { internalAction, internalMutation, internalQuery, mutation, query } from
 import type { ActionCtx } from "./_generated/server";
 import {
     applyToTree,
+    BACKGROUND_REQUEST_TIMEOUT_MS,
     MAX_NAME_LENGTH,
     rateLimiter,
     runSuggest,
@@ -178,6 +179,7 @@ export async function resolveJob(
         locale: row.locale,
         name: row.name,
         regionCode: row.regionCode,
+        timeoutMs: BACKGROUND_REQUEST_TIMEOUT_MS,
     });
     return await share(ctx, row, fast);
 }
