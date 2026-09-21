@@ -1,0 +1,6 @@
+{
+    "NSCameraUsageDescription": "Outlayr usa la cámara para escanear un recibo.",
+    "NSFaceIDUsageDescription": "Outlayr usa Face ID para desbloquear tu registro.",
+    "NSMicrophoneUsageDescription": "Outlayr te escucha mientras dictas un registro y lo anota por ti.",
+    "NSPhotoLibraryUsageDescription": "Outlayr usa tus fotos para ponerle un logo a una transacción o escanear un recibo."
+}

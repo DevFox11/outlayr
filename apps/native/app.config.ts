@@ -167,6 +167,9 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
         },
         usesAppleSignIn: true,
     },
+    locales: {
+        es: "./locales/es.json",
+    },
     name: "Outlayr",
     owner: "danestves-llc",
     plugins: [
