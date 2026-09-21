@@ -3,32 +3,16 @@ import type { Dictionary } from "intlayer";
 
 const transfers = {
     content: {
-        "transfers.a11y.editArrival": t({
-            en: "Edit the amount that arrived",
-            es: "Editar el monto que llegó",
-        }),
         "transfers.a11y.new": t({
             en: "New transfer",
             es: "Nueva transferencia",
-        }),
-        "transfers.a11y.swap": t({
-            en: "Swap direction",
-            es: "Invertir la dirección",
-        }),
-        "transfers.addFee": t({
-            en: "Add fee",
-            es: "Agregar comisión",
-        }),
-        "transfers.arrives": t({
-            en: "arrives as {amount}",
-            es: "llegan como {amount}",
         }),
         "transfers.block.feeOverArrival": t({
             en: "The fee is {amount} more than arrives",
             es: "La comisión es {amount} más de lo que llega",
         }),
         "transfers.block.nothingArrives": t({
-            en: "Nothing would arrive — the fee takes it all",
+            en: "Nothing would arrive. The fee takes it all.",
             es: "No llegaría nada: la comisión se lo lleva todo",
         }),
         "transfers.delete.row": t({
@@ -51,17 +35,13 @@ const transfers = {
             en: "Source",
             es: "Fuente",
         }),
-        "transfers.fee.destination": t({
-            en: "Charged on arrival",
-            es: "Cobrada al llegar",
-        }),
         "transfers.fee.note": t({
             en: "Fee · {from} → {to}",
             es: "Comisión · {from} → {to}",
         }),
-        "transfers.fee.source": t({
-            en: "Charged by sender",
-            es: "Cobrada al enviar",
+        "transfers.field.arrives": t({
+            en: "Arrives",
+            es: "Llega",
         }),
         "transfers.field.date": t({
             en: "Date",
@@ -70,6 +50,14 @@ const transfers = {
         "transfers.field.fee": t({
             en: "Fee",
             es: "Comisión",
+        }),
+        "transfers.field.feeCategory": t({
+            en: "Fee category",
+            es: "Categoría de la comisión",
+        }),
+        "transfers.field.feeSide": t({
+            en: "Fee charged to",
+            es: "Comisión cobrada a",
         }),
         "transfers.field.from": t({
             en: "From",
@@ -82,6 +70,14 @@ const transfers = {
         "transfers.field.rate": t({
             en: "Rate",
             es: "Tasa",
+        }),
+        "transfers.field.rateType": t({
+            en: "Rate source",
+            es: "Fuente de la tasa",
+        }),
+        "transfers.field.sent": t({
+            en: "You send",
+            es: "Envías",
         }),
         "transfers.field.to": t({
             en: "To",
@@ -99,28 +95,20 @@ const transfers = {
             en: "{amount} unaccounted",
             es: "{amount} sin explicar",
         }),
-        "transfers.movement": t({
-            en: "The movement",
-            es: "El movimiento",
-        }),
-        "transfers.notePlaceholder": t({
-            en: "Optional",
-            es: "Opcional",
-        }),
         "transfers.rate.custom": t({
             en: "Custom",
             es: "Personalizada",
         }),
         "transfers.rate.eur_reference": t({
-            en: "EUR ref",
-            es: "Ref. EUR",
+            en: "EUR",
+            es: "EUR",
         }),
         "transfers.rate.official": t({
             en: "Official",
             es: "Oficial",
         }),
         "transfers.rate.unavailable": t({
-            en: "No rate for this pair — enter one",
+            en: "No rate for this pair. Enter one.",
             es: "Sin tasa para este par: ingresá una",
         }),
         "transfers.save": t({
@@ -131,9 +119,41 @@ const transfers = {
             en: "Couldn't save this transfer. Try again.",
             es: "No se pudo guardar la transferencia. Inténtalo de nuevo.",
         }),
-        "transfers.selectAccount": t({
-            en: "Choose",
-            es: "Elegir",
+        "transfers.sentence.blank.account": t({
+            en: "an account",
+            es: "una cuenta",
+        }),
+        "transfers.sentence.blank.amount": t({
+            en: "an amount",
+            es: "un monto",
+        }),
+        "transfers.sentence.blank.feeCategory": t({
+            en: "uncategorized",
+            es: "sin categoría",
+        }),
+        "transfers.sentence.blank.noFee": t({
+            en: "No fee",
+            es: "Sin comisión",
+        }),
+        "transfers.sentence.blank.rate": t({
+            en: "a rate",
+            es: "una tasa",
+        }),
+        "transfers.sentence.fee": t({
+            en: "A {fee} {feeCategory} fee from {feeSide}.",
+            es: "Comisión de {fee}, {feeCategory}, desde {feeSide}.",
+        }),
+        "transfers.sentence.move": t({
+            en: "Move {amount} from {from} to {to} {when}.",
+            es: "Mueve {amount} de {from} a {to} {when}.",
+        }),
+        "transfers.sentence.noFee": t({
+            en: "{fee}.",
+            es: "{fee}.",
+        }),
+        "transfers.sentence.rate": t({
+            en: "At the {rateType} rate, {rate}, it arrives as {arrives}.",
+            es: "A la tasa {rateType}, {rate}, llega como {arrives}.",
         }),
         "transfers.title": t({
             en: "Transfer",

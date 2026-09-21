@@ -53,3 +53,5 @@ temp
 # Gentle-AI owns the spec flow (plan.md); a second artifact store only drifts
 openspec/
 
+
+.impeccable/hook.cache.json

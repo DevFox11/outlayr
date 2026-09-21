@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "all-caps-body",
+        "value": "*",
+        "files": [
+          "docs/design/transfer-editor-v2.html"
+        ],
+        "createdAt": "2026-09-20T21:37:27.838Z",
+        "reason": "agent: only uppercase text is short mono kicker labels (eyebrows, 'Editing · Rate'), the project's Geist Mono kicker convention, no body passages"
+      }
+    ]
+  }
+}

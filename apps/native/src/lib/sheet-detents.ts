@@ -11,13 +11,6 @@ export const SUBCATEGORY_DETENT = 0.55;
 /** The account editor carries a currency and balance row the category sheet lacks. */
 export const ACCOUNT_DETENT = 0.72;
 
-/**
- * The transfer editor: hero, both legs with the rate and fee between them, the
- * date and note rows, and a pinned CTA. Measured on an iPhone 17 Pro Max, the
- * resting state needs 0.78.
- */
-export const TRANSFER_DETENT = 0.78;
-
 /** Swift `IdentityHero.pickerHeight`: both identity pickers are a fixed 430pt sheet. */
 const PICKER_HEIGHT = 430;
 /**

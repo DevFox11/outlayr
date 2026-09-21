@@ -36,8 +36,8 @@ interface DraftMath {
     legs: TransferLegs | null;
 }
 
-function pairRate(text: string, market: number | null): number | null {
-    const rate = text === "" ? market : numpadToNumber(text);
+function pairRate(text: string | undefined, market: number | null): number | null {
+    const rate = text === undefined ? market : numpadToNumber(text);
     return rate !== null && Number.isFinite(rate) && rate > 0 ? rate : null;
 }
 
@@ -125,6 +125,7 @@ export interface TransferDraft {
     gapRate: number | null;
     legs: TransferLegs | null;
     pinArrival: () => void;
+    quotedRate: number | null;
     rateOptions: EntryRateType[];
     rateType: EntryRateType;
     resolveAsFee: () => void;
@@ -237,11 +238,11 @@ export function useTransferDraft(db: Database, seed?: TransferSeed): TransferDra
         [fromCurrency, toCurrency, date, rates]
     );
     const pair = `${fromCurrency}/${toCurrency}`;
-    const customRateText = customRates[pair] ?? "";
+    const customRateText = customRates[pair];
     /** Keyed by pair, so a rate typed for another one does not answer here — and
      * without this the segmented control would label the market rate user-authored. */
     const shownRateType: EntryRateType =
-        rateType === "custom" && pairRate(customRateText, marketRate) === null ? marketType : rateType;
+        rateType === "custom" && customRateText === undefined && marketRate === null ? marketType : rateType;
     const rate = selectedRate(crossCurrency, rateType, pairRate(customRateText, marketRate), marketRate);
 
     function setCustomRateText(text: string) {
@@ -324,9 +325,7 @@ export function useTransferDraft(db: Database, seed?: TransferSeed): TransferDra
         },
         crossCurrency,
         customRatePadText:
-            customRateText === "" && marketRate !== null
-                ? numberToNumpad(marketRate, RATE_DISPLAY_DECIMALS)
-                : customRateText,
+            customRateText ?? (marketRate === null ? "" : numberToNumpad(marketRate, RATE_DISPLAY_DECIMALS)),
         date,
         effectiveRate: math.legs === null ? rate : math.legs.exchangeRate,
         fee,
@@ -347,6 +346,7 @@ export function useTransferDraft(db: Database, seed?: TransferSeed): TransferDra
             setArrivedText(math.arrived === null ? "" : numberToNumpad(math.arrived, toDecimals));
             setArrivalPinned(true);
         },
+        quotedRate: rate,
         rateOptions: crossCurrency ? rateTypeOptions(toCurrency) : [],
         rateType: shownRateType,
         // Destination side whatever the current one is: the gap is a
@@ -389,7 +389,13 @@ export function useTransferDraft(db: Database, seed?: TransferSeed): TransferDra
         toCurrency,
         toDecimals,
         toggleFeeSide: () => {
-            setFeeSide(feeSide === "destination" ? "source" : "destination");
+            const toDestination = feeSide === "source";
+            if (crossCurrency && rate !== null && fee > 0) {
+                const decimals = toDestination ? toDecimals : fromDecimals;
+                const converted = roundMoney(toDestination ? fee * rate : fee / rate, decimals);
+                setFeeText(numberToNumpad(converted, decimals));
+            }
+            setFeeSide(toDestination ? "destination" : "source");
             setArrivalPinned(false);
         },
     };

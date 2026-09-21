@@ -19,6 +19,7 @@ import { defineConfig } from "vite-plus";
 // native app's v4 `global.css`, so linting it would report every class unknown.
 // Its hand-written `scripts/` write simulator ledgers and stay checked.
 const projectIgnores = [
+    ".impeccable",
     "apps/screenshots/*",
     "!apps/screenshots/scripts",
     "**/.expo",

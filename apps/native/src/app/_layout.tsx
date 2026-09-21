@@ -34,7 +34,7 @@ import { AuthSessionProvider, useAuthSession } from "@/lib/auth-session";
 import { cloudRuntime } from "@/lib/cloud-runtime";
 import { DeviceResetRecovery } from "@/lib/device-reset-recovery";
 import { LedgerAdoptionProvider, useLedgerAdoption } from "@/lib/ledger-adoption";
-import { identityPickerDetent, TRANSFER_DETENT } from "@/lib/sheet-detents";
+import { identityPickerDetent, LARGE_ONLY } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
 import { useAccent } from "@/theme/use-accent";
 import { useApplyThemePreference } from "@/theme/use-theme-preference";
@@ -343,7 +343,7 @@ function RootStack() {
                     name="transactions/transfers/create"
                     options={{
                         presentation: "formSheet",
-                        sheetAllowedDetents: [TRANSFER_DETENT, 1],
+                        sheetAllowedDetents: LARGE_ONLY,
                         sheetGrabberVisible: true,
                     }}
                 >

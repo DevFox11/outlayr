@@ -1,49 +1,37 @@
-import { Host } from "@expo/ui";
-import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
-import { ScrollView, Text as SwiftText, useNativeState, VStack } from "@expo/ui/swift-ui";
-import {
-    font,
-    foregroundStyle,
-    kerning,
-    overlay,
-    padding,
-    scrollDismissesKeyboard,
-    textCase,
-} from "@expo/ui/swift-ui/modifiers";
-import { useNavigation, useRouter } from "expo-router";
-import { Button } from "panelui-native";
-import { useEffect, useRef, useState } from "react";
-import { Keyboard, useWindowDimensions, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { useRef, useState } from "react";
+import { Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
 
-import { AccountPickerSheet } from "@/components/account-picker-sheet";
-import { CategoryPickerSheet } from "@/components/category-picker-sheet";
-import { CTA_BOTTOM_PADDING, CTA_HEIGHT } from "@/components/editor-style";
 import { InlineFailure } from "@/components/form/inline-failure";
+import { Text } from "@/components/text";
+import { TransactionFormAmountPad } from "@/components/transaction-form/amount-pad";
+import { MetaLine } from "@/components/transaction-form/stage/meta-line";
+import { TransactionStage } from "@/components/transaction-form/stage/stage";
+import { StageOptionRow } from "@/components/transaction-form/stage/stage-options";
+import { StepAccount } from "@/components/transaction-form/stage/step-account";
+import { StepCategory } from "@/components/transaction-form/stage/step-category";
+import { StepDate } from "@/components/transaction-form/stage/step-date";
+import { StepWhen } from "@/components/transaction-form/stage/step-when";
 import { useDatabase } from "@/contexts/local-data-context";
+import { useCategoriesByNamespace } from "@/data/categories";
 import { rememberFeeCategory, transfersRepo } from "@/data/transfers-core";
 import { formatSignedAmount } from "@/domain/account-display";
-import { currencySymbol, formatAmount } from "@/domain/money";
-import { numpadToNumber } from "@/domain/numpad";
+import { formatAmount, numberLocale } from "@/domain/money";
+import { transactionWhenLabel } from "@/domain/transaction-form-labels";
 import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 import { useLanguage, useTranslation } from "@/i18n/context";
-import { LARGE_ONLY, TRANSFER_DETENT } from "@/lib/sheet-detents";
-import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
-import { TransferEditorAmountPad } from "./amount-pad";
-import { TransferEditorDetailsCard } from "./details-card";
-import { TransferEditorHero } from "./hero";
 import { blockPrompt, formatRate, gapPrompt } from "./prompts";
-import { TransferEditorSlip } from "./slip";
+import { TransferSentence } from "./transfer-sentence";
+import type { TransferSentenceSlot } from "./transfer-sentence";
 import { RATE_DISPLAY_DECIMALS, useTransferDraft } from "./use-transfer-draft";
 import type { TransferSeed } from "./use-transfer-draft";
 
-const KICKER = font({ family: "GeistMono-Regular", size: 11, textStyle: "caption2" });
+type Step = Exclude<TransferSentenceSlot, "feeSide"> | "date";
 
 interface TransferEditorProps {
     onDone: () => void;
-    /** Whatever the voice screen already knows; see `TransferSeed`. */
     seed?: TransferSeed & { note?: string };
 }
 
@@ -51,62 +39,58 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
     const db = useDatabase();
     const router = useRouter();
     const accountCreateRoute = useAccountCreateRoute();
-    const navigation = useNavigation();
     const t = useTranslation();
     const { language } = useLanguage();
     const colors = useColors();
-    const insets = useSafeAreaInsets();
-    const { width: windowWidth } = useWindowDimensions();
-    const contentWidth = windowWidth - 40;
     const draft = useTransferDraft(db, seed);
-    const noteState = useNativeState(seed?.note ?? "");
-    const [saving, setSaving] = useState(false);
-    /** This editor is a `modal` and stays up on failure, so the notice is inline. */
-    const [saveFailure, setSaveFailure] = useState<string | null>(null);
-
-    const fromSheet = useRef<BottomSheetModal>(null);
-    const toSheet = useRef<BottomSheetModal>(null);
-    const [pad, setPad] = useState<"arrived" | "fee" | "rate" | "sent" | null>(null);
-    const [listOpen, setListOpen] = useState(false);
-    const feeCategorySheet = useRef<BottomSheetModal>(null);
+    const categories = useCategoriesByNamespace(db, false);
+    const noteRef = useRef(seed?.note ?? "");
     const savingRef = useRef(false);
+    const [saving, setSaving] = useState(false);
+    const [saveFailure, setSaveFailure] = useState<string | null>(null);
+    const [flagged, setFlagged] = useState<TransferSentenceSlot | null>(null);
 
-    const present = (ref: React.RefObject<BottomSheetModal | null>) => {
-        Keyboard.dismiss();
-        setListOpen(true);
-        ref.current?.present();
+    const missing = (): Step | null => {
+        if (draft.from === null) {
+            return "from";
+        }
+        if (draft.to === null || draft.to.id === draft.from.id) {
+            return "to";
+        }
+        if (draft.sent <= 0) {
+            return "amount";
+        }
+        if (draft.block?.kind === "rate") {
+            return "rate";
+        }
+        return draft.block?.kind === "fee" ? "fee" : null;
     };
 
-    const anyPickerOpen = pad !== null || listOpen;
+    const [step, setStep] = useState<Step>(() => missing() ?? "amount");
+    const [forward, setForward] = useState(true);
+    const [fresh, setFresh] = useState(true);
 
-    const [typing, setTyping] = useState(false);
-    useEffect(() => {
-        const show = Keyboard.addListener("keyboardWillShow", () => setTyping(true));
-        const hide = Keyboard.addListener("keyboardWillHide", () => setTyping(false));
-        return () => {
-            show.remove();
-            hide.remove();
-        };
-    }, []);
-
-    const ctaHidden = anyPickerOpen || typing;
-
-    useEffect(() => {
-        navigation.setOptions({
-            sheetAllowedDetents: anyPickerOpen ? LARGE_ONLY : [TRANSFER_DETENT, 1],
-        });
-    }, [navigation, anyPickerOpen]);
-
-    const openPad = (next: "arrived" | "fee" | "rate" | "sent") => {
+    const enter = (next: Step, direction = true) => {
+        if (next === "rate" && draft.rateType !== "custom") {
+            draft.setRateType("custom");
+        }
+        if (next === "arrives") {
+            draft.pinArrival();
+        }
         Keyboard.dismiss();
-        setPad(next);
+        setForward(direction);
+        setFresh(true);
+        setStep(next);
+    };
+
+    const typed = (apply: (text: string) => void) => (text: string) => {
+        setFresh(false);
+        setFlagged(null);
+        apply(text);
     };
 
     const save = async () => {
         const { from, to, legs, effectiveRate, fee, feeSide, feeCategoryId, crossCurrency, rateType, date } = draft;
-        // A ref, not the `saving` state: two taps inside one React batch both read
-        // the old state and both pass. `pressSubmit` guards the transaction form
-        // against exactly this by reading its live store instead.
         if (!(draft.canSave && from && to && legs && effectiveRate) || savingRef.current) {
             return;
         }
@@ -130,25 +114,18 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
                 fromAccountId: from.id,
                 fromAmount: legs.fromAmount,
                 fromCurrency: draft.fromCurrency,
-                note: noteState.value,
+                note: noteRef.current,
                 toAccountId: to.id,
                 toAmount: legs.toAmount,
                 toCurrency: draft.toCurrency,
             });
             if (fee > 0 && feeCategoryId) {
-                // Best effort, and deliberately not inside the transfer's own
-                // failure path: the transfer is already written by this point, so
-                // a failed preference reported as "save failed" would re-enable
-                // Save and the retry would write a SECOND transfer.
                 await rememberFeeCategory(db, feeCategoryId).catch((error) => {
                     console.error("Failed to remember the fee category", error);
                 });
             }
             onDone();
         } catch (error) {
-            // The repo's own messages are untranslated invariants, and the two it
-            // raises are already gated by `draft.canSave` — so they are logged, and
-            // the reader gets the line that tells them the tap did nothing.
             console.error("Failed to save the transfer", error);
             savingRef.current = false;
             setSaving(false);
@@ -156,245 +133,291 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
         }
     };
 
-    const gap = blockPrompt(draft, t) ?? gapPrompt(draft, t);
+    const onFooter = () => {
+        if ((step === "from" || step === "to") && draft.accounts.length === 0) {
+            router.push(accountCreateRoute);
+            return;
+        }
+        if (step === "fee" && draft.fee > 0 && !draft.feeCategoryId) {
+            enter("feeCategory");
+            return;
+        }
+        if (draft.canSave) {
+            save();
+            return;
+        }
+        const next = missing() ?? "amount";
+        setFlagged(next === "date" ? "when" : next);
+        enter(next);
+    };
 
-    const chooseLabel = t("transfers.selectAccount");
+    const onSlotPress = (slot: TransferSentenceSlot) => {
+        setFlagged(null);
+        if (slot === "feeSide") {
+            draft.toggleFeeSide();
+            return;
+        }
+        enter(slot);
+    };
+
+    const feeCategoryName =
+        categories
+            .flatMap((parent) => [parent, ...parent.children])
+            .find((category) => category.id === draft.feeCategoryId)?.name ?? null;
+    const typingRate = step === "rate" && !fresh;
+    const quoted = draft.quotedRate === null ? null : formatRate(draft.quotedRate);
+    const rateLabel = typingRate ? draft.customRatePadText.replace(".", numberLocale().decimal) || null : quoted;
+    const feeSideAccount = draft.feeSide === "destination" ? draft.to : draft.from;
+    const pairCode = `${draft.toCurrency}/${draft.fromCurrency}`;
+    const gap = blockPrompt(draft, t) ?? gapPrompt(draft, t);
+    const footer = {
+        label: draft.canSave ? t("transfers.save") : t("common.next"),
+        onPress: onFooter,
+        tone: draft.canSave && !saving ? "primary" : "muted",
+    } as const;
+    const back = step === "amount" ? {} : { backLabel: t("common.back"), onBack: () => enter("amount", false) };
+
+    const pads = {
+        amount: {
+            code: draft.fromCurrency,
+            label: t("transfers.field.sent"),
+            minorUnits: draft.fromDecimals,
+            onChange: draft.setSent,
+            value: draft.sentText,
+        },
+        arrives: {
+            code: draft.toCurrency,
+            label: t("transfers.field.arrives"),
+            minorUnits: draft.toDecimals,
+            onChange: draft.setArrived,
+            value: draft.arrivedText,
+        },
+        fee: {
+            code: draft.feeCurrency,
+            label: t("transfers.field.fee"),
+            minorUnits: draft.feeDecimals,
+            onChange: draft.setFee,
+            value: draft.feeText,
+        },
+        rate: {
+            code: pairCode,
+            label: t("transfers.field.rate"),
+            minorUnits: RATE_DISPLAY_DECIMALS,
+            mode: "explicitSeparator",
+            onChange: draft.setCustomRate,
+            value: draft.customRatePadText,
+        },
+    } as const;
+
+    const renderStage = () => {
+        if (step === "amount" || step === "arrives" || step === "fee" || step === "rate") {
+            const pad = pads[step];
+            return (
+                <TransactionFormAmountPad
+                    {...pad}
+                    {...back}
+                    footer={footer}
+                    forward={forward}
+                    onChange={typed(pad.onChange)}
+                    stepKey={step}
+                    value={fresh ? "" : pad.value}
+                />
+            );
+        }
+        const body = () => {
+            if (step === "from" || step === "to") {
+                return (
+                    <StepAccount
+                        accounts={draft.accounts}
+                        allowNone={false}
+                        onSelect={(account) => {
+                            (step === "from" ? draft.chooseFrom : draft.chooseTo)(account);
+                            enter("amount");
+                        }}
+                        selectedId={(step === "from" ? draft.from : draft.to)?.id ?? null}
+                    />
+                );
+            }
+            if (step === "rateType") {
+                return (
+                    <StageOptionRow
+                        onSelect={(next) => {
+                            draft.setRateType(next);
+                            enter(next === "custom" ? "rate" : "amount");
+                        }}
+                        options={draft.rateOptions.map((option) => ({
+                            id: option,
+                            // SAFETY: every `rateOptions` member has a `transfers.rate.*` entry.
+                            label: t(`transfers.rate.${option}` as "transfers.rate.official"),
+                        }))}
+                        selectedId={draft.rateType}
+                    />
+                );
+            }
+            if (step === "feeCategory") {
+                return (
+                    <StepCategory
+                        categories={categories}
+                        onSelect={(category) => {
+                            draft.setFeeCategoryId(category.id);
+                            enter("amount");
+                        }}
+                        selectedId={draft.feeCategoryId}
+                    />
+                );
+            }
+            if (step === "when") {
+                return (
+                    <StepWhen
+                        date={draft.date}
+                        now={new Date()}
+                        onPick={() => enter("date")}
+                        onSelect={(next) => {
+                            draft.setDate(next);
+                            enter("amount");
+                        }}
+                        pickLabel={t("transaction.sentence.when.pick")}
+                    />
+                );
+            }
+            return <StepDate date={draft.date} onChange={draft.setDate} />;
+        };
+        const titles = {
+            date: t("transfers.field.date"),
+            feeCategory: t("transfers.field.feeCategory"),
+            from: t("transfers.field.from"),
+            rateType: t("transfers.field.rateType"),
+            to: t("transfers.field.to"),
+            when: t("transfers.field.date"),
+        } as const;
+        return (
+            <TransactionStage
+                backLabel={t("common.back")}
+                footer={footer}
+                forward={forward}
+                onBack={() => enter("amount", false)}
+                stepKey={step}
+                title={titles[step]}
+            >
+                {body()}
+            </TransactionStage>
+        );
+    };
+
+    const ledger = [
+        { account: draft.from, after: draft.fromBalance - draft.sent, before: draft.fromBalance },
+        { account: draft.to, after: draft.toBalance + (draft.arrived ?? 0), before: draft.toBalance },
+    ];
 
     return (
-        <View style={{ backgroundColor: colors.background, flex: 1 }}>
-            <Host style={{ flex: 1 }}>
-                <ScrollView modifiers={[scrollDismissesKeyboard("immediately")]}>
-                    <VStack
-                        modifiers={[
-                            padding({
-                                bottom: CTA_HEIGHT + CTA_BOTTOM_PADDING + insets.bottom + 24,
-                                horizontal: 20,
-                                top: 6,
-                            }),
-                        ]}
-                        spacing={16}
-                    >
-                        <TransferEditorHero
-                            arrivedA11y={t("transfers.a11y.editArrival")}
-                            arrivedLabel={
-                                draft.crossCurrency && draft.arrived !== null
-                                    ? t("transfers.arrives", {
-                                          amount: formatAmount(draft.arrived, draft.toCurrency, true, language),
-                                      })
-                                    : null
-                            }
-                            chipColor={withAlpha(colors.transfer, 0.12)}
-                            contentWidth={contentWidth}
-                            minorUnits={draft.fromDecimals}
-                            mutedColor={colors.muted}
-                            onArrivedPress={() => {
-                                draft.pinArrival();
-                                openPad("arrived");
-                            }}
-                            onRateTypeChange={draft.setRateType}
-                            onSentPress={() => openPad("sent")}
-                            rateOptions={draft.rateOptions.map((option) => ({
-                                // SAFETY: every `rateOptions` member has a `transfers.rate.*` entry; the
-                                // literal names one of them so the template resolves to a real key.
-                                label: t(`transfers.rate.${option}` as "transfers.rate.official"),
-                                value: option,
-                            }))}
-                            rateType={draft.rateType}
-                            sent={draft.sent}
-                            symbol={currencySymbol(draft.fromCurrency)}
-                            tintColor={colors.foreground}
-                            transferColor={colors.transfer}
-                        />
-
-                        <VStack alignment="leading" spacing={7}>
-                            <SwiftText
-                                modifiers={[KICKER, kerning(1.2), textCase("uppercase"), foregroundStyle(colors.muted)]}
-                            >
-                                {t("transfers.movement")}
-                            </SwiftText>
-                            <VStack spacing={0}>
-                                <TransferEditorSlip
-                                    addFeeLabel={t("transfers.addFee")}
-                                    cardColor={colors.background}
-                                    feeFill={withAlpha(colors.foreground, 0.07)}
-                                    feeSideLabel={t(
-                                        draft.feeSide === "destination"
-                                            ? "transfers.fee.destination"
-                                            : "transfers.fee.source"
-                                    )}
-                                    feeValue={
-                                        draft.fee > 0
-                                            ? formatAmount(draft.fee, draft.feeCurrency, true, language)
-                                            : null
-                                    }
-                                    from={{
-                                        balance: formatSignedAmount(
-                                            draft.fromBalance,
-                                            draft.fromCurrency,
-                                            true,
-                                            language
-                                        ),
-                                        currency: draft.fromCurrency,
-                                        emoji: draft.from?.emoji ?? null,
-                                        kicker: t("transfers.field.from"),
-                                        name: draft.from?.name ?? chooseLabel,
-                                        onPress: () => present(fromSheet),
-                                        tint: colors.foreground,
-                                    }}
-                                    gap={gap}
-                                    mutedColor={colors.muted}
-                                    mutedFill={withAlpha(colors.foreground, 0.05)}
-                                    onFeePress={() => openPad("fee")}
-                                    onFeeSideToggle={draft.toggleFeeSide}
-                                    onRatePress={() => {
-                                        if (draft.rateType === "custom") {
-                                            openPad("rate");
-                                        }
-                                    }}
-                                    onSwap={draft.swap}
-                                    rateValue={
-                                        draft.crossCurrency
-                                            ? `${formatRate(draft.effectiveRate)} ${draft.toCurrency}/${draft.fromCurrency}`
-                                            : null
-                                    }
-                                    showRate={draft.crossCurrency}
-                                    stemColor={withAlpha(colors.transfer, 0.35)}
-                                    surfaceColor={colors.surface}
-                                    swapA11y={t("transfers.a11y.swap")}
-                                    tintColor={colors.foreground}
-                                    to={{
-                                        balance: formatSignedAmount(draft.toBalance, draft.toCurrency, true, language),
-                                        currency: draft.toCurrency,
-                                        emoji: draft.to?.emoji ?? null,
-                                        kicker: t("transfers.field.to"),
-                                        name: draft.to?.name ?? chooseLabel,
-                                        onPress: () => present(toSheet),
-                                        tint: colors.foreground,
-                                    }}
-                                    transferColor={colors.transfer}
-                                    warnColor={colors.overBudget}
-                                />
-                            </VStack>
-                        </VStack>
-
-                        <TransferEditorDetailsCard
-                            dateLabel={t("transfers.field.date")}
-                            hairline={[overlay({ color: withAlpha(colors.foreground, 0.08) })]}
-                            mutedColor={colors.muted}
-                            noteLabel={t("transfers.field.note")}
-                            notePlaceholder={t("transfers.notePlaceholder")}
-                            noteState={noteState}
-                            onDateChange={draft.setDate}
-                            selectedDate={draft.date}
-                            tintColor={colors.foreground}
-                        />
-                    </VStack>
-                </ScrollView>
-            </Host>
-
-            {/* Pinned to the container's bottom, which a presented picker shrinks —
-			    left mounted it lands mid-screen across the slip. */}
-            <View
-                pointerEvents={ctaHidden ? "none" : "auto"}
-                style={{
-                    bottom: insets.bottom + CTA_BOTTOM_PADDING,
-                    left: 20,
-                    opacity: ctaHidden ? 0 : 1,
-                    position: "absolute",
-                    right: 20,
-                }}
-            >
-                <InlineFailure message={saveFailure} />
-
-                <Button
-                    className="rounded-full"
-                    disabled={!(draft.canSave && !saving)}
-                    fullWidth
-                    onPress={save}
-                    size="md"
-                    variant="primary"
+        <View className="bg-background flex-1" collapsable={false}>
+            {/* react-native-screens resizes a ScrollView on a formSheet's first-child chain to the whole sheet. */}
+            <View collapsable={false} />
+            <View className="flex-1">
+                <ScrollView
+                    contentContainerClassName="gap-4 px-5 pt-2 pb-10"
+                    contentInsetAdjustmentBehavior="automatic"
+                    keyboardDismissMode="on-drag"
+                    keyboardShouldPersistTaps="handled"
                 >
-                    {t("transfers.save")}
-                </Button>
+                    <TransferSentence
+                        activeSlot={step === "date" ? "when" : step}
+                        crossCurrency={draft.crossCurrency}
+                        flaggedSlot={flagged}
+                        hasFee={draft.fee > 0}
+                        onSlotPress={onSlotPress}
+                        values={{
+                            amount:
+                                draft.sent > 0 ? formatAmount(draft.sent, draft.fromCurrency, true, language) : null,
+                            arrives:
+                                draft.arrived !== null && draft.arrived > 0
+                                    ? formatAmount(draft.arrived, draft.toCurrency, true, language)
+                                    : null,
+                            fee: draft.fee > 0 ? formatAmount(draft.fee, draft.feeCurrency, true, language) : null,
+                            feeCategory: feeCategoryName,
+                            feeSide: feeSideAccount?.name ?? null,
+                            from: draft.from?.name ?? null,
+                            rate: rateLabel,
+                            // SAFETY: every `rateOptions` member has a `transfers.rate.*` entry.
+                            rateType: t(`transfers.rate.${draft.rateType}` as "transfers.rate.official"),
+                            to: draft.to?.name ?? null,
+                            when: transactionWhenLabel(t, {
+                                date: draft.date,
+                                interval: null,
+                                language,
+                                now: new Date(),
+                            }),
+                        }}
+                    />
+
+                    {gap ? (
+                        <View className="gap-2">
+                            <MetaLine statement={gap.message} tone={draft.block === null ? "warning" : "danger"} />
+                            <View className="flex-row flex-wrap gap-x-5 gap-y-2">
+                                {gap.feeLabel && gap.onFee ? (
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        hitSlop={10}
+                                        onPress={() => {
+                                            gap.onFee?.();
+                                            if (!draft.feeCategoryId) {
+                                                enter("feeCategory");
+                                            }
+                                        }}
+                                    >
+                                        <Text className="text-subtitle text-tint font-sans-semibold">
+                                            {gap.feeLabel}
+                                        </Text>
+                                    </Pressable>
+                                ) : null}
+                                {gap.rateLabel && gap.onRate ? (
+                                    <Pressable accessibilityRole="button" hitSlop={10} onPress={gap.onRate}>
+                                        <Text className="text-subtitle text-tint font-sans-semibold">
+                                            {gap.rateLabel}
+                                        </Text>
+                                    </Pressable>
+                                ) : null}
+                            </View>
+                        </View>
+                    ) : null}
+
+                    <View className="border-separator border-t">
+                        {ledger.map(({ account, after, before }) =>
+                            account ? (
+                                <View
+                                    className="border-separator flex-row justify-between gap-3 border-b py-2.5"
+                                    key={account.id}
+                                >
+                                    <Text className="text-label text-muted font-mono">{account.name}</Text>
+                                    <Text className="text-label text-foreground font-mono">
+                                        {after === before
+                                            ? formatSignedAmount(before, account.currency, true, language)
+                                            : `${formatSignedAmount(before, account.currency, true, language)} → ${formatSignedAmount(after, account.currency, true, language)}`}
+                                    </Text>
+                                </View>
+                            ) : null
+                        )}
+                    </View>
+
+                    <TextInput
+                        accessibilityLabel={t("transfers.field.note")}
+                        className="text-body text-foreground min-h-12"
+                        defaultValue={seed?.note ?? ""}
+                        multiline
+                        onChangeText={(next) => {
+                            noteRef.current = next;
+                        }}
+                        placeholder={t("transfers.field.note")}
+                        placeholderTextColor={colors.muted}
+                        textAlignVertical="top"
+                    />
+                </ScrollView>
             </View>
 
-            <AccountPickerSheet
-                allowNone={false}
-                db={db}
-                onCreate={() => router.push(accountCreateRoute)}
-                onDismiss={() => setListOpen(false)}
-                onSelect={(account) => {
-                    draft.chooseFrom(account);
-                    fromSheet.current?.dismiss();
-                }}
-                ref={fromSheet}
-                selectedId={draft.from?.id ?? null}
-            />
-            <AccountPickerSheet
-                allowNone={false}
-                db={db}
-                onCreate={() => router.push(accountCreateRoute)}
-                onDismiss={() => setListOpen(false)}
-                onSelect={(account) => {
-                    draft.chooseTo(account);
-                    toSheet.current?.dismiss();
-                }}
-                ref={toSheet}
-                selectedId={draft.to?.id ?? null}
-            />
-            <TransferEditorAmountPad
-                code={draft.fromCurrency}
-                minorUnits={draft.fromDecimals}
-                onChange={draft.setSent}
-                onOpenChange={(next) => !next && setPad(null)}
-                open={pad === "sent"}
-                value={draft.sentText}
-            />
-            <TransferEditorAmountPad
-                code={draft.toCurrency}
-                minorUnits={draft.toDecimals}
-                onChange={draft.setArrived}
-                onOpenChange={(next) => !next && setPad(null)}
-                open={pad === "arrived"}
-                value={draft.arrivedText}
-            />
-            <TransferEditorAmountPad
-                code={draft.toCurrency}
-                minorUnits={RATE_DISPLAY_DECIMALS}
-                mode="explicitSeparator"
-                onChange={draft.setCustomRate}
-                onOpenChange={(next) => !next && setPad(null)}
-                open={pad === "rate"}
-                value={draft.customRatePadText}
-            />
-            <TransferEditorAmountPad
-                code={draft.feeCurrency}
-                minorUnits={draft.feeDecimals}
-                onChange={draft.setFee}
-                onOpenChange={(next) => {
-                    if (next) {
-                        return;
-                    }
-                    setPad(null);
-                    if (numpadToNumber(draft.feeText) > 0 && !draft.feeCategoryId) {
-                        setListOpen(true);
-                        feeCategorySheet.current?.present();
-                    }
-                }}
-                open={pad === "fee"}
-                value={draft.feeText}
-            />
-            <CategoryPickerSheet
-                db={db}
-                income={false}
-                onDismiss={() => setListOpen(false)}
-                onSelect={(category) => {
-                    draft.setFeeCategoryId(category.id);
-                    feeCategorySheet.current?.dismiss();
-                }}
-                ref={feeCategorySheet}
-                selectedId={draft.feeCategoryId}
-            />
+            <View className="px-5">
+                <InlineFailure message={saveFailure} />
+            </View>
+            {renderStage()}
         </View>
     );
 }

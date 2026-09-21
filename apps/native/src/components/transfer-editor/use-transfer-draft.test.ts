@@ -229,6 +229,27 @@ describe("a pair no rate table covers", () => {
     });
 });
 
+describe("moving a fee to the other side", () => {
+    beforeEach(() => {
+        mockRates.set("VES", OFFICIAL_VES_PER_USD);
+    });
+
+    it("carries the fee through the rate instead of relabelling its digits", async () => {
+        const result = await draft();
+        await act(async () => {
+            result.current.setSent("10");
+        });
+        await act(async () => {
+            result.current.setFee("2");
+        });
+        await act(async () => {
+            result.current.toggleFeeSide();
+        });
+        expect(result.current.feeCurrency).toBe("VES");
+        expect(result.current.fee).toBe(2 * OFFICIAL_VES_PER_USD);
+    });
+});
+
 describe("swapping a transfer that carries a custom rate", () => {
     beforeEach(() => {
         mockRates.set("VES", OFFICIAL_VES_PER_USD);
@@ -246,6 +267,16 @@ describe("swapping a transfer that carries a custom rate", () => {
         });
         expect(result.current.legs).toStrictEqual({ exchangeRate: 0.018, fromAmount: 100, toAmount: 1.8 });
         expect(result.current.customRatePadText).toBe("0.0180");
+    });
+
+    it("stays empty once the rate is deleted, rather than refilling with the market's", async () => {
+        const result = await customRateDraft();
+        await act(async () => {
+            result.current.setCustomRate("");
+        });
+        expect(result.current.customRatePadText).toBe("");
+        expect(result.current.rateType).toBe("custom");
+        expect(result.current.canSave).toBe(false);
     });
 
     it("gives the rate back to the pair it was typed for", async () => {

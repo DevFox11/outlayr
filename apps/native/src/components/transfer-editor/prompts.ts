@@ -1,16 +1,23 @@
 import { formatSignedAmount } from "@/domain/account-display";
-import { formatAmount } from "@/domain/money";
+import { formatAmount, numberLocale } from "@/domain/money";
 import type { useTranslation } from "@/i18n/context";
 
-import type { TransferGapPrompt } from "./slip";
 import { RATE_DISPLAY_DECIMALS } from "./use-transfer-draft";
 import type { useTransferDraft } from "./use-transfer-draft";
+
+export interface TransferGapPrompt {
+    feeLabel: string | null;
+    message: string;
+    onFee: (() => void) | null;
+    onRate: (() => void) | null;
+    rateLabel: string | null;
+}
 
 type Draft = ReturnType<typeof useTransferDraft>;
 type Translate = ReturnType<typeof useTranslation>;
 
 export function formatRate(rate: number | null): string {
-    return rate === null ? "—" : rate.toFixed(RATE_DISPLAY_DECIMALS);
+    return rate === null ? "—" : rate.toFixed(RATE_DISPLAY_DECIMALS).replace(".", numberLocale().decimal);
 }
 
 export function blockMessage(draft: Draft, t: Translate): string {
@@ -45,7 +52,7 @@ export function gapPrompt(draft: Draft, t: Translate): TransferGapPrompt | null 
     if (draft.gapAmount === 0 || draft.gapRate === null) {
         return null;
     }
-    const rateMoves = draft.effectiveRate === null || formatRate(draft.gapRate) !== formatRate(draft.effectiveRate);
+    const rateMoves = formatRate(draft.gapRate) !== formatRate(draft.quotedRate);
     return {
         feeLabel: draft.gapFee === null ? null : t("transfers.gap.itsAFee"),
         message: t("transfers.gap.unaccounted", {
