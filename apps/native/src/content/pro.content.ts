@@ -9,7 +9,7 @@ const pro = {
         }),
         "pro.alreadyActive": t({
             en: "Pro is active on this store account.",
-            es: "Pro está activo en esta cuenta de la tienda.",
+            es: "Ya tienes Pro activo en esta cuenta de la tienda.",
         }),
         "pro.col.free": t({
             en: "Free",
@@ -25,7 +25,7 @@ const pro = {
         }),
         "pro.cta.start": t({
             en: "Start {days} days free",
-            es: "Empezar {days} días gratis",
+            es: "Prueba {days} días gratis",
         }),
         "pro.cta.then": t({
             en: "then {price}",
@@ -49,7 +49,7 @@ const pro = {
         }),
         "pro.failedBody": t({
             en: "The purchase did not finish. If the store charged you, Restore will unlock Pro.",
-            es: "La compra no terminó. Si la tienda te cobró, Restaurar activará Pro.",
+            es: "La compra no se completó. Si la tienda te cobró, toca Restaurar para activar Pro.",
         }),
         "pro.legal.privacy": t({
             en: "Privacy",
@@ -65,7 +65,7 @@ const pro = {
         }),
         "pro.needsAccount": t({
             en: "Sign in before buying Pro, so the purchase follows your ledger to every device.",
-            es: "Inicia sesión antes de comprar Pro, para que la compra siga tu registro en cada dispositivo.",
+            es: "Inicia sesión antes de comprar Pro para que la compra te acompañe en todos tus dispositivos.",
         }),
         "pro.needsCloud": t({
             en: "This build has no Outlayr account service, so most of Pro has nowhere to run. Nothing is for sale here.",
@@ -73,7 +73,7 @@ const pro = {
         }),
         "pro.nothingRestoredBody": t({
             en: "Nothing restored an active Pro on this store account.",
-            es: "Nada restauró un Pro activo en esta cuenta de la tienda.",
+            es: "No encontramos Pro activo en esta cuenta de la tienda.",
         }),
         "pro.plan.annual": t({
             en: "Yearly",
@@ -81,7 +81,7 @@ const pro = {
         }),
         "pro.plan.bestValue": t({
             en: "Best value",
-            es: "Mejor valor",
+            es: "Mejor precio",
         }),
         "pro.plan.lifetime": t({
             en: "Lifetime",
@@ -93,7 +93,7 @@ const pro = {
         }),
         "pro.plan.once": t({
             en: "once",
-            es: "una vez",
+            es: "pago único",
         }),
         "pro.plan.perMonth": t({
             en: "{price} / mo",
@@ -117,7 +117,7 @@ const pro = {
         }),
         "pro.restorePendingBody": t({
             en: "Pro was restored, but the server has not confirmed it yet. Try again in a moment.",
-            es: "Pro se restauró, pero el servidor aún no lo confirma. Inténtalo en un momento.",
+            es: "Pro se restauró, pero el servidor aún no lo confirma. Inténtalo de nuevo en un momento.",
         }),
         "pro.retry": t({
             en: "Try again",
@@ -141,11 +141,11 @@ const pro = {
         }),
         "pro.row.devices": t({
             en: "Sync across devices",
-            es: "Sync entre dispositivos",
+            es: "Sincronizar dispositivos",
         }),
         "pro.row.icons": t({
             en: "App icons",
-            es: "Iconos",
+            es: "Íconos de la app",
         }),
         "pro.row.import": t({
             en: "AI matching on import",
@@ -161,11 +161,11 @@ const pro = {
         }),
         "pro.syncPendingBody": t({
             en: "The purchase went through, but the server has not confirmed it yet. Try again in a moment.",
-            es: "La compra se completó, pero el servidor aún no la confirma. Inténtalo en un momento.",
+            es: "La compra se completó, pero el servidor aún no la confirma. Inténtalo de nuevo en un momento.",
         }),
         "pro.title": t({
             en: "What upgrading changes",
-            es: "Qué cambia al mejorar",
+            es: "Qué ganas con Pro",
         }),
         "pro.unavailable": t({
             en: "Plans are not available right now.",
@@ -173,11 +173,11 @@ const pro = {
         }),
         "pro.unconfirmed": t({
             en: "Pro is active on this store account, but the server has not confirmed it, so syncing and the AI features stay off until it does.",
-            es: "Pro está activo en esta cuenta de la tienda, pero el servidor no lo ha confirmado, así que la sincronización y las funciones con IA siguen apagadas hasta que lo haga.",
+            es: "Pro está activo en esta cuenta de la tienda, pero el servidor aún no lo confirma, así que la sincronización y las funciones con IA siguen desactivadas hasta entonces.",
         }),
         "pro.unentitledBody": t({
             en: "The purchase completed but Pro did not unlock. Try Restore, and write to support if it stays locked.",
-            es: "La compra se completó pero Pro no se activó. Prueba Restaurar y escribe a soporte si sigue bloqueado.",
+            es: "La compra se completó, pero Pro no se activó. Toca Restaurar y, si sigue sin activarse, escríbenos a soporte.",
         }),
         "pro.value.off": t({
             en: "off",

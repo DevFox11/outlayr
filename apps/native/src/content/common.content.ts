@@ -89,7 +89,7 @@ const common = {
         }),
         "error.boundary.body": t({
             en: "Outlayr hit an unexpected error. Your data is untouched — try again.",
-            es: "Outlayr encontró un error inesperado. Tus datos están intactos — inténtalo de nuevo.",
+            es: "Outlayr tuvo un error inesperado. Tus datos están intactos. Inténtalo de nuevo.",
         }),
         "error.boundary.title": t({
             en: "Something Went Wrong",
@@ -125,7 +125,7 @@ const common = {
         }),
         "nav.settings.about": t({
             en: "About & Credits",
-            es: "Acerca de & Créditos",
+            es: "Acerca de y créditos",
         }),
         "nav.settings.account": t({
             en: "Account",

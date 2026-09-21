@@ -9,7 +9,7 @@ const onboarding = {
         }),
         "onboarding.currency.body": t({
             en: "Everything totals in this. Change it any time — old entries keep their own.",
-            es: "Todo se suma en esta. Cámbiala cuando quieras — las entradas viejas conservan la suya.",
+            es: "Todo se suma en esta moneda. Cámbiala cuando quieras; las entradas anteriores conservan la suya.",
         }),
         "onboarding.currency.change": t({
             en: "Change",
@@ -49,11 +49,11 @@ const onboarding = {
         }),
         "onboarding.currency.title": t({
             en: "What are your numbers in?",
-            es: "¿En qué moneda están tus números?",
+            es: "¿En qué moneda manejas tu dinero?",
         }),
         "onboarding.grounding.body": t({
             en: "For a name Outlayr has never seen, it may search the public web once to learn its category — only the merchant name, whether it is an expense or income, the entry's currency code and your language and region leave your device, never an amount, date or account. On by default; change it any time in Settings.",
-            es: "Para un nombre que Outlayr nunca ha visto, puede buscar una vez en la web pública para conocer su categoría — solo el nombre del comercio, si es gasto o ingreso, el código de moneda de la entrada y tu idioma y región salen de tu dispositivo, nunca un importe, fecha o cuenta. Activado por defecto; cámbialo cuando quieras en Ajustes.",
+            es: "Si Outlayr no conoce un comercio, puede buscarlo una vez en la web pública para saber su categoría. Solo salen de tu dispositivo el nombre del comercio, si es gasto o ingreso, el código de moneda de la entrada y tu idioma y región. Nunca un monto, una fecha ni una cuenta. Viene activado; cámbialo cuando quieras en Configuración.",
         }),
         "onboarding.grounding.eyebrow": t({
             en: "Coverage",
@@ -69,7 +69,7 @@ const onboarding = {
         }),
         "onboarding.rhythm.body": t({
             en: "One quiet nudge each evening. iOS isn't asked for permission until your first entry is saved.",
-            es: "Un aviso discreto cada tarde. No se le pide permiso a iOS hasta que guardes tu primera entrada.",
+            es: "Un aviso discreto cada noche. iOS no te pide permiso hasta que guardes tu primera entrada.",
         }),
         "onboarding.rhythm.eyebrow": t({
             en: "Rhythm",
@@ -101,7 +101,7 @@ const onboarding = {
         }),
         "onboarding.welcome.title": t({
             en: "Welcome to Outlayr",
-            es: "Bienvenido a Outlayr",
+            es: "Te damos la bienvenida a Outlayr",
         }),
     },
     key: "onboarding" as const,

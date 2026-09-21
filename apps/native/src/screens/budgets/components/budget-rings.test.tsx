@@ -153,7 +153,7 @@ describe("budgetRings", () => {
         await render(<BudgetRings budgets={[FOOD, TRAVEL]} currency="USD" />);
 
         expect(screen.getByText("Progreso por categoría")).toBeOnTheScreen();
-        expect(screen.getByRole("button", { name: /food, 150% gastado, 50,00\s\$ excedido/i })).toBeOnTheScreen();
+        expect(screen.getByRole("button", { name: /food, 150% gastado, \$50\.00 excedido/i })).toBeOnTheScreen();
         expect(screen.getByTestId("budget-rings-panel-chart", { includeHiddenElements: true }).props).toMatchObject({
             accessibilityElementsHidden: true,
             importantForAccessibility: "no-hide-descendants",
@@ -165,7 +165,7 @@ describe("budgetRings", () => {
         await render(<BudgetRings budgets={[FOOD]} currency="USD" />);
 
         expect(screen.queryByText("PanelUI default: of target", { includeHiddenElements: true })).not.toBeOnTheScreen();
-        expect(screen.getByText("150,00\u00A0$", { includeHiddenElements: true })).toBeOnTheScreen();
+        expect(screen.getByText("$150.00", { includeHiddenElements: true })).toBeOnTheScreen();
     });
 
     it("shows uncapped percentage and explicit over-budget copy", async () => {

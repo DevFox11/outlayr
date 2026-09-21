@@ -8,7 +8,7 @@ const language = {
         // with no in-app preference, the SwiftUI pickers and the ledger agree.
         "language.footer": t({
             en: "Outlayr follows your device language. Change it in Settings.",
-            es: "Outlayr sigue el idioma de tu dispositivo. Cámbialo en Ajustes.",
+            es: "Outlayr sigue el idioma de tu dispositivo. Cámbialo en Configuración.",
         }),
     },
     key: "language" as const,

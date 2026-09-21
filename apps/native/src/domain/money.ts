@@ -1,18 +1,16 @@
 import { currencyDisplayFor, decimalsFor } from "@outlayr/money/currency";
 import { roundMoney } from "@outlayr/money/round";
+import type { Locale } from "expo-localization";
 
+import { firstLocale } from "@/i18n/device-language";
 import type { Language } from "@/i18n/languages";
 import { runtimeLanguage } from "@/i18n/runtime";
 
 export const DEFAULT_CURRENCY = "USD";
 
-type SymbolPlacement = "prefix" | "suffix";
-
 export interface NumberLocale {
     decimal: string;
-    gap: string;
     group: string;
-    placement: SymbolPlacement;
     /**
      * BCP-47 tag for the few APIs that insist on `Intl` — `NumberFlow` builds its
      * digit slots from `formatToParts`. The separators below must mirror what this
@@ -21,22 +19,27 @@ export interface NumberLocale {
     tag: string;
 }
 
-/** A trailing symbol must not wrap onto a line of its own, away from its figure. */
-export const NBSP = "\u00A0";
+const ENGLISH: NumberLocale = { decimal: ".", group: ",", tag: "en-US" };
 
-const NUMBER_LOCALES = {
-    en: { decimal: ".", gap: "", group: ",", placement: "prefix", tag: "en-US" },
-    es: {
-        decimal: ",",
-        gap: NBSP,
-        group: ".",
-        placement: "suffix",
-        tag: "es-ES",
-    },
-} satisfies Record<Language, NumberLocale>;
+type DeviceNumbers = Pick<Locale, "decimalSeparator" | "digitGroupingSeparator" | "regionCode">;
+
+export function latinAmericanLocale(device: DeviceNumbers | null): NumberLocale {
+    return {
+        decimal: device?.decimalSeparator ?? ".",
+        group: device?.digitGroupingSeparator ?? ",",
+        tag: device?.regionCode ? `es-${device.regionCode}` : "es-419",
+    };
+}
+
+// ponytail: read once per launch; a region changed mid-session shows after a relaunch.
+let spanish: NumberLocale | undefined;
 
 export function numberLocale(language: Language = runtimeLanguage()): NumberLocale {
-    return NUMBER_LOCALES[language];
+    if (language === "en") {
+        return ENGLISH;
+    }
+    spanish ??= latinAmericanLocale(firstLocale());
+    return spanish;
 }
 
 export { decimalsFor as minorUnitsFor } from "@outlayr/money/currency";
@@ -61,8 +64,8 @@ export interface AmountParts {
 }
 
 /**
- * Splits a positive magnitude into display parts for a currency code. Grouping,
- * the decimal mark and which side the symbol sits on all come from the language,
+ * Splits a positive magnitude into display parts for a currency code. Grouping
+ * and the decimal mark come from the language (and for Spanish, the region),
  * not from `Intl` — Hermes lacks full ICU, so `Intl.NumberFormat` is avoided
  * here the same way `translate.ts` avoids `Intl.PluralRules`. The magnitude is
  * rounded to the code's minor units via `@outlayr/money`'s exact half-even
@@ -97,29 +100,14 @@ export function amountDigits(parts: AmountParts): string {
     return parts.fraction ? `${parts.integer}${parts.locale.decimal}${parts.fraction}` : parts.integer;
 }
 
-/**
- * The symbol pre-placed on its side, for the heroes that style it apart from the
- * digits and so cannot use `withCurrencySymbol`. Exactly one side is non-empty.
- */
-export function splitSymbol(parts: AmountParts): {
-    prefixSymbol: string;
-    suffixSymbol: string;
-} {
-    const { placement, gap } = parts.locale;
-    return placement === "suffix"
-        ? { prefixSymbol: "", suffixSymbol: `${gap}${parts.symbol}` }
-        : { prefixSymbol: `${parts.symbol}${gap}`, suffixSymbol: "" };
-}
-
-/** Wraps already-built digits in the symbol, on the side the language puts it. */
+/** Wraps already-built digits in the symbol. */
 export function withCurrencySymbol(parts: AmountParts, digits: string): string {
-    const { placement, gap } = parts.locale;
-    return placement === "suffix" ? `${digits}${gap}${parts.symbol}` : `${parts.symbol}${gap}${digits}`;
+    return `${parts.symbol}${digits}`;
 }
 
 /**
  * Unsigned display string for a magnitude, e.g. "$1,240.00" in English and
- * "1.240,00 €" in Spanish (or "¥1,240" for a zero-minor-unit currency).
+ * "$1.240,00" in Spanish on an Argentine device (or "¥1,240" with no minor units).
  */
 export function formatAmount(
     amount: number,

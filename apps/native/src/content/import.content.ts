@@ -13,7 +13,7 @@ const importSheet = {
         }),
         "import.declinedBody": t({
             en: "AI suggestions are off in Settings → Feature Lab.",
-            es: "Las sugerencias de IA están desactivadas en Ajustes → Laboratorio de funciones.",
+            es: "Las sugerencias de IA están desactivadas en Configuración → Laboratorio de funciones.",
         }),
         "import.doneAddedLabel": t({
             en: "Added",
@@ -45,7 +45,7 @@ const importSheet = {
         }),
         "import.errorNoDataBody": t({
             en: "This file has a header row but no data below it.",
-            es: "Este archivo tiene una fila de encabezado pero sin datos debajo.",
+            es: "Este archivo tiene encabezados, pero no hay datos debajo.",
         }),
         "import.errorNoDataTitle": t({
             en: "No transactions found in this file",
@@ -65,7 +65,7 @@ const importSheet = {
         }),
         "import.errorTooLargeTitle": t({
             en: "This file is too large to open",
-            es: "Este archivo es demasiado grande para abrir",
+            es: "Este archivo es demasiado grande para abrirlo",
         }),
         "import.fileColumnsLabel": t({
             en: "Columns",
@@ -81,7 +81,7 @@ const importSheet = {
         }),
         "import.fileNoCategoryColumn": t({
             en: "No category column — we'll read the Description column instead.",
-            es: "No hay columna de categoría — leeremos la columna Descripción en su lugar.",
+            es: "No hay columna de categoría, así que vamos a leer la columna Descripción.",
         }),
         "import.fileOnDeviceNote": t({
             en: "Large files are read on your device only.",
@@ -137,7 +137,7 @@ const importSheet = {
         }),
         "import.resolveFootnote": t({
             en: "Only unmatched merchant names and your category names are sent — never your amounts, dates, or the file itself.",
-            es: "Solo se envían los nombres de comercios sin coincidencia y tus categorías — nunca tus montos, fechas ni el archivo.",
+            es: "Solo se envían los nombres de comercios sin coincidencia y los de tus categorías. Nunca tus montos, fechas ni el archivo.",
         }),
         "import.resolveReviewCta": t({
             en: "Review {count} transactions",
@@ -149,7 +149,7 @@ const importSheet = {
         }),
         "import.resolveRunningMatched": t({
             en: "Matched on device",
-            es: "Coincidencias en el dispositivo",
+            es: "Buscamos coincidencias en el dispositivo",
         }),
         "import.resolveRunningReadFile": t({
             en: "Read the file",
@@ -173,7 +173,7 @@ const importSheet = {
         }),
         "import.reviewCommitFailedBody": t({
             en: "The write failed, so your ledger is unchanged. Your selections are still here.",
-            es: "La escritura falló, así que tu balance no cambió. Tus selecciones siguen aquí.",
+            es: "No se pudo guardar, así que tu registro no cambió. Tus selecciones siguen aquí.",
         }),
         "import.reviewCommitFailedTitle": t({
             en: "Nothing was imported",
@@ -217,7 +217,7 @@ const importSheet = {
         }),
         "import.skipReasonRate": t({
             en: "Invalid exchange-rate metadata",
-            es: "Metadatos de tipo de cambio no válidos",
+            es: "Metadatos de tasa de cambio no válidos",
         }),
         "import.sourceComingSoon": t({
             en: "Coming soon",
@@ -281,7 +281,7 @@ const importSheet = {
         }),
         "import.unavailableOverCap": t({
             en: "This file is too large to send, so it was read on your device only.",
-            es: "Este archivo es demasiado grande para enviar, así que se leyó solo en tu dispositivo.",
+            es: "Este archivo es demasiado grande para enviarlo, así que se leyó solo en tu dispositivo.",
         }),
         "import.unavailableProviderError": t({
             en: "The service didn't answer.",
@@ -289,7 +289,7 @@ const importSheet = {
         }),
         "import.unavailableRateLimited": t({
             en: "Too many imports this hour.",
-            es: "Demasiadas importaciones esta hora.",
+            es: "Hiciste demasiadas importaciones en esta hora.",
         }),
         "import.unavailableTimeout": t({
             en: "It took too long.",

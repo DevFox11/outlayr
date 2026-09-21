@@ -9,11 +9,11 @@ const transfers = {
         }),
         "transfers.block.feeOverArrival": t({
             en: "The fee is {amount} more than arrives",
-            es: "La comisión es {amount} más de lo que llega",
+            es: "La comisión supera por {amount} lo que llega",
         }),
         "transfers.block.nothingArrives": t({
             en: "Nothing would arrive. The fee takes it all.",
-            es: "No llegaría nada: la comisión se lo lleva todo",
+            es: "No llegaría nada: la comisión se lo lleva todo.",
         }),
         "transfers.delete.row": t({
             en: "Delete Transfer",
@@ -109,7 +109,7 @@ const transfers = {
         }),
         "transfers.rate.unavailable": t({
             en: "No rate for this pair. Enter one.",
-            es: "Sin tasa para este par: ingresá una",
+            es: "No hay tasa para este par. Ingresa una.",
         }),
         "transfers.save": t({
             en: "Save Transfer",

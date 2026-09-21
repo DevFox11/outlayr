@@ -129,7 +129,7 @@ const insights = {
         }),
         "insights.quiet.alternative": t({
             en: "{measure} has {period} covered — tap it above.",
-            es: "{measure} ya cubre {period} — tócalo arriba.",
+            es: "{measure} sí tiene datos {period}. Tócalo arriba.",
         }),
         "insights.quiet.empty": t({
             en: "Nothing logged {period}.",
@@ -169,7 +169,7 @@ const insights = {
         }),
         "insights.sample.groceries": t({
             en: "Groceries",
-            es: "Víveres",
+            es: "Súper",
         }),
         "insights.sample.headline": t({
             en: "This is what a month looks like",
@@ -185,7 +185,7 @@ const insights = {
         }),
         "insights.sample.verdict": t({
             en: "{delta} less than February. {category} alone gave back {moved}.",
-            es: "{delta} menos que febrero. Solo {category} devolvió {moved}.",
+            es: "{delta} menos que febrero. Solo {category} bajó {moved}.",
         }),
         "insights.scope.clearBar": t({
             en: "Clear the selected bar",
@@ -241,11 +241,11 @@ const insights = {
         }),
         "insights.window.shown": t({
             en: "Window shown",
-            es: "Ventana mostrada",
+            es: "Fechas mostradas",
         }),
         "insights.window.title": t({
             en: "Window",
-            es: "Ventana",
+            es: "Fechas",
         }),
     },
     key: "insights" as const,

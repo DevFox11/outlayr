@@ -33,7 +33,7 @@ const receipt = {
         }),
         "receipt.action.settings": t({
             en: "Open Settings",
-            es: "Abrir Ajustes",
+            es: "Abrir Configuración",
         }),
         "receipt.close": t({
             en: "Close",
@@ -55,11 +55,11 @@ const receipt = {
         }),
         "receipt.failed.notConfigured": t({
             en: "Scanning a receipt needs the cloud tier.",
-            es: "Escanear un recibo necesita el nivel en la nube.",
+            es: "Para escanear recibos se necesita el servicio en la nube.",
         }),
         "receipt.failed.notEntitled": t({
             en: "Your free captures, voice and receipts together, are used up. They come back within 30 days; Pro lifts the limit.",
-            es: "Tus capturas gratis, entre voz y recibos, ya se usaron. Vuelven en menos de 30 días; Pro quita ese límite.",
+            es: "Ya usaste tus capturas gratis (voz y recibos). Se renuevan en menos de 30 días; con Pro no tienes ese límite.",
         }),
         "receipt.failed.offline": t({
             en: "You're offline.",
@@ -71,7 +71,7 @@ const receipt = {
         }),
         "receipt.failed.quotaExceeded": t({
             en: "The fair-use limit for captures is reached. It resets within 30 days.",
-            es: "Se alcanzó el límite de uso justo de capturas. Se reinicia en menos de 30 días.",
+            es: "Llegaste al límite de uso justo de capturas. Se renueva en menos de 30 días.",
         }),
         "receipt.failed.rateLimited": t({
             en: "That's a lot of receipts at once. Give it a moment.",
@@ -95,7 +95,7 @@ const receipt = {
         }),
         "receipt.intro": t({
             en: "A photo of the ticket is enough. The total, the store, the date and every line, read for you.",
-            es: "Basta una foto del ticket. El total, la tienda, la fecha y cada línea, leídos por ti.",
+            es: "Basta con una foto del ticket. Leemos por ti el total, la tienda, la fecha y cada línea.",
         }),
         "receipt.limit.last": t({
             en: "Last scan for now",
@@ -133,11 +133,11 @@ const receipt = {
         }),
         "receipt.review.noCategory": t({
             en: "No category yet",
-            es: "Sin categoría aún",
+            es: "Aún sin categoría",
         }),
         "receipt.review.noMerchant": t({
             en: "No store yet",
-            es: "Sin tienda aún",
+            es: "Aún sin tienda",
         }),
         "receipt.review.noRate": t({
             en: "No {currency} rate for that day yet",

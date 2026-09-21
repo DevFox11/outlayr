@@ -45,11 +45,11 @@ const categories = {
         }),
         "categories.empty.expense": t({
             en: "No expense categories found, click the ‘New’ button to add some",
-            es: "No se encontraron categorías de gastos; toca el botón ‘Nuevo’ para agregar algunas",
+            es: "Aún no hay categorías de gasto. Toca + para agregar una.",
         }),
         "categories.empty.income": t({
             en: "No income categories found, click the ‘New’ button to add some",
-            es: "No se encontraron categorías de ingresos; toca el botón ‘Nuevo’ para agregar algunas",
+            es: "Aún no hay categorías de ingreso. Toca + para agregar una.",
         }),
         "categories.error.deleteTitle": t({
             en: "Couldn't Delete Category",
@@ -81,7 +81,7 @@ const categories = {
         }),
         "categories.error.missingIcon": t({
             en: "Please choose an icon or emoji for the category.",
-            es: "Por favor elige un ícono o emoji para la categoría.",
+            es: "Elige un ícono o emoji para la categoría.",
         }),
         "categories.error.missingName": t({
             en: "Please enter a name for this category.",
@@ -121,11 +121,11 @@ const categories = {
         }),
         "categories.namePlaceholder.expense": t({
             en: "Groceries, Rent…",
-            es: "Víveres, Renta…",
+            es: "Súper, Renta…",
         }),
         "categories.namePlaceholder.income": t({
             en: "Salary, Freelance…",
-            es: "Salario, Freelance…",
+            es: "Sueldo, Freelance…",
         }),
         "categories.namePlaceholder.subcategory": t({
             en: "Coffee, Snacks…",
@@ -157,11 +157,11 @@ const categories = {
         }),
         "categories.undo.body": t({
             en: "Its transactions go with it.",
-            es: "Sus transacciones se van con ella.",
+            es: "Sus transacciones se borran con ella.",
         }),
         "categories.undo.bodyWithChildren": t({
             en: "Its transactions go with it; its subcategories move to the top level.",
-            es: "Sus transacciones se van con ella; sus subcategorías pasan al nivel superior.",
+            es: "Sus transacciones se borran con ella; sus subcategorías pasan al nivel superior.",
         }),
         "categories.undo.deleted": t({
             en: "Category deleted",

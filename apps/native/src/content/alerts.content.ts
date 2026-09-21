@@ -5,7 +5,7 @@ const alerts = {
     content: {
         "alerts.dayCard.failedBody": t({
             en: "The image couldn't be drawn.",
-            es: "No se pudo dibujar la imagen.",
+            es: "No se pudo generar la imagen.",
         }),
         "alerts.dayCard.failedTitle": t({
             en: "Couldn't share the day",
@@ -21,11 +21,11 @@ const alerts = {
         }),
         "alerts.dayCard.undrawable": t({
             en: "The image couldn't be drawn on this device.",
-            es: "No se pudo dibujar la imagen en este dispositivo.",
+            es: "No se pudo generar la imagen en este dispositivo.",
         }),
         "alerts.photo.failed": t({
             en: "Couldn't open your photos. Check Outlayr's permission and try again.",
-            es: "No se pudieron abrir tus fotos. Comprueba el permiso de Outlayr e inténtalo de nuevo.",
+            es: "No se pudieron abrir tus fotos. Revisa el permiso de Outlayr e inténtalo de nuevo.",
         }),
         "alerts.transaction.logAgain": t({
             en: "Log Again",
@@ -33,7 +33,7 @@ const alerts = {
         }),
         "alerts.transaction.stopRecurring": t({
             en: "Stop Recurring",
-            es: "Detener recurrencia",
+            es: "Dejar de repetir",
         }),
         "alerts.transfer.sharingUnavailable": t({
             en: "Sharing isn't available on this device.",
@@ -57,7 +57,7 @@ const alerts = {
         }),
         "reminder.title": t({
             en: "Keep the streak going",
-            es: "Mantén la racha",
+            es: "No pierdas la racha",
         }),
     },
     key: "alerts" as const,

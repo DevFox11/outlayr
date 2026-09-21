@@ -39,7 +39,7 @@ describe("conversionStrip", () => {
     it("formats through the locale-aware formatter", async () => {
         const { getByText } = await render(<ConversionStrip {...baseProps} language="es" />);
 
-        expect(getByText("420,00\u00A0Bs. = 10,00\u00A0$")).toBeTruthy();
+        expect(getByText("Bs.420.00 = $10.00")).toBeTruthy();
     });
 
     it("warns without a rate, and says the entry is recorded regardless", async () => {

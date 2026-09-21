@@ -8,6 +8,7 @@ jest.mock<Partial<typeof import("expo-localization")>>("expo-localization", () =
 }));
 
 import { getLocales } from "expo-localization";
+import type { Locale } from "expo-localization";
 
 import { DayTotal } from "@/components/amount-text";
 import { testLocale as mockTestLocale } from "@/i18n/test-locale";
@@ -19,8 +20,8 @@ jest.unmock("@/i18n/context");
 
 const mockGetLocales = jest.mocked(getLocales);
 
-function setDeviceLanguage(tag: string) {
-    mockGetLocales.mockReturnValue([mockTestLocale({ languageTag: tag })]);
+function setDeviceLanguage(tag: string, overrides: Partial<Locale> = {}) {
+    mockGetLocales.mockReturnValue([mockTestLocale({ languageTag: tag, ...overrides })]);
 }
 
 const realAddEventListener = AppState.addEventListener;
@@ -76,9 +77,9 @@ describe("changing the device language mid-session", () => {
 
         expect(screen.getByText("-$760.24")).toBeTruthy();
 
-        setDeviceLanguage("es-MX");
+        setDeviceLanguage("es-VE", { decimalSeparator: ",", digitGroupingSeparator: ".", regionCode: "VE" });
         await appState.returnToForeground();
 
-        expect(screen.getByText("-760,24 $")).toBeTruthy();
+        expect(screen.getByText("-$760,24")).toBeTruthy();
     });
 });

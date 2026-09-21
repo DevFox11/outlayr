@@ -24,18 +24,9 @@ export function LogHeroNumber({ magnitude, code, positive, showCents }: LogHeroN
     const parts = amountParts(magnitude, code, showCents, language);
     const digits = amountDigits(parts);
     const sign = positive ? "+" : "-";
-    // The row's own `gap-1` spaces the symbol, so the locale's glue would double it.
-    const trailing = parts.locale.placement === "suffix";
-    const leading = !trailing;
     // Sized down as the symbol lengthens: a one-character "$" can sit close to the
     // figure, but a four-character "Bs.D" at the same weight reads as part of it.
     const symbolSize = FONT_SIZE * (parts.symbol.length > 1 ? 0.44 : 0.6);
-    const symbol = (
-        <Text className="text-muted font-sans" numberOfLines={1} style={{ fontSize: symbolSize }}>
-            {leading ? sign : null}
-            {parts.symbol}
-        </Text>
-    );
 
     return (
         <View
@@ -44,7 +35,10 @@ export function LogHeroNumber({ magnitude, code, positive, showCents }: LogHeroN
             accessible
             className="flex-row items-baseline gap-1"
         >
-            {leading ? symbol : null}
+            <Text className="text-muted font-sans" numberOfLines={1} style={{ fontSize: symbolSize }}>
+                {sign}
+                {parts.symbol}
+            </Text>
             <Text
                 adjustsFontSizeToFit
                 className="text-foreground shrink font-sans tabular-nums"
@@ -52,10 +46,8 @@ export function LogHeroNumber({ magnitude, code, positive, showCents }: LogHeroN
                 numberOfLines={1}
                 style={{ fontSize: FONT_SIZE }}
             >
-                {trailing ? sign : null}
                 {digits}
             </Text>
-            {trailing ? symbol : null}
         </View>
     );
 }

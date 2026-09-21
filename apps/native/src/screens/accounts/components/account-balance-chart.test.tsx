@@ -162,7 +162,7 @@ describe("accountBalanceChart", () => {
 
         expect(screen.getByLabelText(/historial del saldo/i)).toBeOnTheScreen();
         expect(screen.getByTestId("account-balance-summary").props.accessibilityLabel).toMatch(
-            /historial del saldo\. 20,00\s\$ el 10 ago\./i
+            /historial del saldo\. \$20\.00 el 10 ago\./i
         );
         expect(screen.getByTestId("account-balance-panel-chart", { includeHiddenElements: true }).props).toMatchObject({
             accessibilityElementsHidden: true,

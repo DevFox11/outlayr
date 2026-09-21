@@ -56,7 +56,7 @@
         },
         "headline": {
           "en": "You'll end the\nmonth $319 short.",
-          "es": "Este mes te\nfaltarán 319 $."
+          "es": "Este mes te\nvan a faltar $319."
         },
         "screenshot": "/screenshots/apple/iphone/{locale}/04.png",
         "transforms": {
@@ -90,7 +90,7 @@
         },
         "headline": {
           "en": "Where the week\nactually went.",
-          "es": "A dónde se fue\nla semana."
+          "es": "A dónde se fue\ntu semana."
         },
         "screenshot": "/screenshots/apple/iphone/{locale}/05.png",
         "transforms": {
@@ -117,7 +117,7 @@
         },
         "headline": {
           "en": "Two currencies.\nOne ledger.",
-          "es": "Dos monedas.\nUn solo libro."
+          "es": "Dos monedas.\nUn solo registro."
         },
         "screenshot": "/screenshots/apple/iphone/{locale}/06.png"
       },
@@ -130,7 +130,7 @@
         },
         "headline": {
           "en": "Japan in April.\nYou're on pace.",
-          "es": "Japón en abril.\nVas al ritmo."
+          "es": "Japón en abril.\nVas a buen ritmo."
         },
         "screenshot": "/screenshots/apple/iphone/{locale}/08.png",
         "transforms": {
@@ -151,7 +151,7 @@
         },
         "headline": {
           "en": "Type it, say it,\nor snap it.",
-          "es": "Escríbelo, dilo\no fotografíalo."
+          "es": "Escríbelo, dilo\no tómale una foto."
         },
         "screenshot": "/screenshots/apple/iphone/{locale}/03.png",
         "transforms": {

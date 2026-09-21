@@ -5,19 +5,19 @@ const auth = {
     content: {
         "auth.adopt.body": t({
             en: "Choose what to keep. Only the first option keeps everything — the other two delete entries permanently.",
-            es: "Elige qué conservar. Solo la primera opción conserva todo — las otras dos borran entradas de forma permanente.",
+            es: "Elige qué quieres conservar. Solo la primera opción conserva todo; las otras dos borran entradas para siempre.",
         }),
         "auth.adopt.confirm.cancel": t({
             en: "Keep both instead",
-            es: "Mejor conservar ambos",
+            es: "Mejor conservar los dos",
         }),
         "auth.adopt.confirm.keepAccount": t({
             en: "This iPhone's entries will be deleted and cannot be recovered. Your account's ledger is what remains.",
-            es: "Las entradas de este iPhone se borrarán y no se podrán recuperar. El registro de tu cuenta es lo que queda.",
+            es: "Las entradas de este iPhone se borrarán y no se podrán recuperar. Solo queda el registro de tu cuenta.",
         }),
         "auth.adopt.confirm.keepLocal": t({
             en: "Your account's entries will be deleted and cannot be recovered. This iPhone's ledger is what remains.",
-            es: "Las entradas de tu cuenta se borrarán y no se podrán recuperar. El registro de este iPhone es lo que queda.",
+            es: "Las entradas de tu cuenta se borrarán y no se podrán recuperar. Solo queda el registro de este iPhone.",
         }),
         "auth.adopt.confirm.proceed": t({
             en: "Delete and continue",
@@ -33,7 +33,7 @@ const auth = {
         }),
         "auth.adopt.failed": t({
             en: "That could not be applied. Nothing was changed on either side — try again.",
-            es: "No se pudo aplicar. No se cambió nada en ninguno de los dos lados — inténtalo de nuevo.",
+            es: "No se pudo aplicar. No cambió nada en ningún lado. Inténtalo de nuevo.",
         }),
         "auth.adopt.keepAccount.body": t({
             en: "Deletes every entry on this iPhone and replaces it with your account's ledger.",
@@ -53,11 +53,11 @@ const auth = {
         }),
         "auth.adopt.merge.body": t({
             en: "Every entry from this iPhone and from your account survives. Nothing is deleted. Duplicate categories are yours to tidy up afterwards.",
-            es: "Cada entrada de este iPhone y de tu cuenta sobrevive. No se borra nada. Las categorías duplicadas quedan para que las ordenes después.",
+            es: "Se quedan todas las entradas de este iPhone y de tu cuenta. No se borra nada. Si quedan categorías duplicadas, puedes ordenarlas después.",
         }),
         "auth.adopt.merge.title": t({
             en: "Keep both",
-            es: "Conservar ambos",
+            es: "Conservar los dos",
         }),
         "auth.adopt.title": t({
             en: "This iPhone and your account both hold entries",
@@ -65,7 +65,7 @@ const auth = {
         }),
         "auth.adopt.working": t({
             en: "Reconciling…",
-            es: "Reconciliando…",
+            es: "Conciliando…",
         }),
         "auth.google.continue": t({
             en: "Continue with Google",
@@ -81,7 +81,7 @@ const auth = {
         }),
         "auth.signIn.body": t({
             en: "Your ledger is on this phone and it stays there. An account means it survives losing the phone.",
-            es: "Tu registro está en este teléfono y ahí se queda. Una cuenta hace que sobreviva si pierdes el teléfono.",
+            es: "Tu registro vive en este celular y ahí se queda. Con una cuenta, sobrevive aunque pierdas el celular.",
         }),
         "auth.signIn.eyebrow": t({
             en: "Account",
@@ -93,15 +93,15 @@ const auth = {
         }),
         "auth.signIn.notNow": t({
             en: "Not now — open my ledger",
-            es: "Ahora no — abrir mi registro",
+            es: "Ahora no, abrir mi registro",
         }),
         "auth.signIn.offline": t({
             en: "Signing in needs a connection. Once you have, your ledger opens offline.",
-            es: "Iniciar sesión requiere conexión. Después de hacerlo, tu registro abre sin conexión.",
+            es: "Para iniciar sesión necesitas conexión. Después, tu registro abre sin conexión.",
         }),
         "auth.signIn.title": t({
             en: "Keep a copy of this?",
-            es: "¿Guardar una copia de esto?",
+            es: "¿Quieres guardar una copia?",
         }),
         "auth.signIn.written": t({
             en: "Written daily at {time}.",

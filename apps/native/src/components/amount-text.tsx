@@ -4,7 +4,7 @@ import { View } from "react-native";
 import { rowAmountLabel } from "@/domain/amount-label";
 import type { RowAmountLabelInput } from "@/domain/amount-label";
 import type { CurrencyBucket } from "@/domain/currency-totals";
-import { amountParts, formatAmount, splitSymbol } from "@/domain/money";
+import { amountParts, formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 
@@ -40,7 +40,6 @@ export function HeroNumber({
     const parts = amountParts(amount, code, showCents, language);
     const resolvedSign = sign ?? (amount < 0 ? "-" : "+");
     const small = Math.round(size * 0.5);
-    const { prefixSymbol, suffixSymbol } = splitSymbol(parts);
     return (
         <Text
             adjustsFontSizeToFit
@@ -50,18 +49,13 @@ export function HeroNumber({
         >
             <Text className="text-muted font-sans" style={{ fontSize: small }}>
                 {resolvedSign}
-                {prefixSymbol}
+                {parts.symbol}
             </Text>
             {parts.integer}
             {parts.fraction ? (
                 <Text className="text-muted font-sans" style={{ fontSize: small }}>
                     {parts.locale.decimal}
                     {parts.fraction}
-                </Text>
-            ) : null}
-            {suffixSymbol ? (
-                <Text className="text-muted font-sans" style={{ fontSize: small }}>
-                    {suffixSymbol}
                 </Text>
             ) : null}
         </Text>

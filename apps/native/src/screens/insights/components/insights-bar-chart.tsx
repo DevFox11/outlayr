@@ -141,8 +141,8 @@ export function InsightsBarChart({
     }, [count, pitch, lastLive, onScrub, onCommit, selectedIndex, reported]);
 
     const active = scrubIndex ?? selectedIndex;
-    // Built through `withCurrencySymbol` rather than concatenated: Spanish puts
-    // the symbol after the figure, with an NBSP, and writes 1,2k not 1.2k.
+    // Built through `withCurrencySymbol` rather than concatenated: a Spanish
+    // device may write 1,2k not 1.2k.
     const averageParts = amountParts(Math.abs(average), code, false, language);
     const averageLabel = withCurrencySymbol(averageParts, compactMagnitude(average, averageParts.locale.decimal));
 

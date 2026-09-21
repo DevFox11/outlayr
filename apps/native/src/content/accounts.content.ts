@@ -53,15 +53,15 @@ const accounts = {
         }),
         "accounts.detail.empty": t({
             en: "Nothing attached yet — this account's transactions will gather here.",
-            es: "Aún no hay nada adjunto: las transacciones de esta cuenta se reunirán aquí.",
+            es: "Todavía no hay nada. Aquí vas a ver las transacciones de esta cuenta.",
         }),
         "accounts.detail.startedAt": t({
             en: "Started at {amount} · {month}",
-            es: "Comenzó en {amount} · {month}",
+            es: "Empezó con {amount} · {month}",
         }),
         "accounts.empty": t({
             en: "Money lives in places. Give yours its first one.",
-            es: "El dinero vive en lugares. Dale a tu dinero el primero.",
+            es: "El dinero vive en lugares. Dale al tuyo el primero.",
         }),
         "accounts.error.deleteTitle": t({
             en: "Couldn't Delete Account",

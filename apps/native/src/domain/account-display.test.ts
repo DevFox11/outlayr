@@ -37,10 +37,6 @@ describe("formatSignedAmount", () => {
         expect(formatSignedAmount(1240.5, "USD")).toBe("$1,240.50");
         expect(formatSignedAmount(0, "USD")).toBe("$0.00");
     });
-
-    it("keeps the sign ahead of a language that trails its symbol", () => {
-        expect(formatSignedAmount(-1240.5, "EUR", true, "es")).toBe("-1.240,50\u00A0\u20AC");
-    });
 });
 
 describe("isMultiCurrency", () => {

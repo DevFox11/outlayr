@@ -127,7 +127,7 @@ describe("spendingCalendar", () => {
         const tooltip = mockHeatmapTooltip.mock.calls[0]?.[0] as {
             formatLabel: (cell: { count: number; date: Date }) => string;
         };
-        expect(tooltip.formatLabel({ count: 12.5, date: NOW })).toMatch(/10 ago.*12,50\s\$ gastados/i);
+        expect(tooltip.formatLabel({ count: 12.5, date: NOW })).toMatch(/10 ago.*\$12\.50 gastados/i);
     });
 
     it("owns a day-level accessibility companion and hides the PanelUI tree", async () => {
@@ -171,11 +171,11 @@ describe("spendingCalendar", () => {
         mockLanguage = "es";
         await renderCalendar([{ date: "2026-08-10", exact: false, value: 12.5 }]);
 
-        expect(screen.getByLabelText(/aproximadamente.*12,50\s\$ gastados/i)).toBeOnTheScreen();
+        expect(screen.getByLabelText(/aproximadamente.*\$12\.50 gastados/i)).toBeOnTheScreen();
         const tooltip = mockHeatmapTooltip.mock.calls[0]?.[0] as {
             formatLabel: (cell: { count: number; date: Date }) => string;
         };
-        expect(tooltip.formatLabel({ count: 12.5, date: NOW })).toMatch(/aproximadamente.*12,50\s\$ gastados/i);
+        expect(tooltip.formatLabel({ count: 12.5, date: NOW })).toMatch(/aproximadamente.*\$12\.50 gastados/i);
     });
 
     it.each([

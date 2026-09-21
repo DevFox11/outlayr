@@ -9,7 +9,7 @@ const goals = {
         }),
         "goals.a11y.chart": t({
             en: "Balance against the pace this date demands. {standing}.",
-            es: "Saldo frente al ritmo que exige esta fecha. {standing}.",
+            es: "Saldo frente al ritmo que necesitas para esta fecha. {standing}.",
         }),
         "goals.a11y.noStanding": t({
             en: "no pace to measure",
@@ -21,7 +21,7 @@ const goals = {
         }),
         "goals.a11y.unvalued": t({
             en: "{name}. No exchange rate for this account yet, so its progress cannot be stated.",
-            es: "{name}. Aún no hay tasa de cambio para esta cuenta, así que no se puede indicar su progreso.",
+            es: "{name}. Aún no hay tasa de cambio para esta cuenta, así que no se puede mostrar su progreso.",
         }),
         "goals.add": t({
             en: "New goal",
@@ -41,11 +41,11 @@ const goals = {
         }),
         "goals.currencyMoved.body": t({
             en: "The ledger's currency changed while you were setting this goal, so the amount no longer means what it did. Set it again.",
-            es: "La moneda del libro cambió mientras creabas esta meta, así que el monto ya no significa lo mismo. Créala de nuevo.",
+            es: "La moneda de tu registro cambió mientras creabas esta meta, así que el monto ya no significa lo mismo. Créala de nuevo.",
         }),
         "goals.currencyMoved.title": t({
             en: "No goal yet",
-            es: "Meta no creada",
+            es: "No se creó la meta",
         }),
         "goals.detail.monthsLeft": t({
             en: "Months left",
@@ -71,11 +71,11 @@ const goals = {
         // measure and this is the reading of it.
         "goals.detail.verdictAhead": t({
             en: "You're {amount} ahead of where the date needs you.",
-            es: "Vas {amount} por delante de donde la fecha te necesita.",
+            es: "Llevas {amount} de ventaja sobre lo que pide la fecha.",
         }),
         "goals.detail.verdictBehind": t({
             en: "You're {amount} short of where the date needs you.",
-            es: "Te faltan {amount} para donde la fecha te necesita.",
+            es: "Te faltan {amount} para ir al día con la fecha.",
         }),
         "goals.detail.verdictOnPace": t({
             en: "You're on pace for {date}.",
@@ -86,7 +86,7 @@ const goals = {
         // claim a goal reached early has been held since a date still to come.
         "goals.detail.verdictReached": t({
             en: "Reached. There's nothing left to put aside.",
-            es: "Alcanzada. No queda nada por apartar.",
+            es: "Meta alcanzada. Ya no tienes que apartar nada.",
         }),
         "goals.editor.account": t({
             en: "Account",
@@ -118,7 +118,7 @@ const goals = {
         }),
         "goals.editor.targetNote": t({
             en: "Committing {amount} a month",
-            es: "Comprometes {amount} al mes",
+            es: "Apartas {amount} al mes",
         }),
         "goals.editor.title": t({
             en: "Edit",
@@ -126,7 +126,7 @@ const goals = {
         }),
         "goals.empty.body": t({
             en: "A goal names an amount, an account and a date, then tells you what that costs a month.",
-            es: "Una meta define un monto, una cuenta y una fecha, y te dice cuánto cuesta al mes.",
+            es: "Una meta define un monto, una cuenta y una fecha, y te dice cuánto apartar al mes.",
         }),
         "goals.failedBody": t({
             en: "Something went wrong saving this goal. Try again.",
@@ -166,11 +166,11 @@ const goals = {
         }),
         "goals.sheet.demands": t({
             en: "Demands {amount} a month for {months} months",
-            es: "Exige {amount} al mes durante {months} meses",
+            es: "Necesitas {amount} al mes durante {months} meses",
         }),
         "goals.sheet.demandsNow": t({
             en: "That date is here — the whole {amount} is due now",
-            es: "Esa fecha ya llegó: los {amount} se deben ahora",
+            es: "Esa fecha ya llegó: necesitas los {amount} completos ahora",
         }),
         "goals.sheet.editTargetA11y": t({
             en: "Edit target amount",
@@ -203,11 +203,11 @@ const goals = {
         }),
         "goals.unvalued.body": t({
             en: "{account}'s balance can't be converted yet, and a goal freezes it as its starting point. Try again once its exchange rate is available.",
-            es: "El saldo de {account} aún no se puede convertir, y una meta lo congela como punto de partida. Inténtalo cuando haya tasa de cambio.",
+            es: "El saldo de {account} aún no se puede convertir, y una meta lo congela como punto de partida. Inténtalo de nuevo cuando haya tasa de cambio.",
         }),
         "goals.unvalued.title": t({
             en: "No goal yet",
-            es: "Meta no creada",
+            es: "No se creó la meta",
         }),
     },
     key: "goals" as const,

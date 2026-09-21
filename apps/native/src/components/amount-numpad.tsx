@@ -101,13 +101,12 @@ export function AmountNumpad({
                                 useGrouping: true,
                             }}
                             locales={locale.tag}
-                            prefix={locale.placement === "prefix" ? `${symbol} ` : undefined}
+                            prefix={`${symbol} `}
                             style={{
                                 color: amountColor,
                                 fontFamily: "SFProRounded-Medium",
                                 fontSize: 40,
                             }}
-                            suffix={locale.placement === "suffix" ? ` ${symbol}` : undefined}
                             value={numpadToNumber(value)}
                         />
                     </View>

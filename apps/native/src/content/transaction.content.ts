@@ -9,7 +9,7 @@ const transaction = {
         }),
         "transaction.account.empty": t({
             en: "No accounts yet. Create one to keep this entry's balance somewhere.",
-            es: "Aún no hay cuentas. Crea una para llevar el saldo de esta entrada en algún lugar.",
+            es: "Aún no tienes cuentas. Crea una para llevar el saldo de esta entrada.",
         }),
         "transaction.account.none": t({
             en: "None",
@@ -69,11 +69,11 @@ const transaction = {
         }),
         "transaction.category.createNamed": t({
             en: "Create “{query}”",
-            es: "Crear «{query}»",
+            es: "Crear “{query}”",
         }),
         "transaction.category.noMatches": t({
             en: "No category matches “{query}”",
-            es: "Ninguna categoría coincide con «{query}»",
+            es: "Ninguna categoría coincide con “{query}”",
         }),
         "transaction.category.recent": t({
             en: "Recent",
@@ -129,7 +129,7 @@ const transaction = {
         }),
         "transaction.field.namePlaceholder": t({
             en: "Netflix, Groceries…",
-            es: "Netflix, Víveres…",
+            es: "Netflix, Súper…",
         }),
         "transaction.field.notes": t({
             en: "Notes",
@@ -269,7 +269,7 @@ const transaction = {
         }),
         "transaction.localData.body": t({
             en: "Outlayr could not open your data. This is often temporary — try again first. Your ledger is still on this device.",
-            es: "Outlayr no pudo abrir tus datos. Suele ser temporal — inténtalo de nuevo. Tu registro sigue en este dispositivo.",
+            es: "Outlayr no pudo abrir tus datos. Suele ser algo temporal, así que inténtalo de nuevo. Tu registro sigue en este dispositivo.",
         }),
         "transaction.localData.retrying": t({
             en: "Trying…",
@@ -289,7 +289,7 @@ const transaction = {
         }),
         "transaction.lock.title": t({
             en: "Outlayr is Locked",
-            es: "Outlayr está bloqueada",
+            es: "Outlayr está bloqueado",
         }),
         "transaction.lock.unlock": t({
             en: "Unlock",
@@ -344,7 +344,7 @@ const transaction = {
         }),
         "transaction.rate.pendingBody": t({
             en: "The native amount remains recorded. Cross-currency totals wait for your confirmation.",
-            es: "El monto en su moneda original permanece registrado. Los totales entre monedas esperan tu confirmación.",
+            es: "El monto en su moneda original sigue registrado. Los totales en otras monedas esperan a que confirmes.",
         }),
         "transaction.rate.perUsd": t({
             en: "{currency} per USD",
@@ -352,7 +352,7 @@ const transaction = {
         }),
         "transaction.rate.required": t({
             en: "Enter a positive rate",
-            es: "Ingresa una tasa positiva",
+            es: "Ingresa una tasa mayor que cero",
         }),
         "transaction.rate.requiredHint": t({
             en: "Enter the amount of this currency equal to one US dollar.",
@@ -404,7 +404,7 @@ const transaction = {
         }),
         "transaction.save.scheduleFailedTitle": t({
             en: "Schedule not applied",
-            es: "Programación sin aplicar",
+            es: "No se aplicó la programación",
         }),
         "transaction.schedule.customOption": t({
             en: "Custom…",
@@ -448,7 +448,7 @@ const transaction = {
         // for that one month and the anchor day comes back after it.
         "transaction.schedule.shortMonthNote": t({
             en: "A month too short for that day charges on its last day instead.",
-            es: "Un mes demasiado corto para ese día cobra su último día.",
+            es: "Si el mes no tiene ese día, se cobra el último día del mes.",
         }),
         "transaction.schedule.shortMonthTag": t({
             en: "short month",
@@ -507,7 +507,7 @@ const transaction = {
         // before the category only has to say so here.
         "transaction.sentence.coach": t({
             en: "Every underlined word is yours to change. Tap one, or just keep going below.",
-            es: "Cada palabra subrayada es tuya para cambiarla. Toca una, o sigue abajo.",
+            es: "Puedes cambiar cualquier palabra subrayada. Toca una o sigue abajo.",
         }),
         "transaction.sentence.coachDismiss": t({
             en: "Got it",
@@ -531,7 +531,7 @@ const transaction = {
         }),
         "transaction.sentence.extra.tags": t({
             en: "Tagged {tags}.",
-            es: "Etiquetado {tags}.",
+            es: "Con {tags}.",
         }),
         "transaction.sentence.income": t({
             en: "{kind} {amount} from {merchant} for {category} into {account} {when}.",
@@ -635,7 +635,7 @@ const transaction = {
         }),
         "transaction.split.failedBody": t({
             en: "The entry was saved, but how it splits across categories was not.",
-            es: "La transacción se guardó, pero no cómo se divide entre categorías.",
+            es: "La transacción se guardó, pero la división entre categorías no.",
         }),
         "transaction.split.failedTitle": t({
             en: "Couldn't save the split",
@@ -663,11 +663,11 @@ const transaction = {
         }),
         "transaction.stopRecurring.failedTitle": t({
             en: "Still recurring",
-            es: "La recurrencia sigue activa",
+            es: "Se sigue repitiendo",
         }),
         "transaction.stopRecurring.stopped": t({
             en: "Recurring stopped",
-            es: "Recurrencia detenida",
+            es: "Ya no se repite",
         }),
         "transaction.tags.create": t({
             en: 'Add "{name}"',

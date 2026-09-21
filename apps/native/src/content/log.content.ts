@@ -194,7 +194,7 @@ const log = {
         }),
         "log.scope.clear": t({
             en: "Clear",
-            es: "Borrar",
+            es: "Quitar",
         }),
         "log.scope.otherCurrencies": t({
             en: "Other currencies",
@@ -210,7 +210,7 @@ const log = {
         }),
         "log.toolbar.period": t({
             en: "Period",
-            es: "Periodo",
+            es: "Período",
         }),
         "log.toolbar.search": t({
             en: "Search",

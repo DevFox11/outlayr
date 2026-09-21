@@ -10,7 +10,7 @@ const domain = {
         }),
         "appIcon.default.detailDev": t({
             en: "The blueprint mark. The icon this development build ships with.",
-            es: "La marca en versión plano. El ícono con el que viene esta compilación de desarrollo.",
+            es: "La marca como plano técnico. El ícono de esta compilación de desarrollo.",
         }),
         "appIcon.default.label": t({
             en: "Default",
@@ -34,7 +34,7 @@ const domain = {
         }),
         "appIcon.ink.detail": t({
             en: "The mark inverted — paper on ink, for darker home screens.",
-            es: "La marca invertida — papel sobre tinta, para pantallas más oscuras.",
+            es: "La marca invertida: papel sobre tinta, para pantallas de inicio más oscuras.",
         }),
         "appIcon.ink.label": t({
             en: "Ink",
@@ -58,7 +58,7 @@ const domain = {
         }),
         "clock.deviceNote": t({
             en: "Starts on whatever your device uses; changing it here takes over.",
-            es: "Empieza con lo que usa tu dispositivo; cambiarlo aquí toma el control.",
+            es: "Usa la configuración de tu dispositivo hasta que la cambies aquí.",
         }),
         // A full date is the one form where the order itself is localized, so the
         // template carries it rather than the formatter branching per language.
@@ -76,15 +76,15 @@ const domain = {
         }),
         "coverage.pending": t({
             en: "Rates are still catching up: {count} of {total} entries are counted at the amount they were logged in.",
-            es: "Las tasas se están actualizando: {count} de {total} registros se cuentan con el monto con el que se registraron.",
+            es: "Las tasas se están actualizando: {count} de {total} registros se cuentan con su monto original.",
         }),
         "coverage.pendingAndPredate": t({
             en: "Rates are still catching up: {count} of {total} entries are counted at the amount they were logged in. {predate} more predate the rate history and always will be.",
-            es: "Las tasas se están actualizando: {count} de {total} registros se cuentan con el monto con el que se registraron. Otros {predate} son anteriores al historial de tasas y siempre lo serán.",
+            es: "Las tasas se están actualizando: {count} de {total} registros se cuentan con su monto original. Otros {predate} son anteriores al historial de tasas y así se van a quedar.",
         }),
         "coverage.predateOnly": t({
             en: "{count} of {total} entries predate the rate history, so they are counted at the amount they were logged in.",
-            es: "{count} de {total} registros son anteriores al historial de tasas, así que se cuentan con el monto con el que se registraron.",
+            es: "{count} de {total} registros son anteriores al historial de tasas, así que se cuentan con su monto original.",
         }),
         "dates.meridiem.am": t({ en: "AM", es: "a. m." }),
         "dates.meridiem.pm": t({ en: "PM", es: "p. m." }),
@@ -135,11 +135,11 @@ const domain = {
         "dates.weekdayInitial.6": t({ en: "S", es: "S" }),
         "daySlots.over_one": t({
             en: "One {noun} too many.",
-            es: "Un {noun} de más.",
+            es: "Un gasto de más en {noun}.",
         }),
         "daySlots.over_other": t({
             en: "{count} {noun} too many.",
-            es: "{count} {noun} de más.",
+            es: "{count} gastos de más en {noun}.",
         }),
         "daySlots.room": t({
             en: "Room for one more.",
@@ -187,7 +187,7 @@ const domain = {
         }),
         "lock.fallback": t({
             en: "Choose Unlock again to enter your device passcode.",
-            es: "Elige Desbloquear otra vez para escribir el código de tu dispositivo.",
+            es: "Toca Desbloquear otra vez para ingresar el código de tu dispositivo.",
         }),
         "lock.lockout": t({
             en: "Too many attempts. Unlock with your device passcode instead.",
@@ -195,7 +195,7 @@ const domain = {
         }),
         "lock.timeout": t({
             en: "The prompt timed out. Try again.",
-            es: "La solicitud expiró. Inténtalo de nuevo.",
+            es: "Se acabó el tiempo. Inténtalo de nuevo.",
         }),
         "lock.unavailable": t({
             en: "This device has no passcode or biometrics set up.",
@@ -207,7 +207,7 @@ const domain = {
         }),
         "verdict.inLine": t({
             en: "In line with {prior}.",
-            es: "En línea con {prior}.",
+            es: "Similar a {prior}.",
         }),
         "verdict.lessThan": t({
             en: "{amount} less than {prior}.",
@@ -219,11 +219,11 @@ const domain = {
         }),
         "verdict.moverAdded": t({
             en: "{name} alone added {amount}.",
-            es: "Solo {name} sumó {amount}.",
+            es: "Solo {name} subió {amount}.",
         }),
         "verdict.moverGaveBack": t({
             en: "{name} alone gave back {amount}.",
-            es: "Solo {name} devolvió {amount}.",
+            es: "Solo {name} bajó {amount}.",
         }),
     },
     key: "domain" as const,

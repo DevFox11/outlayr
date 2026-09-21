@@ -13,7 +13,7 @@ const settings = {
         }),
         "settings.about.fork": t({
             en: "Outlayr is a modified version of Dime, forked in 2026 and changed since.",
-            es: "Outlayr es una versión modificada de Dime, bifurcada en 2026 y cambiada desde entonces.",
+            es: "Outlayr es una versión modificada de Dime: nació como fork en 2026 y ha cambiado desde entonces.",
         }),
         "settings.about.gplLink": t({
             en: "GPL-3.0 License",
@@ -21,7 +21,7 @@ const settings = {
         }),
         "settings.about.intro": t({
             en: "Outlayr is open source and free forever. It is built on the foundation of Dime, a beautiful expense tracker created by Rafael Soh, and is distributed under the GNU General Public License v3.0.",
-            es: "Outlayr es de código abierto y gratuito para siempre. Está basado en Dime, un hermoso rastreador de gastos creado por Rafael Soh, y se distribuye bajo la GNU General Public License v3.0.",
+            es: "Outlayr es de código abierto y gratuito para siempre. Está basado en Dime, una hermosa app de gastos creada por Rafael Soh, y se distribuye bajo la GNU General Public License v3.0.",
         }),
         "settings.about.licenceHeading": t({
             en: "Licence",
@@ -49,7 +49,7 @@ const settings = {
         }),
         "settings.account.checking": t({
             en: "Checking\u2026",
-            es: "Comprobando\u2026",
+            es: "Verificando…",
         }),
         "settings.account.delete": t({
             en: "Delete account",
@@ -69,7 +69,7 @@ const settings = {
         }),
         "settings.account.deleteFooter": t({
             en: "Deletes your account and everything synced to it. The ledger on this device stays, and signing in again adopts it.",
-            es: "Elimina tu cuenta y todo lo sincronizado en ella. El registro de este dispositivo se conserva, y al volver a iniciar sesión se adopta.",
+            es: "Elimina tu cuenta y todo lo sincronizado en ella. El registro de este dispositivo se conserva y, si vuelves a iniciar sesión, se suma a tu cuenta.",
         }),
         "settings.account.deleteSection": t({
             en: "Deleting your account",
@@ -117,7 +117,7 @@ const settings = {
         }),
         "settings.account.notSignedIn": t({
             en: "Not signed in",
-            es: "Sin sesi\u00F3n",
+            es: "No has iniciado sesión",
         }),
         "settings.account.playServices": t({
             en: "Google Play services are unavailable on this device.",
@@ -137,7 +137,7 @@ const settings = {
         }),
         "settings.account.signInFooter": t({
             en: "Signing in does not change your ledger. It lets you choose whether to sync this device with your account.",
-            es: "Iniciar sesi\u00F3n no cambia tu registro. Te permite elegir si sincronizar este dispositivo con tu cuenta.",
+            es: "Iniciar sesión no cambia tu registro. Te permite elegir si quieres sincronizar este dispositivo con tu cuenta.",
         }),
         "settings.account.signInSection": t({
             en: "Sign in",
@@ -149,7 +149,7 @@ const settings = {
         }),
         "settings.account.signOutFooter": t({
             en: "Signing out ends the session on this iPhone. Every transaction, budget and category stays exactly where it is.",
-            es: "Cerrar sesi\u00F3n termina la sesi\u00F3n en este iPhone. Cada transacci\u00F3n, presupuesto y categor\u00EDa se queda exactamente donde est\u00E1.",
+            es: "Cerrar sesión solo afecta a este iPhone. Tus transacciones, presupuestos y categorías se quedan tal como están.",
         }),
         "settings.account.signedInAs": t({
             en: "Signed in as",
@@ -161,7 +161,7 @@ const settings = {
         }),
         "settings.account.signedOutDetail": t({
             en: "Outlayr keeps your ledger on this device and behaves exactly the same signed out. An account lets you choose to sync it with your other devices.",
-            es: "Outlayr guarda tu registro en este dispositivo y funciona igual sin sesi\u00F3n. Una cuenta te permite elegir sincronizarlo con tus otros dispositivos.",
+            es: "Outlayr guarda tu registro en este dispositivo y funciona igual sin sesión. Con una cuenta, puedes sincronizarlo con tus otros dispositivos si quieres.",
         }),
         "settings.account.signingOut": t({
             en: "Signing out\u2026",
@@ -201,7 +201,7 @@ const settings = {
         }),
         "settings.colorScheme.darkDetail": t({
             en: "Always dark, whatever the device does.",
-            es: "Siempre oscuro, haga lo que haga el dispositivo.",
+            es: "Siempre oscuro, sin importar tu dispositivo.",
         }),
         "settings.colorScheme.light": t({
             en: "Light",
@@ -209,7 +209,7 @@ const settings = {
         }),
         "settings.colorScheme.lightDetail": t({
             en: "Always light, whatever the device does.",
-            es: "Siempre claro, haga lo que haga el dispositivo.",
+            es: "Siempre claro, sin importar tu dispositivo.",
         }),
         "settings.colorScheme.system": t({
             en: "System",
@@ -217,7 +217,7 @@ const settings = {
         }),
         "settings.colorScheme.systemDetail": t({
             en: "Follows your device.",
-            es: "Sigue a tu dispositivo.",
+            es: "Igual que tu dispositivo.",
         }),
         "settings.currency.all": t({
             en: "All currencies",
@@ -281,7 +281,7 @@ const settings = {
         }),
         "settings.deleted.empty": t({
             en: "Nothing has been deleted. Entries you delete arrive here and wait — Outlayr never throws one away.",
-            es: "No has eliminado nada. Las entradas que elimines llegan aquí y esperan — Outlayr nunca descarta ninguna.",
+            es: "No has eliminado nada. Las entradas que elimines llegan aquí y te esperan. Outlayr nunca descarta ninguna.",
         }),
         "settings.deleted.failedBody": t({
             en: "It is still here and nothing was lost. Try restoring it again.",
@@ -341,7 +341,7 @@ const settings = {
         }),
         "settings.erase.footer": t({
             en: "Your categories are kept either way — they are the vocabulary you built, not the records you logged.",
-            es: "Tus categorías se conservan en ambos casos — son el vocabulario que construiste, no los registros que anotaste.",
+            es: "Tus categorías se conservan en ambos casos: son el vocabulario que armaste, no los registros que anotaste.",
         }),
         "settings.erase.onThisDevice": t({
             en: "On this device",
@@ -377,7 +377,7 @@ const settings = {
         }),
         "settings.export.archiveNote": t({
             en: "Carries every entry, category and budget in full, including the things the CSV leaves behind. This is the file to restore from.",
-            es: "Incluye cada registro, categoría y presupuesto por completo, con lo que el CSV deja fuera. Este es el archivo desde el que se restaura.",
+            es: "Incluye cada registro, categoría y presupuesto completos, con todo lo que el CSV deja fuera. Es el archivo que usas para restaurar.",
         }),
         "settings.export.archiveShareTitle": t({
             en: "Outlayr archive",
@@ -393,7 +393,7 @@ const settings = {
         }),
         "settings.export.columnsNote": t({
             en: "Dates are ISO 8601 instants and amounts are plain decimals with no grouping, so the file reads back into Outlayr — or into a spreadsheet — as the same figures.",
-            es: "Las fechas son instantes ISO 8601 y los montos son decimales simples sin separadores de miles, así que el archivo se vuelve a leer en Outlayr — o en una hoja de cálculo — con las mismas cifras.",
+            es: "Las fechas van en formato ISO 8601 y los montos como decimales simples sin separador de miles, así que el archivo se vuelve a leer en Outlayr (o en una hoja de cálculo) con las mismas cifras.",
         }),
         "settings.export.failedBody": t({
             en: "The file couldn't be written.",
@@ -413,15 +413,15 @@ const settings = {
         }),
         "settings.export.omittedDetails": t({
             en: "Notes — the longer text under a transaction",
-            es: "Notas — el texto más largo debajo de una transacción",
+            es: "Notas: el texto largo debajo de una transacción",
         }),
         "settings.export.omittedLook": t({
             en: "Emoji, icon and color",
-            es: "Emoji, icono y color",
+            es: "Emoji, ícono y color",
         }),
         "settings.export.omittedNote": t({
             en: "A CSV is a readable copy of your figures, not a backup. Reading one back in re-creates only the date, name, amount, currency and type of each transaction, and every category has to be linked by hand — the file cannot create one. Your budgets, your categories and everything listed above live only on this device.",
-            es: "Un CSV es una copia legible de tus cifras, no un respaldo. Al volver a importarlo solo se recrean la fecha, el nombre, el monto, la moneda y el tipo de cada transacción, y cada categoría debe vincularse a mano — el archivo no puede crearla. Tus presupuestos, tus categorías y todo lo anterior existen únicamente en este dispositivo.",
+            es: "Un CSV es una copia legible de tus cifras, no un respaldo. Al volver a importarlo solo se recrean la fecha, el nombre, el monto, la moneda y el tipo de cada transacción, y cada categoría se tiene que vincular a mano, porque el archivo no puede crearla. Tus presupuestos, tus categorías y todo lo anterior existen únicamente en este dispositivo.",
         }),
         "settings.export.omittedPhotos": t({
             en: "Photos",
@@ -457,7 +457,7 @@ const settings = {
         }),
         "settings.featureLab.aiEnrichmentNote": t({
             en: "Well-known services are recognised on this device, and only their web address goes to a logo service to fetch the logo. For anything else, only the merchant name of an entry (typed, spoken, scanned or logged from Wallet), whether it is an expense or income, its currency code, your language and device region, and your own category names leave the device — never amounts, dates or accounts — and the web address that comes back goes to the same logo service. A recent entry saved without a logo is looked up again in the background.",
-            es: "Los servicios conocidos se reconocen en este dispositivo, y solo su dirección web va a un servicio de logos para traer el logo. En los demás casos solo salen del dispositivo el nombre del comercio de una entrada (escrito, dictado, escaneado o registrado desde Wallet), si es gasto o ingreso, su código de moneda, tu idioma y la región del dispositivo, y los nombres de tus categorías, nunca importes, fechas ni cuentas, y la dirección web que vuelve va al mismo servicio de logos. Una entrada reciente guardada sin logo se vuelve a buscar en segundo plano.",
+            es: "Los servicios conocidos se reconocen en este dispositivo, y solo su dirección web va a un servicio de logos para traer el logo. Para todo lo demás, solo salen del dispositivo el nombre del comercio de una entrada (escrita, dictada, escaneada o registrada desde Wallet), si es gasto o ingreso, su código de moneda, tu idioma y la región del dispositivo, y los nombres de tus categorías. Nunca montos, fechas ni cuentas. La dirección web que vuelve va al mismo servicio de logos. Si una entrada reciente se guardó sin logo, se vuelve a buscar en segundo plano.",
         }),
         "settings.featureLab.aiSection": t({
             en: "Smart fill",
@@ -469,7 +469,7 @@ const settings = {
         }),
         "settings.featureLab.budgetRowsNote": t({
             en: "Off lays the budgets out as a two-up grid of cards instead of a list.",
-            es: "Desactivado muestra los presupuestos como una cuadrícula de tarjetas de dos en dos en vez de una lista.",
+            es: "Si lo desactivas, los presupuestos se muestran en una cuadrícula de tarjetas de dos en dos en vez de una lista.",
         }),
         "settings.featureLab.budgetsSection": t({
             en: "Budgets",
@@ -485,7 +485,7 @@ const settings = {
         }),
         "settings.featureLab.experimental": t({
             en: "Experimental — these can change or disappear.",
-            es: "Experimental — esto puede cambiar o desaparecer.",
+            es: "Experimental: esto puede cambiar o desaparecer.",
         }),
         "settings.featureLab.groundedLookup": t({
             en: "Look Up New Merchants",
@@ -493,7 +493,7 @@ const settings = {
         }),
         "settings.featureLab.groundedLookupNote": t({
             en: "For a merchant nobody has seen before, the name, whether it is an expense or income, the entry's currency code and your language and device region may be searched on the web to learn its category — never on the transaction you're entering, and never with any amount, date or account. Off keeps every lookup on this device and the ones already known.",
-            es: "Para un comercio que nadie ha visto antes, el nombre, si es gasto o ingreso, el código de moneda de la entrada y tu idioma y región del dispositivo pueden buscarse en la web para conocer su categoría — nunca en la transacción que estás ingresando, y nunca con ningún importe, fecha o cuenta. Desactivado mantiene cada búsqueda en este dispositivo y en los comercios ya conocidos.",
+            es: "Para un comercio que nadie ha visto antes, el nombre, si es gasto o ingreso, el código de moneda de la entrada y tu idioma y región pueden buscarse en la web para conocer su categoría. Nunca para la transacción que estás ingresando y nunca con montos, fechas ni cuentas. Si lo desactivas, cada búsqueda se queda en este dispositivo y en los comercios ya conocidos.",
         }),
         "settings.featureLab.lineGraph": t({
             en: "Show Line Graph",
@@ -581,7 +581,7 @@ const settings = {
         }),
         "settings.notifications.deniedBody": t({
             en: "Outlayr cannot ask again once you have declined. Turn notifications on for Outlayr in iOS Settings and this switch will follow.",
-            es: "Outlayr no puede volver a preguntar una vez que las rechazaste. Activa las notificaciones para Outlayr en Configuración de iOS y este interruptor las seguirá.",
+            es: "Como ya las rechazaste, Outlayr no puede volver a preguntarte. Activa las notificaciones de Outlayr en Configuración y este interruptor se actualizará solo.",
         }),
         "settings.notifications.deniedTitle": t({
             en: "Notifications are off",
@@ -589,7 +589,7 @@ const settings = {
         }),
         "settings.notifications.evening": t({
             en: "Every evening",
-            es: "Cada tarde",
+            es: "Cada noche",
         }),
         "settings.notifications.eveningDetail": t({
             en: "A nudge at {time}, once the day is mostly done.",
@@ -605,7 +605,7 @@ const settings = {
         }),
         "settings.notifications.morningDetail": t({
             en: "A nudge at {time}, before the day has spent anything.",
-            es: "Un aviso a las {time}, antes de que el día haya gastado nada.",
+            es: "Un aviso a las {time}, antes de que hayas gastado algo.",
         }),
         "settings.notifications.nextAt": t({
             en: "Next reminder at {time}.",
@@ -625,7 +625,7 @@ const settings = {
         }),
         "settings.notifications.subscriptionFooter": t({
             en: "Each subscription decides how far ahead it warns you, on its own screen. Off silences all of them without changing what any one of them says.",
-            es: "Cada suscripción decide con cuánta antelación te avisa, en su propia pantalla. Desactivarlo las silencia todas sin cambiar lo que cada una indica.",
+            es: "Cada suscripción define en su propia pantalla con cuánta anticipación te avisa. Si lo desactivas, se silencian todas sin cambiar su configuración.",
         }),
         "settings.notifications.subscriptionSection": t({
             en: "Subscription charges",
@@ -652,16 +652,16 @@ const settings = {
             es: "Tipo 1",
         }),
         "settings.numberEntry.type1Detail": t({
-            en: "The last two digits are cents. Type 1234 to get 12.34.",
-            es: "Los dos últimos dígitos son centavos. Escribe 1234 para obtener 12,34.",
+            en: "The last two digits are cents. Type 1234 to get {example}.",
+            es: "Los dos últimos dígitos son centavos. Escribe 1234 para obtener {example}.",
         }),
         "settings.numberEntry.type2": t({
             en: "Type 2",
             es: "Tipo 2",
         }),
         "settings.numberEntry.type2Detail": t({
-            en: "Type the decimal point yourself. 12.34 stays 12.34.",
-            es: "Escribe tú la coma decimal. 12,34 se queda en 12,34.",
+            en: "Type the decimal point yourself. {example} stays {example}.",
+            es: "Escribe tú los decimales. {example} se queda en {example}.",
         }),
         "settings.restore.action": t({
             en: "Restore from an archive",
@@ -705,11 +705,11 @@ const settings = {
         }),
         "settings.restore.intro": t({
             en: "A full archive replaces this ledger with the one in the file. Use it to move to a new phone, not to add entries.",
-            es: "Un archivo completo reemplaza este registro por el del archivo. Sirve para pasar a un teléfono nuevo, no para agregar registros.",
+            es: "Un archivo completo reemplaza este registro por el del archivo. Sirve para pasarte a un celular nuevo, no para agregar registros.",
         }),
         "settings.row.about": t({
             en: "About & Credits",
-            es: "Acerca de & Créditos",
+            es: "Acerca de y créditos",
         }),
         "settings.row.accounts": t({
             en: "Accounts",
@@ -789,11 +789,11 @@ const settings = {
         }),
         "settings.row.numberEntry": t({
             en: "Number Entry",
-            es: "Ingreso de números",
+            es: "Escritura de montos",
         }),
         "settings.row.rate": t({
             en: "Rate on App Store",
-            es: "Califica en el App Store",
+            es: "Califícanos en el App Store",
         }),
         "settings.row.reportBug": t({
             en: "Report Bug",
@@ -861,7 +861,7 @@ const settings = {
         }),
         "settings.share.message": t({
             en: "Track your money with Outlayr — {url}",
-            es: "Controla tu dinero con Outlayr — {url}",
+            es: "Controla tu dinero con Outlayr: {url}",
         }),
         "settings.support.bugSubject": t({
             en: "Support Email",
@@ -885,7 +885,7 @@ const settings = {
         }),
         "settings.sync.footer": t({
             en: "Turning sync off keeps every transaction, budget and category on this iPhone — it only stops queueing them for your account. Turning it back on hands over everything logged in between.",
-            es: "Desactivar la sincronización conserva cada transacción, presupuesto y categoría en este iPhone — solo deja de ponerlos en cola para tu cuenta. Al activarla de nuevo se entrega todo lo registrado mientras tanto.",
+            es: "Si desactivas la sincronización, cada transacción, presupuesto y categoría se queda en este iPhone; solo deja de enviarse a tu cuenta. Al activarla de nuevo, se envía todo lo que registraste mientras tanto.",
         }),
         "settings.sync.lastSynced": t({
             en: "Last synced",
@@ -897,7 +897,7 @@ const settings = {
         }),
         "settings.sync.needsAccount": t({
             en: "Sync needs an account to replicate to. Until you sign in your ledger stays on this device, which is all Outlayr ever needed to work.",
-            es: "La sincronización necesita una cuenta a la que replicar. Hasta que inicies sesión tu registro se queda en este dispositivo, que es todo lo que Outlayr necesitó siempre para funcionar.",
+            es: "Para sincronizar necesitas una cuenta. Hasta que inicies sesión, tu registro se queda en este dispositivo, y eso es todo lo que Outlayr necesita para funcionar.",
         }),
         "settings.sync.never": t({
             en: "Not synced yet",
@@ -933,11 +933,11 @@ const settings = {
         }),
         "settings.sync.pending": t({
             en: "{count} waiting to sync",
-            es: "{count} en espera de sincronizar",
+            es: "{count} por sincronizar",
         }),
         "settings.sync.pendingOne": t({
             en: "1 waiting to sync",
-            es: "1 en espera de sincronizar",
+            es: "1 por sincronizar",
         }),
         "settings.sync.section": t({
             en: "Replication",
@@ -957,11 +957,11 @@ const settings = {
         }),
         "settings.sync.waiting": t({
             en: "Waiting to sync",
-            es: "En espera de sincronizar",
+            es: "Por sincronizar",
         }),
         "settings.sync.working": t({
             en: "Working…",
-            es: "Trabajando…",
+            es: "Procesando…",
         }),
         "settings.theme.ochre": t({
             en: "Ochre",
@@ -997,7 +997,7 @@ const settings = {
         }),
         "settings.time.reopenNote": t({
             en: "Close and reopen the app for the month start to take full effect.",
-            es: "Cierra y vuelve a abrir la app para que el inicio de mes tenga efecto completo.",
+            es: "Cierra y vuelve a abrir la app para que el nuevo inicio de mes se aplique por completo.",
         }),
         "settings.time.startsSection": t({
             en: "Starts on",
@@ -1041,7 +1041,7 @@ const settings = {
         }),
         "settings.usage.fullIn": t({
             en: "Full in {time}",
-            es: "Completo en {time}",
+            es: "Se recarga en {time}",
         }),
         "settings.usage.imports": t({
             en: "CSV imports",
@@ -1065,7 +1065,7 @@ const settings = {
         }),
         "settings.usage.thisHour": t({
             en: "This hour",
-            es: "Esta hora",
+            es: "En esta hora",
         }),
         "settings.usage.toast.empty": t({
             en: "No captures left",
@@ -1093,7 +1093,7 @@ const settings = {
         }),
         "settings.wallet.accountsFooter": t({
             en: "Name an account like its card in Wallet. A card that matches none still logs, unattached.",
-            es: "Nombra una cuenta como su tarjeta en Wallet. Una tarjeta sin coincidencia igual se registra, sin cuenta.",
+            es: "Ponle a la cuenta el mismo nombre que tiene su tarjeta en Wallet. Si una tarjeta no coincide con ninguna, igual se registra, sin cuenta.",
         }),
         "settings.wallet.accountsSection": t({
             en: "Cards match these accounts",
@@ -1105,7 +1105,7 @@ const settings = {
         }),
         "settings.wallet.automationDetailInline": t({
             en: "Wallet trigger runs Log a Wallet Transaction",
-            es: "El disparador de Wallet ejecuta Registrar una transacción de Wallet",
+            es: "El disparador de Wallet ejecuta Log a Wallet Transaction",
         }),
         "settings.wallet.automationRow": t({
             en: "Automation in Shortcuts",
@@ -1145,19 +1145,19 @@ const settings = {
         }),
         "settings.wallet.manualStep2": t({
             en: "Add Action, search Outlayr",
-            es: "Añadir acción, busca Outlayr",
+            es: "Agregar acción, busca Outlayr",
         }),
         "settings.wallet.manualStep2Detail": t({
             en: "Pick Log a Wallet Transaction",
-            es: "Elige Registrar una transacción de Wallet",
+            es: "Elige Log a Wallet Transaction",
         }),
         "settings.wallet.manualStep3": t({
             en: "Fill Amount, Merchant and Card",
-            es: "Rellena Importe, Comercio y Tarjeta",
+            es: "Completa Amount, Merchant y Card",
         }),
         "settings.wallet.manualStep3Detail": t({
             en: "Tap each, choose Shortcut Input, then the matching field",
-            es: "Toca cada uno, elige Entrada del atajo y luego el campo que corresponde",
+            es: "Toca cada uno, elige Entrada de atajo y luego el campo que corresponde",
         }),
         "settings.wallet.manualStep3Detail27": t({
             en: "Tap each, pick the Wallet variable above the keyboard, then the matching field",
@@ -1185,11 +1185,11 @@ const settings = {
         }),
         "settings.wallet.notifStep3Detail": t({
             en: "Pick Log from a Notification",
-            es: "Elige Registrar desde una notificación",
+            es: "Elige Log from a Notification",
         }),
         "settings.wallet.notifStep4": t({
             en: "Fill Title, Subtitle and Body",
-            es: "Rellena Título, Subtítulo y Cuerpo",
+            es: "Completa Title, Subtitle y Body",
         }),
         "settings.wallet.notifStep4Detail": t({
             en: "Tap each, pick the Notification variable above the keyboard, then the matching field",
@@ -1197,7 +1197,7 @@ const settings = {
         }),
         "settings.wallet.notifStep5": t({
             en: "Type the account name in Account",
-            es: "Escribe el nombre de la cuenta en Cuenta",
+            es: "Escribe el nombre de la cuenta en Account",
         }),
         "settings.wallet.notifStep5Detail": t({
             en: "The one this app's card belongs to",
@@ -1205,7 +1205,7 @@ const settings = {
         }),
         "settings.wallet.notificationFooter": t({
             en: "Any app that sends a purchase push works, one automation per app. The amount and merchant are read from the text.",
-            es: "Sirve con cualquier app que envíe una notificación de compra, una automatización por app. El importe y el comercio se leen del texto.",
+            es: "Funciona con cualquier app que te mande una notificación de compra, con una automatización por app. El monto y el comercio se leen del texto.",
         }),
         "settings.wallet.notificationSection": t({
             en: "Or from a bank notification",
@@ -1249,11 +1249,11 @@ const settings = {
         }),
         "settings.wallet.step3Detail": t({
             en: "Run Immediately on, Notify When Run off",
-            es: "Ejecutar inmediatamente activado, Notificar al ejecutar desactivado",
+            es: "Ejecutar de inmediato activado, Notificar al ejecutar desactivado",
         }),
         "settings.wallet.step5": t({
             en: "Done",
-            es: "OK",
+            es: "Listo",
         }),
         "settings.wallet.stepsSection": t({
             en: "Turn it on in Shortcuts",

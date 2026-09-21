@@ -17,7 +17,7 @@ const voice = {
         }),
         "voice.action.retry": t({
             en: "Say it again",
-            es: "Repetir",
+            es: "Dilo de nuevo",
         }),
         "voice.action.save": t({
             en: "Save",
@@ -25,7 +25,7 @@ const voice = {
         }),
         "voice.action.settings": t({
             en: "Open Settings",
-            es: "Abrir Ajustes",
+            es: "Abrir Configuración",
         }),
         "voice.close": t({
             en: "Close",
@@ -38,11 +38,11 @@ const voice = {
         }),
         "voice.failed.notConfigured": t({
             en: "Speaking an entry needs the cloud tier.",
-            es: "Dictar un registro necesita el nivel en la nube.",
+            es: "Para dictar un registro se necesita el servicio en la nube.",
         }),
         "voice.failed.notEntitled": t({
             en: "Your free captures, voice and receipts together, are used up. They come back within 30 days; Pro lifts the limit.",
-            es: "Tus capturas gratis, entre voz y recibos, ya se usaron. Vuelven en menos de 30 días; Pro quita ese límite.",
+            es: "Ya usaste tus capturas gratis (voz y recibos). Se renuevan en menos de 30 días; con Pro no tienes ese límite.",
         }),
         "voice.failed.offline": t({
             en: "You're offline.",
@@ -54,7 +54,7 @@ const voice = {
         }),
         "voice.failed.quotaExceeded": t({
             en: "The fair-use limit for captures is reached. It resets within 30 days.",
-            es: "Se alcanzó el límite de uso justo de capturas. Se reinicia en menos de 30 días.",
+            es: "Llegaste al límite de uso justo de capturas. Se renueva en menos de 30 días.",
         }),
         "voice.failed.rateLimited": t({
             en: "That's a lot of entries at once. Give it a moment.",
@@ -74,15 +74,15 @@ const voice = {
         }),
         "voice.failed.unclear": t({
             en: "Didn't catch a transaction in that.",
-            es: "No entendí una transacción ahí.",
+            es: "No detecté ninguna transacción ahí.",
         }),
         "voice.limit.last": t({
             en: "Last clip for now",
-            es: "Último clip por ahora",
+            es: "Última grabación por ahora",
         }),
         "voice.limit.next": t({
             en: "Next clip in {time}",
-            es: "Siguiente clip en {time}",
+            es: "Siguiente grabación en {time}",
         }),
         "voice.limit.paused": t({
             en: "Voice is paused",
@@ -107,12 +107,12 @@ const voice = {
         }),
         "voice.review.noCategory": t({
             en: "No category yet",
-            es: "Sin categoría aún",
+            es: "Aún sin categoría",
         }),
         // A transfer reads as "Checking to Savings"; either side may be unresolved.
         "voice.review.noMerchant": t({
             en: "No name yet",
-            es: "Sin nombre aún",
+            es: "Aún sin nombre",
         }),
         "voice.review.transfer": t({
             en: "{from} to {to}",
