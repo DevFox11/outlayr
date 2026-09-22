@@ -1,1 +1,1 @@
-export const GROK_MODEL_ID = "grok-4.6";
+export const GROK_MODEL_ID = "grok-4.3";

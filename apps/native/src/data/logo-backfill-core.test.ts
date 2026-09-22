@@ -198,21 +198,22 @@ describe("attachMissingLogos", () => {
     });
 
     it("stamps the paint past a row whose clock runs ahead", async () => {
-        const ahead = new Date(Date.now() + 60 * 60 * 1000);
+        const today = new Date();
+        const ahead = new Date(today.getTime() + 60 * 60 * 1000);
         await rememberLogoCandidate(db, "a", ahead.getTime(), Number.POSITIVE_INFINITY);
         await db.insert(transactions).values({
             amount: 10,
             currency: "EUR",
-            date: NOW,
-            day: NOW,
+            date: today,
+            day: today,
             id: "a",
             income: false,
-            month: NOW,
+            month: today,
             note: "Intermarche",
             updatedAt: ahead,
         });
 
-        await expect(attachMissingLogos(db, makeDeps({ now: Date.now() }))).resolves.toBe(1);
+        await expect(attachMissingLogos(db, makeDeps({ now: today.getTime() }))).resolves.toBe(1);
 
         const [row] = await db.select({ updatedAt: transactions.updatedAt }).from(transactions);
         expect(row.updatedAt.getTime()).toBeGreaterThan(ahead.getTime());
