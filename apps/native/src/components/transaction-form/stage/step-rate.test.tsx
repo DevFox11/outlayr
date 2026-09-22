@@ -13,12 +13,13 @@ const labels = {
         eurReferenceRequiresVes: "EUR reference is only available for VES",
     },
     eurReference: "EUR reference",
+    eurReferenceUnit: "VES per EUR",
     official: "Official",
-    perUsd: "VES per USD",
-    requiredHint: "Enter the amount of this currency equal to one US dollar.",
+    requiredHint: "Enter how many VES make 1 USD.",
     set: "Set",
     title: "Entry rate",
     unavailable: "Unavailable",
+    unit: "VES per USD",
 };
 
 const baseProps: ComponentProps<typeof StepRate> = {
@@ -50,6 +51,28 @@ describe("stepRate", () => {
         expect(getByText("42")).toBeTruthy();
         expect(getByText("VES per USD")).toBeTruthy();
         expect(getByText("Official · 18 Aug")).toBeTruthy();
+    });
+
+    it("shows EUR the way a bank quotes it, in USD per EUR", async () => {
+        const { getByText } = await render(
+            <StepRate
+                {...baseProps}
+                currency="EUR"
+                labels={{ ...labels, unit: "USD per EUR" }}
+                suggestions={{ eurOfficial: null, eurReference: null, official: 0.87113, priorCustom: null }}
+            />
+        );
+
+        expect(getByText("1.1479")).toBeTruthy();
+    });
+
+    it("states the EUR reference in VES per EUR, not per USD", async () => {
+        const { getByLabelText, getByText } = await render(
+            <StepRate {...baseProps} selection={{ exchangeRate: null, exchangeRateType: "eur_reference" }} />
+        );
+
+        expect(getByText("VES per EUR")).toBeTruthy();
+        expect(getByLabelText("Official").props.accessibilityValue).toMatchObject({ text: "42 VES per USD" });
     });
 
     it("omits EUR reference for a non-VES currency rather than offering a dead option", async () => {

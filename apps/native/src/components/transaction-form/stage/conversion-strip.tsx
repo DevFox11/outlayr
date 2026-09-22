@@ -1,7 +1,7 @@
 import { Pressable } from "react-native";
 
 import { formatAmount } from "@/domain/money";
-import { formatEntryRate, transactionRateOptions } from "@/domain/transaction-entry-rate";
+import { formatQuotedRate, transactionRateOptions } from "@/domain/transaction-entry-rate";
 import type { Language } from "@/i18n/languages";
 
 import { MetaLine } from "./meta-line";
@@ -63,7 +63,7 @@ export function ConversionStrip({
         rate === null || amountUsd === null
             ? null
             : {
-                  qualifier: `${rate.source} · ${formatEntryRate(rate.value)}`,
+                  qualifier: `${rate.source} · ${formatQuotedRate(currency, rate.value)}`,
                   statement: `${formatAmount(amount, currency, true, language)} = ${formatAmount(amountUsd, "USD", true, language)}`,
               };
 

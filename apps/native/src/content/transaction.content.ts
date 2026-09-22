@@ -346,17 +346,13 @@ const transaction = {
             en: "The native amount remains recorded. Cross-currency totals wait for your confirmation.",
             es: "El monto en su moneda original sigue registrado. Los totales en otras monedas esperan a que confirmes.",
         }),
-        "transaction.rate.perUsd": t({
-            en: "{currency} per USD",
-            es: "{currency} por USD",
-        }),
         "transaction.rate.required": t({
             en: "Enter a positive rate",
             es: "Ingresa una tasa mayor que cero",
         }),
         "transaction.rate.requiredHint": t({
-            en: "Enter the amount of this currency equal to one US dollar.",
-            es: "Ingresa el monto de esta moneda equivalente a un dólar estadounidense.",
+            en: "Enter how many {quote} make 1 {base}.",
+            es: "Ingresa cuántos {quote} equivalen a 1 {base}.",
         }),
         "transaction.rate.set": t({
             en: "Set",
@@ -373,6 +369,10 @@ const transaction = {
         "transaction.rate.unavailable": t({
             en: "Unavailable",
             es: "No disponible",
+        }),
+        "transaction.rate.unit": t({
+            en: "{quote} per {base}",
+            es: "{quote} por {base}",
         }),
         "transaction.remind.dayBefore": t({
             en: "1 day before",

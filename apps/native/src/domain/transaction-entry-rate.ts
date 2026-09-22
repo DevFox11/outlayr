@@ -1,3 +1,4 @@
+import { METAL_CURRENCY_CODES } from "@outlayr/money/currency";
 import { ENTRY_RATE_TYPES } from "@outlayr/money/rates";
 import type { EntryRateType } from "@outlayr/money/rates";
 
@@ -13,6 +14,28 @@ export interface CanonicalRateFields {
 }
 
 export type TransactionRateError = "customRateRequired" | "eurReferenceRequiresVes" | null;
+
+const QUOTED_IN_USD: ReadonlySet<string> = new Set([
+    "AUD",
+    "EUR",
+    "FKP",
+    "GBP",
+    "GGP",
+    "GIP",
+    "IMP",
+    "JEP",
+    "NZD",
+    "SHP",
+    ...METAL_CURRENCY_CODES,
+]);
+
+export function rateQuoteUnit(currency: string): { base: string; quote: string } {
+    return QUOTED_IN_USD.has(currency) ? { base: currency, quote: "USD" } : { base: "USD", quote: currency };
+}
+
+export function flipRateForQuote(currency: string, rate: number): number {
+    return QUOTED_IN_USD.has(currency) && rate > 0 ? 1 / rate : rate;
+}
 
 export function transactionRateOptions(currency: string): EntryRateType[] {
     if (currency === "USD") {
@@ -48,6 +71,10 @@ export function effectiveEntryRate(
  */
 export function formatEntryRate(rate: number): string {
     return String(Number(rate.toFixed(4)));
+}
+
+export function formatQuotedRate(currency: string, rate: number): string {
+    return formatEntryRate(flipRateForQuote(currency, rate));
 }
 
 export function transactionRateError(currency: string, selection: TransactionEntryRate): TransactionRateError {

@@ -64,7 +64,13 @@ import { isRealSplit } from "@/domain/split-draft";
 import { normalizeLead } from "@/domain/subscription-reminder";
 import { findTagByName, normalizeTagName } from "@/domain/tags";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
-import { effectiveEntryRate, transactionRateOptions } from "@/domain/transaction-entry-rate";
+import {
+    effectiveEntryRate,
+    flipRateForQuote,
+    formatQuotedRate,
+    rateQuoteUnit,
+    transactionRateOptions,
+} from "@/domain/transaction-entry-rate";
 import type { TransactionEntryRate } from "@/domain/transaction-entry-rate";
 import { ctaKey, transactionWhenLabel } from "@/domain/transaction-form-labels";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
@@ -222,8 +228,24 @@ interface StageStepContent {
     title: string;
 }
 
-function rateToEntryText(rate: number | null | undefined): string {
-    return rate != null && Number.isFinite(rate) && rate > 0 ? String(rate) : "";
+interface RateEntry {
+    seed: number | null;
+    text: string;
+}
+
+const NO_RATE: RateEntry = { seed: null, text: "" };
+
+function seededRate(currency: string, rate: number | null | undefined): RateEntry {
+    return rate != null && Number.isFinite(rate) && rate > 0
+        ? { seed: rate, text: formatQuotedRate(currency, rate) }
+        : NO_RATE;
+}
+
+function entryRateOf({ seed, text }: RateEntry, currency: string): number | null {
+    if (seed !== null && text === formatQuotedRate(currency, seed)) {
+        return seed;
+    }
+    return text === "" ? null : flipRateForQuote(currency, numpadToNumber(text));
 }
 
 function isProviderRate(rate: number | null | undefined, rateType: EntryRateType | null): boolean {
@@ -358,9 +380,13 @@ function initialEntryRateType(currency: string, rateType: string | null | undefi
  * both read. `official` stands in for an absent type because that is what an
  * unanswered non-USD entry records.
  */
-function rateSelectionOf(exchangeRateText: string, exchangeRateType: EntryRateType | null): TransactionEntryRate {
+function rateSelectionOf(
+    rate: RateEntry,
+    exchangeRateType: EntryRateType | null,
+    currency: string
+): TransactionEntryRate {
     return {
-        exchangeRate: exchangeRateText === "" ? null : numpadToNumber(exchangeRateText),
+        exchangeRate: entryRateOf(rate, currency),
         exchangeRateType: exchangeRateType ?? "official",
     };
 }
@@ -374,7 +400,7 @@ interface TransactionRateControlsOptions {
     onStage: (step: StageStep, forward: boolean) => void;
     setCurrency: (currency: string) => void;
     setDate: (date: Date) => void;
-    setRateText: (rateText: string) => void;
+    setRate: (rate: RateEntry | ((current: RateEntry) => RateEntry)) => void;
     setRateType: (rateType: EntryRateType | null) => void;
     stageStep: StageStep;
 }
@@ -387,7 +413,7 @@ function useTransactionRateControls({
     onStage,
     setCurrency,
     setDate,
-    setRateText,
+    setRate,
     setRateType,
     stageStep,
 }: TransactionRateControlsOptions) {
@@ -402,7 +428,7 @@ function useTransactionRateControls({
     const handleRateTypeChange = (next: EntryRateType) => {
         rateFromSuggestion.current = false;
         setRateType(next);
-        setRateText("");
+        setRate(NO_RATE);
         // Stays on the rate step: choosing a policy with nothing to apply is what
         // the custom keypad appears under, and leaving would hide the choice.
         onStage("rate", true);
@@ -411,39 +437,39 @@ function useTransactionRateControls({
     const handleRateSuggestion = (rate: number, type: EntryRateType) => {
         rateFromSuggestion.current = true;
         setRateType(type);
-        setRateText(rateToEntryText(rate));
+        setRate(seededRate(currency, rate));
         leaveRateStep();
     };
 
     const handleCurrencyChange = (next: string) => {
         if (next !== currency) {
             rateFromSuggestion.current = false;
-            setRateText("");
+            setRate(NO_RATE);
         }
         setCurrency(next);
         if (next === "USD") {
             setRateType(null);
-            setRateText("");
+            setRate(NO_RATE);
             leaveRateStep();
             return;
         }
         if (exchangeRateType == null || (exchangeRateType === "eur_reference" && next !== "VES")) {
             setRateType("official");
-            setRateText("");
+            setRate(NO_RATE);
         }
     };
 
     const handleDateChange = (next: Date) => {
         if (next.getTime() !== date.getTime() && rateFromSuggestion.current) {
             rateFromSuggestion.current = false;
-            setRateText("");
+            setRate(NO_RATE);
         }
         setDate(next);
     };
 
     const handleRateTextChange = (next: string) => {
         rateFromSuggestion.current = false;
-        setRateText(next);
+        setRate((current) => ({ seed: current.seed, text: next }));
     };
 
     const openRateStep = () => onStage("rate", true);
@@ -517,7 +543,6 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             coefficient: initial?.recurringCoefficient ?? seed?.recurrence?.coefficient ?? 1,
             date: initial ? new Date(initial.date) : (seed?.date ?? new Date()),
             endDate: initial?.recurringEndDate ? new Date(initial.recurringEndDate) : oneYearFrom(new Date()),
-            exchangeRateText: rateToEntryText(initial?.exchangeRate),
             exchangeRateType: initialEntryRateType(effectiveCurrency, initial?.exchangeRateType),
             hasEndDate: initial?.recurringEndDate != null,
             income: seedCategory?.income ?? initial?.income ?? copyOf?.income ?? seed?.income ?? false,
@@ -539,6 +564,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             merchantSeed: nameSeed,
             pendingCategory: null as PendingCategory | null,
             pendingTagNames: [] as readonly string[],
+            rateEntry: seededRate(effectiveCurrency, initial?.exchangeRate),
             recurringType:
                 initial?.recurringType && initial.recurringType !== RECURRING_TYPE.none
                     ? initial.recurringType
@@ -599,9 +625,9 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 emoji: identity.emoji,
                 endDate: value.endDate,
                 exchangeRate:
-                    value.exchangeRateType == null || value.exchangeRateText === ""
+                    value.exchangeRateType == null
                         ? null
-                        : numpadToNumber(value.exchangeRateText),
+                        : entryRateOf(value.rateEntry, value.txCurrency ?? globalCurrency),
                 exchangeRateType: value.exchangeRateType,
                 hasEndDate: value.hasEndDate,
                 icon: identity.icon,
@@ -764,7 +790,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     ...value,
                     categoryDeferred: queueable(value.merchant),
                     currency: value.txCurrency ?? globalCurrency,
-                    exchangeRate: value.exchangeRateText === "" ? null : numpadToNumber(value.exchangeRateText),
+                    exchangeRate: entryRateOf(value.rateEntry, value.txCurrency ?? globalCurrency),
                 }),
         },
     });
@@ -784,7 +810,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         endDate,
         hasEndDate,
         leadDays,
-        exchangeRateText,
+        rateEntry,
         exchangeRateType,
     } = useSelector(
         form.store,
@@ -794,13 +820,13 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             coefficient: s.values.coefficient,
             date: s.values.date,
             endDate: s.values.endDate,
-            exchangeRateText: s.values.exchangeRateText,
             exchangeRateType: s.values.exchangeRateType,
             hasEndDate: s.values.hasEndDate,
             income: s.values.income,
             isSubscription: s.values.isSubscription,
             leadDays: s.values.leadDays,
             pendingCategory: s.values.pendingCategory,
+            rateEntry: s.values.rateEntry,
             recurringType: s.values.recurringType,
             txCurrency: s.values.txCurrency,
         }),
@@ -815,7 +841,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         // oxlint-disable-next-line react/exhaustive-deps -- ratesVersion invalidates this SQLite read after cache replacement.
         [db, currency, date, ratesVersion]
     );
-    const rateSelection = rateSelectionOf(exchangeRateText, exchangeRateType);
+    const rateSelection = rateSelectionOf(rateEntry, exchangeRateType, currency);
     /**
      * Whether this entry converts at all. `transactionRateOptions` is the single
      * answer: it is empty for USD, which has no rate to state and so no strip and
@@ -824,6 +850,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const converts = transactionRateOptions(currency).length > 0;
     const rateInForce = effectiveEntryRate(rateSelection, rateSuggestions);
     const rateSourceLabel = t(RATE_SOURCE_KEYS[rateSelection.exchangeRateType]);
+    const rateUnit = rateQuoteUnit(currency);
 
     /**
      * What the entered amount comes to in USD at the rate in force, or null while
@@ -923,7 +950,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         onStage: goStage,
         setCurrency: (next) => form.setFieldValue("txCurrency", next),
         setDate: (next) => form.setFieldValue("date", next),
-        setRateText: (next) => form.setFieldValue("exchangeRateText", next),
+        setRate: (next) => form.setFieldValue("rateEntry", next),
         setRateType: (next) => form.setFieldValue("exchangeRateType", next),
         stageStep,
     });
@@ -1790,12 +1817,13 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                 eurReferenceRequiresVes: t("transaction.rate.eurReferenceRequiresVes"),
                             },
                             eurReference: t("transaction.rate.eur_reference"),
+                            eurReferenceUnit: t("transaction.rate.unit", { base: "EUR", quote: currency }),
                             official: t("transaction.rate.official"),
-                            perUsd: t("transaction.rate.perUsd", { currency }),
-                            requiredHint: t("transaction.rate.requiredHint"),
+                            requiredHint: t("transaction.rate.requiredHint", rateUnit),
                             set: t("transaction.rate.set"),
                             title: t("transaction.rate.title"),
                             unavailable: t("transaction.rate.unavailable"),
+                            unit: t("transaction.rate.unit", rateUnit),
                         }}
                         onEditCustom={openRateStep}
                         onSelectType={handleRateTypeChange}
@@ -1812,7 +1840,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                             mode="explicitSeparator"
                             onChange={handleRateTextChange}
                             showDisplay={false}
-                            value={exchangeRateText}
+                            value={rateEntry.text}
                         />
                     </StepRate>
                 ),

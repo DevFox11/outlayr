@@ -1,6 +1,13 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { isTransactionRateNeeded, transactionRateError, transactionRateOptions } from "./transaction-entry-rate";
+import {
+    flipRateForQuote,
+    formatQuotedRate,
+    isTransactionRateNeeded,
+    rateQuoteUnit,
+    transactionRateError,
+    transactionRateOptions,
+} from "./transaction-entry-rate";
 
 describe("transaction entry rate policy", () => {
     it("offers official and custom for every non-USD currency, adding EUR reference only for VES", () => {
@@ -23,5 +30,22 @@ describe("transaction entry rate policy", () => {
             false
         );
         expect(isTransactionRateNeeded({ amountUsd: 100, exchangeRate: 55.5, exchangeRateType: "custom" })).toBe(false);
+    });
+
+    it("quotes EUR, GBP and its pegs, AUD, NZD and metals in USD per unit, and every other currency per USD", () => {
+        expect(rateQuoteUnit("EUR")).toStrictEqual({ base: "EUR", quote: "USD" });
+        expect(rateQuoteUnit("NZD")).toStrictEqual({ base: "NZD", quote: "USD" });
+        expect(rateQuoteUnit("VES")).toStrictEqual({ base: "USD", quote: "VES" });
+        expect(rateQuoteUnit("GIP")).toStrictEqual({ base: "GIP", quote: "USD" });
+        expect(formatQuotedRate("XAU", 1 / 3500)).toBe("3500");
+        expect(formatQuotedRate("EUR", 0.87113)).toBe("1.1479");
+        expect(formatQuotedRate("VES", 55.555555)).toBe("55.5556");
+    });
+
+    it("flips only a positive rate of a USD-quoted currency", () => {
+        expect(flipRateForQuote("EUR", 0.8)).toBe(1.25);
+        expect(flipRateForQuote("EUR", 1.25)).toBe(0.8);
+        expect(flipRateForQuote("VES", 55.5)).toBe(55.5);
+        expect(flipRateForQuote("EUR", 0)).toBe(0);
     });
 });

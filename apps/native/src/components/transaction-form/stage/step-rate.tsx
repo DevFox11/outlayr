@@ -5,7 +5,7 @@ import { Pressable, View } from "react-native";
 import type { TransactionRateSuggestions } from "@/data/transaction-entry-rates";
 import {
     effectiveEntryRate,
-    formatEntryRate,
+    formatQuotedRate,
     transactionRateError,
     transactionRateOptions,
 } from "@/domain/transaction-entry-rate";
@@ -20,13 +20,13 @@ interface StepRateLabels {
     /** Inline danger copy, one per `transactionRateError` code. */
     error: Record<NonNullable<TransactionRateError>, string>;
     eurReference: string;
+    eurReferenceUnit: string;
     official: string;
-    /** Unit beside the promoted figure, e.g. "VES per USD". */
-    perUsd: string;
     requiredHint: string;
     /** Placeholder for a rate the user can still type. */
     set: string;
     title: string;
+    unit: string;
     /**
      * Placeholder for a provider rate that does not exist. Rates resolve per
      * currency AND per date over a rolling window, so outside it the lookup
@@ -81,9 +81,9 @@ const rateFor = (
  * A missing provider rate and an unentered custom rate are different absences:
  * one can never be typed, the other is waiting to be.
  */
-const figureFor = (type: EntryRateType, rate: number | null, labels: StepRateLabels): string => {
+const figureFor = (currency: string, type: EntryRateType, rate: number | null, labels: StepRateLabels): string => {
     if (rate !== null) {
-        return formatEntryRate(rate);
+        return formatQuotedRate(currency, rate);
     }
     return type === "custom" ? labels.set : labels.unavailable;
 };
@@ -119,6 +119,7 @@ export function StepRate({
     const heroFigure = heroRate ?? offeredRate;
     const alternates = options.filter((type) => type !== selected);
     const errorCode = transactionRateError(currency, selection);
+    const unitFor = (type: EntryRateType) => (type === "eur_reference" ? labels.eurReferenceUnit : labels.unit);
 
     // Tapping an alternate promotes it. A provider rate applies its suggestion
     // outright; custom applies the prior rate when there is one, and otherwise
@@ -160,7 +161,9 @@ export function StepRate({
                 }
                 accessibilityRole="button"
                 accessibilityValue={
-                    heroFigure === null ? undefined : { text: `${formatEntryRate(heroFigure)} ${labels.perUsd}` }
+                    heroFigure === null
+                        ? undefined
+                        : { text: `${formatQuotedRate(currency, heroFigure)} ${unitFor(selected)}` }
                 }
                 disabled={!isCustom && heroRate === null}
                 onPress={pressHero}
@@ -174,9 +177,9 @@ export function StepRate({
                             heroRate === null ? "text-muted" : "text-foreground"
                         )}
                     >
-                        {figureFor(selected, heroFigure, labels)}
+                        {figureFor(currency, selected, heroFigure, labels)}
                     </Text>
-                    {heroFigure === null ? null : <Text className="text-footnote text-muted">{labels.perUsd}</Text>}
+                    {heroFigure === null ? null : <Text className="text-footnote text-muted">{unitFor(selected)}</Text>}
                 </View>
                 <Text className="text-footnote text-muted font-mono">
                     {`${labelFor(selected, labels)} · ${resolvedOn}`}
@@ -200,7 +203,9 @@ export function StepRate({
                                 accessibilityLabel={label}
                                 accessibilityRole="button"
                                 accessibilityValue={
-                                    rate === null ? undefined : { text: `${formatEntryRate(rate)} ${labels.perUsd}` }
+                                    rate === null
+                                        ? undefined
+                                        : { text: `${formatQuotedRate(currency, rate)} ${unitFor(type)}` }
                                 }
                                 className={cn(
                                     "min-w-0 flex-1 pt-2.5 active:opacity-60",
@@ -219,7 +224,7 @@ export function StepRate({
                                         rate === null ? "text-muted" : "text-foreground"
                                     )}
                                 >
-                                    {figureFor(type, rate, labels)}
+                                    {figureFor(currency, type, rate, labels)}
                                 </Text>
                             </Pressable>
                         );
