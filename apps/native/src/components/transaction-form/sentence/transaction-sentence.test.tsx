@@ -31,6 +31,7 @@ const labelsFor = (template: string): TransactionSentenceLabels => ({
     amount: { blank: "an amount", field: "Amount" },
     category: { blank: "a category", field: "Category" },
     currency: { code: "USD", field: "Change currency" },
+    fee: { field: "Card fee" },
     kind: { switchLabel: "Expense or income", verb: "Spent" },
     merchant: { field: "Name", placeholder: "a merchant" },
     template,
@@ -47,12 +48,14 @@ const renderWith = async (template: string) => {
             categoryFlagged={false}
             categoryPending={false}
             categoryShake={false}
+            fee={null}
             labels={labelsFor(template)}
             merchant="Netflix"
             onAccountPress={jest.fn()}
             onAmountPress={jest.fn()}
             onCategoryPress={jest.fn()}
             onCurrencyPress={jest.fn()}
+            onFeePress={jest.fn()}
             onKindPress={jest.fn()}
             onMerchantPress={jest.fn()}
             onWhenPress={jest.fn()}
@@ -135,12 +138,14 @@ describe("transactionSentence", () => {
                 categoryFlagged={false}
                 categoryPending
                 categoryShake={false}
+                fee={null}
                 labels={labelsFor(EN)}
                 merchant="Netflix"
                 onAccountPress={jest.fn()}
                 onAmountPress={jest.fn()}
                 onCategoryPress={jest.fn()}
                 onCurrencyPress={jest.fn()}
+                onFeePress={jest.fn()}
                 onKindPress={jest.fn()}
                 onMerchantPress={jest.fn()}
                 onWhenPress={jest.fn()}
@@ -166,12 +171,14 @@ describe("transactionSentence", () => {
                 categoryFlagged={false}
                 categoryPending={false}
                 categoryShake={false}
+                fee={null}
                 labels={labelsFor(EN)}
                 merchant="Netflix"
                 onAccountPress={jest.fn()}
                 onAmountPress={jest.fn()}
                 onCategoryPress={jest.fn()}
                 onCurrencyPress={jest.fn()}
+                onFeePress={jest.fn()}
                 onKindPress={jest.fn()}
                 onMerchantPress={jest.fn()}
                 onWhenPress={jest.fn()}

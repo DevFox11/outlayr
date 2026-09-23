@@ -7,6 +7,7 @@ import { SettingsSection, ToggleRow } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
+import { goesWithPendingDelete } from "@/data/card-fees-core";
 import { useUpcomingTransactions } from "@/data/log-filtered";
 import { setBoolSetting } from "@/data/settings-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
@@ -59,7 +60,7 @@ export function Upcoming() {
     const openRowActions = useTransactionRowActions(nowMs, requestDelete);
     // A row waiting on the undo toast is already gone as far as the figures go,
     // or the monthly cost keeps charging for a subscription the user just deleted.
-    const upcoming = scheduled.rows.filter((row) => row.id !== pendingId);
+    const upcoming = scheduled.rows.filter((row) => !goesWithPendingDelete(row, pendingId));
 
     return (
         <SettingsScreen>

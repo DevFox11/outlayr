@@ -549,7 +549,7 @@ export function useBudgetContributions(
                         contributingIds ? inArray(transactions.categoryId, contributingIds) : undefined
                     )
                 )
-                .orderBy(desc(transactions.date)),
+                .orderBy(desc(transactions.date), asc(transactions.feeForId)),
         [contributingKey, startMs, endMs]
     );
 

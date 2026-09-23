@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 
@@ -87,5 +87,5 @@ export function searchedTransactionsQuery(db: SpendDb, criteria: SearchCriteria)
                 )
             )
         )
-        .orderBy(desc(transactions.day), desc(transactions.date));
+        .orderBy(desc(transactions.day), desc(transactions.date), asc(transactions.feeForId));
 }

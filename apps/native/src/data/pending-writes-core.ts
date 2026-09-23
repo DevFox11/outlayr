@@ -10,6 +10,7 @@ import { parseNotification } from "@/domain/parse-notification";
 import type { ClaimedWrites, PendingWrite } from "@/lib/pending-writes-core";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
+import { suggestedCardFee } from "./card-fees-core";
 import { transactionsRepo } from "./transactions-core";
 
 /**
@@ -193,6 +194,7 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
             continue;
         }
         const account = await resolveAccount(db, job);
+        const currency = resolveWriteCurrency(job, account);
         // oxlint-disable-next-line no-loop-func -- awaited in place, so nothing outlives the iteration whose `job`, `categoryId` and `account` it reads
         await withTransaction(db, async () => {
             const txId = await transactionsRepo.create(db, {
@@ -201,9 +203,10 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
                 categoryId,
                 // Null means "the ledger's own currency", which is what
                 // `transactionsRepo.create` already resolves it to.
-                currency: resolveWriteCurrency(job, account),
+                currency,
                 date: new Date(job.date),
                 details: null,
+                fee: job.income ? null : suggestedCardFee(db, { account, categoryId, currency, merchant: job.note }),
                 income: job.income,
                 note: job.note,
             });

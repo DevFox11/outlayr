@@ -54,6 +54,8 @@ function makeDb() {
 			recurringType integer NOT NULL DEFAULT 0,
 			reminderLeadDays integer,
 			transferId text,
+			feeForId text,
+			feeRate real,
 			updatedAt integer NOT NULL,
 			deletedAt integer
 		);

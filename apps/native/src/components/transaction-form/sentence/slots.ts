@@ -8,4 +8,6 @@ export const TRANSACTION_SENTENCE_SLOTS = ["account", "amount", "category", "kin
 
 export type TransactionSentenceSlot = (typeof TRANSACTION_SENTENCE_SLOTS)[number];
 
+export type TransactionSentenceMark = TransactionSentenceSlot | "fee";
+
 export const TRANSACTION_SENTENCE_KEYS = ["transaction.sentence.expense", "transaction.sentence.income"] as const;

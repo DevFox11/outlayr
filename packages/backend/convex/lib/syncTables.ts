@@ -53,6 +53,8 @@ export const transactionFields = {
     emoji: v.union(v.string(), v.null()),
     exchangeRate: v.union(v.number(), v.null()),
     exchangeRateType: v.union(v.string(), v.null()),
+    feeForId: v.optional(v.union(v.string(), v.null())),
+    feeRate: v.optional(v.union(v.number(), v.null())),
     icon: v.union(v.string(), v.null()),
     imageColor: v.union(v.string(), v.null()),
     /**

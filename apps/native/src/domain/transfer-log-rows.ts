@@ -29,6 +29,7 @@ export interface TransferLogRow {
     exchangeRate: null;
     exchangeRateType: null;
     excludedFromTotals: true;
+    feeForId: null;
     icon: null;
     id: string;
     imageColor: null;
@@ -68,6 +69,7 @@ export function toTransferLogRow(
         exchangeRate: null,
         exchangeRateType: null,
         excludedFromTotals: true,
+        feeForId: null,
         icon: null,
         id: transfer.id,
         imageColor: null,

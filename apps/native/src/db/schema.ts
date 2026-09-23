@@ -135,6 +135,8 @@ export const transactions = sqliteTable(
         exchangeRate: real("exchangeRate"),
         /** Which market rate it came from: official | eur_reference | custom. */
         exchangeRateType: text("exchangeRateType"),
+        feeForId: text("feeForId"),
+        feeRate: real("feeRate"),
         icon: text("icon"),
         id: text("id").primaryKey(),
         imageColor: text("imageColor"),
@@ -202,6 +204,7 @@ export const transactions = sqliteTable(
     },
     (table) => [
         index("transactions_transferId_idx").on(table.transferId),
+        index("transactions_feeForId_idx").on(table.feeForId),
         index("transactions_day_idx").on(table.day),
         index("transactions_month_idx").on(table.month),
         index("transactions_categoryId_idx").on(table.categoryId),

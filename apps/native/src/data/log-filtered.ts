@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, gte, inArray, isNull, lt, lte, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNull, lt, lte, or } from "drizzle-orm";
 import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
@@ -101,7 +101,7 @@ export function useFilteredTransactions(db: Database, nowMs: number, scope: LogF
                       .select(LOG_COLUMNS)
                       .from(transactions)
                       .where(where)
-                      .orderBy(desc(transactions.day), desc(transactions.date))
+                      .orderBy(desc(transactions.day), desc(transactions.date), asc(transactions.feeForId))
                 : db.select(LOG_COLUMNS).from(transactions).where(eq(transactions.id, "")),
         [
             nowMs,

@@ -103,6 +103,38 @@ const transaction = {
             en: "Edit",
             es: "Editar",
         }),
+        "transaction.fee.amount": t({
+            en: "Amount",
+            es: "Monto",
+        }),
+        "transaction.fee.charged": t({
+            en: "Charged",
+            es: "Cobrado",
+        }),
+        "transaction.fee.line": t({
+            en: "{base} + {fee} fee",
+            es: "{base} + {fee} de comisión",
+        }),
+        "transaction.fee.loggedAs": t({
+            en: "Logged as",
+            es: "Se registra en",
+        }),
+        "transaction.fee.none": t({
+            en: "None",
+            es: "Ninguna",
+        }),
+        "transaction.fee.note": t({
+            en: "Fee · {merchant}",
+            es: "Comisión · {merchant}",
+        }),
+        "transaction.fee.otherPercent": t({
+            en: "Other %",
+            es: "Otro %",
+        }),
+        "transaction.fee.title": t({
+            en: "Card fee",
+            es: "Comisión de la tarjeta",
+        }),
         "transaction.field.account": t({
             en: "Account",
             es: "Cuenta",
@@ -463,6 +495,10 @@ const transaction = {
         "transaction.schedule.stopRepeat": t({
             en: "Stop repeating",
             es: "Dejar de repetir",
+        }),
+        "transaction.sentence.add.fee": t({
+            en: "fee",
+            es: "comisión",
         }),
         "transaction.sentence.add.icon": t({
             en: "icon",

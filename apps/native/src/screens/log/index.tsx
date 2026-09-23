@@ -9,6 +9,7 @@ import { useDisplaySettings, useSettingBool, useSettingNumber } from "@/contexts
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccounts, useAccountsOverviewIn } from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
+import { goesWithPendingDelete } from "@/data/card-fees-core";
 import { useCategoryMeta } from "@/data/categories";
 import { useFavouriteCurrencies } from "@/data/favourite-currencies";
 import { useFilteredTransactions, useUpcomingTransactions } from "@/data/log-filtered";
@@ -196,7 +197,10 @@ export function Log() {
         }
         return mergeByRecency(filter === "all" ? windowRows : filteredRows, transferRows);
     }, [filter, windowRows, filteredRows, transferRows]);
-    const visibleRows = useMemo(() => listRows.filter((row) => row.id !== pendingId), [listRows, pendingId]);
+    const visibleRows = useMemo(
+        () => listRows.filter((row) => !goesWithPendingDelete(row, pendingId)),
+        [listRows, pendingId]
+    );
     const sections = useMemo(() => groupByDay(visibleRows, currency, rates), [visibleRows, currency, rates]);
     // Totalled over the filtered read, which `useFilteredTransactions` leaves
     // unwindowed: `windowRows` is a page, so `all` gets the period header instead.
@@ -235,7 +239,7 @@ export function Log() {
     // drawn here rather than below, so without this a delete of one leaves it on
     // screen for the whole undo window, under a toast saying it is gone.
     const upcomingRows = useMemo(
-        () => (showUpcomingSection ? upcoming.rows.filter((row) => row.id !== pendingId) : []),
+        () => (showUpcomingSection ? upcoming.rows.filter((row) => !goesWithPendingDelete(row, pendingId)) : []),
         [showUpcomingSection, upcoming.rows, pendingId]
     );
     const upcomingSchedules = useMemo(

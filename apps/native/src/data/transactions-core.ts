@@ -1,5 +1,5 @@
 import type { EntryRateType } from "@outlayr/money/rates";
-import { and, desc, eq, gt, gte, isNotNull, isNull, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, isNotNull, isNull, lte, sql } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { transactions, transfers } from "@/db/schema";
@@ -16,6 +16,8 @@ import { isTransactionRateNeeded } from "@/domain/transaction-entry-rate";
 
 import { getMeta, META_KEYS } from "./app-meta-core";
 import type { SpendDb } from "./budget-spent";
+import { cardFeeFor, cardFeeValues } from "./card-fees-core";
+import type { CardFeeInput } from "./card-fees-core";
 import { getCategoryById } from "./categories-core";
 import { ERASED_DATE } from "./erase-core";
 import {
@@ -47,6 +49,7 @@ export const LOG_COLUMNS = {
     emoji: transactions.emoji,
     exchangeRate: transactions.exchangeRate,
     exchangeRateType: transactions.exchangeRateType,
+    feeForId: transactions.feeForId,
     icon: transactions.icon,
     id: transactions.id,
     imageColor: transactions.imageColor,
@@ -134,7 +137,12 @@ export function deletedTransactionsQuery(db: SpendDb) {
         .select(DELETED_COLUMNS)
         .from(transactions)
         .where(
-            and(isNotNull(transactions.deletedAt), gt(transactions.date, ERASED_DATE), isNull(transactions.transferId))
+            and(
+                isNotNull(transactions.deletedAt),
+                gt(transactions.date, ERASED_DATE),
+                isNull(transactions.transferId),
+                sql`(${transactions.feeForId} IS NULL OR NOT EXISTS (SELECT 1 FROM ${transactions} AS purchase WHERE purchase.id = ${transactions.feeForId} AND purchase.deletedAt IS NOT NULL))`
+            )
         )
         .orderBy(desc(transactions.deletedAt), desc(transactions.date));
 }
@@ -148,7 +156,7 @@ export function logWindowRowsQuery(db: SpendDb, nowMs: number, floorMs: number |
         .select(LOG_COLUMNS)
         .from(transactions)
         .where(floorMs == null ? visibleAt(nowMs) : and(visibleAt(nowMs), gte(transactions.day, new Date(floorMs))))
-        .orderBy(desc(transactions.day), desc(transactions.date));
+        .orderBy(desc(transactions.day), desc(transactions.date), asc(transactions.feeForId));
 }
 
 export type Transaction = typeof transactions.$inferSelect;
@@ -168,6 +176,7 @@ export interface TransactionInput {
     emoji?: string | null;
     exchangeRate?: number | null;
     exchangeRateType?: EntryRateType | null;
+    fee?: CardFeeInput | null;
     /** Chosen logo icon (registry key) — mutually exclusive with `emoji`. */
     icon?: string | null;
     /** Color derived for (or chosen for) a photo identity (hex). */
@@ -185,6 +194,43 @@ export interface TransactionInput {
     recurringType?: number;
     /** Days of notice for the due-date reminder; null is off, 0 is the day itself. */
     reminderLeadDays?: number | null;
+}
+
+type FeeValues = Awaited<ReturnType<typeof cardFeeValues>>;
+
+function keptFeeValue(existing: Transaction, values: FeeValues, moneyKept: boolean) {
+    const sameFee =
+        existing.feeRate === values.feeRate &&
+        existing.currency === values.currency &&
+        (values.feeRate !== null || existing.amount === values.amount);
+    return sameFee && moneyKept ? { amount: existing.amount, amountUsd: existing.amountUsd } : {};
+}
+
+async function writeFee(
+    db: Database,
+    purchaseId: string,
+    values: FeeValues | null,
+    now: Date,
+    moneyKept = false
+): Promise<void> {
+    const existing = cardFeeFor(db, purchaseId);
+    if (values === null) {
+        if (existing !== null) {
+            await db
+                .update(transactions)
+                .set({ deletedAt: now, updatedAt: now })
+                .where(eq(transactions.id, existing.id));
+        }
+        return;
+    }
+    if (existing === null) {
+        await db.insert(transactions).values({ ...values, id: newId(), updatedAt: now });
+        return;
+    }
+    await db
+        .update(transactions)
+        .set({ ...values, ...keptFeeValue(existing, values, moneyKept), updatedAt: now })
+        .where(eq(transactions.id, existing.id));
 }
 
 /**
@@ -367,7 +413,7 @@ export function accountTransactionsQuery(db: SpendDb, accountId: string) {
         .select(LOG_COLUMNS)
         .from(transactions)
         .where(and(isNull(transactions.deletedAt), eq(transactions.accountId, accountId)))
-        .orderBy(desc(transactions.date));
+        .orderBy(desc(transactions.date), asc(transactions.feeForId));
 }
 
 export interface CreateOptions {
@@ -385,7 +431,10 @@ export const transactionsRepo = {
     async create(db: Database, input: TransactionInput, options: CreateOptions = {}): Promise<string> {
         const id = newId();
         const row = await toRow(db, id, input);
-        await db.insert(transactions).values(row);
+        const fee = input.fee == null ? null : await cardFeeValues(db, id, row, input.fee);
+        await db
+            .insert(transactions)
+            .values(fee === null ? [row] : [row, { ...fee, id: newId(), updatedAt: row.updatedAt }]);
         // Bookkeeping, so it cannot fail the save: the row is already in, and a
         // caller told otherwise would retry and write it twice. Judged on the
         // merchant the caller gave, not on `row.note`: a blank merchant is filled
@@ -440,6 +489,10 @@ export const transactionsRepo = {
                     .set({ deletedAt: now, updatedAt: now })
                     .where(eq(transfers.id, row.transferId));
             }
+            await db
+                .update(transactions)
+                .set({ deletedAt: now, updatedAt: now })
+                .where(and(eq(transactions.feeForId, id), isNull(transactions.deletedAt)));
         });
     },
 
@@ -465,11 +518,23 @@ export const transactionsRepo = {
     async restore(db: Database, id: string, now: Date = new Date()): Promise<void> {
         await withTransaction(db, async () => {
             const previous = getTransactionById(db, id);
-            if (previous == null || previous.deletedAt == null || previous.transferId != null) {
+            const purchaseId = previous?.feeForId ?? null;
+            const purchase = purchaseId === null ? null : getTransactionById(db, purchaseId);
+            if (
+                previous == null ||
+                previous.deletedAt == null ||
+                previous.transferId != null ||
+                purchase?.deletedAt != null ||
+                (purchaseId !== null && cardFeeFor(db, purchaseId) !== null)
+            ) {
                 return;
             }
             await refreshLogoCandidate(db, id, now.getTime());
             await db.update(transactions).set({ deletedAt: null, updatedAt: now }).where(eq(transactions.id, id));
+            await db
+                .update(transactions)
+                .set({ deletedAt: null, updatedAt: now })
+                .where(and(eq(transactions.feeForId, id), eq(transactions.deletedAt, previous.deletedAt)));
         });
     },
 
@@ -506,6 +571,8 @@ export const transactionsRepo = {
         const row = await toRow(db, id, input);
         const { id: _omit, ...rest } = row;
         const kept = keptCanonical(row, previous, input);
+        const accountId = keptAccount(previous, input);
+        const fee = input.fee == null ? null : await cardFeeValues(db, id, { ...row, ...kept, accountId }, input.fee);
         // One transaction for the bookkeeping and the row: a stamp moved for
         // an UPDATE that then failed would never match the row again.
         await withTransaction(db, async () => {
@@ -545,7 +612,7 @@ export const transactionsRepo = {
                     ...rest,
                     ...kept,
                     ...landed,
-                    accountId: keptAccount(previous, input),
+                    accountId,
                     // Deletion is `remove` and `restore`'s call, never an edit's.
                     // `toRow` builds a fresh row and every fresh row is live, so
                     // spreading it cleared the tombstone: a peer's delete arriving
@@ -557,6 +624,9 @@ export const transactionsRepo = {
                     reminderLeadDays: keptLead(row, previous, input),
                 })
                 .where(eq(transactions.id, id));
+            if (input.fee !== undefined && previous != null && previous.deletedAt == null) {
+                await writeFee(db, id, fee, row.updatedAt, kept !== null);
+            }
         });
     },
 };

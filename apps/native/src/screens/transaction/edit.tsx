@@ -16,7 +16,11 @@ export function EditTransaction({ id }: { id: string }) {
     // Read once, synchronously, while mounting: the database is already open (the
     // splash gate guarantees it) and the driver runs on the JS thread, so the row
     // is in hand for the very first render — the form never mounts empty.
-    const [initial] = useState(() => (id ? getTransactionById(db, id) : null));
+    const [initial] = useState(() => {
+        const row = id ? getTransactionById(db, id) : null;
+        const purchase = row?.feeForId ? getTransactionById(db, row.feeForId) : null;
+        return purchase != null && purchase.deletedAt == null ? purchase : row;
+    });
 
     useEffect(() => {
         if (initial == null) {
@@ -28,10 +32,10 @@ export function EditTransaction({ id }: { id: string }) {
     // the toast that offers it is mounted at the app root, so it survives this
     // screen going away — which it does immediately.
     const deleteTransaction = () => {
-        if (!id) {
+        if (initial == null) {
             return;
         }
-        requestDelete(id);
+        requestDelete(initial.id);
         router.back();
     };
 

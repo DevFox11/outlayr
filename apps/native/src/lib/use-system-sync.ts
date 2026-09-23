@@ -4,6 +4,7 @@ import { AppState } from "react-native";
 
 import { getMeta, META_KEYS, setMeta } from "@/data/app-meta-core";
 import { backfillBudgetUsd, backfillCanonicalUsd, stampLedgerCurrency } from "@/data/canonicalize-backfill";
+import { settlePendingFees } from "@/data/card-fees-core";
 import { drainPendingWrites } from "@/data/pending-writes-core";
 import { pullRatesIfDue } from "@/data/rates";
 import type { Database } from "@/db/client";
@@ -159,6 +160,7 @@ async function refreshRates(db: Database): Promise<boolean> {
     try {
         changed = (await backfillCanonicalUsd(db)) > 0 || changed;
         changed = (await backfillBudgetUsd(db)) > 0 || changed;
+        changed = (await settlePendingFees(db)) > 0 || changed;
     } catch (error) {
         console.warn("[outlayr] canonicalization backfill failed", error);
     }

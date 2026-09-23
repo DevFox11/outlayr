@@ -235,6 +235,8 @@ const SPECS = {
             "exchangeRate",
             "exchangeRateType",
             "transferId",
+            "feeForId",
+            "feeRate",
         ],
         id: transactions.id,
         table: transactions,

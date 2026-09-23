@@ -12,6 +12,7 @@ import { Text } from "@/components/text";
 import { TransactionRow } from "@/components/transaction-row";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
+import { goesWithPendingDelete } from "@/data/card-fees-core";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
@@ -80,7 +81,10 @@ export function BudgetDetailView({
     // Only the list drops the row being deleted. The summary above it is computed
     // by the caller from the same window and catches up when the write lands, the
     // same way the Log's header trails its own list.
-    const rows = useMemo(() => transactions.filter((row) => row.id !== pendingId), [transactions, pendingId]);
+    const rows = useMemo(
+        () => transactions.filter((row) => !goesWithPendingDelete(row, pendingId)),
+        [transactions, pendingId]
+    );
     const sections = useMemo(() => groupByDay(rows, currency, rates), [rows, currency, rates]);
     // Scoped to the window on screen, not the ledger: a closed period is exactly
     // where rows the rate history can no longer reach turn up, and a total that

@@ -69,6 +69,8 @@ function makeDb(options?: { withRealTransactions?: boolean }): Database {
 			recurringAnchorDay integer, reminderLeadDays integer,
 			categoryId text, accountId text, amountUsd real, exchangeRate real, exchangeRateType text,
 			transferId text,
+			feeForId text,
+			feeRate real,
 			updatedAt integer NOT NULL, deletedAt integer
 		);
 	`);

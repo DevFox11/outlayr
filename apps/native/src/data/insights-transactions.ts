@@ -1,4 +1,4 @@
-import { and, desc, eq, getTableColumns, gte, inArray, isNull, lt, lte } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, gte, inArray, isNull, lt, lte } from "drizzle-orm";
 import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
@@ -74,7 +74,7 @@ export function useWindowTransactions(db: Database, query: WindowTransactionsQue
                     contributingIds ? inArray(transactions.categoryId, contributingIds) : undefined
                 )
             )
-            .orderBy(desc(transactions.date));
+            .orderBy(desc(transactions.date), asc(transactions.feeForId));
     }, [enabled, startMs, endMs, nowMs, income, contributingKey]);
 
     return useDecoratedRows(db, data);

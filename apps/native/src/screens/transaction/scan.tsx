@@ -17,8 +17,9 @@ import type { StageBox } from "@/components/receipt/photo-stage";
 import { ReceiptFrame } from "@/components/receipt/receipt-frame";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccounts } from "@/data/accounts";
-import { rememberLastUsedAccount } from "@/data/accounts-core";
+import { getAccountById, rememberLastUsedAccount } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
+import { suggestedCardFee } from "@/data/card-fees-core";
 import { useCategoriesByNamespace } from "@/data/categories";
 import { getCategoryById } from "@/data/categories-core";
 import { transactionsRepo } from "@/data/transactions-core";
@@ -711,6 +712,14 @@ function ScanFlowScreen() {
                         currency: draft.currency,
                         date: draft.date,
                         details: detailsOf(draft),
+                        fee: draft.income
+                            ? null
+                            : suggestedCardFee(db, {
+                                  account: draft.accountId ? getAccountById(db, draft.accountId) : null,
+                                  categoryId,
+                                  currency: draft.currency,
+                                  merchant: draft.merchant,
+                              }),
                         income: draft.income,
                         note: draft.merchant,
                     });

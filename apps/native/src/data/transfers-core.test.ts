@@ -47,6 +47,8 @@ function makeDb(): Database {
 			date integer NOT NULL, day integer NOT NULL, month integer NOT NULL,
 			categoryId text, accountId text, amountUsd real, exchangeRate real, exchangeRateType text,
 			transferId text,
+			feeForId text,
+			feeRate real,
 			updatedAt integer NOT NULL,
 			deletedAt integer
 		);

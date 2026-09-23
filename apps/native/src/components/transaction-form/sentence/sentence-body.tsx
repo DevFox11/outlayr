@@ -1,10 +1,12 @@
 import DivideSignCircleSolidIcon from "@hugeicons-pro/core-solid-rounded/DivideSignCircleIcon";
 import NoteEditSolidIcon from "@hugeicons-pro/core-solid-rounded/NoteEditIcon";
+import PercentCircleSolidIcon from "@hugeicons-pro/core-solid-rounded/PercentCircleIcon";
 import RepeatSolidIcon from "@hugeicons-pro/core-solid-rounded/RepeatIcon";
 import SparklesSolidIcon from "@hugeicons-pro/core-solid-rounded/SparklesIcon";
 import Tag01SolidIcon from "@hugeicons-pro/core-solid-rounded/Tag01Icon";
 import DivideSignCircleIcon from "@hugeicons-pro/core-stroke-rounded/DivideSignCircleIcon";
 import NoteEditIcon from "@hugeicons-pro/core-stroke-rounded/NoteEditIcon";
+import PercentCircleIcon from "@hugeicons-pro/core-stroke-rounded/PercentCircleIcon";
 import RepeatIcon from "@hugeicons-pro/core-stroke-rounded/RepeatIcon";
 import SparklesIcon from "@hugeicons-pro/core-stroke-rounded/SparklesIcon";
 import Tag01Icon from "@hugeicons-pro/core-stroke-rounded/Tag01Icon";
@@ -19,7 +21,7 @@ import { useColors } from "@/theme/use-colors";
 
 import { revealEntering } from "../../sentence/sentence-motion";
 import { cn } from "../../tw";
-import type { TransactionSentenceSlot } from "./slots";
+import type { TransactionSentenceMark } from "./slots";
 import { TransactionSentence } from "./transaction-sentence";
 import type { TransactionSentenceLabels } from "./transaction-sentence";
 
@@ -29,6 +31,7 @@ import type { TransactionSentenceLabels } from "./transaction-sentence";
  * chip around it, so the row's state reads before any of its words do.
  */
 const FACT_GLYPHS = {
+    fee: { set: PercentCircleSolidIcon, unset: PercentCircleIcon },
     icon: { set: SparklesSolidIcon, unset: SparklesIcon },
     note: { set: NoteEditSolidIcon, unset: NoteEditIcon },
     repeat: { set: RepeatSolidIcon, unset: RepeatIcon },
@@ -68,7 +71,7 @@ interface SentenceBodyProps {
     account: string | null;
     accountTile?: ReactNode;
     /** The slot the stage below is editing, marked in place. */
-    activeSlot?: TransactionSentenceSlot | null;
+    activeSlot?: TransactionSentenceMark | null;
     amount: string | null;
     /**
      * The amount can hold the save back as readily as the category, and a
@@ -95,6 +98,7 @@ interface SentenceBodyProps {
     conversion?: ReactNode;
     /** Short clauses for anything the sentence itself does not carry. */
     extras: readonly string[];
+    fee: string | null;
     labels: TransactionSentenceLabels;
     merchant: string | null;
     merchantTile?: ReactNode;
@@ -104,6 +108,7 @@ interface SentenceBodyProps {
     onAmountPress: () => void;
     onCategoryPress: () => void;
     onCurrencyPress: () => void;
+    onFeePress: () => void;
     onKindPress: () => void;
     onMerchantPress: () => void;
     onWhenPress: () => void;
@@ -127,6 +132,7 @@ export function TransactionSentenceBody({
     contentWidth,
     conversion,
     extras,
+    fee,
     labels,
     merchant,
     merchantTile,
@@ -134,6 +140,7 @@ export function TransactionSentenceBody({
     onAmountPress,
     onCategoryPress,
     onCurrencyPress,
+    onFeePress,
     onKindPress,
     onMerchantPress,
     onWhenPress,
@@ -159,6 +166,7 @@ export function TransactionSentenceBody({
                 categoryPending={categoryPending}
                 categoryShake={categoryShake}
                 categoryTile={categoryTile}
+                fee={fee}
                 labels={labels}
                 merchant={merchant}
                 merchantTile={merchantTile}
@@ -166,6 +174,7 @@ export function TransactionSentenceBody({
                 onAmountPress={onAmountPress}
                 onCategoryPress={onCategoryPress}
                 onCurrencyPress={onCurrencyPress}
+                onFeePress={onFeePress}
                 onKindPress={onKindPress}
                 onMerchantPress={onMerchantPress}
                 onWhenPress={onWhenPress}

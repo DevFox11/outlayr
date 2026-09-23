@@ -24,8 +24,9 @@ import { VoiceOrb } from "@/components/voice/voice-orb";
 import type { VoiceOrbState } from "@/components/voice/voice-orb";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccounts } from "@/data/accounts";
-import { rememberLastUsedAccount } from "@/data/accounts-core";
+import { getAccountById, rememberLastUsedAccount } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
+import { suggestedCardFee } from "@/data/card-fees-core";
 import { useCategoriesByNamespace } from "@/data/categories";
 import { getCategoryById } from "@/data/categories-core";
 import { backfillRecurring } from "@/data/recurrence-backfill";
@@ -678,6 +679,14 @@ function VoiceThreadScreen() {
                         currency: draft.currency,
                         date: draft.date,
                         details: draft.details,
+                        fee: draft.income
+                            ? null
+                            : suggestedCardFee(db, {
+                                  account: draft.accountId ? getAccountById(db, draft.accountId) : null,
+                                  categoryId,
+                                  currency: draft.currency,
+                                  merchant: draft.merchant,
+                              }),
                         income: draft.income,
                         note: draft.merchant,
                         onceRecurring: draft.recurrence !== null,

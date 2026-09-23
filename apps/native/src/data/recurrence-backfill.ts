@@ -12,6 +12,7 @@ import { RECURRING_TYPE, anchorDayOf, nextDate, nextLanding } from "@/domain/rec
 import { uuidV5 } from "@/domain/uuid5";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
+import { occurrenceFees } from "./card-fees-core";
 import {
     isLiveLogoCandidate,
     isLogoCandidate,
@@ -116,10 +117,20 @@ export async function insertOccurrences(
         .values(written)
         .onConflictDoNothing()
         .returning({ id: transactions.id });
+    const created = new Set(inserted.map((row) => row.id));
+    const fees = await occurrenceFees(
+        db,
+        carrierId,
+        rows.filter((row) => created.has(row.id)),
+        (occurrence) => uuidV5(`${occurrence}:fee`, OCCURRENCE_NAMESPACE),
+        now
+    );
+    if (fees.length > 0) {
+        await db.insert(transactions).values(fees).onConflictDoNothing();
+    }
     if (!inherit) {
         return;
     }
-    const created = new Set(inserted.map((row) => row.id));
     const ids = rows.filter((row) => created.has(row.id) && isLogoCandidate(row)).map((row) => row.id);
     if (ids.length > 0) {
         // Every occurrence is written with `updatedAt: now`, which is the stamp

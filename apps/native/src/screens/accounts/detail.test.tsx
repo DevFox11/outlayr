@@ -137,6 +137,7 @@ function transaction(id: string, note: string, amount = 12): TransactionWithCate
         emoji: null,
         exchangeRate: null,
         exchangeRateType: null,
+        feeForId: null,
         icon: null,
         id,
         imageColor: null,

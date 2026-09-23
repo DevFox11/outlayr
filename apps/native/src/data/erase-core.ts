@@ -44,6 +44,8 @@ export const ERASED_TRANSACTION = {
     emoji: null,
     exchangeRate: null,
     exchangeRateType: null,
+    feeForId: null,
+    feeRate: null,
     icon: null,
     imageColor: null,
     imageKey: null,

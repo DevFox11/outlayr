@@ -44,6 +44,8 @@ function makeDb(): SpendDb {
 			exchangeRate real,
 			exchangeRateType text,
 			transferId text,
+			feeForId text,
+			feeRate real,
 			updatedAt integer NOT NULL,
 			deletedAt integer
 		);

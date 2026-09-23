@@ -7,6 +7,7 @@ import { Hairline } from "@/components/empty-state-parts";
 import { Fade } from "@/components/mark-motion";
 import { TransactionRow } from "@/components/transaction-row";
 import { useDatabase } from "@/contexts/local-data-context";
+import { goesWithPendingDelete } from "@/data/card-fees-core";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
@@ -46,7 +47,7 @@ export function InsightsTransactionList({
     const nowMs = useNow();
     const openRowActions = useTransactionRowActions(nowMs, onRequestDelete);
     const rows = useMemo(
-        () => transactions.filter((transaction) => transaction.id !== pendingDeleteId),
+        () => transactions.filter((transaction) => !goesWithPendingDelete(transaction, pendingDeleteId ?? null)),
         [transactions, pendingDeleteId]
     );
     const sections = useMemo(

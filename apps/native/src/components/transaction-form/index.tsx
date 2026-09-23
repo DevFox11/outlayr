@@ -32,6 +32,8 @@ import { EMPTY_DRAFT, useIdentityDraft, useIdentityFlyUp } from "@/contexts/iden
 import { useAccounts } from "@/data/accounts";
 import { getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
+import { cardFeeFor, feeRatesOn, lastForeignFeeRate } from "@/data/card-fees-core";
+import type { CardFeeInput } from "@/data/card-fees-core";
 import { useCategoriesByNamespace } from "@/data/categories";
 import { ensureCategoryByName, getCategoryById } from "@/data/categories-core";
 import type { Category } from "@/data/categories-core";
@@ -50,7 +52,10 @@ import { tagIdsForQuery, tagsRepo } from "@/data/tags-core";
 import { transactionRateSuggestions } from "@/data/transaction-entry-rates";
 import { getTransactionById, transactionsRepo } from "@/data/transactions-core";
 import type { Transaction, TransactionInput } from "@/data/transactions-core";
+import { lastFeeCategoryId, rememberFeeCategory } from "@/data/transfers-core";
 import type { Database } from "@/db/client";
+import { cardFeeAmount, cardFeeBase, cardFeeOf, feeDraftOf, formatFeeRate, NO_FEE } from "@/domain/card-fee";
+import type { FeeDraft } from "@/domain/card-fee";
 import { CONFETTI_FLIGHT_MS } from "@/domain/confetti";
 import { computeCurtainHues } from "@/domain/curtain-hues";
 import { formatSentenceDate } from "@/domain/dates";
@@ -106,15 +111,17 @@ import { Text } from "../text";
 import { TransactionFormAmountPad } from "./amount-pad";
 import { TransactionFormCta } from "./cta";
 import { TransactionSentenceBody } from "./sentence/sentence-body";
-import type { TransactionSentenceSlot } from "./sentence/slots";
+import type { TransactionSentenceMark } from "./sentence/slots";
 import { ConversionStrip } from "./stage/conversion-strip";
 import { MetaLine } from "./stage/meta-line";
 import { TransactionStage } from "./stage/stage";
 import type { StageAction, StageFooter } from "./stage/stage";
+import type { StageOptionItem } from "./stage/stage-options";
 import { StepAccount } from "./stage/step-account";
 import { StepCategory } from "./stage/step-category";
 import { StepCurrency } from "./stage/step-currency";
 import { StepDate } from "./stage/step-date";
+import { StepFee } from "./stage/step-fee";
 import { StepMerchant } from "./stage/step-merchant";
 import { StepRate } from "./stage/step-rate";
 import { StepRepeat } from "./stage/step-repeat";
@@ -164,6 +171,8 @@ type StageStep =
     | "currency"
     | "date"
     | "endDate"
+    | "fee"
+    | "feeCategory"
     | "merchant"
     | "rate"
     | "repeat"
@@ -214,11 +223,15 @@ const STEP_SLOTS = {
     currency: "amount",
     date: "when",
     endDate: "when",
+    fee: "fee",
+    feeCategory: "fee",
     merchant: "merchant",
     rate: "amount",
     repeat: "when",
     when: "when",
-} as const satisfies Record<StageStep, TransactionSentenceSlot>;
+} as const satisfies Record<StageStep, TransactionSentenceMark>;
+
+type FeeOptionId = "amount" | "none" | "percent" | `rate:${number}`;
 
 /** One step's body and the header it sits under, before the stage draws them. */
 interface StageStepContent {
@@ -533,6 +546,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         const currencySeed = initial?.currency ?? copyOf?.currency ?? seed?.currency ?? null;
         const amountSeed = initial?.amount ?? copyOf?.amount ?? seed?.amount;
         const effectiveCurrency = currencySeed ?? globalCurrency;
+        const savedFee = initial ? cardFeeFor(db, initial.id) : null;
+        const feeSeed: FeeDraft | null = initial ? feeDraftOf(savedFee) : null;
         // SAFETY: three of the fields below start empty and are filled as the form
         // is used, so each initial literal has to carry the type the field will end
         // up holding rather than the empty one it starts as.
@@ -544,6 +559,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             date: initial ? new Date(initial.date) : (seed?.date ?? new Date()),
             endDate: initial?.recurringEndDate ? new Date(initial.recurringEndDate) : oneYearFrom(new Date()),
             exchangeRateType: initialEntryRateType(effectiveCurrency, initial?.exchangeRateType),
+            fee: feeSeed,
+            feeCategoryId: savedFee?.categoryId ?? null,
             hasEndDate: initial?.recurringEndDate != null,
             income: seedCategory?.income ?? initial?.income ?? copyOf?.income ?? seed?.income ?? false,
             // Seeded from the live schedule, not `onceRecurring`: that flag stays
@@ -606,7 +623,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 }
             }
 
-            const input = buildTransactionInput({
+            const baseInput = buildTransactionInput({
                 accountId: value.account?.id ?? null,
                 // At the currency's own units. Changing the currency mid-entry
                 // changes how the sentence and keypad render the figure but leaves
@@ -639,6 +656,10 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 note: value.merchant,
                 recurringType: value.recurringType,
             });
+            const input: TransactionInput = {
+                ...baseInput,
+                fee: feeInputFor(value.merchant.trim() || (value.category?.name ?? ""), categoryId),
+            };
             let savedId: string;
             try {
                 savedId = await persistTransaction(db, mode, initial, input);
@@ -812,6 +833,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         leadDays,
         rateEntry,
         exchangeRateType,
+        fee,
+        feeCategoryId,
     } = useSelector(
         form.store,
         (s) => ({
@@ -821,6 +844,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             date: s.values.date,
             endDate: s.values.endDate,
             exchangeRateType: s.values.exchangeRateType,
+            fee: s.values.fee,
+            feeCategoryId: s.values.feeCategoryId,
             hasEndDate: s.values.hasEndDate,
             income: s.values.income,
             isSubscription: s.values.isSubscription,
@@ -867,6 +892,84 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         }
         const eurLeg = rateSuggestions.eurOfficial;
         return eurLeg === null || eurLeg <= 0 ? null : amount / rateInForce / eurLeg;
+    };
+
+    const feeable = !income && initial?.transferId == null && initial?.feeForId == null;
+    const foreignCharge = account != null && account.currency !== currency;
+    const feeCurrency = account?.currency ?? currency;
+    const cardRate = useMemo(
+        () =>
+            feeCurrency === "USD" || feeCurrency === currency
+                ? null
+                : transactionRateSuggestions(db, feeCurrency, date).official,
+        // oxlint-disable-next-line react/exhaustive-deps -- ratesVersion invalidates this SQLite read after cache replacement.
+        [db, feeCurrency, currency, date, ratesVersion]
+    );
+    const feeRates = useMemo(() => (account == null ? [] : feeRatesOn(db, account.id)), [db, account]);
+    const suggestedFeeRate = useMemo(
+        () =>
+            mode === "create" && foreignCharge && account != null
+                ? lastForeignFeeRate(db, account.id, account.currency)
+                : null,
+        [db, mode, foreignCharge, account]
+    );
+    const feeDraft: FeeDraft =
+        fee ?? (suggestedFeeRate === null ? NO_FEE : { kind: "percent", rate: suggestedFeeRate });
+    const cardFee = feeable ? cardFeeOf(feeDraft) : null;
+    const feeShown = (): boolean =>
+        feeable &&
+        (cardFee !== null || (feeDraft.kind === "typed" && (stageStep === "fee" || stageStep === "feeCategory")));
+    const feeCategory = useMemo(
+        () => getCategoryById(db, feeCategoryId ?? lastFeeCategoryId(db) ?? "") ?? category,
+        [db, feeCategoryId, category]
+    );
+    const feeBase = (amount: number): number | null =>
+        cardFeeBase(amount, { card: feeCurrency, entry: currency }, amountInUsd, cardRate);
+    const feeAmountFor = (amount: number): number | null => {
+        if (cardFee === null || (cardFee.kind === "amount" && cardFee.currency !== feeCurrency)) {
+            return null;
+        }
+        const charged = cardFeeAmount(cardFee, feeBase(amount) ?? 0, feeCurrency);
+        return charged > 0 ? charged : null;
+    };
+    const feeInputFor = (merchant: string, purchaseCategoryId: string | null): CardFeeInput | null | undefined => {
+        if (initial?.transferId != null || initial?.feeForId != null) {
+            return undefined;
+        }
+        if (cardFee === null) {
+            return null;
+        }
+        const shared = {
+            categoryId: feeCategory?.id ?? purchaseCategoryId,
+            note: t("transaction.fee.note", { merchant }),
+        };
+        return cardFee.kind === "percent"
+            ? { ...shared, amount: null, currency: feeCurrency, rate: cardFee.rate }
+            : { ...shared, amount: cardFee.amount, currency: cardFee.currency, rate: null };
+    };
+    const feeLabel = (): string | null => {
+        if (!feeShown()) {
+            return null;
+        }
+        if (feeDraft.kind === "percent") {
+            return `+ ${formatFeeRate(feeDraft.rate, language)}`;
+        }
+        if (feeDraft.kind === "typed" && feeDraft.unit === "percent") {
+            return `+ ${formatFeeRate(numpadToNumber(feeDraft.text) / 100, language)}`;
+        }
+        return feeDraft.kind === "typed"
+            ? `+ ${formatAmount(numpadToNumber(feeDraft.text), feeDraft.currency, true, language)}`
+            : null;
+    };
+    const feeRateChoices =
+        feeDraft.kind === "percent" && !feeRates.includes(feeDraft.rate)
+            ? [...feeRates, feeDraft.rate].sort((a, b) => a - b)
+            : feeRates;
+    const feeSelectedId = (): FeeOptionId => {
+        if (feeDraft.kind === "typed") {
+            return feeDraft.unit;
+        }
+        return feeDraft.kind === "percent" ? `rate:${feeDraft.rate}` : "none";
     };
 
     // A category carried in from `copyOf` is a deliberate choice, not a blank
@@ -1654,7 +1757,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         };
     };
 
-    const activeSlot: TransactionSentenceSlot = STEP_SLOTS[stageStep];
+    const activeSlot: TransactionSentenceMark = STEP_SLOTS[stageStep];
 
     /**
      * The name changing from the sentence's own inline field. `merchantSeed` is
@@ -1684,6 +1787,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         amount: { blank: formatAmount(0, currency, true, language), field: t("transaction.field.amount") },
         category: { blank: t("transaction.sentence.blank.category"), field: t("transaction.field.category") },
         currency: { code: currency, field: t("transaction.sentence.currency") },
+        fee: { field: t("transaction.fee.title") },
         kind: {
             switchLabel: t("transaction.sentence.kind.switch"),
             verb: t(income ? "transaction.sentence.kind.income" : "transaction.sentence.kind.expense"),
@@ -1736,6 +1840,85 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
      */
     // oxlint-disable-next-line complexity -- one branch per step of a single surface; splitting it per step would hide the fact that they are alternatives.
     const stageStepContent = (amountNumber: number, merchant: string): StageStepContent => {
+        if (stageStep === "fee") {
+            const base = feeBase(amountNumber);
+            const charged = feeAmountFor(amountNumber) ?? 0;
+            const options: StageOptionItem<FeeOptionId>[] = [
+                { id: "none", label: t("transaction.fee.none") },
+                ...feeRateChoices.map((rate) => ({
+                    id: `rate:${rate}` as const,
+                    label:
+                        base === null
+                            ? formatFeeRate(rate, language)
+                            : `${formatFeeRate(rate, language)} · ${formatAmount(cardFeeAmount({ kind: "percent", rate }, base, feeCurrency), feeCurrency, true, language)}`,
+                })),
+                { id: "percent", label: t("transaction.fee.otherPercent") },
+                { id: "amount", label: t("transaction.fee.amount") },
+            ];
+            return {
+                body: (
+                    <StepFee
+                        charged={base === null ? null : formatAmount(base + charged, feeCurrency, true, language)}
+                        labels={{ charged: t("transaction.fee.charged"), loggedAs: t("transaction.fee.loggedAs") }}
+                        loggedAs={feeCategory?.name ?? t("transaction.sentence.blank.category")}
+                        onLoggedAsPress={() => enterStep("feeCategory")}
+                        onSelect={(id) => {
+                            if (id === "percent") {
+                                form.setFieldValue("fee", { kind: "typed", text: "", unit: "percent" });
+                                return;
+                            }
+                            if (id === "amount") {
+                                form.setFieldValue("fee", {
+                                    currency: feeCurrency,
+                                    kind: "typed",
+                                    text: "",
+                                    unit: "amount",
+                                });
+                                return;
+                            }
+                            form.setFieldValue(
+                                "fee",
+                                id === "none" ? NO_FEE : { kind: "percent", rate: Number(id.slice("rate:".length)) }
+                            );
+                            leaveTo("amount");
+                        }}
+                        options={options}
+                        selectedId={feeSelectedId()}
+                    >
+                        {feeDraft.kind === "typed" ? (
+                            <AmountNumpad
+                                code={feeDraft.unit === "percent" ? "%" : feeDraft.currency}
+                                minorUnits={feeDraft.unit === "percent" ? 2 : minorUnitsFor(feeDraft.currency)}
+                                mode={feeDraft.unit === "percent" ? "explicitSeparator" : undefined}
+                                onChange={(text) => form.setFieldValue("fee", { ...feeDraft, text })}
+                                showDisplay={false}
+                                value={feeDraft.text}
+                            />
+                        ) : null}
+                    </StepFee>
+                ),
+                title: t("transaction.fee.title"),
+            };
+        }
+        if (stageStep === "feeCategory") {
+            return {
+                body: (
+                    <StepCategory
+                        categories={categoriesForNamespace}
+                        onCreate={() => router.push("/settings/categories/create")}
+                        onSelect={(picked) => {
+                            form.setFieldValue("feeCategoryId", picked.id);
+                            rememberFeeCategory(db, picked.id).catch((error) => {
+                                console.error("Failed to remember the fee category", error);
+                            });
+                            leaveTo("fee");
+                        }}
+                        selectedId={feeCategory?.id ?? null}
+                    />
+                ),
+                title: t("transaction.fee.loggedAs"),
+            };
+        }
         if (stageStep === "merchant") {
             return {
                 body: (
@@ -1967,7 +2150,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                         : stageFooter(amountNumber, merchant)
                 }
                 forward={stage.forward}
-                onBack={() => leaveTo("amount")}
+                onBack={() => leaveTo(stageStep === "feeCategory" ? "fee" : "amount")}
                 rightAction={rightAction}
                 stepKey={stageStep}
                 title={title}
@@ -2045,6 +2228,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                             >
                                 {({ amount, merchantSeed, pendingTagNames, tagIds }) => {
                                     const amountNumber = numpadToNumber(amount);
+                                    const feeBaseNow = feeBase(amountNumber);
+                                    const feeNow = feeAmountFor(amountNumber);
                                     const tagLabels = tagLabelsOf(tagIds, pendingTagNames);
                                     const tagCount = tagCountOf(tagIds, pendingTagNames);
                                     return (
@@ -2084,24 +2269,62 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                 // nothing to convert, and the strip would
                                                 // warn that a resolved rate had not been set.
                                                 conversion={
-                                                    converts && amountNumber > 0 ? (
-                                                        <ConversionStrip
-                                                            amount={amountNumber}
-                                                            amountUsd={amountInUsd(amountNumber)}
-                                                            currency={currency}
-                                                            labels={{
-                                                                notConverted: t("transaction.rate.notConverted"),
-                                                                pendingBody: t("transaction.rate.pendingBody"),
-                                                                setRate: t("transaction.rate.setRate"),
-                                                            }}
-                                                            language={language}
-                                                            onPress={openRateStep}
-                                                            rate={
-                                                                rateInForce === null
-                                                                    ? null
-                                                                    : { source: rateSourceLabel, value: rateInForce }
-                                                            }
-                                                        />
+                                                    (converts && amountNumber > 0) || feeNow !== null ? (
+                                                        <View className="gap-2.5">
+                                                            {converts && amountNumber > 0 ? (
+                                                                <ConversionStrip
+                                                                    amount={amountNumber}
+                                                                    amountUsd={amountInUsd(amountNumber)}
+                                                                    currency={currency}
+                                                                    labels={{
+                                                                        notConverted: t(
+                                                                            "transaction.rate.notConverted"
+                                                                        ),
+                                                                        pendingBody: t("transaction.rate.pendingBody"),
+                                                                        setRate: t("transaction.rate.setRate"),
+                                                                    }}
+                                                                    language={language}
+                                                                    onPress={openRateStep}
+                                                                    rate={
+                                                                        rateInForce === null
+                                                                            ? null
+                                                                            : {
+                                                                                  source: rateSourceLabel,
+                                                                                  value: rateInForce,
+                                                                              }
+                                                                    }
+                                                                />
+                                                            ) : null}
+                                                            {feeNow === null || feeBaseNow === null ? null : (
+                                                                <Pressable
+                                                                    accessibilityRole="button"
+                                                                    onPress={() => enterStep("fee")}
+                                                                >
+                                                                    <MetaLine
+                                                                        qualifier={formatAmount(
+                                                                            feeBaseNow + feeNow,
+                                                                            feeCurrency,
+                                                                            true,
+                                                                            language
+                                                                        )}
+                                                                        statement={t("transaction.fee.line", {
+                                                                            base: formatAmount(
+                                                                                feeBaseNow,
+                                                                                feeCurrency,
+                                                                                true,
+                                                                                language
+                                                                            ),
+                                                                            fee: formatAmount(
+                                                                                feeNow,
+                                                                                feeCurrency,
+                                                                                true,
+                                                                                language
+                                                                            ),
+                                                                        })}
+                                                                    />
+                                                                </Pressable>
+                                                            )}
+                                                        </View>
                                                     ) : undefined
                                                 }
                                                 amountFlagged={amountError}
@@ -2121,6 +2344,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                         ? null
                                                         : t("transaction.sentence.extra.note", { note: noteSummary }),
                                                 ].filter((line) => line !== null)}
+                                                fee={feeLabel()}
                                                 labels={sentenceLabels}
                                                 merchant={merchantSeed.length === 0 ? null : merchantSeed}
                                                 merchantTile={merchantTile}
@@ -2128,6 +2352,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                 onAmountPress={() => leaveTo("amount")}
                                                 onCategoryPress={() => enterStep("category")}
                                                 onCurrencyPress={() => enterStep("currency")}
+                                                onFeePress={() => enterStep("fee")}
                                                 onKindPress={() => handleTypeChange(income ? "expense" : "income")}
                                                 // The word is a way into its step as much as the
                                                 // other facts are, and the step is what carries the
@@ -2193,6 +2418,16 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                         label: t("transaction.sentence.add.note"),
                                                         onPress: () => setNoteOpen((open) => !open),
                                                     },
+                                                    ...(feeable && !feeShown()
+                                                        ? [
+                                                              {
+                                                                  active: false,
+                                                                  key: "fee" as const,
+                                                                  label: t("transaction.sentence.add.fee"),
+                                                                  onPress: () => enterStep("fee"),
+                                                              },
+                                                          ]
+                                                        : []),
                                                 ]}
                                                 when={whenLabel}
                                             />

@@ -6,13 +6,14 @@ import { SentenceBlank } from "../../sentence/sentence-blank";
 import { SentenceToggle } from "../../sentence/sentence-toggle";
 import { SentenceValue } from "../../sentence/sentence-value";
 import { CurrencyCode } from "./currency-code";
-import type { TransactionSentenceSlot } from "./slots";
+import type { TransactionSentenceMark, TransactionSentenceSlot } from "./slots";
 
 export interface TransactionSentenceLabels {
     account: { blank: string; field: string };
     amount: { blank: string; field: string };
     category: { blank: string; field: string };
     currency: { code: string; field: string };
+    fee: { field: string };
     kind: { switchLabel: string; verb: string };
     merchant: { field: string; placeholder: string };
     template: string;
@@ -26,7 +27,7 @@ interface TransactionSentenceProps {
      * The slot the stage below is editing. The primitives draw the wash; this
      * only says which one of them is being edited.
      */
-    activeSlot: TransactionSentenceSlot | null;
+    activeSlot: TransactionSentenceMark | null;
     amount: string | null;
     /**
      * The amount can hold the save back as readily as the category, and a
@@ -41,6 +42,7 @@ interface TransactionSentenceProps {
     /** Answers a save rejected for want of a category. */
     categoryShake: boolean;
     categoryTile?: ReactNode;
+    fee: string | null;
     labels: TransactionSentenceLabels;
     /** The name as entered, or null while the slot is still empty. */
     merchant: string | null;
@@ -49,6 +51,7 @@ interface TransactionSentenceProps {
     onAmountPress: () => void;
     onCategoryPress: () => void;
     onCurrencyPress: () => void;
+    onFeePress: () => void;
     onKindPress: () => void;
     onMerchantPress: () => void;
     onWhenPress: () => void;
@@ -72,6 +75,7 @@ export function TransactionSentence({
     categoryPending,
     categoryShake,
     categoryTile,
+    fee,
     labels,
     merchant,
     merchantTile,
@@ -79,6 +83,7 @@ export function TransactionSentence({
     onAmountPress,
     onCategoryPress,
     onCurrencyPress,
+    onFeePress,
     onKindPress,
     onMerchantPress,
     onWhenPress,
@@ -132,6 +137,15 @@ export function TransactionSentence({
                             code={labels.currency.code}
                             onPress={onCurrencyPress}
                         />
+                        {fee === null ? null : (
+                            <SentenceValue
+                                accessibilityLabel={labels.fee.field}
+                                active={activeSlot === "fee"}
+                                onPress={onFeePress}
+                                swapKey="fee"
+                                value={fee}
+                            />
+                        )}
                     </View>
                 ),
                 category:

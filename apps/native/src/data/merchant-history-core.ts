@@ -79,7 +79,14 @@ export function recentMerchantNotesQuery(db: Database, income: boolean) {
     return db
         .select({ note: transactions.note })
         .from(transactions)
-        .where(and(eq(transactions.income, income), isNull(transactions.deletedAt), ne(transactions.note, "")))
+        .where(
+            and(
+                eq(transactions.income, income),
+                isNull(transactions.deletedAt),
+                isNull(transactions.feeForId),
+                ne(transactions.note, "")
+            )
+        )
         .orderBy(desc(transactions.date))
         .limit(RECENT_MERCHANT_WINDOW);
 }

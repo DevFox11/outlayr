@@ -1,11 +1,12 @@
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { beforeEach, describe, expect, it, jest, test } from "@jest/globals";
 import { eq, isNull, ne } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { accounts, categories, transactions } from "@/db/schema";
-import { migratedDatabase } from "@/db/test-database";
+import { migratedDatabase, transactionalDatabase } from "@/db/test-database";
 import type { PendingWrite } from "@/lib/pending-writes-core";
 
+import { cardFeeFor } from "./card-fees-core";
 import { applyPendingWrites, drainPendingWrites, WALLET_DEDUPE_WINDOW_MS } from "./pending-writes-core";
 import { transactionsRepo } from "./transactions-core";
 
@@ -336,4 +337,26 @@ describe("drainPendingWrites", () => {
 
         await expect(db.select().from(transactions)).resolves.toHaveLength(2);
     });
+});
+
+test("adds the card's usual fee to a foreign Wallet charge, inside the queue's own transaction", async () => {
+    const db = transactionalDatabase();
+    await seedCategories(db);
+    await seedAccounts(db);
+    await transactionsRepo.create(db, {
+        accountId: "acc-n26",
+        amount: 10,
+        categoryId: "cat-expense",
+        currency: "USD",
+        date: new Date("2026-03-01T09:00:00Z"),
+        details: null,
+        fee: { amount: null, categoryId: "cat-expense", currency: "EUR", note: "Fee · Grok", rate: 0.035 },
+        income: false,
+        note: "Grok",
+    });
+
+    await applyPendingWrites(db, [walletWrite("a", { amountText: "$6.40", card: "N26", currency: "USD" })], NOW);
+
+    const [charge] = await db.select().from(transactions).where(eq(transactions.note, "Blue Bottle"));
+    expect(cardFeeFor(db, charge?.id ?? "")).toMatchObject({ currency: "EUR", feeRate: 0.035 });
 });

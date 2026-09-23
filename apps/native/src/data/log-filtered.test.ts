@@ -22,6 +22,7 @@ function carrier(overrides: Partial<TransactionWithCategory> & { date: Date }): 
         emoji: null,
         exchangeRate: null,
         exchangeRateType: null,
+        feeForId: null,
         icon: null,
         id: "carrier",
         imageColor: null,
