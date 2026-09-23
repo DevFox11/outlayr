@@ -21,6 +21,8 @@ export interface DayGroupable {
     day: Date;
     /** Set on a transfer leg: money moved between the user's own accounts is neither income nor spending. */
     excludedFromTotals?: boolean;
+    feeForId?: string | null;
+    id?: string;
     income: boolean;
 }
 
@@ -37,7 +39,26 @@ export interface DaySection<T> {
     totals: CurrencyBucket[];
 }
 
+export type WithCardFee<T> = T & { fee?: T };
+
 const instant = (row: DayGroupable): number => (row.date ?? row.day).getTime();
+
+export function foldCardFees<T extends DayGroupable>(rows: readonly T[]): WithCardFee<T>[] {
+    const ids = new Set(rows.map((row) => row.id));
+    const fees = new Map<string, T>();
+    for (const row of rows) {
+        if (row.feeForId != null && ids.has(row.feeForId)) {
+            fees.set(row.feeForId, row);
+        }
+    }
+    return rows.flatMap((row) => {
+        if (row.feeForId != null && fees.get(row.feeForId) === row) {
+            return [];
+        }
+        const fee = row.id === undefined ? undefined : fees.get(row.id);
+        return fee === undefined ? [row] : [{ ...row, fee }];
+    });
+}
 
 /**
  * Newest first, keyed on the local calendar day of the row's instant. The stored
@@ -48,7 +69,7 @@ export function groupByDay<T extends DayGroupable>(
     rows: readonly T[],
     globalCurrency: string = DEFAULT_CURRENCY,
     rates?: RateTable
-): DaySection<T>[] {
+): DaySection<WithCardFee<T>>[] {
     const sections: DaySection<T>[] = [];
     const byDay = new Map<number, DaySection<T>>();
     for (const row of rows) {
@@ -77,5 +98,5 @@ export function groupByDay<T extends DayGroupable>(
         }
         section.total = total;
     }
-    return sections;
+    return sections.map((section) => ({ ...section, data: foldCardFees(section.data) }));
 }

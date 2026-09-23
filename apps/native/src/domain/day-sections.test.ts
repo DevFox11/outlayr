@@ -66,6 +66,15 @@ describe("groupByDay", () => {
         ]);
     });
 
+    it("folds a card fee onto its purchase and keeps it in the day total", () => {
+        const purchase = { ...row("2026-07-24", 10), id: "glovo" };
+        const fee = { ...row("2026-07-24", 0.44), feeForId: "glovo", id: "fee" };
+        const orphan = { ...row("2026-07-24", 0.1), feeForId: "elsewhere", id: "orphan" };
+        const [section] = groupByDay([purchase, fee, orphan]);
+        expect(section.data).toStrictEqual([{ ...purchase, fee }, orphan]);
+        expect(section.total).toBeCloseTo(-10.54);
+    });
+
     it("copies the day key so callers cannot mutate a row's date through it", () => {
         const rows = [row("2026-07-24", 10)];
         const [section] = groupByDay(rows);

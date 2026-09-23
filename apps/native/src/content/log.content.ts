@@ -180,6 +180,10 @@ const log = {
             en: "Delete transaction",
             es: "Eliminar transacción",
         }),
+        "log.row.fee": t({
+            en: "+{amount} fee",
+            es: "+{amount} de comisión",
+        }),
         "log.row.rateNeeded": t({
             en: "Rate needed",
             es: "Falta la tasa",

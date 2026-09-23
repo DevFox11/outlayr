@@ -8,6 +8,7 @@ interface CardableTransaction {
     categoryName: string | null;
     currency: string | null;
     date: Date;
+    fee?: CardableTransaction;
     income: boolean;
     note: string;
 }
@@ -48,15 +49,17 @@ export function dayCardContent(
 ): DayCardInput {
     return {
         dayLabel: formatDayHeader(section.day, now),
-        rows: section.data.map((row) => {
-            const code = row.currency ?? options.currency;
-            const magnitude = figure(row.amount, code, options.showCents);
-            return {
-                amount: `${row.income ? "+" : "-"}${magnitude}`,
-                meta: options.swapTimeLabel ? (row.categoryName ?? "") : formatTime(row.date, options.use24Hour),
-                note: row.note,
-            };
-        }),
+        rows: section.data
+            .flatMap((row) => (row.fee ? [row, row.fee] : [row]))
+            .map((row) => {
+                const code = row.currency ?? options.currency;
+                const magnitude = figure(row.amount, code, options.showCents);
+                return {
+                    amount: `${row.income ? "+" : "-"}${magnitude}`,
+                    meta: options.swapTimeLabel ? (row.categoryName ?? "") : formatTime(row.date, options.use24Hour),
+                    note: row.note,
+                };
+            }),
         // Two currencies are printed side by side, never summed: the day header
         // makes the same refusal, and inventing a rate here would contradict it.
         total: section.totals

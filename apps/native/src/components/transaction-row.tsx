@@ -1,3 +1,4 @@
+import PercentCircleSolidIcon from "@hugeicons-pro/core-solid-rounded/PercentCircleIcon";
 import RefreshIcon from "@hugeicons-pro/core-stroke-rounded/RefreshIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { utcDateString } from "@outlayr/money/dates";
@@ -7,8 +8,9 @@ import type { AccessibilityActionEvent } from "react-native";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { formatTime, formatUpcomingDate, isFuture } from "@/domain/dates";
+import { formatAmount } from "@/domain/money";
 import { isTransactionRateNeeded } from "@/domain/transaction-entry-rate";
-import { resolveTransactionIdentity } from "@/domain/transaction-identity";
+import { FALLBACK_IDENTITY_COLOR, resolveTransactionIdentity } from "@/domain/transaction-identity";
 import { isExact } from "@/domain/valuation";
 import type { RateTable } from "@/domain/valuation";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -28,6 +30,10 @@ const TILE_RADIUS = 9;
 
 /** Custom, so it surfaces in the rotor's Actions rather than replacing a tap. */
 const DELETE_ACTION = "delete";
+
+function feeGlyph({ color, size }: { color: string; size: number }) {
+    return <HugeiconsIcon color={color} icon={PercentCircleSolidIcon} size={size} />;
+}
 
 interface TransactionRowProps {
     /** Global display currency, used when the row's own currency is null. */
@@ -59,7 +65,10 @@ interface TransactionRowProps {
      * free text out (`LOG_COLUMNS`); only the search read carries it, and only a
      * row that has it prints the excerpt.
      */
-    transaction: TransactionWithCategory & { details?: string | null };
+    transaction: TransactionWithCategory & {
+        details?: string | null;
+        fee?: { amount: number; currency: string | null };
+    };
 }
 
 export function TransactionRow({
@@ -80,7 +89,9 @@ export function TransactionRow({
     const future = forcedFuture ?? isFuture(date);
     const code = transaction.currency ?? currency;
     const isTransfer = "transferId" in transaction && Boolean(transaction.transferId);
-    const identity = resolveTransactionIdentity(transaction);
+    const identity = transaction.feeForId
+        ? { color: FALLBACK_IDENTITY_COLOR, emoji: null, icon: null }
+        : resolveTransactionIdentity(transaction);
     const recurring = transaction.recurringType > 0;
     const rateNeeded = isTransactionRateNeeded(transaction);
     const foreignCode = transaction.currency && transaction.currency !== currency ? transaction.currency : null;
@@ -133,6 +144,7 @@ export function TransactionRow({
                     color={isTransfer ? colors.transfer : identity.color}
                     emoji={identity.emoji}
                     future={future}
+                    glyph={transaction.feeForId ? feeGlyph : undefined}
                     icon={identity.icon}
                     imageUri={transaction.imageUri}
                     radius={TILE_RADIUS}
@@ -190,14 +202,28 @@ export function TransactionRow({
                     </Text>
                 ) : null}
             </View>
-            <RowAmount
-                amount={transaction.amount}
-                code={code}
-                income={transaction.income}
-                isFuture={future}
-                showCents={showCents}
-                transfer={isTransfer}
-            />
+            <View className="items-end">
+                <RowAmount
+                    amount={transaction.amount}
+                    code={code}
+                    income={transaction.income}
+                    isFuture={future}
+                    showCents={showCents}
+                    transfer={isTransfer}
+                />
+                {transaction.fee ? (
+                    <Text className="text-eyebrow text-muted font-mono tabular-nums" numberOfLines={1}>
+                        {t("log.row.fee", {
+                            amount: formatAmount(
+                                transaction.fee.amount,
+                                transaction.fee.currency ?? currency,
+                                showCents,
+                                language
+                            ),
+                        })}
+                    </Text>
+                ) : null}
+            </View>
         </Pressable>
     );
 

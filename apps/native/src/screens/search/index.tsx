@@ -88,7 +88,11 @@ export function Search() {
                     keyboardDismissMode="on-drag"
                     keyExtractor={(item) => item.id}
                     ListHeaderComponent={
-                        <SearchResultsTotal count={rows.length} figures={figures} showCents={showCents} />
+                        <SearchResultsTotal
+                            count={sections.reduce((count, section) => count + section.data.length, 0)}
+                            figures={figures}
+                            showCents={showCents}
+                        />
                     }
                     recycleItems
                     renderItem={({ item }) => (
