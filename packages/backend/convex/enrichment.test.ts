@@ -9,6 +9,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { api } from "./_generated/api";
 import {
     EMPTY,
+    GROUNDED_REQUEST_TIMEOUT_MS,
     maybeScheduleGrounded,
     needsGroundedLookup,
     REQUEST_TIMEOUT_MS,
@@ -20,13 +21,14 @@ import {
     suggestArgs,
 } from "./enrichment";
 import { perUserBurst } from "./lib/limits";
-import { merchantKey } from "./lib/merchantKey";
+import { knowledgeKey, merchantKey } from "./lib/merchantKey";
 import schema from "./schema";
 import { authenticatedAs, seedAuthUser } from "./test.helpers";
 
 const modules = import.meta.glob("./**/*.ts");
 
 afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllEnvs();
     // Without this, `rateLimiter.limit`'s `mockImplementation` from the
     // "global window exhausted" test below stayed wrapped onto the shared
@@ -471,6 +473,45 @@ describe(maybeScheduleGrounded, () => {
         await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(1);
     });
 
+    async function afterLookupStarted(elapsedMs: number) {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        vi.setSystemTime(new Date("2026-09-23T20:00:00Z"));
+        const t = convexTest(schema, modules);
+        rateLimiterTest.register(t);
+        revenuecatTest.register(t);
+        const identity = await seedAuthUser(t);
+        await t.run((ctx) => rateLimiter.limit(ctx, "groundedPerKey", { key: knowledgeKey("Farmatodo", "USD") }));
+        vi.setSystemTime(new Date(Date.now() + elapsedMs));
+
+        const reported = await asIdentity(t, identity).run((ctx) =>
+            maybeScheduleGrounded(ctx, "token-g", {
+                currency: "USD",
+                groundedLookup: true,
+                income: false,
+                name: "Farmatodo",
+            })
+        );
+        const perUser = await t.run((ctx) => rateLimiter.check(ctx, "groundedPerUser", { key: "token-g" }));
+        const runs = await scheduledGroundedRuns(t);
+        return { perUser, reported, runs };
+    }
+
+    test("reports a lookup for this merchant that is still running, without scheduling another", async () => {
+        const { perUser, reported, runs } = await afterLookupStarted(5000);
+
+        expect(reported).toBeTruthy();
+        expect(runs).toHaveLength(0);
+        expect(perUser.ok).toBeTruthy();
+    });
+
+    test("reports nothing, and spends nothing, once today's lookup for this merchant has finished", async () => {
+        const { perUser, reported, runs } = await afterLookupStarted(GROUNDED_REQUEST_TIMEOUT_MS + 1000);
+
+        expect(reported).toBeFalsy();
+        expect(runs).toHaveLength(0);
+        expect(perUser.ok).toBeTruthy();
+    });
+
     test("the scheduled args never carry categoryTree (ADR-7)", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
@@ -609,17 +650,18 @@ describe("runSuggest sanitisation", () => {
         });
     });
 
-    test("keeps a domain rated medium", async () => {
+    test("drops a domain rated medium, so the grounded tier is asked instead", async () => {
         const model = mockModel({
-            categoryName: "Groceries",
-            domain: "intermarche.com",
+            categoryName: "Dining Out",
+            domain: "bucasangiovanni.com",
             domainConfidence: "medium",
             isNewCategory: false,
             tags: [],
         });
 
         await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toMatchObject({
-            domain: "intermarche.com",
+            categoryName: "Dining Out",
+            domain: null,
         });
     });
 
@@ -866,14 +908,6 @@ describe("runSuggest regionCode", () => {
 
         const sent = JSON.stringify(model.doGenerateCalls[0]?.prompt);
         expect(sent).toContain("charged in EUR");
-    });
-
-    test("asks for low reasoning effort, so an answer lands inside the form's budget", async () => {
-        const model = mockModel({ categoryName: null, domain: null, isNewCategory: false, tags: [] });
-
-        await runSuggest(model, { ...BASE_ARGS, categoryTree: [] });
-
-        expect(model.doGenerateCalls[0]?.reasoning).toBe("low");
     });
 
     test("asks for a best-guess domain and a confidence, and says what the name looks like", async () => {

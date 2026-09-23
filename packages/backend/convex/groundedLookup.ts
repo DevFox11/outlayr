@@ -11,6 +11,7 @@ import { internalAction } from "./_generated/server";
 import type { ActionCtx } from "./_generated/server";
 import {
     DESCRIPTOR_LINE,
+    GROUNDED_REQUEST_TIMEOUT_MS,
     placeLines,
     rateLimiter,
     sanitizeCategoryName,
@@ -27,7 +28,6 @@ import type { KnowledgeCandidate } from "./lib/merchantTrust";
 import { GROK_MODEL_ID } from "./lib/models";
 import { budgetConfig, estimateMicros, measureMicros } from "./lib/spend";
 
-export const GROUNDED_REQUEST_TIMEOUT_MS = 120_000;
 const CANONICAL_NAMES_LIST = [...CANONICAL_CATEGORY_NAMES].join(", ");
 
 /**
@@ -338,7 +338,7 @@ export async function groundedAnswer(
 
 /**
  * Continues the same rate-limit ordering: `groundedPerKey` then
- * `groundedBudgetMicros` (both live here, never in `suggest`).
+ * `groundedBudgetMicros` (both spent here; `suggest` only reads the first).
  */
 export async function runGroundedLookup(
     ctx: GroundedLookupCtx,

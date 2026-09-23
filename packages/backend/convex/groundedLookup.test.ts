@@ -8,8 +8,8 @@ import { convexTest } from "convex-test";
 import { describe, expect, test, vi } from "vitest";
 import { z } from "zod";
 
-import { rateLimiter } from "./enrichment";
-import { GROUNDED_REQUEST_TIMEOUT_MS, runGroundedLookup, runGroundedLookupCall } from "./groundedLookup";
+import { GROUNDED_REQUEST_TIMEOUT_MS, rateLimiter } from "./enrichment";
+import { runGroundedLookup, runGroundedLookupCall } from "./groundedLookup";
 import { budgetConfig, DEFAULT_BUDGET_CEILING_MICROS } from "./lib/spend";
 import schema from "./schema";
 

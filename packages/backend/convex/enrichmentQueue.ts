@@ -23,7 +23,7 @@ import type { GroundedCallDeps } from "./groundedLookup";
 import { optionalUserId, requireUserId } from "./lib/auth";
 import { knowledgeKey, knowledgeKeys } from "./lib/merchantKey";
 import { CANONICAL_CATEGORY_NAMES, KEY_PATTERN } from "./lib/merchantTrust";
-import { GROK_MODEL_ID } from "./lib/models";
+import { GROK_FAST_MODEL_ID, GROK_MODEL_ID } from "./lib/models";
 import { isPro } from "./revenuecat";
 import { enrichmentResult } from "./schema";
 
@@ -108,7 +108,12 @@ export interface ResolveDeps {
 
 type JobCtx = Pick<ActionCtx, "runMutation" | "runQuery">;
 
-async function share(ctx: JobCtx, row: Doc<"enrichmentJobs">, answer: EnrichmentResult): Promise<EnrichmentResult> {
+async function share(
+    ctx: JobCtx,
+    row: Doc<"enrichmentJobs">,
+    answer: EnrichmentResult,
+    modelId: string
+): Promise<EnrichmentResult> {
     const { categoryName, domain, merchantName } = answer;
     if (
         categoryName === null ||
@@ -124,7 +129,7 @@ async function share(ctx: JobCtx, row: Doc<"enrichmentJobs">, answer: Enrichment
         emoji: answer.emoji,
         keys: knowledgeKeys(row.name, row.currency, merchantName).filter((key) => KEY_PATTERN.test(key)),
         merchantName,
-        modelId: process.env.XAI_MODEL_ID || GROK_MODEL_ID,
+        modelId,
         parentCategoryName: null,
         resolvedAt: Date.now(),
         source: "model",
@@ -161,16 +166,22 @@ export async function resolveJob(
             deps.grounded
         );
         if (deep !== null && (deep.categoryName !== null || deep.domain !== null || deep.merchantName !== null)) {
-            return await share(ctx, row, applyToTree(row.categoryTree, { ...deep, parentCategoryName: null }));
+            return await share(
+                ctx,
+                row,
+                applyToTree(row.categoryTree, { ...deep, parentCategoryName: null }),
+                process.env.XAI_GROUNDED_MODEL_ID || GROK_MODEL_ID
+            );
         }
     }
+    const fastModelId = process.env.XAI_MODEL_ID || GROK_FAST_MODEL_ID;
     let model = deps.fast;
     if (model === undefined) {
         const apiKey = process.env.XAI_API_KEY;
         if (!apiKey) {
             return null;
         }
-        model = createXai({ apiKey })(process.env.XAI_MODEL_ID || GROK_MODEL_ID);
+        model = createXai({ apiKey })(fastModelId);
     }
     const { grounding: _grounding, ...fast } = await runSuggest(model, {
         categoryTree: row.categoryTree,
@@ -181,7 +192,7 @@ export async function resolveJob(
         regionCode: row.regionCode,
         timeoutMs: BACKGROUND_REQUEST_TIMEOUT_MS,
     });
-    return await share(ctx, row, fast);
+    return await share(ctx, row, fast, fastModelId);
 }
 
 export const work = internalAction({

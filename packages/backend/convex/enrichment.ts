@@ -14,7 +14,7 @@ import { describeTree } from "./lib/ledgerPrompt";
 import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
 import { knowledgeKey, knowledgeKeys } from "./lib/merchantKey";
-import { GROK_MODEL_ID } from "./lib/models";
+import { GROK_FAST_MODEL_ID } from "./lib/models";
 import { DOMAIN_PATTERN, MAX_DOMAIN_LENGTH, MAX_TAG_LENGTH, MAX_TAGS, PICTOGRAPHIC } from "./lib/sanitizeLimits";
 import { isPro } from "./revenuecat";
 
@@ -26,6 +26,8 @@ const MAX_KNOWN_CATEGORY_NAMES = 60;
 export const REQUEST_TIMEOUT_MS = 8000;
 
 export const BACKGROUND_REQUEST_TIMEOUT_MS = 60_000;
+
+export const GROUNDED_REQUEST_TIMEOUT_MS = 120_000;
 
 /**
  * The action's only arguments — a privacy boundary, not just a shape.
@@ -101,7 +103,7 @@ export const EMPTY: Suggestion = {
 const DOMAIN_CONFIDENCE = ["high", "medium", "low"] as const;
 
 function domainAccepted(confidence: (typeof DOMAIN_CONFIDENCE)[number] | null | undefined): boolean {
-    return confidence === "high" || confidence === "medium";
+    return confidence === "high";
 }
 
 /** The model's own output is untrusted input — this is only the JSON shape. */
@@ -118,8 +120,8 @@ const modelOutputSchema = z.object({
     domain: z.string().nullable(),
     /**
      * Asked for alongside the domain so the prompt can demand a best guess
-     * without the guess reaching the logo fetcher: only `high` or `medium`
-     * keeps the domain in `runSuggest`. Nullish so a model that omits it still
+     * without the guess reaching the logo fetcher: only `high` keeps the
+     * domain in `runSuggest`. Nullish so a model that omits it still
      * answers the category — the domain alone is what it forfeits.
      */
     domainConfidence: z.enum(DOMAIN_CONFIDENCE).nullish(),
@@ -155,7 +157,7 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     enrichmentQueue: perUserBurst("enrichmentQueue", false),
     // Kills both a user retyping the same unknown name and a
     // thundering herd across many users hitting one new merchant at once.
-    // Checked inside `groundedLookup.run`, never here.
+    // Consumed inside `groundedLookup.run`; `maybeScheduleGrounded` only reads it.
     groundedPerKey: {
         capacity: 1,
         kind: "token bucket",
@@ -265,7 +267,7 @@ export const DESCRIPTOR_LINE =
  * Measured against the live model: "only if you are confident" answered null
  * for Intermarché, Stradivarius and Île-de-France Mobilités, whose logos the
  * image tiers had all along. Asking for the best guess plus a confidence and
- * dropping only `low` resolved every one of those, while a person's name or a
+ * keeping only `high` on grok-4.20-non-reasoning resolved every one of those, while a person's name or a
  * private note still comes back null.
  */
 export const DOMAIN_LINE =
@@ -396,7 +398,6 @@ export async function runSuggest(model: LanguageModel, args: RunSuggestArgs): Pr
         model,
         output: Output.object({ schema: modelOutputSchema }),
         prompt: buildPrompt(args.name, args.income, args.locale, args.regionCode, args.currency, tree),
-        reasoning: "low",
     });
 
     return {
@@ -474,9 +475,9 @@ export function needsGroundedLookup(result: Pick<Suggestion, "categoryName" | "d
 }
 
 /**
- * Rate limiting order: `groundedPerUser` here, `groundedPerKey` and
- * `groundedBudgetMicros` inside `groundedLookup.run` itself. Returns whether a
- * lookup was actually scheduled, so `suggest` knows whether to report
+ * Rate limiting order: `groundedPerKey` read and `groundedPerUser` spent here,
+ * `groundedPerKey` and `groundedBudgetMicros` spent inside `groundedLookup.run`. Returns whether a
+ * lookup was scheduled or may still be running, so `suggest` knows whether to report
  * `grounding: true`. `categoryTree` is deliberately not a parameter —
  * the scheduled args below can never carry it.
  */
@@ -492,6 +493,12 @@ export async function maybeScheduleGrounded(
     if (!consented) {
         return false;
     }
+    const key = knowledgeKey(args.name, args.currency);
+    const fresh = await rateLimiter.check(ctx, "groundedPerKey", { key });
+    if (!fresh.ok) {
+        const spent = await rateLimiter.getValue(ctx, "groundedPerKey", { key });
+        return Date.now() - spent.ts < GROUNDED_REQUEST_TIMEOUT_MS;
+    }
     const gate = await rateLimiter.limit(ctx, "groundedPerUser", {
         key: tokenIdentifier,
     });
@@ -501,7 +508,7 @@ export async function maybeScheduleGrounded(
     await ctx.scheduler.runAfter(0, internal.groundedLookup.run, {
         currency: args.currency,
         income: args.income,
-        key: knowledgeKey(args.name, args.currency),
+        key,
         locale: args.locale,
         name: args.name,
         regionCode: args.regionCode,
@@ -567,7 +574,7 @@ export const suggest = action({
 
         try {
             const xaiProvider = createXai({ apiKey });
-            const modelId = process.env.XAI_MODEL_ID || GROK_MODEL_ID;
+            const modelId = process.env.XAI_MODEL_ID || GROK_FAST_MODEL_ID;
             const result = await runSuggest(xaiProvider(modelId), {
                 categoryTree: args.categoryTree,
                 currency,
