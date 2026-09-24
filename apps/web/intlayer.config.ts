@@ -1,0 +1,17 @@
+import { Locales } from "intlayer";
+import type { IntlayerConfig } from "intlayer";
+
+const config: IntlayerConfig = {
+    internationalization: {
+        defaultLocale: Locales.ENGLISH,
+        locales: [Locales.ENGLISH, Locales.SPANISH],
+        requiredLocales: [Locales.ENGLISH, Locales.SPANISH],
+        strictMode: "strict",
+    },
+    routing: {
+        enableProxy: false,
+        mode: "prefix-no-default",
+    },
+};
+
+export default config;

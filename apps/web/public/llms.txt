@@ -1,0 +1,47 @@
+# Outlayr
+
+> Outlayr is an expense tracker and budget app. You log a purchase by typing one sentence, saying it, or scanning the receipt. Budgets, savings goals, subscriptions, and insights update as you log. Available on iPhone (iOS 18 or later); Android is coming soon. English and Spanish. Made by danestves LLC.
+
+## What it does
+
+- Log an expense or income as one sentence ("Spent $42.00 at Costco for Groceries from Chase today"), tapping any word to change it.
+- Voice entry: speak the purchase and the fields fill in.
+- Receipt scanning: take a photo or pick one from the library; the store, date, total, and every line are read for you.
+- CSV import from a bank or another app. Duplicates are skipped; known merchants match your categories on the phone.
+- Category budgets or one overall monthly budget, with carry-over and a projection of where the current pace ends.
+- Savings goals with a target date, showing the monthly amount needed and whether you are ahead or behind.
+- Accounts for cash, cards, savings, and debts, each in its own currency. Transfers between accounts are not counted as spending.
+- 165 currencies. Totals convert to your main currency at the rate from the day each purchase happened.
+- Subscriptions and paychecks log themselves on their day, with an optional reminder before each charge.
+- Insights: spending by day and by category, income against spending, and net worth over time. The month can start on payday.
+- Home Screen and Lock Screen widgets, Spotlight search, Face ID or Touch ID lock, CSV export and full archive export.
+- Entries are stored on the phone first and work offline.
+
+## Plans
+
+- Free: logging, budgets, goals, insights, subscriptions, and widgets. 20 voice or receipt captures every 30 days, 2 accounts, 2 category budgets, 1 account currency, 1 app icon.
+- Outlayr Pro: 500 captures every 30 days, unlimited accounts, category budgets, and account currencies, sync across devices, receipt photo backup, AI matching on CSV import, web merchant lookup, 5 app icons.
+- Pro is billed monthly or yearly, or bought once. Prices are set per country and shown in the app store before purchase.
+
+## Privacy
+
+- The ledger is stored on the device. It reaches Outlayr's servers only when you sign in and turn on sync, or use a feature that needs the server (voice entry, receipt scanning, suggestions).
+- No ads, no analytics, no tracking, and data is never sold.
+
+## Pages
+
+- [Home](https://tryoutlayr.com/): product overview, plans, and answers to common questions
+- [Support](https://tryoutlayr.com/support): restoring and cancelling Pro, refunds, exporting and deleting data
+- [Privacy Policy](https://tryoutlayr.com/privacy): what is collected, where it goes, and how long it is kept
+- [Terms of Use](https://tryoutlayr.com/terms): the terms for Outlayr and Outlayr Pro
+
+## Pages in Spanish
+
+- [Inicio](https://tryoutlayr.com/es): the home page in Latin American Spanish
+- [Soporte](https://tryoutlayr.com/es/support): the support page in Spanish
+- [Política de privacidad](https://tryoutlayr.com/es/privacy): the Privacy Policy in Spanish
+- [Términos de uso](https://tryoutlayr.com/es/terms): the Terms of Use in Spanish
+
+## Contact
+
+- support@tryoutlayr.com

@@ -24,7 +24,7 @@ import { useColors } from "@/theme/use-colors";
 const UNLIMITED = "\u221E";
 
 const TERMS_URL = "https://tryoutlayr.com/terms";
-const PRIVACY_URL = "https://tryoutlayr.com/policy";
+const PRIVACY_URL = "https://tryoutlayr.com/privacy";
 
 function Row({ label, free, pro }: { free: string; label: string; pro: string }) {
     return (

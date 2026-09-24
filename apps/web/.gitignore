@@ -1,0 +1,11 @@
+/node_modules
+/dist
+/.output
+/.tanstack
+/.nitro
+.env*
+!.env.example
+*.local
+*.tsbuildinfo
+/.intlayer
+/.content-collections

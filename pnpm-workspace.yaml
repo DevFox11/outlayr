@@ -32,6 +32,10 @@ catalog:
     better-auth: ~1.6.15
     convex: ^1.45.0
     dotenv: ^17.4.2
+    intlayer: ^9.5.2
+    react-intlayer: ^9.5.2
+    react-native-intlayer: ^9.5.2
+    vite-intlayer: ^9.5.2
     zod: ^4.4.3
     typescript: ~6.0.3
 minimumReleaseAgeExclude:
