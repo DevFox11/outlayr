@@ -14,7 +14,8 @@
 - 165 currencies. Totals convert to your main currency at the rate from the day each purchase happened.
 - Subscriptions and paychecks log themselves on their day, with an optional reminder before each charge.
 - Insights: spending by day and by category, income against spending, and net worth over time. The month can start on payday.
-- Home Screen and Lock Screen widgets, Spotlight search, Face ID or Touch ID lock, CSV export and full archive export.
+- On iPhone: Home Screen and Lock Screen widgets, Spotlight search, Face ID or Touch ID lock, and Apple Pay logging through a Shortcuts automation.
+- CSV export and full archive export.
 - Entries are stored on the phone first and work offline.
 
 ## Plans

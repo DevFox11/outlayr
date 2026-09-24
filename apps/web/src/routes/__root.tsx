@@ -89,7 +89,7 @@ export const Route = createRootRoute({
                 { content: meta.title, property: "og:title" },
                 { content: meta.description, property: "og:description" },
                 { content: pageUrl(path, locale), property: "og:url" },
-                { content: `${SITE_URL}/og.png`, property: "og:image" },
+                { content: `${SITE_URL}${LANGUAGES[locale].image}`, property: "og:image" },
                 { content: "1200", property: "og:image:width" },
                 { content: "630", property: "og:image:height" },
                 { content: `Outlayr. ${hero.title}`, property: "og:image:alt" },

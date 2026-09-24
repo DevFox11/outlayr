@@ -6,9 +6,12 @@ import { SITE_URL } from "./site";
 export type Locale = DeclaredLocales;
 
 export const LANGUAGES = {
-    en: { date: "en-GB", hreflang: "en", lang: "en", name: "English", og: "en_US" },
-    es: { date: "es-419", hreflang: "es", lang: "es-419", name: "Español", og: "es_LA" },
-} as const satisfies Record<Locale, { date: string; hreflang: string; lang: string; name: string; og: string }>;
+    en: { date: "en-GB", hreflang: "en", image: "/og.png", lang: "en", name: "English", og: "en_US" },
+    es: { date: "es-419", hreflang: "es", image: "/og-es.png", lang: "es-419", name: "Español", og: "es_LA" },
+} as const satisfies Record<
+    Locale,
+    { date: string; hreflang: string; image: string; lang: string; name: string; og: string }
+>;
 
 export function localeFromParam(param: string | undefined): Locale {
     const { localePrefix } = validatePrefix(param);

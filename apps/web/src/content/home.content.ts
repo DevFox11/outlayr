@@ -29,22 +29,22 @@ const home = {
             {
                 label: t({ en: "Widgets", es: "Widgets" }),
                 text: t({
-                    en: "Four for the Home Screen and Lock Screen: today’s spending, budget left, recent entries, insights.",
-                    es: "Cuatro para la pantalla de inicio y la pantalla bloqueada: el gasto de hoy, el presupuesto disponible, los registros recientes y tus estadísticas.",
+                    en: "Four for the iPhone Home Screen and Lock Screen: today’s spending, budget left, recent entries, insights.",
+                    es: "Cuatro para la pantalla de inicio y la pantalla bloqueada del iPhone: el gasto de hoy, el presupuesto disponible, los registros recientes y tus estadísticas.",
                 }),
             },
             {
                 label: t({ en: "Apple Pay", es: "Apple Pay" }),
                 text: t({
-                    en: "Pay with Apple Pay and a Shortcuts automation logs the purchase.",
-                    es: "Paga con Apple Pay y una automatización de Atajos registra la compra.",
+                    en: "On iPhone, pay with Apple Pay and a Shortcuts automation logs the purchase.",
+                    es: "En iPhone, paga con Apple Pay y una automatización de Atajos registra la compra.",
                 }),
             },
             {
                 label: t({ en: "Search", es: "Buscar" }),
                 text: t({
-                    en: "Find any entry by note, category, or amount. Entries show up in Spotlight too.",
-                    es: "Encuentra cualquier registro por nota, categoría o monto. Los registros también aparecen en Spotlight.",
+                    en: "Find any entry by note, category, or amount. On iPhone, entries show up in Spotlight too.",
+                    es: "Encuentra cualquier registro por nota, categoría o monto. En iPhone, los registros también aparecen en Spotlight.",
                 }),
             },
             {
@@ -64,8 +64,8 @@ const home = {
             {
                 label: t({ en: "Lock", es: "Bloqueo" }),
                 text: t({
-                    en: "Face ID or Touch ID to open. The app switcher never shows your ledger.",
-                    es: "Face ID o Touch ID para abrirla. El selector de apps nunca muestra tu registro.",
+                    en: "Face ID or Touch ID to open on iPhone. The app switcher never shows your ledger.",
+                    es: "Face ID o Touch ID para abrirla en iPhone. El selector de apps nunca muestra tu registro.",
                 }),
             },
             {

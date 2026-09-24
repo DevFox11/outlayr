@@ -27,7 +27,7 @@ function appGraph(locale: Locale) {
         applicationCategory: "FinanceApplication",
         description: meta.description,
         featureList: extras.map((extra) => extra.label),
-        image: `${SITE_URL}/og.png`,
+        image: `${SITE_URL}${LANGUAGES[locale].image}`,
         inLanguage: Object.values(LANGUAGES).map((language) => language.lang),
         name: "Outlayr",
         offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
