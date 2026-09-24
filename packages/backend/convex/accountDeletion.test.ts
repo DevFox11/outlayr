@@ -1,5 +1,9 @@
 /// <reference types="vite/client" />
 
+import { createThread, getThreadMetadata } from "@convex-dev/agent";
+import agentTest from "@convex-dev/agent/test";
+import { RateLimiter } from "@convex-dev/rate-limiter";
+import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
 import type { TestConvex } from "convex-test";
@@ -8,6 +12,8 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { api, components, internal } from "./_generated/api";
 import { consumeGoogleLocalReceipt, DELETION_JOBS_PER_USER } from "./accountDeletion";
 import type { DeletionJob } from "./accountDeletion";
+import { FREE_CAPTURE_CONFIG } from "./lib/captures";
+import { perUserBurst } from "./lib/limits";
 import { sha256Hex } from "./lib/sha256Hex";
 import { isPro } from "./revenuecat";
 import schema from "./schema";
@@ -85,6 +91,8 @@ function stubUpstream(status: number) {
 
 async function purgedJob() {
     const t = convexTest(schema, modules);
+    agentTest.register(t);
+    rateLimiterTest.register(t);
     revenuecatTest.register(t);
     const owner = await seedAuthUser(t);
     await grantPro(t, owner);
@@ -294,5 +302,62 @@ describe("auth deletion", () => {
         await expect(t.query(api.accountDeletion.poll, { resumeSecret })).resolves.toMatchObject({
             phase: "complete",
         });
+    });
+
+    test("leaves no suggestion requests, usage counters or voice threads behind", async () => {
+        stubUpstream(200);
+        const t = convexTest(schema, modules);
+        agentTest.register(t);
+        rateLimiterTest.register(t);
+        revenuecatTest.register(t);
+        const usage = new RateLimiter(components.rateLimiter);
+        const queue = perUserBurst("enrichmentQueue", false);
+        const owner = await seedAuthUser(t);
+        await grantPro(t, owner);
+        const asOwner = authenticatedAs(t, owner);
+        const key = (await asOwner.run(async (ctx) => (await ctx.auth.getUserIdentity())?.tokenIdentifier)) ?? "";
+        const threadId = await t.run(async (ctx) => {
+            await ctx.db.insert("enrichmentJobs", {
+                categoryTree: [],
+                grounded: false,
+                income: false,
+                localId: "entry",
+                name: "Blue Bottle",
+                status: "queued",
+                userId: owner.userId,
+            });
+            await usage.limit(ctx, "capturesFree", { config: FREE_CAPTURE_CONFIG, count: 3, key });
+            await usage.limit(ctx, "enrichmentQueue", { config: queue, count: 3, key: owner.userId });
+            return await createThread(ctx, components.agent, { userId: key });
+        });
+
+        const { resumeSecret } = await asOwner.mutation(api.accountDeletion.prepare, {});
+        await t.mutation(api.accountDeletion.recordAppleRevocation, { resumeSecret });
+        await t.mutation(api.accountDeletion.advance, { resumeSecret });
+        await expect(t.mutation(api.accountDeletion.advance, { resumeSecret })).resolves.toMatchObject({
+            phase: "purged",
+        });
+        await t.action(api.accountDeletion.eraseBilling, { resumeSecret });
+        await t.mutation(api.accountDeletion.advance, { resumeSecret });
+        vi.useFakeTimers();
+        await expect(t.mutation(api.accountDeletion.advance, { resumeSecret })).resolves.toMatchObject({
+            phase: "complete",
+        });
+        await t.finishAllScheduledFunctions(vi.runAllTimers);
+        vi.useRealTimers();
+
+        await expect(t.run(async (ctx) => await ctx.db.query("enrichmentJobs").collect())).resolves.toHaveLength(0);
+        await expect(
+            t.run(async (ctx) => await usage.getValue(ctx, "capturesFree", { config: FREE_CAPTURE_CONFIG, key }))
+        ).resolves.toMatchObject({ value: FREE_CAPTURE_CONFIG.rate });
+        await expect(
+            t.run(async (ctx) => await usage.getValue(ctx, "enrichmentQueue", { config: queue, key: owner.userId }))
+        ).resolves.toMatchObject({ value: queue.capacity });
+        await expect(
+            t.run(async (ctx) => await getThreadMetadata(ctx, components.agent, { threadId }).catch(() => null))
+        ).resolves.toBeNull();
+        await expect(
+            t.run(async (ctx) => await ctx.db.query("accountDeletionJobs").first())
+        ).resolves.not.toHaveProperty("tokenIdentifier");
     });
 });

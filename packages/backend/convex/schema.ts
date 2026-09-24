@@ -75,6 +75,7 @@ export default defineSchema({
         ),
         provider: v.union(v.literal("appleServerRevoked"), v.literal("googleLocalReceipt"), v.null()),
         secretHash: v.string(),
+        tokenIdentifier: v.optional(v.string()),
         userId: v.union(v.string(), v.null()),
     })
         .index("by_secretHash", ["secretHash"])

@@ -1,3 +1,4 @@
+import { RateLimiter } from "@convex-dev/rate-limiter";
 import { env } from "@outlayr/env/backend";
 import { ConvexError, v } from "convex/values";
 
@@ -12,6 +13,21 @@ import { eraseUpstreamCustomer, revenuecat } from "./revenuecat";
 const DELETE_JOB_TTL_MS = 24 * 60 * 60 * 1000;
 const AUTH_DELETE_PAGE = 100;
 
+const usage = new RateLimiter(components.rateLimiter);
+
+const USAGE_BY_TOKEN = [
+    "capturesFree",
+    "capturesPro",
+    "csvImportPerUser",
+    "enrichmentBackground",
+    "enrichmentPerUser",
+    "groundedPerUser",
+    "receiptScanPerUser",
+    "revenuecatSync",
+    "voiceEntryPerUser",
+    "voiceThreadPerUser",
+] as const;
+
 type DeletionProvider = "appleServerRevoked" | "googleLocalReceipt" | null;
 export type DeletionPhase = "prepared" | "providersRevoked" | "purged" | "billingErased" | "authDeleting" | "complete";
 
@@ -23,6 +39,7 @@ export interface DeletionJob {
     phase: DeletionPhase;
     provider: DeletionProvider;
     secretHash: string;
+    tokenIdentifier?: string;
     userId: string | null;
 }
 
@@ -112,6 +129,7 @@ export const prepare = mutation({
             throw new ConvexError("Account deletion needs REVENUECAT_SECRET_KEY before it can erase billing");
         }
         const userId = await requireUserId(ctx);
+        const identity = await ctx.auth.getUserIdentity();
         const open = await ctx.db
             .query("accountDeletionJobs")
             .withIndex("by_userId", (q) => q.eq("userId", userId))
@@ -129,6 +147,7 @@ export const prepare = mutation({
             phase: "prepared",
             provider: null,
             secretHash: await sha256Hex(resumeSecret),
+            tokenIdentifier: identity?.tokenIdentifier,
             userId,
         });
         return { receiptChallenge, resumeSecret };
@@ -175,6 +194,19 @@ export const recordAppleRevocation = mutation({
         return publicStatus({ ...job, phase: "providersRevoked" });
     },
 });
+
+async function forgetUsage(ctx: MutationCtx, userId: string, tokenIdentifier: string | undefined): Promise<void> {
+    await usage.reset(ctx, "enrichmentQueue", { key: userId });
+    if (tokenIdentifier === undefined) {
+        return;
+    }
+    /* oxlint-disable no-await-in-loop -- component mutations inside a mutation run one at a time */
+    for (const name of USAGE_BY_TOKEN) {
+        await usage.reset(ctx, name, { key: tokenIdentifier });
+    }
+    /* oxlint-enable no-await-in-loop */
+    await ctx.runMutation(components.agent.users.deleteAllForUserIdAsync, { userId: tokenIdentifier });
+}
 
 /**
  * Removes every row Better Auth holds for a user in one table. Its own user
@@ -234,6 +266,7 @@ export const advance = mutation({
             await ctx.db.patch(job._id, { phase: "authDeleting" });
             return publicStatus({ ...job, phase: "authDeleting" });
         }
+        await forgetUsage(ctx, job.userId, job.tokenIdentifier);
         await deleteAuthRows(ctx, "session", job.userId);
         await deleteAuthRows(ctx, "account", job.userId);
         // SAFETY: the better-auth component types its mutation references
@@ -245,7 +278,7 @@ export const advance = mutation({
                 input: { model: "user", where: [{ field: "_id", operator: "eq", value: job.userId }] },
             } as never
         );
-        await ctx.db.patch(job._id, { phase: "complete", userId: null });
+        await ctx.db.patch(job._id, { phase: "complete", tokenIdentifier: undefined, userId: null });
         return { errorCode: null, phase: "complete" as const };
     },
 });

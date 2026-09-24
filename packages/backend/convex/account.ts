@@ -45,6 +45,15 @@ export async function purgeUserBatch(ctx: MutationCtx, userId: string): Promise<
         return { done: false, removed: photos.length };
     }
 
+    const suggestions = await ctx.db
+        .query("enrichmentJobs")
+        .withIndex("by_user_and_status", (q) => q.eq("userId", userId))
+        .take(PURGE_BATCH);
+    if (suggestions.length > 0) {
+        await Promise.all(suggestions.map((row) => ctx.db.delete(row._id)));
+        return { done: false, removed: suggestions.length };
+    }
+
     /* oxlint-disable no-await-in-loop -- the loop stops at the first table that still holds rows, so hoisting these queries would read every synced table on every pass — the document budget PURGE_BATCH exists to respect. */
     for (const table of SYNCED_TABLES) {
         const rows = await ctx.db
