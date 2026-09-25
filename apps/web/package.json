@@ -6,7 +6,7 @@
         "build": "vite build",
         "check-types": "content-collections build && intlayer build && tsc --noEmit",
         "dev": "vite dev",
-        "serve": "vite preview"
+        "start": "node .output/server/index.mjs"
     },
     "dependencies": {
         "@content-collections/mdx": "^0.2.2",
@@ -14,8 +14,8 @@
         "@tailwindcss/vite": "^4.3.3",
         "@tanstack/react-router": "^1.170.32",
         "@tanstack/react-start": "^1.168.49",
-        "@tanstack/start-static-server-functions": "^1.167.37",
         "intlayer": "catalog:",
+        "nitro": "3.0.260903-beta",
         "react": "19.2.3",
         "react-dom": "19.2.3",
         "react-intlayer": "catalog:",
