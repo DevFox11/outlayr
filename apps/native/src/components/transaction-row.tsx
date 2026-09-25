@@ -88,8 +88,9 @@ export function TransactionRow({
     const date = new Date(transaction.date);
     const future = forcedFuture ?? isFuture(date);
     const code = transaction.currency ?? currency;
-    const isTransfer = "transferId" in transaction && Boolean(transaction.transferId);
-    const identity = transaction.feeForId
+    const isTransfer = transaction.transferId === transaction.id;
+    const isFee = transaction.feeForId != null || (transaction.transferId != null && !isTransfer);
+    const identity = isFee
         ? { color: FALLBACK_IDENTITY_COLOR, emoji: null, icon: null }
         : resolveTransactionIdentity(transaction);
     const recurring = transaction.recurringType > 0;
@@ -144,7 +145,7 @@ export function TransactionRow({
                     color={isTransfer ? colors.transfer : identity.color}
                     emoji={identity.emoji}
                     future={future}
-                    glyph={transaction.feeForId ? feeGlyph : undefined}
+                    glyph={isFee ? feeGlyph : undefined}
                     icon={identity.icon}
                     imageUri={transaction.imageUri}
                     radius={TILE_RADIUS}

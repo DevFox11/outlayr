@@ -9,12 +9,10 @@ import { MetaLine } from "@/components/transaction-form/stage/meta-line";
 import { TransactionStage } from "@/components/transaction-form/stage/stage";
 import { StageOptionRow } from "@/components/transaction-form/stage/stage-options";
 import { StepAccount } from "@/components/transaction-form/stage/step-account";
-import { StepCategory } from "@/components/transaction-form/stage/step-category";
 import { StepDate } from "@/components/transaction-form/stage/step-date";
 import { StepWhen } from "@/components/transaction-form/stage/step-when";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useCategoriesByNamespace } from "@/data/categories";
-import { rememberFeeCategory, transfersRepo } from "@/data/transfers-core";
+import { transfersRepo } from "@/data/transfers-core";
 import { formatSignedAmount } from "@/domain/account-display";
 import { formatAmount, numberLocale } from "@/domain/money";
 import { transactionWhenLabel } from "@/domain/transaction-form-labels";
@@ -43,7 +41,6 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
     const { language } = useLanguage();
     const colors = useColors();
     const draft = useTransferDraft(db, seed);
-    const categories = useCategoriesByNamespace(db, false);
     const noteRef = useRef(seed?.note ?? "");
     const savingRef = useRef(false);
     const [saving, setSaving] = useState(false);
@@ -90,7 +87,7 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
     };
 
     const save = async () => {
-        const { from, to, legs, effectiveRate, fee, feeSide, feeCategoryId, crossCurrency, rateType, date } = draft;
+        const { from, to, legs, effectiveRate, fee, feeSide, crossCurrency, rateType, date } = draft;
         if (!(draft.canSave && from && to && legs && effectiveRate) || savingRef.current) {
             return;
         }
@@ -106,7 +103,6 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
                     fee > 0
                         ? {
                               amount: fee,
-                              categoryId: feeCategoryId,
                               note: t("transfers.fee.note", { from: from.name, to: to.name }),
                               side: feeSide,
                           }
@@ -119,11 +115,6 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
                 toAmount: legs.toAmount,
                 toCurrency: draft.toCurrency,
             });
-            if (fee > 0 && feeCategoryId) {
-                await rememberFeeCategory(db, feeCategoryId).catch((error) => {
-                    console.error("Failed to remember the fee category", error);
-                });
-            }
             onDone();
         } catch (error) {
             console.error("Failed to save the transfer", error);
@@ -136,10 +127,6 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
     const onFooter = () => {
         if ((step === "from" || step === "to") && draft.accounts.length === 0) {
             router.push(accountCreateRoute);
-            return;
-        }
-        if (step === "fee" && draft.fee > 0 && !draft.feeCategoryId) {
-            enter("feeCategory");
             return;
         }
         if (draft.canSave) {
@@ -160,10 +147,6 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
         enter(slot);
     };
 
-    const feeCategoryName =
-        categories
-            .flatMap((parent) => [parent, ...parent.children])
-            .find((category) => category.id === draft.feeCategoryId)?.name ?? null;
     const typingRate = step === "rate" && !fresh;
     const quoted = draft.quotedRate === null ? null : formatRate(draft.quotedRate);
     const rateLabel = typingRate ? draft.customRatePadText.replace(".", numberLocale().decimal) || null : quoted;
@@ -254,18 +237,6 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
                     />
                 );
             }
-            if (step === "feeCategory") {
-                return (
-                    <StepCategory
-                        categories={categories}
-                        onSelect={(category) => {
-                            draft.setFeeCategoryId(category.id);
-                            enter("amount");
-                        }}
-                        selectedId={draft.feeCategoryId}
-                    />
-                );
-            }
             if (step === "when") {
                 return (
                     <StepWhen
@@ -284,7 +255,6 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
         };
         const titles = {
             date: t("transfers.field.date"),
-            feeCategory: t("transfers.field.feeCategory"),
             from: t("transfers.field.from"),
             rateType: t("transfers.field.rateType"),
             to: t("transfers.field.to"),
@@ -334,7 +304,6 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
                                     ? formatAmount(draft.arrived, draft.toCurrency, true, language)
                                     : null,
                             fee: draft.fee > 0 ? formatAmount(draft.fee, draft.feeCurrency, true, language) : null,
-                            feeCategory: feeCategoryName,
                             feeSide: feeSideAccount?.name ?? null,
                             from: draft.from?.name ?? null,
                             rate: rateLabel,
@@ -355,16 +324,7 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
                             <MetaLine statement={gap.message} tone={draft.block === null ? "warning" : "danger"} />
                             <View className="flex-row flex-wrap gap-x-5 gap-y-2">
                                 {gap.feeLabel && gap.onFee ? (
-                                    <Pressable
-                                        accessibilityRole="button"
-                                        hitSlop={10}
-                                        onPress={() => {
-                                            gap.onFee?.();
-                                            if (!draft.feeCategoryId) {
-                                                enter("feeCategory");
-                                            }
-                                        }}
-                                    >
+                                    <Pressable accessibilityRole="button" hitSlop={10} onPress={gap.onFee}>
                                         <Text className="text-subtitle text-tint font-sans-semibold">
                                             {gap.feeLabel}
                                         </Text>

@@ -78,8 +78,11 @@ export function lastForeignFeeRate(db: Database, accountId: string, accountCurre
     return purchase === undefined ? null : (cardFeeFor(db, purchase.id)?.feeRate ?? null);
 }
 
-export function goesWithPendingDelete(row: { feeForId: string | null; id: string }, pendingId: string | null): boolean {
-    return pendingId !== null && (row.id === pendingId || row.feeForId === pendingId);
+export function goesWithPendingDelete(
+    row: { feeForId: string | null; id: string; transferId: string | null },
+    pendingId: string | null
+): boolean {
+    return pendingId !== null && [row.id, row.feeForId, row.transferId].includes(pendingId);
 }
 
 export function feeCategoryFor(db: Database, purchaseCategoryId: string | null): string | null {

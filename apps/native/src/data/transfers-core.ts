@@ -12,7 +12,6 @@ import { frozenUsdAmount } from "./frozen-usd";
 
 interface TransferFeeInput {
     amount: number;
-    categoryId: string | null;
     note?: string;
     side: FeeSide;
 }
@@ -125,7 +124,7 @@ export const transfersRepo = {
                     accountId: input.fee.side === "destination" ? input.toAccountId : input.fromAccountId,
                     amount: input.fee.amount,
                     amountUsd: feeUsd,
-                    categoryId: input.fee.categoryId,
+                    categoryId: null,
                     currency: feeCurrency,
                     date: input.date,
                     day: startOfDay(input.date),

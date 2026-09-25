@@ -25,10 +25,6 @@ jest.mock("@/data/transfer-rates", () => ({
     useTransferRates: () => ({ get: (code: string) => mockRates.get(code) ?? null }),
 }));
 
-jest.mock<Partial<typeof import("@/data/transfers-core")>>("@/data/transfers-core", () => ({
-    lastFeeCategoryId: () => null,
-}));
-
 const SENT = "1000";
 const PINNED_ARRIVAL = "33333.33";
 const TYPED_RATE = "30";

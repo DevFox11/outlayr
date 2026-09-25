@@ -51,10 +51,6 @@ const transfers = {
             en: "Fee",
             es: "Comisión",
         }),
-        "transfers.field.feeCategory": t({
-            en: "Fee category",
-            es: "Categoría de la comisión",
-        }),
         "transfers.field.feeSide": t({
             en: "Fee charged to",
             es: "Comisión cobrada a",
@@ -127,10 +123,6 @@ const transfers = {
             en: "an amount",
             es: "un monto",
         }),
-        "transfers.sentence.blank.feeCategory": t({
-            en: "uncategorized",
-            es: "sin categoría",
-        }),
         "transfers.sentence.blank.noFee": t({
             en: "No fee",
             es: "Sin comisión",
@@ -140,8 +132,8 @@ const transfers = {
             es: "una tasa",
         }),
         "transfers.sentence.fee": t({
-            en: "A {fee} {feeCategory} fee from {feeSide}.",
-            es: "Comisión de {fee}, {feeCategory}, desde {feeSide}.",
+            en: "A {fee} fee from {feeSide}.",
+            es: "Comisión de {fee} desde {feeSide}.",
         }),
         "transfers.sentence.move": t({
             en: "Move {amount} from {from} to {to} {when}.",

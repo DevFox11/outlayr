@@ -9,7 +9,7 @@ import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { landingDate } from "@/data/log-filtered";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { currencyTotals } from "@/domain/currency-totals";
-import { foldCardFees } from "@/domain/day-sections";
+import { foldFees } from "@/domain/day-sections";
 import { monthlySubscriptionCost } from "@/domain/subscription-cost";
 import type { RateTable } from "@/domain/valuation";
 import { useTranslation } from "@/i18n/context";
@@ -70,7 +70,7 @@ export function LogUpcoming({ transactions, schedules, currency, rates, onPress,
                     </View>
                 ) : null}
             </View>
-            {foldCardFees(transactions).map((transaction) => (
+            {foldFees(transactions).map((transaction) => (
                 <TransactionRow
                     currency={currency}
                     future

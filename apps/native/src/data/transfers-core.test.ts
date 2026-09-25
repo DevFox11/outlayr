@@ -236,14 +236,14 @@ describe("transfersRepo.create", () => {
 
         const id = await transfersRepo.create(db, {
             ...baseInput(from, to),
-            fee: { amount: 2.7, categoryId: "cat-fees", side: "source" },
+            fee: { amount: 2.7, side: "source" },
         });
         const [fee] = await db.select().from(transactions);
 
         expect(fee).toMatchObject({
             accountId: from,
             amount: 2.7,
-            categoryId: "cat-fees",
+            categoryId: null,
             currency: "USD",
             income: false,
             transferId: id,
@@ -256,7 +256,7 @@ describe("transfersRepo.create", () => {
 
         await transfersRepo.create(db, {
             ...baseInput(from, to),
-            fee: { amount: 150, categoryId: "cat-fees", side: "destination" },
+            fee: { amount: 150, side: "destination" },
         });
         const [fee] = await db.select().from(transactions);
 
@@ -295,7 +295,7 @@ describe("transfersRepo.softDelete", () => {
         const { from, to } = await twoAccounts(db);
         const id = await transfersRepo.create(db, {
             ...baseInput(from, to),
-            fee: { amount: 2.7, categoryId: null, side: "source" },
+            fee: { amount: 2.7, side: "source" },
         });
 
         await transfersRepo.softDelete(db, id, DAY);
@@ -345,7 +345,7 @@ describe("deleting an account takes its transfers with it", () => {
         const { from, to } = await twoAccounts(db);
         await transfersRepo.create(db, {
             ...baseInput(from, to),
-            fee: { amount: 2.7, categoryId: null, side: "source" },
+            fee: { amount: 2.7, side: "source" },
         });
 
         await accountsRepo.softDelete(db, from, DAY);
@@ -390,7 +390,7 @@ describe("an account delete that cannot finish", () => {
         const { from, to } = await twoAccounts(db);
         await transfersRepo.create(db, {
             ...baseInput(from, to),
-            fee: { amount: 2.7, categoryId: null, side: "source" },
+            fee: { amount: 2.7, side: "source" },
         });
         severTheDetach(db);
 

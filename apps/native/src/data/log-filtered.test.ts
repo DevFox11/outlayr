@@ -33,6 +33,7 @@ function carrier(overrides: Partial<TransactionWithCategory> & { date: Date }): 
         recurringCoefficient: 1,
         recurringEndDate: null,
         recurringType: RECURRING_TYPE.monthly,
+        transferId: null,
         ...overrides,
     };
 }

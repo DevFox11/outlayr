@@ -49,6 +49,15 @@ describe("a transfer sits in the day's list without touching its total", () => {
         expect(section.total).toBe(-2.7);
     });
 
+    it("folds a fee under its transfer instead of listing it as its own row", () => {
+        const transfer = row(100, false, { excludedFromTotals: true, id: "t1", transferId: "t1" });
+        const fee = row(2.7, false, { id: "fee", transferId: "t1" });
+        const [section] = groupByDay([transfer, fee], "USD");
+
+        expect(section.data).toStrictEqual([{ ...transfer, fee }]);
+        expect(section.total).toBe(-2.7);
+    });
+
     it("is unchanged for a day with no transfers at all", () => {
         const [section] = groupByDay([row(6.4, false), row(40, false)], "USD");
 

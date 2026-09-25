@@ -65,6 +65,7 @@ export const LOG_COLUMNS = {
     // toward what their subscriptions cost a month.
     recurringEndDate: transactions.recurringEndDate,
     recurringType: transactions.recurringType,
+    transferId: transactions.transferId,
 } as const;
 
 function visibleAt(nowMs: number) {

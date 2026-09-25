@@ -148,6 +148,7 @@ function transaction(id: string, note: string, amount = 12): TransactionWithCate
         recurringCoefficient: 1,
         recurringEndDate: null,
         recurringType: 0,
+        transferId: null,
     };
 }
 

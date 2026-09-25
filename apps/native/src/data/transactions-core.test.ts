@@ -837,7 +837,7 @@ describe("the fee on a transfer the user deleted", () => {
             date: WHEN,
             exchangeRate: null,
             exchangeRateType: null,
-            fee: { amount: 3, categoryId: "cat-1", note: "Wire fee", side: "source" },
+            fee: { amount: 3, note: "Wire fee", side: "source" },
             fromAccountId: "acc-checking",
             fromAmount: 500,
             fromCurrency: "USD",

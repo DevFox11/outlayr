@@ -210,10 +210,11 @@ describe("the fee a card is known to charge", () => {
     });
 });
 
-test("hides a fee with the purchase waiting on its undo, and nothing while none is", () => {
-    expect(goesWithPendingDelete({ feeForId: "glovo", id: "fee" }, "glovo")).toBe(true);
-    expect(goesWithPendingDelete({ feeForId: null, id: "grok" }, "glovo")).toBe(false);
-    expect(goesWithPendingDelete({ feeForId: null, id: "grok" }, null)).toBe(false);
+test("hides a fee with the purchase or transfer waiting on its undo, and nothing while none is", () => {
+    expect(goesWithPendingDelete({ feeForId: "glovo", id: "fee", transferId: null }, "glovo")).toBe(true);
+    expect(goesWithPendingDelete({ feeForId: null, id: "wire-fee", transferId: "wire" }, "wire")).toBe(true);
+    expect(goesWithPendingDelete({ feeForId: null, id: "grok", transferId: null }, "glovo")).toBe(false);
+    expect(goesWithPendingDelete({ feeForId: null, id: "grok", transferId: null }, null)).toBe(false);
 });
 
 test("rides every charge a subscription generates", async () => {

@@ -24,6 +24,7 @@ export interface DayGroupable {
     feeForId?: string | null;
     id?: string;
     income: boolean;
+    transferId?: string | null;
 }
 
 export interface DaySection<T> {
@@ -39,20 +40,27 @@ export interface DaySection<T> {
     totals: CurrencyBucket[];
 }
 
-export type WithCardFee<T> = T & { fee?: T };
+export type WithFee<T> = T & { fee?: T };
 
 const instant = (row: DayGroupable): number => (row.date ?? row.day).getTime();
 
-export function foldCardFees<T extends DayGroupable>(rows: readonly T[]): WithCardFee<T>[] {
+function feeParent(row: DayGroupable): string | null {
+    const parent = row.feeForId ?? row.transferId ?? null;
+    return parent === row.id ? null : parent;
+}
+
+export function foldFees<T extends DayGroupable>(rows: readonly T[]): WithFee<T>[] {
     const ids = new Set(rows.map((row) => row.id));
     const fees = new Map<string, T>();
     for (const row of rows) {
-        if (row.feeForId != null && ids.has(row.feeForId)) {
-            fees.set(row.feeForId, row);
+        const parent = feeParent(row);
+        if (parent !== null && ids.has(parent)) {
+            fees.set(parent, row);
         }
     }
     return rows.flatMap((row) => {
-        if (row.feeForId != null && fees.get(row.feeForId) === row) {
+        const parent = feeParent(row);
+        if (parent !== null && fees.get(parent) === row) {
             return [];
         }
         const fee = row.id === undefined ? undefined : fees.get(row.id);
@@ -69,7 +77,7 @@ export function groupByDay<T extends DayGroupable>(
     rows: readonly T[],
     globalCurrency: string = DEFAULT_CURRENCY,
     rates?: RateTable
-): DaySection<WithCardFee<T>>[] {
+): DaySection<WithFee<T>>[] {
     const sections: DaySection<T>[] = [];
     const byDay = new Map<number, DaySection<T>>();
     for (const row of rows) {
@@ -98,5 +106,5 @@ export function groupByDay<T extends DayGroupable>(
         }
         section.total = total;
     }
-    return sections.map((section) => ({ ...section, data: foldCardFees(section.data) }));
+    return sections.map((section) => ({ ...section, data: foldFees(section.data) }));
 }

@@ -5,7 +5,6 @@ import { useMemo, useState } from "react";
 import { useAccountBalance, useAccounts } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
 import { useTransferRates } from "@/data/transfer-rates";
-import { lastFeeCategoryId } from "@/data/transfers-core";
 import type { Database } from "@/db/client";
 import { minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
@@ -111,7 +110,6 @@ export interface TransferDraft {
     date: Date;
     effectiveRate: number | null;
     fee: number;
-    feeCategoryId: string | null;
     feeCurrency: string;
     feeDecimals: number;
     feeSide: FeeSide;
@@ -136,7 +134,6 @@ export interface TransferDraft {
     setCustomRate: (text: string) => void;
     setDate: (date: Date) => void;
     setFee: (text: string) => void;
-    setFeeCategoryId: (id: string) => void;
     setRateType: (type: EntryRateType) => void;
     setSent: (text: string) => void;
     swap: () => void;
@@ -212,7 +209,6 @@ export function useTransferDraft(db: Database, seed?: TransferSeed): TransferDra
     const [customRates, setCustomRates] = useState<Record<string, string>>({});
     const [feeText, setFeeText] = useState("");
     const [feeSide, setFeeSide] = useState<FeeSide>("source");
-    const [feeCategoryId, setFeeCategoryId] = useState<string | null>(() => lastFeeCategoryId(db));
     const [date, setDate] = useState(opening.date);
 
     const from = accounts.find((account) => account.id === fromId) ?? null;
@@ -329,7 +325,6 @@ export function useTransferDraft(db: Database, seed?: TransferSeed): TransferDra
         date,
         effectiveRate: math.legs === null ? rate : math.legs.exchangeRate,
         fee,
-        feeCategoryId,
         feeCurrency,
         feeDecimals,
         feeSide,
@@ -370,7 +365,6 @@ export function useTransferDraft(db: Database, seed?: TransferSeed): TransferDra
         setCustomRate: unpin(setCustomRateText),
         setDate,
         setFee: unpin(setFeeText),
-        setFeeCategoryId,
         setRateType: (next) => {
             setRateTypeState(next);
             if (next !== "custom") {
