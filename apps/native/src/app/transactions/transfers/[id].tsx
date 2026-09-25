@@ -1,8 +1,8 @@
 import { useLocalSearchParams } from "expo-router";
 
-import TransferDetail from "@/screens/transfers/detail";
+import { EditTransfer } from "@/screens/transfers/edit";
 
-export default function TransferDetailRoute() {
+export default function EditTransferScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
-    return <TransferDetail id={id} />;
+    return <EditTransfer id={id} />;
 }

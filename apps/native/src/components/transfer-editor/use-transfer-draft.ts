@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useAccountBalance, useAccounts } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
 import { useTransferRates } from "@/data/transfer-rates";
+import type { SavedTransfer } from "@/data/transfers-core";
 import type { Database } from "@/db/client";
 import { minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
@@ -116,6 +117,7 @@ export interface TransferDraft {
     feeText: string;
     from: Account | null;
     fromBalance: number;
+    fromBalanceAfter: number;
     fromCurrency: string;
     fromDecimals: number;
     gapAmount: number;
@@ -139,6 +141,7 @@ export interface TransferDraft {
     swap: () => void;
     to: Account | null;
     toBalance: number;
+    toBalanceAfter: number;
     toCurrency: string;
     toDecimals: number;
     toggleFeeSide: () => void;
@@ -170,8 +173,21 @@ export interface TransferSeed {
     toUnresolved?: boolean;
 }
 
+interface Opening {
+    arrivalPinned: boolean;
+    arrivedText: string;
+    customRates: Record<string, string>;
+    date: Date;
+    feeSide: FeeSide;
+    feeText: string;
+    fromId: string | null;
+    rateType: EntryRateType;
+    sentText: string;
+    toId: string | null;
+}
+
 /** The editor's opening state: the seed where it speaks, the first two accounts where it does not. */
-function openingState(accounts: readonly Account[], seed: TransferSeed | undefined) {
+function openingState(accounts: readonly Account[], seed: TransferSeed | undefined): Opening {
     const from = accounts.find((account) => account.id === seed?.fromAccountId);
     const to = accounts.find((account) => account.id === seed?.toAccountId);
     const amount = seed?.amount;
@@ -189,26 +205,80 @@ function openingState(accounts: readonly Account[], seed: TransferSeed | undefin
     return {
         arrivalPinned: onArrival,
         arrivedText: onArrival ? numberToNumpad(amount, minorUnitsFor(to.currency)) : "",
+        customRates: {},
         date: seed?.date ?? new Date(),
+        feeSide: "source",
+        feeText: "",
         fromId,
+        rateType: "official",
         sentText: onSent ? numberToNumpad(amount, minorUnitsFor(from.currency)) : "",
         toId,
     };
 }
 
-export function useTransferDraft(db: Database, seed?: TransferSeed): TransferDraft {
+function savedState(accounts: readonly Account[], saved: SavedTransfer): Opening {
+    const fromCurrency = accounts.find((account) => account.id === saved.fromAccountId)?.currency;
+    const toCurrency = accounts.find((account) => account.id === saved.toAccountId)?.currency;
+    if (fromCurrency !== saved.fromCurrency || toCurrency !== saved.toCurrency) {
+        return openingState(accounts, {
+            date: saved.date,
+            fromAccountId: saved.fromAccountId,
+            fromUnresolved: true,
+            toAccountId: saved.toAccountId,
+            toUnresolved: true,
+        });
+    }
+    const rateType = saved.rateType ?? "official";
+    return {
+        arrivalPinned: true,
+        arrivedText: numberToNumpad(saved.arrived, minorUnitsFor(toCurrency)),
+        customRates:
+            rateType === "custom" && saved.rate !== null
+                ? { [`${fromCurrency}/${toCurrency}`]: numberToNumpad(saved.rate, RATE_DISPLAY_DECIMALS) }
+                : {},
+        date: saved.date,
+        feeSide: saved.feeSide,
+        feeText: numberToNumpad(saved.fee, minorUnitsFor(saved.feeSide === "destination" ? toCurrency : fromCurrency)),
+        fromId: saved.fromAccountId,
+        rateType,
+        sentText: numberToNumpad(saved.sent, minorUnitsFor(fromCurrency)),
+        toId: saved.toAccountId,
+    };
+}
+
+function savedQuote(saved: SavedTransfer | undefined, pair: string, type: EntryRateType, date: Date): number | null {
+    const same =
+        saved !== undefined &&
+        pair === `${saved.fromCurrency}/${saved.toCurrency}` &&
+        type === saved.rateType &&
+        date.getTime() === saved.date.getTime();
+    return same ? saved.rate : null;
+}
+
+function restoredBy(saved: SavedTransfer | undefined, account: Account | null): number {
+    if (saved === undefined || account === null) {
+        return 0;
+    }
+    const sent = account.id === saved.fromAccountId && account.currency === saved.fromCurrency ? saved.sent : 0;
+    const arrived = account.id === saved.toAccountId && account.currency === saved.toCurrency ? saved.arrived : 0;
+    return sent - arrived;
+}
+
+export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: SavedTransfer): TransferDraft {
     const accounts = useAccounts(db);
-    const [opening] = useState(() => openingState(accounts, seed));
+    const [opening] = useState(() => (saved ? savedState(accounts, saved) : openingState(accounts, seed)));
     const [fromId, setFromId] = useState<string | null>(opening.fromId);
     const [toId, setToId] = useState<string | null>(opening.toId);
     const [sentText, setSentText] = useState(opening.sentText);
     const [arrivedText, setArrivedText] = useState(opening.arrivedText);
     const [arrivalPinned, setArrivalPinned] = useState(opening.arrivalPinned);
-    const [rateType, setRateTypeState] = useState<EntryRateType>("official");
-    const [marketType, setMarketType] = useState<EntryRateType>("official");
-    const [customRates, setCustomRates] = useState<Record<string, string>>({});
-    const [feeText, setFeeText] = useState("");
-    const [feeSide, setFeeSide] = useState<FeeSide>("source");
+    const [rateType, setRateTypeState] = useState<EntryRateType>(opening.rateType);
+    const [marketType, setMarketType] = useState<EntryRateType>(
+        opening.rateType === "custom" ? "official" : opening.rateType
+    );
+    const [customRates, setCustomRates] = useState<Record<string, string>>(opening.customRates);
+    const [feeText, setFeeText] = useState(opening.feeText);
+    const [feeSide, setFeeSide] = useState<FeeSide>(opening.feeSide);
     const [date, setDate] = useState(opening.date);
 
     const from = accounts.find((account) => account.id === fromId) ?? null;
@@ -216,6 +286,8 @@ export function useTransferDraft(db: Database, seed?: TransferSeed): TransferDra
     const fromCurrency = from?.currency ?? "USD";
     const toCurrency = to?.currency ?? "USD";
     const crossCurrency = fromCurrency !== toCurrency;
+    const fromRestored = restoredBy(saved, from);
+    const toRestored = restoredBy(saved, to);
 
     const fromBalance = useAccountBalance(db, {
         currency: fromCurrency,
@@ -228,12 +300,15 @@ export function useTransferDraft(db: Database, seed?: TransferSeed): TransferDra
         initialBalance: to?.initialBalance ?? 0,
     });
 
-    const rates = useTransferRates(db, [fromCurrency, toCurrency], rateType === "custom" ? marketType : rateType);
-    const marketRate = useMemo(
+    const quoteType = rateType === "custom" ? marketType : rateType;
+    const rates = useTransferRates(db, [fromCurrency, toCurrency], quoteType);
+    const tableRate = useMemo(
         () => marketRateFor(fromCurrency, toCurrency, date, rates),
         [fromCurrency, toCurrency, date, rates]
     );
     const pair = `${fromCurrency}/${toCurrency}`;
+    const ownQuote = savedQuote(saved, pair, quoteType, date);
+    const marketRate = tableRate ?? ownQuote;
     const customRateText = customRates[pair];
     /** Keyed by pair, so a rate typed for another one does not answer here — and
      * without this the segmented control would label the market rate user-authored. */
@@ -330,7 +405,8 @@ export function useTransferDraft(db: Database, seed?: TransferSeed): TransferDra
         feeSide,
         feeText,
         from,
-        fromBalance: fromBalance.total,
+        fromBalance: roundMoney(fromBalance.total, fromDecimals),
+        fromBalanceAfter: roundMoney(fromBalance.total + fromRestored - sent, fromDecimals),
         fromCurrency,
         fromDecimals,
         gapAmount: math.gap,
@@ -379,7 +455,8 @@ export function useTransferDraft(db: Database, seed?: TransferSeed): TransferDra
             setArrivalPinned(false);
         },
         to,
-        toBalance: toBalance.total,
+        toBalance: roundMoney(toBalance.total, toDecimals),
+        toBalanceAfter: roundMoney(toBalance.total + toRestored + (math.arrived ?? 0), toDecimals),
         toCurrency,
         toDecimals,
         toggleFeeSide: () => {

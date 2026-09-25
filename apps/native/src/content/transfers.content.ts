@@ -19,22 +19,6 @@ const transfers = {
             en: "Delete Transfer",
             es: "Eliminar transferencia",
         }),
-        "transfers.detail.arrived": t({
-            en: "Arrived",
-            es: "Llegó",
-        }),
-        "transfers.detail.feeNote": t({
-            en: "Counted as spending, unlike the transfer itself.",
-            es: "Cuenta como gasto, a diferencia de la transferencia.",
-        }),
-        "transfers.detail.left": t({
-            en: "Left",
-            es: "Salió",
-        }),
-        "transfers.detail.rateSource": t({
-            en: "Source",
-            es: "Fuente",
-        }),
         "transfers.fee.note": t({
             en: "Fee · {from} → {to}",
             es: "Comisión · {from} → {to}",

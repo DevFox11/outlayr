@@ -5,8 +5,10 @@ import { CloseToolbar } from "@/components/close-toolbar";
 import { TransactionForm } from "@/components/transaction-form";
 import { useDatabase } from "@/contexts/local-data-context";
 import { getTransactionById } from "@/data/transactions-core";
+import { savedTransfer } from "@/data/transfers-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useTranslation } from "@/i18n/context";
+import { EditTransfer } from "@/screens/transfers/edit";
 
 export function EditTransaction({ id }: { id: string }) {
     const router = useRouter();
@@ -21,6 +23,9 @@ export function EditTransaction({ id }: { id: string }) {
         const purchase = row?.feeForId ? getTransactionById(db, row.feeForId) : null;
         return purchase != null && purchase.deletedAt == null ? purchase : row;
     });
+    const [transferId] = useState(() =>
+        initial?.transferId != null && savedTransfer(db, initial.transferId) !== null ? initial.transferId : null
+    );
 
     useEffect(() => {
         if (initial == null) {
@@ -41,6 +46,9 @@ export function EditTransaction({ id }: { id: string }) {
 
     if (initial == null) {
         return null;
+    }
+    if (transferId !== null) {
+        return <EditTransfer id={transferId} />;
     }
 
     return (

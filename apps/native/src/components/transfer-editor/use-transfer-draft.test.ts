@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, renderHook } from "@testing-library/react-native";
 
 import type { Account } from "@/data/accounts-core";
+import type { SavedTransfer } from "@/data/transfers-core";
 import type { Database } from "@/db/client";
 
 import { useTransferDraft } from "./use-transfer-draft";
@@ -15,14 +16,17 @@ const mockAccounts = [
 ];
 
 const mockRates = new Map<string, number>();
+const mockBalances = new Map<string, number>();
 
 jest.mock("@/data/accounts", () => ({
-    useAccountBalance: () => ({ total: 0 }),
+    useAccountBalance: (_db: unknown, account: { id: string }) => ({ total: mockBalances.get(account.id) ?? 0 }),
     useAccounts: () => mockAccounts,
 }));
 
 jest.mock("@/data/transfer-rates", () => ({
-    useTransferRates: () => ({ get: (code: string) => mockRates.get(code) ?? null }),
+    useTransferRates: (_db: unknown, _codes: unknown, rateType: string) => ({
+        get: (code: string) => (rateType === "official" ? (mockRates.get(code) ?? null) : null),
+    }),
 }));
 
 const SENT = "1000";
@@ -32,6 +36,7 @@ const OFFICIAL_VES_PER_USD = 55.5;
 
 beforeEach(() => {
     mockRates.clear();
+    mockBalances.clear();
 });
 
 async function draft(): Promise<{ current: TransferDraft }> {
@@ -385,5 +390,125 @@ describe("useTransferDraft seed", () => {
         );
         expect(missedDestination.result.current.from?.id).toBe("usd");
         expect(missedDestination.result.current.to).toBeNull();
+    });
+});
+
+describe("reopening a saved transfer", () => {
+    const saved: SavedTransfer = {
+        arrived: 5550,
+        date: new Date(Date.UTC(2026, 7, 9)),
+        fee: 2.7,
+        feeSide: "source",
+        fromAccountId: "usd",
+        fromCurrency: "USD",
+        id: "transfer",
+        note: "",
+        rate: OFFICIAL_VES_PER_USD,
+        rateType: "official",
+        sent: 102.7,
+        toAccountId: "ves",
+        toCurrency: "VES",
+    };
+
+    async function reopened(transfer: SavedTransfer): Promise<{ current: TransferDraft }> {
+        const { result } = await renderHook(() => useTransferDraft({} as Database, undefined, transfer));
+        return result;
+    }
+
+    it("saves the same legs and fee when nothing is touched", async () => {
+        mockRates.set("VES", OFFICIAL_VES_PER_USD);
+        const result = await reopened(saved);
+
+        expect(result.current).toMatchObject({
+            canSave: true,
+            fee: 2.7,
+            feeSide: "source",
+            gapAmount: 0,
+            legs: { fromAmount: 100, toAmount: 5550 },
+            rateType: "official",
+        });
+    });
+
+    it("stays saveable when the rate for its day is no longer cached", async () => {
+        const result = await reopened(saved);
+
+        expect(result.current.canSave).toBe(true);
+        expect(result.current.legs).toMatchObject({ fromAmount: 100, toAmount: 5550 });
+    });
+
+    it("reopens a custom rate and a destination fee as they were", async () => {
+        const result = await reopened({
+            ...saved,
+            arrived: 5850,
+            fee: 150,
+            feeSide: "destination",
+            rate: 60,
+            rateType: "custom",
+            sent: 100,
+        });
+
+        expect(result.current).toMatchObject({
+            feeCurrency: "VES",
+            gapAmount: 0,
+            legs: { fromAmount: 100, toAmount: 6000 },
+            quotedRate: 60,
+            rateType: "custom",
+        });
+    });
+
+    it("keeps its stored legs and shows the gap to the day's rate when the two disagree", async () => {
+        mockRates.set("VES", OFFICIAL_VES_PER_USD);
+        const result = await reopened({ ...saved, arrived: 5540, rate: 55.4 });
+
+        expect(result.current).toMatchObject({
+            canSave: true,
+            gapAmount: 10,
+            legs: { fromAmount: 100, toAmount: 5540 },
+            quotedRate: OFFICIAL_VES_PER_USD,
+        });
+    });
+
+    it("stops quoting its own rate once the rate source changes", async () => {
+        const result = await reopened(saved);
+
+        await act(async () => {
+            result.current.setRateType("eur_reference");
+        });
+
+        expect(result.current).toMatchObject({ block: { kind: "rate" }, canSave: false, quotedRate: null });
+    });
+
+    it("asks for the amounts again when an account's currency changed since", async () => {
+        mockBalances.set("usd", 500);
+        const result = await reopened({ ...saved, fromCurrency: "EUR" });
+
+        expect(result.current).toMatchObject({ canSave: false, fee: 0, fromBalanceAfter: 500, sent: 0, sentText: "" });
+    });
+
+    it("leaves a leg empty rather than moving it to another account when its account is gone", async () => {
+        const result = await reopened({ ...saved, toAccountId: "gone" });
+
+        expect(result.current.from?.id).toBe("usd");
+        expect(result.current.to).toBeNull();
+    });
+
+    it("previews each balance with the transfer being edited taken back out", async () => {
+        mockRates.set("VES", OFFICIAL_VES_PER_USD);
+        mockBalances.set("usd", 897.3);
+        mockBalances.set("ves", 5550);
+        const result = await reopened(saved);
+
+        expect(result.current).toMatchObject({
+            fromBalance: 897.3,
+            fromBalanceAfter: 897.3,
+            toBalance: 5550,
+            toBalanceAfter: 5550,
+        });
+
+        await act(async () => {
+            result.current.setFee("3.7");
+        });
+
+        expect(result.current).toMatchObject({ fromBalanceAfter: 897.3, toBalanceAfter: 5494.5 });
     });
 });

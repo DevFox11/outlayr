@@ -13,6 +13,7 @@ import { StepDate } from "@/components/transaction-form/stage/step-date";
 import { StepWhen } from "@/components/transaction-form/stage/step-when";
 import { useDatabase } from "@/contexts/local-data-context";
 import { transfersRepo } from "@/data/transfers-core";
+import type { SavedTransfer, TransferInput } from "@/data/transfers-core";
 import { formatSignedAmount } from "@/domain/account-display";
 import { formatAmount, numberLocale } from "@/domain/money";
 import { transactionWhenLabel } from "@/domain/transaction-form-labels";
@@ -28,20 +29,21 @@ import type { TransferSeed } from "./use-transfer-draft";
 
 type Step = Exclude<TransferSentenceSlot, "feeSide"> | "date";
 
-interface TransferEditorProps {
-    onDone: () => void;
-    seed?: TransferSeed & { note?: string };
-}
+type TransferEditorProps = { onDone: () => void } & (
+    | { saved: SavedTransfer; seed?: never }
+    | { saved?: never; seed?: TransferSeed & { note?: string } }
+);
 
-export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
+export default function TransferEditor({ onDone, saved, seed }: TransferEditorProps) {
     const db = useDatabase();
     const router = useRouter();
     const accountCreateRoute = useAccountCreateRoute();
     const t = useTranslation();
     const { language } = useLanguage();
     const colors = useColors();
-    const draft = useTransferDraft(db, seed);
-    const noteRef = useRef(seed?.note ?? "");
+    const draft = useTransferDraft(db, seed, saved);
+    const initialNote = saved?.note ?? seed?.note ?? "";
+    const noteRef = useRef(initialNote);
     const savingRef = useRef(false);
     const [saving, setSaving] = useState(false);
     const [saveFailure, setSaveFailure] = useState<string | null>(null);
@@ -94,27 +96,28 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
         savingRef.current = true;
         setSaving(true);
         setSaveFailure(null);
+        const input: TransferInput = {
+            date,
+            exchangeRate: effectiveRate,
+            exchangeRateType: crossCurrency ? rateType : null,
+            fee:
+                fee > 0
+                    ? {
+                          amount: fee,
+                          note: t("transfers.fee.note", { from: from.name, to: to.name }),
+                          side: feeSide,
+                      }
+                    : undefined,
+            fromAccountId: from.id,
+            fromAmount: legs.fromAmount,
+            fromCurrency: draft.fromCurrency,
+            note: noteRef.current,
+            toAccountId: to.id,
+            toAmount: legs.toAmount,
+            toCurrency: draft.toCurrency,
+        };
         try {
-            await transfersRepo.create(db, {
-                date,
-                exchangeRate: effectiveRate,
-                exchangeRateType: crossCurrency ? rateType : null,
-                fee:
-                    fee > 0
-                        ? {
-                              amount: fee,
-                              note: t("transfers.fee.note", { from: from.name, to: to.name }),
-                              side: feeSide,
-                          }
-                        : undefined,
-                fromAccountId: from.id,
-                fromAmount: legs.fromAmount,
-                fromCurrency: draft.fromCurrency,
-                note: noteRef.current,
-                toAccountId: to.id,
-                toAmount: legs.toAmount,
-                toCurrency: draft.toCurrency,
-            });
+            await (saved ? transfersRepo.update(db, saved.id, input) : transfersRepo.create(db, input));
             onDone();
         } catch (error) {
             console.error("Failed to save the transfer", error);
@@ -275,8 +278,8 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
     };
 
     const ledger = [
-        { account: draft.from, after: draft.fromBalance - draft.sent, before: draft.fromBalance },
-        { account: draft.to, after: draft.toBalance + (draft.arrived ?? 0), before: draft.toBalance },
+        { account: draft.from, after: draft.fromBalanceAfter, before: draft.fromBalance },
+        { account: draft.to, after: draft.toBalanceAfter, before: draft.toBalance },
     ];
 
     return (
@@ -362,7 +365,7 @@ export default function TransferEditor({ onDone, seed }: TransferEditorProps) {
                     <TextInput
                         accessibilityLabel={t("transfers.field.note")}
                         className="text-body text-foreground min-h-12"
-                        defaultValue={seed?.note ?? ""}
+                        defaultValue={initialNote}
                         multiline
                         onChangeText={(next) => {
                             noteRef.current = next;
