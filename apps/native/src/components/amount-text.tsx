@@ -1,6 +1,6 @@
 import { roundMoney } from "@outlayr/money/round";
 import { NumberFlow } from "number-flow-react-native";
-import { Fragment } from "react";
+import { Fragment, use } from "react";
 import { useWindowDimensions, View } from "react-native";
 import { Easing } from "react-native-reanimated";
 import { useResolveClassNames } from "uniwind";
@@ -14,7 +14,7 @@ import type { NumberLocale } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 
-import { Text } from "./text";
+import { FontScaleCapContext, Text } from "./text";
 import { cn, tv } from "./tw";
 
 const BASELINE_STRUT = "\u200B";
@@ -37,6 +37,10 @@ interface FlowFigureProps {
 
 export function FlowFigure({ className, format, locale, prefix, size, snapWidth, value }: FlowFigureProps) {
     const { color, fontFamily, fontSize, fontVariant } = useResolveClassNames(className ?? "");
+    const fontScaleCap = use(FontScaleCapContext);
+    const { fontScale } = useWindowDimensions();
+    const figureSize = size ?? fontSize;
+    const overCap = figureSize !== undefined && fontScaleCap !== undefined && fontScale > fontScaleCap;
     return (
         <View className="flex-row items-center">
             <Text accessible={false} className={className} style={size == null ? undefined : { fontSize: size }}>
@@ -46,7 +50,12 @@ export function FlowFigure({ className, format, locale, prefix, size, snapWidth,
                 format={format}
                 locales={locale.tag}
                 prefix={prefix}
-                style={{ color, fontFamily, fontSize: size ?? fontSize, fontVariant }}
+                style={{
+                    color,
+                    fontFamily,
+                    fontSize: overCap ? (figureSize * fontScaleCap) / fontScale : figureSize,
+                    fontVariant,
+                }}
                 transformTiming={snapWidth ? SNAP_WIDTH : undefined}
                 value={value}
             />

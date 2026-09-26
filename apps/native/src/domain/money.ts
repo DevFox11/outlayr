@@ -34,6 +34,21 @@ export function latinAmericanLocale(device: DeviceNumbers | null): NumberLocale 
 // ponytail: read once per launch; a region changed mid-session shows after a relaunch.
 let spanish: NumberLocale | undefined;
 
+const THOUSANDS = /\B(?=(\d{3})+(?!\d))/g;
+
+function splitFixed(fixed: string, locale: NumberLocale) {
+    const [integer = "0", fraction = ""] = fixed.split(".");
+    return { fraction, integer: integer.replaceAll(THOUSANDS, locale.group) };
+}
+
+export function formatFixed(value: number, decimals: number, language: Language = runtimeLanguage()): string {
+    const locale = numberLocale(language);
+    const fixed = Math.abs(value).toFixed(decimals);
+    const { fraction, integer } = splitFixed(fixed, locale);
+    const sign = value < 0 && Number(fixed) > 0 ? "-" : "";
+    return `${sign}${fraction === "" ? integer : `${integer}${locale.decimal}${fraction}`}`;
+}
+
 export function numberLocale(language: Language = runtimeLanguage()): NumberLocale {
     if (language === "en") {
         return ENGLISH;
@@ -83,11 +98,9 @@ export function amountParts(
     const locale = numberLocale(language);
     const minorUnits = showCents ? decimalsFor(code) : 0;
     const rounded = roundMoney(Math.abs(amount), minorUnits);
-    const fixed = rounded.toFixed(minorUnits);
-    const [intRaw = "0", fractionRaw = ""] = fixed.split(".");
-    const integer = intRaw.replaceAll(/\B(?=(\d{3})+(?!\d))/g, locale.group);
+    const { fraction, integer } = splitFixed(rounded.toFixed(minorUnits), locale);
     return {
-        fraction: minorUnits > 0 ? fractionRaw : "",
+        fraction: minorUnits > 0 ? fraction : "",
         integer,
         locale,
         minorUnits,

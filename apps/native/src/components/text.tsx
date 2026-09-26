@@ -1,5 +1,6 @@
-import type { ComponentRef, Ref } from "react";
-import { Text as RNText, StyleSheet } from "react-native";
+import { createContext, use } from "react";
+import type { ComponentProps, ComponentRef, Ref } from "react";
+import { Text as RNText, TextInput as RNTextInput, StyleSheet } from "react-native";
 import type { TextProps, TextStyle } from "react-native";
 
 const FAMILY = {
@@ -53,6 +54,8 @@ type ThemedTextProps = TextProps & {
  */
 const FAMILY_CLASS = /(^|\s)font-(sans|mono)(-\w+)?(\s|$)/;
 
+export const FontScaleCapContext = createContext<number | undefined>(undefined);
+
 /**
  * `Text` in SF Pro Rounded — the RN counterpart to SwiftUI's
  * `.system(design: .rounded)`. Static rounded faces don't synthesize weight, so
@@ -66,10 +69,23 @@ const FAMILY_CLASS = /(^|\s)font-(sans|mono)(-\w+)?(\s|$)/;
  * named faces, so both paths agree.
  */
 export function Text({ style, className, ref, ...rest }: ThemedTextProps) {
+    const fontScaleCap = use(FontScaleCapContext);
     // SAFETY: `style` is this component's own `TextStyle` prop; RN types
     // `flatten` against the wider ViewStyle union for all callers.
     const flattened = StyleSheet.flatten(style) as TextStyle | undefined;
     const keepFamily = flattened?.fontFamily != null || FAMILY_CLASS.test(className ?? "");
     const fontFamily = keepFamily ? undefined : roundedFamily(flattened?.fontWeight);
-    return <RNText className={className} ref={ref} style={fontFamily ? [style, { fontFamily }] : style} {...rest} />;
+    return (
+        <RNText
+            className={className}
+            maxFontSizeMultiplier={fontScaleCap}
+            ref={ref}
+            style={fontFamily ? [style, { fontFamily }] : style}
+            {...rest}
+        />
+    );
+}
+
+export function TextInput(props: ComponentProps<typeof RNTextInput>) {
+    return <RNTextInput maxFontSizeMultiplier={use(FontScaleCapContext)} {...props} />;
 }

@@ -8,6 +8,8 @@ import { migratedDatabase } from "@/db/test-database";
 import { bumpRatesRevision } from "./rates-revision";
 import { useTransferRates } from "./transfer-rates";
 
+const OFFICIAL = ["official"] as const;
+
 async function seedRate(db: Database, rate: number): Promise<void> {
     await db.insert(exchangeRates).values({
         date: "2026-09-15",
@@ -27,16 +29,16 @@ describe("useTransferRates", () => {
     // it: the transfer sheet kept quoting the table it opened with.
     it("picks up a refresh that announced itself only through the revision counter", async () => {
         const db = migratedDatabase({ foreignKeys: false });
-        const { result } = await renderHook(() => useTransferRates(db, ["USD", "VES"], "official"));
-        expect(result.current.get("VES", "2026-09-15")).toBeNull();
+        const { result } = await renderHook(() => useTransferRates(db, ["USD", "VES"], OFFICIAL));
+        expect(result.current.official?.get("VES", "2026-09-15")).toBeNull();
 
         await seedRate(db, 40);
-        expect(result.current.get("VES", "2026-09-15")).toBeNull();
+        expect(result.current.official?.get("VES", "2026-09-15")).toBeNull();
 
         await act(async () => {
             bumpRatesRevision();
         });
 
-        expect(result.current.get("VES", "2026-09-15")).not.toBeNull();
+        expect(result.current.official?.get("VES", "2026-09-15")).not.toBeNull();
     });
 });

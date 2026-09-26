@@ -1,10 +1,12 @@
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
+import { Dimensions, StyleSheet } from "react-native";
 
 import { amountParts, currencySymbol, formatAmount } from "@/domain/money";
 import type { Language } from "@/i18n/languages";
 
 import { FlowAmount, HeroNumber } from "./amount-text";
+import { FontScaleCapContext } from "./text";
 
 let mockLanguage: Language = "en";
 
@@ -27,6 +29,10 @@ const CASES: [Language, number, string, boolean][] = [
 
 beforeEach(() => {
     mockLanguage = "en";
+});
+
+afterEach(() => {
+    jest.restoreAllMocks();
 });
 
 describe("heroNumber", () => {
@@ -65,4 +71,17 @@ describe("flowAmount", () => {
             expect(screen.getByText(`+${formatAmount(amount, code, showCents, language)}`)).toBeOnTheScreen();
         }
     );
+});
+
+describe("flowFigure under a font scale cap", () => {
+    it("stops the animated digits growing where the text around them stops", async () => {
+        jest.spyOn(Dimensions, "get").mockReturnValue({ fontScale: 2.7, height: 956, scale: 3, width: 440 });
+        await render(
+            <FontScaleCapContext value={1.35}>
+                <FlowAmount amount={17.5} code="USD" showCents size={34} />
+            </FontScaleCapContext>
+        );
+
+        expect(StyleSheet.flatten(screen.getByText("17.50").props.style).fontSize).toBeCloseTo(17);
+    });
 });

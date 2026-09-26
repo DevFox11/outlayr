@@ -7,7 +7,7 @@ import { SentenceToggle } from "../../sentence/sentence-toggle";
 import { SentenceValue } from "../../sentence/sentence-value";
 import type { SentenceFigure } from "../../sentence/sentence-value";
 import { CurrencyCode } from "./currency-code";
-import type { TransactionSentenceMark, TransactionSentenceSlot } from "./slots";
+import type { TransactionRateSlot, TransactionSentenceMark, TransactionSentenceSlot } from "./slots";
 
 export interface TransactionSentenceLabels {
     account: { blank: string; field: string };
@@ -17,8 +17,21 @@ export interface TransactionSentenceLabels {
     fee: { field: string };
     kind: { switchLabel: string; verb: string };
     merchant: { field: string; placeholder: string };
+    rate: { blank: string; converted: string; field: string; source: string };
     template: string;
     when: { field: string };
+}
+
+export interface TransactionRateClause {
+    converted: { amount: number; text: string } | null;
+    flagged: boolean;
+    onConvertedPress: () => void;
+    onRatePress: () => void;
+    onSourcePress: () => void;
+    rate: string | null;
+    shake: boolean;
+    source: string;
+    template: string;
 }
 
 interface TransactionSentenceProps {
@@ -57,6 +70,7 @@ interface TransactionSentenceProps {
     onKindPress: () => void;
     onMerchantPress: () => void;
     onWhenPress: () => void;
+    rate?: TransactionRateClause;
     when: string;
 }
 
@@ -90,10 +104,37 @@ export function TransactionSentence({
     onKindPress,
     onMerchantPress,
     onWhenPress,
+    rate,
     when,
 }: TransactionSentenceProps) {
+    let rateFill: ReactNode = null;
+    if (rate?.rate === null) {
+        rateFill = (
+            <SentenceBlank
+                accessibilityLabel={labels.rate.field}
+                active={activeSlot === "rate"}
+                flagged={rate.flagged}
+                label={labels.rate.blank}
+                onPress={rate.onRatePress}
+                shake={rate.shake}
+            />
+        );
+    } else if (rate !== undefined) {
+        rateFill = (
+            <SentenceValue
+                accessibilityLabel={labels.rate.field}
+                active={activeSlot === "rate"}
+                flagged={rate.flagged}
+                onPress={rate.onRatePress}
+                shake={rate.shake}
+                swapKey="rate"
+                value={rate.rate}
+            />
+        );
+    }
+
     return (
-        <Sentence<TransactionSentenceSlot>
+        <Sentence<TransactionRateSlot | TransactionSentenceSlot>
             slots={{
                 account:
                     account === null ? (
@@ -175,6 +216,17 @@ export function TransactionSentence({
                             {categoryTile}
                         </SentenceValue>
                     ),
+                converted:
+                    rate?.converted == null ? null : (
+                        <SentenceValue
+                            accessibilityLabel={labels.rate.converted}
+                            active={activeSlot === "converted"}
+                            figure={{ amount: rate.converted.amount, code: "USD" }}
+                            onPress={rate.onConvertedPress}
+                            swapKey="converted"
+                            value={rate.converted.text}
+                        />
+                    ),
                 kind: (
                     <SentenceToggle
                         accessibilityLabel={labels.kind.switchLabel}
@@ -205,6 +257,16 @@ export function TransactionSentence({
                             {merchantTile}
                         </SentenceValue>
                     ),
+                rate: rateFill,
+                rateSource:
+                    rate === undefined ? null : (
+                        <SentenceValue
+                            accessibilityLabel={labels.rate.source}
+                            active={activeSlot === "rateSource"}
+                            onPress={rate.onSourcePress}
+                            value={rate.source}
+                        />
+                    ),
                 when: (
                     <SentenceValue
                         accessibilityLabel={labels.when.field}
@@ -214,7 +276,7 @@ export function TransactionSentence({
                     />
                 ),
             }}
-            template={labels.template}
+            template={rate === undefined ? labels.template : `${labels.template} ${rate.template}`}
         />
     );
 }

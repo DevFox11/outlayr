@@ -25,11 +25,14 @@ export const TRANSFER_SENTENCE_KEYS = [
     "transfers.sentence.noFee",
 ] as const;
 
+export const TRANSFER_CUSTOM_RATE_KEY = "transfers.sentence.rateCustom";
+
 export type TransferSentenceValues = Readonly<Record<TransferSentenceSlot, string | null>>;
 
 interface TransferSentenceProps {
     activeSlot: TransferSentenceSlot | null;
     crossCurrency: boolean;
+    customRate: boolean;
     figures: Partial<Record<TransferSentenceSlot, SentenceFigure>>;
     flaggedSlot: TransferSentenceSlot | null;
     hasFee: boolean;
@@ -40,6 +43,7 @@ interface TransferSentenceProps {
 export function TransferSentence({
     activeSlot,
     crossCurrency,
+    customRate,
     figures,
     flaggedSlot,
     hasFee,
@@ -88,9 +92,10 @@ export function TransferSentence({
         );
     };
 
+    const rateClause = customRate ? t(TRANSFER_CUSTOM_RATE_KEY) : t("transfers.sentence.rate");
     const template = [
         t("transfers.sentence.move"),
-        crossCurrency ? t("transfers.sentence.rate") : null,
+        crossCurrency ? rateClause : null,
         t(hasFee ? "transfers.sentence.fee" : "transfers.sentence.noFee"),
     ]
         .filter((clause) => clause !== null)

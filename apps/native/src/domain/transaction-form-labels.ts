@@ -1,3 +1,5 @@
+import type { EntryRateType } from "@outlayr/money/rates";
+
 import { addDays, formatSentenceDate, startOfDay } from "@/domain/dates";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 import { leadLabelKey } from "@/domain/subscription-reminder";
@@ -18,6 +20,19 @@ const CADENCE_LABEL_KEY = new Map<number, TranslationKey>([
 export function cadenceLabel(t: TranslateFn, type: number): string {
     return t(CADENCE_LABEL_KEY.get(type) ?? "transaction.cadence.monthly");
 }
+
+/** Names the policy a stated conversion was produced by. */
+export const RATE_NAME_KEYS = {
+    custom: "transaction.rate.custom",
+    eur_reference: "transaction.rate.eur_reference",
+    official: "transaction.rate.official",
+} as const satisfies Record<EntryRateType, TranslationKey>;
+
+export const RATE_SOURCE_WORD_KEYS = {
+    custom: "transaction.sentence.rateSource.custom",
+    eur_reference: "transaction.sentence.rateSource.eur_reference",
+    official: "transaction.sentence.rateSource.official",
+} as const satisfies Record<EntryRateType, TranslationKey>;
 
 export function ctaKey(mode: "create" | "edit", isSubscription: boolean): TranslationKey {
     if (mode === "edit") {

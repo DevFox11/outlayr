@@ -16,7 +16,8 @@ import { transfersRepo } from "@/data/transfers-core";
 import type { SavedTransfer, TransferInput } from "@/data/transfers-core";
 import { formatSignedAmount } from "@/domain/account-display";
 import { formatAmount, numberLocale } from "@/domain/money";
-import { transactionWhenLabel } from "@/domain/transaction-form-labels";
+import { pairUnitSymbols, RATE_ENTRY_DECIMALS } from "@/domain/transaction-entry-rate";
+import { RATE_NAME_KEYS, RATE_SOURCE_WORD_KEYS, transactionWhenLabel } from "@/domain/transaction-form-labels";
 import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { freshEntries } from "@/lib/fresh-entries";
@@ -26,7 +27,7 @@ import { useColors } from "@/theme/use-colors";
 import { blockPrompt, formatRate, gapPrompt } from "./prompts";
 import { TransferSentence } from "./transfer-sentence";
 import type { TransferSentenceSlot } from "./transfer-sentence";
-import { RATE_DISPLAY_DECIMALS, useTransferDraft } from "./use-transfer-draft";
+import { useTransferDraft } from "./use-transfer-draft";
 import type { TransferSeed } from "./use-transfer-draft";
 
 type Step = Exclude<TransferSentenceSlot, "feeSide"> | "date";
@@ -161,11 +162,13 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
     };
 
     const typingRate = step === "rate" && !fresh;
-    const quoted = draft.quotedRate === null ? null : formatRate(draft.quotedRate);
-    const rateLabel = typingRate ? draft.customRatePadText.replace(".", numberLocale().decimal) || null : quoted;
+    const rateUnit = t("transaction.rate.unit", pairUnitSymbols(draft.fromCurrency, draft.toCurrency));
+    const rateFigure = typingRate
+        ? draft.customRatePadText.replace(".", numberLocale(language).decimal) || null
+        : formatRate(draft, draft.quotedRate, language);
+    const rateLabel = rateFigure === null ? null : `${rateFigure} ${rateUnit}`;
     const feeSideAccount = draft.feeSide === "destination" ? draft.to : draft.from;
-    const pairCode = `${draft.toCurrency}/${draft.fromCurrency}`;
-    const gap = blockPrompt(draft, t) ?? gapPrompt(draft, t);
+    const gap = blockPrompt(draft, t, language) ?? gapPrompt(draft, t, language);
     const footer = {
         label: draft.canSave ? t("transfers.save") : t("common.next"),
         onPress: onFooter,
@@ -196,9 +199,9 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
             value: draft.feeText,
         },
         rate: {
-            code: pairCode,
+            code: rateUnit,
             label: t("transfers.field.rate"),
-            minorUnits: RATE_DISPLAY_DECIMALS,
+            minorUnits: RATE_ENTRY_DECIMALS,
             mode: "explicitSeparator",
             onChange: draft.setCustomRate,
             value: draft.customRatePadText,
@@ -241,11 +244,14 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
                             draft.setRateType(next);
                             enter(next === "custom" ? "rate" : "amount");
                         }}
-                        options={draft.rateOptions.map((option) => ({
-                            id: option,
-                            // SAFETY: every `rateOptions` member has a `transfers.rate.*` entry.
-                            label: t(`transfers.rate.${option}` as "transfers.rate.official"),
-                        }))}
+                        options={draft.rateOptions.map((option) => {
+                            const name = t(RATE_NAME_KEYS[option]);
+                            const figure = formatRate(draft, draft.marketRates[option], language);
+                            return {
+                                id: option,
+                                label: figure === null ? name : t("transfers.rate.option", { name, rate: figure }),
+                            };
+                        })}
                         selectedId={draft.rateType}
                     />
                 );
@@ -306,6 +312,7 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
                     <TransferSentence
                         activeSlot={step === "date" ? "when" : step}
                         crossCurrency={draft.crossCurrency}
+                        customRate={draft.rateType === "custom"}
                         figures={{
                             amount: { amount: draft.sent, code: draft.fromCurrency },
                             arrives:
@@ -326,8 +333,7 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
                             feeSide: feeSideAccount?.name ?? null,
                             from: draft.from?.name ?? null,
                             rate: rateLabel,
-                            // SAFETY: every `rateOptions` member has a `transfers.rate.*` entry.
-                            rateType: t(`transfers.rate.${draft.rateType}` as "transfers.rate.official"),
+                            rateType: t(RATE_SOURCE_WORD_KEYS[draft.rateType]),
                             to: draft.to?.name ?? null,
                             when: transactionWhenLabel(t, {
                                 date: draft.date,

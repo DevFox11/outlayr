@@ -24,9 +24,13 @@ jest.mock("@/data/accounts", () => ({
 }));
 
 jest.mock("@/data/transfer-rates", () => ({
-    useTransferRates: (_db: unknown, _codes: unknown, rateType: string) => ({
-        get: (code: string) => (rateType === "official" ? (mockRates.get(code) ?? null) : null),
-    }),
+    useTransferRates: (_db: unknown, _codes: unknown, rateTypes: readonly string[]) =>
+        Object.fromEntries(
+            rateTypes.map((rateType) => [
+                rateType,
+                { get: (code: string) => (rateType === "official" ? (mockRates.get(code) ?? null) : null) },
+            ])
+        ),
 }));
 
 const SENT = "1000";
@@ -117,7 +121,7 @@ describe("an arrival above everything the rate ever converted", () => {
         const result = await overpaidDraft();
         expect(result.current.gapAmount).toBeLessThan(0);
         expect(result.current.gapFee).toBeNull();
-        expect(result.current.gapRate).toBe(33.3333);
+        expect(result.current.gapRate).toBe(33.33333);
     });
 });
 
@@ -267,7 +271,7 @@ describe("swapping a transfer that carries a custom rate", () => {
             result.current.swap();
         });
         expect(result.current.legs).toStrictEqual({ exchangeRate: 0.018, fromAmount: 100, toAmount: 1.8 });
-        expect(result.current.customRatePadText).toBe("0.0180");
+        expect(result.current.customRatePadText).toBe("55.5");
     });
 
     it("stays empty once the rate is deleted, rather than refilling with the market's", async () => {
@@ -390,6 +394,47 @@ describe("useTransferDraft seed", () => {
         );
         expect(missedDestination.result.current.from?.id).toBe("usd");
         expect(missedDestination.result.current.to).toBeNull();
+    });
+});
+
+describe("a transfer from bolívares into dollars", () => {
+    it("takes the rate as bolívares per dollar, the way it is quoted", async () => {
+        const { result } = await renderHook(() =>
+            useTransferDraft({} as Database, { fromAccountId: "ves", toAccountId: "usd" })
+        );
+        await act(async () => {
+            result.current.setRateType("custom");
+        });
+        await act(async () => {
+            result.current.setCustomRate("848.5");
+        });
+        await act(async () => {
+            result.current.setSent("16970");
+        });
+
+        expect(result.current.arrived).toBe(20);
+    });
+
+    it("reopens a custom rate at full precision instead of four decimals of its inverse", async () => {
+        const { result } = await renderHook(() =>
+            useTransferDraft({} as Database, undefined, {
+                arrived: 20,
+                date: new Date(Date.UTC(2026, 7, 9)),
+                fee: 0,
+                feeSide: "source",
+                fromAccountId: "ves",
+                fromCurrency: "VES",
+                id: "transfer",
+                note: "",
+                rate: 20 / 16_970,
+                rateType: "custom",
+                sent: 16_970,
+                toAccountId: "usd",
+                toCurrency: "USD",
+            })
+        );
+
+        expect(result.current.customRatePadText).toBe("848.5");
     });
 });
 

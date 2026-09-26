@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from "@jest/globals";
-import { render } from "@testing-library/react-native";
+import { fireEvent, render } from "@testing-library/react-native";
 
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
@@ -34,6 +34,7 @@ const labelsFor = (template: string): TransactionSentenceLabels => ({
     fee: { field: "Card fee" },
     kind: { switchLabel: "Expense or income", verb: "Spent" },
     merchant: { field: "Name", placeholder: "a merchant" },
+    rate: { blank: "a rate", converted: "In dollars", field: "Rate", source: "Rate source" },
     template,
     when: { field: "Date" },
 });
@@ -188,5 +189,88 @@ describe("transactionSentence", () => {
 
         expect(screen.getByLabelText("Category").props.accessibilityValue).toMatchObject({ text: "a category" });
         expect(screen.getByLabelText("Name").props.accessibilityValue).toMatchObject({ text: "Netflix" });
+    });
+
+    it("appends the rate clause with its source, rate and dollar value as facts to tap", async () => {
+        const onRatePress = jest.fn();
+        const screen = await render(
+            <TransactionSentence
+                account="Banesco"
+                activeSlot="rate"
+                amount="Bs.15,000.00"
+                category="Health"
+                categoryFlagged={false}
+                categoryPending={false}
+                categoryShake={false}
+                fee={null}
+                labels={labelsFor(EN)}
+                merchant="Farmatodo"
+                onAccountPress={jest.fn()}
+                onAmountPress={jest.fn()}
+                onCategoryPress={jest.fn()}
+                onCurrencyPress={jest.fn()}
+                onFeePress={jest.fn()}
+                onKindPress={jest.fn()}
+                onMerchantPress={jest.fn()}
+                onWhenPress={jest.fn()}
+                rate={{
+                    converted: { amount: 17.68, text: "$17.68" },
+                    flagged: false,
+                    onConvertedPress: jest.fn(),
+                    onRatePress,
+                    onSourcePress: jest.fn(),
+                    rate: "848.55 Bs. per $",
+                    shake: false,
+                    source: "official",
+                    template: "At the {rateSource} rate, {rate}, that's {converted}.",
+                }}
+                when="today"
+            />
+        );
+
+        expect(screen.getByLabelText("Rate source").props.accessibilityValue).toMatchObject({ text: "official" });
+        expect(screen.getByLabelText("In dollars").props.accessibilityValue).toMatchObject({ text: "$17.68" });
+        await fireEvent.press(screen.getByLabelText("Rate"));
+        expect(onRatePress).toHaveBeenCalledTimes(1);
+    });
+
+    it("asks for a rate instead of stating dollars it does not have", async () => {
+        const screen = await render(
+            <TransactionSentence
+                account="Banesco"
+                activeSlot={null}
+                amount="Bs.15,000.00"
+                category="Health"
+                categoryFlagged={false}
+                categoryPending={false}
+                categoryShake={false}
+                fee={null}
+                labels={labelsFor(EN)}
+                merchant="Farmatodo"
+                onAccountPress={jest.fn()}
+                onAmountPress={jest.fn()}
+                onCategoryPress={jest.fn()}
+                onCurrencyPress={jest.fn()}
+                onFeePress={jest.fn()}
+                onKindPress={jest.fn()}
+                onMerchantPress={jest.fn()}
+                onWhenPress={jest.fn()}
+                rate={{
+                    converted: null,
+                    flagged: true,
+                    onConvertedPress: jest.fn(),
+                    onRatePress: jest.fn(),
+                    onSourcePress: jest.fn(),
+                    rate: null,
+                    shake: false,
+                    source: "my",
+                    template: "It counts in dollars once it has {rate}.",
+                }}
+                when="today"
+            />
+        );
+
+        expect(screen.getByLabelText("Rate").props.accessibilityValue).toMatchObject({ text: "a rate" });
+        expect(screen.queryByLabelText("In dollars")).toBeNull();
     });
 });

@@ -1,136 +1,94 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react-native";
-import type { ComponentProps } from "react";
 import { Text } from "react-native";
 
-import { StepRate } from "./step-rate";
+import { StepRate, StepRateField } from "./step-rate";
+import type { StepRateOption } from "./step-rate";
 
-const labels = {
-    custom: "Custom",
-    editCustom: "Edit custom rate",
-    error: {
-        customRateRequired: "Enter a positive rate",
-        eurReferenceRequiresVes: "EUR reference is only available for VES",
+const options: StepRateOption[] = [
+    {
+        detail: "As of 26 Sep",
+        figure: "848.55",
+        name: "Official",
+        placeholder: "Unavailable",
+        type: "official",
+        unit: "Bs. per $",
     },
-    eurReference: "EUR reference",
-    eurReferenceUnit: "VES per EUR",
-    official: "Official",
-    requiredHint: "Enter how many VES make 1 USD.",
-    set: "Set",
-    title: "Entry rate",
-    unavailable: "Unavailable",
-    unit: "VES per USD",
-};
-
-const baseProps: ComponentProps<typeof StepRate> = {
-    currency: "VES",
-    labels,
-    onEditCustom: jest.fn(),
-    onSelectType: jest.fn(),
-    onUseSuggestion: jest.fn(),
-    resolvedOn: "18 Aug",
-    selection: { exchangeRate: null, exchangeRateType: "official" },
-    suggestions: {
-        eurOfficial: 0.8,
-        eurReference: 50,
-        official: 42,
-        priorCustom: { date: new Date("2026-08-01T12:00:00.000Z"), rate: 55.5 },
+    {
+        detail: "As of 26 Sep",
+        figure: null,
+        name: "EUR reference",
+        placeholder: "Unavailable",
+        type: "eur_reference",
+        unit: "Bs. per €",
     },
-};
+    {
+        detail: "Type the rate you got",
+        figure: null,
+        name: "My rate",
+        placeholder: "Type",
+        type: "custom",
+        unit: "Bs. per $",
+    },
+];
 
 describe("stepRate", () => {
-    it("has no rate UI at all for USD", async () => {
-        const { toJSON } = await render(<StepRate {...baseProps} currency="USD" />);
+    it("checks only the selected option and states each figure with its unit", async () => {
+        const { getByRole } = await render(<StepRate onSelect={jest.fn()} options={options} selected="official" />);
 
-        expect(toJSON()).toBeNull();
+        const official = getByRole("radio", { name: "Official" });
+        expect(official.props.accessibilityState).toMatchObject({ checked: true });
+        expect(official.props.accessibilityValue).toMatchObject({ text: "848.55 Bs. per $" });
+        expect(getByRole("radio", { name: "My rate" }).props.accessibilityState).toMatchObject({ checked: false });
     });
 
-    it("promotes the selected option with its unit, source and resolution date", async () => {
-        const { getByText } = await render(<StepRate {...baseProps} />);
+    it("still lets a provider with no rate be chosen, so a blank custom rate is never a dead end", async () => {
+        const onSelect = jest.fn();
+        const { getByRole } = await render(<StepRate onSelect={onSelect} options={options} selected="custom" />);
 
-        expect(getByText("42")).toBeTruthy();
-        expect(getByText("VES per USD")).toBeTruthy();
-        expect(getByText("Official · 18 Aug")).toBeTruthy();
+        await fireEvent.press(getByRole("radio", { name: "EUR reference" }));
+
+        expect(onSelect).toHaveBeenCalledWith("eur_reference");
     });
+});
 
-    it("shows EUR the way a bank quotes it, in USD per EUR", async () => {
-        const { getByText } = await render(
-            <StepRate
-                {...baseProps}
-                currency="EUR"
-                labels={{ ...labels, unit: "USD per EUR" }}
-                suggestions={{ eurOfficial: null, eurReference: null, official: 0.87113, priorCustom: null }}
-            />
+describe("stepRateField", () => {
+    it("shows the typed rate, its unit and how it compares, with no error until one is given", async () => {
+        const { getByText, queryByText, rerender } = await render(
+            <StepRateField error={null} note="0.2% above official" placeholder={false} unit="Bs. per $" value="850">
+                <Text>keys</Text>
+            </StepRateField>
         );
 
-        expect(getByText("1.1479")).toBeTruthy();
-    });
-
-    it("states the EUR reference in VES per EUR, not per USD", async () => {
-        const { getByLabelText, getByText } = await render(
-            <StepRate {...baseProps} selection={{ exchangeRate: null, exchangeRateType: "eur_reference" }} />
-        );
-
-        expect(getByText("VES per EUR")).toBeTruthy();
-        expect(getByLabelText("Official").props.accessibilityValue).toMatchObject({ text: "42 VES per USD" });
-    });
-
-    it("omits EUR reference for a non-VES currency rather than offering a dead option", async () => {
-        const { getByText, queryByText } = await render(
-            <StepRate {...baseProps} currency="COP" suggestions={{ ...baseProps.suggestions, eurReference: null }} />
-        );
-
-        expect(queryByText("EUR reference")).toBeNull();
-        expect(getByText("Custom")).toBeTruthy();
-    });
-
-    it("says a rate outside the provider window is unavailable instead of showing a stale figure", async () => {
-        const { getByText, queryByText } = await render(
-            <StepRate
-                {...baseProps}
-                currency="COP"
-                suggestions={{ eurOfficial: null, eurReference: null, official: null, priorCustom: null }}
-            />
-        );
-
-        expect(getByText("Unavailable")).toBeTruthy();
-        expect(queryByText("42")).toBeNull();
-    });
-
-    it("offers a custom rate as settable, and names the error inline", async () => {
-        const { getByText } = await render(
-            <StepRate
-                {...baseProps}
-                selection={{ exchangeRate: null, exchangeRateType: "custom" }}
-                suggestions={{ eurOfficial: null, eurReference: null, official: null, priorCustom: null }}
-            />
-        );
-
-        expect(getByText("Set")).toBeTruthy();
-        expect(getByText("Enter a positive rate")).toBeTruthy();
-    });
-
-    it("renders the keypad only while custom is selected", async () => {
-        const keypad = <Text>keypad</Text>;
-        const { queryByText, rerender } = await render(<StepRate {...baseProps}>{keypad}</StepRate>);
-
-        expect(queryByText("keypad")).toBeNull();
+        expect(getByText("850")).toBeTruthy();
+        expect(getByText("Bs. per $")).toBeTruthy();
+        expect(getByText("0.2% above official")).toBeTruthy();
+        expect(queryByText("Type a rate first")).toBeNull();
 
         await rerender(
-            <StepRate {...baseProps} selection={{ exchangeRate: 55.5, exchangeRateType: "custom" }}>
-                {keypad}
-            </StepRate>
+            <StepRateField error="Type a rate first" note={null} placeholder unit="Bs. per $" value="Type">
+                <Text>keys</Text>
+            </StepRateField>
         );
-
-        expect(queryByText("keypad")).toBeTruthy();
+        expect(getByText("Type a rate first")).toBeTruthy();
     });
 
-    it("applies an alternate's rate when it is promoted", async () => {
-        const onUseSuggestion = jest.fn();
-        const { getByLabelText } = await render(<StepRate {...baseProps} onUseSuggestion={onUseSuggestion} />);
+    it("applies a reference rate when it is pressed", async () => {
+        const onPress = jest.fn();
+        const { getByRole } = await render(
+            <StepRateField
+                error={null}
+                note={null}
+                placeholder
+                references={[{ figure: "848.55", label: "Official", onPress }]}
+                value="Type"
+            >
+                <Text>keys</Text>
+            </StepRateField>
+        );
 
-        fireEvent.press(getByLabelText("EUR reference"));
+        await fireEvent.press(getByRole("button", { name: "Official" }));
 
-        expect(onUseSuggestion).toHaveBeenCalledWith(50, "eur_reference");
+        expect(onPress).toHaveBeenCalledTimes(1);
     });
 });

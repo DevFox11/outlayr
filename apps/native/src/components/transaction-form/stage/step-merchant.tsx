@@ -1,6 +1,6 @@
-import { TextInput, View } from "react-native";
+import { View } from "react-native";
 
-import { Text } from "@/components/text";
+import { Text, TextInput } from "@/components/text";
 import { useColors } from "@/theme/use-colors";
 
 import { StageOptionRow } from "./stage-options";

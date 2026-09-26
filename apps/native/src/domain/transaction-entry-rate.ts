@@ -1,6 +1,10 @@
+import { CURRENCY_META, PICKABLE_CURRENCY_CODES } from "@outlayr/money/catalog";
 import { METAL_CURRENCY_CODES } from "@outlayr/money/currency";
 import { ENTRY_RATE_TYPES } from "@outlayr/money/rates";
 import type { EntryRateType } from "@outlayr/money/rates";
+
+import { currencySymbol, formatFixed } from "@/domain/money";
+import type { Language } from "@/i18n/languages";
 
 export interface TransactionEntryRate {
     exchangeRate: number | null;
@@ -29,12 +33,46 @@ const QUOTED_IN_USD: ReadonlySet<string> = new Set([
     ...METAL_CURRENCY_CODES,
 ]);
 
-export function rateQuoteUnit(currency: string): { base: string; quote: string } {
-    return QUOTED_IN_USD.has(currency) ? { base: currency, quote: "USD" } : { base: "USD", quote: currency };
+function quoteRank(code: string): number {
+    if (QUOTED_IN_USD.has(code)) {
+        return 2;
+    }
+    return code === "USD" ? 1 : 0;
+}
+
+function pairQuotedInverse(from: string, to: string): boolean {
+    return quoteRank(to) > quoteRank(from);
+}
+
+export function quotePairRate(from: string, to: string, rate: number): number {
+    return pairQuotedInverse(from, to) ? 1 / rate : rate;
 }
 
 export function flipRateForQuote(currency: string, rate: number): number {
-    return QUOTED_IN_USD.has(currency) && rate > 0 ? 1 / rate : rate;
+    return rate > 0 ? quotePairRate("USD", currency, rate) : rate;
+}
+
+const SHARED_SYMBOLS: ReadonlySet<string> = new Set(
+    PICKABLE_CURRENCY_CODES.map((code) => CURRENCY_META[code].symbol).filter(
+        (symbol, index, symbols) => symbols.indexOf(symbol) !== index
+    )
+);
+
+const SYMBOL_OWNERS = new Map([
+    ["$", "USD"],
+    ["£", "GBP"],
+    ["₩", "KRW"],
+]);
+
+function unitSymbol(code: string): string {
+    const symbol = currencySymbol(code);
+    return SHARED_SYMBOLS.has(symbol) && SYMBOL_OWNERS.get(symbol) !== code ? code : symbol;
+}
+
+export function pairUnitSymbols(from: string, to: string) {
+    return pairQuotedInverse(from, to)
+        ? { base: unitSymbol(to), quote: unitSymbol(from) }
+        : { base: unitSymbol(from), quote: unitSymbol(to) };
 }
 
 export function transactionRateOptions(currency: string): EntryRateType[] {
@@ -64,17 +102,45 @@ export function effectiveEntryRate(
     return selection.exchangeRateType === "eur_reference" ? suggestions.eurReference : null;
 }
 
+export const RATE_ENTRY_DECIMALS = 4;
+
+export function rateEntryText(rate: number): string {
+    const rounded = Number(rate.toFixed(RATE_ENTRY_DECIMALS));
+    return rounded > 0 ? String(rounded) : "";
+}
+
 /**
  * Display form of a rate. Providers quote at wildly different precisions (VES official
  * arrives at 4 decimals, the EUR reference leg at 8), and an 11-digit figure is unreadable
  * at heading size. Callers must still apply the UNROUNDED rate: this is display only.
  */
-export function formatEntryRate(rate: number): string {
-    return String(Number(rate.toFixed(4)));
+export function formatQuotedRate(currency: string, rate: number): string {
+    return rateEntryText(flipRateForQuote(currency, rate));
 }
 
-export function formatQuotedRate(currency: string, rate: number): string {
-    return formatEntryRate(flipRateForQuote(currency, rate));
+export function formatEnteredRate(rate: number, language?: Language): string {
+    const [, fraction = ""] = rateEntryText(rate).split(".");
+    return formatFixed(rate, fraction.length, language);
+}
+
+const RATE_SIGNIFICANT_DIGITS = 5;
+
+const RATE_MAX_DECIMALS = 10;
+
+export function formatRateFigure(rate: number, language?: Language): string {
+    const decimals = Math.min(
+        RATE_MAX_DECIMALS,
+        Math.max(0, RATE_SIGNIFICANT_DIGITS - (Math.floor(Math.log10(rate)) + 1))
+    );
+    return formatFixed(rate, decimals, language);
+}
+
+export function formatQuotedRateFigure(currency: string, rate: number, language?: Language): string {
+    return formatRateFigure(flipRateForQuote(currency, rate), language);
+}
+
+export function rateDeltaPercent(currency: string, rate: number, reference: number): number {
+    return (flipRateForQuote(currency, rate) / flipRateForQuote(currency, reference) - 1) * 100;
 }
 
 export function transactionRateError(currency: string, selection: TransactionEntryRate): TransactionRateError {

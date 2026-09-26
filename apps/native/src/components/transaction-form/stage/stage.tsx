@@ -7,7 +7,7 @@ import Animated, { Easing, Keyframe, ReduceMotion } from "react-native-reanimate
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GlassButton } from "@/components/glass-button";
-import { Text } from "@/components/text";
+import { FontScaleCapContext, Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useColors } from "@/theme/use-colors";
 
@@ -54,6 +54,8 @@ function useKeyboardShown(): boolean {
  * and a 52pt bar, and it reads as decoration rather than as the way back.
  */
 const BACK_GLYPH = 19;
+
+const STAGE_FONT_SCALE_CAP = 1.35;
 
 /**
  * A body arriving where another already was. No `exiting` partner on purpose:
@@ -188,60 +190,64 @@ export function TransactionStage({
     const tone = footer?.tone ?? "primary";
 
     return (
-        <View
-            className="border-separator bg-background border-t px-5 pt-[15px]"
-            // Nothing presents this surface, so it clears the home indicator on
-            // its own rather than inheriting a parent's inset.
-            style={{ paddingBottom: keyboardShown ? KEYBOARD_BOTTOM_PAD : Math.max(BOTTOM_PAD, insets.bottom) }}
-        >
-            {/* Centred the way the sheet's own header above it is, rather than
+        <FontScaleCapContext value={STAGE_FONT_SCALE_CAP}>
+            <View
+                className="border-separator bg-background border-t px-5 pt-[15px]"
+                // Nothing presents this surface, so it clears the home indicator on
+                // its own rather than inheriting a parent's inset.
+                style={{ paddingBottom: keyboardShown ? KEYBOARD_BOTTOM_PAD : Math.max(BOTTOM_PAD, insets.bottom) }}
+            >
+                {/* Centred the way the sheet's own header above it is, rather than
                 trailing the back chevron: laid out in the flow the title would sit
                 in a different place on every step, depending on whether that step
                 has a chevron and what its trailing control is. Absolute keeps it on
                 the screen's centre line; `pointerEvents` keeps it from covering the
                 two controls it sits between. */}
-            <View className="h-[38px] flex-row items-center">
-                {onBack ? (
-                    <GlassButton
-                        accessibilityLabel={backLabel}
-                        className="h-[38px] w-[38px] rounded-full"
-                        onPress={onBack}
-                    >
-                        <HugeiconsIcon color={colors.foreground} icon={ArrowLeft01Icon} size={BACK_GLYPH} />
-                    </GlassButton>
-                ) : null}
-                {title == null ? null : (
-                    <View className="absolute right-0 left-0 items-center" pointerEvents="none">
-                        <Text className="font-sans-semibold text-foreground text-callout">{title}</Text>
-                    </View>
-                )}
-                <StageRightMeta action={rightAction} node={right} />
-            </View>
-
-            {/* The header used to sit directly on the body, so a keypad read as one
-                block with the control above it. */}
-            <Animated.View className="pt-3" entering={stageBodyEntering(forward)} key={stepKey} testID="stage-body">
-                {children}
-            </Animated.View>
-
-            {/* The keyboard replaces this button: a step with a text field cannot fit
-                both above the keyboard, and return already does the same job. */}
-            {footer && !keyboardShown ? (
-                <Pressable
-                    accessibilityLabel={footer.label}
-                    accessibilityRole="button"
-                    className={cn(
-                        "mt-4 h-[48px] items-center justify-center rounded-[14px] active:opacity-80",
-                        FOOTER_FILL[tone]
+                <View className="h-[38px] flex-row items-center">
+                    {onBack ? (
+                        <GlassButton
+                            accessibilityLabel={backLabel}
+                            className="h-[38px] w-[38px] rounded-full"
+                            onPress={onBack}
+                        >
+                            <HugeiconsIcon color={colors.foreground} icon={ArrowLeft01Icon} size={BACK_GLYPH} />
+                        </GlassButton>
+                    ) : null}
+                    {title == null ? null : (
+                        <View className="absolute right-0 left-0 items-center" pointerEvents="none">
+                            <Text className="font-sans-semibold text-foreground text-callout">{title}</Text>
+                        </View>
                     )}
-                    onPress={footer.onPress}
-                    testID="stage-footer"
-                >
-                    <Animated.View entering={FOOTER_LABEL_ENTERING} key={footer.label}>
-                        <Text className={cn("font-sans-semibold text-callout", FOOTER_INK[tone])}>{footer.label}</Text>
-                    </Animated.View>
-                </Pressable>
-            ) : null}
-        </View>
+                    <StageRightMeta action={rightAction} node={right} />
+                </View>
+
+                {/* The header used to sit directly on the body, so a keypad read as one
+                block with the control above it. */}
+                <Animated.View className="pt-3" entering={stageBodyEntering(forward)} key={stepKey} testID="stage-body">
+                    {children}
+                </Animated.View>
+
+                {/* The keyboard replaces this button: a step with a text field cannot fit
+                both above the keyboard, and return already does the same job. */}
+                {footer && !keyboardShown ? (
+                    <Pressable
+                        accessibilityLabel={footer.label}
+                        accessibilityRole="button"
+                        className={cn(
+                            "mt-4 h-[48px] items-center justify-center rounded-[14px] active:opacity-80",
+                            FOOTER_FILL[tone]
+                        )}
+                        onPress={footer.onPress}
+                        testID="stage-footer"
+                    >
+                        <Animated.View entering={FOOTER_LABEL_ENTERING} key={footer.label}>
+                            <Text className={cn("font-sans-semibold text-callout", FOOTER_INK[tone])}>
+                                {footer.label}
+                            </Text>
+                        </Animated.View>
+                    </Pressable>
+                ) : null}
+            </View>
+        </FontScaleCapContext>
     );
 }

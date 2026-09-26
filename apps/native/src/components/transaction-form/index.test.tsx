@@ -73,6 +73,10 @@ jest.mock("@/i18n/context", () => {
         "transaction.sentence.expense": catalog.EN["transaction.sentence.expense"] ?? "",
         "transaction.sentence.extra.tags": catalog.EN["transaction.sentence.extra.tags"] ?? "",
         "transaction.sentence.income": catalog.EN["transaction.sentence.income"] ?? "",
+        "transaction.sentence.rate.custom": catalog.EN["transaction.sentence.rate.custom"] ?? "",
+        "transaction.sentence.rate.missing": catalog.EN["transaction.sentence.rate.missing"] ?? "",
+        "transaction.sentence.rate.pending": catalog.EN["transaction.sentence.rate.pending"] ?? "",
+        "transaction.sentence.rate.provider": catalog.EN["transaction.sentence.rate.provider"] ?? "",
     };
     return {
         LanguageProvider: ({ children }: { children: unknown }) => children,
@@ -105,11 +109,18 @@ jest.mock<Partial<typeof import("../currency-picker-list")>>("../currency-picker
     const { Pressable } = require("react-native");
     return {
         CurrencyPickerList: ({ onSelect }: { onSelect: (currency: string) => void }) =>
-            React.createElement(Pressable, {
-                accessibilityLabel: "test.selectCurrency.EUR",
-                accessibilityRole: "button",
-                onPress: () => onSelect("EUR"),
-            }),
+            React.createElement(
+                React.Fragment,
+                null,
+                ["EUR", "VES"].map((code) =>
+                    React.createElement(Pressable, {
+                        accessibilityLabel: `test.selectCurrency.${code}`,
+                        accessibilityRole: "button",
+                        key: code,
+                        onPress: () => onSelect(code),
+                    })
+                )
+            ),
     };
 });
 jest.mock<Partial<typeof import("@/lib/subscription-reminder-sync")>>("@/lib/subscription-reminder-sync", () => ({
@@ -387,20 +398,42 @@ async function openDateWheel(screen: Screen): Promise<void> {
  * Walks to the currency list: the sentence's currency word opens the stage's
  * currency step. Nothing presents over the form, so both taps land on it.
  */
-async function pickEuro(screen: Screen): Promise<void> {
+async function pickCurrency(screen: Screen, code: "EUR" | "VES"): Promise<void> {
     await act(async () => {
         fireEvent.press(screen.getByLabelText("transaction.sentence.currency"));
     });
     await act(async () => {
-        fireEvent.press(screen.getByLabelText("test.selectCurrency.EUR"));
+        fireEvent.press(screen.getByLabelText(`test.selectCurrency.${code}`));
     });
 }
 
-/** Opens the stage's rate step, whose one way in is the strip under the sentence. */
 async function openRateStep(screen: Screen): Promise<void> {
     await act(async () => {
-        fireEvent.press(screen.getByTestId("conversion-strip"));
+        fireEvent.press(
+            screen.queryByLabelText("transaction.rate.source") ?? screen.getByLabelText("transaction.rate.title")
+        );
     });
+}
+
+async function openMyRate(screen: Screen): Promise<void> {
+    await act(async () => {
+        fireEvent.press(screen.getByLabelText("transaction.rate.title"));
+    });
+}
+
+async function pickRate(screen: Screen, name: string): Promise<void> {
+    await act(async () => {
+        fireEvent.press(screen.getByRole("radio", { name }));
+    });
+}
+
+async function pressKeys(screen: Screen, keys: readonly string[]): Promise<void> {
+    for (const key of keys) {
+        // oxlint-disable-next-line no-await-in-loop -- each key builds on the text the previous one committed
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText(key));
+        });
+    }
 }
 
 /**
@@ -1855,7 +1888,7 @@ describe("transactionForm enrichment", () => {
             findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.lookup")?.props.onButtonPress();
             await jest.advanceTimersByTimeAsync(0);
         });
-        await pickEuro(screen);
+        await pickCurrency(screen, "EUR");
         await act(async () => {
             await jest.advanceTimersByTimeAsync(600);
         });
@@ -2561,17 +2594,20 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        // The strip under the sentence states the conversion the frozen rate produced.
-        expect(screen.getByText("Bs.100.00 = $1.80")).toBeTruthy();
-        expect(screen.getByText("transaction.rate.custom · 55.5")).toBeTruthy();
+        expect(screen.getByLabelText("transaction.rate.inDollars").props.accessibilityValue).toMatchObject({
+            text: "$1.80",
+        });
+        expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
+            text: "55.500 transaction.rate.unit",
+        });
 
         await openRateStep(screen);
-        expect(
-            screen.getByLabelText("transaction.rate.title · transaction.rate.custom").props.accessibilityValue
-        ).toMatchObject({ text: "55.5 transaction.rate.unit" });
+        expect(screen.getByRole("radio", { name: "transaction.rate.custom" }).props.accessibilityState).toMatchObject({
+            checked: true,
+        });
     });
 
-    it("opens a custom pending occurrence saying the entry is recorded but not converted", async () => {
+    it("opens a custom pending occurrence asking for the rate it still needs", async () => {
         const db = dbHolder.current as Database;
         const initial = await seedStoredTransaction(db, {
             amountUsd: null,
@@ -2584,11 +2620,10 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        expect(screen.getByText("transaction.rate.notConverted")).toBeTruthy();
-        expect(screen.getByText("transaction.rate.setRate")).toBeTruthy();
-        // The strip collapses its own alert role, so the reassurance has to reach
-        // assistive technology as the button's hint.
-        expect(screen.getByTestId("conversion-strip").props.accessibilityHint).toBe("transaction.rate.pendingBody");
+        expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
+            text: "transaction.sentence.blank.rate",
+        });
+        expect(screen.queryByLabelText("transaction.rate.inDollars")).toBeNull();
     });
 
     it("defaults a new non-USD entry to official and a USD entry to no rate type", async () => {
@@ -2611,7 +2646,9 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
         await openRateStep(ves);
-        expect(ves.getByLabelText("transaction.rate.title · transaction.rate.official")).toBeTruthy();
+        expect(ves.getByRole("radio", { name: "transaction.rate.official" }).props.accessibilityState).toMatchObject({
+            checked: true,
+        });
         await ves.unmount();
 
         const usd = await render(
@@ -2619,13 +2656,16 @@ describe("transactionForm entry-rate confirmation", () => {
                 <TransactionForm copyOf={{ ...vesCopy, currency: "USD" }} db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
-        // No strip at all, so there is no way into a rate step either.
-        expect(usd.queryByTestId("conversion-strip")).toBeNull();
+        expect(usd.queryByLabelText("transaction.rate.source")).toBeNull();
     });
 
     it("removes EUR-reference when currency changes away from VES", async () => {
         const db = dbHolder.current as Database;
         const categoryId = await seedCategory(db);
+        await db.insert(exchangeRates).values([
+            { date: "2026-08-10", fetchedAt: 1, quote: "VES", rate: 50, rateType: "eur_reference", source: "provider" },
+            { date: "2026-08-10", fetchedAt: 1, quote: "EUR", rate: 0.8, rateType: "official", source: "provider" },
+        ]);
         const copyOf: LogAgainDraft = {
             amount: 25,
             categoryId,
@@ -2644,17 +2684,19 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await openRateStep(screen);
-        await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.eur_reference" }));
-        await waitFor(() => {
-            expect(screen.getByLabelText("transaction.rate.title · transaction.rate.eur_reference")).toBeTruthy();
+        await pickRate(screen, "transaction.rate.eur_reference");
+        expect(screen.getByLabelText("transaction.rate.source").props.accessibilityValue).toMatchObject({
+            text: "transaction.sentence.rateSource.eur_reference",
         });
-        await pickEuro(screen);
+        await pickCurrency(screen, "EUR");
 
         await openRateStep(screen);
-        await waitFor(() => {
-            expect(screen.getByLabelText("transaction.rate.title · transaction.rate.official")).toBeTruthy();
-            expect(screen.queryByRole("button", { name: "transaction.rate.eur_reference" })).toBeNull();
-        });
+        expect(screen.getByRole("radio", { name: "transaction.rate.official" }).props.accessibilityState).toMatchObject(
+            {
+                checked: true,
+            }
+        );
+        expect(screen.queryByRole("radio", { name: "transaction.rate.eur_reference" })).toBeNull();
     });
 
     it("clears an existing VES custom rate when the transaction currency changes to EUR", async () => {
@@ -2670,16 +2712,13 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        await openRateStep(screen);
-        expect(
-            screen.getByLabelText("transaction.rate.title · transaction.rate.custom").props.accessibilityValue
-        ).toMatchObject({ text: "55.5 transaction.rate.unit" });
-        await pickEuro(screen);
+        expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
+            text: "55.500 transaction.rate.unit",
+        });
+        await pickCurrency(screen, "EUR");
 
-        await openRateStep(screen);
-        await waitFor(() => {
-            expect(screen.getByLabelText("transaction.rate.editCustom")).toBeTruthy();
-            expect(screen.queryByText("55.5")).toBeNull();
+        expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
+            text: "transaction.sentence.blank.rate",
         });
     });
 
@@ -2704,12 +2743,129 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await openRateStep(screen);
-        await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.custom" }));
+        await pickRate(screen, "transaction.rate.custom");
+        expect(screen.queryByText("transaction.rate.required")).toBeNull();
+        await pressKeys(screen, ["5", "transaction.numpad.delete"]);
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
 
         await expect(db.select().from(transactions)).resolves.toHaveLength(0);
         expect(screen.getByText("transaction.rate.required")).toBeTruthy();
+
+        await pressKeys(screen, ["5", "transaction.numpad.delete"]);
+        expect(screen.queryByText("transaction.rate.required")).toBeNull();
+    });
+
+    it("keeps a refused blank rate flagged until the currency changes", async () => {
+        const db = dbHolder.current as Database;
+        const categoryId = await seedCategory(db);
+        const screen = await render(
+            <Providers>
+                <TransactionForm
+                    copyOf={{
+                        amount: 25,
+                        categoryId,
+                        currency: "VES",
+                        customColor: null,
+                        details: null,
+                        emoji: null,
+                        icon: null,
+                        income: false,
+                        note: "Still blank",
+                    }}
+                    db={db}
+                    mode="create"
+                    onDone={() => {}}
+                />
+            </Providers>
+        );
+
+        await openRateStep(screen);
+        await pickRate(screen, "transaction.rate.custom");
+        await pressKeys(screen, ["5", "transaction.numpad.delete"]);
+        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
+        await act(async () => saveButton?.props.onButtonPress());
+        expect(screen.getByText("transaction.rate.required")).toBeTruthy();
+
+        await pickCurrency(screen, "VES");
+        await openRateStep(screen);
+        await pickRate(screen, "transaction.rate.custom");
+        expect(screen.getByText("transaction.rate.required")).toBeTruthy();
+
+        await pickCurrency(screen, "EUR");
+        await openRateStep(screen);
+        await pickRate(screen, "transaction.rate.custom");
+        expect(screen.queryByText("transaction.rate.required")).toBeNull();
+
+        await pickCurrency(screen, "VES");
+        await openRateStep(screen);
+        await pickRate(screen, "transaction.rate.custom");
+
+        expect(screen.queryByText("transaction.rate.required")).toBeNull();
+    });
+
+    it("lets a blank custom rate go back to an official rate the day has none for", async () => {
+        const db = dbHolder.current as Database;
+        const categoryId = await seedCategory(db);
+        const screen = await render(
+            <Providers>
+                <TransactionForm
+                    copyOf={{
+                        amount: 25,
+                        categoryId,
+                        currency: "VES",
+                        customColor: null,
+                        details: null,
+                        emoji: null,
+                        icon: null,
+                        income: false,
+                        note: "No rate that day",
+                    }}
+                    db={db}
+                    mode="create"
+                    onDone={() => {}}
+                />
+            </Providers>
+        );
+
+        await openRateStep(screen);
+        await pickRate(screen, "transaction.rate.custom");
+        await pressKeys(screen, ["5", "transaction.numpad.delete"]);
+        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
+        await act(async () => saveButton?.props.onButtonPress());
+        await openRateStep(screen);
+        await pickRate(screen, "transaction.rate.official");
+        await openRateStep(screen);
+        await pickRate(screen, "transaction.rate.custom");
+        await pressKeys(screen, ["5", "transaction.numpad.delete"]);
+        expect(screen.queryByText("transaction.rate.required")).toBeNull();
+        await openRateStep(screen);
+        await pickRate(screen, "transaction.rate.official");
+        await act(async () =>
+            findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add")?.props.onButtonPress()
+        );
+
+        expect((await db.select().from(transactions))[0]).toMatchObject({ exchangeRateType: "official" });
+    });
+
+    it("states an EUR-reference rate that has no dollar value yet instead of asking for one", async () => {
+        const db = dbHolder.current as Database;
+        const initial = await seedStoredTransaction(db, {
+            amountUsd: null,
+            currency: "VES",
+            exchangeRate: 50,
+            exchangeRateType: "eur_reference",
+        });
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+            </Providers>
+        );
+
+        expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
+            text: "50.000 transaction.rate.unit",
+        });
+        expect(screen.queryByLabelText("transaction.rate.inDollars")).toBeNull();
     });
 
     it("submits the exact positive custom rate the user confirmed", async () => {
@@ -2733,7 +2889,7 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await openRateStep(screen);
-        await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.custom" }));
+        await pickRate(screen, "transaction.rate.custom");
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -2762,14 +2918,11 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await openRateStep(screen);
-        await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.custom" }));
-        for (const key of ["1", ".", "1", "4", "8", "5"]) {
-            // oxlint-disable-next-line no-await-in-loop -- each key builds on the text the previous one committed
-            await act(async () => {
-                fireEvent.press(screen.getByLabelText(key));
-            });
-        }
-        expect(screen.getByText("transaction.rate.custom · 1.1485")).toBeTruthy();
+        await pickRate(screen, "transaction.rate.custom");
+        await pressKeys(screen, ["1", ".", "1", "4", "8", "5"]);
+        expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
+            text: "1.1485 transaction.rate.unit",
+        });
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -2795,13 +2948,11 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        await openRateStep(screen);
-        expect(
-            screen.getByLabelText("transaction.rate.title · transaction.rate.custom").props.accessibilityValue
-        ).toMatchObject({ text: "1.1479 transaction.rate.unit" });
-        await act(async () => {
-            fireEvent.press(screen.getByLabelText("5"));
+        expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
+            text: "1.1479 transaction.rate.unit",
         });
+        await openMyRate(screen);
+        await pressKeys(screen, ["5"]);
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -2821,13 +2972,8 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        await openRateStep(screen);
-        await act(async () => {
-            fireEvent.press(screen.getByLabelText("transaction.numpad.delete"));
-        });
-        await act(async () => {
-            fireEvent.press(screen.getByLabelText("9"));
-        });
+        await openMyRate(screen);
+        await pressKeys(screen, ["transaction.numpad.delete", "9"]);
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -2847,10 +2993,8 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        await openRateStep(screen);
-        await act(async () => {
-            fireEvent.press(screen.getByLabelText("transaction.numpad.delete"));
-        });
+        await openMyRate(screen);
+        await pressKeys(screen, ["transaction.numpad.delete"]);
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -2886,7 +3030,7 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await openRateStep(screen);
-        await fireEvent.press(screen.getByLabelText("transaction.rate.title · transaction.rate.official"));
+        await pickRate(screen, "transaction.rate.official");
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -2921,7 +3065,7 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await openRateStep(screen);
-        await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.eur_reference" }));
+        await pickRate(screen, "transaction.rate.eur_reference");
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -2952,9 +3096,11 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
         await openRateStep(screen);
-        expect(
-            screen.getByLabelText("transaction.rate.title · transaction.rate.official").props.accessibilityValue?.text
-        ).toBeUndefined();
+        expect(screen.getByRole("radio", { name: "transaction.rate.official" }).props.accessibilityValue).toMatchObject(
+            {
+                text: "transaction.rate.unavailable",
+            }
+        );
 
         await act(async () => {
             await db.insert(exchangeRates).values({
@@ -2970,8 +3116,8 @@ describe("transactionForm entry-rate confirmation", () => {
 
         await waitFor(() => {
             expect(
-                screen.getByLabelText("transaction.rate.title · transaction.rate.official").props.accessibilityValue
-            ).toMatchObject({ text: "42 transaction.rate.unit" });
+                screen.getByRole("radio", { name: "transaction.rate.official" }).props.accessibilityValue
+            ).toMatchObject({ text: "42.000 transaction.rate.unit" });
         });
     });
 
@@ -2995,7 +3141,7 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await openRateStep(screen);
-        await fireEvent.press(screen.getByLabelText("transaction.rate.title · transaction.rate.custom"));
+        await pickRate(screen, "transaction.rate.custom");
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -3024,10 +3170,12 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await openRateStep(screen);
-        expect(screen.getByLabelText("transaction.rate.title · transaction.rate.official")).toBeTruthy();
-        expect(screen.getByRole("button", { name: "transaction.rate.custom" }).props.accessibilityValue).toMatchObject({
-            text: "55.5 transaction.rate.unit",
-        });
+        expect(screen.getByRole("radio", { name: "transaction.rate.official" }).props.accessibilityState).toMatchObject(
+            {
+                checked: true,
+            }
+        );
+        expect(screen.getByText("transaction.rate.lastUsed")).toBeTruthy();
     });
 
     it("re-resolves an official suggestion after the transaction currency changes", async () => {
@@ -3059,8 +3207,8 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await openRateStep(screen);
-        await fireEvent.press(screen.getByLabelText("transaction.rate.title · transaction.rate.official"));
-        await pickEuro(screen);
+        await pickRate(screen, "transaction.rate.official");
+        await pickCurrency(screen, "EUR");
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -3095,7 +3243,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
         await openRateStep(screen);
-        await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.custom" }));
+        await pickRate(screen, "transaction.rate.custom");
         await openDateWheel(screen);
         const changeDate = findFunctionProp(screen.toJSON() as JsonNode, "onDateChange");
         expect(changeDate).not.toBeNull();
@@ -3104,8 +3252,9 @@ describe("transactionForm entry-rate confirmation", () => {
         await act(async () => saveButton?.props.onButtonPress());
 
         expect((await db.select().from(transactions)).map((row) => row.id)).toStrictEqual([prior.id]);
-        expect(screen.getByText("transaction.rate.notConverted")).toBeTruthy();
-        await openRateStep(screen);
+        expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
+            text: "transaction.sentence.blank.rate",
+        });
         expect(screen.getByText("transaction.rate.required")).toBeTruthy();
     });
 
@@ -3187,7 +3336,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        await pickEuro(screen);
+        await pickCurrency(screen, "EUR");
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -3265,7 +3414,7 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await openRateStep(screen);
-        await fireEvent.press(screen.getByRole("button", { name: "transaction.rate.custom" }));
+        await pickRate(screen, "transaction.rate.custom");
         const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
         await act(async () => saveButton?.props.onButtonPress());
 
@@ -3296,6 +3445,105 @@ describe("transactionForm entry-rate confirmation", () => {
             amountUsd: 1.8,
             exchangeRate: 55.555555,
             exchangeRateType: "custom",
+        });
+    });
+
+    it("derives a custom rate from the dollars that left the account, and restores the old one when they are cleared", async () => {
+        const db = dbHolder.current as Database;
+        const categoryId = await seedCategory(db);
+        await db.insert(exchangeRates).values({
+            date: "2026-08-10",
+            fetchedAt: 1,
+            quote: "VES",
+            rate: 42,
+            rateType: "official",
+            source: "provider",
+        });
+        const screen = await render(
+            <Providers>
+                <TransactionForm
+                    copyOf={{
+                        amount: 84,
+                        categoryId,
+                        currency: "VES",
+                        customColor: null,
+                        details: null,
+                        emoji: null,
+                        icon: null,
+                        income: false,
+                        note: "Paid in dollars",
+                    }}
+                    db={db}
+                    mode="create"
+                    onDone={() => {}}
+                />
+            </Providers>
+        );
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.rate.inDollars"));
+        });
+        await pressKeys(screen, ["2", "transaction.numpad.delete"]);
+        expect(screen.getByLabelText("transaction.rate.source").props.accessibilityValue).toMatchObject({
+            text: "transaction.sentence.rateSource.official",
+        });
+        await pressKeys(screen, ["2", ".", "1"]);
+        expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
+            text: "40.000 transaction.rate.unit",
+        });
+        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
+        await act(async () => saveButton?.props.onButtonPress());
+
+        expect((await db.select().from(transactions))[0]).toMatchObject({
+            amountUsd: 2.1,
+            exchangeRate: 40,
+            exchangeRateType: "custom",
+        });
+    });
+
+    it("lets a date change re-resolve an official rate again after typed dollars are cleared", async () => {
+        const db = dbHolder.current as Database;
+        const categoryId = await seedCategory(db);
+        await db.insert(exchangeRates).values([
+            { date: "2026-08-10", fetchedAt: 1, quote: "VES", rate: 42, rateType: "official", source: "provider" },
+            { date: "2026-07-31", fetchedAt: 1, quote: "VES", rate: 40, rateType: "official", source: "provider" },
+        ]);
+        const screen = await render(
+            <Providers>
+                <TransactionForm
+                    copyOf={{
+                        amount: 84,
+                        categoryId,
+                        currency: "VES",
+                        customColor: null,
+                        details: null,
+                        emoji: null,
+                        icon: null,
+                        income: false,
+                        note: "Dollars cleared",
+                    }}
+                    db={db}
+                    mode="create"
+                    onDone={() => {}}
+                />
+            </Providers>
+        );
+
+        await openRateStep(screen);
+        await pickRate(screen, "transaction.rate.official");
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.rate.inDollars"));
+        });
+        await pressKeys(screen, ["5", "transaction.numpad.delete"]);
+        await openDateWheel(screen);
+        const changeDate = findFunctionProp(screen.toJSON() as JsonNode, "onDateChange");
+        await act(async () => changeDate?.({ nativeEvent: { date: new Date("2026-07-31T12:00:00.000Z").getTime() } }));
+        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
+        await act(async () => saveButton?.props.onButtonPress());
+
+        expect((await db.select().from(transactions))[0]).toMatchObject({
+            exchangeRate: 40,
+            exchangeRateType: "official",
         });
     });
 });

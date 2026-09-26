@@ -2,237 +2,153 @@ import type { EntryRateType } from "@outlayr/money/rates";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
-import type { TransactionRateSuggestions } from "@/data/transaction-entry-rates";
-import {
-    effectiveEntryRate,
-    formatQuotedRate,
-    transactionRateError,
-    transactionRateOptions,
-} from "@/domain/transaction-entry-rate";
-import type { TransactionEntryRate, TransactionRateError } from "@/domain/transaction-entry-rate";
+import { currencySymbol } from "@/domain/money";
 
+import { FlowAmount } from "../../amount-text";
 import { Text } from "../../text";
 import { cn } from "../../tw";
 
-interface StepRateLabels {
-    custom: string;
-    editCustom: string;
-    /** Inline danger copy, one per `transactionRateError` code. */
-    error: Record<NonNullable<TransactionRateError>, string>;
-    eurReference: string;
-    eurReferenceUnit: string;
-    official: string;
-    requiredHint: string;
-    /** Placeholder for a rate the user can still type. */
-    set: string;
-    title: string;
+export interface StepRateOption {
+    detail: string;
+    figure: string | null;
+    name: string;
+    placeholder: string;
+    type: EntryRateType;
     unit: string;
-    /**
-     * Placeholder for a provider rate that does not exist. Rates resolve per
-     * currency AND per date over a rolling window, so outside it the lookup
-     * genuinely returns nothing — the option must say so rather than show the
-     * last figure it happens to remember.
-     */
-    unavailable: string;
 }
 
-export interface StepRateProps {
-    /** The custom-rate keypad. Rendered beneath only while `custom` is selected. */
-    children?: ReactNode;
-    currency: string;
-    labels: StepRateLabels;
-    onEditCustom: () => void;
-    onSelectType: (type: EntryRateType) => void;
-    onUseSuggestion: (rate: number, type: EntryRateType) => void;
-    /** Already-formatted date the rates were resolved for. */
-    resolvedOn: string;
-    selection: TransactionEntryRate;
-    suggestions: TransactionRateSuggestions;
+interface StepRateProps {
+    onSelect: (type: EntryRateType) => void;
+    options: readonly StepRateOption[];
+    selected: EntryRateType;
 }
 
-const labelFor = (type: EntryRateType, labels: StepRateLabels): string => {
-    if (type === "eur_reference") {
-        return labels.eurReference;
-    }
-    return type === "custom" ? labels.custom : labels.official;
-};
-
-/**
- * The rate each option would apply if tapped. Custom offers the prior custom rate
- * when there is one, so repeating last month's rate stays a single tap.
- */
-const rateFor = (
-    type: EntryRateType,
-    selection: TransactionEntryRate,
-    suggestions: TransactionRateSuggestions
-): number | null => {
-    if (type === "official") {
-        return suggestions.official;
-    }
-    if (type === "eur_reference") {
-        return suggestions.eurReference;
-    }
-    return selection.exchangeRateType === "custom" && selection.exchangeRate !== null
-        ? selection.exchangeRate
-        : (suggestions.priorCustom?.rate ?? null);
-};
-
-/**
- * A missing provider rate and an unentered custom rate are different absences:
- * one can never be typed, the other is waiting to be.
- */
-const figureFor = (currency: string, type: EntryRateType, rate: number | null, labels: StepRateLabels): string => {
-    if (rate !== null) {
-        return formatQuotedRate(currency, rate);
-    }
-    return type === "custom" ? labels.set : labels.unavailable;
-};
-
-/**
- * The rate step's body: the selected option promoted as a figure with its unit,
- * the rest as hairline-divided columns beneath. A rate never blocks a save, so
- * nothing here is required and nothing is disabled for want of one.
- */
-export function StepRate({
-    children,
-    currency,
-    labels,
-    onEditCustom,
-    onSelectType,
-    onUseSuggestion,
-    resolvedOn,
-    selection,
-    suggestions,
-}: StepRateProps) {
-    const options = transactionRateOptions(currency);
-    if (options.length === 0) {
-        return null;
-    }
-
-    const selected = selection.exchangeRateType;
-    const heroRate = effectiveEntryRate(selection, suggestions);
-    const isCustom = selected === "custom";
-    // A custom policy with no rate yet still has last month's rate to offer. It is
-    // shown muted because, unlike `heroRate`, it is NOT what the entry would record
-    // until tapped.
-    const offeredRate = heroRate === null && isCustom ? (suggestions.priorCustom?.rate ?? null) : null;
-    const heroFigure = heroRate ?? offeredRate;
-    const alternates = options.filter((type) => type !== selected);
-    const errorCode = transactionRateError(currency, selection);
-    const unitFor = (type: EntryRateType) => (type === "eur_reference" ? labels.eurReferenceUnit : labels.unit);
-
-    // Tapping an alternate promotes it. A provider rate applies its suggestion
-    // outright; custom applies the prior rate when there is one, and otherwise
-    // opens the pad.
-    const promote = (type: EntryRateType) => {
-        const rate = rateFor(type, selection, suggestions);
-        if (rate !== null) {
-            onUseSuggestion(rate, type);
-            return;
-        }
-        onSelectType(type);
-    };
-
-    // Pressing the promoted figure edits a custom rate, and for a provider policy
-    // freezes the rate currently shown so the entry records that exact value
-    // instead of resolving it again later.
-    const pressHero = () => {
-        if (offeredRate !== null) {
-            onUseSuggestion(offeredRate, "custom");
-            return;
-        }
-        if (isCustom) {
-            onEditCustom();
-            return;
-        }
-        if (heroRate !== null) {
-            onUseSuggestion(heroRate, selected);
-        }
-    };
-
+export function StepRate({ onSelect, options, selected }: StepRateProps) {
     return (
-        <View className="gap-3">
-            <Pressable
-                accessibilityHint={isCustom ? labels.requiredHint : undefined}
-                accessibilityLabel={
-                    isCustom && heroFigure === null
-                        ? labels.editCustom
-                        : `${labels.title} · ${labelFor(selected, labels)}`
-                }
-                accessibilityRole="button"
-                accessibilityValue={
-                    heroFigure === null
-                        ? undefined
-                        : { text: `${formatQuotedRate(currency, heroFigure)} ${unitFor(selected)}` }
-                }
-                disabled={!isCustom && heroRate === null}
-                onPress={pressHero}
-                style={{ minHeight: 44 }}
-            >
-                <Text className="text-eyebrow text-muted tracking-eyebrow font-mono uppercase">{labels.title}</Text>
-                <View className="flex-row items-baseline gap-2">
-                    <Text
-                        className={cn(
-                            "font-mono-medium text-title tabular-nums",
-                            heroRate === null ? "text-muted" : "text-foreground"
-                        )}
+        <View className="border-separator border-t">
+            {options.map((option) => {
+                const checked = option.type === selected;
+                return (
+                    <Pressable
+                        accessibilityLabel={option.name}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked }}
+                        accessibilityValue={{
+                            text: option.figure === null ? option.placeholder : `${option.figure} ${option.unit}`,
+                        }}
+                        className="border-separator flex-row items-center gap-3 border-b py-2.5 active:opacity-60"
+                        key={option.type}
+                        onPress={() => onSelect(option.type)}
+                        style={{ minHeight: 56 }}
                     >
-                        {figureFor(currency, selected, heroFigure, labels)}
-                    </Text>
-                    {heroFigure === null ? null : <Text className="text-footnote text-muted">{unitFor(selected)}</Text>}
-                </View>
-                <Text className="text-footnote text-muted font-mono">
-                    {`${labelFor(selected, labels)} · ${resolvedOn}`}
-                </Text>
-            </Pressable>
-
-            {errorCode === null ? null : (
-                <View>
-                    <Text className="text-danger text-subtitle">{labels.error[errorCode]}</Text>
-                    <Text className="text-footnote text-muted">{labels.requiredHint}</Text>
-                </View>
-            )}
-
-            {alternates.length === 0 ? null : (
-                <View className="border-border flex-row border-t">
-                    {alternates.map((type, index) => {
-                        const rate = rateFor(type, selection, suggestions);
-                        const label = labelFor(type, labels);
-                        return (
-                            <Pressable
-                                accessibilityLabel={label}
-                                accessibilityRole="button"
-                                accessibilityValue={
-                                    rate === null
-                                        ? undefined
-                                        : { text: `${formatQuotedRate(currency, rate)} ${unitFor(type)}` }
-                                }
+                        <View
+                            className={cn(
+                                "h-[22px] w-[22px] items-center justify-center rounded-full border-2",
+                                checked ? "border-tint" : "border-muted"
+                            )}
+                        >
+                            {checked ? <View className="bg-tint h-2.5 w-2.5 rounded-full" /> : null}
+                        </View>
+                        <View className="min-w-0 flex-1">
+                            <Text className="font-sans-semibold text-callout text-foreground">{option.name}</Text>
+                            <Text className="text-footnote text-muted" numberOfLines={1}>
+                                {option.detail}
+                            </Text>
+                        </View>
+                        <View className="items-end">
+                            <Text
                                 className={cn(
-                                    "min-w-0 flex-1 pt-2.5 active:opacity-60",
-                                    index > 0 && "border-border border-l pl-3.5"
+                                    "font-mono-medium text-title tabular-nums",
+                                    option.figure === null ? "text-muted" : "text-foreground"
                                 )}
-                                key={type}
-                                onPress={() => promote(type)}
-                                style={{ minHeight: 44 }}
                             >
-                                <Text className="text-eyebrow text-muted tracking-eyebrow font-mono uppercase">
-                                    {label}
-                                </Text>
-                                <Text
-                                    className={cn(
-                                        "font-mono-medium text-callout tabular-nums",
-                                        rate === null ? "text-muted" : "text-foreground"
-                                    )}
-                                >
-                                    {figureFor(currency, type, rate, labels)}
-                                </Text>
-                            </Pressable>
-                        );
-                    })}
+                                {option.figure ?? option.placeholder}
+                            </Text>
+                            <Text className="text-footnote text-muted">{option.unit}</Text>
+                        </View>
+                    </Pressable>
+                );
+            })}
+        </View>
+    );
+}
+
+export interface StepRateReference {
+    figure: string;
+    label: string;
+    onPress: () => void;
+}
+
+interface StepRateFieldProps {
+    children: ReactNode;
+    error: string | null;
+    figure?: { amount: number; code: string };
+    note: string | null;
+    placeholder: boolean;
+    references?: readonly StepRateReference[];
+    unit?: string;
+    value: string;
+}
+
+export function StepRateField({
+    children,
+    error,
+    figure,
+    note,
+    placeholder,
+    references,
+    unit,
+    value,
+}: StepRateFieldProps) {
+    const valueClass = cn(
+        "font-mono-medium text-[34px] leading-[42px] tracking-tight tabular-nums",
+        placeholder ? "text-muted" : "text-foreground"
+    );
+    return (
+        <View className="gap-2">
+            <View accessibilityLiveRegion="polite" className="flex-row items-baseline gap-2">
+                <View className="flex-row items-center">
+                    {figure !== undefined && !placeholder ? (
+                        <FlowAmount
+                            amount={figure.amount}
+                            className={valueClass}
+                            code={figure.code}
+                            prefix={currencySymbol(figure.code)}
+                            showCents
+                        />
+                    ) : (
+                        <Text className={valueClass}>{value}</Text>
+                    )}
+                    <View className="bg-tint ml-0.5 h-[30px] w-[2.5px] rounded-full" />
+                </View>
+                {unit === undefined ? null : <Text className="text-callout text-foreground">{unit}</Text>}
+            </View>
+            {error === null ? null : <Text className="text-danger text-subtitle">{error}</Text>}
+            {note === null ? null : <Text className="text-subtitle text-foreground">{note}</Text>}
+            {references === undefined || references.length === 0 ? null : (
+                <View className="border-separator mb-1 flex-row border-t">
+                    {references.map((reference, index) => (
+                        <Pressable
+                            accessibilityLabel={reference.label}
+                            accessibilityRole="button"
+                            accessibilityValue={{ text: reference.figure }}
+                            className={cn(
+                                "min-w-0 flex-1 pt-2 active:opacity-60",
+                                index > 0 && "border-separator border-l pl-3.5"
+                            )}
+                            key={reference.label}
+                            onPress={reference.onPress}
+                            style={{ minHeight: 44 }}
+                        >
+                            <Text className="text-subtitle text-foreground">{reference.label}</Text>
+                            <Text className="font-mono-medium text-callout text-foreground tabular-nums">
+                                {reference.figure}
+                            </Text>
+                        </Pressable>
+                    ))}
                 </View>
             )}
-
-            {isCustom ? children : null}
+            {children}
         </View>
     );
 }

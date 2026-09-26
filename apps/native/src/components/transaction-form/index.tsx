@@ -61,7 +61,7 @@ import { computeCurtainHues } from "@/domain/curtain-hues";
 import { formatSentenceDate } from "@/domain/dates";
 import { merchantKey } from "@/domain/merchant-resolver";
 import { suggestMerchants } from "@/domain/merchant-suggest";
-import { formatAmount, minorUnitsFor, roundToMinorUnits } from "@/domain/money";
+import { formatAmount, formatFixed, minorUnitsFor, numberLocale, roundToMinorUnits } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { ensureRecurringType, RECURRING_TYPE } from "@/domain/recurrence";
 import { enableReminderStep } from "@/domain/reminder";
@@ -73,13 +73,17 @@ import {
     effectiveEntryRate,
     flipRateForQuote,
     formatQuotedRate,
-    rateQuoteUnit,
+    formatQuotedRateFigure,
+    pairUnitSymbols,
+    RATE_ENTRY_DECIMALS,
+    rateDeltaPercent,
+    transactionRateError,
     transactionRateOptions,
 } from "@/domain/transaction-entry-rate";
 import type { TransactionEntryRate } from "@/domain/transaction-entry-rate";
-import { ctaKey, transactionWhenLabel } from "@/domain/transaction-form-labels";
+import { ctaKey, RATE_NAME_KEYS, RATE_SOURCE_WORD_KEYS, transactionWhenLabel } from "@/domain/transaction-form-labels";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
-import { isMissingCategory, transactionFormErrors } from "@/domain/transaction-form-validate";
+import { transactionFormErrors } from "@/domain/transaction-form-validate";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
 import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 import { useRegionCode } from "@/hooks/use-region-code";
@@ -114,7 +118,7 @@ import { TransactionFormAmountPad } from "./amount-pad";
 import { TransactionFormCta } from "./cta";
 import { TransactionSentenceBody } from "./sentence/sentence-body";
 import type { TransactionSentenceMark } from "./sentence/slots";
-import { ConversionStrip } from "./stage/conversion-strip";
+import type { TransactionRateClause } from "./sentence/transaction-sentence";
 import { MetaLine } from "./stage/meta-line";
 import { TransactionStage } from "./stage/stage";
 import type { StageAction, StageFooter } from "./stage/stage";
@@ -125,7 +129,8 @@ import { StepCurrency } from "./stage/step-currency";
 import { StepDate } from "./stage/step-date";
 import { StepFee } from "./stage/step-fee";
 import { StepMerchant } from "./stage/step-merchant";
-import { StepRate } from "./stage/step-rate";
+import { StepRate, StepRateField } from "./stage/step-rate";
+import type { StepRateOption } from "./stage/step-rate";
 import { StepRepeat } from "./stage/step-repeat";
 import { StepWhen } from "./stage/step-when";
 import { useSplitDraft } from "./use-split-draft";
@@ -136,8 +141,6 @@ import { useSplitDraft } from "./use-split-draft";
  * padding.
  */
 const HERO_REST_TOP_FALLBACK = 88;
-
-const RATE_DISPLAY_DECIMALS = 4;
 
 /**
  * Floor for the currency step's virtualised list. A stage body has no intrinsic
@@ -150,12 +153,9 @@ const CURRENCY_LIST_FRACTION = 0.34;
 /** One row of pills beside the remembered ones, which come first. */
 const MERCHANT_SUGGESTION_LIMIT = 4;
 
-/** Names the policy a stated conversion was produced by. */
-const RATE_SOURCE_KEYS = {
-    custom: "transaction.rate.custom",
-    eur_reference: "transaction.rate.eur_reference",
-    official: "transaction.rate.official",
-} as const satisfies Record<EntryRateType, string>;
+const RATE_DELTA_SAME = 0.05;
+
+const RATE_DELTA_MONEY_FLOOR = 0.005;
 
 /**
  * What the stage at the bottom of the form is showing. One value rather than a
@@ -177,6 +177,8 @@ type StageStep =
     | "feeCategory"
     | "merchant"
     | "rate"
+    | "rateCustom"
+    | "rateUsd"
     | "repeat"
     | "when";
 
@@ -208,15 +210,21 @@ const OPTIONAL_STEPS: ReadonlySet<GuidedStep> = new Set(["merchant"]);
 
 const GUIDED_POSITIONS = new Map<StageStep, number>(GUIDED_STEPS.map((step, index) => [step, index]));
 
+function backStepOf(step: StageStep): StageStep {
+    if (step === "feeCategory") {
+        return "fee";
+    }
+    return step === "rateCustom" ? "rate" : "amount";
+}
+
 /** Where a step sits on the guided ladder; -1 for one that is not on it. */
 function guidedIndex(step: StageStep): number {
     return GUIDED_POSITIONS.get(step) ?? -1;
 }
 
 /**
- * The word the stage is editing, so the sentence can wash it. The rate and
- * currency steps both report the amount: each is setting something the amount
- * carries, and neither has a sentence word of its own to mark.
+ * The word the stage is editing, so the sentence can wash it. The currency step
+ * reports the amount, whose code it is setting; each rate step marks its own word.
  */
 const STEP_SLOTS = {
     account: "account",
@@ -228,7 +236,9 @@ const STEP_SLOTS = {
     fee: "fee",
     feeCategory: "fee",
     merchant: "merchant",
-    rate: "amount",
+    rate: "rateSource",
+    rateCustom: "rate",
+    rateUsd: "converted",
     repeat: "when",
     when: "when",
 } as const satisfies Record<StageStep, TransactionSentenceMark>;
@@ -238,6 +248,7 @@ type FeeOptionId = "amount" | "none" | "percent" | `rate:${number}`;
 /** One step's body and the header it sits under, before the stage draws them. */
 interface StageStepContent {
     body: ReactNode;
+    footer?: StageFooter;
     /** Trailing meta the step needs and its body cannot state. */
     rightAction?: StageAction;
     title: string;
@@ -249,6 +260,12 @@ interface RateEntry {
 }
 
 const NO_RATE: RateEntry = { seed: null, text: "" };
+
+interface RateSnapshot {
+    entry: RateEntry;
+    fromSuggestion: boolean;
+    type: EntryRateType | null;
+}
 
 function seededRate(currency: string, rate: number | null | undefined): RateEntry {
     return rate != null && Number.isFinite(rate) && rate > 0
@@ -391,7 +408,7 @@ function initialEntryRateType(currency: string, rateType: string | null | undefi
 }
 
 /**
- * The rate policy in force, in the shape the rate step and the conversion strip
+ * The rate policy in force, in the shape the rate steps and the rate clause
  * both read. `official` stands in for an absent type because that is what an
  * unanswered non-USD entry records.
  */
@@ -435,7 +452,7 @@ function useTransactionRateControls({
     const rateFromSuggestion = useRef(initialRateFromProvider);
     /** The rate step is only ever on screen because it was asked for. */
     const leaveRateStep = () => {
-        if (stageStep === "rate") {
+        if (stageStep === "rate" || stageStep === "rateCustom" || stageStep === "rateUsd") {
             onStage("amount", false);
         }
     };
@@ -444,9 +461,7 @@ function useTransactionRateControls({
         rateFromSuggestion.current = false;
         setRateType(next);
         setRate(NO_RATE);
-        // Stays on the rate step: choosing a policy with nothing to apply is what
-        // the custom keypad appears under, and leaving would hide the choice.
-        onStage("rate", true);
+        leaveRateStep();
     };
 
     const handleRateSuggestion = (rate: number, type: EntryRateType) => {
@@ -484,18 +499,51 @@ function useTransactionRateControls({
 
     const handleRateTextChange = (next: string) => {
         rateFromSuggestion.current = false;
+        if (exchangeRateType !== "custom") {
+            setRateType("custom");
+            setRate({ seed: null, text: next });
+            return;
+        }
         setRate((current) => ({ seed: current.seed, text: next }));
     };
 
-    const openRateStep = () => onStage("rate", true);
+    const openCustomRate = (prior: number | null) => {
+        if (prior !== null) {
+            rateFromSuggestion.current = true;
+            setRateType("custom");
+            setRate(seededRate(currency, prior));
+        }
+        onStage("rateCustom", true);
+    };
+
+    const applyDerivedRate = (rate: number) => {
+        rateFromSuggestion.current = false;
+        setRateType("custom");
+        setRate(seededRate(currency, rate));
+    };
+
+    const snapshotRate = (entry: RateEntry): RateSnapshot => ({
+        entry,
+        fromSuggestion: rateFromSuggestion.current,
+        type: exchangeRateType,
+    });
+
+    const restoreRate = (snapshot: RateSnapshot) => {
+        rateFromSuggestion.current = snapshot.fromSuggestion;
+        setRateType(snapshot.type);
+        setRate(snapshot.entry);
+    };
 
     return {
+        applyDerivedRate,
         handleCurrencyChange,
         handleDateChange,
         handleRateSuggestion,
         handleRateTextChange,
         handleRateTypeChange,
-        openRateStep,
+        openCustomRate,
+        restoreRate,
+        snapshotRate,
     };
 }
 
@@ -592,6 +640,14 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             txCurrency: currencySeed,
         };
     });
+
+    const formErrorsOf = (value: typeof initialValues) =>
+        transactionFormErrors({
+            ...value,
+            categoryDeferred: queueable(value.merchant),
+            currency: value.txCurrency ?? globalCurrency,
+            exchangeRate: entryRateOf(value.rateEntry, value.txCurrency ?? globalCurrency),
+        });
 
     const form = useForm({
         defaultValues: initialValues,
@@ -789,35 +845,31 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         // The CTA stays lit on amount alone, so a tap with no category lands here
         // rather than on a dimmed button that explains nothing.
         onSubmitInvalid: ({ value }) => {
+            const fields = formErrorsOf(value)?.fields ?? {};
             // The amount flags where the category already does: the stage's
             // footer reaches this with nothing entered, and a submit that
             // silently did nothing would read as a missed button.
-            const noAmount = numpadToNumber(value.amount) <= 0;
-            if (noAmount) {
+            if (fields.amount !== undefined) {
                 flagMissingAmount();
             }
-            const missingCategory = isMissingCategory(value) && !queueable(value.merchant);
-            if (missingCategory) {
+            if (fields.category !== undefined) {
                 flagMissingCategory();
             }
+            if (fields.exchangeRate !== undefined) {
+                flagMissingRate();
+            }
             // Marking the sentence alone leaves the answer further away than the
-            // question, and the stage is where every other fact is answered. Only
-            // for a fact the sentence states, though: a save rejected for a blank
-            // rate must stay on the rate step, which is already showing why.
-            if (noAmount) {
+            // question, and the stage is where every other fact is answered.
+            if (fields.amount !== undefined) {
                 enterStep("amount");
-            } else if (missingCategory) {
+            } else if (fields.category !== undefined) {
                 enterStep("category");
+            } else if (fields.exchangeRate !== undefined) {
+                enterStep("rateCustom");
             }
         },
         validators: {
-            onChange: ({ value }) =>
-                transactionFormErrors({
-                    ...value,
-                    categoryDeferred: queueable(value.merchant),
-                    currency: value.txCurrency ?? globalCurrency,
-                    exchangeRate: entryRateOf(value.rateEntry, value.txCurrency ?? globalCurrency),
-                }),
+            onChange: ({ value }) => formErrorsOf(value),
         },
     });
     // Names the fields rather than taking `values` wholesale: that object gets a
@@ -874,13 +926,15 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const rateSelection = rateSelectionOf(rateEntry, exchangeRateType, currency);
     /**
      * Whether this entry converts at all. `transactionRateOptions` is the single
-     * answer: it is empty for USD, which has no rate to state and so no strip and
-     * no rate step.
+     * answer: it is empty for USD, which has no rate to state and so no rate
+     * clause and no rate step.
      */
     const converts = transactionRateOptions(currency).length > 0;
     const rateInForce = effectiveEntryRate(rateSelection, rateSuggestions);
-    const rateSourceLabel = t(RATE_SOURCE_KEYS[rateSelection.exchangeRateType]);
-    const rateUnit = rateQuoteUnit(currency);
+    const rateUnitLabel = t("transaction.rate.unit", pairUnitSymbols("USD", currency));
+    const eurReferenceUnitLabel = t("transaction.rate.unit", pairUnitSymbols("EUR", currency));
+    const unitOf = (type: EntryRateType) => (type === "eur_reference" ? eurReferenceUnitLabel : rateUnitLabel);
+    const rateFigure = (rate: number) => formatQuotedRateFigure(currency, rate, language);
 
     /**
      * What the entered amount comes to in USD at the rate in force, or null while
@@ -897,6 +951,32 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         }
         const eurLeg = rateSuggestions.eurOfficial;
         return eurLeg === null || eurLeg <= 0 ? null : amount / rateInForce / eurLeg;
+    };
+
+    const suggestionFor = (type: EntryRateType): number | null => {
+        if (type === "custom") {
+            return null;
+        }
+        return type === "official" ? rateSuggestions.official : rateSuggestions.eurReference;
+    };
+
+    const rateDeltaNote = (rate: number | null, amount: number): string | null => {
+        const { official } = rateSuggestions;
+        if (rate === null || official === null) {
+            return null;
+        }
+        const percent = rateDeltaPercent(currency, rate, official);
+        const shown = `${formatFixed(Math.abs(percent), 1, language)}%`;
+        let line = t("transaction.rate.deltaSame");
+        if (Math.abs(percent) >= RATE_DELTA_SAME) {
+            line = t(percent > 0 ? "transaction.rate.deltaAbove" : "transaction.rate.deltaBelow", { percent: shown });
+        }
+        const difference = amount / rate - amount / official;
+        if (amount <= 0 || Math.abs(difference) < RATE_DELTA_MONEY_FLOOR) {
+            return line;
+        }
+        const money = formatAmount(Math.abs(difference), "USD", true, language);
+        return `${line} · ${t(difference > 0 ? "transaction.rate.deltaMore" : "transaction.rate.deltaLess", { amount: money })}`;
     };
 
     const feeable = !income && initial?.transferId == null && initial?.feeForId == null;
@@ -992,6 +1072,15 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const [categoryShake, setCategoryShake] = useState(false);
     const [amountError, setAmountError] = useState(false);
     const [amountShake, setAmountShake] = useState(false);
+    const [refusedCurrency, setRefusedCurrency] = useState<string | null>(null);
+    const rateMissingAfterRefusal =
+        refusedCurrency === currency && transactionRateError(currency, rateSelection) !== null;
+    if (refusedCurrency !== null && !rateMissingAfterRefusal) {
+        setRefusedCurrency(null);
+    }
+    const [rateShake, setRateShake] = useState(false);
+    const [usdText, setUsdText] = useState("");
+    const usdSnapshot = useRef<RateSnapshot>({ entry: NO_RATE, fromSuggestion: false, type: null });
     const [showToast, setShowToast] = useState(false);
     const celebrate = useAppSettings().state.bool("confetti");
     const aiEnrichment = useAppSettings().state.bool("aiEnrichment");
@@ -1044,12 +1133,15 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     /** Returns to a step already behind us, which travels the other way. */
     const leaveTo = (step: StageStep) => goStage(step, false);
     const {
+        applyDerivedRate,
         handleCurrencyChange,
         handleDateChange,
         handleRateSuggestion,
         handleRateTextChange,
         handleRateTypeChange,
-        openRateStep,
+        openCustomRate,
+        restoreRate,
+        snapshotRate,
     } = useTransactionRateControls({
         currency,
         date,
@@ -1062,6 +1154,105 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         setRateType: (next) => form.setFieldValue("exchangeRateType", next),
         stageStep,
     });
+    const rateOptions = (): StepRateOption[] =>
+        transactionRateOptions(currency).map((type) => {
+            const shared = { name: t(RATE_NAME_KEYS[type]), type, unit: unitOf(type) };
+            if (type === "custom") {
+                const prior = rateSuggestions.priorCustom;
+                const typed = rateSelection.exchangeRateType === "custom" ? rateInForce : null;
+                return {
+                    ...shared,
+                    detail:
+                        prior === null
+                            ? t("transaction.rate.typeHint")
+                            : t("transaction.rate.lastUsed", {
+                                  date: formatSentenceDate(prior.date, language),
+                                  rate: rateFigure(prior.rate),
+                              }),
+                    figure: typed === null ? null : rateFigure(typed),
+                    placeholder: t("transaction.rate.type"),
+                };
+            }
+            const offered =
+                rateSelection.exchangeRateType === type && rateInForce !== null ? rateInForce : suggestionFor(type);
+            return {
+                ...shared,
+                detail: t("transaction.rate.asOf", { date: formatSentenceDate(date, language) }),
+                figure: offered === null ? null : rateFigure(offered),
+                placeholder: t("transaction.rate.unavailable"),
+            };
+        });
+    const selectRateOption = (type: EntryRateType) => {
+        if (type === "custom") {
+            const hasCustom = rateSelection.exchangeRateType === "custom" && rateInForce !== null;
+            openCustomRate(hasCustom ? null : (rateSuggestions.priorCustom?.rate ?? null));
+            return;
+        }
+        const offered =
+            rateSelection.exchangeRateType === type && rateInForce !== null ? rateInForce : suggestionFor(type);
+        if (offered === null) {
+            handleRateTypeChange(type);
+            return;
+        }
+        handleRateSuggestion(offered, type);
+    };
+    const providerReferences = () =>
+        transactionRateOptions(currency).flatMap((type) => {
+            const offered = suggestionFor(type);
+            return offered === null
+                ? []
+                : [
+                      {
+                          figure: rateFigure(offered),
+                          label: t(RATE_NAME_KEYS[type]),
+                          onPress: () => handleRateSuggestion(offered, type),
+                      },
+                  ];
+        });
+    const customRateValue = (typing: boolean, typed: boolean): string => {
+        if (typed) {
+            return rateEntry.text.replace(".", numberLocale(language).decimal);
+        }
+        return rateInForce === null || typing ? t("transaction.rate.type") : rateFigure(rateInForce);
+    };
+    const rateClause = (amountNumber: number): TransactionRateClause => {
+        const usd = amountInUsd(amountNumber);
+        const type = rateSelection.exchangeRateType;
+        const missing = rateInForce === null;
+        let template = t("transaction.sentence.rate.provider");
+        if (missing) {
+            template = t("transaction.sentence.rate.missing");
+        } else if (usd === null) {
+            template = t("transaction.sentence.rate.pending");
+        } else if (type === "custom") {
+            template = t("transaction.sentence.rate.custom");
+        }
+        return {
+            converted: usd === null ? null : { amount: usd, text: formatAmount(usd, "USD", true, language) },
+            flagged: rateMissingAfterRefusal,
+            onConvertedPress: openUsd,
+            onRatePress: () => (missing ? enterStep("rate") : openCustomRate(null)),
+            onSourcePress: () => enterStep("rate"),
+            rate: missing ? null : `${rateFigure(rateInForce)} ${unitOf(type)}`,
+            shake: rateShake,
+            source: t(RATE_SOURCE_WORD_KEYS[type]),
+            template,
+        };
+    };
+    const openUsd = () => {
+        usdSnapshot.current = snapshotRate(rateEntry);
+        setUsdText("");
+        enterStep("rateUsd");
+    };
+    const typeUsd = (next: string, amountNumber: number) => {
+        setUsdText(next);
+        const usd = numpadToNumber(next);
+        if (usd > 0 && amountNumber > 0) {
+            applyDerivedRate(amountNumber / usd);
+            return;
+        }
+        restoreRate(usdSnapshot.current);
+    };
     const favouriteCurrencies = useFavouriteCurrencies(db);
     const toggleFavourite = useToggleFavouriteCurrency(db);
     const selectCategory = (picked: Category) => {
@@ -1112,6 +1303,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const [scheduleSheetOpen, setScheduleSheetOpen] = useState(false);
     const shakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const amountShakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const rateShakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const categoriesForNamespace = useCategoriesByNamespace(db, income);
@@ -1530,6 +1722,9 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             if (amountShakeTimer.current != null) {
                 clearTimeout(amountShakeTimer.current);
             }
+            if (rateShakeTimer.current != null) {
+                clearTimeout(rateShakeTimer.current);
+            }
             if (doneTimer.current != null) {
                 clearTimeout(doneTimer.current);
             }
@@ -1656,6 +1851,13 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         setAmountError(true);
         setAmountShake(true);
         amountShakeTimer.current = setTimeout(() => setAmountShake(false), 500);
+    };
+
+    const flagMissingRate = () => {
+        haptics("error");
+        setRefusedCurrency(currency);
+        setRateShake(true);
+        rateShakeTimer.current = setTimeout(() => setRateShake(false), 500);
     };
 
     // The spring starts here, not from the picker route's mount effect, so the
@@ -1798,6 +2000,12 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             verb: t(income ? "transaction.sentence.kind.income" : "transaction.sentence.kind.expense"),
         },
         merchant: { field: t("transaction.field.name"), placeholder: t("transaction.sentence.blank.merchant") },
+        rate: {
+            blank: t("transaction.sentence.blank.rate"),
+            converted: t("transaction.rate.inDollars"),
+            field: t("transaction.rate.title"),
+            source: t("transaction.rate.source"),
+        },
         // Uninterpolated on purpose: with no params `t` hands back the template
         // itself, which is what `parseSentence` reads the slot order out of.
         template: t(income ? "transaction.sentence.income" : "transaction.sentence.expense"),
@@ -2000,43 +2208,91 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             return {
                 body: (
                     <StepRate
-                        currency={currency}
-                        labels={{
-                            custom: t("transaction.rate.custom"),
-                            editCustom: t("transaction.rate.editCustom"),
-                            error: {
-                                customRateRequired: t("transaction.rate.required"),
-                                eurReferenceRequiresVes: t("transaction.rate.eurReferenceRequiresVes"),
-                            },
-                            eurReference: t("transaction.rate.eur_reference"),
-                            eurReferenceUnit: t("transaction.rate.unit", { base: "EUR", quote: currency }),
-                            official: t("transaction.rate.official"),
-                            requiredHint: t("transaction.rate.requiredHint", rateUnit),
-                            set: t("transaction.rate.set"),
-                            title: t("transaction.rate.title"),
-                            unavailable: t("transaction.rate.unavailable"),
-                            unit: t("transaction.rate.unit", rateUnit),
-                        }}
-                        onEditCustom={openRateStep}
-                        onSelectType={handleRateTypeChange}
-                        onUseSuggestion={handleRateSuggestion}
-                        resolvedOn={formatSentenceDate(date, language)}
-                        selection={rateSelection}
-                        suggestions={rateSuggestions}
+                        onSelect={selectRateOption}
+                        options={rateOptions()}
+                        selected={rateSelection.exchangeRateType}
+                    />
+                ),
+                footer: { label: t("common.done"), onPress: () => leaveTo("amount") },
+                title: t("transaction.rate.title"),
+            };
+        }
+        if (stageStep === "rateCustom") {
+            const typing = rateSelection.exchangeRateType === "custom";
+            const typed = typing && rateEntry.text !== "";
+            return {
+                body: (
+                    <StepRateField
+                        error={rateMissingAfterRefusal ? t("transaction.rate.required") : null}
+                        note={typed ? rateDeltaNote(rateInForce, amountNumber) : null}
+                        placeholder={!typed}
+                        references={providerReferences()}
+                        unit={rateUnitLabel}
+                        value={customRateValue(typing, typed)}
                     >
-                        {/* The rate is not money, so the keys are the entry's own
-                            separator rather than the money preference's implied cents. */}
                         <AmountNumpad
-                            code={`${currency}/USD`}
-                            minorUnits={RATE_DISPLAY_DECIMALS}
+                            code={currency}
+                            minorUnits={RATE_ENTRY_DECIMALS}
                             mode="explicitSeparator"
                             onChange={handleRateTextChange}
                             showDisplay={false}
-                            value={rateEntry.text}
+                            value={typing ? rateEntry.text : ""}
                         />
-                    </StepRate>
+                    </StepRateField>
                 ),
-                title: t("transaction.rate.title"),
+                footer: {
+                    label:
+                        typed && rateInForce !== null
+                            ? t("transaction.rate.use", { value: rateFigure(rateInForce) })
+                            : t("common.done"),
+                    onPress: () => {
+                        if (typing && rateInForce === null) {
+                            flagMissingRate();
+                            return;
+                        }
+                        leaveTo("amount");
+                    },
+                },
+                title: t("transaction.rate.custom"),
+            };
+        }
+        if (stageStep === "rateUsd") {
+            const usd = numpadToNumber(usdText);
+            const derivedNote =
+                usd > 0 && rateInForce !== null
+                    ? [
+                          t("transaction.rate.derived", { rate: `${rateFigure(rateInForce)} ${rateUnitLabel}` }),
+                          rateDeltaNote(rateInForce, 0),
+                      ]
+                          .filter((line) => line !== null)
+                          .join(" · ")
+                    : null;
+            return {
+                body: (
+                    <StepRateField
+                        error={null}
+                        figure={{ amount: usd, code: "USD" }}
+                        note={derivedNote}
+                        placeholder={usd <= 0}
+                        value={formatAmount(usd > 0 ? usd : (amountInUsd(amountNumber) ?? 0), "USD", true, language)}
+                    >
+                        <AmountNumpad
+                            code="USD"
+                            minorUnits={minorUnitsFor("USD")}
+                            onChange={(next) => typeUsd(next, amountNumber)}
+                            showDisplay={false}
+                            value={usdText}
+                        />
+                    </StepRateField>
+                ),
+                footer: {
+                    label:
+                        usd > 0
+                            ? t("transaction.rate.use", { value: formatAmount(usd, "USD", true, language) })
+                            : t("common.done"),
+                    onPress: () => leaveTo("amount"),
+                },
+                title: t("transaction.rate.inDollars"),
             };
         }
         if (stageStep === "when") {
@@ -2143,23 +2399,24 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 />
             );
         }
-        const { body, rightAction, title } = stageStepContent(amountNumber, merchant);
+        const { body, footer, rightAction, title } = stageStepContent(amountNumber, merchant);
         return (
             <TransactionStage
                 backLabel={t("common.back")}
                 // A ledger with no account to pick has nothing this step can
                 // answer, so the button leaves for the editor that mints one.
                 footer={
-                    stageStep === "account" && allAccounts.length === 0
+                    footer ??
+                    (stageStep === "account" && allAccounts.length === 0
                         ? {
                               label: t("transaction.account.create"),
                               onPress: () => router.push(accountCreateRoute),
                               tone: "primary",
                           }
-                        : stageFooter(amountNumber, merchant)
+                        : stageFooter(amountNumber, merchant))
                 }
                 forward={stage.forward}
-                onBack={() => leaveTo(stageStep === "feeCategory" ? "fee" : "amount")}
+                onBack={() => leaveTo(backStepOf(stageStep))}
                 rightAction={rightAction}
                 stepKey={stageStep}
                 title={title}
@@ -2274,68 +2531,39 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                 }
                                                 contentWidth={contentWidth}
                                                 activeSlot={activeSlot}
-                                                // Gated on an amount as well as on the
-                                                // currency: with nothing entered there is
-                                                // nothing to convert, and the strip would
-                                                // warn that a resolved rate had not been set.
-                                                conversion={
-                                                    (converts && amountNumber > 0) || feeNow !== null ? (
-                                                        <View className="gap-2.5">
-                                                            {converts && amountNumber > 0 ? (
-                                                                <ConversionStrip
-                                                                    amount={amountNumber}
-                                                                    amountUsd={amountInUsd(amountNumber)}
-                                                                    currency={currency}
-                                                                    labels={{
-                                                                        notConverted: t(
-                                                                            "transaction.rate.notConverted"
-                                                                        ),
-                                                                        pendingBody: t("transaction.rate.pendingBody"),
-                                                                        setRate: t("transaction.rate.setRate"),
-                                                                    }}
-                                                                    language={language}
-                                                                    onPress={openRateStep}
-                                                                    rate={
-                                                                        rateInForce === null
-                                                                            ? null
-                                                                            : {
-                                                                                  source: rateSourceLabel,
-                                                                                  value: rateInForce,
-                                                                              }
-                                                                    }
-                                                                />
-                                                            ) : null}
-                                                            {feeNow === null || feeBaseNow === null ? null : (
-                                                                <Pressable
-                                                                    accessibilityRole="button"
-                                                                    onPress={() => enterStep("fee")}
-                                                                >
-                                                                    <MetaLine
-                                                                        qualifier={formatAmount(
-                                                                            feeBaseNow + feeNow,
-                                                                            feeCurrency,
-                                                                            true,
-                                                                            language
-                                                                        )}
-                                                                        statement={t("transaction.fee.line", {
-                                                                            base: formatAmount(
-                                                                                feeBaseNow,
-                                                                                feeCurrency,
-                                                                                true,
-                                                                                language
-                                                                            ),
-                                                                            fee: formatAmount(
-                                                                                feeNow,
-                                                                                feeCurrency,
-                                                                                true,
-                                                                                language
-                                                                            ),
-                                                                        })}
-                                                                    />
-                                                                </Pressable>
-                                                            )}
-                                                        </View>
-                                                    ) : undefined
+                                                feeLine={
+                                                    feeNow === null || feeBaseNow === null ? undefined : (
+                                                        <Pressable
+                                                            accessibilityRole="button"
+                                                            onPress={() => enterStep("fee")}
+                                                        >
+                                                            <MetaLine
+                                                                qualifier={formatAmount(
+                                                                    feeBaseNow + feeNow,
+                                                                    feeCurrency,
+                                                                    true,
+                                                                    language
+                                                                )}
+                                                                statement={t("transaction.fee.line", {
+                                                                    base: formatAmount(
+                                                                        feeBaseNow,
+                                                                        feeCurrency,
+                                                                        true,
+                                                                        language
+                                                                    ),
+                                                                    fee: formatAmount(
+                                                                        feeNow,
+                                                                        feeCurrency,
+                                                                        true,
+                                                                        language
+                                                                    ),
+                                                                })}
+                                                            />
+                                                        </Pressable>
+                                                    )
+                                                }
+                                                rate={
+                                                    converts && amountNumber > 0 ? rateClause(amountNumber) : undefined
                                                 }
                                                 amountFlagged={amountError}
                                                 amountShake={amountShake}

@@ -75,17 +75,9 @@ const transfers = {
             en: "{amount} unaccounted",
             es: "{amount} sin explicar",
         }),
-        "transfers.rate.custom": t({
-            en: "Custom",
-            es: "Personalizada",
-        }),
-        "transfers.rate.eur_reference": t({
-            en: "EUR",
-            es: "EUR",
-        }),
-        "transfers.rate.official": t({
-            en: "Official",
-            es: "Oficial",
+        "transfers.rate.option": t({
+            en: "{name} · {rate}",
+            es: "{name} · {rate}",
         }),
         "transfers.rate.unavailable": t({
             en: "No rate for this pair. Enter one.",
@@ -130,6 +122,10 @@ const transfers = {
         "transfers.sentence.rate": t({
             en: "At the {rateType} rate, {rate}, it arrives as {arrives}.",
             es: "A la tasa {rateType}, {rate}, llega como {arrives}.",
+        }),
+        "transfers.sentence.rateCustom": t({
+            en: "At {rateType} rate, {rate}, it arrives as {arrives}.",
+            es: "A {rateType}, {rate}, llega como {arrives}.",
         }),
         "transfers.title": t({
             en: "Transfer",

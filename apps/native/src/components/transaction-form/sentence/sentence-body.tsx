@@ -24,7 +24,7 @@ import type { SentenceFigure } from "../../sentence/sentence-value";
 import { cn } from "../../tw";
 import type { TransactionSentenceMark } from "./slots";
 import { TransactionSentence } from "./transaction-sentence";
-import type { TransactionSentenceLabels } from "./transaction-sentence";
+import type { TransactionRateClause, TransactionSentenceLabels } from "./transaction-sentence";
 
 /**
  * The optional facts, and the glyph each states. Stroke while the fact is unset
@@ -92,12 +92,7 @@ interface SentenceBodyProps {
      * box it wraps inside or it bleeds past the form's margins.
      */
     contentWidth: number;
-    /**
-     * The cross-currency readout, drawn directly under the sentence because it
-     * restates the amount the sentence just said. Absent for an entry whose
-     * currency has nothing to convert to.
-     */
-    conversion?: ReactNode;
+    feeLine?: ReactNode;
     /** Short clauses for anything the sentence itself does not carry. */
     extras: readonly string[];
     fee: string | null;
@@ -114,6 +109,7 @@ interface SentenceBodyProps {
     onKindPress: () => void;
     onMerchantPress: () => void;
     onWhenPress: () => void;
+    rate?: TransactionRateClause;
     verbs: readonly SentenceVerb[];
     when: string;
 }
@@ -133,9 +129,9 @@ export function TransactionSentenceBody({
     categoryTile,
     coach,
     contentWidth,
-    conversion,
     extras,
     fee,
+    feeLine,
     labels,
     merchant,
     merchantTile,
@@ -147,6 +143,7 @@ export function TransactionSentenceBody({
     onKindPress,
     onMerchantPress,
     onWhenPress,
+    rate,
     verbs,
     when,
 }: SentenceBodyProps) {
@@ -182,12 +179,13 @@ export function TransactionSentenceBody({
                 onKindPress={onKindPress}
                 onMerchantPress={onMerchantPress}
                 onWhenPress={onWhenPress}
+                rate={rate}
                 when={when}
             />
 
-            {conversion === undefined ? null : (
+            {feeLine === undefined ? null : (
                 <Animated.View className="mt-5" entering={revealEntering()}>
-                    {conversion}
+                    {feeLine}
                 </Animated.View>
             )}
 

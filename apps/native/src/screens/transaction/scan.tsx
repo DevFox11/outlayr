@@ -31,7 +31,7 @@ import { formatAmount } from "@/domain/money";
 import { boundedPromptNames } from "@/domain/prompt-budget";
 import { conversionOf, formatQuantity, receiptDetails, resolveReceipt, savableReceipt } from "@/domain/receipt-scan";
 import type { Conversion, ResolvedReceipt } from "@/domain/receipt-scan";
-import { formatEntryRate } from "@/domain/transaction-entry-rate";
+import { formatRateFigure, pairUnitSymbols, quotePairRate } from "@/domain/transaction-entry-rate";
 import type { RateTable } from "@/domain/valuation";
 import type { CategoryCandidate } from "@/domain/voice-entry";
 import { stillCurrent } from "@/domain/voice-entry";
@@ -399,9 +399,8 @@ function ConversionLine({
             </Text>
             <Text className="text-subtle text-footnote font-sans tabular-nums">
                 {t("receipt.review.rate", {
-                    from: receipt.currency,
-                    rate: formatEntryRate(conversion.rate),
-                    to: ledgerCurrency,
+                    ...pairUnitSymbols(receipt.currency, ledgerCurrency),
+                    rate: formatRateFigure(quotePairRate(receipt.currency, ledgerCurrency, conversion.rate), language),
                 })}
                 {receipt.currencySource === "inferred" ? (
                     <>

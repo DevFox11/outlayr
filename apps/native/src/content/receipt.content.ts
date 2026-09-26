@@ -147,10 +147,10 @@ const receipt = {
             en: "Paid with {method}",
             es: "Pagado con {method}",
         }),
-        // "1 EUR = 1.09 USD", under the converted figure.
+        // "848.55 Bs. per $", under the converted figure.
         "receipt.review.rate": t({
-            en: "1 {from} = {rate} {to}",
-            es: "1 {from} = {rate} {to}",
+            en: "{rate} {quote} per {base}",
+            es: "{rate} {quote} por {base}",
         }),
         "receipt.review.subtotal": t({
             en: "Subtotal",

@@ -1,9 +1,10 @@
 import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useState } from "react";
-import { TextInput, View } from "react-native";
+import { View } from "react-native";
 
 import { SEARCH_FIELD } from "@/components/search-field-style";
+import { TextInput } from "@/components/text";
 import { useColors } from "@/theme/use-colors";
 
 import { CurrencyPickerList } from "../../currency-picker-list";

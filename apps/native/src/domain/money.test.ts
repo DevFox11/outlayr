@@ -4,6 +4,7 @@ import {
     amountDigits,
     amountParts,
     formatAmount,
+    formatFixed,
     latinAmericanLocale,
     minorUnitsFor,
     numberLocale,
@@ -88,5 +89,13 @@ describe("roundToMinorUnits", () => {
         expect(roundToMinorUnits(12.34, "JPY")).toBe(12);
         expect(roundToMinorUnits(12.345, "USD")).toBe(12.34);
         expect(roundToMinorUnits(12.3456, "KWD")).toBe(12.346);
+    });
+});
+
+describe("formatFixed", () => {
+    it("keeps the sign, drops it once rounding reaches zero, and groups the integer", () => {
+        expect(formatFixed(-3.2, 1, "en")).toBe("-3.2");
+        expect(formatFixed(-0.04, 1, "en")).toBe("0.0");
+        expect(formatFixed(1234.5, 2, "en")).toBe("1,234.50");
     });
 });

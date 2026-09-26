@@ -1,5 +1,5 @@
 import type { EntryRateType } from "@outlayr/money/rates";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, inArray } from "drizzle-orm";
 import { useMemo, useSyncExternalStore } from "react";
 
 import type { Database } from "@/db/client";
@@ -11,7 +11,8 @@ import { useLiveQuery } from "./live-query";
 import { ratesRevision, subscribeRatesRevision } from "./rates-revision";
 
 /**
- * The rate table the transfer sheet quotes from, for the pair it is on.
+ * The rate tables the transfer sheet quotes from, one per requested rate type,
+ * for the pair it is on.
  *
  * The revision counter is in the deps for the same reason it is in
  * `useValuationIn` and `useValuedCurrencies`: a refresh opens with an
@@ -21,22 +22,37 @@ import { ratesRevision, subscribeRatesRevision } from "./rates-revision";
  * pull kept answering `null` for the market rate for its whole life and made the
  * user type one by hand.
  */
-export function useTransferRates(db: Database, codes: readonly string[], rateType: EntryRateType): RateTable {
+export function useTransferRates(
+    db: Database,
+    codes: readonly string[],
+    rateTypes: readonly EntryRateType[]
+): Partial<Record<EntryRateType, RateTable>> {
     const revision = useSyncExternalStore(subscribeRatesRevision, ratesRevision, ratesRevision);
     const quotes = useMemo(() => [...new Set(codes.filter((code) => code !== "USD"))].sort(), [codes]);
     const rows = useLiveQuery(
         exchangeRates,
         () =>
             db
-                .select({ date: exchangeRates.date, quote: exchangeRates.quote, rate: exchangeRates.rate })
+                .select({
+                    date: exchangeRates.date,
+                    quote: exchangeRates.quote,
+                    rate: exchangeRates.rate,
+                    rateType: exchangeRates.rateType,
+                })
                 .from(exchangeRates)
                 .where(
                     and(
                         inArray(exchangeRates.quote, quotes.length > 0 ? [...quotes] : [""]),
-                        eq(exchangeRates.rateType, rateType)
+                        inArray(exchangeRates.rateType, rateTypes.length > 0 ? [...rateTypes] : [""])
                     )
                 ),
-        [quotes.join(","), rateType, revision]
+        [quotes.join(","), rateTypes.join(","), revision]
     );
-    return useMemo(() => buildRateTable(rows), [rows]);
+    return useMemo(
+        () =>
+            Object.fromEntries(
+                rateTypes.map((type) => [type, buildRateTable(rows.filter((row) => row.rateType === type))])
+            ),
+        [rows, rateTypes]
+    );
 }

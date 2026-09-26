@@ -350,53 +350,73 @@ const transaction = {
             en: "Delete",
             es: "Borrar",
         }),
+        "transaction.rate.asOf": t({
+            en: "As of {date}",
+            es: "Al {date}",
+        }),
         "transaction.rate.custom": t({
-            en: "Custom",
-            es: "Personalizada",
+            en: "My rate",
+            es: "Mi tasa",
         }),
-        "transaction.rate.editCustom": t({
-            en: "Edit custom rate",
-            es: "Editar tasa personalizada",
+        "transaction.rate.deltaAbove": t({
+            en: "{percent} above official",
+            es: "{percent} sobre la oficial",
         }),
-        "transaction.rate.eurReferenceRequiresVes": t({
-            en: "EUR reference is only available for VES",
-            es: "La referencia EUR solo está disponible para VES",
+        "transaction.rate.deltaBelow": t({
+            en: "{percent} below official",
+            es: "{percent} bajo la oficial",
+        }),
+        "transaction.rate.deltaLess": t({
+            en: "{amount} less than at official",
+            es: "{amount} menos que a la oficial",
+        }),
+        "transaction.rate.deltaMore": t({
+            en: "{amount} more than at official",
+            es: "{amount} más que a la oficial",
+        }),
+        "transaction.rate.deltaSame": t({
+            en: "Same as official",
+            es: "Igual a la oficial",
+        }),
+        "transaction.rate.derived": t({
+            en: "Rate from what you paid: {rate}",
+            es: "Tasa según lo que pagaste: {rate}",
         }),
         "transaction.rate.eur_reference": t({
             en: "EUR reference",
             es: "Referencia EUR",
         }),
-        "transaction.rate.notConverted": t({
-            en: "Not converted",
-            es: "Sin convertir",
+        "transaction.rate.inDollars": t({
+            en: "In dollars",
+            es: "En dólares",
+        }),
+        "transaction.rate.lastUsed": t({
+            en: "Last used {rate} · {date}",
+            es: "Última usada {rate} · {date}",
         }),
         "transaction.rate.official": t({
             en: "Official",
             es: "Oficial",
         }),
-        "transaction.rate.pendingBody": t({
-            en: "The native amount remains recorded. Cross-currency totals wait for your confirmation.",
-            es: "El monto en su moneda original sigue registrado. Los totales en otras monedas esperan a que confirmes.",
-        }),
         "transaction.rate.required": t({
-            en: "Enter a positive rate",
-            es: "Ingresa una tasa mayor que cero",
+            en: "Type a rate first",
+            es: "Primero escribe una tasa",
         }),
-        "transaction.rate.requiredHint": t({
-            en: "Enter how many {quote} make 1 {base}.",
-            es: "Ingresa cuántos {quote} equivalen a 1 {base}.",
-        }),
-        "transaction.rate.set": t({
-            en: "Set",
-            es: "Definir",
-        }),
-        "transaction.rate.setRate": t({
-            en: "Set a rate",
-            es: "Definir una tasa",
+        "transaction.rate.source": t({
+            en: "Rate source",
+            es: "Fuente de la tasa",
         }),
         "transaction.rate.title": t({
-            en: "Entry rate",
-            es: "Tasa de la transacción",
+            en: "Rate",
+            es: "Tasa",
+        }),
+        "transaction.rate.type": t({
+            en: "Type",
+            es: "Escribir",
+        }),
+        "transaction.rate.typeHint": t({
+            en: "Type the rate you got",
+            es: "Escribe la tasa que te dieron",
         }),
         "transaction.rate.unavailable": t({
             en: "Unavailable",
@@ -405,6 +425,10 @@ const transaction = {
         "transaction.rate.unit": t({
             en: "{quote} per {base}",
             es: "{quote} por {base}",
+        }),
+        "transaction.rate.use": t({
+            en: "Use {value}",
+            es: "Usar {value}",
         }),
         "transaction.remind.dayBefore": t({
             en: "1 day before",
@@ -538,6 +562,10 @@ const transaction = {
             en: "a merchant",
             es: "un comercio",
         }),
+        "transaction.sentence.blank.rate": t({
+            en: "a rate",
+            es: "una tasa",
+        }),
         // The form's layout, not just its copy: `parseSentence` reads the slot
         // order straight out of these, so a language that puts the account
         // before the category only has to say so here.
@@ -591,6 +619,34 @@ const transaction = {
         // The chips are lowercase, and `transaction.cadence.*` is title-case because
         // it heads a row elsewhere. Lowercasing that at the call site would be right
         // in Spanish and wrong in the first locale where case carries meaning.
+        "transaction.sentence.rate.custom": t({
+            en: "At {rateSource} rate, {rate}, that's {converted}.",
+            es: "A {rateSource}, {rate}, son {converted}.",
+        }),
+        "transaction.sentence.rate.missing": t({
+            en: "It counts in dollars once it has {rate}.",
+            es: "Suma en dólares cuando tenga {rate}.",
+        }),
+        "transaction.sentence.rate.pending": t({
+            en: "At the {rateSource} rate, {rate}, it counts in dollars once that day's euro rate arrives.",
+            es: "A la tasa {rateSource}, {rate}, suma en dólares cuando llegue la tasa del euro de ese día.",
+        }),
+        "transaction.sentence.rate.provider": t({
+            en: "At the {rateSource} rate, {rate}, that's {converted}.",
+            es: "A la tasa {rateSource}, {rate}, son {converted}.",
+        }),
+        "transaction.sentence.rateSource.custom": t({
+            en: "my",
+            es: "mi tasa",
+        }),
+        "transaction.sentence.rateSource.eur_reference": t({
+            en: "EUR reference",
+            es: "de referencia EUR",
+        }),
+        "transaction.sentence.rateSource.official": t({
+            en: "official",
+            es: "oficial",
+        }),
         "transaction.sentence.set.repeatDaily": t({
             en: "daily",
             es: "diario",
