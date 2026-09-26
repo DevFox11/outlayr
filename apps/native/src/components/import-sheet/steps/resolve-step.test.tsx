@@ -31,6 +31,7 @@ function baseContext(overrides: Partial<UseCsvImportResult> = {}): UseCsvImportR
     };
 }
 
+jest.mock("@/components/thinking-orb/thinking-orb", () => ({ ThinkingOrb: () => null }));
 jest.mock<Partial<typeof import("@/i18n/context")>>("@/i18n/context", () => ({
     useTranslation: () => (key: string, params?: Record<string, unknown>) =>
         params ? `${key}:${JSON.stringify(params)}` : key,

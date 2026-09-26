@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 
-import { Text } from "@/components/text";
+import { BusyText } from "@/components/busy-text";
+import { useLongWait } from "@/hooks/use-long-wait";
 import { useTranslation } from "@/i18n/context";
 import { useAuthSession } from "@/lib/auth-session";
 import { useLedgerAdoption } from "@/lib/ledger-adoption";
@@ -37,10 +38,14 @@ export function useAuthCovered(): boolean {
 function RestoringScreen() {
     const colors = useColors();
     const t = useTranslation();
+    const slow = useLongWait(true);
     return (
-        <View className="bg-background absolute inset-0 items-center justify-center gap-4 px-8">
-            <ActivityIndicator color={colors.subtle} />
-            <Text className="text-muted text-subtitle">{t("auth.restoring.title")}</Text>
+        <View className="bg-background absolute inset-0 items-center justify-center px-8">
+            {slow ? (
+                <BusyText className="text-subtitle" color={colors.muted}>
+                    {t("auth.restoring.title")}
+                </BusyText>
+            ) : null}
         </View>
     );
 }

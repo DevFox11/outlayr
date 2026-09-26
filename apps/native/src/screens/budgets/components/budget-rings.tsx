@@ -1,18 +1,30 @@
 import { RingChart } from "panelui-native";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
-import { useReducedMotion } from "react-native-reanimated";
+import Animated, {
+    interpolateColor,
+    useAnimatedStyle,
+    useReducedMotion,
+    useSharedValue,
+    withTiming,
+} from "react-native-reanimated";
 
+import { FlowAmount } from "@/components/amount-text";
 import { Text } from "@/components/text";
+import { cn } from "@/components/tw";
 import { useDisplaySettings, useSettingBool } from "@/contexts/display-settings-context";
 import type { CategoryBudgetView } from "@/data/budgets";
 import { budgetRingData } from "@/domain/budget-rings";
 import type { BudgetRingDatum } from "@/domain/budget-rings";
-import { formatAmount } from "@/domain/money";
+import { currencySymbol, formatAmount } from "@/domain/money";
+import { useOverBudgetMoment } from "@/hooks/use-over-budget-moment";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { CHART_DRAW } from "@/theme/chart";
+import { useColors } from "@/theme/use-colors";
 
 const RING_CHART_SIZE = 184;
+
+const SELECT = { duration: 180 } as const;
 
 interface BudgetRingsProps {
     budgets: readonly CategoryBudgetView[];
@@ -26,10 +38,33 @@ interface BudgetRingLegendRowProps {
     ring: BudgetRingDatum;
     selected: boolean;
     showCents: boolean;
+    windowStart: Date | undefined;
 }
 
-function BudgetRingLegendRow({ currency, language, onPress, ring, selected, showCents }: BudgetRingLegendRowProps) {
+function BudgetRingLegendRow({
+    currency,
+    language,
+    onPress,
+    ring,
+    selected,
+    showCents,
+    windowStart,
+}: BudgetRingLegendRowProps) {
     const t = useTranslation();
+    const crossedStyle = useOverBudgetMoment(ring.id, ring.overBudget, windowStart);
+    const { surface, surfaceSecondary } = useColors();
+    const reduced = useReducedMotion();
+    const on = useSharedValue(selected ? 1 : 0);
+
+    useEffect(() => {
+        const next = selected ? 1 : 0;
+        on.set(reduced ? next : withTiming(next, SELECT));
+    }, [on, reduced, selected]);
+
+    const fill = useAnimatedStyle(() => ({
+        backgroundColor: interpolateColor(on.get(), [0, 1], [surface, surfaceSecondary]),
+    }));
+
     const spent = formatAmount(ring.value, currency, showCents, language);
     const limit = formatAmount(ring.maxValue, currency, showCents, language);
     const over = formatAmount(ring.overAmount, currency, showCents, language);
@@ -48,10 +83,11 @@ function BudgetRingLegendRow({ currency, language, onPress, ring, selected, show
             accessibilityLabel={accessibilityLabel}
             accessibilityRole="button"
             accessibilityState={{ selected }}
-            className={`min-h-14 flex-row items-center gap-3 px-4 py-2 ${selected ? "bg-surface-secondary" : "bg-surface"}`}
+            className="min-h-14 flex-row items-center gap-3 px-4 py-2"
             hitSlop={4}
             onPress={onPress}
         >
+            <Animated.View className="absolute inset-0" style={fill} />
             <View className="size-3 rounded-full" style={{ backgroundColor: ring.color }} />
             <View className="min-w-0 flex-1">
                 <Text className="font-sans-semibold text-foreground text-subtitle" numberOfLines={1}>
@@ -61,7 +97,15 @@ function BudgetRingLegendRow({ currency, language, onPress, ring, selected, show
                     {detail}
                 </Text>
             </View>
-            <Text className="font-mono-medium text-foreground text-subtitle">{ring.percent}%</Text>
+            <Animated.Text
+                className={cn(
+                    "font-mono-medium text-subtitle",
+                    ring.overBudget ? "text-over-budget" : "text-foreground"
+                )}
+                style={crossedStyle}
+            >
+                {ring.percent}%
+            </Animated.Text>
         </Pressable>
     );
 }
@@ -73,6 +117,7 @@ export function BudgetRings({ budgets, currency }: BudgetRingsProps) {
     const reduceMotion = useReducedMotion();
     const animated = useSettingBool("animatedCharts") && !reduceMotion;
     const data = useMemo(() => budgetRingData(budgets), [budgets]);
+    const windowStarts = useMemo(() => new Map(budgets.map((budget) => [budget.id, budget.window.start])), [budgets]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const activeIndex = selectedId === null ? -1 : data.findIndex((ring) => ring.id === selectedId);
     // A budget the selection named can leave the list, and dropping it is final:
@@ -123,12 +168,13 @@ export function BudgetRings({ budgets, currency }: BudgetRingsProps) {
                                     <Text className="text-caption text-muted" numberOfLines={1}>
                                         {centerRing.label}
                                     </Text>
-                                    <Text
+                                    <FlowAmount
+                                        amount={centerRing.value}
                                         className="font-sans-semibold text-foreground text-subtitle"
-                                        numberOfLines={1}
-                                    >
-                                        {formatAmount(centerRing.value, currency, showCents, language)}
-                                    </Text>
+                                        code={currency}
+                                        prefix={currencySymbol(currency)}
+                                        showCents={showCents}
+                                    />
                                 </View>
                             ) : null
                         }
@@ -146,6 +192,7 @@ export function BudgetRings({ budgets, currency }: BudgetRingsProps) {
                         ring={ring}
                         selected={selectedId === ring.id}
                         showCents={showCents}
+                        windowStart={windowStarts.get(ring.id)}
                     />
                 ))}
             </View>

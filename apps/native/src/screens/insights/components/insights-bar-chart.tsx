@@ -94,7 +94,6 @@ export function InsightsBarChart({
     const [width, setWidth] = useState(0);
     const [scrubIndex, setScrubIndex] = useState<number | null>(null);
 
-    const grow = useChartDraw(animated);
     const reported = useSharedValue(-1);
 
     const gap = gapFor(period);
@@ -149,6 +148,8 @@ export function InsightsBarChart({
     const activeCount = values.filter((value) => value !== 0).length;
     const avgY = ((plot.top - average) / plot.span) * BAR_AREA;
     const showAverage = activeCount > 1 && avgY > BAR_AREA * 0.1 && avgY < BAR_AREA * 0.9;
+    const averageTop = useChartDraw(animated, avgY - 7, avgY - 7);
+    const averageStyle = useAnimatedStyle(() => ({ top: averageTop.get() }));
 
     const onLayout = (event: LayoutChangeEvent) => {
         setWidth(event.nativeEvent.layout.width);
@@ -161,11 +162,11 @@ export function InsightsBarChart({
                     <View style={{ flexDirection: "row", gap, height: BAR_AREA }}>
                         {buckets.map((bucket, index) => (
                             <Bar
+                                animated={animated}
                                 color={barColor(measure, colors)}
                                 dimmed={active != null && active !== index}
                                 future={bucket.start.getTime() > nowMs}
-                                grow={grow}
-                                key={bucket.start.getTime()}
+                                key={index}
                                 // The pan is a pointer gesture and reaches no one driving
                                 // VoiceOver, so each bar carries its own label and activation.
                                 label={`${bucketDateLabel(period, bucket.start)}, ${formatAmount(Math.abs(bucket.value), code, false, language)}`}
@@ -193,17 +194,19 @@ export function InsightsBarChart({
                     ) : null}
 
                     {showAverage ? (
-                        <View
+                        <Animated.View
                             pointerEvents="none"
-                            style={{
-                                alignItems: "center",
-                                flexDirection: "row",
-                                gap: 3,
-                                left: 0,
-                                position: "absolute",
-                                right: 0,
-                                top: avgY - 7,
-                            }}
+                            style={[
+                                {
+                                    alignItems: "center",
+                                    flexDirection: "row",
+                                    gap: 3,
+                                    left: 0,
+                                    position: "absolute",
+                                    right: 0,
+                                },
+                                averageStyle,
+                            ]}
                         >
                             <View
                                 style={{
@@ -216,7 +219,7 @@ export function InsightsBarChart({
                                 <AxisLabel color={colors.muted}>{averageLabel}</AxisLabel>
                             </View>
                             <DashedRule color={colors.muted} />
-                        </View>
+                        </Animated.View>
                     ) : null}
                 </View>
             </GestureDetector>
@@ -273,10 +276,10 @@ function DashedRule({ color }: { color: string }) {
 }
 
 interface BarProps {
+    animated: boolean;
     color: string;
     dimmed: boolean;
     future: boolean;
-    grow: ReturnType<typeof useSharedValue<number>>;
     label: string;
     onActivate: () => void;
     plot: Plot;
@@ -285,11 +288,12 @@ interface BarProps {
     value: number;
 }
 
-function Bar({ value, plot, color, trackColor, grow, dimmed, future, label, selected, onActivate }: BarProps) {
+function Bar({ value, plot, color, trackColor, animated, dimmed, future, label, selected, onActivate }: BarProps) {
     const target = value > 0 ? Math.max(CHART_BAR.minHeight, (value / plot.span) * BAR_AREA) : 0;
+    const height = useChartDraw(animated, target);
 
     const fillStyle = useAnimatedStyle(() => ({
-        height: target * grow.get(),
+        height: height.get(),
     }));
 
     return (

@@ -1,13 +1,15 @@
 import { Canvas, Path as SkPath } from "@shopify/react-native-skia";
 import { Pressable, View } from "react-native";
+import { useDerivedValue, useReducedMotion } from "react-native-reanimated";
 
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
-import { useDisplaySettings } from "@/contexts/display-settings-context";
+import { useDisplaySettings, useSettingBool } from "@/contexts/display-settings-context";
 import type { SavingsGoalWithProgress } from "@/data/savings-goals";
 import { formatTargetMonth } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
+import { useChartDraw } from "@/hooks/use-chart-draw";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
@@ -69,20 +71,32 @@ export function GoalCard({ currency, entry, onPress, width }: GoalCardProps) {
                     : t("goals.a11y.unvalued", { name: goal.name })
             }
             accessibilityRole="button"
-            className={cn("border-border gap-2.5 rounded-2xl border p-3.5 active:opacity-70", reached && "opacity-60")}
+            className={cn(
+                "gap-2.5 rounded-2xl border p-3.5 active:opacity-70",
+                reached ? "bg-foreground border-foreground" : "border-border"
+            )}
             onPress={() => onPress(goal.id)}
             style={width === null ? { flex: 1 } : { width }}
         >
             <View className="flex-row items-start justify-between">
                 <GoalArc fraction={exact ? progress.fraction : 0} tone={tone} />
                 {exact ? (
-                    <Text className="text-micro text-muted font-mono tabular-nums" numberOfLines={1}>
+                    <Text
+                        className={cn(
+                            "text-micro font-mono tabular-nums",
+                            reached ? "text-background/65" : "text-muted"
+                        )}
+                        numberOfLines={1}
+                    >
                         {`${percent}%`}
                     </Text>
                 ) : null}
             </View>
 
-            <Text className="font-sans-semibold text-subtitle text-foreground" numberOfLines={1}>
+            <Text
+                className={cn("font-sans-semibold text-subtitle", reached ? "text-background" : "text-foreground")}
+                numberOfLines={1}
+            >
                 {goal.name}
             </Text>
 
@@ -99,13 +113,13 @@ export function GoalCard({ currency, entry, onPress, width }: GoalCardProps) {
                     className={cn(
                         "tabular-nums",
                         "font-sans-semibold text-body",
-                        reached ? "text-income" : "text-foreground"
+                        reached ? "text-background" : "text-foreground"
                     )}
                     numberOfLines={1}
                 >
                     {reached ? money(saved) : money(progress.remaining)}
                 </Text>
-                <MonoLabel numberOfLines={1}>
+                <MonoLabel className={reached ? "text-background/65" : undefined} numberOfLines={1}>
                     {reached
                         ? t("goals.reached")
                         : `${t("goals.toGo")} · ${formatTargetMonth(goal.targetDate, language)}`}
@@ -152,10 +166,10 @@ function paceTone(measured: boolean, onPace: boolean, ahead: boolean): string {
     return ahead ? "text-income" : "text-over-budget";
 }
 
-/** Reached reads as done, behind as a warning, ahead as the ordinary ink. */
+/** Reached closes on the inverted card, behind reads as a warning, ahead as the ordinary ink. */
 function arcTone(reached: boolean, ahead: boolean, colors: ReturnType<typeof useColors>): string {
     if (reached) {
-        return colors.income;
+        return colors.background;
     }
     return ahead ? colors.foreground : colors.overBudget;
 }
@@ -166,15 +180,18 @@ function arcTone(reached: boolean, ahead: boolean, colors: ReturnType<typeof use
  */
 function GoalArc({ fraction, tone }: { fraction: number; tone: string }) {
     const colors = useColors();
+    const reduceMotion = useReducedMotion();
+    const animated = useSettingBool("animatedCharts") && !reduceMotion;
     const center = ARC.size / 2;
-    const sweep = 270 * Math.min(1, Math.max(0, fraction));
+    const target = 270 * Math.min(1, Math.max(0, fraction));
+    const sweep = useChartDraw(animated, target);
     const track = arcPath(center, ARC.radius, 135, 270);
-    const filled = sweep > 0 ? arcPath(center, ARC.radius, 135, sweep) : null;
+    const filled = useDerivedValue(() => arcPath(center, ARC.radius, 135, sweep.get()));
 
     return (
         <Canvas pointerEvents="none" style={{ height: ARC.size, width: ARC.size }}>
             <SkPath color={colors.railTrack} path={track} strokeWidth={ARC.stroke} style="stroke" />
-            {filled ? (
+            {target > 0 ? (
                 <SkPath color={tone} path={filled} strokeCap="round" strokeWidth={ARC.stroke} style="stroke" />
             ) : null}
         </Canvas>
@@ -182,6 +199,7 @@ function GoalArc({ fraction, tone }: { fraction: number; tone: string }) {
 }
 
 function arcPath(center: number, radius: number, startDegrees: number, sweepDegrees: number): string {
+    "worklet";
     const toPoint = (degrees: number) => {
         const radians = (degrees * Math.PI) / 180;
         return `${center + radius * Math.cos(radians)} ${center + radius * Math.sin(radians)}`;

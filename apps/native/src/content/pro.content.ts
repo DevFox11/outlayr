@@ -11,6 +11,10 @@ const pro = {
             en: "Pro is active on this store account.",
             es: "Ya tienes Pro activo en esta cuenta de la tienda.",
         }),
+        "pro.checking": t({
+            en: "Checking…",
+            es: "Comprobando…",
+        }),
         "pro.col.free": t({
             en: "Free",
             es: "Gratis",
@@ -18,6 +22,18 @@ const pro = {
         "pro.col.pro": t({
             en: "Pro",
             es: "Pro",
+        }),
+        "pro.cta.buy": t({
+            en: "Get Pro for {price}",
+            es: "Obtén Pro por {price}",
+        }),
+        "pro.cta.buyMonthly": t({
+            en: "Get Pro for {price}/month",
+            es: "Obtén Pro por {price}/mes",
+        }),
+        "pro.cta.buyYearly": t({
+            en: "Get Pro for {price}/year",
+            es: "Obtén Pro por {price}/año",
         }),
         "pro.cta.continue": t({
             en: "Continue",
@@ -30,6 +46,18 @@ const pro = {
         "pro.cta.then": t({
             en: "then {price}",
             es: "luego {price}",
+        }),
+        "pro.cta.thenMonthly": t({
+            en: "then {price}/month",
+            es: "luego {price}/mes",
+        }),
+        "pro.cta.thenYearly": t({
+            en: "then {price}/year",
+            es: "luego {price}/año",
+        }),
+        "pro.cta.unlocking": t({
+            en: "Unlocking Pro…",
+            es: "Activando Pro…",
         }),
         "pro.entry.title": t({
             en: "Outlayr Pro",
@@ -59,6 +87,10 @@ const pro = {
             en: "Restore",
             es: "Restaurar",
         }),
+        "pro.legal.restoring": t({
+            en: "Restoring…",
+            es: "Restaurando…",
+        }),
         "pro.legal.terms": t({
             en: "Terms",
             es: "Términos",
@@ -86,6 +118,10 @@ const pro = {
         "pro.plan.lifetime": t({
             en: "Lifetime",
             es: "De por vida",
+        }),
+        "pro.plan.loading": t({
+            en: "Loading plans…",
+            es: "Cargando planes…",
         }),
         "pro.plan.monthly": t({
             en: "Monthly",

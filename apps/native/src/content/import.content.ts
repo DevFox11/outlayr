@@ -119,6 +119,10 @@ const importSheet = {
             en: "Open Feature Lab",
             es: "Abrir Laboratorio de funciones",
         }),
+        "import.readingFile": t({
+            en: "Reading the file…",
+            es: "Leyendo el archivo…",
+        }),
         "import.resolveDetailMatched": t({
             en: "{matched} of {total} merchants",
             es: "{matched} de {total} comercios",
@@ -178,6 +182,14 @@ const importSheet = {
         "import.reviewCommitFailedTitle": t({
             en: "Nothing was imported",
             es: "No se importó nada",
+        }),
+        "import.reviewCommitting_one": t({
+            en: "Importing {count} transaction…",
+            es: "Importando {count} transacción…",
+        }),
+        "import.reviewCommitting_other": t({
+            en: "Importing {count} transactions…",
+            es: "Importando {count} transacciones…",
         }),
         "import.reviewDuplicateCaption": t({
             en: "Looks already imported.",

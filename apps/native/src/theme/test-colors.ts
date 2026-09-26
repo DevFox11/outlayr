@@ -24,6 +24,7 @@ const LIGHT_THEME_COLORS: ThemeColors = {
     income: "#00714a",
     muted: "#6b6557",
     overBudget: "#bd1c1e",
+    primaryForeground: "#f2f0ea",
     railTrack: "rgba(23, 21, 15, 0.13)",
     separator: "#dcd8cc",
     subtle: "#6d6657",

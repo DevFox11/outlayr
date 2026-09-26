@@ -465,7 +465,6 @@ export function Insights() {
                             <LedgerHead
                                 cells={insightsMeasureAlternatives(measure).map((alternative): LedgerCell => ({
                                     income: insightsMeasureIsIncome(alternative),
-                                    key: alternative,
                                     label: t(MEASURE_KEY[alternative]),
                                     magnitude: insightsMeasureMagnitude(alternative, totals),
                                     onPress: () => promote(alternative),

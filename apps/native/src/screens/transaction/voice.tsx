@@ -18,6 +18,7 @@ import Animated, {
 import type { SharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { FlowAmount } from "@/components/amount-text";
 import { intervalPhrase } from "@/components/custom-schedule-sheet";
 import { LimitToast } from "@/components/limit-toast";
 import { VoiceOrb } from "@/components/voice/voice-orb";
@@ -34,7 +35,7 @@ import { transactionsRepo } from "@/data/transactions-core";
 import { transfersRepo } from "@/data/transfers-core";
 import type { AuthGate } from "@/domain/auth-gate";
 import { formatChargeDate, startOfDay } from "@/domain/dates";
-import { formatAmount } from "@/domain/money";
+import { amountParts, formatAmount } from "@/domain/money";
 import { boundedPromptNames } from "@/domain/prompt-budget";
 import {
     draftDelta,
@@ -64,6 +65,7 @@ import type { TranslateFn } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 import { useAuthSession } from "@/lib/auth-session";
 import type { VoiceDraft } from "@/lib/convex";
+import { freshEntries } from "@/lib/fresh-entries";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
@@ -266,11 +268,15 @@ function ReviewLine({ draft, categoryName }: { draft: ResolvedVoiceEntry; catego
 
     return (
         <View className="items-center gap-2 px-6">
-            <Text
-                className={`font-sans-semibold text-hero tabular-nums ${draft.income ? "text-income" : "text-foreground"}`}
-            >
-                {amount}
-            </Text>
+            <View accessibilityLabel={amount} accessibilityRole="text" accessible>
+                <FlowAmount
+                    amount={draft.amount}
+                    className={`font-sans-semibold text-hero tabular-nums ${draft.income ? "text-income" : "text-foreground"}`}
+                    code={draft.currency}
+                    prefix={amountParts(draft.amount, draft.currency, true, language).symbol}
+                    showCents
+                />
+            </View>
             <View className="flex-row items-center justify-center gap-2">
                 <Text className="font-sans-medium text-grammar text-title">{preposition}</Text>
                 {mark ? (
@@ -701,6 +707,7 @@ function VoiceThreadScreen() {
                     }
                     return;
                 }
+                freshEntries.mark(id);
                 // Past this line the row is committed, so nothing below may send
                 // the person back to a form that would write it a second time.
                 if (draft.recurrence) {
@@ -738,7 +745,7 @@ function VoiceThreadScreen() {
             setSaving(true);
             const write = async () => {
                 try {
-                    await transfersRepo.create(db, {
+                    const transferId = await transfersRepo.create(db, {
                         date: draft.date,
                         exchangeRate: 1,
                         exchangeRateType: null,
@@ -750,6 +757,7 @@ function VoiceThreadScreen() {
                         toAmount: draft.amount,
                         toCurrency: draft.currency,
                     });
+                    freshEntries.mark(transferId);
                 } catch {
                     setSaving(false);
                     if (isMounted()) {
@@ -867,7 +875,6 @@ function VoiceThreadScreen() {
                             className="rounded-full"
                             disabled={saving}
                             fullWidth
-                            loading={saving}
                             onPress={primary.onPress}
                             size="md"
                             variant="primary"

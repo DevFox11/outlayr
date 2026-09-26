@@ -1,8 +1,9 @@
 import { useTheme } from "panelui-native";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 import { SIGN_IN_BUTTON_HEIGHT } from "@/components/account/apple-sign-in-button";
+import { BusyText } from "@/components/busy-text";
 import { Text } from "@/components/text";
 import { useTranslation } from "@/i18n/context";
 
@@ -69,7 +70,9 @@ export function GoogleSignInButton({
             }}
         >
             {pending ? (
-                <ActivityIndicator color={brand.label} />
+                <BusyText className="font-sans-medium text-callout" color={brand.label}>
+                    {t("auth.signIn.pending")}
+                </BusyText>
             ) : (
                 <>
                     <GoogleLogo />

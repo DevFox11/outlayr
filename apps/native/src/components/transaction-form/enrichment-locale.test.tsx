@@ -14,6 +14,7 @@ import { TransactionForm } from "./index";
 const SENTINEL_LOCALE = "es-VE";
 const SENTINEL_REGION = "VE";
 
+jest.mock("@/components/thinking-orb/thinking-orb", () => ({ ThinkingOrb: () => null }));
 jest.mock<Partial<typeof import("@react-native-async-storage/async-storage")>>(
     "@react-native-async-storage/async-storage",
     () => require("@react-native-async-storage/async-storage/jest/async-storage-mock")

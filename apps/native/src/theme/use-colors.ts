@@ -24,6 +24,7 @@ const COLOR_VARIABLES = {
     income: "--income",
     muted: "--muted",
     overBudget: "--over-budget",
+    primaryForeground: "--color-primary-foreground",
     /**
      * The wash behind a bar or rail. Declared as an `rgba()` rather than a hex,
      * so unlike its neighbours it is not safe to hand to `withAlpha` — it is here

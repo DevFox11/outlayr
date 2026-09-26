@@ -2,6 +2,8 @@ import { Text } from "react-native";
 
 import { cn } from "./tw";
 
+export const MONO_LABEL_CLASS = "text-eyebrow tracking-eyebrow font-mono uppercase";
+
 interface MonoLabelProps {
     accessibilityRole?: "header";
     children: string;
@@ -15,7 +17,7 @@ export function MonoLabel({ accessibilityRole, children, className, numberOfLine
     return (
         <Text
             accessibilityRole={accessibilityRole}
-            className={cn("text-eyebrow text-muted tracking-eyebrow font-mono uppercase", className)}
+            className={cn(MONO_LABEL_CLASS, "text-muted", className)}
             numberOfLines={numberOfLines}
         >
             {children}

@@ -1,9 +1,10 @@
 import { Pressable, View } from "react-native";
 
 import { useDisplaySettings } from "@/contexts/display-settings-context";
-import { useTranslation } from "@/i18n/context";
+import { currencySymbol, formatAmount } from "@/domain/money";
+import { useLanguage, useTranslation } from "@/i18n/context";
 
-import { MeasureCellAmount } from "./amount-text";
+import { FlowAmount } from "./amount-text";
 import { MonoLabel } from "./mono-label";
 import { cn } from "./tw";
 
@@ -15,7 +16,6 @@ export interface LedgerCell {
      * does; a positive net is still just a net.
      */
     income: boolean;
-    key: string;
     /** One short word, so every cell fits across the narrowest phone. */
     label: string;
     /** Unsigned — the sign comes from `positive`, so 40 out and 40 in match. */
@@ -37,27 +37,32 @@ interface LedgerHeadProps {
 export function LedgerHead({ cells, code }: LedgerHeadProps) {
     const { showCents } = useDisplaySettings().state;
     const t = useTranslation();
+    const { language } = useLanguage();
     return (
         <View>
             <View className="bg-border h-px w-full" />
             <View className="flex-row">
                 {cells.map((cell, index) => (
-                    <View className={cn("flex-1", index > 0 && "pl-3.5")} key={cell.key}>
+                    <View className={cn("flex-1 overflow-hidden", index > 0 && "pl-3.5")} key={index}>
                         {/* Absolute so the rule spans the taller of the two columns
 						    rather than only its own content. */}
                         {index > 0 ? <View className="bg-border absolute inset-y-0 left-0 w-px" /> : null}
                         <Pressable
                             accessibilityHint={cell.accessibilityHint ?? t("log.ledger.showFigure")}
+                            accessibilityLabel={`${cell.label}, ${cell.positive ? "+" : "-"}${formatAmount(cell.magnitude, code, showCents, language)}`}
                             accessibilityRole="button"
                             className="gap-0.75 py-2.5 active:opacity-70"
                             onPress={cell.onPress}
                         >
                             <MonoLabel>{cell.label}</MonoLabel>
-                            <MeasureCellAmount
+                            <FlowAmount
+                                amount={cell.magnitude}
+                                className={cn(
+                                    "font-sans-semibold text-body tabular-nums",
+                                    cell.income ? "text-income" : "text-foreground"
+                                )}
                                 code={code}
-                                income={cell.income}
-                                magnitude={cell.magnitude}
-                                positive={cell.positive}
+                                prefix={`${cell.positive ? "+" : "-"}${currencySymbol(code)}`}
                                 showCents={showCents}
                             />
                         </Pressable>

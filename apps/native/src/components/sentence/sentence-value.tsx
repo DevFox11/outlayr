@@ -3,8 +3,10 @@ import type { ReactNode } from "react";
 import { Pressable } from "react-native";
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 
+import { currencySymbol } from "@/domain/money";
 import { useColors } from "@/theme/use-colors";
 
+import { FlowAmount } from "../amount-text";
 import { Text } from "../text";
 import { cn } from "../tw";
 import { useSentenceStyle } from "./sentence";
@@ -18,12 +20,18 @@ import { useSentenceShake } from "./use-sentence-shake";
  */
 const RULE_BOTTOM = 7;
 
+export interface SentenceFigure {
+    amount: number;
+    code: string;
+}
+
 interface SentenceValueProps {
     accessibilityLabel: string;
     /** Marks this as the slot the stage below the sentence is editing. */
     active?: boolean;
     /** An inline tile drawn before the text, such as a merchant's logo. */
     children?: ReactNode;
+    figure?: SentenceFigure;
     /**
      * Marks this fact as the one holding the save back. A value can be at fault
      * as readily as a blank: a category enrichment suggested is on screen and
@@ -54,6 +62,7 @@ export function SentenceValue({
     accessibilityLabel,
     active,
     children,
+    figure,
     flagged,
     onPress,
     pending,
@@ -101,7 +110,18 @@ export function SentenceValue({
                 <SentenceWash active={active} />
                 <Animated.View className="flex-row items-baseline gap-1.5" entering={valueEntering()} key={identity}>
                     {children}
-                    <Text className={cn(textClassName, tone())}>{value}</Text>
+                    {figure ? (
+                        <FlowAmount
+                            amount={figure.amount}
+                            className={cn(textClassName, tone())}
+                            code={figure.code}
+                            prefix={currencySymbol(figure.code)}
+                            showCents
+                            snapWidth
+                        />
+                    ) : (
+                        <Text className={cn(textClassName, tone())}>{value}</Text>
+                    )}
                 </Animated.View>
                 <Animated.View
                     className="absolute right-0 left-0 h-[2px] rounded-full"

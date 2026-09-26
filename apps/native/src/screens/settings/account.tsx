@@ -56,7 +56,7 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
     // oxlint-disable-next-line react/react-compiler -- `authClient` is a module singleton bound once at load; the `client` prop exists only so TypeScript narrows away the `null` its factory can return, so the hook is in fact the same function on every render.
     const { data: session, isPending: restoring } = client.useSession();
     const { accountId } = useAuthSession();
-    const [busy, setBusy] = useState(false);
+    const [busy, setBusy] = useState<"deleteAll" | "deleteCloud" | "signOut" | null>(null);
     const [error, setError] = useState<string | null>(null);
     const { busy: signingIn, error: signInError, start } = useProviderSignIn(client);
 
@@ -79,7 +79,7 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
 
     const signOut = () => {
         setError(null);
-        setBusy(true);
+        setBusy("signOut");
         runAccountLifecycle("signOut", {
             allowLocal: openLedger,
             deleteAccount: async () => {
@@ -92,7 +92,7 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
             },
         })
             .catch((cause: unknown) => setError(signInFailureMessage(cause, t)))
-            .finally(() => setBusy(false));
+            .finally(() => setBusy(null));
     };
 
     const deleteAccount = (action: "deleteAll" | "deleteCloud" = "deleteCloud") => {
@@ -100,7 +100,7 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
             return;
         }
         setError(null);
-        setBusy(true);
+        setBusy(action);
         const resetGate =
             action === "deleteAll"
                 ? createDeviceResetGate({
@@ -160,7 +160,7 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
             },
         })
             .catch((cause: unknown) => setError(signInFailureMessage(cause, t)))
-            .finally(() => setBusy(false));
+            .finally(() => setBusy(null));
     };
 
     const confirmDelete = () => {
@@ -237,9 +237,9 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
                 <LinkRow
                     destructive
                     icon="Logout01"
-                    onPress={signOut}
+                    onPress={busy === null ? signOut : undefined}
                     title={t("settings.account.signOut")}
-                    value={busy ? t("settings.account.signingOut") : undefined}
+                    value={busy === "signOut" ? t("settings.account.signingOut") : undefined}
                 />
             </SettingsSection>
 
@@ -247,9 +247,9 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
                 <LinkRow
                     destructive
                     icon="UserRemove01"
-                    onPress={confirmDelete}
+                    onPress={busy === null ? confirmDelete : undefined}
                     title={t("settings.account.delete")}
-                    value={busy ? t("settings.account.deleting") : undefined}
+                    value={busy === "deleteCloud" ? t("settings.account.deleting") : undefined}
                 />
             </SettingsSection>
 
@@ -260,9 +260,9 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
                 <LinkRow
                     destructive
                     icon="UserRemove01"
-                    onPress={confirmDeleteDevice}
+                    onPress={busy === null ? confirmDeleteDevice : undefined}
                     title={t("settings.account.eraseDevice")}
-                    value={busy ? t("settings.account.deleting") : undefined}
+                    value={busy === "deleteAll" ? t("settings.account.deleting") : undefined}
                 />
             </SettingsSection>
 

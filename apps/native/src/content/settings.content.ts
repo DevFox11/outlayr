@@ -431,6 +431,14 @@ const settings = {
             en: "Subscription schedules and their reminders",
             es: "La programación de las suscripciones y sus recordatorios",
         }),
+        "settings.export.preparing": t({
+            en: "Preparing the file\u2026",
+            es: "Preparando el archivo\u2026",
+        }),
+        "settings.export.preparingArchive": t({
+            en: "Preparing the archive\u2026",
+            es: "Preparando el archivo completo\u2026",
+        }),
         "settings.export.ready": t({
             en: "Ready to export",
             es: "Listo para exportar",
@@ -706,6 +714,14 @@ const settings = {
         "settings.restore.intro": t({
             en: "A full archive replaces this ledger with the one in the file. Use it to move to a new phone, not to add entries.",
             es: "Un archivo completo reemplaza este registro por el del archivo. Sirve para pasarte a un celular nuevo, no para agregar registros.",
+        }),
+        "settings.restore.restoring_one": t({
+            en: "Restoring {count} row\u2026",
+            es: "Restaurando {count} fila\u2026",
+        }),
+        "settings.restore.restoring_other": t({
+            en: "Restoring {count} rows\u2026",
+            es: "Restaurando {count} filas\u2026",
         }),
         "settings.row.about": t({
             en: "About & Credits",

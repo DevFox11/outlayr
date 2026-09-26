@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 
+import { BusyText } from "@/components/busy-text";
 import { MonoLabel } from "@/components/mono-label";
 import { SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
@@ -35,28 +36,38 @@ export function ExportData() {
     const colors = useColors();
     const t = useTranslation();
     const count = useTransactionCount(db);
-    const [busy, setBusy] = useState(false);
+    const [busy, setBusy] = useState<"archive" | "csv" | null>(null);
 
     // The archive is the one that can be restored from; the CSV is for
     // spreadsheets. Kept as separate actions rather than a format toggle so the
     // difference is legible before the file is written, not after — but the two
     // differ only in what they build and what they call it, so the busy flag and
     // the failure report are written once.
-    const runExport = (build: () => Promise<string>, name: string, mime: string, shareTitle: TranslationKey) => {
-        setBusy(true);
+    const runExport = (
+        kind: "archive" | "csv",
+        build: () => Promise<string>,
+        name: string,
+        mime: string,
+        shareTitle: TranslationKey
+    ) => {
+        setBusy(kind);
         build()
-            .then((payload) => shareFile(payload, name, mime, t(shareTitle)))
+            .then((payload) => {
+                setBusy(null);
+                return shareFile(payload, name, mime, t(shareTitle));
+            })
             .catch((cause: unknown) => {
                 notifyFailure({
                     body: cause instanceof TransferError ? t(cause.key) : t("settings.export.failedBody"),
                     title: t("settings.export.failedTitle"),
                 });
             })
-            .finally(() => setBusy(false));
+            .finally(() => setBusy(null));
     };
 
     const runArchive = () =>
         runExport(
+            "archive",
             async () => serializeArchive(await buildArchive(db, new Date())),
             archiveFileName(new Date()),
             "application/json",
@@ -65,6 +76,7 @@ export function ExportData() {
 
     const run = () =>
         runExport(
+            "csv",
             () => exportTransactionsCsv(db),
             exportFileName(new Date()),
             "text/csv",
@@ -85,12 +97,14 @@ export function ExportData() {
                 <Pressable
                     accessibilityRole="button"
                     className="bg-foreground h-14 items-center justify-center rounded-[28px] active:opacity-70"
-                    disabled={busy || count === 0}
+                    disabled={busy !== null || count === 0}
                     onPress={run}
-                    style={busy || count === 0 ? { opacity: 0.4 } : undefined}
+                    style={(busy !== null && busy !== "csv") || count === 0 ? { opacity: 0.4 } : undefined}
                 >
-                    {busy ? (
-                        <ActivityIndicator color={colors.background} />
+                    {busy === "csv" ? (
+                        <BusyText className="font-sans-semibold text-callout" color={colors.background}>
+                            {t("settings.export.preparing")}
+                        </BusyText>
                     ) : (
                         <Text className="font-sans-semibold text-background text-callout">
                             {t("settings.export.action")}
@@ -103,10 +117,17 @@ export function ExportData() {
                 <Pressable
                     accessibilityRole="button"
                     className="border-border flex-row items-center border-b py-3 active:opacity-70"
-                    disabled={busy}
+                    disabled={busy !== null}
                     onPress={runArchive}
+                    style={busy === "csv" ? { opacity: 0.4 } : undefined}
                 >
-                    <Text className="text-body text-foreground flex-1">{t("settings.export.archiveAction")}</Text>
+                    {busy === "archive" ? (
+                        <BusyText className="text-body flex-1" color={colors.foreground}>
+                            {t("settings.export.preparingArchive")}
+                        </BusyText>
+                    ) : (
+                        <Text className="text-body text-foreground flex-1">{t("settings.export.archiveAction")}</Text>
+                    )}
                 </Pressable>
             </SettingsSection>
 

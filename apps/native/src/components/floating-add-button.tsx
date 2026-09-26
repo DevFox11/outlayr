@@ -7,7 +7,7 @@ import ScanIcon from "@hugeicons-pro/core-stroke-rounded/ScanIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import type { IconSvgElement } from "@hugeicons/react-native";
 import { router, useFocusEffect } from "expo-router";
-import { Fab } from "panelui-native";
+import { Fab, useGlassMaterial } from "panelui-native";
 import { useCallback, useRef, useState } from "react";
 import { useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -110,6 +110,7 @@ function DialAction({ action, lines }: { action: AddAction; lines: LabelLines })
 
 export function FloatingAddButton() {
     const { tint, accentForeground } = useColors();
+    const glassDrawn = useGlassMaterial();
     const t = useTranslation();
     const insets = useSafeAreaInsets();
     const [open, setOpen] = useState(false);
@@ -184,6 +185,7 @@ export function FloatingAddButton() {
                 <Fab.Group
                     accessibilityLabel={t("log.add.menu")}
                     blur
+                    glass
                     onOpenChange={toggleDial}
                     open={open}
                     // The only way to grow the actions: `Fab.Action` has no size of its own
@@ -192,7 +194,7 @@ export function FloatingAddButton() {
                     size="lg"
                     icon={
                         <HugeiconsIcon
-                            color={accentForeground}
+                            color={glassDrawn ? tint : accentForeground}
                             icon={PlusSignIcon}
                             size={TRIGGER_ICON_SIZE}
                             strokeWidth={2.2}

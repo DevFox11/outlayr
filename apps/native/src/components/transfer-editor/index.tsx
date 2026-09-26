@@ -19,6 +19,8 @@ import { formatAmount, numberLocale } from "@/domain/money";
 import { transactionWhenLabel } from "@/domain/transaction-form-labels";
 import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { freshEntries } from "@/lib/fresh-entries";
+import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
 import { blockPrompt, formatRate, gapPrompt } from "./prompts";
@@ -41,6 +43,7 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
     const t = useTranslation();
     const { language } = useLanguage();
     const colors = useColors();
+    const haptics = useHaptics();
     const draft = useTransferDraft(db, seed, saved);
     const initialNote = saved?.note ?? seed?.note ?? "";
     const noteRef = useRef(initialNote);
@@ -117,10 +120,16 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
             toCurrency: draft.toCurrency,
         };
         try {
-            await (saved ? transfersRepo.update(db, saved.id, input) : transfersRepo.create(db, input));
+            if (saved) {
+                await transfersRepo.update(db, saved.id, input);
+            } else {
+                freshEntries.mark(await transfersRepo.create(db, input));
+            }
+            haptics("success");
             onDone();
         } catch (error) {
             console.error("Failed to save the transfer", error);
+            haptics("error");
             savingRef.current = false;
             setSaving(false);
             setSaveFailure(t("transfers.save.failed"));
@@ -137,6 +146,7 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
             return;
         }
         const next = missing() ?? "amount";
+        haptics("error");
         setFlagged(next === "date" ? "when" : next);
         enter(next);
     };
@@ -296,6 +306,12 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
                     <TransferSentence
                         activeSlot={step === "date" ? "when" : step}
                         crossCurrency={draft.crossCurrency}
+                        figures={{
+                            amount: { amount: draft.sent, code: draft.fromCurrency },
+                            arrives:
+                                draft.arrived === null ? undefined : { amount: draft.arrived, code: draft.toCurrency },
+                            fee: { amount: draft.fee, code: draft.feeCurrency },
+                        }}
                         flaggedSlot={flagged}
                         hasFee={draft.fee > 0}
                         onSlotPress={onSlotPress}

@@ -2,11 +2,14 @@ import { Button } from "panelui-native";
 import { useState } from "react";
 import { AccessibilityInfo } from "react-native";
 
+import { BusyText } from "@/components/busy-text";
 import { cn } from "@/components/tw";
 import { useTranslation } from "@/i18n/context";
+import { useColors } from "@/theme/use-colors";
 
 interface StepCtaProps {
     busy?: boolean;
+    busyLabel?: string;
     className?: string;
     confirmLabel?: string;
     disabled?: boolean;
@@ -21,10 +24,12 @@ export function StepCta({
     onPress,
     disabled = false,
     busy = false,
+    busyLabel,
     className,
     testID,
 }: StepCtaProps) {
     const t = useTranslation();
+    const { primaryForeground } = useColors();
     const [armedFor, setArmedFor] = useState<string | null>(null);
     const armed = confirmLabel !== undefined && armedFor === confirmLabel;
     const shownLabel = armed && confirmLabel !== undefined ? confirmLabel : label;
@@ -52,12 +57,17 @@ export function StepCta({
             className={cn("rounded-full", className)}
             disabled={disabled}
             fullWidth
-            loading={busy}
             onPress={handlePress}
             testID={testID}
             variant="primary"
         >
-            {shownLabel}
+            {busy && busyLabel !== undefined ? (
+                <BusyText className="text-[16px] font-medium" color={primaryForeground}>
+                    {busyLabel}
+                </BusyText>
+            ) : (
+                shownLabel
+            )}
         </Button>
     );
 }

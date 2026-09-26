@@ -88,6 +88,7 @@ import { useTransactionEnrichment } from "@/hooks/use-transaction-enrichment";
 import type { EnrichmentSuggestion, PendingCategory } from "@/hooks/use-transaction-enrichment";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { sendEnrichmentQueue } from "@/lib/enrichment-queue";
+import { freshEntries } from "@/lib/fresh-entries";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
 import { notifyFailure } from "@/lib/notify";
 import { openNotificationSettings, reminderPermission, requestReminderPermission } from "@/lib/reminders";
@@ -108,6 +109,7 @@ import { revealEntering } from "../sentence/sentence-motion";
 import { SplitSheet } from "../split-sheet";
 import { TagPickerSheet } from "../tag-picker-sheet";
 import { Text } from "../text";
+import { ThinkingOrb } from "../thinking-orb/thinking-orb";
 import { TransactionFormAmountPad } from "./amount-pad";
 import { TransactionFormCta } from "./cta";
 import { TransactionSentenceBody } from "./sentence/sentence-body";
@@ -607,7 +609,6 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         },
         onSubmit: async ({ value }) => {
             setSaveFailure(null);
-            haptics("success");
 
             let categoryId: string | null = null;
             if (value.category) {
@@ -663,6 +664,9 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             let savedId: string;
             try {
                 savedId = await persistTransaction(db, mode, initial, input);
+                if (mode === "create") {
+                    freshEntries.mark(savedId);
+                }
             } catch (error) {
                 console.error("Failed to save transaction", error);
                 // Nothing was written, so the retry is the same tap again — but say so
@@ -763,6 +767,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 onDone();
                 return await holdSubmitting();
             }
+            haptics("success");
             if (mode === "edit") {
                 onDone();
                 return await holdSubmitting();
@@ -1807,10 +1812,14 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     });
 
     const categoryLabel = category?.name ?? pendingCategory?.name ?? null;
-    const categoryTile =
-        category || pendingCategory ? (
+    let categoryTile: ReactNode;
+    if (categoryEnriching) {
+        categoryTile = <ThinkingOrb state="searching" />;
+    } else if (category || pendingCategory) {
+        categoryTile = (
             <CategoryIcon color={categoryGlyphTint} name={category ? category.icon : pendingCategory?.icon} size={20} />
-        ) : undefined;
+        );
+    }
     const accountTile = account ? (
         <CategoryIconTile
             color={account.imageColor ?? account.customColor ?? colors.foreground}
@@ -2242,6 +2251,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                         ? null
                                                         : formatAmount(amountNumber, currency, true, language)
                                                 }
+                                                amountFigure={{ amount: amountNumber, code: currency }}
                                                 category={categoryLabel}
                                                 categoryFlagged={categoryError}
                                                 categoryPending={categoryEnriching}

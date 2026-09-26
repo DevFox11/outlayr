@@ -94,7 +94,13 @@ export function FileStep({ onChoose, busy = false }: FileStepProps) {
                         {error.cause === "io" ? t(error.key) : t(ERROR_BODY[error.cause] as TranslationKey)}
                     </Text>
                 </View>
-                <StepCta busy={busy} className="mt-6" label={t("import.chooseCsv")} onPress={onChoose} />
+                <StepCta
+                    busy={busy}
+                    busyLabel={t("import.readingFile")}
+                    className="mt-6"
+                    label={t("import.chooseCsv")}
+                    onPress={onChoose}
+                />
             </View>
         );
     }
@@ -144,6 +150,7 @@ export function FileStep({ onChoose, busy = false }: FileStepProps) {
                     <ChooseDifferentFile onChoose={onChoose} />
                     <StepCta
                         busy={busy}
+                        busyLabel={t("import.readingFile")}
                         label={t("common.continue")}
                         onPress={() => importDraftStore.setStep("resolve")}
                         testID="import-file-continue"
@@ -177,7 +184,7 @@ export function FileStep({ onChoose, busy = false }: FileStepProps) {
                 ]}
             />
 
-            <StepCta busy={busy} label={t("import.chooseCsv")} onPress={onChoose} />
+            <StepCta busy={busy} busyLabel={t("import.readingFile")} label={t("import.chooseCsv")} onPress={onChoose} />
         </View>
     );
 }

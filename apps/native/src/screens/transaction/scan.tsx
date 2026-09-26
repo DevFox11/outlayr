@@ -15,6 +15,7 @@ import { LimitToast } from "@/components/limit-toast";
 import { PhotoStage } from "@/components/receipt/photo-stage";
 import type { StageBox } from "@/components/receipt/photo-stage";
 import { ReceiptFrame } from "@/components/receipt/receipt-frame";
+import { ThinkingOrb } from "@/components/thinking-orb/thinking-orb";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccounts } from "@/data/accounts";
 import { getAccountById, rememberLastUsedAccount } from "@/data/accounts-core";
@@ -46,6 +47,7 @@ import { useLanguage, useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 import { useAuthSession } from "@/lib/auth-session";
+import { freshEntries } from "@/lib/fresh-entries";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
@@ -177,10 +179,24 @@ function ScanShell({
     );
 }
 
-function StatusLine({ children, waiting = false }: { children: string; waiting?: boolean }) {
+function StatusLine({
+    children,
+    thinking = false,
+    waiting = false,
+}: {
+    children: string;
+    thinking?: boolean;
+    waiting?: boolean;
+}) {
     const colors = useColors();
     return (
-        <Animated.View entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)} key={children}>
+        <Animated.View
+            className="flex-row items-center justify-center gap-2"
+            entering={FadeIn.duration(220)}
+            exiting={FadeOut.duration(160)}
+            key={children}
+        >
+            {thinking ? <ThinkingOrb state="searching" /> : null}
             {waiting ? (
                 <Shimmer
                     as="text"
@@ -207,13 +223,11 @@ interface BarAction {
 /** Two actions side by side at equal width — the weight, not the width, says which leads — plus an optional quiet third. */
 function BottomBar({
     disabled = false,
-    loading = false,
     primary,
     secondary,
     tertiary,
 }: {
     disabled?: boolean;
-    loading?: boolean;
     primary: BarAction | null;
     secondary: BarAction | null;
     tertiary?: BarAction | null;
@@ -252,7 +266,6 @@ function BottomBar({
                             className="rounded-full"
                             disabled={disabled}
                             fullWidth
-                            loading={loading}
                             onPress={primary.onPress}
                             size="md"
                             startContent={
@@ -705,7 +718,7 @@ function ScanFlowScreen() {
             setSaving(true);
             const write = async () => {
                 try {
-                    await transactionsRepo.create(db, {
+                    const id = await transactionsRepo.create(db, {
                         accountId: draft.accountId,
                         amount: draft.amount,
                         categoryId,
@@ -723,6 +736,7 @@ function ScanFlowScreen() {
                         income: draft.income,
                         note: draft.merchant,
                     });
+                    freshEntries.mark(id);
                 } catch {
                     // The row did not land; the form has the failure strip this screen lacks.
                     setSaving(false);
@@ -770,7 +784,6 @@ function ScanFlowScreen() {
                 bottom={
                     <BottomBar
                         disabled={saving}
-                        loading={saving}
                         primary={
                             savableCategoryId === null
                                 ? { label: t("receipt.action.finish"), onPress: () => openForm(receipt) }
@@ -809,7 +822,9 @@ function ScanFlowScreen() {
                 overlay={limitToast}
             >
                 <PhotoStage box={stageBox(phase.photo)} scanning tint={colors.tint} uri={phase.photo.uri} />
-                <StatusLine waiting>{t("receipt.state.reading")}</StatusLine>
+                <StatusLine thinking waiting>
+                    {t("receipt.state.reading")}
+                </StatusLine>
             </ScanShell>
         );
     }

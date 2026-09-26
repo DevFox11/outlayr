@@ -55,7 +55,6 @@ const SAMPLE_BUCKETS: InsightsBucket[] = marchBuckets(DAILY_SPEND);
 const sampleCells = (t: TranslateFn): LedgerCell[] => [
     {
         income: true,
-        key: "income",
         label: t("insights.measure.income"),
         magnitude: 3200,
         onPress: noop,
@@ -63,7 +62,6 @@ const sampleCells = (t: TranslateFn): LedgerCell[] => [
     },
     {
         income: false,
-        key: "net",
         label: t("insights.measure.net"),
         magnitude: 1359.5,
         onPress: noop,

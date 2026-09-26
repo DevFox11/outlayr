@@ -2,9 +2,10 @@ import { useRouter } from "expo-router";
 import { openBrowserAsync } from "expo-web-browser";
 import { Button, RadioGroup } from "panelui-native";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
-import { MonoLabel } from "@/components/mono-label";
+import { BusyText } from "@/components/busy-text";
+import { MONO_LABEL_CLASS, MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useRevenueCat } from "@/contexts/revenuecat-context";
@@ -14,6 +15,7 @@ import { FREE_ACCOUNTS, FREE_BUDGETS, FREE_CURRENCIES } from "@/domain/pro-limit
 import { readPlans } from "@/domain/pro-plans";
 import type { Plan, PlanKind } from "@/domain/pro-plans";
 import { useIsMounted } from "@/hooks/use-is-mounted";
+import { useLongWait } from "@/hooks/use-long-wait";
 import { proSellable } from "@/hooks/use-pro-locked";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
@@ -82,14 +84,29 @@ function noteOf(plan: Plan, t: TranslateFn): string | null {
     return parts.length === 0 ? null : parts.join(" · ");
 }
 
+const BUY_LABEL = {
+    annual: "pro.cta.buyYearly",
+    lifetime: "pro.cta.buy",
+    monthly: "pro.cta.buyMonthly",
+} as const satisfies Record<PlanKind, TranslationKey>;
+
+const THEN_LABEL = {
+    annual: "pro.cta.thenYearly",
+    lifetime: "pro.cta.then",
+    monthly: "pro.cta.thenMonthly",
+} as const satisfies Record<PlanKind, TranslationKey>;
+
 function ctaLabel(plan: Plan | null, t: TranslateFn): string {
-    if (plan === null || plan.trialDays === null) {
+    if (plan === null) {
         return t("pro.cta.continue");
+    }
+    if (plan.trialDays === null) {
+        return t(BUY_LABEL[plan.kind], { price: plan.priceString });
     }
     return t("pro.cta.start", { days: plan.trialDays });
 }
 
-function PlanCard({ plan, selected }: { plan: Plan; selected: boolean }) {
+function PlanCard({ best, plan, selected }: { best: boolean; plan: Plan; selected: boolean }) {
     const t = useTranslation();
     const ink = selected ? "text-accent-foreground" : "text-foreground";
     const quiet = selected ? "text-accent-foreground/70" : "text-muted";
@@ -98,6 +115,11 @@ function PlanCard({ plan, selected }: { plan: Plan; selected: boolean }) {
 
     return (
         <View className="flex-row items-center gap-3">
+            {best ? (
+                <View className="bg-income absolute bottom-full left-0 mb-[7px] rounded-md px-2 py-0.5">
+                    <MonoLabel className="text-background">{t("pro.plan.bestValue")}</MonoLabel>
+                </View>
+            ) : null}
             <View className="flex-1 gap-0.5">
                 <Text className={cn("text-callout font-medium", ink)}>{t(`pro.plan.${plan.kind}`)}</Text>
                 {note === null ? null : <Text className={cn("text-footnote", quiet)}>{note}</Text>}
@@ -141,6 +163,7 @@ function PlanPicker({
 }) {
     const t = useTranslation();
     const colors = useColors();
+    const slow = useLongWait(plans === null && !empty);
 
     if (empty) {
         return (
@@ -155,38 +178,44 @@ function PlanPicker({
     if (plans === null) {
         return (
             <View className="items-center pt-8">
-                <ActivityIndicator color={colors.foreground} />
+                {slow ? (
+                    <BusyText className="text-subtitle" color={colors.foreground}>
+                        {t("pro.plan.loading")}
+                    </BusyText>
+                ) : null}
             </View>
         );
     }
-    const best = plans.some((plan) => plan.savingsPercent !== null);
+    const hasBest = plans.some((plan) => plan.savingsPercent !== null);
 
     return (
-        <>
-            {best ? <MonoLabel className="text-income pt-4">{t("pro.plan.bestValue")}</MonoLabel> : null}
-            <RadioGroup
-                className="pt-1.5"
-                onValueChange={(kind) => {
-                    const picked = plans.find((plan) => plan.kind === kind);
-                    if (picked !== undefined) {
-                        onSelect(picked.kind);
-                    }
-                }}
-                value={selected ?? undefined}
-                variant="card"
-            >
-                {plans.map((candidate) => (
-                    <RadioGroup.Item hideIndicator key={candidate.kind} value={candidate.kind}>
-                        <PlanCard plan={candidate} selected={candidate.kind === selected} />
-                    </RadioGroup.Item>
-                ))}
-            </RadioGroup>
-        </>
+        <RadioGroup
+            className={hasBest ? "pt-6" : "pt-1.5"}
+            onValueChange={(kind) => {
+                const picked = plans.find((plan) => plan.kind === kind);
+                if (picked !== undefined) {
+                    onSelect(picked.kind);
+                }
+            }}
+            value={selected ?? undefined}
+            variant="card"
+        >
+            {plans.map((candidate) => (
+                <RadioGroup.Item hideIndicator key={candidate.kind} value={candidate.kind}>
+                    <PlanCard
+                        best={candidate.savingsPercent !== null}
+                        plan={candidate}
+                        selected={candidate.kind === selected}
+                    />
+                </RadioGroup.Item>
+            ))}
+        </RadioGroup>
     );
 }
 
 export function Paywall() {
     const t = useTranslation();
+    const colors = useColors();
     const router = useRouter();
     const { eligibleForTrial, getPackages, isMirrored, isPro, mirrorEntitlement, purchasePackage, restorePurchases } =
         useRevenueCat();
@@ -194,7 +223,7 @@ export function Paywall() {
     const { accountId } = useAuthSession();
     const [plans, setPlans] = useState<readonly Plan[] | null>(null);
     const [selected, setSelected] = useState<PlanKind | null>(null);
-    const [busy, setBusy] = useState(false);
+    const [busy, setBusy] = useState<"buy" | "confirm" | "restore" | null>(null);
     const [failed, setFailed] = useState(false);
     const [attempt, setAttempt] = useState(0);
     const [failure, setFailure] = useState<TranslationKey | null>(null);
@@ -228,7 +257,7 @@ export function Paywall() {
 
     /** For a customer the store calls Pro whose account has not been told yet. */
     const confirm = async () => {
-        setBusy(true);
+        setBusy("confirm");
         setFailure(null);
         try {
             if (!(await mirrorEntitlement()) && isMounted()) {
@@ -236,7 +265,7 @@ export function Paywall() {
             }
         } finally {
             if (isMounted()) {
-                setBusy(false);
+                setBusy(null);
             }
         }
     };
@@ -247,7 +276,7 @@ export function Paywall() {
         if (plan === null) {
             return;
         }
-        setBusy(true);
+        setBusy("buy");
         setFailure(null);
         try {
             const outcome = await purchasePackage(plan.offer);
@@ -265,12 +294,12 @@ export function Paywall() {
         } catch {
             setFailure("pro.failedBody");
         } finally {
-            setBusy(false);
+            setBusy(null);
         }
     };
 
     const restore = async () => {
-        setBusy(true);
+        setBusy("restore");
         setFailure(null);
         try {
             const restored = await restorePurchases();
@@ -288,7 +317,7 @@ export function Paywall() {
         } catch {
             setFailure("pro.restoreFailedBody");
         } finally {
-            setBusy(false);
+            setBusy(null);
         }
     };
 
@@ -351,11 +380,17 @@ export function Paywall() {
                                 </Text>
                                 <Pressable
                                     accessibilityRole="button"
-                                    disabled={busy}
+                                    disabled={busy !== null}
                                     onPress={confirm}
                                     testID="paywall-confirm"
                                 >
-                                    <MonoLabel className="text-foreground">{t("pro.retry")}</MonoLabel>
+                                    {busy === "confirm" ? (
+                                        <BusyText className={MONO_LABEL_CLASS} color={colors.foreground}>
+                                            {t("pro.checking")}
+                                        </BusyText>
+                                    ) : (
+                                        <MonoLabel className="text-foreground">{t("pro.retry")}</MonoLabel>
+                                    )}
                                 </Pressable>
                             </>
                         )}
@@ -374,19 +409,24 @@ export function Paywall() {
                     <View className="px-5 pt-5">
                         <Button
                             className="rounded-full"
-                            disabled={plan === null}
+                            disabled={plan === null || busy !== null}
                             fullWidth
-                            loading={busy}
                             onPress={buy}
                             size="md"
                             testID="paywall-cta"
                             variant="primary"
                         >
-                            {ctaLabel(plan, t)}
+                            {busy === "buy" ? (
+                                <BusyText className="text-[16px] font-medium" color={colors.primaryForeground}>
+                                    {t("pro.cta.unlocking")}
+                                </BusyText>
+                            ) : (
+                                ctaLabel(plan, t)
+                            )}
                         </Button>
                         {plan === null || plan.trialDays === null ? null : (
                             <Text className="text-muted text-micro pt-2 text-center font-mono">
-                                {t("pro.cta.then", { price: plan.priceString })}
+                                {t(THEN_LABEL[plan.kind], { price: plan.priceString })}
                             </Text>
                         )}
                     </View>
@@ -397,11 +437,17 @@ export function Paywall() {
                         <>
                             <Pressable
                                 accessibilityRole="button"
-                                disabled={busy}
+                                disabled={busy !== null}
                                 onPress={restore}
                                 testID="paywall-restore"
                             >
-                                <MonoLabel>{t("pro.legal.restore")}</MonoLabel>
+                                {busy === "restore" ? (
+                                    <BusyText className={MONO_LABEL_CLASS} color={colors.foreground}>
+                                        {t("pro.legal.restoring")}
+                                    </BusyText>
+                                ) : (
+                                    <MonoLabel>{t("pro.legal.restore")}</MonoLabel>
+                                )}
                             </Pressable>
                             <LegalDot />
                         </>

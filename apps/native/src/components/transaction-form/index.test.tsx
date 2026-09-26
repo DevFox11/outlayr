@@ -25,6 +25,7 @@ import { testColors as mockTestColors } from "@/theme/test-colors";
 import { curtainGradient } from "../identity-curtain";
 import { TransactionForm } from "./index";
 
+jest.mock("@/components/thinking-orb/thinking-orb", () => ({ ThinkingOrb: () => null }));
 jest.mock<Partial<typeof import("@react-native-async-storage/async-storage")>>(
     "@react-native-async-storage/async-storage",
     () => require("@react-native-async-storage/async-storage/jest/async-storage-mock")
@@ -115,6 +116,11 @@ jest.mock<Partial<typeof import("@/lib/subscription-reminder-sync")>>("@/lib/sub
     syncSubscriptionReminders: jest.fn(() => Promise.resolve()),
 }));
 jest.mock("@/lib/logo-fetch", () => ({ fetchMerchantImage: jest.fn() }));
+
+const mockHaptic = jest.fn();
+jest.mock<Partial<typeof import("@/lib/use-haptics")>>("@/lib/use-haptics", () => ({
+    useHaptics: () => mockHaptic,
+}));
 // Without a Convex client the real transport rejects and the hook answers
 // nothing; the default here does the same, and a test can hold an answer back.
 const mockEnrich = jest.fn<(args: unknown) => Promise<unknown>>(() => Promise.reject(new Error("no cloud")));
@@ -853,7 +859,9 @@ describe("transactionForm", () => {
             </Providers>
         );
         const tree = toJSON() as JsonNode;
-        expect(containsText(sentenceSlot(tree, "transaction.field.amount"), "$42.00")).toBe(true);
+        expect(sentenceSlot(tree, "transaction.field.amount").props.accessibilityValue).toMatchObject({
+            text: "$42.00",
+        });
     });
 
     it("holds hook order across the real once -> subscription -> once toggle", async () => {
@@ -2360,6 +2368,7 @@ describe("transactionForm pending category and tag materialization", () => {
     it("aborts before writing any transaction row when the pending category fails to materialize", async () => {
         const db = dbHolder.current as Database;
         const createSpy = jest.spyOn(categoriesRepo, "create").mockRejectedValueOnce(new Error("boom"));
+        mockHaptic.mockClear();
 
         const screen = await render(
             <Providers>
@@ -2384,6 +2393,7 @@ describe("transactionForm pending category and tag materialization", () => {
         // The save was rejected for the category, so the category has to say so —
         // the CTA re-lighting in silence is indistinguishable from a missed tap.
         expect(slotFlagged(toJSON() as JsonNode, "transaction.field.category")).toBe(true);
+        expect(mockHaptic).not.toHaveBeenCalledWith("success");
 
         createSpy.mockRestore();
     });

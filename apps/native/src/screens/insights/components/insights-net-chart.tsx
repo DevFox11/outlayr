@@ -3,14 +3,14 @@ import { useMemo, useState } from "react";
 import { Text as RNText, View } from "react-native";
 import type { LayoutChangeEvent } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
-import { useReducedMotion, useSharedValue } from "react-native-reanimated";
+import { useDerivedValue, useReducedMotion, useSharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
 import { useSettingBool } from "@/contexts/display-settings-context";
 import { bucketDateLabel } from "@/data/insights";
 import type { InsightsBucket, InsightsPeriod } from "@/data/insights";
 import { formatAmount } from "@/domain/money";
-import { useChartDraw } from "@/hooks/use-chart-draw";
+import { useChartDraw, useChartPath } from "@/hooks/use-chart-draw";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { hatchPathD } from "@/lib/chart-paths";
 import { CHART_SCRUB } from "@/theme/chart";
@@ -107,6 +107,18 @@ export function InsightsNetChart({
         };
     }, [live, plot, width]);
 
+    const surplus = useChartPath(geometry?.surplus ?? "", animated, liveCount);
+    const line = useChartPath(geometry?.line ?? "", animated, liveCount);
+    const axis = useChartPath(geometry?.axis ?? "", animated, liveCount);
+    const zeroY = useChartDraw(animated, plot.zeroY, plot.zeroY, liveCount);
+    const aboveZero = useDerivedValue(() => ({ height: zeroY.get(), width, x: 0, y: 0 }));
+    const belowZero = useDerivedValue(() => ({
+        height: Math.max(0, HEIGHT - zeroY.get()),
+        width,
+        x: 0,
+        y: zeroY.get(),
+    }));
+
     const marker = scrubIndex ?? selectedIndex;
     const markerRule = useMemo(() => {
         if (marker == null || width <= 0 || marker >= live.length) {
@@ -154,15 +166,12 @@ export function InsightsNetChart({
 					    on the wrapper never sees them unless this opts out. */}
                     <Canvas pointerEvents="none" style={{ height: HEIGHT, width }}>
                         {geometry?.surplus ? (
-                            <SkPath color={withAlpha(colors.foreground, 0.07)} opacity={draw} path={geometry.surplus} />
+                            <SkPath color={withAlpha(colors.foreground, 0.07)} opacity={draw} path={surplus} />
                         ) : null}
 
                         {geometry?.surplus && geometry.hatch ? (
-                            <SkGroup
-                                clip={{ height: Math.max(0, HEIGHT - plot.zeroY), width, x: 0, y: plot.zeroY }}
-                                opacity={draw}
-                            >
-                                <SkGroup clip={geometry.surplus}>
+                            <SkGroup clip={belowZero} opacity={draw}>
+                                <SkGroup clip={surplus}>
                                     <SkPath
                                         color={withAlpha(colors.overBudget, 0.55)}
                                         path={geometry.hatch}
@@ -176,22 +185,20 @@ export function InsightsNetChart({
                         {/* One path drawn twice, clipped either side of the rule. */}
                         {geometry?.line ? (
                             <>
-                                <SkGroup clip={{ height: plot.zeroY, width, x: 0, y: 0 }}>
+                                <SkGroup clip={aboveZero}>
                                     <SkPath
                                         color={colors.income}
                                         end={draw}
-                                        path={geometry.line}
+                                        path={line}
                                         strokeWidth={2.2}
                                         style="stroke"
                                     />
                                 </SkGroup>
-                                <SkGroup
-                                    clip={{ height: Math.max(0, HEIGHT - plot.zeroY), width, x: 0, y: plot.zeroY }}
-                                >
+                                <SkGroup clip={belowZero}>
                                     <SkPath
                                         color={colors.overBudget}
                                         end={draw}
-                                        path={geometry.line}
+                                        path={line}
                                         strokeWidth={2.2}
                                         style="stroke"
                                     />
@@ -200,7 +207,7 @@ export function InsightsNetChart({
                         ) : null}
 
                         {geometry?.axis ? (
-                            <SkPath color={colors.foreground} path={geometry.axis} strokeWidth={1.6} style="stroke" />
+                            <SkPath color={colors.foreground} path={axis} strokeWidth={1.6} style="stroke" />
                         ) : null}
 
                         {markerRule && marker != null && markerValue != null ? (

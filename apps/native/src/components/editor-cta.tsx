@@ -16,7 +16,7 @@ import { CTA_HEIGHT } from "@/components/editor-style";
 const DISABLED_OPACITY = 0.4;
 
 interface EditorCtaProps {
-    /** A save is in flight: the button shows a spinner and stops taking presses. */
+    /** A save is in flight: the button stops taking presses. */
     busy?: boolean;
     canSave: boolean;
     label: string;
@@ -27,17 +27,15 @@ interface EditorCtaProps {
  * The pinned primary action shared by the account and category editors — the
  * same `panelui` button the transfer editor and the import sheet already use.
  *
- * Not a SwiftUI `Host`: one fewer native island beside the form's, and it is
- * what gives the save a real `loading` state instead of a frozen button.
+ * Not a SwiftUI `Host`: one fewer native island beside the form's.
  */
 export function EditorCta({ label, canSave, busy = false, onPress }: EditorCtaProps) {
     return (
         <View style={{ height: CTA_HEIGHT, opacity: canSave || busy ? 1 : DISABLED_OPACITY }} testID="editor-cta">
             <Button
                 className="rounded-full"
-                disabled={!canSave}
+                disabled={!canSave || busy}
                 fullWidth
-                loading={busy}
                 onPress={onPress}
                 size="md"
                 variant="primary"

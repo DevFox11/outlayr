@@ -1,7 +1,8 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Alert, Pressable, View } from "react-native";
+import { Alert, Pressable, View } from "react-native";
 
+import { BusyText } from "@/components/busy-text";
 import { MonoLabel } from "@/components/mono-label";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
@@ -20,13 +21,13 @@ export function RestoreData() {
     const colors = useColors();
     const router = useRouter();
     const t = useTranslation();
-    const [busy, setBusy] = useState(false);
+    const [restoring, setRestoring] = useState<number | null>(null);
 
     // The logo pass is stopped first: still awaiting the model or an image, it
     // could otherwise paint a row the archive just replaced. It is re-armed once
     // the archive is in, since the same database carries on.
     const applyArchive = (document: ArchiveDocument) => {
-        setBusy(true);
+        setRestoring(archiveRowCount(document));
         cancelLogoBackfill()
             .then(() => restoreArchive(db, document))
             .finally(() => armLogoBackfill(db))
@@ -34,7 +35,7 @@ export function RestoreData() {
             .catch(() => {
                 notifyFailure({ body: t("settings.restore.failedBody"), title: t("settings.restore.failedTitle") });
             })
-            .finally(() => setBusy(false));
+            .finally(() => setRestoring(null));
     };
 
     // A restore replaces the ledger rather than adding to it, so it is confirmed
@@ -88,16 +89,17 @@ export function RestoreData() {
                 <Pressable
                     accessibilityRole="button"
                     className="bg-foreground h-14 items-center justify-center rounded-[28px] active:opacity-70"
-                    disabled={busy}
+                    disabled={restoring !== null}
                     onPress={restore}
-                    style={busy ? { opacity: 0.4 } : undefined}
                 >
-                    {busy ? (
-                        <ActivityIndicator color={colors.background} />
-                    ) : (
+                    {restoring === null ? (
                         <Text className="font-sans-semibold text-background text-callout">
                             {t("settings.restore.action")}
                         </Text>
+                    ) : (
+                        <BusyText className="font-sans-semibold text-callout" color={colors.background}>
+                            {t("settings.restore.restoring", { count: restoring })}
+                        </BusyText>
                     )}
                 </Pressable>
             </View>

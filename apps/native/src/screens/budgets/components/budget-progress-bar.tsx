@@ -1,7 +1,10 @@
 import { View } from "react-native";
+import Animated, { useAnimatedStyle, useReducedMotion } from "react-native-reanimated";
 
 import { cn, tv } from "@/components/tw";
+import { useSettingBool } from "@/contexts/display-settings-context";
 import { budgetRail } from "@/domain/budget-math";
+import { useChartDraw } from "@/hooks/use-chart-draw";
 
 interface BudgetProgressBarProps {
     height?: number;
@@ -44,6 +47,10 @@ export function BudgetProgressBar({
     tint = null,
 }: BudgetProgressBarProps) {
     const { fill: pct, over } = budgetRail(spent, limit);
+    const reduceMotion = useReducedMotion();
+    const animated = useSettingBool("animatedCharts") && !reduceMotion;
+    const fill = useChartDraw(animated, pct);
+    const fillStyle = useAnimatedStyle(() => ({ width: `${fill.get() * 100}%` }));
     // The pace triangle reads against the limit; over budget the rail is no
     // longer drawn to that scale, so it has nothing to point at.
     const showMarker = !over && paceRemaining != null && paceRemaining > 0 && paceRemaining < 1;
@@ -60,13 +67,9 @@ export function BudgetProgressBar({
                 />
             ) : null}
             <View className={rail({ over })} style={{ height }}>
-                <View
+                <Animated.View
                     className={railFill({ over })}
-                    style={
-                        over || tint == null
-                            ? { width: `${pct * 100}%` }
-                            : { backgroundColor: tint, width: `${pct * 100}%` }
-                    }
+                    style={[over || tint == null ? null : { backgroundColor: tint }, fillStyle]}
                 />
             </View>
         </View>

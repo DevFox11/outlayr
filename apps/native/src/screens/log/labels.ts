@@ -52,7 +52,6 @@ export function measureCells(
 ): LedgerCell[] {
     return measureAlternatives(measure).map((alternative) => ({
         income: measureIsIncome(alternative),
-        key: alternative,
         label: t(MEASURE_WORD_KEY[alternative]),
         magnitude: measureMagnitude(alternative, figures),
         onPress: () => onMeasure(alternative),

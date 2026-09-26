@@ -2,11 +2,12 @@ import { Canvas, DashPathEffect, Circle as SkCircle, Path as SkPath } from "@sho
 import { useMemo } from "react";
 import { View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
+import type { SharedValue } from "react-native-reanimated";
 
 import { useSettingBool } from "@/contexts/display-settings-context";
 import type { GoalLinePoint } from "@/domain/goal-pace-geometry";
 import { makeGeometry } from "@/domain/goal-pace-geometry";
-import { useChartDraw } from "@/hooks/use-chart-draw";
+import { useChartDraw, useChartPath } from "@/hooks/use-chart-draw";
 import { CHART_DASH } from "@/theme/chart";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
@@ -55,6 +56,13 @@ export function GoalPaceChart({
         () => makeGeometry({ actual, height, nowMs, required, startTime, target, targetTime, width }),
         [actual, required, startTime, targetTime, target, nowMs, width, height]
     );
+    const pointCount = actual.length;
+    const requiredPath = useChartPath(geometry.required, animatedCharts, pointCount);
+    const axis = useChartPath(geometry.axis, animatedCharts, pointCount);
+    const actualPath = useChartPath(geometry.actual ?? "", animatedCharts, pointCount);
+    const projection = useChartPath(geometry.projection ?? "", animatedCharts, pointCount);
+    const goalX = useChartDraw(animatedCharts, geometry.goal.x, geometry.goal.x, pointCount);
+    const goalY = useChartDraw(animatedCharts, geometry.goal.y, geometry.goal.y, pointCount);
 
     return (
         <View
@@ -66,27 +74,21 @@ export function GoalPaceChart({
         >
             <Canvas pointerEvents="none" style={{ height, width }}>
                 {/* Drawn first so the balance line reads over it. */}
-                <SkPath color={colors.muted} path={geometry.required} strokeWidth={1} style="stroke">
+                <SkPath color={colors.muted} path={requiredPath} strokeWidth={1} style="stroke">
                     <DashPathEffect intervals={[...CHART_DASH.reference]} />
                 </SkPath>
 
-                <SkPath color={colors.border} path={geometry.axis} strokeWidth={1} style="stroke" />
+                <SkPath color={colors.border} path={axis} strokeWidth={1} style="stroke" />
 
                 {geometry.actual ? (
-                    <SkPath
-                        color={colors.foreground}
-                        end={draw}
-                        path={geometry.actual}
-                        strokeWidth={2.2}
-                        style="stroke"
-                    />
+                    <SkPath color={colors.foreground} end={draw} path={actualPath} strokeWidth={2.2} style="stroke" />
                 ) : null}
 
                 {geometry.projection ? (
                     <SkPath
                         color={withAlpha(colors.foreground, 0.4)}
                         opacity={draw}
-                        path={geometry.projection}
+                        path={projection}
                         strokeWidth={1.4}
                         style="stroke"
                     >
@@ -95,20 +97,21 @@ export function GoalPaceChart({
                 ) : null}
 
                 {geometry.head ? (
-                    <SkCircle
+                    <PaceHead
+                        animated={animatedCharts}
                         color={colors.foreground}
-                        cx={geometry.head.x}
-                        cy={geometry.head.y}
-                        opacity={draw}
-                        r={3.8}
+                        draw={draw}
+                        x={geometry.head.x}
+                        y={geometry.head.y}
+                        pointCount={pointCount}
                     />
                 ) : null}
 
                 {/* The target itself, hollow: a mark the line has not reached yet. */}
                 <SkCircle
                     color={colors.foreground}
-                    cx={geometry.goal.x}
-                    cy={geometry.goal.y}
+                    cx={goalX}
+                    cy={goalY}
                     opacity={draw}
                     r={3.8}
                     strokeWidth={1.6}
@@ -117,4 +120,19 @@ export function GoalPaceChart({
             </Canvas>
         </View>
     );
+}
+
+interface PaceHeadProps {
+    animated: boolean;
+    color: string;
+    draw: SharedValue<number>;
+    pointCount: number;
+    x: number;
+    y: number;
+}
+
+function PaceHead({ animated, color, draw, pointCount, x, y }: PaceHeadProps) {
+    const cx = useChartDraw(animated, x, x, pointCount);
+    const cy = useChartDraw(animated, y, y, pointCount);
+    return <SkCircle color={color} cx={cx} cy={cy} opacity={draw} r={3.8} />;
 }

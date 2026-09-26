@@ -99,6 +99,10 @@ const auth = {
             en: "Signing in needs a connection. Once you have, your ledger opens offline.",
             es: "Para iniciar sesión necesitas conexión. Después, tu registro abre sin conexión.",
         }),
+        "auth.signIn.pending": t({
+            en: "Signing in…",
+            es: "Iniciando sesión…",
+        }),
         "auth.signIn.title": t({
             en: "Keep a copy of this?",
             es: "¿Quieres guardar una copia?",

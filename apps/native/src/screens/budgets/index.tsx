@@ -2,6 +2,7 @@ import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
+import Animated, { Easing, FadeOut, LinearTransition } from "react-native-reanimated";
 
 import { AccountPickerSheet } from "@/components/account-picker-sheet";
 import { CategoryPickerSheet } from "@/components/category-picker-sheet";
@@ -56,6 +57,8 @@ import { pairs } from "./pairs";
 
 /** `gap-3` between the two columns of the card grid. */
 const CARD_GUTTER = 12;
+const ROW_REORDER = LinearTransition.duration(420).easing(Easing.out(Easing.cubic));
+const ROW_EXIT = FadeOut.duration(200);
 
 export function Budgets() {
     const db = useDatabase();
@@ -405,17 +408,18 @@ export function Budgets() {
                         {asRows ? (
                             <View className="divide-border divide-y">
                                 {ranked.map((budget) => (
-                                    <BudgetRow
-                                        budget={budget}
-                                        burndown={burndowns.get(budget.id) ?? null}
-                                        contributions={contributions}
-                                        currency={currency}
-                                        key={budget.id}
-                                        menuItems={menuItems(budget)}
-                                        nowMs={nowMs}
-                                        onDelete={requestDelete}
-                                        onPress={(id) => router.push(`/budgets/${id}`)}
-                                    />
+                                    <Animated.View exiting={ROW_EXIT} key={budget.id} layout={ROW_REORDER}>
+                                        <BudgetRow
+                                            budget={budget}
+                                            burndown={burndowns.get(budget.id) ?? null}
+                                            contributions={contributions}
+                                            currency={currency}
+                                            menuItems={menuItems(budget)}
+                                            nowMs={nowMs}
+                                            onDelete={requestDelete}
+                                            onPress={(id) => router.push(`/budgets/${id}`)}
+                                        />
+                                    </Animated.View>
                                 ))}
                             </View>
                         ) : (

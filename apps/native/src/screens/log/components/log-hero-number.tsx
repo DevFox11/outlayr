@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { View } from "react-native";
 
+import { fittedHeroSize, FlowAmount } from "@/components/amount-text";
 import { Text } from "@/components/text";
 import { amountDigits, amountParts, withCurrencySymbol } from "@/domain/money";
 import { useLanguage } from "@/i18n/context";
@@ -21,6 +23,7 @@ interface LogHeroNumberProps {
 
 export function LogHeroNumber({ magnitude, code, positive, showCents }: LogHeroNumberProps) {
     const { language } = useLanguage();
+    const [width, setWidth] = useState(0);
     const parts = amountParts(magnitude, code, showCents, language);
     const digits = amountDigits(parts);
     const sign = positive ? "+" : "-";
@@ -34,20 +37,19 @@ export function LogHeroNumber({ magnitude, code, positive, showCents }: LogHeroN
             // Symbol and digits are one figure, not two things to swipe between.
             accessible
             className="flex-row items-baseline gap-1"
+            onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
         >
             <Text className="text-muted font-sans" numberOfLines={1} style={{ fontSize: symbolSize }}>
                 {sign}
                 {parts.symbol}
             </Text>
-            <Text
-                adjustsFontSizeToFit
-                className="text-foreground shrink font-sans tabular-nums"
-                minimumFontScale={0.5}
-                numberOfLines={1}
-                style={{ fontSize: FONT_SIZE }}
-            >
-                {digits}
-            </Text>
+            <FlowAmount
+                amount={magnitude}
+                className="text-foreground font-sans tabular-nums"
+                code={code}
+                showCents={showCents}
+                size={fittedHeroSize(FONT_SIZE, magnitude, parts.minorUnits, width)}
+            />
         </View>
     );
 }

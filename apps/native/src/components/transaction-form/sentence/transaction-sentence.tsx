@@ -5,6 +5,7 @@ import { Sentence } from "../../sentence/sentence";
 import { SentenceBlank } from "../../sentence/sentence-blank";
 import { SentenceToggle } from "../../sentence/sentence-toggle";
 import { SentenceValue } from "../../sentence/sentence-value";
+import type { SentenceFigure } from "../../sentence/sentence-value";
 import { CurrencyCode } from "./currency-code";
 import type { TransactionSentenceMark, TransactionSentenceSlot } from "./slots";
 
@@ -33,6 +34,7 @@ interface TransactionSentenceProps {
      * The amount can hold the save back as readily as the category, and a
      * filled one can be the fault: zero is a value, not a blank.
      */
+    amountFigure?: SentenceFigure;
     amountFlagged?: boolean;
     amountShake?: boolean;
     category: string | null;
@@ -68,6 +70,7 @@ export function TransactionSentence({
     accountTile,
     activeSlot,
     amount,
+    amountFigure,
     amountFlagged,
     amountShake,
     category,
@@ -125,6 +128,7 @@ export function TransactionSentence({
                             <SentenceValue
                                 accessibilityLabel={labels.amount.field}
                                 active={activeSlot === "amount"}
+                                figure={amountFigure}
                                 flagged={amountFlagged}
                                 onPress={onAmountPress}
                                 shake={amountShake}

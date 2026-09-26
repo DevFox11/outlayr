@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
-import { runOnJS, useReducedMotion } from "react-native-reanimated";
+import { createAnimatedComponent, runOnJS, useAnimatedProps, useReducedMotion } from "react-native-reanimated";
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from "react-native-svg";
 
 import { Text } from "@/components/text";
@@ -11,6 +11,7 @@ import type { LogMeasure } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
 import { formatAmount } from "@/domain/money";
 import { sparklineLabelKey } from "@/domain/sparkline-trend";
+import { useChartDraw } from "@/hooks/use-chart-draw";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 import { panGesture } from "@/lib/gestures";
@@ -19,6 +20,10 @@ import { useColors } from "@/theme/use-colors";
 
 const HEIGHT = 34;
 const INSET = 10;
+const DASH_SLACK = 1;
+
+const AnimatedPath = createAnimatedComponent(Path);
+const AnimatedCircle = createAnimatedComponent(Circle);
 
 interface LogSparklineProps {
     byMonth: boolean;
@@ -37,29 +42,13 @@ export function LogSparkline({ points, positive, range, byMonth, code, measure }
     const t = useTranslation();
     const { language } = useLanguage();
     const reduceMotion = useReducedMotion();
-    // Read here, not threaded from the screen: every chart answers to this setting
-    // itself. The OS flag is ANDed in by hand because the draw below is a
-    // `setTimeout` rather than a Reanimated animation, so there is nothing for the
-    // library's own `ReduceMotion.System` handling to collapse.
+    // Read here, not threaded from the screen: every chart answers to this setting itself.
     const animatedCharts = useSettingBool("animatedCharts") && !reduceMotion;
     const [width, setWidth] = useState(0);
     const [scrubIndex, setScrubIndex] = useState<number | null>(null);
-    const [drawnAfterDelay, setDrawnAfterDelay] = useState(false);
-    // With charts off there is nothing to draw in, so the sparkline is simply
-    // already drawn — derived rather than written back from the effect below.
-    const drawn = !animatedCharts || drawnAfterDelay;
+    const draw = useChartDraw(animatedCharts);
 
     const color = positive ? colors.income : colors.danger;
-
-    useEffect(() => {
-        if (!animatedCharts) {
-            return;
-        }
-        // oxlint-disable-next-line react/react-compiler -- restarts the draw-in when the setting is switched back on mid-session; without it the line is already drawn and the animation never replays.
-        setDrawnAfterDelay(false);
-        const timer = setTimeout(() => setDrawnAfterDelay(true), 100);
-        return () => clearTimeout(timer);
-    }, [animatedCharts]);
 
     const geometry = useMemo(() => {
         if (points.length < 2 || width <= 0) {
@@ -76,11 +65,20 @@ export function LogSparkline({ points, positive, range, byMonth, code, measure }
             x: step * index,
             y: HEIGHT - ((point.amount - min) / span) * HEIGHT,
         }));
+        let dash = DASH_SLACK;
+        for (const [i, c] of coords.slice(1).entries()) {
+            dash += Math.hypot(c.x - coords[i].x, c.y - coords[i].y);
+        }
         return {
             coords,
             d: coords.map((c, i) => `${i === 0 ? "M" : "L"}${c.x} ${c.y}`).join(" "),
+            dash,
         };
     }, [points, width]);
+
+    const dash = geometry?.dash ?? 0;
+    const lineProps = useAnimatedProps(() => ({ strokeDashoffset: dash * (1 - draw.get()) }));
+    const dotProps = useAnimatedProps(() => ({ opacity: draw.get() }));
 
     const labelKey = useMemo(
         () =>
@@ -154,20 +152,21 @@ export function LogSparkline({ points, positive, range, byMonth, code, measure }
                                     <Stop offset={boundary} stopColor={color} />
                                 </LinearGradient>
                             </Defs>
-                            <Path
+                            <AnimatedPath
+                                animatedProps={lineProps}
                                 d={geometry.d}
                                 fill="none"
-                                opacity={drawn ? 1 : 0}
                                 stroke="url(#spark)"
+                                strokeDasharray={[dash, dash]}
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
                             />
-                            <Circle
+                            <AnimatedCircle
+                                animatedProps={dotProps}
                                 cx={geometry.coords.at(-1)?.x ?? 0}
                                 cy={geometry.coords.at(-1)?.y ?? 0}
                                 fill={color}
-                                opacity={drawn ? 1 : 0}
                                 r={CHART_SCRUB.dotRadius}
                             />
                             {scrubCoord ? (

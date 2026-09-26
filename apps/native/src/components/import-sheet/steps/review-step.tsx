@@ -404,6 +404,7 @@ export function ReviewStep({ review }: ReviewStepProps) {
             <View className="px-5">
                 <StepCta
                     busy={writing}
+                    busyLabel={t("import.reviewCommitting", { count: review.selectedCount })}
                     confirmLabel={
                         failed
                             ? undefined

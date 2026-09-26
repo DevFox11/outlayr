@@ -94,14 +94,14 @@ describe("paywall", () => {
         expect(screen.getByTestId("paywall-cta")).toHaveTextContent("pro.cta.start:7");
     });
 
-    it("switches the button to a plain continue when a plan has no trial", async () => {
+    it("names the plan's price on the button when it has no trial", async () => {
         await render(<Paywall />);
         await waitFor(() => expect(planCard("monthly")).toBeTruthy());
 
         await fireEvent.press(planCard("monthly"));
 
         expect(planCard("monthly").props.accessibilityState.selected).toBe(true);
-        expect(screen.getByTestId("paywall-cta")).toHaveTextContent("pro.cta.continue");
+        expect(screen.getByTestId("paywall-cta")).toHaveTextContent("pro.cta.buyMonthly:$7.99");
     });
 
     it("buys the selected plan, not the one the sheet opened on", async () => {
@@ -225,7 +225,7 @@ describe("paywall", () => {
 
         await waitFor(() => expect(planCard("annual")).toBeTruthy());
         expect(screen.queryByTestId("paywall-retry")).toBeNull();
-        expect(screen.getByTestId("paywall-cta")).toHaveTextContent("pro.cta.continue");
+        expect(screen.getByTestId("paywall-cta")).toHaveTextContent("pro.cta.buyYearly:$49.99");
     });
 
     it("states a failed purchase inside the sheet, where a toast cannot reach", async () => {
@@ -269,7 +269,7 @@ describe("paywall", () => {
         await render(<Paywall />);
 
         await waitFor(() => expect(planCard("annual")).toBeTruthy());
-        expect(screen.getByTestId("paywall-cta")).toHaveTextContent("pro.cta.continue");
+        expect(screen.getByTestId("paywall-cta")).toHaveTextContent("pro.cta.buyYearly:$49.99");
         expect(screen.queryByText(/pro\.cta\.then/)).toBeNull();
     });
 

@@ -8,13 +8,13 @@ import {
 import { useMemo, useState } from "react";
 import { View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
-import { useReducedMotion, useSharedValue } from "react-native-reanimated";
+import { useDerivedValue, useReducedMotion, useSharedValue } from "react-native-reanimated";
 import type { SharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
 import { useSettingBool } from "@/contexts/display-settings-context";
 import type { Burndown } from "@/domain/budget-burndown";
-import { useChartDraw } from "@/hooks/use-chart-draw";
+import { useChartDraw, useChartPath } from "@/hooks/use-chart-draw";
 import { useTranslation } from "@/i18n/context";
 import { hatchPathD } from "@/lib/chart-paths";
 import { panGesture } from "@/lib/gestures";
@@ -152,33 +152,62 @@ function makeGeometry(burndown: Burndown, limit: number, width: number, height: 
 }
 
 interface BurndownMarkerProps {
+    animated: boolean;
     colors: ReturnType<typeof useColors>;
     draw: SharedValue<number>;
     marker: Burndown["points"][number];
     markerRule: string | null;
     plot: Plot;
+    pointCount: number;
     scrubbing: boolean;
 }
 
-function BurndownMarker({ colors, draw, marker, markerRule, plot, scrubbing }: BurndownMarkerProps) {
+function BurndownMarker({
+    animated,
+    colors,
+    draw,
+    marker,
+    markerRule,
+    plot,
+    pointCount,
+    scrubbing,
+}: BurndownMarkerProps) {
+    const settles = animated && !scrubbing;
+    const rule = useChartPath(markerRule ?? "", settles, pointCount);
+    const cx = useChartDraw(settles, plot.x(marker.day), plot.x(marker.day), pointCount);
+    const cy = useChartDraw(settles, plot.y(marker.balance), plot.y(marker.balance), pointCount);
     return (
         <SkGroup opacity={draw}>
             {markerRule ? (
                 <SkPath
                     color={scrubbing ? colors.foreground : withAlpha(colors.foreground, 0.55)}
-                    path={markerRule}
+                    path={rule}
                     strokeWidth={CHART_SCRUB.ruleWidth}
                     style="stroke"
                 />
             ) : null}
             <SkCircle
                 color={marker.balance < 0 ? colors.overBudget : colors.foreground}
-                cx={plot.x(marker.day)}
-                cy={plot.y(marker.balance)}
+                cx={cx}
+                cy={cy}
                 r={scrubbing ? CHART_SCRUB.activeDotRadius : CHART_SCRUB.dotRadius}
             />
         </SkGroup>
     );
+}
+
+interface RunwayMarkProps {
+    animated: boolean;
+    color: string;
+    draw: SharedValue<number>;
+    pointCount: number;
+    x: number;
+    y: SharedValue<number>;
+}
+
+function RunwayMark({ animated, color, draw, pointCount, x, y }: RunwayMarkProps) {
+    const cx = useChartDraw(animated, x, x, pointCount);
+    return <SkCircle color={color} cx={cx} cy={y} opacity={draw} r={3.4} strokeWidth={2} style="stroke" />;
 }
 
 interface PanGestureParams {
@@ -260,6 +289,16 @@ export function BudgetBurndownChart({
     );
 
     const { plot, last } = geometry;
+    const pointCount = burndown.points.length;
+    const surplus = useChartPath(geometry.surplus, animatedCharts, pointCount);
+    const deficit = useChartPath(geometry.deficit ?? "", animatedCharts, pointCount);
+    const ideal = useChartPath(geometry.ideal, animatedCharts, pointCount);
+    const actual = useChartPath(geometry.actual, animatedCharts, pointCount);
+    const projection = useChartPath(geometry.projection ?? "", animatedCharts, pointCount);
+    const axis = useChartPath(geometry.axis, animatedCharts, pointCount);
+    const zeroY = useChartDraw(animatedCharts, plot.zeroY, plot.zeroY, pointCount);
+    const aboveZero = useDerivedValue(() => ({ height: zeroY.get(), width, x: 0, y: 0 }));
+    const belowZero = useDerivedValue(() => ({ height: height - zeroY.get(), width, x: 0, y: zeroY.get() }));
 
     const scrubbed = scrubDay == null ? null : burndown.points[scrubDay - 1];
     const marker = scrubbed ?? last;
@@ -324,11 +363,11 @@ export function BudgetBurndownChart({
 				    detector on the wrapper never sees them unless this opts out. */}
             <Canvas pointerEvents="none" style={{ height, width }}>
                 {geometry.surplus ? (
-                    <SkPath color={withAlpha(colors.foreground, 0.07)} opacity={draw} path={geometry.surplus} />
+                    <SkPath color={withAlpha(colors.foreground, 0.07)} opacity={draw} path={surplus} />
                 ) : null}
 
                 {geometry.deficit && geometry.hatch ? (
-                    <SkGroup clip={geometry.deficit} opacity={draw}>
+                    <SkGroup clip={deficit} opacity={draw}>
                         <SkPath
                             color={withAlpha(colors.overBudget, 0.55)}
                             path={geometry.hatch}
@@ -339,7 +378,7 @@ export function BudgetBurndownChart({
                 ) : null}
 
                 {geometry.ideal ? (
-                    <SkPath color={colors.muted} path={geometry.ideal} strokeWidth={1} style="stroke">
+                    <SkPath color={colors.muted} path={ideal} strokeWidth={1} style="stroke">
                         <DashPathEffect intervals={[...CHART_DASH.reference]} />
                     </SkPath>
                 ) : null}
@@ -347,20 +386,20 @@ export function BudgetBurndownChart({
                 {/* One path drawn twice, clipped either side of the zero rule. */}
                 {geometry.actual ? (
                     <>
-                        <SkGroup clip={{ height: plot.zeroY, width, x: 0, y: 0 }}>
+                        <SkGroup clip={aboveZero}>
                             <SkPath
                                 color={colors.foreground}
                                 end={draw}
-                                path={geometry.actual}
+                                path={actual}
                                 strokeWidth={2.2}
                                 style="stroke"
                             />
                         </SkGroup>
-                        <SkGroup clip={{ height: height - plot.zeroY, width, x: 0, y: plot.zeroY }}>
+                        <SkGroup clip={belowZero}>
                             <SkPath
                                 color={colors.overBudget}
                                 end={draw}
-                                path={geometry.actual}
+                                path={actual}
                                 strokeWidth={2.2}
                                 style="stroke"
                             />
@@ -372,7 +411,7 @@ export function BudgetBurndownChart({
                     <SkPath
                         color={(burndown.projectedBalance ?? 0) < 0 ? colors.overBudget : colors.muted}
                         opacity={draw}
-                        path={geometry.projection}
+                        path={projection}
                         strokeWidth={1.6}
                         style="stroke"
                     >
@@ -381,29 +420,30 @@ export function BudgetBurndownChart({
                 ) : null}
 
                 {geometry.axis ? (
-                    <SkPath color={colors.foreground} path={geometry.axis} strokeWidth={1.6} style="stroke" />
+                    <SkPath color={colors.foreground} path={axis} strokeWidth={1.6} style="stroke" />
                 ) : null}
 
                 {burndown.runwayDay == null ? null : (
-                    <SkCircle
+                    <RunwayMark
+                        animated={animatedCharts}
                         color={colors.overBudget}
-                        cx={plot.x(burndown.runwayDay)}
-                        cy={plot.zeroY}
-                        opacity={draw}
-                        r={3.4}
-                        strokeWidth={2}
-                        style="stroke"
+                        draw={draw}
+                        x={plot.x(burndown.runwayDay)}
+                        y={zeroY}
+                        pointCount={pointCount}
                     />
                 )}
 
                 {marker ? (
                     <BurndownMarker
+                        animated={animatedCharts}
                         colors={colors}
                         draw={draw}
                         marker={marker}
                         markerRule={markerRule}
                         plot={plot}
                         scrubbing={scrubbed != null}
+                        pointCount={pointCount}
                     />
                 ) : null}
             </Canvas>

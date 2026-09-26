@@ -4,8 +4,10 @@ import {
     AppleAuthenticationButtonType,
 } from "expo-apple-authentication";
 import { useTheme } from "panelui-native";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 
+import { BusyText } from "@/components/busy-text";
+import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 export const SIGN_IN_BUTTON_HEIGHT = 52;
@@ -27,6 +29,7 @@ export function AppleSignInButton({
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const colors = useColors();
+    const t = useTranslation();
 
     if (pending) {
         return (
@@ -34,7 +37,9 @@ export function AppleSignInButton({
                 className="bg-foreground w-full items-center justify-center rounded-full"
                 style={{ height: SIGN_IN_BUTTON_HEIGHT }}
             >
-                <ActivityIndicator color={colors.background} />
+                <BusyText className="font-sans-medium text-callout" color={colors.background}>
+                    {t("auth.signIn.pending")}
+                </BusyText>
             </View>
         );
     }

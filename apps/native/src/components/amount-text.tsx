@@ -1,15 +1,88 @@
+import { roundMoney } from "@outlayr/money/round";
+import { NumberFlow } from "number-flow-react-native";
 import { Fragment } from "react";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
+import { Easing } from "react-native-reanimated";
+import { useResolveClassNames } from "uniwind";
 
+import { amountHeroFontSize } from "@/domain/amount-hero-size";
 import { rowAmountLabel } from "@/domain/amount-label";
 import type { RowAmountLabelInput } from "@/domain/amount-label";
 import type { CurrencyBucket } from "@/domain/currency-totals";
-import { amountParts, formatAmount } from "@/domain/money";
+import { amountDigits, amountParts, formatAmount, withCurrencySymbol } from "@/domain/money";
+import type { NumberLocale } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 
 import { Text } from "./text";
 import { cn, tv } from "./tw";
+
+const BASELINE_STRUT = "\u200B";
+const HERO_GUTTER = 40;
+const SNAP_WIDTH = { duration: 0, easing: Easing.linear };
+
+function intlDecimal(tag: string): string {
+    return new Intl.NumberFormat(tag, { minimumFractionDigits: 1, useGrouping: false }).format(1.5).charAt(1);
+}
+
+interface FlowFigureProps {
+    className?: string;
+    format: Intl.NumberFormatOptions;
+    locale: NumberLocale;
+    prefix?: string;
+    size?: number;
+    snapWidth?: boolean;
+    value: number;
+}
+
+export function FlowFigure({ className, format, locale, prefix, size, snapWidth, value }: FlowFigureProps) {
+    const { color, fontFamily, fontSize, fontVariant } = useResolveClassNames(className ?? "");
+    return (
+        <View className="flex-row items-center">
+            <Text accessible={false} className={className} style={size == null ? undefined : { fontSize: size }}>
+                {BASELINE_STRUT}
+            </Text>
+            <NumberFlow
+                format={format}
+                locales={locale.tag}
+                prefix={prefix}
+                style={{ color, fontFamily, fontSize: size ?? fontSize, fontVariant }}
+                transformTiming={snapWidth ? SNAP_WIDTH : undefined}
+                value={value}
+            />
+        </View>
+    );
+}
+
+interface FlowAmountProps {
+    amount: number;
+    className?: string;
+    code: string;
+    prefix?: string;
+    showCents: boolean;
+    size?: number;
+    snapWidth?: boolean;
+}
+
+export function FlowAmount({ amount, className, code, prefix, showCents, size, snapWidth }: FlowAmountProps) {
+    const { language } = useLanguage();
+    const { locale, minorUnits } = amountParts(amount, code, showCents, language);
+    return (
+        <FlowFigure
+            className={className}
+            format={{ maximumFractionDigits: minorUnits, minimumFractionDigits: minorUnits, useGrouping: true }}
+            locale={locale}
+            prefix={prefix}
+            size={size}
+            snapWidth={snapWidth}
+            value={roundMoney(Math.abs(amount), minorUnits)}
+        />
+    );
+}
+
+export function fittedHeroSize(size: number, amount: number, minorUnits: number, width: number): number {
+    return width > 0 ? Math.min(size, Math.floor(amountHeroFontSize(amount, minorUnits, width))) : size;
+}
 
 interface HeroNumberProps {
     /** Signed magnitude; the sign shown is derived unless `sign` is given. */
@@ -23,7 +96,6 @@ interface HeroNumberProps {
     toneClass?: string;
 }
 
-/** Nested `Text` baseline-aligns the parts without manual layout. */
 export function HeroNumber({
     amount,
     code,
@@ -37,28 +109,45 @@ export function HeroNumber({
     // that reads it without also consuming this context is bailed out of the
     // re-render when the language changes and keeps printing the old locale.
     const { language } = useLanguage();
+    const { width: windowWidth } = useWindowDimensions();
     const parts = amountParts(amount, code, showCents, language);
     const resolvedSign = sign ?? (amount < 0 ? "-" : "+");
-    const small = Math.round(size * 0.5);
+    const fitted = fittedHeroSize(size, amount, parts.minorUnits, windowWidth - HERO_GUTTER);
+    const small = (Math.round(size * 0.5) * fitted) / size;
+    const whole = Math.trunc(roundMoney(Math.abs(amount), parts.minorUnits));
     return (
-        <Text
-            adjustsFontSizeToFit
-            className={cn("tracking-hero font-sans tabular-nums", toneClass)}
-            numberOfLines={1}
-            style={{ fontSize: size }}
+        <View
+            accessibilityLabel={`${resolvedSign}${withCurrencySymbol(parts, amountDigits(parts))}`}
+            accessibilityRole="text"
+            accessible
+            className="flex-row items-baseline"
         >
-            <Text className="text-muted font-sans" style={{ fontSize: small }}>
+            <Text
+                className="tracking-hero text-muted font-sans tabular-nums"
+                numberOfLines={1}
+                style={{ fontSize: small }}
+            >
                 {resolvedSign}
                 {parts.symbol}
             </Text>
-            {parts.integer}
+            <FlowFigure
+                className={cn("font-sans tabular-nums", toneClass)}
+                format={{ maximumFractionDigits: 0, useGrouping: true }}
+                locale={parts.locale}
+                size={fitted}
+                value={whole}
+            />
             {parts.fraction ? (
-                <Text className="text-muted font-sans" style={{ fontSize: small }}>
-                    {parts.locale.decimal}
-                    {parts.fraction}
-                </Text>
+                <FlowFigure
+                    className="text-muted font-sans tabular-nums"
+                    format={{ minimumIntegerDigits: parts.minorUnits, useGrouping: false }}
+                    locale={parts.locale}
+                    prefix={intlDecimal(parts.locale.tag)}
+                    size={small}
+                    value={Number(parts.fraction)}
+                />
             ) : null}
-        </Text>
+        </View>
     );
 }
 

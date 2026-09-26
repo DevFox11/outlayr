@@ -4,6 +4,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { testDisplaySettingsValue as mockTestDisplaySettingsValue } from "@/contexts/test-settings";
 import type { CategoryBudgetView } from "@/data/budgets";
 import { CHART_DRAW } from "@/theme/chart";
+import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { BudgetRings } from "./budget-rings";
 
@@ -29,6 +30,7 @@ const mockTranslations = {
 
 let mockLanguage: "en" | "es" = "en";
 
+jest.mock("@/hooks/use-over-budget-moment", () => ({ useOverBudgetMoment: () => ({}) }));
 jest.mock("panelui-native", () => {
     const { Text: NativeText } = jest.requireActual("react-native") as typeof import("react-native");
     const Center = jest.fn(({ children }: { children?: (ring: null) => import("react").ReactNode }) =>
@@ -47,8 +49,12 @@ jest.mock("panelui-native", () => {
 
 jest.mock("react-native-reanimated", () => {
     const actual = jest.requireActual<typeof import("react-native-reanimated")>("react-native-reanimated");
-    return { ...actual, useReducedMotion: () => mockReduceMotion() };
+    return { ...actual, __esModule: true, useReducedMotion: () => mockReduceMotion() };
 });
+
+jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
+    useColors: () => mockTestColors(),
+}));
 
 jest.mock("@/contexts/display-settings-context", () => ({
     useDisplaySettings: () => mockTestDisplaySettingsValue({ showCents: true }),

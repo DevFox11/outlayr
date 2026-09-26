@@ -20,6 +20,7 @@ import Animated, { LinearTransition } from "react-native-reanimated";
 import { useColors } from "@/theme/use-colors";
 
 import { revealEntering } from "../../sentence/sentence-motion";
+import type { SentenceFigure } from "../../sentence/sentence-value";
 import { cn } from "../../tw";
 import type { TransactionSentenceMark } from "./slots";
 import { TransactionSentence } from "./transaction-sentence";
@@ -73,6 +74,7 @@ interface SentenceBodyProps {
     /** The slot the stage below is editing, marked in place. */
     activeSlot?: TransactionSentenceMark | null;
     amount: string | null;
+    amountFigure?: SentenceFigure;
     /**
      * The amount can hold the save back as readily as the category, and a
      * filled one can be the fault: zero is a value, not a blank.
@@ -121,6 +123,7 @@ export function TransactionSentenceBody({
     accountTile,
     activeSlot = null,
     amount,
+    amountFigure,
     amountFlagged,
     amountShake,
     category,
@@ -159,6 +162,7 @@ export function TransactionSentenceBody({
                 accountTile={accountTile}
                 activeSlot={activeSlot}
                 amount={amount}
+                amountFigure={amountFigure}
                 amountFlagged={amountFlagged}
                 amountShake={amountShake}
                 category={category}

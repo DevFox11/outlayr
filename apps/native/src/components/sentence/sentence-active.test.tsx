@@ -10,6 +10,7 @@ import { Sentence } from "./sentence";
 import { SentenceBlank } from "./sentence-blank";
 import { SentenceValue } from "./sentence-value";
 
+jest.mock("@/components/thinking-orb/thinking-orb", () => ({ ThinkingOrb: () => null }));
 jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
     useColors: () => mockTestColors(),
 }));

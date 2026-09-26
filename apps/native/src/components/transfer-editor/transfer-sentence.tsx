@@ -1,6 +1,7 @@
 import { Sentence } from "@/components/sentence/sentence";
 import { SentenceBlank } from "@/components/sentence/sentence-blank";
 import { SentenceValue } from "@/components/sentence/sentence-value";
+import type { SentenceFigure } from "@/components/sentence/sentence-value";
 import { useTranslation } from "@/i18n/context";
 
 export const TRANSFER_SENTENCE_SLOTS = [
@@ -29,6 +30,7 @@ export type TransferSentenceValues = Readonly<Record<TransferSentenceSlot, strin
 interface TransferSentenceProps {
     activeSlot: TransferSentenceSlot | null;
     crossCurrency: boolean;
+    figures: Partial<Record<TransferSentenceSlot, SentenceFigure>>;
     flaggedSlot: TransferSentenceSlot | null;
     hasFee: boolean;
     onSlotPress: (slot: TransferSentenceSlot) => void;
@@ -38,6 +40,7 @@ interface TransferSentenceProps {
 export function TransferSentence({
     activeSlot,
     crossCurrency,
+    figures,
     flaggedSlot,
     hasFee,
     onSlotPress,
@@ -81,7 +84,7 @@ export function TransferSentence({
         return value === null ? (
             <SentenceBlank {...shared} label={blanks[slot]} />
         ) : (
-            <SentenceValue {...shared} swapKey={slot} value={value} />
+            <SentenceValue {...shared} figure={figures[slot]} swapKey={slot} value={value} />
         );
     };
 

@@ -1,9 +1,10 @@
 import { Task } from "panelui-native";
 import type { TaskStatus } from "panelui-native";
 import { useEffect, useRef } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { Text } from "@/components/text";
+import { ThinkingOrb } from "@/components/thinking-orb/thinking-orb";
 import { useCsvImportContext } from "@/contexts/csv-import-context";
 import type { UnavailableReason } from "@/domain/import-flow";
 import type { CsvImportStage } from "@/hooks/use-csv-import";
@@ -12,7 +13,6 @@ import { useProEntitled } from "@/hooks/use-pro-locked";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
 import { importDraftStore, useImportDraft } from "@/lib/import-draft-store";
-import { useColors } from "@/theme/use-colors";
 
 import { StepCta } from "../step-cta";
 
@@ -56,12 +56,21 @@ function UnavailableAction({
     );
 }
 
-function StageTask({ children, label, status }: { children: React.ReactNode; label: string; status: TaskStatus }) {
-    const colors = useColors();
+function StageTask({
+    ai = false,
+    children,
+    label,
+    status,
+}: {
+    ai?: boolean;
+    children: React.ReactNode;
+    label: string;
+    status: TaskStatus;
+}) {
     return (
         <Task className="border-border gap-1.5 border-b py-2.5" status={status}>
             <Task.Trigger
-                icon={status === "running" ? <ActivityIndicator color={colors.foreground} size="small" /> : undefined}
+                icon={ai && status === "running" ? <ThinkingOrb state="searching" /> : undefined}
                 title={label}
             />
             <Task.Content>{children}</Task.Content>
@@ -170,7 +179,7 @@ export function ResolveStep({ review, onOpenFeatureLab, onSeePro }: ResolveStepP
                         </StageDetail>
                     </Task.Item>
                 </StageTask>
-                <StageTask label={t("import.resolveRunningAsked")} status={askedStatus(settledStage, tier2Sent)}>
+                <StageTask ai label={t("import.resolveRunningAsked")} status={askedStatus(settledStage, tier2Sent)}>
                     <Task.Item>
                         <StageDetail>
                             {tier2Sent > 0
