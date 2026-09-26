@@ -13,6 +13,8 @@ const mockAccounts = [
     { currency: "VES", id: "ves", initialBalance: 0, name: "Banesco" } as Account,
     { currency: "EUR", id: "eur", initialBalance: 0, name: "Wise" } as Account,
     { currency: "USD", id: "usd-2", initialBalance: 0, name: "Mercantil" } as Account,
+    { currency: "IDR", id: "idr", initialBalance: 0, name: "BCA" } as Account,
+    { currency: "SGD", id: "sgd", initialBalance: 0, name: "DBS" } as Account,
 ];
 
 const mockRates = new Map<string, number>();
@@ -309,6 +311,39 @@ describe("changing the destination under a custom rate", () => {
             result.current.chooseTo(mockAccounts[2] ?? null);
         });
         expect(result.current.legs).toStrictEqual({ exchangeRate: 0.9, fromAmount: 100, toAmount: 90 });
+    });
+});
+
+describe("a transfer between two currencies quoted the same way", () => {
+    beforeEach(() => {
+        mockRates.set("IDR", 16_300);
+        mockRates.set("SGD", 1.3);
+    });
+
+    it("types rupiah per Singapore dollar and keeps reading it that way once the market rate is gone", async () => {
+        const result = await draft();
+        await act(async () => {
+            result.current.chooseFrom(mockAccounts[4] ?? null);
+        });
+        await act(async () => {
+            result.current.chooseTo(mockAccounts[5] ?? null);
+        });
+        expect(result.current.customRatePadText).toBe("12538.4615");
+        await act(async () => {
+            result.current.setRateType("custom");
+        });
+        await act(async () => {
+            result.current.setCustomRate("12500");
+        });
+        await act(async () => {
+            result.current.setSent("1250000");
+        });
+        mockRates.clear();
+        await act(async () => {
+            result.current.setDate(new Date(Date.UTC(2026, 0, 1)));
+        });
+        expect(result.current.rateInverse).toBe(true);
+        expect(result.current.legs).toStrictEqual({ exchangeRate: 0.00008, fromAmount: 1_250_000, toAmount: 100 });
     });
 });
 

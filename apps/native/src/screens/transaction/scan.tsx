@@ -31,7 +31,7 @@ import { formatAmount } from "@/domain/money";
 import { boundedPromptNames } from "@/domain/prompt-budget";
 import { conversionOf, formatQuantity, receiptDetails, resolveReceipt, savableReceipt } from "@/domain/receipt-scan";
 import type { Conversion, ResolvedReceipt } from "@/domain/receipt-scan";
-import { formatRateFigure, pairUnitSymbols, quotePairRate } from "@/domain/transaction-entry-rate";
+import { formatRateFigure, pairQuotedInverse, pairUnitSymbols, quotePairRate } from "@/domain/transaction-entry-rate";
 import type { RateTable } from "@/domain/valuation";
 import type { CategoryCandidate } from "@/domain/voice-entry";
 import { stillCurrent } from "@/domain/voice-entry";
@@ -392,6 +392,7 @@ function ConversionLine({
             </Text>
         );
     }
+    const inverse = pairQuotedInverse(receipt.currency, ledgerCurrency, conversion.rate);
     return (
         <View className="gap-0.5">
             <Text className="font-sans-medium text-muted text-title tabular-nums">
@@ -399,8 +400,8 @@ function ConversionLine({
             </Text>
             <Text className="text-subtle text-footnote font-sans tabular-nums">
                 {t("receipt.review.rate", {
-                    ...pairUnitSymbols(receipt.currency, ledgerCurrency),
-                    rate: formatRateFigure(quotePairRate(receipt.currency, ledgerCurrency, conversion.rate), language),
+                    ...pairUnitSymbols(receipt.currency, ledgerCurrency, inverse),
+                    rate: formatRateFigure(quotePairRate(inverse, conversion.rate), language),
                 })}
                 {receipt.currencySource === "inferred" ? (
                     <>

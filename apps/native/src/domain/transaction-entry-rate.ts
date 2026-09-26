@@ -40,16 +40,21 @@ function quoteRank(code: string): number {
     return code === "USD" ? 1 : 0;
 }
 
-function pairQuotedInverse(from: string, to: string): boolean {
-    return quoteRank(to) > quoteRank(from);
+export function pairQuotedInverse(from: string, to: string, reference: number | null = null): boolean {
+    const fromRank = quoteRank(from);
+    const toRank = quoteRank(to);
+    if (fromRank !== toRank) {
+        return toRank > fromRank;
+    }
+    return reference !== null && reference < 1;
 }
 
-export function quotePairRate(from: string, to: string, rate: number): number {
-    return pairQuotedInverse(from, to) ? 1 / rate : rate;
+export function quotePairRate(inverse: boolean, rate: number): number {
+    return inverse ? 1 / rate : rate;
 }
 
 export function flipRateForQuote(currency: string, rate: number): number {
-    return rate > 0 ? quotePairRate("USD", currency, rate) : rate;
+    return rate > 0 ? quotePairRate(pairQuotedInverse("USD", currency), rate) : rate;
 }
 
 const SHARED_SYMBOLS: ReadonlySet<string> = new Set(
@@ -69,8 +74,8 @@ function unitSymbol(code: string): string {
     return SHARED_SYMBOLS.has(symbol) && SYMBOL_OWNERS.get(symbol) !== code ? code : symbol;
 }
 
-export function pairUnitSymbols(from: string, to: string) {
-    return pairQuotedInverse(from, to)
+export function pairUnitSymbols(from: string, to: string, inverse = pairQuotedInverse(from, to)) {
+    return inverse
         ? { base: unitSymbol(to), quote: unitSymbol(from) }
         : { base: unitSymbol(from), quote: unitSymbol(to) };
 }

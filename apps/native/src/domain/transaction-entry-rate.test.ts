@@ -7,8 +7,8 @@ import {
     formatQuotedRateFigure,
     formatRateFigure,
     isTransactionRateNeeded,
+    pairQuotedInverse,
     pairUnitSymbols,
-    quotePairRate,
     rateDeltaPercent,
     rateEntryText,
     transactionRateError,
@@ -90,7 +90,15 @@ describe("transaction entry rate policy", () => {
         expect(pairUnitSymbols("USD", "VES")).toStrictEqual({ base: "$", quote: "Bs." });
         expect(pairUnitSymbols("VES", "USD")).toStrictEqual({ base: "$", quote: "Bs." });
         expect(pairUnitSymbols("USD", "EUR")).toStrictEqual({ base: "€", quote: "$" });
-        expect(quotePairRate("VES", "USD", 1 / 848.5)).toBeCloseTo(848.5);
-        expect(quotePairRate("USD", "VES", 848.5)).toBe(848.5);
+        expect(pairQuotedInverse("VES", "USD", 1 / 848.5)).toBe(true);
+        expect(pairQuotedInverse("USD", "VES", 848.5)).toBe(false);
+        expect(pairQuotedInverse("USD", "KWD", 0.307)).toBe(false);
+    });
+
+    it("quotes two currencies of the same rank whichever way reads at least 1", () => {
+        expect(pairQuotedInverse("IDR", "SGD", 1.3 / 16_300)).toBe(true);
+        expect(pairQuotedInverse("SGD", "IDR", 16_300 / 1.3)).toBe(false);
+        expect(pairQuotedInverse("EUR", "XAU", 0.0003)).toBe(true);
+        expect(pairQuotedInverse("IDR", "SGD")).toBe(false);
     });
 });

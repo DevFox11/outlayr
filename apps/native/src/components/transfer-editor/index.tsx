@@ -162,7 +162,10 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
     };
 
     const typingRate = step === "rate" && !fresh;
-    const rateUnit = t("transaction.rate.unit", pairUnitSymbols(draft.fromCurrency, draft.toCurrency));
+    const rateUnit = t(
+        "transaction.rate.unit",
+        pairUnitSymbols(draft.fromCurrency, draft.toCurrency, draft.rateInverse)
+    );
     const rateFigure = typingRate
         ? draft.customRatePadText.replace(".", numberLocale(language).decimal) || null
         : formatRate(draft, draft.quotedRate, language);

@@ -17,16 +17,12 @@ export interface TransferGapPrompt {
 type Draft = ReturnType<typeof useTransferDraft>;
 type Translate = ReturnType<typeof useTranslation>;
 
-export function formatRate(
-    draft: Pick<Draft, "fromCurrency" | "toCurrency">,
-    rate: number | null,
-    language: Language
-): string | null {
-    return rate === null ? null : formatRateFigure(quotePairRate(draft.fromCurrency, draft.toCurrency, rate), language);
+export function formatRate(draft: Pick<Draft, "rateInverse">, rate: number | null, language: Language): string | null {
+    return rate === null ? null : formatRateFigure(quotePairRate(draft.rateInverse, rate), language);
 }
 
-function offeredRateText(draft: Pick<Draft, "fromCurrency" | "toCurrency">, rate: number, language: Language): string {
-    return formatEnteredRate(quotePairRate(draft.fromCurrency, draft.toCurrency, rate), language);
+function offeredRateText(draft: Pick<Draft, "rateInverse">, rate: number, language: Language): string {
+    return formatEnteredRate(quotePairRate(draft.rateInverse, rate), language);
 }
 
 export function blockMessage(draft: Draft, t: Translate, language: Language): string {

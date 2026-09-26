@@ -9,7 +9,7 @@ import type { SavedTransfer } from "@/data/transfers-core";
 import type { Database } from "@/db/client";
 import { minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
-import { quotePairRate, rateEntryText } from "@/domain/transaction-entry-rate";
+import { pairQuotedInverse, quotePairRate, rateEntryText } from "@/domain/transaction-entry-rate";
 import { marketRateFor, rateTypeOptions } from "@/domain/transfer-rate-options";
 import { solveTransfer, transferGap, transferLegs } from "@/domain/transfer-reconcile";
 import type { FeeSide, TransferLegs, TransferValues } from "@/domain/transfer-reconcile";
@@ -36,10 +36,19 @@ interface DraftMath {
     legs: TransferLegs | null;
 }
 
+interface CustomRate {
+    inverse: boolean;
+    text: string;
+}
+
 const RATE_PRECISION = 10;
 
-function pairRate(text: string | undefined, market: number | null, unquote: (rate: number) => number): number | null {
-    const typed = text === undefined ? null : numpadToNumber(text);
+function pairRate(
+    custom: CustomRate | undefined,
+    market: number | null,
+    unquote: (rate: number) => number
+): number | null {
+    const typed = custom === undefined ? null : numpadToNumber(custom.text);
     const rate = typed === null ? market : unquote(typed);
     return rate !== null && Number.isFinite(rate) && rate > 0 ? rate : null;
 }
@@ -130,6 +139,7 @@ export interface TransferDraft {
     marketRates: Record<EntryRateType, number | null>;
     pinArrival: () => void;
     quotedRate: number | null;
+    rateInverse: boolean;
     rateOptions: EntryRateType[];
     rateType: EntryRateType;
     resolveAsFee: () => void;
@@ -180,7 +190,7 @@ export interface TransferSeed {
 interface Opening {
     arrivalPinned: boolean;
     arrivedText: string;
-    customRates: Record<string, string>;
+    customRates: Record<string, CustomRate>;
     date: Date;
     feeSide: FeeSide;
     feeText: string;
@@ -233,15 +243,17 @@ function savedState(accounts: readonly Account[], saved: SavedTransfer): Opening
         });
     }
     const rateType = saved.rateType ?? "official";
+    const inverse = pairQuotedInverse(saved.fromCurrency, saved.toCurrency, saved.rate);
     return {
         arrivalPinned: true,
         arrivedText: numberToNumpad(saved.arrived, minorUnitsFor(toCurrency)),
         customRates:
             rateType === "custom" && saved.rate !== null
                 ? {
-                      [`${fromCurrency}/${toCurrency}`]: rateEntryText(
-                          quotePairRate(fromCurrency, toCurrency, saved.rate)
-                      ),
+                      [`${fromCurrency}/${toCurrency}`]: {
+                          inverse,
+                          text: rateEntryText(quotePairRate(inverse, saved.rate)),
+                      },
                   }
                 : {},
         date: saved.date,
@@ -304,7 +316,7 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
     const [marketType, setMarketType] = useState<EntryRateType>(
         opening.rateType === "custom" ? "official" : opening.rateType
     );
-    const [customRates, setCustomRates] = useState<Record<string, string>>(opening.customRates);
+    const [customRates, setCustomRates] = useState<Record<string, CustomRate>>(opening.customRates);
     const [feeText, setFeeText] = useState(opening.feeText);
     const [feeSide, setFeeSide] = useState<FeeSide>(opening.feeSide);
     const [date, setDate] = useState(opening.date);
@@ -339,19 +351,23 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
         [fromCurrency, toCurrency, date, rateTables]
     );
     const tableRate = tableRates[quoteType];
-    const quote = (value: number) => quotePairRate(fromCurrency, toCurrency, value);
     const pair = `${fromCurrency}/${toCurrency}`;
     const ownQuote = savedQuote(saved, pair, quoteType, date);
     const marketRate = tableRate ?? ownQuote;
-    const customRateText = customRates[pair];
+    const customRate = customRates[pair];
+    const rateInverse = customRate?.inverse ?? pairQuotedInverse(fromCurrency, toCurrency, marketRate);
+    const quote = (value: number) => quotePairRate(rateInverse, value);
     /** Keyed by pair, so a rate typed for another one does not answer here — and
      * without this the segmented control would label the market rate user-authored. */
     const shownRateType: EntryRateType =
-        rateType === "custom" && customRateText === undefined && marketRate === null ? marketType : rateType;
-    const rate = selectedRate(crossCurrency, rateType, pairRate(customRateText, marketRate, quote), marketRate);
+        rateType === "custom" && customRate === undefined && marketRate === null ? marketType : rateType;
+    const rate = selectedRate(crossCurrency, rateType, pairRate(customRate, marketRate, quote), marketRate);
 
     function setCustomRateText(text: string) {
-        setCustomRates((current) => ({ ...current, [pair]: text }));
+        setCustomRates((current) => ({
+            ...current,
+            [pair]: { inverse: current[pair]?.inverse ?? rateInverse, text },
+        }));
     }
 
     const fromDecimals = minorUnitsFor(fromCurrency);
@@ -429,7 +445,7 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
             }
         },
         crossCurrency,
-        customRatePadText: customRateText ?? (marketRate === null ? "" : rateEntryText(quote(marketRate))),
+        customRatePadText: customRate?.text ?? (marketRate === null ? "" : rateEntryText(quote(marketRate))),
         date,
         effectiveRate: math.legs === null ? rate : math.legs.exchangeRate,
         fee,
@@ -452,6 +468,7 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
             setArrivalPinned(true);
         },
         quotedRate: rate,
+        rateInverse,
         rateOptions: crossCurrency ? rateTypeOptions(toCurrency) : [],
         rateType: shownRateType,
         // Destination side whatever the current one is: the gap is a
