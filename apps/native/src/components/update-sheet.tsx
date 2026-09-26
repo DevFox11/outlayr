@@ -1,8 +1,9 @@
 import { useSegments } from "expo-router";
 import { checkForUpdateAsync, fetchUpdateAsync, isEnabled, reloadAsync, useUpdates } from "expo-updates";
 import { BottomSheet, Button, cn } from "panelui-native";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppState, View } from "react-native";
+import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAppLockOpen } from "@/components/app-lock-gate";
 import { useAuthCovered } from "@/components/auth-cover";
@@ -26,6 +27,8 @@ export function UpdateSheet() {
     const t = useTranslation();
     const { language } = useLanguage();
     const colors = useColors();
+    const insets = useSafeAreaInsets();
+    const sheetInsets = useMemo(() => ({ ...insets, bottom: 0 }), [insets]);
     const { availableUpdate, downloadedUpdate } = useUpdates();
     const update = describeUpdate(availableUpdate);
     const onTabs = useSegments()[0] === "(tabs)";
@@ -97,43 +100,52 @@ export function UpdateSheet() {
             }}
             open={open}
         >
-            <BottomSheet.Content size="auto">
-                <View className="gap-1 pb-4">
-                    <Text accessibilityRole="header" className="text-foreground font-sans-semibold text-title">
-                        {t("update.title")}
-                    </Text>
-                    <MonoLabel>
-                        {t("update.meta", {
-                            date: formatChargeDate(shown.at, undefined, language),
-                            version: APP_VERSION,
-                        })}
-                    </MonoLabel>
-                </View>
-                <View className="pb-5">
-                    {shown.notes.map((note, index) => (
-                        <Text
-                            className={cn(
-                                "border-border text-body text-foreground border-t py-2.5 leading-snug",
-                                index === shown.notes.length - 1 && "border-b"
-                            )}
-                            key={note}
-                        >
-                            {note}
+            <SafeAreaInsetsContext.Provider value={sheetInsets}>
+                <BottomSheet.Content size="auto">
+                    <View className="gap-1 pb-4">
+                        <Text accessibilityRole="header" className="text-foreground font-sans-semibold text-title">
+                            {t("update.title")}
                         </Text>
-                    ))}
-                </View>
-                {state === "failed" ? (
-                    <Text className="text-danger text-subtitle pb-3">{t("update.failed")}</Text>
-                ) : null}
-                <Button className="rounded-full" disabled={busy} fullWidth onPress={apply} size="md" variant="primary">
-                    {t(busy ? "update.updating" : "update.now")}
-                </Button>
-                {busy ? null : (
-                    <Button className="mt-2.5 rounded-full" fullWidth onPress={dismiss} size="md" variant="ghost">
-                        {t("update.later")}
+                        <MonoLabel>
+                            {t("update.meta", {
+                                date: formatChargeDate(shown.at, undefined, language),
+                                version: APP_VERSION,
+                            })}
+                        </MonoLabel>
+                    </View>
+                    <View className="pb-5">
+                        {shown.notes.map((note, index) => (
+                            <Text
+                                className={cn(
+                                    "border-border text-body text-foreground border-t py-2.5 leading-snug",
+                                    index === shown.notes.length - 1 && "border-b"
+                                )}
+                                key={note}
+                            >
+                                {note}
+                            </Text>
+                        ))}
+                    </View>
+                    {state === "failed" ? (
+                        <Text className="text-danger text-subtitle pb-3">{t("update.failed")}</Text>
+                    ) : null}
+                    <Button
+                        className="rounded-full"
+                        disabled={busy}
+                        fullWidth
+                        onPress={apply}
+                        size="md"
+                        variant="primary"
+                    >
+                        {t(busy ? "update.updating" : "update.now")}
                     </Button>
-                )}
-            </BottomSheet.Content>
+                    {busy ? null : (
+                        <Button className="mt-2.5 rounded-full" fullWidth onPress={dismiss} size="md" variant="ghost">
+                            {t("update.later")}
+                        </Button>
+                    )}
+                </BottomSheet.Content>
+            </SafeAreaInsetsContext.Provider>
         </BottomSheet>
     );
 }
