@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import type { AnsweredJob, EnrichmentJobRequest } from "@/data/enrichment-queue-core";
 import type { PhotoTransport } from "@/data/photo-sync-core";
-import type { PullRatesFn } from "@/data/rates";
+import type { PullRatesFn, PullRecentRatesFn } from "@/data/rates";
 import type { PullFn, PushFn } from "@/data/sync-engine-core";
 import type { RemoteEnrichmentResult } from "@/domain/enrichment-cache";
 import type { UsageLimits } from "@/domain/usage-limits";
@@ -52,6 +52,10 @@ export function cloudAction<Args, Result>(path: string, args: Args): Promise<Res
 
 export function ratesPuller(): PullRatesFn {
     return async (args) => cloudQuery("exchangeRates:pullRates", { ...args, at: Date.now() });
+}
+
+export function recentRatesPuller(): PullRecentRatesFn {
+    return async () => cloudQuery("exchangeRates:pullRecentRates", { at: Date.now() });
 }
 
 /**

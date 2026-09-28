@@ -3,11 +3,11 @@ import { describe, expect, test } from "vitest";
 import crons from "./crons";
 
 describe("cron registration", () => {
-    test("registers the frankfurter refresh on a 12-hour interval", () => {
-        const job = crons.crons["refresh frankfurter rates"];
+    test("registers the open exchange rates refresh five minutes past every hour", () => {
+        const job = crons.crons["refresh open exchange rates"];
         expect(job).toBeDefined();
-        expect(job?.schedule).toStrictEqual({ hours: 12, type: "interval" });
-        expect(job?.name).toBe("frankfurter:fetchRates");
+        expect(job?.schedule).toStrictEqual({ cron: "5 * * * *", type: "cron" });
+        expect(job?.name).toBe("openexchangerates:fetchRates");
     });
 
     test("registers the cotizave refresh on a 72-minute interval", () => {

@@ -1,7 +1,7 @@
 import type { RateLookup } from "@outlayr/money/rates";
-import { and, desc, eq, lte } from "drizzle-orm";
+import { and, desc, eq, lte, sql } from "drizzle-orm";
 
-import { getMeta } from "@/data/app-meta-core";
+import { getMeta, setMeta } from "@/data/app-meta-core";
 import type { SpendDb } from "@/data/budget-spent";
 import { bumpRatesRevision } from "@/data/rates-revision";
 import type { Database } from "@/db/client";
@@ -12,6 +12,8 @@ import { chunkRows } from "@/lib/chunk";
 /** 12 hours. */
 export const RATES_THROTTLE_MS = 43_200_000;
 
+export const RECENT_RATES_THROTTLE_MS = 900_000;
+
 /**
  * Rows per chunked INSERT. `exchangeRates` binds 6 params per row, so SQLite's
  * 32,766 bound-parameter cap admits at most 5,461 rows per statement — 2,000
@@ -20,6 +22,7 @@ export const RATES_THROTTLE_MS = 43_200_000;
 export const RATE_ROWS_PER_CHUNK = 2000;
 
 const LAST_PULL_KEY = "lastRatesPullAt";
+const LAST_RECENT_PULL_KEY = "lastRecentRatesPullAt";
 
 export interface RateWireRow {
     date: string;
@@ -40,12 +43,14 @@ export interface PullRatesPage {
 /** Injected so the pull logic never imports the Convex client. */
 export type PullRatesFn = (args?: { cursor?: number }) => Promise<PullRatesPage>;
 
+export type PullRecentRatesFn = () => Promise<RateWireRow[]>;
+
 /**
  * A backward clock jump puts the recorded pull in the future, which would hold
  * the throttle shut until the clock caught up. That counts as expired instead,
  * and the pull re-anchors the stamp.
  */
-export function isThrottled(last: number | null, now: number): boolean {
+export function isThrottled(last: number | null, now: number, throttleMs = RATES_THROTTLE_MS): boolean {
     if (last === null) {
         return false;
     }
@@ -53,7 +58,20 @@ export function isThrottled(last: number | null, now: number): boolean {
     if (elapsed < 0) {
         return false;
     }
-    return elapsed < RATES_THROTTLE_MS;
+    return elapsed < throttleMs;
+}
+
+async function lastPullAt(db: Database, key: string): Promise<number | null> {
+    const raw = await getMeta(db, key);
+    if (raw === null) {
+        return null;
+    }
+    const last = Number.parseInt(raw, 10);
+    return Number.isNaN(last) ? null : last;
+}
+
+function toRateRow({ date, fetchedAt, quote, rate, rateType, source }: RateWireRow) {
+    return { date, fetchedAt, quote, rate, rateType, source };
 }
 
 async function fetchAllRates(pull: PullRatesFn): Promise<RateWireRow[]> {
@@ -86,14 +104,8 @@ export async function pullRatesIfDue(
     options: { force?: boolean; now?: number } = {}
 ): Promise<boolean> {
     const now = options.now ?? Date.now();
-    if (!options.force) {
-        const raw = await getMeta(db, LAST_PULL_KEY);
-        const last = raw === null ? null : Number.parseInt(raw, 10);
-        // SAFETY: `Number.isNaN` takes a number, and `last` is null-checked into
-        // the parse above; the null case is handled by the ternary itself.
-        if (isThrottled(Number.isNaN(last as number) ? null : last, now)) {
-            return false;
-        }
+    if (!options.force && isThrottled(await lastPullAt(db, LAST_PULL_KEY), now)) {
+        return false;
     }
 
     const rows = await fetchAllRates(pull);
@@ -101,14 +113,7 @@ export async function pullRatesIfDue(
         return false;
     }
 
-    const mapped = rows.map((row) => ({
-        date: row.date,
-        fetchedAt: row.fetchedAt,
-        quote: row.quote,
-        rate: row.rate,
-        rateType: row.rateType,
-        source: row.source,
-    }));
+    const mapped = rows.map(toRateRow);
 
     await withTransaction(db, async () => {
         await db.delete(exchangeRates);
@@ -127,6 +132,41 @@ export async function pullRatesIfDue(
 
     // After the commit, never inside it: a screen invalidated against a
     // half-replaced cache would re-read rows that a rollback is about to remove.
+    bumpRatesRevision();
+
+    return true;
+}
+
+export async function pullRecentRatesIfDue(
+    db: Database,
+    pull: PullRecentRatesFn,
+    options: { now?: number } = {}
+): Promise<boolean> {
+    const now = options.now ?? Date.now();
+    if (isThrottled(await lastPullAt(db, LAST_RECENT_PULL_KEY), now, RECENT_RATES_THROTTLE_MS)) {
+        return false;
+    }
+
+    const rows = await pull();
+    if (rows.length === 0) {
+        return false;
+    }
+
+    await withTransaction(db, async () => {
+        await db
+            .insert(exchangeRates)
+            .values(rows.map(toRateRow))
+            .onConflictDoUpdate({
+                set: {
+                    fetchedAt: sql`excluded.fetchedAt`,
+                    rate: sql`excluded.rate`,
+                    source: sql`excluded.source`,
+                },
+                target: [exchangeRates.quote, exchangeRates.rateType, exchangeRates.date],
+            });
+        await setMeta(db, LAST_RECENT_PULL_KEY, String(now));
+    });
+
     bumpRatesRevision();
 
     return true;

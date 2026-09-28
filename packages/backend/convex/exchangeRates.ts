@@ -3,7 +3,7 @@ import { v } from "convex/values";
 
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
-import { internalAction, internalMutation, internalQuery, query } from "./_generated/server";
+import { internalAction, internalMutation, query } from "./_generated/server";
 import { marketRateType, PICKABLE_CURRENCY_CODES, rateSource, utcDateString } from "./lib/currencies";
 import type { MarketRateType } from "./lib/currencies";
 
@@ -151,34 +151,6 @@ function toRateWire(doc: Doc<"exchangeRates">) {
     };
 }
 
-/**
- * Which `official` quotes are already stored on each requested date, so an
- * ingester can tell a day it holds in full from one it holds a slice of.
- *
- * Restricted to `official` because that is the only rateType Frankfurter
- * writes: a cotizave `binance` row on the same date is not coverage for the
- * official quote. The caller must BATCH the date list — one date is bounded by
- * the provider catalog, but a whole 90-day window would approach Convex's
- * per-transaction document ceiling.
- */
-export const officialQuotesByDate = internalQuery({
-    args: { dates: v.array(v.string()) },
-    handler: async (ctx, args) =>
-        await Promise.all(
-            args.dates.map(async (date) => {
-                const rows = await ctx.db
-                    .query("exchangeRates")
-                    .withIndex("by_date", (q) => q.eq("date", date))
-                    .collect();
-                return {
-                    date,
-                    quotes: rows.filter((row) => row.rateType === "official").map((row) => row.quote),
-                };
-            })
-        ),
-    returns: v.array(v.object({ date: v.string(), quotes: v.array(v.string()) })),
-});
-
 export const upsertRates = internalMutation({
     args: {
         date: v.string(),
@@ -207,9 +179,7 @@ export const upsertRates = internalMutation({
                 .unique();
 
             if (existing) {
-                // Source priority: a cotizave row (BCV official / live market mids) is
-                // authoritative and must not be clobbered by a Frankfurter refresh.
-                if (args.source === "frankfurter" && existing.source === "cotizave") {
+                if (args.source !== "cotizave" && existing.source === "cotizave") {
                     continue;
                 }
                 await ctx.db.patch("exchangeRates", existing._id, {
@@ -366,8 +336,8 @@ export const pullRates = query({
     args: { at: v.optional(v.number()), cursor: v.optional(v.number()) },
     handler: async (ctx, args) => {
         // Taken as an argument, never read off the wall clock: a query is not
-        // rerun because time passed, and `exchangeRates` is written only by a
-        // 12-hour cron, so a subscriber crossing UTC midnight would keep serving
+        // rerun because time passed, and `exchangeRates` is written only by
+        // crons, so a subscriber crossing UTC midnight would keep serving
         // yesterday's window for hours. Same reason `groundedSpend.monthlyTotal`
         // takes `at`.
         const windowStart = ratesWindowStart(Math.max(args.at ?? Date.now(), Date.now() - OLDEST_CALLER_INSTANT_MS));
@@ -402,5 +372,19 @@ export const pullRates = query({
         const nextIndex = start + PAIRS_PER_PAGE;
         const nextCursor = nextIndex < ANCHOR_PAIR_CATALOG.length ? nextIndex : null;
         return { nextCursor, rows, windowStart };
+    },
+});
+
+const RECENT_ROWS_LIMIT = 1000;
+const CATALOG_PAIR_KEYS = new Set(ANCHOR_PAIR_CATALOG.map(({ quote, rateType }) => `${quote}:${rateType}`));
+
+export const pullRecentRates = query({
+    args: { at: v.number() },
+    handler: async (ctx, args) => {
+        const rows = await ctx.db
+            .query("exchangeRates")
+            .withIndex("by_date", (q) => q.gte("date", utcDateString(args.at - MS_PER_DAY)))
+            .take(RECENT_ROWS_LIMIT);
+        return rows.filter((row) => CATALOG_PAIR_KEYS.has(`${row.quote}:${row.rateType}`)).map(toRateWire);
     },
 });

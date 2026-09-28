@@ -6,9 +6,9 @@ import { getMeta, META_KEYS, setMeta } from "@/data/app-meta-core";
 import { backfillBudgetUsd, backfillCanonicalUsd, stampLedgerCurrency } from "@/data/canonicalize-backfill";
 import { settlePendingFees } from "@/data/card-fees-core";
 import { drainPendingWrites } from "@/data/pending-writes-core";
-import { pullRatesIfDue } from "@/data/rates";
+import { pullRatesIfDue, pullRecentRatesIfDue } from "@/data/rates";
 import type { Database } from "@/db/client";
-import { ratesPuller } from "@/lib/convex";
+import { ratesPuller, recentRatesPuller } from "@/lib/convex";
 import { armLogoBackfill, backfillLogos } from "@/lib/logo-backfill";
 import { publishWidgets } from "@/widgets/publish";
 
@@ -143,7 +143,7 @@ async function refreshRates(db: Database): Promise<boolean> {
     const pull = ratesPuller();
     let changed = false;
     try {
-        changed = await pullRatesIfDue(db, pull);
+        changed = (await pullRatesIfDue(db, pull)) || (await pullRecentRatesIfDue(db, recentRatesPuller()));
     } catch (error) {
         console.warn("[outlayr] rate refresh failed", error);
     }

@@ -65,7 +65,7 @@ describe("upsertRates", () => {
         });
     });
 
-    test("frankfurter never overwrites a same-key cotizave row", async () => {
+    test("open exchange rates never overwrites a same-key cotizave row", async () => {
         const t = convexTest(schema, modules);
         await seed(t, {
             date: "2026-03-13",
@@ -80,7 +80,7 @@ describe("upsertRates", () => {
             date: "2026-03-13",
             fetchedAt: 1000,
             rates: [{ quote: "VES", rate: 40, rateType: "official" }],
-            source: "frankfurter",
+            source: "openexchangerates",
         });
 
         const rows = await readKey(t, "VES", "official", "2026-03-13");
@@ -349,6 +349,25 @@ describe("pruneStale", () => {
         expect(dates).toContain(daysAgoDate(10));
         expect(dates).toContain(daysAgoDate(100));
         expect(dates).toContain(daysAgoDate(200));
+    });
+});
+
+describe("pullRecentRates", () => {
+    test("serves the catalog rows from the caller's previous UTC day onward", async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
+        const t = convexTest(schema, modules);
+        await seedOfficialRate(t, "EUR", daysAgoDate(0));
+        await seedOfficialRate(t, "EUR", daysAgoDate(1));
+        await seedOfficialRate(t, "EUR", daysAgoDate(2));
+        await seedOfficialRate(t, "BTC", daysAgoDate(0));
+
+        const rows = await t.query(api.exchangeRates.pullRecentRates, { at: Date.now() });
+
+        const served = rows.map((row) => `${row.quote} ${row.date}`);
+        expect(served).toHaveLength(2);
+        expect(served).toContain(`EUR ${daysAgoDate(0)}`);
+        expect(served).toContain(`EUR ${daysAgoDate(1)}`);
     });
 });
 

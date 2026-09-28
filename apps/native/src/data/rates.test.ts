@@ -6,7 +6,14 @@ import { appMeta, exchangeRates } from "@/db/schema";
 import { testDatabase, withAsyncTransactions } from "@/db/test-database";
 import { chunkRows } from "@/lib/chunk";
 
-import { isThrottled, pullRatesIfDue, RATE_ROWS_PER_CHUNK, RATES_THROTTLE_MS } from "./rates";
+import {
+    isThrottled,
+    pullRatesIfDue,
+    pullRecentRatesIfDue,
+    RATE_ROWS_PER_CHUNK,
+    RATES_THROTTLE_MS,
+    RECENT_RATES_THROTTLE_MS,
+} from "./rates";
 import type { PullRatesPage, RateWireRow } from "./rates";
 import { ratesRevision, subscribeRatesRevision } from "./rates-revision";
 
@@ -294,5 +301,44 @@ describe("pullRatesIfDue", () => {
 
         expect(ratesRevision()).toBe(before);
         await expect(storedRates(db)).resolves.toStrictEqual([{ date: "2020-01-01", quote: "VES" }]);
+    });
+});
+
+describe("pullRecentRatesIfDue", () => {
+    it("updates today's rate in place and leaves earlier days alone", async () => {
+        const db = makeDb();
+        await db.insert(exchangeRates).values([wireRow("EUR", "2026-07-27"), wireRow("EUR", "2026-07-28")]);
+
+        const landed = await pullRecentRatesIfDue(
+            db,
+            async () => [{ ...wireRow("EUR", "2026-07-28"), rate: 0.88 }, wireRow("GBP", "2026-07-28")],
+            { now: NOW }
+        );
+
+        expect(landed).toBe(true);
+        await expect(
+            db
+                .select({ date: exchangeRates.date, quote: exchangeRates.quote, rate: exchangeRates.rate })
+                .from(exchangeRates)
+                .orderBy(exchangeRates.quote, exchangeRates.date)
+        ).resolves.toStrictEqual([
+            { date: "2026-07-27", quote: "EUR", rate: 0.9 },
+            { date: "2026-07-28", quote: "EUR", rate: 0.88 },
+            { date: "2026-07-28", quote: "GBP", rate: 0.9 },
+        ]);
+    });
+
+    it("waits out its own window without asking the backend", async () => {
+        const db = makeDb();
+        await db.insert(appMeta).values({ key: "lastRecentRatesPullAt", value: String(NOW - 1000) });
+        let asked = 0;
+        const pull = async () => {
+            asked += 1;
+            return [wireRow("EUR", "2026-07-28")];
+        };
+
+        await expect(pullRecentRatesIfDue(db, pull, { now: NOW })).resolves.toBe(false);
+        await expect(pullRecentRatesIfDue(db, pull, { now: NOW + RECENT_RATES_THROTTLE_MS })).resolves.toBe(true);
+        expect(asked).toBe(1);
     });
 });

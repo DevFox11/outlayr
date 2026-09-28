@@ -24,6 +24,6 @@ export const marketRateType = v.union(v.literal("official"), v.literal("eur_refe
  */
 export const entryRateType = v.union(v.literal("official"), v.literal("eur_reference"), v.literal("custom"));
 
-export const rateSource = v.union(v.literal("frankfurter"), v.literal("cotizave"));
+export const rateSource = v.union(v.literal("frankfurter"), v.literal("cotizave"), v.literal("openexchangerates"));
 
 export type RateSource = Infer<typeof rateSource>;

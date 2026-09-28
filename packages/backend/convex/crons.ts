@@ -4,7 +4,7 @@ import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
-crons.interval("refresh frankfurter rates", { hours: 12 }, internal.frankfurter.fetchRates, {});
+crons.cron("refresh open exchange rates", "5 * * * *", internal.openexchangerates.fetchRates, {});
 
 crons.interval("refresh cotizave ves rates", { minutes: 72 }, internal.cotizave.fetchRates, {});
 
