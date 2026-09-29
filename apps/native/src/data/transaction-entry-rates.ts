@@ -12,7 +12,9 @@ export interface TransactionRateSuggestions {
      */
     eurOfficial: number | null;
     eurReference: number | null;
+    eurReferenceFetchedAt: number | null;
     official: number | null;
+    officialFetchedAt: number | null;
     priorCustom: { date: Date; rate: number } | null;
 }
 
@@ -21,9 +23,9 @@ function providerRate(
     currency: string,
     rateType: "eur_reference" | "official",
     date: string
-): number | null {
+): { fetchedAt: number; rate: number } | null {
     const [row] = db
-        .select({ rate: exchangeRates.rate })
+        .select({ fetchedAt: exchangeRates.fetchedAt, rate: exchangeRates.rate })
         .from(exchangeRates)
         .where(
             and(eq(exchangeRates.quote, currency), eq(exchangeRates.rateType, rateType), lte(exchangeRates.date, date))
@@ -31,7 +33,7 @@ function providerRate(
         .orderBy(desc(exchangeRates.date))
         .limit(1)
         .all();
-    return row?.rate ?? null;
+    return row ?? null;
 }
 
 export function transactionRateSuggestions(db: Database, currency: string, date: Date): TransactionRateSuggestions {
@@ -39,6 +41,7 @@ export function transactionRateSuggestions(db: Database, currency: string, date:
     const official = providerRate(db, currency, "official", rateDate);
     const vesEurReference = currency === "VES" ? providerRate(db, currency, "eur_reference", rateDate) : null;
     const eurOfficial = vesEurReference === null ? null : providerRate(db, "EUR", "official", rateDate);
+    const eurReference = eurOfficial === null ? null : vesEurReference;
     const [priorCustom] = db
         .select({ date: transactions.date, rate: transactions.exchangeRate })
         .from(transactions)
@@ -56,9 +59,11 @@ export function transactionRateSuggestions(db: Database, currency: string, date:
         .all();
 
     return {
-        eurOfficial,
-        eurReference: eurOfficial === null ? null : vesEurReference,
-        official,
+        eurOfficial: eurOfficial?.rate ?? null,
+        eurReference: eurReference?.rate ?? null,
+        eurReferenceFetchedAt: eurReference?.fetchedAt ?? null,
+        official: official?.rate ?? null,
+        officialFetchedAt: official?.fetchedAt ?? null,
         priorCustom:
             priorCustom?.rate == null
                 ? null

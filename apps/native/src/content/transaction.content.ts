@@ -354,6 +354,10 @@ const transaction = {
             en: "As of {date}",
             es: "Al {date}",
         }),
+        "transaction.rate.asOfTime": t({
+            en: "As of {time}",
+            es: "Hoy, {time}",
+        }),
         "transaction.rate.custom": t({
             en: "My rate",
             es: "Mi tasa",

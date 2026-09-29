@@ -70,6 +70,8 @@ jest.mock("@/i18n/context", () => {
     // then every assertion below is driving a sentence the app does not render.
     const catalog = require("@/i18n/catalog") as typeof import("@/i18n/catalog");
     const TRANSLATED: Record<string, string> = {
+        "transaction.rate.asOf": catalog.EN["transaction.rate.asOf"] ?? "",
+        "transaction.rate.asOfTime": catalog.EN["transaction.rate.asOfTime"] ?? "",
         "transaction.sentence.expense": catalog.EN["transaction.sentence.expense"] ?? "",
         "transaction.sentence.extra.tags": catalog.EN["transaction.sentence.extra.tags"] ?? "",
         "transaction.sentence.income": catalog.EN["transaction.sentence.income"] ?? "",
@@ -3545,5 +3547,40 @@ describe("transactionForm entry-rate confirmation", () => {
             exchangeRate: 40,
             exchangeRateType: "official",
         });
+    });
+
+    it.each([
+        ["today", new Date().setHours(12, 5, 0, 0), "As of 12:05 PM"],
+        ["an earlier day", new Date(2026, 7, 10, 12, 5).getTime(), "As of 10 Aug"],
+    ])("states when the official rate was fetched %s", async (_day, fetchedAt, label) => {
+        const db = dbHolder.current as Database;
+        const categoryId = await seedCategory(db);
+        await db.insert(exchangeRates).values({
+            date: "2026-08-10",
+            fetchedAt,
+            quote: "EUR",
+            rate: 0.88,
+            rateType: "official",
+            source: "openexchangerates",
+        });
+        const copyOf: LogAgainDraft = {
+            amount: 25,
+            categoryId,
+            currency: "EUR",
+            customColor: null,
+            details: null,
+            emoji: null,
+            icon: null,
+            income: false,
+            note: "EUR entry",
+        };
+        const screen = await render(
+            <Providers>
+                <TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+
+        await openRateStep(screen);
+        expect(screen.getByText(label)).toBeTruthy();
     });
 });

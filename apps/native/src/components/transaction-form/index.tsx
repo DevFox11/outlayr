@@ -27,7 +27,7 @@ import { InlineFailure } from "@/components/form/inline-failure";
 import { shallowEqual } from "@/components/form/shallow-equal";
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { SubscribeFields } from "@/components/form/subscribe-fields";
-import { useAppSettings, useSettingBool } from "@/contexts/display-settings-context";
+import { useAppSettings, useDisplaySettings, useSettingBool } from "@/contexts/display-settings-context";
 import { EMPTY_DRAFT, useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
 import { useAccounts } from "@/data/accounts";
 import { getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "@/data/accounts-core";
@@ -58,7 +58,7 @@ import { cardFeeAmount, cardFeeBase, cardFeeOf, feeDraftOf, formatFeeRate, NO_FE
 import type { FeeDraft } from "@/domain/card-fee";
 import { CONFETTI_FLIGHT_MS } from "@/domain/confetti";
 import { computeCurtainHues } from "@/domain/curtain-hues";
-import { formatSentenceDate } from "@/domain/dates";
+import { formatSentenceDate, formatTime, startOfDay } from "@/domain/dates";
 import { merchantKey } from "@/domain/merchant-resolver";
 import { suggestMerchants } from "@/domain/merchant-suggest";
 import { formatAmount, formatFixed, minorUnitsFor, numberLocale, roundToMinorUnits } from "@/domain/money";
@@ -560,6 +560,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const haptics = useHaptics();
     const t = useTranslation();
     const { language } = useLanguage();
+    const { use24Hour } = useDisplaySettings().state;
     const { width: windowWidth, height: windowHeight } = useWindowDimensions();
     /** Swift's `.padding(.horizontal, 20)` content box. */
     const contentWidth = windowWidth - 40;
@@ -1148,6 +1149,17 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         setRateType: (next) => form.setFieldValue("exchangeRateType", next),
         stageStep,
     });
+    const rateAsOf = (type: Exclude<EntryRateType, "custom">, offered: number | null): string => {
+        const fetchedAt =
+            type === "official" ? rateSuggestions.officialFetchedAt : rateSuggestions.eurReferenceFetchedAt;
+        if (fetchedAt === null || offered !== suggestionFor(type)) {
+            return t("transaction.rate.asOf", { date: formatSentenceDate(date, language) });
+        }
+        const fetched = new Date(fetchedAt);
+        return startOfDay(fetched).getTime() === startOfDay(new Date()).getTime()
+            ? t("transaction.rate.asOfTime", { time: formatTime(fetched, use24Hour, language) })
+            : t("transaction.rate.asOf", { date: formatSentenceDate(fetched, language) });
+    };
     const rateOptions = (): StepRateOption[] =>
         transactionRateOptions(currency).map((type) => {
             const shared = { name: t(RATE_NAME_KEYS[type]), type, unit: unitOf(type) };
@@ -1171,7 +1183,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 rateSelection.exchangeRateType === type && rateInForce !== null ? rateInForce : suggestionFor(type);
             return {
                 ...shared,
-                detail: t("transaction.rate.asOf", { date: formatSentenceDate(date, language) }),
+                detail: rateAsOf(type, offered),
                 figure: offered === null ? null : rateFigure(offered),
                 placeholder: t("transaction.rate.unavailable"),
             };
