@@ -112,8 +112,8 @@ const transaction = {
             es: "Cobrado",
         }),
         "transaction.fee.line": t({
-            en: "{base} + {fee} fee",
-            es: "{base} + {fee} de comisión",
+            en: "{base} plus {fee}",
+            es: "{base} más {fee}",
         }),
         "transaction.fee.loggedAs": t({
             en: "Logged as",
@@ -131,9 +131,21 @@ const transaction = {
             en: "Other %",
             es: "Otro %",
         }),
+        "transaction.fee.part": t({
+            en: "{fee} in fees",
+            es: "{fee} de comisión",
+        }),
+        "transaction.fee.pays": t({
+            en: "{account} pays",
+            es: "{account} paga",
+        }),
         "transaction.fee.title": t({
             en: "Card fee",
             es: "Comisión de la tarjeta",
+        }),
+        "transaction.fee.total": t({
+            en: "Total with fee",
+            es: "Total con comisión",
         }),
         "transaction.field.account": t({
             en: "Account",

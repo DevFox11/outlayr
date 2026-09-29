@@ -6,6 +6,7 @@ import Animated from "react-native-reanimated";
 import { parseSentence } from "@/domain/sentence-template";
 
 import { Text } from "../text";
+import { cn } from "../tw";
 import { clusterEntering } from "./sentence-motion";
 
 interface SentenceStyle {
@@ -24,6 +25,7 @@ export function useSentenceStyle(): SentenceStyle {
 }
 
 interface SentenceProps<TSlot extends string> {
+    gapClassName?: string;
     /**
      * A fill per slot the caller's templates use. Declaring the union rather
      * than collecting named children makes a slot the caller forgot a type
@@ -52,6 +54,7 @@ const DEFAULT_TEXT = "font-sans-medium text-[26px] leading-[38px] tracking-tight
  * string.
  */
 export function Sentence<TSlot extends string>({
+    gapClassName = "gap-x-2",
     slots,
     template,
     textClassName = DEFAULT_TEXT,
@@ -64,7 +67,7 @@ export function Sentence<TSlot extends string>({
 
     return (
         <SentenceContext value={style}>
-            <View className="flex-row flex-wrap items-baseline gap-x-2">
+            <View className={cn("flex-row flex-wrap items-baseline", gapClassName)}>
                 {clusters.map((cluster, index) => (
                     <Animated.View
                         className="flex-row items-baseline"

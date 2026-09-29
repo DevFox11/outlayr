@@ -116,6 +116,7 @@ import { Text } from "../text";
 import { ThinkingOrb } from "../thinking-orb/thinking-orb";
 import { TransactionFormAmountPad } from "./amount-pad";
 import { TransactionFormCta } from "./cta";
+import { FeeTotal } from "./sentence/fee-total";
 import { TransactionSentenceBody } from "./sentence/sentence-body";
 import type { TransactionSentenceMark } from "./sentence/slots";
 import type { TransactionRateClause } from "./sentence/transaction-sentence";
@@ -2539,33 +2540,14 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                 activeSlot={activeSlot}
                                                 feeLine={
                                                     feeNow === null || feeBaseNow === null ? undefined : (
-                                                        <Pressable
-                                                            accessibilityRole="button"
+                                                        <FeeTotal
+                                                            account={account?.name ?? null}
+                                                            accountTile={accountTile}
+                                                            base={feeBaseNow}
+                                                            code={feeCurrency}
+                                                            fee={feeNow}
                                                             onPress={() => enterStep("fee")}
-                                                        >
-                                                            <MetaLine
-                                                                qualifier={formatAmount(
-                                                                    feeBaseNow + feeNow,
-                                                                    feeCurrency,
-                                                                    true,
-                                                                    language
-                                                                )}
-                                                                statement={t("transaction.fee.line", {
-                                                                    base: formatAmount(
-                                                                        feeBaseNow,
-                                                                        feeCurrency,
-                                                                        true,
-                                                                        language
-                                                                    ),
-                                                                    fee: formatAmount(
-                                                                        feeNow,
-                                                                        feeCurrency,
-                                                                        true,
-                                                                        language
-                                                                    ),
-                                                                })}
-                                                            />
-                                                        </Pressable>
+                                                        />
                                                     )
                                                 }
                                                 rate={

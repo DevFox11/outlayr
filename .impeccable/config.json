@@ -11,6 +11,24 @@
         ],
         "createdAt": "2026-09-20T21:37:27.838Z",
         "reason": "agent: only uppercase text is short mono kicker labels (eyebrows, 'Editing · Rate'), the project's Geist Mono kicker convention, no body passages"
+      },
+      {
+        "rule": "overused-font",
+        "value": "geist mono",
+        "files": [
+          "docs/design/fee-total.html"
+        ],
+        "createdAt": "2026-09-29T10:59:56.921Z",
+        "reason": "agent triage: Geist Mono is the app's own mono face (apps/native/global.css:338 --font-mono), the mock must match the app"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "docs/design/fee-total.html"
+        ],
+        "createdAt": "2026-09-29T10:59:56.939Z",
+        "reason": "agent triage: #f2f0ea is the app's light --background token (apps/native/global.css:21), the mock reproduces the real screen"
       }
     ]
   }

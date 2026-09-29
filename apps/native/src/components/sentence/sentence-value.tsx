@@ -41,6 +41,7 @@ interface SentenceValueProps {
     onPress: () => void;
     /** Dimmed while a suggestion for this slot is still resolving. */
     pending?: boolean;
+    ruleBottom?: number;
     shake?: boolean;
     /**
      * Identity of the fact rather than of its text. The amount changes on every
@@ -66,6 +67,7 @@ export function SentenceValue({
     flagged,
     onPress,
     pending,
+    ruleBottom = RULE_BOTTOM,
     shake,
     swapKey,
     value,
@@ -129,7 +131,7 @@ export function SentenceValue({
                     style={[
                         {
                             backgroundColor: flagged ? colors.danger : colors.tint,
-                            bottom: RULE_BOTTOM,
+                            bottom: ruleBottom,
                             transformOrigin: "left",
                         },
                         ruleStyle,

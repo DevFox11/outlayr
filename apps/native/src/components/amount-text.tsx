@@ -101,6 +101,7 @@ interface HeroNumberProps {
     showCents?: boolean;
     sign?: "+" | "-" | "";
     size?: number;
+    snapWidth?: boolean;
     /** uniwind color class for the digits, e.g. "text-income". */
     toneClass?: string;
 }
@@ -111,6 +112,7 @@ export function HeroNumber({
     sign,
     toneClass = "text-foreground",
     size = 40,
+    snapWidth,
     showCents = true,
 }: HeroNumberProps) {
     // Read through the context rather than `amountParts`' `runtimeLanguage()`
@@ -144,6 +146,7 @@ export function HeroNumber({
                 format={{ maximumFractionDigits: 0, useGrouping: true }}
                 locale={parts.locale}
                 size={fitted}
+                snapWidth={snapWidth}
                 value={whole}
             />
             {parts.fraction ? (
@@ -153,6 +156,7 @@ export function HeroNumber({
                     locale={parts.locale}
                     prefix={intlDecimal(parts.locale.tag)}
                     size={small}
+                    snapWidth={snapWidth}
                     value={Number(parts.fraction)}
                 />
             ) : null}
