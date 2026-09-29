@@ -8,7 +8,7 @@ import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { PortalHost, PortalProvider } from "panelui-native";
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Alert,
     Keyboard,
@@ -39,11 +39,11 @@ import { ensureCategoryByName, getCategoryById } from "@/data/categories-core";
 import type { Category } from "@/data/categories-core";
 import { queueEnrichment } from "@/data/enrichment-queue-core";
 import { useFavouriteCurrencies } from "@/data/favourite-currencies";
+import { useRatesRead } from "@/data/live-query";
 import { recallMerchant } from "@/data/merchant-book-core";
 import { useRecentMerchants } from "@/data/merchant-history";
 import { rememberedCategoryFor } from "@/data/merchant-history-core";
 import { applyMerchantToSiblings } from "@/data/merchant-siblings-core";
-import { ratesRevision, subscribeRatesRevision } from "@/data/rates-revision";
 import { backfillRecurring } from "@/data/recurrence-backfill";
 import { setBoolSetting } from "@/data/settings-core";
 import { splitsRepo } from "@/data/splits-core";
@@ -917,12 +917,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 
     const currency = txCurrency ?? globalCurrency;
     const minorUnits = minorUnitsFor(currency);
-    const ratesVersion = useSyncExternalStore(subscribeRatesRevision, ratesRevision, ratesRevision);
-    const rateSuggestions = useMemo(
-        () => transactionRateSuggestions(db, currency, date),
-        // oxlint-disable-next-line react/exhaustive-deps -- ratesVersion invalidates this SQLite read after cache replacement.
-        [db, currency, date, ratesVersion]
-    );
+    const rateSuggestions = useRatesRead(() => transactionRateSuggestions(db, currency, date), [db, currency, date]);
     const rateSelection = rateSelectionOf(rateEntry, exchangeRateType, currency);
     /**
      * Whether this entry converts at all. `transactionRateOptions` is the single
@@ -982,13 +977,12 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const feeable = !income && initial?.transferId == null && initial?.feeForId == null;
     const foreignCharge = account != null && account.currency !== currency;
     const feeCurrency = account?.currency ?? currency;
-    const cardRate = useMemo(
+    const cardRate = useRatesRead(
         () =>
             feeCurrency === "USD" || feeCurrency === currency
                 ? null
                 : transactionRateSuggestions(db, feeCurrency, date).official,
-        // oxlint-disable-next-line react/exhaustive-deps -- ratesVersion invalidates this SQLite read after cache replacement.
-        [db, feeCurrency, currency, date, ratesVersion]
+        [db, feeCurrency, currency, date]
     );
     const feeRates = useMemo(() => (account == null ? [] : feeRatesOn(db, account.id)), [db, account]);
     const suggestedFeeRate = useMemo(

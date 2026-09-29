@@ -6,9 +6,10 @@ import { getMeta, META_KEYS, setMeta } from "@/data/app-meta-core";
 import { backfillBudgetUsd, backfillCanonicalUsd, stampLedgerCurrency } from "@/data/canonicalize-backfill";
 import { settlePendingFees } from "@/data/card-fees-core";
 import { drainPendingWrites } from "@/data/pending-writes-core";
-import { pullRatesIfDue, pullRecentRatesIfDue } from "@/data/rates";
+import { applyRecentRates, pullRatesIfDue } from "@/data/rates";
+import type { RateWireRow } from "@/data/rates";
 import type { Database } from "@/db/client";
-import { ratesPuller, recentRatesPuller } from "@/lib/convex";
+import { ratesPuller, watchRecentRates } from "@/lib/convex";
 import { armLogoBackfill, backfillLogos } from "@/lib/logo-backfill";
 import { publishWidgets } from "@/widgets/publish";
 
@@ -70,11 +71,30 @@ export function useSystemSync(db: Database | null): void {
         // listener is built on (expo-sqlite's vendored `sqlite3.h:7090-7095`). Adding
         // exchangeRates to the watched set was tried and does not fix it; this call
         // is what keeps the tiles honest after a refresh.
-        refreshRates(db).then((changed) => {
-            if (changed) {
-                publish.schedule();
-            }
-        });
+        let unwatchRates: (() => void) | null = null;
+        let disposed = false;
+        const applyLive = (rows: RateWireRow[]) => {
+            applyLiveRates(db, rows).then((landed) => {
+                if (landed) {
+                    publish.schedule();
+                }
+            });
+        };
+        const syncRates = () => {
+            unwatchRates?.();
+            unwatchRates = null;
+            refreshRates(db).then((changed) => {
+                if (changed) {
+                    publish.schedule();
+                }
+                if (disposed) {
+                    return;
+                }
+                unwatchRates?.();
+                unwatchRates = watchRecentRates(applyLive);
+            });
+        };
+        syncRates();
 
         const listener = addDatabaseChangeListener((event) => {
             if (affectsWidgets(event.tableName)) {
@@ -90,11 +110,7 @@ export function useSystemSync(db: Database | null): void {
             // is current.
             if (state === "active") {
                 catchUp();
-                refreshRates(db).then((changed) => {
-                    if (changed) {
-                        publish.schedule();
-                    }
-                });
+                syncRates();
             } else if (state === "background") {
                 publish.cancel();
                 reindex.cancel();
@@ -104,6 +120,8 @@ export function useSystemSync(db: Database | null): void {
         });
 
         return () => {
+            disposed = true;
+            unwatchRates?.();
             publish.cancel();
             reindex.cancel();
             listener.remove();
@@ -140,17 +158,31 @@ async function mirrorWalletRun(db: Database): Promise<void> {
  * a failed or absent backend must cost nothing here.
  */
 async function refreshRates(db: Database): Promise<boolean> {
-    const pull = ratesPuller();
     let changed = false;
     try {
-        changed = (await pullRatesIfDue(db, pull)) || (await pullRecentRatesIfDue(db, recentRatesPuller()));
+        changed = await pullRatesIfDue(db, ratesPuller());
     } catch (error) {
         console.warn("[outlayr] rate refresh failed", error);
     }
+    return (await revalueLedger(db)) || changed;
+}
+
+async function applyLiveRates(db: Database, rows: RateWireRow[]): Promise<boolean> {
+    let changed = false;
+    try {
+        changed = await applyRecentRates(db, rows);
+    } catch (error) {
+        console.warn("[outlayr] live rates failed to apply", error);
+    }
+    return (await revalueLedger(db)) || changed;
+}
+
+async function revalueLedger(db: Database): Promise<boolean> {
+    let changed = false;
     // Before canonicalizing, so a row about to be valued already names what it
     // was kept in — canonicalization skips the ones that still do not.
     try {
-        changed = (await stampLedgerCurrency(db)) > 0 || changed;
+        changed = (await stampLedgerCurrency(db)) > 0;
     } catch (error) {
         console.warn("[outlayr] currency stamp failed", error);
     }

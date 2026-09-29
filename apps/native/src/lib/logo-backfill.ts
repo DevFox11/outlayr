@@ -7,7 +7,7 @@ import type { Database } from "@/db/client";
 import { firstLocale } from "@/i18n/device-language";
 import { persistLogo } from "@/lib/persist-logo";
 
-import { convex, enrichmentTransport } from "./convex";
+import { enrichmentTransport } from "./convex";
 import { fetchMerchantImage } from "./logo-fetch";
 
 /**
@@ -82,7 +82,7 @@ async function runBackfill(db: Database, cancelled: () => boolean): Promise<numb
     const device = firstLocale();
     const locale = device?.languageTag?.trim() || undefined;
     const regionCode = device?.regionCode?.trim() || undefined;
-    const transport = convex === null || !remoteEnabled ? null : enrichmentTransport();
+    const transport = remoteEnabled ? enrichmentTransport() : null;
     const deps: LogoBackfillDeps = {
         cancelled,
         discard: discardLogo,

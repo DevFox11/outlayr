@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { act, render, waitFor } from "@testing-library/react-native";
+import { act, render, renderHook, waitFor } from "@testing-library/react-native";
 import type BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 import { Text } from "react-native";
@@ -8,7 +8,8 @@ import type { Database } from "@/db/client";
 import { appMeta } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
 
-import { useLiveValue } from "./live-query";
+import { useLiveValue, useRatesRead } from "./live-query";
+import { bumpRatesRevision } from "./rates-revision";
 
 type ChangeListener = (event: { tableName: string }) => void;
 
@@ -86,5 +87,34 @@ describe("useLiveValue", () => {
 
         await waitFor(() => expect(getByTestId("probe").props.children).toBe("one"));
         expect(renders).toBeGreaterThan(before);
+    });
+});
+
+describe("useRatesRead", () => {
+    it("re-reads once per rates revision and never per written row", async () => {
+        mockChangeListeners.clear();
+        let reads = 0;
+        const { result } = await renderHook(() =>
+            useRatesRead(() => {
+                reads += 1;
+                return reads;
+            })
+        );
+
+        await act(async () => {
+            for (let row = 0; row < 300; row += 1) {
+                // oxlint-disable-next-line unicorn/no-useless-spread -- mirrors the copy the real listener list is iterated over
+                for (const listener of [...mockChangeListeners]) {
+                    listener({ tableName: "exchangeRates" });
+                }
+            }
+        });
+        expect(reads).toBe(1);
+
+        await act(async () => {
+            bumpRatesRevision();
+        });
+        expect(reads).toBe(2);
+        expect(result.current).toBe(2);
     });
 });

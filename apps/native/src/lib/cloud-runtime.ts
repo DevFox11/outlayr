@@ -36,7 +36,6 @@ function createCloudRuntime() {
             ],
         }),
         convex: new ConvexReactClient(convexUrl, {
-            expectAuth: true,
             unsavedChangesWarning: false,
         }),
     };

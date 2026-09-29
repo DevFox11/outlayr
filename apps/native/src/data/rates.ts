@@ -1,7 +1,7 @@
 import type { RateLookup } from "@outlayr/money/rates";
 import { and, desc, eq, lte, sql } from "drizzle-orm";
 
-import { getMeta, setMeta } from "@/data/app-meta-core";
+import { getMeta } from "@/data/app-meta-core";
 import type { SpendDb } from "@/data/budget-spent";
 import { bumpRatesRevision } from "@/data/rates-revision";
 import type { Database } from "@/db/client";
@@ -12,8 +12,6 @@ import { chunkRows } from "@/lib/chunk";
 /** 12 hours. */
 export const RATES_THROTTLE_MS = 43_200_000;
 
-export const RECENT_RATES_THROTTLE_MS = 900_000;
-
 /**
  * Rows per chunked INSERT. `exchangeRates` binds 6 params per row, so SQLite's
  * 32,766 bound-parameter cap admits at most 5,461 rows per statement — 2,000
@@ -22,7 +20,6 @@ export const RECENT_RATES_THROTTLE_MS = 900_000;
 export const RATE_ROWS_PER_CHUNK = 2000;
 
 const LAST_PULL_KEY = "lastRatesPullAt";
-const LAST_RECENT_PULL_KEY = "lastRecentRatesPullAt";
 
 export interface RateWireRow {
     date: string;
@@ -43,14 +40,12 @@ export interface PullRatesPage {
 /** Injected so the pull logic never imports the Convex client. */
 export type PullRatesFn = (args?: { cursor?: number }) => Promise<PullRatesPage>;
 
-export type PullRecentRatesFn = () => Promise<RateWireRow[]>;
-
 /**
  * A backward clock jump puts the recorded pull in the future, which would hold
  * the throttle shut until the clock caught up. That counts as expired instead,
  * and the pull re-anchors the stamp.
  */
-export function isThrottled(last: number | null, now: number, throttleMs = RATES_THROTTLE_MS): boolean {
+export function isThrottled(last: number | null, now: number): boolean {
     if (last === null) {
         return false;
     }
@@ -58,11 +53,11 @@ export function isThrottled(last: number | null, now: number, throttleMs = RATES
     if (elapsed < 0) {
         return false;
     }
-    return elapsed < throttleMs;
+    return elapsed < RATES_THROTTLE_MS;
 }
 
-async function lastPullAt(db: Database, key: string): Promise<number | null> {
-    const raw = await getMeta(db, key);
+async function lastPullAt(db: Database): Promise<number | null> {
+    const raw = await getMeta(db, LAST_PULL_KEY);
     if (raw === null) {
         return null;
     }
@@ -104,7 +99,7 @@ export async function pullRatesIfDue(
     options: { force?: boolean; now?: number } = {}
 ): Promise<boolean> {
     const now = options.now ?? Date.now();
-    if (!options.force && isThrottled(await lastPullAt(db, LAST_PULL_KEY), now)) {
+    if (!options.force && isThrottled(await lastPullAt(db), now)) {
         return false;
     }
 
@@ -137,17 +132,7 @@ export async function pullRatesIfDue(
     return true;
 }
 
-export async function pullRecentRatesIfDue(
-    db: Database,
-    pull: PullRecentRatesFn,
-    options: { now?: number } = {}
-): Promise<boolean> {
-    const now = options.now ?? Date.now();
-    if (isThrottled(await lastPullAt(db, LAST_RECENT_PULL_KEY), now, RECENT_RATES_THROTTLE_MS)) {
-        return false;
-    }
-
-    const rows = await pull();
+export async function applyRecentRates(db: Database, rows: RateWireRow[]): Promise<boolean> {
     if (rows.length === 0) {
         return false;
     }
@@ -164,7 +149,6 @@ export async function pullRecentRatesIfDue(
                 },
                 target: [exchangeRates.quote, exchangeRates.rateType, exchangeRates.date],
             });
-        await setMeta(db, LAST_RECENT_PULL_KEY, String(now));
     });
 
     bumpRatesRevision();

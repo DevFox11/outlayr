@@ -2,6 +2,7 @@ import "../../global.css";
 import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import { GeistMono_400Regular, GeistMono_500Medium, useFonts } from "@expo-google-fonts/geist-mono";
 import { InstrumentSerif_400Regular } from "@expo-google-fonts/instrument-serif";
+import { useConvexAuth } from "convex/react";
 import type { ErrorBoundaryProps } from "expo-router";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
@@ -32,6 +33,7 @@ import { LanguageProvider, useTranslation } from "@/i18n/context";
 import { translateNow } from "@/i18n/runtime";
 import { AuthSessionProvider, useAuthSession } from "@/lib/auth-session";
 import { cloudRuntime } from "@/lib/cloud-runtime";
+import { setCloudAuthenticated } from "@/lib/convex";
 import { DeviceResetRecovery } from "@/lib/device-reset-recovery";
 import { LedgerAdoptionProvider, useLedgerAdoption } from "@/lib/ledger-adoption";
 import { identityPickerDetent, LARGE_ONLY } from "@/lib/sheet-detents";
@@ -89,9 +91,21 @@ function ActivatedCloudRuntime({ children }: { children: ReactNode }) {
     }
     return (
         <ConvexBetterAuthProvider authClient={cloudRuntime.authClient} client={cloudRuntime.convex}>
+            <CloudAuthMirror />
             {children}
         </ConvexBetterAuthProvider>
     );
+}
+
+function CloudAuthMirror() {
+    const { isAuthenticated } = useConvexAuth();
+    useEffect(() => {
+        setCloudAuthenticated(isAuthenticated);
+        return () => {
+            setCloudAuthenticated(false);
+        };
+    }, [isAuthenticated]);
+    return null;
 }
 
 function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {

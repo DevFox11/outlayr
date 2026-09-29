@@ -1,11 +1,12 @@
 import type { StreamArgs, SyncStreamsReturnValue, UIMessage } from "@convex-dev/agent";
 import { makeFunctionReference } from "convex/server";
 import type { PaginationOptions, PaginationResult } from "convex/server";
+import { useSyncExternalStore } from "react";
 import { z } from "zod";
 
 import type { AnsweredJob, EnrichmentJobRequest } from "@/data/enrichment-queue-core";
 import type { PhotoTransport } from "@/data/photo-sync-core";
-import type { PullRatesFn, PullRecentRatesFn } from "@/data/rates";
+import type { PullRatesFn, RateWireRow } from "@/data/rates";
 import type { PullFn, PushFn } from "@/data/sync-engine-core";
 import type { RemoteEnrichmentResult } from "@/domain/enrichment-cache";
 import type { UsageLimits } from "@/domain/usage-limits";
@@ -14,6 +15,34 @@ import { cloudRuntime } from "./cloud-runtime";
 import type { CloudRuntime } from "./cloud-runtime";
 
 export const convex = cloudRuntime?.convex ?? null;
+
+let authenticated = false;
+const authListeners = new Set<() => void>();
+
+export function setCloudAuthenticated(next: boolean): void {
+    if (next === authenticated) {
+        return;
+    }
+    authenticated = next;
+    for (const listener of authListeners) {
+        listener();
+    }
+}
+
+export function isCloudAuthenticated(): boolean {
+    return authenticated;
+}
+
+function subscribeCloudAuthenticated(listener: () => void): () => void {
+    authListeners.add(listener);
+    return () => {
+        authListeners.delete(listener);
+    };
+}
+
+export function useCloudAuthenticated(): boolean {
+    return useSyncExternalStore(subscribeCloudAuthenticated, isCloudAuthenticated, isCloudAuthenticated);
+}
 
 function cloudClient(): CloudRuntime["convex"] {
     if (cloudRuntime === null) {
@@ -54,8 +83,34 @@ export function ratesPuller(): PullRatesFn {
     return async (args) => cloudQuery("exchangeRates:pullRates", { ...args, at: Date.now() });
 }
 
-export function recentRatesPuller(): PullRecentRatesFn {
-    return async () => cloudQuery("exchangeRates:pullRecentRates", { at: Date.now() });
+const rateWireRows = z.array(
+    z.object({
+        date: z.string(),
+        fetchedAt: z.number(),
+        quote: z.string(),
+        rate: z.number(),
+        rateType: z.string(),
+        source: z.string(),
+    })
+);
+
+export function watchRecentRates(onRows: (rows: RateWireRow[]) => void): () => void {
+    if (cloudRuntime === null) {
+        return () => undefined;
+    }
+    // SAFETY: addressed by path for the reason given on `cloudQuery`.
+    const watch = cloudRuntime.convex.watchQuery("exchangeRates:pullRecentRates" as never, { at: Date.now() } as never);
+    return watch.onUpdate(() => {
+        let rows: ReturnType<typeof rateWireRows.safeParse> | null = null;
+        try {
+            rows = rateWireRows.safeParse(watch.localQueryResult());
+        } catch {
+            rows = null;
+        }
+        if (rows?.success && rows.data.length > 0) {
+            onRows(rows.data);
+        }
+    });
 }
 
 /**
@@ -149,13 +204,11 @@ export type EnrichmentFn = (args: EnrichmentRequest) => Promise<RemoteEnrichment
  * action's argument validator is asserted against that exact field set in
  * `packages/backend/convex/enrichment.test.ts`, so amounts, dates, accounts
  * and balances cannot be added here without failing that test.
- *
- * Signed-out callers are refused server-side and answered with the empty
- * suggestion rather than an error, so there is no client-side identity check
- * to keep in step: authentication rides on `convex` itself, exactly as it does
- * for `syncTransport`.
  */
-export function enrichmentTransport(): EnrichmentFn {
+export function enrichmentTransport(): EnrichmentFn | null {
+    if (!authenticated) {
+        return null;
+    }
     return async (args) => cloudAction("enrichment:suggest", args);
 }
 

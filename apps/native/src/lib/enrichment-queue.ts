@@ -7,14 +7,19 @@ import type { Database } from "@/db/client";
 import { firstLocale } from "@/i18n/device-language";
 import { persistLogo } from "@/lib/persist-logo";
 
-import { convex, enrichmentQueueTransport, watchEnrichmentResults } from "./convex";
+import {
+    enrichmentQueueTransport,
+    isCloudAuthenticated,
+    useCloudAuthenticated,
+    watchEnrichmentResults,
+} from "./convex";
 import { discardLogo } from "./logo-backfill";
 import { fetchMerchantImage } from "./logo-fetch";
 
 let sends: Promise<unknown> = Promise.resolve();
 
 async function sendOnce(db: Database): Promise<number> {
-    if (convex === null || !(await readBoolSetting(db, "aiEnrichment"))) {
+    if (!isCloudAuthenticated() || !(await readBoolSetting(db, "aiEnrichment"))) {
         return 0;
     }
     const device = firstLocale();
@@ -35,8 +40,9 @@ export function sendEnrichmentQueue(db: Database): void {
 }
 
 export function useEnrichmentQueue(db: Database | null): void {
+    const authenticated = useCloudAuthenticated();
     useEffect(() => {
-        if (db == null || convex === null) {
+        if (db == null || !authenticated) {
             return;
         }
         let applying: Promise<unknown> = Promise.resolve();
@@ -71,5 +77,5 @@ export function useEnrichmentQueue(db: Database | null): void {
             stop();
             subscription.remove();
         };
-    }, [db]);
+    }, [db, authenticated]);
 }

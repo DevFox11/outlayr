@@ -3,6 +3,7 @@ import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import { addDatabaseChangeListener } from "expo-sqlite";
 import { useCallback, useRef, useSyncExternalStore } from "react";
 
+import { subscribeRatesRevision } from "./rates-revision";
 import { subscribeToTable } from "./table-invalidation";
 
 /**
@@ -80,18 +81,8 @@ export function useLiveValue<TRow, TValue>(
 
 function useLiveRead<TValue>(table: SQLiteTable, read: () => TValue, deps: readonly unknown[]): TValue {
     const tableName = getTableName(table);
-    const revision = useRef(0);
-    const snapshot = useRef<Snapshot<TValue> | null>(null);
-
-    const subscribe = useCallback(
-        (onStoreChange: () => void) => {
-            // Bumping a counter rather than re-querying here collapses a bulk write
-            // into one read: a 200-row backfill fires 200 events, React coalesces the
-            // notifications, and the query below runs once for the batch.
-            const bump = () => {
-                revision.current += 1;
-                onStoreChange();
-            };
+    const subscribeTable = useCallback(
+        (bump: () => void) => {
             const listener = addDatabaseChangeListener((event) => {
                 if (event.tableName === tableName) {
                     bump();
@@ -107,6 +98,29 @@ function useLiveRead<TValue>(table: SQLiteTable, read: () => TValue, deps: reado
             };
         },
         [tableName]
+    );
+    return useRead(subscribeTable, read, deps);
+}
+
+export function useRatesRead<TValue>(read: () => TValue, deps: readonly unknown[] = []): TValue {
+    return useRead(subscribeRatesRevision, read, deps);
+}
+
+function useRead<TValue>(
+    subscribeChanges: (bump: () => void) => () => void,
+    read: () => TValue,
+    deps: readonly unknown[]
+): TValue {
+    const revision = useRef(0);
+    const snapshot = useRef<Snapshot<TValue> | null>(null);
+
+    const subscribe = useCallback(
+        (onStoreChange: () => void) =>
+            subscribeChanges(() => {
+                revision.current += 1;
+                onStoreChange();
+            }),
+        [subscribeChanges]
     );
 
     // React calls this on every render to detect a change, so it must return the
