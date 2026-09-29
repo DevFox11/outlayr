@@ -29,4 +29,4 @@ minimumReleaseAgeExclude:
     - ai@7.0.107
 
 patchedDependencies:
-    expo-widgets@57.0.19: patches/expo-widgets@57.0.19.patch
+    expo-widgets@57.0.21: patches/expo-widgets@57.0.21.patch
