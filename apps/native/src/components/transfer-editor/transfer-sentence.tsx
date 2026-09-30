@@ -88,7 +88,12 @@ export function TransferSentence({
             shake: flaggedSlot === slot,
         };
         return value === null ? (
-            <SentenceBlank {...shared} label={blanks[slot]} />
+            <SentenceBlank
+                {...shared}
+                label={blanks[slot]}
+                optional={slot === "fee"}
+                optionalHint={t("transaction.sentence.optional")}
+            />
         ) : (
             <SentenceValue {...shared} figure={figures[slot]} swapKey={slot} value={value} />
         );

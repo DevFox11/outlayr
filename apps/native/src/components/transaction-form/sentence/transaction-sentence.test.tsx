@@ -34,6 +34,7 @@ const labelsFor = (template: string, code: string | null = "USD"): TransactionSe
     fee: { field: "Card fee" },
     kind: { switchLabel: "Expense or income", verb: "Spent" },
     merchant: { field: "Name", placeholder: "a merchant" },
+    optional: "Optional",
     rate: { blank: "a rate", converted: "In dollars", field: "Rate", source: "Rate source" },
     template,
     when: { field: "Date" },

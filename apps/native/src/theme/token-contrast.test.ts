@@ -85,7 +85,6 @@ const NON_TEXT_TOKENS = [
     "grouped-background",
     "border",
     "separator",
-    "blank-rule",
     "warning",
     "chip",
     "danger-fill",

@@ -83,7 +83,24 @@ describe("the slot the stage is editing", () => {
         );
 
         expect(washOpacity(idle)).toBe(0);
-        expect(classNames(idle).some((name) => name.includes("border-blank-rule border-b-2 border-dashed"))).toBe(true);
+        expect(classNames(idle).some((name) => name.includes("border-tint border-b-2 border-dashed"))).toBe(true);
+    });
+
+    it("draws a blank the entry can do without in the sentence's own ink", async () => {
+        const optional = await renderPart(
+            <SentenceBlank
+                accessibilityLabel="Name"
+                label="a merchant"
+                onPress={jest.fn()}
+                optional
+                optionalHint="Optional"
+            />
+        );
+
+        expect(classNames(optional).some((name) => name.includes("text-grammar"))).toBe(true);
+        expect(classNames(optional).some((name) => name.includes("border-grammar border-b border-dotted"))).toBe(true);
+        expect(classNames(optional).some((name) => name.includes("border-tint"))).toBe(false);
+        expect(nodes(optional).some((node) => node.props.accessibilityHint === "Optional")).toBe(true);
     });
 
     // A blank that is both flagged and being edited is the ordinary case after a

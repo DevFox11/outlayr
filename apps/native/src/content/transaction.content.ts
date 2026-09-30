@@ -606,6 +606,10 @@ const transaction = {
             en: "a merchant",
             es: "un comercio",
         }),
+        "transaction.sentence.blank.payer": t({
+            en: "a payer",
+            es: "un pagador",
+        }),
         "transaction.sentence.blank.rate": t({
             en: "a rate",
             es: "una tasa",
@@ -667,6 +671,10 @@ const transaction = {
         // The chips are lowercase, and `transaction.cadence.*` is title-case because
         // it heads a row elsewhere. Lowercasing that at the call site would be right
         // in Spanish and wrong in the first locale where case carries meaning.
+        "transaction.sentence.optional": t({
+            en: "Optional",
+            es: "Opcional",
+        }),
         "transaction.sentence.rate.custom": t({
             en: ", {converted} at {rateSource} rate.",
             es: ", {converted} a {rateSource}.",

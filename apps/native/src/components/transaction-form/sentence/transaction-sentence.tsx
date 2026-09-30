@@ -18,6 +18,7 @@ export interface TransactionSentenceLabels {
     fee: { field: string };
     kind: { switchLabel: string; verb: string };
     merchant: { field: string; placeholder: string };
+    optional: string;
     rate: { blank: string; converted: string; field: string; source: string };
     template: string;
     when: { field: string };
@@ -122,6 +123,8 @@ export function TransactionSentence({
                             active={activeSlot === "account"}
                             label={labels.account.blank}
                             onPress={onAccountPress}
+                            optional
+                            optionalHint={labels.optional}
                         />
                     ) : (
                         <SentenceValue
@@ -227,6 +230,8 @@ export function TransactionSentence({
                             active={activeSlot === "merchant"}
                             label={labels.merchant.placeholder}
                             onPress={onMerchantPress}
+                            optional
+                            optionalHint={labels.optional}
                         />
                     ) : (
                         <SentenceValue

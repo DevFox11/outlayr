@@ -802,6 +802,26 @@ describe("transactionForm", () => {
         });
     });
 
+    it("names who paid rather than a merchant once the entry is income, and says both can be skipped", async () => {
+        const db = dbHolder.current as Database;
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+        const merchant = () => screen.getByLabelText("transaction.field.name").props;
+
+        expect(merchant().accessibilityValue).toMatchObject({ text: "transaction.sentence.blank.merchant" });
+        expect(merchant().accessibilityHint).toBe("transaction.sentence.optional");
+        expect(screen.getByLabelText("transaction.field.category").props.accessibilityHint).toBeUndefined();
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.sentence.kind.switch"));
+        });
+
+        expect(merchant().accessibilityValue).toMatchObject({ text: "transaction.sentence.blank.payer" });
+    });
+
     it("opens a saved subscription on its own cadence, not as a one-off", async () => {
         const db = dbHolder.current as Database;
         const categoryId = await seedCategory(db);

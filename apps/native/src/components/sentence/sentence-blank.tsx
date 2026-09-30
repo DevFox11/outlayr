@@ -18,6 +18,8 @@ interface SentenceBlankProps {
     flagged?: boolean;
     label: string;
     onPress: () => void;
+    optional?: boolean;
+    optionalHint?: string;
     /** Rises on each rejected save, so a second attempt is answered again. */
     shake?: boolean;
 }
@@ -30,7 +32,16 @@ interface SentenceBlankProps {
  * Deliberately still until flagged: a blank that pulsed would be the one thing
  * on the screen repainting every frame, and there may be four of them.
  */
-export function SentenceBlank({ accessibilityLabel, active, flagged, label, onPress, shake }: SentenceBlankProps) {
+export function SentenceBlank({
+    accessibilityLabel,
+    active,
+    flagged,
+    label,
+    onPress,
+    optional,
+    optionalHint,
+    shake,
+}: SentenceBlankProps) {
     const { textClassName } = useSentenceStyle();
     const shakeStyle = useSentenceShake(shake);
 
@@ -38,7 +49,7 @@ export function SentenceBlank({ accessibilityLabel, active, flagged, label, onPr
         if (flagged) {
             return "text-danger";
         }
-        return active ? "text-foreground" : "text-muted";
+        return optional && !active ? "text-grammar" : "text-foreground";
     };
 
     // Dashed only while the slot is genuinely empty: once it is the one being
@@ -50,12 +61,13 @@ export function SentenceBlank({ accessibilityLabel, active, flagged, label, onPr
         if (active) {
             return "bg-tint h-[2px] rounded-full";
         }
-        return "border-blank-rule border-b-2 border-dashed";
+        return optional ? "border-grammar border-b border-dotted" : "border-tint border-b-2 border-dashed";
     };
 
     return (
         <Animated.View style={shakeStyle}>
             <Pressable
+                accessibilityHint={optional ? optionalHint : undefined}
                 accessibilityLabel={accessibilityLabel}
                 accessibilityRole="button"
                 accessibilityValue={{ text: label }}

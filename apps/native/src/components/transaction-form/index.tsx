@@ -1999,7 +1999,10 @@ export function TransactionForm({
     };
 
     const sentenceLabels = {
-        account: { blank: t("transaction.sentence.blank.account"), field: t("transaction.field.account") },
+        account: {
+            blank: t(accountDeclined ? "transaction.sentence.noAccount" : "transaction.sentence.blank.account"),
+            field: t("transaction.field.account"),
+        },
         // A zero in the entry's own currency rather than a noun: it states that a
         // number belongs here and what shape it takes, which "an amount" does not.
         amount: { blank: formatAmount(0, currency, true, language), field: t("transaction.field.amount") },
@@ -2010,7 +2013,11 @@ export function TransactionForm({
             switchLabel: t("transaction.sentence.kind.switch"),
             verb: t(income ? "transaction.sentence.kind.income" : "transaction.sentence.kind.expense"),
         },
-        merchant: { field: t("transaction.field.name"), placeholder: t("transaction.sentence.blank.merchant") },
+        merchant: {
+            field: t("transaction.field.name"),
+            placeholder: t(income ? "transaction.sentence.blank.payer" : "transaction.sentence.blank.merchant"),
+        },
+        optional: t("transaction.sentence.optional"),
         rate: {
             blank: t("transaction.sentence.blank.rate"),
             converted: t("transaction.rate.inDollars"),
@@ -2546,10 +2553,7 @@ export function TransactionForm({
                                     return (
                                         <RNHostView matchContents>
                                             <TransactionSentenceBody
-                                                account={
-                                                    account?.name ??
-                                                    (accountDeclined ? t("transaction.sentence.noAccount") : null)
-                                                }
+                                                account={account?.name ?? null}
                                                 accountTile={accountTile}
                                                 amount={
                                                     amountNumber <= 0

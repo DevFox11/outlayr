@@ -43,12 +43,6 @@
             --border: #dcd8cc;
             --separator: #dcd8cc;
 
-            /* The dashed rule under an unfilled slot in the transaction sentence.
-               It cannot be `--separator`: that is a hairline drawn between rows
-               and it vanishes under a 26px word. 30% of the ink is a rule that
-               reads as waiting for something without reading as already filled. */
-            --blank-rule: rgba(23, 21, 15, 0.3);
-
             /* Was a hex mirror of iOS `systemGroupedBackground`. A grouped list on
 			   paper takes the paper itself and lets its cells float lighter on
 			   `--surface`, so this is no longer a separate grey. It stays a
@@ -202,9 +196,6 @@
             --separator: #353026;
 
             /* See the light-mode note. */
-            --blank-rule: rgba(242, 239, 232, 0.3);
-
-            /* See the light-mode note. */
             --grouped-background: #0e0c08;
 
             --accent: #f2efe8;
@@ -305,7 +296,6 @@
     --color-surface-secondary-foreground: var(--surface-secondary-foreground);
     --color-border: var(--border);
     --color-separator: var(--separator);
-    --color-blank-rule: var(--blank-rule);
     --color-grouped-background: var(--grouped-background);
     --color-accent: var(--accent);
     --color-accent-foreground: var(--accent-foreground);
