@@ -29,6 +29,8 @@ export const TRANSFER_CUSTOM_RATE_KEY = "transfers.sentence.rateCustom";
 
 export const TRANSFER_FEE_ARRIVAL_KEY = "transfers.sentence.feeArrives";
 
+export const TRANSFER_FEE_ON_TOP_KEY = "transfers.sentence.feeOnTop";
+
 export type TransferSentenceValues = Readonly<Record<TransferSentenceSlot, string | null>>;
 
 interface TransferSentenceProps {
@@ -39,6 +41,7 @@ interface TransferSentenceProps {
     flaggedSlot: TransferSentenceSlot | null;
     hasFee: boolean;
     onSlotPress: (slot: TransferSentenceSlot) => void;
+    onTop: boolean;
     values: TransferSentenceValues;
 }
 
@@ -50,6 +53,7 @@ export function TransferSentence({
     flaggedSlot,
     hasFee,
     onSlotPress,
+    onTop,
     values,
 }: TransferSentenceProps) {
     const t = useTranslation();
@@ -100,7 +104,8 @@ export function TransferSentence({
     };
 
     const rateClause = customRate ? t(TRANSFER_CUSTOM_RATE_KEY) : t("transfers.sentence.rate");
-    const feeClause = crossCurrency ? t("transfers.sentence.fee") : t(TRANSFER_FEE_ARRIVAL_KEY);
+    const includedClause = crossCurrency ? t("transfers.sentence.fee") : t(TRANSFER_FEE_ARRIVAL_KEY);
+    const feeClause = onTop ? t(TRANSFER_FEE_ON_TOP_KEY) : includedClause;
     const template = [
         t("transfers.sentence.move"),
         crossCurrency ? rateClause : null,

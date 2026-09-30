@@ -31,9 +31,21 @@ const transfers = {
             en: "Delete Transfer",
             es: "Eliminar transferencia",
         }),
+        "transfers.fee.chargedTo": t({
+            en: "Charged to",
+            es: "Se cobra en",
+        }),
+        "transfers.fee.included": t({
+            en: "Included",
+            es: "Incluida",
+        }),
         "transfers.fee.note": t({
             en: "Fee · {from} → {to}",
             es: "Comisión · {from} → {to}",
+        }),
+        "transfers.fee.onTop": t({
+            en: "On top",
+            es: "Aparte",
         }),
         "transfers.field.arrives": t({
             en: "Arrives",
@@ -78,6 +90,10 @@ const transfers = {
         "transfers.gap.itsAFee": t({
             en: "It's a fee",
             es: "Es una comisión",
+        }),
+        "transfers.gap.itsOnTop": t({
+            en: "It's on top",
+            es: "Es aparte",
         }),
         "transfers.gap.rateWas": t({
             en: "Rate was {rate}",
@@ -134,6 +150,10 @@ const transfers = {
         "transfers.sentence.feeArrives": t({
             en: "After a {fee} fee from {feeSide}, {arrives} arrives.",
             es: "Tras una comisión de {fee} desde {feeSide}, llegan {arrives}.",
+        }),
+        "transfers.sentence.feeOnTop": t({
+            en: "Plus a {fee} fee from {feeSide}.",
+            es: "Más una comisión de {fee} desde {feeSide}.",
         }),
         "transfers.sentence.move": t({
             en: "Move {amount} from {from} to {to} {when}.",

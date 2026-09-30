@@ -1146,3 +1146,189 @@ describe("an arrival seen for another pair", () => {
         expect(result.current.arrivalSeen).toBe(false);
     });
 });
+
+describe("a fee charged on top", () => {
+    const stored: Omit<SavedTransfer, "arrived" | "fee" | "feeSide" | "sent"> = {
+        date: new Date(Date.UTC(2026, 8, 30)),
+        fromAccountId: "usd",
+        fromCurrency: "USD",
+        id: "transfer",
+        note: "",
+        rate: 1,
+        rateType: null,
+        toAccountId: "usd-2",
+        toCurrency: "USD",
+    };
+
+    async function onTop(fee: string, toDestination = false): Promise<{ current: TransferDraft }> {
+        const seed = toDestination ? undefined : { fromAccountId: "usd", toAccountId: "usd-2" };
+        const { result } = await renderHook(() => useTransferDraft({} as Database, seed));
+        await act(async () => {
+            result.current.setSent(toDestination ? "100" : "500");
+        });
+        if (toDestination) {
+            await act(async () => {
+                result.current.toggleFeeSide();
+            });
+        }
+        await act(async () => {
+            result.current.setFeeMode("onTop");
+        });
+        await act(async () => {
+            result.current.setFee(fee);
+        });
+        return result;
+    }
+
+    it("reopens a fee on top of the amount sent as the included fee with the same balances", async () => {
+        mockBalances.set("usd", 2310);
+        mockBalances.set("usd-2", 4120.55);
+        const result = await onTop("25");
+        expect(result.current).toMatchObject({
+            fromBalanceAfter: 1785,
+            legs: { fromAmount: 500, toAmount: 500 },
+            toBalanceAfter: 4620.55,
+        });
+
+        mockBalances.set("usd", 1785);
+        mockBalances.set("usd-2", 4620.55);
+        const { result: reopened } = await renderHook(() =>
+            useTransferDraft({} as Database, undefined, {
+                ...stored,
+                arrived: 500,
+                fee: 25,
+                feeSide: "source",
+                sent: 525,
+            })
+        );
+
+        expect(reopened.current).toMatchObject({
+            feeMode: "included",
+            fromBalanceAfter: 1785,
+            legs: { fromAmount: 500, toAmount: 500 },
+            toBalanceAfter: 4620.55,
+        });
+    });
+
+    it("reopens a bolívar fee on top of the arrival as the included fee with the same balances", async () => {
+        mockRates.set("VES", OFFICIAL_VES_PER_USD);
+        const result = await onTop("150", true);
+        expect(result.current).toMatchObject({
+            arrived: 5550,
+            feeCurrency: "VES",
+            legs: { fromAmount: 100, toAmount: 5550 },
+            toBalanceAfter: 5400,
+        });
+
+        mockBalances.set("usd", -100);
+        mockBalances.set("ves", 5400);
+        const { result: reopened } = await renderHook(() =>
+            useTransferDraft({} as Database, undefined, {
+                ...stored,
+                arrived: 5400,
+                fee: 150,
+                feeSide: "destination",
+                rate: OFFICIAL_VES_PER_USD,
+                rateType: "official",
+                sent: 100,
+                toAccountId: "ves",
+                toCurrency: "VES",
+            })
+        );
+
+        expect(reopened.current).toMatchObject({
+            fromBalanceAfter: -100,
+            legs: { fromAmount: 100, toAmount: 5550 },
+            toBalanceAfter: 5400,
+        });
+    });
+
+    it("books a loss on top of it as an included fee that keeps what the source pays", async () => {
+        mockBalances.set("usd", 2310);
+        const result = await onTop("25");
+        await act(async () => {
+            result.current.setArrived("480");
+        });
+        expect(result.current).toMatchObject({ fromBalanceAfter: 1785, gapAmount: 20 });
+
+        await act(async () => {
+            result.current.resolveAsFee();
+        });
+
+        expect(result.current).toMatchObject({
+            fee: 45,
+            feeMode: "included",
+            fromBalanceAfter: 1785,
+            gapAmount: 0,
+            legs: { fromAmount: 480, toAmount: 480 },
+            paid: 525,
+        });
+    });
+
+    it("books a loss on top of a bolívar fee as an included fee that keeps what arrives", async () => {
+        mockRates.set("VES", OFFICIAL_VES_PER_USD);
+        const result = await onTop("150", true);
+        await act(async () => {
+            result.current.setArrived("5000");
+        });
+        expect(result.current).toMatchObject({ gapAmount: 550, toBalanceAfter: 4850 });
+
+        await act(async () => {
+            result.current.resolveAsFee();
+        });
+
+        expect(result.current).toMatchObject({
+            fee: 700,
+            feeMode: "included",
+            gapAmount: 0,
+            legs: { fromAmount: 100, toAmount: 5550 },
+            toBalanceAfter: 4850,
+        });
+    });
+
+    it("names the overrun against the typed arrival when the destination pays more than arrives", async () => {
+        const { result } = await renderHook(() =>
+            useTransferDraft({} as Database, { fromAccountId: "usd", toAccountId: "usd-2" })
+        );
+        await act(async () => {
+            result.current.setSent("500");
+        });
+        await act(async () => {
+            result.current.toggleFeeSide();
+        });
+        await act(async () => {
+            result.current.setFee("25");
+        });
+        await act(async () => {
+            result.current.setArrived("20");
+        });
+        await act(async () => {
+            result.current.setFeeMode("onTop");
+        });
+
+        expect(result.current.block).toStrictEqual({ kind: "fee", shortfall: -5 });
+    });
+
+    it("blocks nothing while a fee on top waits for an amount", async () => {
+        const { result } = await renderHook(() =>
+            useTransferDraft({} as Database, { fromAccountId: "usd", toAccountId: "usd-2" })
+        );
+        await act(async () => {
+            result.current.setFeeMode("onTop");
+        });
+        await act(async () => {
+            result.current.setFee("5");
+        });
+
+        expect(result.current.block).toBeNull();
+    });
+
+    it("keeps no fee when the fee keypad only deletes", async () => {
+        const result = await draft();
+        await act(async () => {
+            result.current.setFee("");
+        });
+
+        expect(result.current.feeMode).toBe("none");
+    });
+});

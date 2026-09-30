@@ -31,6 +31,8 @@ interface Units {
     to: number;
 }
 
+export type FeeMode = "none" | "included" | "onTop";
+
 interface DraftMath {
     arrived: number | null;
     block: TransferBlock | null;
@@ -38,6 +40,7 @@ interface DraftMath {
     gapFee: number | null;
     gapRate: number | null;
     legs: TransferLegs | null;
+    net: number | null;
 }
 
 interface CustomRate {
@@ -89,15 +92,16 @@ function rateChoices(
 function transferBlock(
     entered: EnteredTransfer | null,
     arrived: number | null,
-    feeDecimals: number
+    feeDecimals: number,
+    reached: number | null
 ): TransferBlock | null {
     if (entered === null) {
         return { kind: "rate" };
     }
-    if ((arrived !== null && arrived > 0) || entered.sent <= 0) {
+    if (arrived !== null && arrived > 0) {
         return null;
     }
-    const affordable = solveTransfer({ ...entered, arrived: 0 }, "fee", feeDecimals);
+    const affordable = reached ?? solveTransfer({ ...entered, arrived: 0 }, "fee", feeDecimals);
     return affordable === null
         ? { kind: "rate" }
         : { kind: "fee", shortfall: roundMoney(affordable - entered.fee, feeDecimals) };
@@ -106,24 +110,33 @@ function transferBlock(
 /** An arrival of null or zero is `transfer-reconcile`'s verdict that the fee takes
  * everything reaching its side. Both refuse: a transfer that delivers nothing is a
  * fee wearing a transfer's clothes, and the legs would credit it as money moved. */
-function reconcile(
-    entered: EnteredTransfer | null,
+function settle(
+    typed: EnteredTransfer | null,
     pinned: number | null,
     units: Units,
-    crossCurrency: boolean
+    crossCurrency: boolean,
+    topUp: number
 ): DraftMath {
-    const arrived =
-        pinned ?? (entered === null ? null : solveTransfer({ ...entered, arrived: 0 }, "arrived", units.to));
+    const arrivalTopUp = typed?.feeSide === "destination" ? topUp : 0;
+    const entered =
+        typed === null ? null : { ...typed, sent: roundMoney(typed.sent + topUp - arrivalTopUp, units.from) };
+    const solved = entered === null ? null : solveTransfer({ ...entered, arrived: 0 }, "arrived", units.to);
+    const net = pinned === null ? solved : roundMoney(pinned - arrivalTopUp, units.to);
+    const arrived = pinned ?? (net === null ? null : roundMoney(net + arrivalTopUp, units.to));
     const values: TransferValues | null =
-        entered === null || arrived === null || arrived <= 0 ? null : { ...entered, arrived };
-    if (values === null) {
+        entered === null || net === null || net <= 0 ? null : { ...entered, arrived: net };
+    if (typed === null || arrived === null || values === null) {
         return {
             arrived,
-            block: transferBlock(entered, arrived, units.fee),
+            block:
+                typed !== null && typed.sent <= 0
+                    ? null
+                    : transferBlock(entered, net, units.fee, arrivalTopUp > 0 ? pinned : null),
             gap: 0,
             gapFee: null,
             gapRate: null,
             legs: null,
+            net,
         };
     }
     const gap = pinned === null ? 0 : transferGap(values, units.fee, units.to);
@@ -137,6 +150,27 @@ function reconcile(
         gapFee: feeCloses ? gapFee : null,
         gapRate: solveTransfer(values, "rate", RATE_PRECISION),
         legs: crossCurrency || gap === 0 ? transferLegs(values, units.from, units.to) : null,
+        net,
+    };
+}
+
+function reconcile(
+    typed: Omit<EnteredTransfer, "rate"> & { rate: number | null },
+    pinned: number | null,
+    units: Units,
+    crossCurrency: boolean,
+    feeMode: FeeMode
+): DraftMath & { gapOnTop: boolean; paid: number } {
+    const { rate } = typed;
+    const entered = rate === null ? null : { ...typed, rate };
+    const topUp = feeMode === "onTop" ? typed.fee : 0;
+    const math = settle(entered, pinned, units, crossCurrency, topUp);
+    const onTop =
+        feeMode === "included" && math.gap !== 0 ? settle(entered, pinned, units, crossCurrency, typed.fee) : null;
+    return {
+        ...math,
+        gapOnTop: onTop?.gap === 0 && onTop.legs !== null,
+        paid: roundMoney(typed.sent + (typed.feeSide === "source" ? topUp : 0), units.from),
     };
 }
 
@@ -156,6 +190,7 @@ export interface TransferDraft {
     fee: number;
     feeCurrency: string;
     feeDecimals: number;
+    feeMode: FeeMode;
     feeSide: FeeSide;
     feeText: string;
     from: Account | null;
@@ -165,9 +200,11 @@ export interface TransferDraft {
     fromDecimals: number;
     gapAmount: number;
     gapFee: number | null;
+    gapOnTop: boolean;
     gapRate: number | null;
     legs: TransferLegs | null;
     marketRates: Record<TransferRateChoice, number | null>;
+    paid: number;
     prefillArrival: () => void;
     priorCustomRate: { date: Date; rate: number } | null;
     quotedRate: number | null;
@@ -176,6 +213,7 @@ export interface TransferDraft {
     rateSources: Record<TransferRateChoice, RateSource | null>;
     rateType: TransferRateChoice;
     resolveAsFee: () => void;
+    resolveAsOnTop: () => void;
     resolveAsRate: () => void;
     sent: number;
     sentText: string;
@@ -183,6 +221,7 @@ export interface TransferDraft {
     setCustomRate: (text: string, exact?: number) => void;
     setDate: (date: Date) => void;
     setFee: (text: string) => void;
+    setFeeMode: (mode: FeeMode) => void;
     setRateType: (type: TransferRateChoice) => void;
     setSent: (text: string) => void;
     to: Account | null;
@@ -386,6 +425,7 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
     );
     const [customRates, setCustomRates] = useState<Record<string, CustomRate>>(opening.customRates);
     const [feeText, setFeeText] = useState(opening.feeText);
+    const [feeMode, setFeeMode] = useState<FeeMode>(opening.feeText === "" ? "none" : "included");
     const [feeSide, setFeeSide] = useState<FeeSide>(opening.feeSide);
     const [date, setDate] = useState(opening.date);
 
@@ -454,14 +494,15 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
     const fee = roundMoney(numpadToNumber(feeText), feeDecimals);
     const sent = roundMoney(numpadToNumber(sentText), fromDecimals);
     const math = reconcile(
-        rate === null ? null : { fee, feeSide, rate, sent },
+        { fee, feeSide, rate, sent },
         arrivalPinned ? numpadToNumber(arrivedText) : null,
         {
             fee: feeDecimals,
             from: fromDecimals,
             to: toDecimals,
         },
-        crossCurrency
+        crossCurrency,
+        feeMode
     );
 
     /**
@@ -519,18 +560,21 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
         fee,
         feeCurrency,
         feeDecimals,
+        feeMode,
         feeSide,
         feeText,
         from,
         fromBalance: roundMoney(fromBalance.total, fromDecimals),
-        fromBalanceAfter: roundMoney(fromBalance.total + fromRestored - sent, fromDecimals),
+        fromBalanceAfter: roundMoney(fromBalance.total + fromRestored - math.paid, fromDecimals),
         fromCurrency,
         fromDecimals,
         gapAmount: math.gap,
         gapFee: math.gapFee,
+        gapOnTop: math.gapOnTop,
         gapRate: math.gapRate,
         legs: math.legs,
         marketRates: marketRatesOf(quoteType, tableRates, ownQuote),
+        paid: math.paid,
         prefillArrival: () => {
             setArrivedText(math.arrived === null ? "" : numberToNumpad(math.arrived, toDecimals));
             setShownPair(pair);
@@ -547,10 +591,18 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
         },
         rateType: shownRateType,
         resolveAsFee: () => {
-            if (math.gapFee !== null) {
+            if (math.gapFee !== null && math.net !== null) {
                 setFeeText(numberToNumpad(math.gapFee, feeDecimals));
+                setFeeMode("included");
+                if (feeMode === "onTop" && feeSide === "source") {
+                    setSentText(numberToNumpad(math.paid, fromDecimals));
+                }
+                if (feeMode === "onTop" && feeSide === "destination") {
+                    setArrivedText(numberToNumpad(math.net, toDecimals));
+                }
             }
         },
+        resolveAsOnTop: () => setFeeMode("onTop"),
         resolveAsRate: () => {
             if (math.gapRate !== null) {
                 setChosenRate("custom");
@@ -565,7 +617,18 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
         },
         setCustomRate: setCustomRateText,
         setDate,
-        setFee: setFeeText,
+        setFee: (text) => {
+            setFeeText(text);
+            if (feeMode === "none" && numpadToNumber(text) > 0) {
+                setFeeMode("included");
+            }
+        },
+        setFeeMode: (mode) => {
+            setFeeMode(mode);
+            if (mode === "none") {
+                setFeeText("");
+            }
+        },
         setRateType: (next) => {
             setChosenRate(next);
             if (next !== "custom") {
@@ -575,7 +638,7 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
         setSent: setSentText,
         to,
         toBalance: roundMoney(toBalance.total, toDecimals),
-        toBalanceAfter: roundMoney(toBalance.total + toRestored + (math.arrived ?? 0), toDecimals),
+        toBalanceAfter: roundMoney(toBalance.total + toRestored + (math.net ?? 0), toDecimals),
         toCurrency,
         toDecimals,
         toggleFeeSide: () => {

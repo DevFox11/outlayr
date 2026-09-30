@@ -12,6 +12,7 @@ import { TransactionStage } from "@/components/transaction-form/stage/stage";
 import type { StageFooter } from "@/components/transaction-form/stage/stage";
 import { StepAccount } from "@/components/transaction-form/stage/step-account";
 import { StepDate } from "@/components/transaction-form/stage/step-date";
+import { StepFee } from "@/components/transaction-form/stage/step-fee";
 import { StepRate, StepRateField } from "@/components/transaction-form/stage/step-rate";
 import { StepWhen } from "@/components/transaction-form/stage/step-when";
 import { useDisplaySettings, useSettingNumber } from "@/contexts/display-settings-context";
@@ -201,9 +202,12 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
         enter(next);
     };
 
-    const resolveGap = (resolve: () => void) => () => {
+    const resolveGap = (resolve: () => void, hidesArrival: boolean) => () => {
         touch();
         resolve();
+        if (hidesArrival && step === "arrives") {
+            enter("amount", false);
+        }
     };
 
     const onSlotPress = (slot: TransferSentenceSlot) => {
@@ -303,7 +307,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
     };
 
     const renderStage = () => {
-        if (step === "amount" || step === "arrives" || step === "fee") {
+        if (step === "amount" || step === "arrives") {
             const pad = pads[step];
             return (
                 <TransactionFormAmountPad
@@ -330,6 +334,58 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
                         }}
                         selectedId={(step === "from" ? draft.from : draft.to)?.id ?? null}
                     />
+                );
+            }
+            if (step === "fee") {
+                return (
+                    <StepFee
+                        field={{
+                            comesTo: null,
+                            label: t("transfers.field.fee"),
+                            placeholder: draft.feeText === "",
+                            unit: draft.feeCurrency,
+                            value:
+                                draft.feeText === "" ? "0" : draft.feeText.replace(".", numberLocale(language).decimal),
+                        }}
+                        labels={{
+                            loggedAs: t("transfers.fee.chargedTo"),
+                            total:
+                                feeSideAccount === null
+                                    ? t("transaction.fee.total")
+                                    : t("transaction.fee.pays", { account: feeSideAccount.name }),
+                        }}
+                        loggedAs={feeSideAccount?.name ?? t("transfers.sentence.blank.account")}
+                        onLoggedAsPress={() => {
+                            touch();
+                            draft.toggleFeeSide();
+                        }}
+                        onSelect={(mode) => {
+                            touch();
+                            draft.setFeeMode(mode);
+                            if (mode === "none") {
+                                enter("amount", false);
+                            }
+                        }}
+                        options={[
+                            { id: "none", label: t("transaction.fee.none") },
+                            { id: "included", label: t("transfers.fee.included") },
+                            { id: "onTop", label: t("transfers.fee.onTop") },
+                        ]}
+                        selectedId={draft.feeMode}
+                        total={
+                            draft.feeSide === "source" && draft.sent > 0
+                                ? formatAmount(draft.paid, draft.fromCurrency, true, language)
+                                : null
+                        }
+                    >
+                        <AmountNumpad
+                            code={draft.feeCurrency}
+                            minorUnits={draft.feeDecimals}
+                            onChange={typed(pads.fee)}
+                            showDisplay={false}
+                            value={fresh ? "" : pads.fee.value}
+                        />
+                    </StepFee>
                 );
             }
             if (step === "rate") {
@@ -442,6 +498,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
         };
         const titles = {
             date: t("transfers.field.date"),
+            fee: t("transfers.field.fee"),
             from: t("transfers.field.from"),
             rate: t("transaction.rate.custom"),
             rateType: t("transaction.rate.title"),
@@ -501,6 +558,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
                         flaggedSlot={flagged}
                         hasFee={draft.fee > 0}
                         onSlotPress={onSlotPress}
+                        onTop={draft.feeMode === "onTop"}
                         values={{
                             amount:
                                 draft.sent > 0 ? formatAmount(draft.sent, draft.fromCurrency, true, language) : null,
@@ -529,20 +587,24 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
                         <View className="gap-2">
                             <MetaLine statement={gap.message} tone={draft.block === null ? "warning" : "danger"} />
                             <View className="flex-row flex-wrap gap-x-5 gap-y-2">
-                                {gap.feeLabel && gap.onFee ? (
-                                    <Pressable accessibilityRole="button" hitSlop={10} onPress={resolveGap(gap.onFee)}>
-                                        <Text className="text-subtitle text-tint font-sans-semibold">
-                                            {gap.feeLabel}
-                                        </Text>
-                                    </Pressable>
-                                ) : null}
-                                {gap.rateLabel && gap.onRate ? (
-                                    <Pressable accessibilityRole="button" hitSlop={10} onPress={resolveGap(gap.onRate)}>
-                                        <Text className="text-subtitle text-tint font-sans-semibold">
-                                            {gap.rateLabel}
-                                        </Text>
-                                    </Pressable>
-                                ) : null}
+                                {(
+                                    [
+                                        [gap.feeLabel, gap.onFee, false],
+                                        [gap.rateLabel, gap.onRate, false],
+                                        [gap.topLabel, gap.onTop, !draft.crossCurrency],
+                                    ] as const
+                                ).map(([label, resolve, hidesArrival]) =>
+                                    label && resolve ? (
+                                        <Pressable
+                                            accessibilityRole="button"
+                                            hitSlop={10}
+                                            key={label}
+                                            onPress={resolveGap(resolve, hidesArrival)}
+                                        >
+                                            <Text className="text-subtitle text-tint font-sans-semibold">{label}</Text>
+                                        </Pressable>
+                                    ) : null
+                                )}
                             </View>
                         </View>
                     ) : null}

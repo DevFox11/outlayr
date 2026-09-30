@@ -12,7 +12,9 @@ export interface TransferGapPrompt {
     message: string;
     onFee: (() => void) | null;
     onRate: (() => void) | null;
+    onTop: (() => void) | null;
     rateLabel: string | null;
+    topLabel: string | null;
 }
 
 type Draft = ReturnType<typeof useTransferDraft>;
@@ -28,7 +30,7 @@ export function rateDeltaNote(draft: Draft, t: Translate, language: Language): s
     if (rate === null || official === null) {
         return null;
     }
-    const moved = draft.sent - (draft.feeSide === "source" ? draft.fee : 0);
+    const moved = draft.paid - (draft.feeSide === "source" ? draft.fee : 0);
     return rateDeltaLine(t, {
         bcv: quotedByBcv(draft.fromCurrency, draft.toCurrency),
         code: draft.toCurrency,
@@ -64,20 +66,24 @@ export function blockPrompt(draft: Draft, t: Translate, language: Language): Tra
         message: blockMessage(draft, t, language),
         onFee: null,
         onRate: null,
+        onTop: null,
         rateLabel: null,
+        topLabel: null,
     };
 }
 
 /** Only offers a resolution that would actually close the gap: a fee only when one
  * above zero does, and a rate only when it differs from the one carried. */
 export function gapPrompt(draft: Draft, t: Translate, language: Language): TransferGapPrompt | null {
-    if (draft.gapAmount === 0 || draft.gapRate === null) {
+    const { gapRate } = draft;
+    if (draft.gapAmount === 0 || (gapRate === null && !draft.gapOnTop)) {
         return null;
     }
-    const offered = offeredRateText(draft, draft.gapRate, language);
+    const offered = gapRate === null ? null : offeredRateText(draft, gapRate, language);
     const arrivalGap = -draft.gapAmount;
     const amount = formatSignedAmount(arrivalGap, draft.feeCurrency, true, language);
     const rateMoves =
+        offered !== null &&
         draft.fromCurrency !== draft.toCurrency &&
         (draft.quotedRate === null || offered !== offeredRateText(draft, draft.quotedRate, language));
     return {
@@ -87,6 +93,8 @@ export function gapPrompt(draft: Draft, t: Translate, language: Language): Trans
         }),
         onFee: draft.gapFee === null ? null : draft.resolveAsFee,
         onRate: rateMoves ? draft.resolveAsRate : null,
+        onTop: draft.gapOnTop ? draft.resolveAsOnTop : null,
         rateLabel: rateMoves ? t("transfers.gap.rateWas", { rate: offered }) : null,
+        topLabel: draft.gapOnTop ? t("transfers.gap.itsOnTop") : null,
     };
 }

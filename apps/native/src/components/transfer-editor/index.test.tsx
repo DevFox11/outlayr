@@ -675,3 +675,75 @@ describe("transfer editor conversion", () => {
         expect(mockUpdate).toHaveBeenCalledTimes(1);
     });
 });
+
+describe("transfer editor fee on top", () => {
+    it("charges a fee on top of the amount sent to the sender", async () => {
+        await render(<TransferEditor onDone={jest.fn()} seed={{ ...SEED, amount: 500 }} />);
+        await press("transfers.field.fee");
+        await press("transfers.fee.onTop");
+        for (const key of "2500") {
+            await press(key);
+        }
+
+        expect(screen.getByText("Plus")).toBeTruthy();
+        expect(screen.getByText("$525.00")).toBeTruthy();
+        expect(screen.getByLabelText("Zinli, $500.00, then -$25.00")).toBeTruthy();
+        expect(screen.getByLabelText("Mercantil, $500.00, then $1,000.00")).toBeTruthy();
+        await press("transfers.save");
+        expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({
+            fee: { amount: 25, side: "source" },
+            fromAmount: 500,
+            toAmount: 500,
+        });
+    });
+
+    it("types a fee charged to the receiver in its currency and takes it from the full conversion", async () => {
+        mockRateTables.mockReturnValue({ official: quotedAt(848.55) });
+        await render(<TransferEditor onDone={jest.fn()} seed={CROSS} />);
+        await press("transfers.field.fee");
+        await press("transfers.fee.chargedTo, Zinli");
+        await press("transfers.fee.onTop");
+        for (const key of "100000") {
+            await press(key);
+        }
+
+        expect(screen.getByTestId("stage-fee-field").props.accessibilityValue.text).toBe("1000.00 VES");
+        expect(slotValue("transfers.field.arrives")).toBe("Bs.42,427.50");
+        expect(screen.getByLabelText("Banesco, Bs.500.00, then Bs.41,927.50")).toBeTruthy();
+        await press("common.next");
+        await press("transfers.save");
+        expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({
+            fee: { amount: 1000, side: "destination" },
+            fromAmount: 50,
+            toAmount: 42_427.5,
+        });
+    });
+
+    it("offers a fee on top when that is what leaves the arrival unexplained", async () => {
+        await render(<TransferEditor onDone={jest.fn()} seed={{ ...SEED, amount: 500 }} />);
+        await press("transfers.field.fee");
+        for (const key of "2500") {
+            await press(key);
+        }
+        await press("transfers.field.arrives");
+        for (const key of "50000") {
+            await press(key);
+        }
+        expect(screen.getByText("+$25.00 unaccounted")).toBeTruthy();
+        expect(screen.queryByText("It's a fee")).toBeNull();
+
+        await act(async () => {
+            fireEvent.press(screen.getByText("It's on top"));
+        });
+
+        expect(screen.queryByText(/unaccounted/)).toBeNull();
+        expect(screen.queryByText("transfers.field.arrives")).toBeNull();
+        expect(screen.getByText("transfers.field.sent")).toBeTruthy();
+        await press("transfers.save");
+        expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({
+            fee: { amount: 25, side: "source" },
+            fromAmount: 500,
+            toAmount: 500,
+        });
+    });
+});
