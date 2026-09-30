@@ -10,9 +10,11 @@ import { StepAccount } from "./step-account";
 jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
     useColors: () => mockTestColors(),
 }));
+jest.mock("@/contexts/local-data-context", () => ({ useDatabase: () => ({}) }));
+jest.mock("@/data/app-meta", () => ({ useGlobalCurrency: () => "USD" }));
 
-const account = (id: string, name: string): Account => ({
-    currency: "USD",
+const account = (id: string, name: string, currency = "USD"): Account => ({
+    currency,
     customColor: null,
     dateCreated: new Date(0),
     deletedAt: null,
@@ -52,6 +54,14 @@ describe("stepAccount", () => {
         await render(<StepAccount {...baseProps} allowNone={false} />);
 
         expect(optionNames()).toStrictEqual(["Chase", "Cash"]);
+    });
+
+    it("names the currency of an account held outside the ledger's", async () => {
+        await render(<StepAccount {...baseProps} accounts={[...ACCOUNTS, account("banesco", "Banesco", "VES")]} />);
+
+        expect(optionNames()).toStrictEqual(["transaction.account.none", "Chase", "Cash", "Banesco, VES"]);
+        expect(screen.getByText("VES")).toBeTruthy();
+        expect(screen.queryByText("USD")).toBeNull();
     });
 
     it("marks the selected account", async () => {

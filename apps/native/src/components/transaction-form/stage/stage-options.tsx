@@ -10,6 +10,7 @@ export interface StageOptionItem<Id extends string> {
     label: string;
     /** A dot or tile drawn before the label — a category swatch, an account glyph. */
     leading?: ReactNode;
+    trailing?: ReactNode;
 }
 
 interface StageOptionRowProps<Id extends string> {
@@ -35,6 +36,7 @@ export function StageOptionRow<Id extends string>({ onSelect, options, selectedI
                     leading={option.leading}
                     onPress={() => onSelect(option.id)}
                     selected={option.id === selectedId}
+                    trailing={option.trailing}
                 />
             ))}
         </View>

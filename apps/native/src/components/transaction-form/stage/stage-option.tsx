@@ -31,13 +31,21 @@ export interface StageOptionProps {
     leading?: ReactNode;
     onPress: () => void;
     selected?: boolean;
+    trailing?: ReactNode;
 }
 
 /**
  * One choice on the stage. Only colour animates: these render inside a SwiftUI
  * `RNHostView`, which re-measures the whole tree whenever a child changes size.
  */
-export function StageOption({ accessibilityLabel, label, leading, onPress, selected = false }: StageOptionProps) {
+export function StageOption({
+    accessibilityLabel,
+    label,
+    leading,
+    onPress,
+    selected = false,
+    trailing,
+}: StageOptionProps) {
     const colors = useColors();
     const reduced = useReducedMotion();
     const on = useSharedValue(selected ? 1 : 0);
@@ -74,6 +82,7 @@ export function StageOption({ accessibilityLabel, label, leading, onPress, selec
             >
                 {leading}
                 <Text className="text-foreground text-subtitle">{label}</Text>
+                {trailing}
             </Animated.View>
         </Pressable>
     );

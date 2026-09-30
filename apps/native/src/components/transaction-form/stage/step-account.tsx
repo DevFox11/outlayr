@@ -2,7 +2,9 @@ import { ScrollView } from "react-native";
 
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { Text } from "@/components/text";
+import { useDatabase } from "@/contexts/local-data-context";
 import type { Account } from "@/data/accounts-core";
+import { useGlobalCurrency } from "@/data/app-meta";
 import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
@@ -34,6 +36,7 @@ interface StepAccountProps {
 export function StepAccount({ accounts, allowNone = true, onSelect, selectedId }: StepAccountProps) {
     const t = useTranslation();
     const colors = useColors();
+    const ledgerCurrency = useGlobalCurrency(useDatabase());
 
     if (accounts.length === 0) {
         return (
@@ -43,21 +46,26 @@ export function StepAccount({ accounts, allowNone = true, onSelect, selectedId }
         );
     }
 
-    const options: StageOptionItem<string>[] = accounts.map((account) => ({
-        id: account.id,
-        label: account.name,
-        leading: (
-            <CategoryIconTile
-                color={account.imageColor ?? account.customColor ?? colors.foreground}
-                emoji={account.emoji}
-                icon={account.icon}
-                imageUri={account.imageUri}
-                radius={6}
-                size={TILE}
-                type="solid"
-            />
-        ),
-    }));
+    const options: StageOptionItem<string>[] = accounts.map((account) => {
+        const foreign = account.currency !== ledgerCurrency;
+        return {
+            accessibilityLabel: foreign ? `${account.name}, ${account.currency}` : undefined,
+            id: account.id,
+            label: account.name,
+            leading: (
+                <CategoryIconTile
+                    color={account.imageColor ?? account.customColor ?? colors.foreground}
+                    emoji={account.emoji}
+                    icon={account.icon}
+                    imageUri={account.imageUri}
+                    radius={6}
+                    size={TILE}
+                    type="solid"
+                />
+            ),
+            trailing: foreign ? <Text className="text-label text-tint font-mono">{account.currency}</Text> : undefined,
+        };
+    });
     if (allowNone) {
         options.unshift({ id: NONE_OPTION, label: t("transaction.account.none") });
     }
