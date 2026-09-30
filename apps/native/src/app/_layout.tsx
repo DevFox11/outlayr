@@ -328,6 +328,7 @@ function RootStack() {
                 <Stack.Screen name="accounts/reorder" />
                 <Stack.Screen name="accounts/[accountId]/index" />
                 <Stack.Screen name="settings/categories/reorder" />
+                <Stack.Screen name="settings/licenses/[name]" />
                 {SHEET_SCREENS.map((sheet) => (
                     <Stack.Screen
                         key={sheet.name}

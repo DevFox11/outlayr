@@ -1,6 +1,6 @@
+import { useRouter } from "expo-router";
 import { openBrowserAsync } from "expo-web-browser";
 import { View } from "react-native";
-import { ReactNativeLegal } from "react-native-legal";
 
 import { MonoLabel } from "@/components/mono-label";
 import { LinkRow, SettingsSection } from "@/components/settings/settings-row";
@@ -16,6 +16,7 @@ const LOGO_DEV = "https://logo.dev";
 
 export function About() {
     const t = useTranslation();
+    const router = useRouter();
     return (
         <SettingsScreen footer={t("settings.about.version", { version: APP_VERSION })}>
             <View className="pt-6">
@@ -40,7 +41,7 @@ export function About() {
                 />
                 <LinkRow
                     icon="LegalDocument01"
-                    onPress={() => ReactNativeLegal.launchLicenseListScreen(t("settings.about.openSourceLicenses"))}
+                    onPress={() => router.push("/settings/licenses")}
                     title={t("settings.about.openSourceLicenses")}
                 />
                 {/* Required by logo.dev's free plan: a visible, followable link. */}

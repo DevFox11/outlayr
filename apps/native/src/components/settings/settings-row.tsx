@@ -37,7 +37,7 @@ interface RowShellProps {
     destructive?: boolean;
     /** Second line under the title, for a row whose behaviour needs a sentence. */
     detail?: string;
-    icon: SettingsIconName;
+    icon?: SettingsIconName;
     title: string;
 }
 
@@ -46,12 +46,14 @@ function RowShell({ icon, title, destructive, detail, children }: RowShellProps)
     return (
         <View className="border-border border-b py-3.5">
             <View className="flex-row items-center gap-3">
-                <HugeiconsIcon
-                    color={destructive ? colors.danger : colors.foreground}
-                    icon={settingsIcon(icon)}
-                    size={GLYPH}
-                    strokeWidth={1.9}
-                />
+                {icon ? (
+                    <HugeiconsIcon
+                        color={destructive ? colors.danger : colors.foreground}
+                        icon={settingsIcon(icon)}
+                        size={GLYPH}
+                        strokeWidth={1.9}
+                    />
+                ) : null}
                 <Text
                     className={cn("text-body flex-1", destructive ? "text-danger" : "text-foreground")}
                     numberOfLines={1}
@@ -60,7 +62,9 @@ function RowShell({ icon, title, destructive, detail, children }: RowShellProps)
                 </Text>
                 {children}
             </View>
-            {detail ? <Text className={cn(TITLE_INSET, "text-muted text-subtitle leading-snug")}>{detail}</Text> : null}
+            {detail ? (
+                <Text className={cn(icon && TITLE_INSET, "text-muted text-subtitle leading-snug")}>{detail}</Text>
+            ) : null}
         </View>
     );
 }
@@ -93,7 +97,7 @@ interface LinkRowProps {
     destructive?: boolean;
     /** Second line under the title, for a row whose behaviour needs a sentence. */
     detail?: string;
-    icon: SettingsIconName;
+    icon?: SettingsIconName;
     /**
      * Tap handler. Omitted renders the row inert with no chevron — used for
      * unavailable features (e.g. Sync before an account exists).

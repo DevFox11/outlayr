@@ -46,6 +46,8 @@ The script is read-only. It prints:
 
 Before dispatching, read the commit list against the verdict. The file classification is a heuristic, but the fingerprint check is not. If a commit contradicts the verdict, for example a user-visible change that the path rules missed, stop and explain instead of dispatching.
 
+Before an `OTA` or `BUILD`, run `node --import tsx scripts/licenses.ts --check` from `apps/native`. If it reports the open source licenses list as stale, **stop and ask**: a dependency change shipped without regenerating it, and the fix is a PR, not an edit on detached main.
+
 ## 3. Message (OTA only)
 
 The in-app What's new sheet shows `message` verbatim, split on `\n`:

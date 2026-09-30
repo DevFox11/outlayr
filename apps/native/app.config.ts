@@ -195,7 +195,6 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
         ],
         "@bacons/apple-targets",
         "expo-core-spotlight",
-        "react-native-legal",
         [
             "expo-quick-actions",
             {

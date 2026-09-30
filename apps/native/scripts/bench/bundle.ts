@@ -12,16 +12,14 @@
  * the delta is what matters. One export takes ~40s on an M-series laptop, so
  * the three-run median the perf-hunt asks for is ~2 minutes.
  */
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { gzipSync } from "node:zlib";
 
 import { decodedMappings, TraceMap } from "@jridgewell/trace-mapping";
 
-const nativeRoot = resolve(import.meta.dirname, "..", "..");
+import { readIosBundle } from "../export-ios-bundle";
+
 const TOP = 25;
 const KB = 1024;
 /** Against a baseline, an owner that moved this much is shown even outside the top rows. */
@@ -110,28 +108,11 @@ function attribute(bundle: string, map: TraceMap): Record<string, number> {
 }
 
 function exportBundle(): Report {
-    const outDir = mkdtempSync(join(tmpdir(), "outlayr-bench-"));
-    try {
-        execFileSync(
-            "npx",
-            ["expo", "export", "--platform", "ios", "--output-dir", outDir, "--source-maps", "--no-bytecode"],
-            { cwd: nativeRoot, stdio: ["ignore", "ignore", "inherit"] }
-        );
-        const jsDir = join(outDir, "_expo", "static", "js", "ios");
-        const bundleName = readdirSync(jsDir).find((name) => name.endsWith(".js"));
-        if (!bundleName) {
-            throw new Error(`expo export wrote no .js bundle under ${jsDir}`);
-        }
-        const bundle = readFileSync(join(jsDir, bundleName), "utf-8");
-        const map = new TraceMap(readFileSync(join(jsDir, `${bundleName}.map`), "utf-8"));
-        return {
-            byOwner: attribute(bundle, map),
-            gzipBytes: gzipSync(bundle).length,
-            totalBytes: Buffer.byteLength(bundle),
-        };
-    } finally {
-        rmSync(outDir, { force: true, recursive: true });
-    }
+    return readIosBundle((bundle, map) => ({
+        byOwner: attribute(bundle, new TraceMap(map)),
+        gzipBytes: gzipSync(bundle).length,
+        totalBytes: Buffer.byteLength(bundle),
+    }));
 }
 
 const kb = (bytes: number) => `${(bytes / KB).toFixed(0).padStart(7)} KB`;
