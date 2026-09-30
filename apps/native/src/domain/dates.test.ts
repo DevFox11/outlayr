@@ -11,6 +11,7 @@ import {
     formatDayHeader,
     formatTime,
     formatUpcomingDate,
+    formatWeekdayDay,
     monthAbbrev,
     monthAbbrevTitle,
     startOfWeek,
@@ -184,6 +185,13 @@ describe("formatChargeDate", () => {
 
     it("adds the year only once the charge leaves the current one", () => {
         expect(formatChargeDate(new Date(2027, 1, 7), NOW, "en")).toBe("Sun, 7 Feb 2027");
+    });
+});
+
+describe("formatWeekdayDay", () => {
+    it("names the weekday in the language it is given", () => {
+        expect(formatWeekdayDay(new Date(2026, 8, 27), "en")).toBe("Sun 27");
+        expect(formatWeekdayDay(new Date(2026, 8, 27), "es")).toBe("dom 27");
     });
 });
 

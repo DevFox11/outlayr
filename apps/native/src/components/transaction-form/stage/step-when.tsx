@@ -1,10 +1,14 @@
-import { addDays, formatSentenceDate, startOfDay } from "@/domain/dates";
+import { addDays, formatChargeDate, formatSentenceDate, formatWeekdayDay, startOfDay } from "@/domain/dates";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
 import { StageOptionRow } from "./stage-options";
 import type { StageOptionItem } from "./stage-options";
 
-type WhenOptionId = "chosen" | "pick" | "today" | "yesterday";
+type WhenOptionId = "chosen" | "pick" | `day-${number}`;
+
+const DAYS_OFFERED = 7;
+
+const NAMED_DAYS = ["transaction.sentence.when.today", "transaction.sentence.when.yesterday"] as const;
 
 /**
  * The named day at the clock time the entry already carries. Naming a day is not
@@ -17,7 +21,6 @@ function atSameTime(day: Date, source: Date): Date {
 }
 
 interface StepWhenProps {
-    /** The date the entry carries. One that is neither today nor yesterday appears as its own option. */
     date: Date;
     /** Names today; the host already holds a clock, and a test pins it. */
     now: Date;
@@ -32,46 +35,39 @@ interface StepWhenProps {
     pickLabel?: string;
 }
 
-/** The stage's date step: today, yesterday, whatever else is already chosen, and the picker. */
 export function StepWhen({ date, now, onPick, onSelect, pickLabel }: StepWhenProps) {
     const t = useTranslation();
     const { language } = useLanguage();
 
     const today = startOfDay(now);
-    const yesterday = addDays(today, -1);
     const chosen = startOfDay(date).getTime();
-    const isToday = chosen === today.getTime();
-    const isYesterday = chosen === yesterday.getTime();
 
-    const options: StageOptionItem<WhenOptionId>[] = [
-        { id: "today", label: t("transaction.sentence.when.today") },
-        { id: "yesterday", label: t("transaction.sentence.when.yesterday") },
-    ];
-    // A date the two quick options cannot state still has to read as the
-    // selection, and tapping it is the way back into the picker.
-    if (!(isToday || isYesterday)) {
+    const days = Array.from({ length: DAYS_OFFERED }, (_, back) => {
+        const day = addDays(today, -back);
+        const named = NAMED_DAYS[back];
+        return {
+            accessibilityLabel: named ? undefined : formatChargeDate(day, now, language),
+            day,
+            id: `day-${back}` as const,
+            label: named ? t(named) : formatWeekdayDay(day, language),
+        };
+    });
+    const chosenDay = days.find(({ day }) => day.getTime() === chosen);
+
+    const options: StageOptionItem<WhenOptionId>[] = [...days];
+    if (!chosenDay) {
         options.push({ id: "chosen", label: formatSentenceDate(date, language) });
     }
     options.push({ id: "pick", label: pickLabel ?? t("transaction.field.date") });
 
     const pick = (id: WhenOptionId) => {
-        if (id === "today") {
-            onSelect(atSameTime(today, date));
-            return;
-        }
-        if (id === "yesterday") {
-            onSelect(atSameTime(yesterday, date));
+        const picked = days.find((option) => option.id === id);
+        if (picked) {
+            onSelect(atSameTime(picked.day, date));
             return;
         }
         onPick();
     };
 
-    const selectedId = (): WhenOptionId | null => {
-        if (isToday) {
-            return "today";
-        }
-        return isYesterday ? "yesterday" : "chosen";
-    };
-
-    return <StageOptionRow onSelect={pick} options={options} selectedId={selectedId()} />;
+    return <StageOptionRow onSelect={pick} options={options} selectedId={chosenDay?.id ?? "chosen"} />;
 }

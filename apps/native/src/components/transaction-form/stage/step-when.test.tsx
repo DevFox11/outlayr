@@ -22,14 +22,20 @@ const baseProps: ComponentProps<typeof StepWhen> = {
 const optionNames = () => screen.getAllByRole("button").map((node) => node.props.accessibilityLabel);
 
 describe("stepWhen", () => {
-    it("offers the two quick days and the picker, and marks today", async () => {
+    it("offers a week of days, then the picker, and marks today", async () => {
         await render(<StepWhen {...baseProps} />);
 
         expect(optionNames()).toStrictEqual([
             "transaction.sentence.when.today",
             "transaction.sentence.when.yesterday",
+            "Mon, 13 Jul",
+            "Sun, 12 Jul",
+            "Sat, 11 Jul",
+            "Fri, 10 Jul",
+            "Thu, 9 Jul",
             "transaction.field.date",
         ]);
+        expect(screen.getByText("Mon 13")).toBeTruthy();
         expect(
             screen.getByRole("button", { name: "transaction.sentence.when.today" }).props.accessibilityState.selected
         ).toBe(true);
@@ -41,23 +47,25 @@ describe("stepWhen", () => {
         const onSelect = jest.fn<(date: Date) => void>();
         await render(<StepWhen {...baseProps} onSelect={onSelect} />);
 
-        fireEvent.press(screen.getByRole("button", { name: "transaction.sentence.when.yesterday" }));
+        fireEvent.press(screen.getByRole("button", { name: "Sun, 12 Jul" }));
 
         const picked = onSelect.mock.calls[0]?.[0] as Date;
-        expect(picked.getDate()).toBe(14);
+        expect(picked.getDate()).toBe(12);
         expect([picked.getHours(), picked.getMinutes(), picked.getSeconds()]).toStrictEqual([21, 30, 12]);
     });
 
-    it("states a date the quick options cannot, as the selection", async () => {
+    it("marks a day inside the week rather than stating it twice", async () => {
         await render(<StepWhen {...baseProps} date={new Date(2026, 6, 10, 9, 5)} />);
 
-        expect(optionNames()).toStrictEqual([
-            "transaction.sentence.when.today",
-            "transaction.sentence.when.yesterday",
-            "10 Jul",
-            "transaction.field.date",
-        ]);
-        expect(screen.getByRole("button", { name: "10 Jul" }).props.accessibilityState.selected).toBe(true);
+        expect(screen.getByRole("button", { name: "Fri, 10 Jul" }).props.accessibilityState.selected).toBe(true);
+        expect(screen.queryByRole("button", { name: "10 Jul" })).toBeNull();
+    });
+
+    it("states a date older than the week, as the selection before the picker", async () => {
+        await render(<StepWhen {...baseProps} date={new Date(2026, 6, 1, 9, 5)} />);
+
+        expect(optionNames().slice(-3)).toStrictEqual(["Thu, 9 Jul", "1 Jul", "transaction.field.date"]);
+        expect(screen.getByRole("button", { name: "1 Jul" }).props.accessibilityState.selected).toBe(true);
         expect(
             screen.getByRole("button", { name: "transaction.sentence.when.today" }).props.accessibilityState.selected
         ).toBe(false);
@@ -73,8 +81,8 @@ describe("stepWhen", () => {
     });
 
     it("labels the picker with the host's word where it has one", async () => {
-        await render(<StepWhen {...baseProps} pickLabel="Pick a date" />);
+        await render(<StepWhen {...baseProps} pickLabel="Earlier" />);
 
-        expect(screen.getByRole("button", { name: "Pick a date" })).toBeTruthy();
+        expect(screen.getByRole("button", { name: "Earlier" })).toBeTruthy();
     });
 });

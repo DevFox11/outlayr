@@ -719,11 +719,9 @@ const transaction = {
             en: "on {date}",
             es: "el {date}",
         }),
-        // The stage's own option, beside "today" and "yesterday": "Date" alone
-        // reads as a label rather than as the third way to answer the question.
         "transaction.sentence.when.pick": t({
-            en: "Pick a date",
-            es: "Elegir fecha",
+            en: "Earlier",
+            es: "Antes",
         }),
         "transaction.sentence.when.repeating": t({
             en: "every {interval} from {date}",

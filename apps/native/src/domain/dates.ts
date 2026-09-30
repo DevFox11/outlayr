@@ -154,6 +154,10 @@ export function formatChargeDate(date: Date, now: Date = new Date(), language: L
     return date.getFullYear() === now.getFullYear() ? base : `${base} ${date.getFullYear()}`;
 }
 
+export function formatWeekdayDay(date: Date, language: Language = runtimeLanguage()): string {
+    return `${dateName(`dates.weekday.${date.getDay()}`, language)} ${date.getDate()}`;
+}
+
 /** "24 JUL", per Swift's `dateFormatter`. */
 export function formatUpcomingDate(date: Date, language: Language = runtimeLanguage()): string {
     return `${date.getDate()} ${monthAbbrev(date, language)}`;
