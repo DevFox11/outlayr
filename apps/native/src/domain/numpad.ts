@@ -6,6 +6,8 @@
  */
 const MAX_INTEGER_DIGITS = 13;
 
+export const AMOUNT_CEILING = 10 ** MAX_INTEGER_DIGITS;
+
 const LEADING_ZEROS = /^0+/;
 const ZERO_FRACTION = /\.0+$/;
 

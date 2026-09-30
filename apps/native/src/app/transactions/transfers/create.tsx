@@ -1,7 +1,9 @@
+import { isPickableCurrency } from "@outlayr/money/currency";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 
 import { CloseToolbar } from "@/components/close-toolbar";
 import TransferEditor from "@/components/transfer-editor";
+import { AMOUNT_CEILING } from "@/domain/numpad";
 import { useTranslation } from "@/i18n/context";
 
 export default function TransferCreateScreen() {
@@ -24,11 +26,12 @@ export default function TransferCreateScreen() {
         toUnresolved?: string;
     }>();
     const amount = Number(params.amount);
-    const date = Number(params.date);
+    const date = new Date(Number(params.date));
+    const currencyKnown = params.currency === undefined || isPickableCurrency(params.currency);
     const seed = {
-        amount: amount > 0 ? amount : undefined,
-        currency: params.currency,
-        date: Number.isFinite(date) && date > 0 ? new Date(date) : undefined,
+        amount: currencyKnown && amount > 0 && amount < AMOUNT_CEILING ? amount : undefined,
+        currency: currencyKnown ? params.currency : undefined,
+        date: date.getTime() > 0 ? date : undefined,
         fromAccountId: params.fromAccountId,
         fromUnresolved: params.fromUnresolved === "1",
         note: params.note,
