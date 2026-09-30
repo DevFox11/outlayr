@@ -85,6 +85,7 @@
         "react-native": "0.86.3",
         "react-native-gesture-handler": "~2.32.0",
         "react-native-intlayer": "catalog:",
+        "react-native-legal": "^1.8.1",
         "react-native-nitro-google-signin": "^2.3.0",
         "react-native-nitro-modules": "^0.37.1",
         "react-native-purchases": "^10.10.2",

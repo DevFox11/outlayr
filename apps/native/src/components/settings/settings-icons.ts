@@ -22,6 +22,7 @@ import Idea01Icon from "@hugeicons-pro/core-stroke-rounded/Idea01Icon";
 import InformationCircleIcon from "@hugeicons-pro/core-stroke-rounded/InformationCircleIcon";
 import LanguageSkillIcon from "@hugeicons-pro/core-stroke-rounded/LanguageSkillIcon";
 import LayoutTable01Icon from "@hugeicons-pro/core-stroke-rounded/LayoutTable01Icon";
+import LegalDocument01Icon from "@hugeicons-pro/core-stroke-rounded/LegalDocument01Icon";
 import LicenseIcon from "@hugeicons-pro/core-stroke-rounded/LicenseIcon";
 import Logout01Icon from "@hugeicons-pro/core-stroke-rounded/Logout01Icon";
 import Mic01Icon from "@hugeicons-pro/core-stroke-rounded/Mic01Icon";
@@ -72,6 +73,7 @@ const REGISTRY = {
     InformationCircle: InformationCircleIcon,
     LanguageSkill: LanguageSkillIcon,
     LayoutTable01: LayoutTable01Icon,
+    LegalDocument01: LegalDocument01Icon,
     License: LicenseIcon,
     Logout01: Logout01Icon,
     Mic01: Mic01Icon,

@@ -35,6 +35,10 @@ const settings = {
             en: "Logos provided by Logo.dev",
             es: "Logos proporcionados por Logo.dev",
         }),
+        "settings.about.openSourceLicenses": t({
+            en: "Open source licenses",
+            es: "Licencias de código abierto",
+        }),
         "settings.about.outlayrRepo": t({
             en: "Outlayr on GitHub",
             es: "Outlayr en GitHub",

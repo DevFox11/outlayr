@@ -1,5 +1,6 @@
 import { openBrowserAsync } from "expo-web-browser";
 import { View } from "react-native";
+import { ReactNativeLegal } from "react-native-legal";
 
 import { MonoLabel } from "@/components/mono-label";
 import { LinkRow, SettingsSection } from "@/components/settings/settings-row";
@@ -36,6 +37,11 @@ export function About() {
                     icon="License"
                     onPress={() => openBrowserAsync(GPL_LICENSE)}
                     title={t("settings.about.gplLink")}
+                />
+                <LinkRow
+                    icon="LegalDocument01"
+                    onPress={() => ReactNativeLegal.launchLicenseListScreen(t("settings.about.openSourceLicenses"))}
+                    title={t("settings.about.openSourceLicenses")}
                 />
                 {/* Required by logo.dev's free plan: a visible, followable link. */}
                 <LinkRow
