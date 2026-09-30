@@ -10,6 +10,7 @@ import { getMeta, META_KEYS, setMeta } from "@/data/app-meta-core";
 import { categoriesRepo } from "@/data/categories-core";
 import { bumpRatesRevision } from "@/data/rates-revision";
 import { backfillRecurring } from "@/data/recurrence-backfill";
+import { setBoolSetting } from "@/data/settings-core";
 import { splitsRepo } from "@/data/splits-core";
 import { tagIdsForQuery, tagsRepo } from "@/data/tags-core";
 import type { Transaction } from "@/data/transactions-core";
@@ -18,6 +19,7 @@ import { accounts, categories, exchangeRates, tags, transactions } from "@/db/sc
 import { migratedDatabase, transactionalDatabase } from "@/db/test-database";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
+import { celebration } from "@/lib/celebration";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
 import type { LogoOutcome } from "@/lib/logo-fetch";
 import { glowFromImage } from "@/theme/glow";
@@ -58,7 +60,17 @@ jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
             warning: "#C08A2E",
         }),
 }));
-jest.mock<Partial<typeof import("expo-router")>>("expo-router", () => require("../../../jest/expo-router-stub"));
+const mockRouterPush = jest.fn();
+jest.mock<Partial<typeof import("expo-router")>>("expo-router", () => ({
+    ...require("../../../jest/expo-router-stub"),
+    useRouter: () => ({ back: jest.fn(), push: mockRouterPush }),
+}));
+const mockNotifySaved = jest.fn<typeof import("@/lib/notify").notifySaved>();
+const mockNotifyFailure = jest.fn<typeof import("@/lib/notify").notifyFailure>();
+jest.mock<Partial<typeof import("@/lib/notify")>>("@/lib/notify", () => ({
+    notifyFailure: (notice) => mockNotifyFailure(notice),
+    notifySaved: (notice) => mockNotifySaved(notice),
+}));
 // Overrides `jest/i18n-key-stub.js` for the handful of keys whose TEXT is the
 // thing under test, and keeps key-as-copy for every other one. The sentence
 // template is the form's layout — `parseSentence` reads the slot order out of
@@ -80,6 +92,8 @@ jest.mock("@/i18n/context", () => {
         "transaction.sentence.rate.custom": catalog.EN["transaction.sentence.rate.custom"] ?? "",
         "transaction.sentence.rate.missing": catalog.EN["transaction.sentence.rate.missing"] ?? "",
         "transaction.sentence.rate.provider": catalog.EN["transaction.sentence.rate.provider"] ?? "",
+        "transaction.toast.added": catalog.EN["transaction.toast.added"] ?? "",
+        "transaction.toast.subscriptionAdded": catalog.EN["transaction.toast.subscriptionAdded"] ?? "",
     };
     return {
         LanguageProvider: ({ children }: { children: unknown }) => children,
@@ -1595,6 +1609,112 @@ describe("transactionForm submit re-entrancy", () => {
 
         await expect(db.select().from(transactions)).resolves.toHaveLength(1);
         expect(backfillRecurring).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe("transactionForm after a save", () => {
+    async function renderNew(db: Database, onDone: () => void): Promise<Screen> {
+        const categoryId = await seedCategory(db);
+        return await render(
+            <Providers>
+                <TransactionForm
+                    db={db}
+                    mode="create"
+                    onDone={onDone}
+                    seed={{ amount: 25, categoryId, note: "GitHub" }}
+                />
+            </Providers>
+        );
+    }
+
+    beforeEach(() => {
+        mockNotifySaved.mockClear();
+        mockNotifyFailure.mockClear();
+        mockRouterPush.mockClear();
+    });
+
+    it("closes a new entry at once, names it on the way out and offers another", async () => {
+        const onDone = jest.fn();
+        const screen = await renderNew(dbHolder.current as Database, onDone);
+
+        await pressSave(screen, "transaction.cta.add");
+
+        expect(onDone).toHaveBeenCalledTimes(1);
+        expect(mockNotifySaved).toHaveBeenCalledTimes(1);
+        const [notice] = mockNotifySaved.mock.calls[0] ?? [];
+        expect(notice).toMatchObject({ actionLabel: "transaction.toast.another", title: "GitHub $25.00 added" });
+        const hide = jest.fn();
+        notice?.onActionPress?.({ hide, id: "saved" });
+        expect(hide).toHaveBeenCalledTimes(1);
+        expect(mockRouterPush).toHaveBeenCalledWith("/transactions/create");
+    });
+
+    it("says a subscription is one", async () => {
+        const screen = await renderNew(dbHolder.current as Database, () => {});
+
+        await repeatMonthly(screen);
+        await pressSave(screen, "transaction.cta.addSubscription");
+
+        expect(mockNotifySaved.mock.calls[0]?.[0].title).toBe("GitHub $25.00 subscription added");
+    });
+
+    it("asks the Log for the confetti only when the setting is on", async () => {
+        const db = dbHolder.current as Database;
+        const before = celebration.bursts();
+        const plain = await renderNew(db, () => {});
+        await pressSave(plain, "transaction.cta.add");
+        expect(celebration.bursts()).toBe(before);
+        await plain.unmount();
+
+        await setBoolSetting(db, "confetti", true);
+        const festive = await render(
+            <Providers>
+                <TransactionForm
+                    db={db}
+                    mode="create"
+                    onDone={() => {}}
+                    seed={{ amount: 25, categoryId: "c1", note: "GitHub" }}
+                />
+            </Providers>
+        );
+        await pressSave(festive, "transaction.cta.add");
+
+        expect(celebration.bursts()).toBe(before + 1);
+    });
+
+    it("closes an edit with no notice", async () => {
+        const db = dbHolder.current as Database;
+        const initial = await seedStoredTransaction(db, {
+            currency: "USD",
+            exchangeRate: null,
+            exchangeRateType: null,
+        });
+        const onDone = jest.fn();
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} initial={initial} mode="edit" onDone={onDone} />
+            </Providers>
+        );
+
+        await pressSave(screen, "transaction.cta.save");
+
+        expect(onDone).toHaveBeenCalledTimes(1);
+        expect(mockNotifySaved).not.toHaveBeenCalled();
+    });
+
+    it("raises the failure alone when the schedule could not be applied", async () => {
+        const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+        jest.mocked(backfillRecurring).mockRejectedValueOnce(new Error("no schedule"));
+        const onDone = jest.fn();
+        const screen = await renderNew(dbHolder.current as Database, onDone);
+
+        await repeatMonthly(screen);
+        await pressSave(screen, "transaction.cta.addSubscription");
+
+        expect(onDone).toHaveBeenCalledTimes(1);
+        expect(mockNotifyFailure).toHaveBeenCalledTimes(1);
+        expect(mockNotifySaved).not.toHaveBeenCalled();
+        errorSpy.mockRestore();
     });
 });
 

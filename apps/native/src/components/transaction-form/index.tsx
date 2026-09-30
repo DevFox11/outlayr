@@ -5,7 +5,6 @@ import { ENTRY_RATE_TYPES } from "@outlayr/money/rates";
 import type { EntryRateType } from "@outlayr/money/rates";
 import { useField, useForm, useSelector } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
-import { SymbolView } from "expo-symbols";
 import { PortalHost, PortalProvider } from "panelui-native";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -20,9 +19,8 @@ import {
     View,
     useWindowDimensions,
 } from "react-native";
-import Animated, { FadeInDown, FadeOutDown, useDerivedValue, useSharedValue } from "react-native-reanimated";
+import Animated, { useDerivedValue, useSharedValue } from "react-native-reanimated";
 
-import { Confetti } from "@/components/confetti";
 import { FLY_BACK, FLY_UP, FORM_BLUR_RADIUS, HEADER_HEIGHT } from "@/components/editor-style";
 import { InlineFailure } from "@/components/form/inline-failure";
 import { shallowEqual } from "@/components/form/shallow-equal";
@@ -62,7 +60,6 @@ import type { Transaction, TransactionInput } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { cardFeeAmount, cardFeeBase, cardFeeOf, feeDraftOf, formatFeeRate, NO_FEE } from "@/domain/card-fee";
 import type { FeeDraft } from "@/domain/card-fee";
-import { CONFETTI_FLIGHT_MS } from "@/domain/confetti";
 import { computeCurtainHues } from "@/domain/curtain-hues";
 import { formatSentenceDate, formatTime, startOfDay } from "@/domain/dates";
 import { merchantKey } from "@/domain/merchant-resolver";
@@ -98,15 +95,15 @@ import { useToggleFavouriteCurrency } from "@/hooks/use-toggle-favourite-currenc
 import { useTransactionEnrichment } from "@/hooks/use-transaction-enrichment";
 import type { EnrichmentSuggestion, PendingCategory } from "@/hooks/use-transaction-enrichment";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { celebration } from "@/lib/celebration";
 import { sendEnrichmentQueue } from "@/lib/enrichment-queue";
 import { freshEntries } from "@/lib/fresh-entries";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
-import { notifyFailure } from "@/lib/notify";
+import { notifyFailure, notifySaved } from "@/lib/notify";
 import { openNotificationSettings, reminderPermission, requestReminderPermission } from "@/lib/reminders";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji, glowFromImage } from "@/theme/glow";
-import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { useIsDark } from "@/theme/use-is-dark";
 
@@ -119,7 +116,6 @@ import { IdentityFlyUpLayer } from "../identity-fly-up";
 import { revealEntering } from "../sentence/sentence-motion";
 import { SplitSheet } from "../split-sheet";
 import { TagPickerSheet } from "../tag-picker-sheet";
-import { Text } from "../text";
 import { ThinkingOrb } from "../thinking-orb/thinking-orb";
 import { TransactionFormAmountPad } from "./amount-pad";
 import { TransactionFormCta } from "./cta";
@@ -821,22 +817,10 @@ export function TransactionForm({
                 return await holdSubmitting();
             }
             haptics("success");
-            if (mode === "edit") {
-                onDone();
-                return await holdSubmitting();
+            if (mode === "create") {
+                announceSaved(value, amount);
             }
-            setShowToast(true);
-            // The form owns the celebration, so it has to outlive its own
-            // dismissal: Swift fired the cannon on the screen behind the sheet,
-            // which has no equivalent here without hoisting state out of the
-            // route.
-            if (celebrate) {
-                // A counter, not a clock: mulberry32 avalanches its seed, so
-                // successive integers decorrelate as well as timestamps do, and
-                // the burst stays reproducible in a test.
-                setBurstSeed((previous) => previous + 1);
-            }
-            doneTimer.current = setTimeout(onDone, celebrate ? CONFETTI_FLIGHT_MS : 600);
+            onDone();
             return await holdSubmitting();
         },
         // The footer is never disabled, so a tap with no category lands here
@@ -1056,12 +1040,26 @@ export function TransactionForm({
     const [rateShake, setRateShake] = useState(false);
     const [usdText, setUsdText] = useState("");
     const usdSnapshot = useRef<RateSnapshot>({ entry: NO_RATE, fromSuggestion: false, type: null });
-    const [showToast, setShowToast] = useState(false);
     const celebrate = useAppSettings().state.bool("confetti");
+    const announceSaved = (value: typeof initialValues, amount: number) => {
+        notifySaved({
+            actionLabel: t("transaction.toast.another"),
+            onActionPress: (handle) => {
+                handle.hide();
+                router.push("/transactions/create");
+            },
+            title: t(value.isSubscription ? "transaction.toast.subscriptionAdded" : "transaction.toast.added", {
+                amount: formatAmount(amount, value.txCurrency ?? globalCurrency, true, language),
+                name: value.merchant.trim() || (value.category?.name ?? value.pendingCategory?.name ?? ""),
+            }),
+        });
+        if (celebrate) {
+            celebration.fire();
+        }
+    };
     const aiEnrichment = useAppSettings().state.bool("aiEnrichment");
     const queueable = (merchant: string) => aiEnrichment && merchant.trim() !== "";
     const groundedLookup = useAppSettings().state.bool("groundedLookup");
-    const [burstSeed, setBurstSeed] = useState(0);
     const containerHeight = useSharedValue(0);
     const heroRestTop = useDerivedValue(() => HERO_REST_TOP);
     const isDark = useIsDark();
@@ -1268,7 +1266,6 @@ export function TransactionForm({
     const shakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const amountShakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const rateShakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const categoriesForNamespace = useCategoriesByNamespace(db, income);
     // Shape only — the names, and what sits under what. No figures leave here.
@@ -1689,9 +1686,6 @@ export function TransactionForm({
             if (rateShakeTimer.current != null) {
                 clearTimeout(rateShakeTimer.current);
             }
-            if (doneTimer.current != null) {
-                clearTimeout(doneTimer.current);
-            }
         },
         []
     );
@@ -1857,7 +1851,6 @@ export function TransactionForm({
         },
         glowFromEmoji
     );
-    const toastLabel = t(isSubscription ? "transaction.toast.subscriptionAdded" : "transaction.toast.added");
 
     const chosenCategoryTint = category?.income ? colors.income : (category?.color ?? colors.foreground);
     const categoryGlyphTint = category ? chosenCategoryTint : (pendingCategory?.color ?? colors.muted);
@@ -2714,45 +2707,6 @@ export function TransactionForm({
                     onDelete={onDelete}
                     onLookup={mode === "edit" ? lookUpMerchant : undefined}
                 />
-
-                {showToast ? (
-                    <Animated.View
-                        entering={FadeInDown.springify()}
-                        exiting={FadeOutDown}
-                        pointerEvents="none"
-                        style={{
-                            alignItems: "center",
-                            bottom: 90,
-                            left: 0,
-                            position: "absolute",
-                            right: 0,
-                        }}
-                    >
-                        <View
-                            className="flex-row items-center gap-2 rounded-full"
-                            style={{
-                                backgroundColor: colors.surface,
-                                borderColor: withAlpha(colors.foreground, 0.12),
-                                borderWidth: 1,
-                                paddingHorizontal: 18,
-                                paddingVertical: 10,
-                            }}
-                        >
-                            <SymbolView
-                                name="checkmark"
-                                size={15}
-                                tintColor={colors.income}
-                                type="monochrome"
-                                weight="semibold"
-                            />
-                            <Text className="font-sans-semibold text-income text-subtitle">{toastLabel}</Text>
-                        </View>
-                    </Animated.View>
-                ) : null}
-
-                {celebrate && burstSeed !== 0 ? (
-                    <Confetti height={windowHeight} seed={burstSeed} width={windowWidth} />
-                ) : null}
 
                 {/* The stage's merchant step edits the same string the sentence
 				    does, and the software keyboard covers a surface docked to the

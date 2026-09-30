@@ -16,6 +16,7 @@ import { Uniwind, useCSSVariable } from "uniwind";
 
 import { AppLockGate } from "@/components/app-lock-gate";
 import { AuthCover } from "@/components/auth-cover";
+import { CelebrationConfetti } from "@/components/confetti";
 import { LocalDataError } from "@/components/local-data-error";
 import { Text } from "@/components/text";
 import { UpdateSheet } from "@/components/update-sheet";
@@ -165,6 +166,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
                                 <AppLockGate>
                                     <RootStack />
                                     <UpdateSheet />
+                                    <CelebrationConfetti />
                                 </AppLockGate>
                             </AuthCover>
                         </ThemeProvider>

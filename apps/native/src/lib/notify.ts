@@ -61,6 +61,10 @@ export function notifyUndoable(notice: Notice & { duration: number }): string {
     return show(notice, "default", notice.duration);
 }
 
+export function notifySaved(notice: Notice): void {
+    show(notice, "default");
+}
+
 export function dismissNotice(id: string): void {
     toast.hide(id);
 }

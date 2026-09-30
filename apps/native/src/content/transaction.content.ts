@@ -810,12 +810,16 @@ const transaction = {
             es: "Etiquetas",
         }),
         "transaction.toast.added": t({
-            en: "Transaction added",
-            es: "Transacción agregada",
+            en: "{name} {amount} added",
+            es: "Se agregó {name} por {amount}",
+        }),
+        "transaction.toast.another": t({
+            en: "Add another",
+            es: "Agregar otra",
         }),
         "transaction.toast.subscriptionAdded": t({
-            en: "Subscription added",
-            es: "Suscripción agregada",
+            en: "{name} {amount} subscription added",
+            es: "Se agregó la suscripción a {name} por {amount}",
         }),
         // Bare nouns, unlike `transaction.interval.*`, which embed the count. The
         // sentence renders "Every"/count/unit as three pieces so the count can be

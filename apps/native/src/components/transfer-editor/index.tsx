@@ -24,6 +24,7 @@ import { RATE_NAME_KEYS, RATE_SOURCE_WORD_KEYS, transactionWhenLabel } from "@/d
 import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { freshEntries } from "@/lib/fresh-entries";
+import { notifySaved } from "@/lib/notify";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
@@ -139,6 +140,14 @@ export default function TransferEditor({ onDirtyChange, onDone, saved, seed }: T
                 await transfersRepo.update(db, saved.id, input);
             } else {
                 freshEntries.mark(await transfersRepo.create(db, input));
+                notifySaved({
+                    actionLabel: t("transfers.saved.another"),
+                    onActionPress: () => router.push("/transactions/transfers/create"),
+                    title: t("transfers.saved.title", {
+                        amount: formatAmount(draft.sent, draft.fromCurrency, true, language),
+                        to: to.name,
+                    }),
+                });
             }
             haptics("success");
             onDone();

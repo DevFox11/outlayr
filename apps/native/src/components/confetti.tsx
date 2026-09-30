@@ -1,9 +1,10 @@
-import { useEffect, useMemo } from "react";
-import { View } from "react-native";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useWindowDimensions, View } from "react-native";
 import Animated, {
     Easing,
     interpolate,
     useAnimatedStyle,
+    useReducedMotion,
     useSharedValue,
     withDelay,
     withTiming,
@@ -11,6 +12,7 @@ import Animated, {
 
 import { confettiBurst } from "@/domain/confetti";
 import type { ConfettiPiece } from "@/domain/confetti";
+import { celebration } from "@/lib/celebration";
 import { useColors } from "@/theme/use-colors";
 
 const PIECE_COUNT = 36;
@@ -21,6 +23,18 @@ interface ConfettiProps {
     seed: number;
     /** Burst box, in points — pieces launch across it and fall out the bottom. */
     width: number;
+}
+
+export function CelebrationConfetti() {
+    const { height, width } = useWindowDimensions();
+    const reduced = useReducedMotion();
+    const bursts = useSyncExternalStore(celebration.subscribe, celebration.bursts);
+    const [seen] = useState(bursts);
+
+    if (reduced || bursts === seen) {
+        return null;
+    }
+    return <Confetti height={height} key={bursts} seed={bursts} width={width} />;
 }
 
 export function Confetti({ width, height, seed }: ConfettiProps) {
@@ -39,6 +53,7 @@ export function Confetti({ width, height, seed }: ConfettiProps) {
                 top: 0,
                 width,
             }}
+            testID="confetti"
         >
             {pieces.map((piece) => (
                 <Piece

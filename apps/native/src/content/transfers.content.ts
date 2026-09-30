@@ -103,6 +103,14 @@ const transfers = {
             en: "Couldn't save this transfer. Try again.",
             es: "No se pudo guardar la transferencia. Inténtalo de nuevo.",
         }),
+        "transfers.saved.another": t({
+            en: "Add another",
+            es: "Agregar otra",
+        }),
+        "transfers.saved.title": t({
+            en: "Moved {amount} to {to}",
+            es: "Moviste {amount} a {to}",
+        }),
         "transfers.sentence.blank.account": t({
             en: "an account",
             es: "una cuenta",

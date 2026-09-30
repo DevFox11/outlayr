@@ -14,6 +14,9 @@ const mockAccounts = [
 ];
 const mockNumberEntryType = jest.fn<() => number>(() => 1);
 const mockCreate = jest.fn<(db: unknown, input: TransferInput) => Promise<string>>();
+const mockUpdate = jest.fn<(db: unknown, id: string, input: TransferInput) => Promise<void>>();
+const mockPush = jest.fn();
+const mockNotifySaved = jest.fn<typeof import("@/lib/notify").notifySaved>();
 
 jest.mock("@/data/accounts", () => ({
     useAccountBalance: () => ({ total: 500 }),
@@ -21,7 +24,13 @@ jest.mock("@/data/accounts", () => ({
 }));
 jest.mock("@/data/transfer-rates", () => ({ useTransferRates: () => ({}) }));
 jest.mock("@/data/transfers-core", () => ({
-    transfersRepo: { create: (db: unknown, input: TransferInput) => mockCreate(db, input) },
+    transfersRepo: {
+        create: (db: unknown, input: TransferInput) => mockCreate(db, input),
+        update: (db: unknown, id: string, input: TransferInput) => mockUpdate(db, id, input),
+    },
+}));
+jest.mock<Partial<typeof import("@/lib/notify")>>("@/lib/notify", () => ({
+    notifySaved: (notice) => mockNotifySaved(notice),
 }));
 jest.mock("@/contexts/local-data-context", () => ({ useDatabase: () => ({}) }));
 jest.mock("@/contexts/display-settings-context", () => ({
@@ -34,7 +43,10 @@ jest.mock<Partial<typeof import("@/lib/use-haptics")>>("@/lib/use-haptics", () =
 jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
     useColors: () => mockTestColors(),
 }));
-jest.mock<Partial<typeof import("expo-router")>>("expo-router", () => require("../../../jest/expo-router-stub"));
+jest.mock<Partial<typeof import("expo-router")>>("expo-router", () => ({
+    ...require("../../../jest/expo-router-stub"),
+    useRouter: () => ({ back: jest.fn(), push: mockPush }),
+}));
 jest.mock<Partial<typeof import("react-native-safe-area-context")>>("react-native-safe-area-context", () => ({
     useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
@@ -49,7 +61,9 @@ jest.mock("@/i18n/context", () => {
     return {
         useLanguage: () => ({ language: "en" }),
         useTranslation: () => (key: string, params?: Record<string, unknown>) => {
-            const template = /^transfers\.(a11y|sentence)\.(?!blank)/.test(key) ? catalog.EN[key] : undefined;
+            const template = /^transfers\.(a11y|saved\.title|sentence)(?!\.blank)/.test(key)
+                ? catalog.EN[key]
+                : undefined;
             return template === undefined
                 ? key
                 : template.replaceAll(/\{(\w+)\}/g, (match, name: string) =>
@@ -90,6 +104,10 @@ beforeEach(() => {
     mockNumberEntryType.mockReturnValue(1);
     mockCreate.mockReset();
     mockCreate.mockResolvedValue("transfer");
+    mockUpdate.mockReset();
+    mockUpdate.mockResolvedValue();
+    mockPush.mockReset();
+    mockNotifySaved.mockReset();
 });
 
 describe("transfer editor keypad", () => {
@@ -264,5 +282,30 @@ describe("transfer editor footer", () => {
         await press("transfers.save");
         expect(mockCreate).toHaveBeenCalledTimes(2);
         expect(onDone).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe("transfer editor saved notice", () => {
+    it("states the move of a new transfer and offers another", async () => {
+        await render(<TransferEditor onDone={jest.fn()} seed={SEED} />);
+
+        await press("transfers.save");
+
+        expect(mockNotifySaved).toHaveBeenCalledTimes(1);
+        const [[notice]] = mockNotifySaved.mock.calls;
+        expect(notice).toMatchObject({ actionLabel: "transfers.saved.another", title: "Moved $100.00 to Mercantil" });
+        notice.onActionPress?.({ hide: jest.fn(), id: "toast" });
+        expect(mockPush).toHaveBeenCalledWith("/transactions/transfers/create");
+    });
+
+    it("says nothing after an edit", async () => {
+        const onDone = jest.fn();
+        await render(<TransferEditor onDone={onDone} saved={SAVED} />);
+
+        await press("transfers.save");
+
+        expect(mockUpdate).toHaveBeenCalledTimes(1);
+        expect(onDone).toHaveBeenCalledTimes(1);
+        expect(mockNotifySaved).not.toHaveBeenCalled();
     });
 });
