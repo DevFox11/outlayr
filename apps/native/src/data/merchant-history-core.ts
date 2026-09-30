@@ -41,6 +41,8 @@ export async function rememberedCategoryFor(db: Database, key: string, income: b
                 eq(transactions.income, income),
                 isNotNull(transactions.categoryId),
                 isNull(transactions.deletedAt),
+                isNull(transactions.feeForId),
+                isNull(transactions.transferId),
                 ne(transactions.note, "")
             )
         )
@@ -84,6 +86,7 @@ export function recentMerchantNotesQuery(db: Database, income: boolean) {
                 eq(transactions.income, income),
                 isNull(transactions.deletedAt),
                 isNull(transactions.feeForId),
+                isNull(transactions.transferId),
                 ne(transactions.note, "")
             )
         )

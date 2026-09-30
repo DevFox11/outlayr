@@ -16,7 +16,11 @@ import {
 let db: Database;
 let clock = 0;
 
-function log(note: string, categoryId: string | null, options: { income?: boolean; deleted?: boolean } = {}): void {
+function log(
+    note: string,
+    categoryId: string | null,
+    options: { income?: boolean; deleted?: boolean; feeForId?: string; transferId?: string } = {}
+): void {
     clock += 1;
     const date = new Date(clock * 1000);
     const income = options.income ?? false;
@@ -33,10 +37,12 @@ function log(note: string, categoryId: string | null, options: { income?: boolea
             date,
             day: date,
             deletedAt: options.deleted === true ? date : null,
+            feeForId: options.feeForId ?? null,
             id: `tx-${clock}`,
             income,
             month: date,
             note,
+            transferId: options.transferId ?? null,
             updatedAt: date,
         })
         .run();
@@ -82,6 +88,13 @@ describe("reading a merchant's category back out of the ledger", () => {
 
     it("ignores entries that were never categorised", async () => {
         log("Netflix", null);
+        await expect(remembered("Netflix")).resolves.toBeNull();
+    });
+
+    it("ignores the category a fee was filed under", async () => {
+        db = migratedDatabase({ foreignKeys: false });
+        log("Netflix", "fees", { feeForId: "purchase-1" });
+        log("Netflix", "fees", { transferId: "transfer-1" });
         await expect(remembered("Netflix")).resolves.toBeNull();
     });
 
@@ -132,6 +145,14 @@ describe("reading the merchants this ledger already knows", () => {
     it("ignores deleted entries", async () => {
         log("Netflix", "entertainment", { deleted: true });
         await expect(recent()).resolves.toStrictEqual([]);
+    });
+
+    it("leaves out the fee a transfer or a card charged", async () => {
+        db = migratedDatabase({ foreignKeys: false });
+        log("Rio Supermercado", "groceries");
+        log("Fee · Rio Supermercado", "fees", { feeForId: "tx-1" });
+        log("Fee · Chase → Ally Savings", null, { transferId: "transfer-1" });
+        await expect(recent()).resolves.toStrictEqual(["Rio Supermercado"]);
     });
 
     // Uncategorised is not unnamed: a merchant the user never filed under
