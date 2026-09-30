@@ -28,6 +28,6 @@ export function useAccountTransfers(db: Database, accountId: string): TransferLo
     const accounts = useAccounts(db);
     const rows = useLiveQuery(transfers, () => accountTransfersQuery(db, accountId), [accountId]);
     const fees = useTransferFees(db);
-    const names = useMemo(() => new Map(accounts.map((account) => [account.id, account.name])), [accounts]);
-    return useMemo(() => rows.map((row) => toTransferLogRow(row, names, fees)), [rows, names, fees]);
+    const byId = useMemo(() => new Map(accounts.map((account) => [account.id, account])), [accounts]);
+    return useMemo(() => rows.map((row) => toTransferLogRow(row, byId, fees)), [rows, byId, fees]);
 }

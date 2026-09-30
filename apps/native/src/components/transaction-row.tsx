@@ -11,7 +11,7 @@ import { formatTime, formatUpcomingDate, isFuture } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
 import { isTransactionRateNeeded } from "@/domain/transaction-entry-rate";
 import { FALLBACK_IDENTITY_COLOR, resolveTransactionIdentity } from "@/domain/transaction-identity";
-import type { TransferMove } from "@/domain/transfer-log-rows";
+import type { TransferEnd, TransferLogRow, TransferMove } from "@/domain/transfer-log-rows";
 import { isExact } from "@/domain/valuation";
 import type { RateTable } from "@/domain/valuation";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -29,11 +29,61 @@ import { cn } from "./tw";
 const TILE_SIZE = 36;
 const TILE_RADIUS = 9;
 
+const BADGE_OFFSET = -5;
+const BADGE_SIZE = 20;
+const BADGE_RADIUS = 6;
+const BADGE_RING = 2;
+
 /** Custom, so it surfaces in the rotor's Actions rather than replacing a tap. */
 const DELETE_ACTION = "delete";
 
 function feeGlyph({ color, size }: { color: string; size: number }) {
     return <HugeiconsIcon color={color} icon={PercentCircleSolidIcon} size={size} />;
+}
+
+function AccountTile({
+    end,
+    future,
+    radius,
+    size,
+}: {
+    end: TransferEnd;
+    future: boolean;
+    radius: number;
+    size: number;
+}) {
+    const colors = useColors();
+    return (
+        <CategoryIconTile
+            color={end.imageColor ?? end.customColor ?? colors.foreground}
+            emoji={end.emoji}
+            future={future}
+            icon={end.icon}
+            imageUri={end.imageUri}
+            radius={radius}
+            size={size}
+            type="solid"
+        />
+    );
+}
+
+function TransferTile({ ends, future }: { ends: NonNullable<TransferLogRow["ends"]>; future: boolean }) {
+    return (
+        <View>
+            <AccountTile end={ends.from} future={future} radius={TILE_RADIUS} size={TILE_SIZE} />
+            <View
+                className="bg-background absolute"
+                style={{
+                    borderRadius: BADGE_RADIUS + BADGE_RING,
+                    bottom: BADGE_OFFSET - BADGE_RING,
+                    padding: BADGE_RING,
+                    right: BADGE_OFFSET - BADGE_RING,
+                }}
+            >
+                <AccountTile end={ends.to} future={future} radius={BADGE_RADIUS} size={BADGE_SIZE} />
+            </View>
+        </View>
+    );
 }
 
 const UNDER_AMOUNT = "text-eyebrow text-muted font-mono tabular-nums";
@@ -120,6 +170,7 @@ interface TransactionRowProps {
      */
     transaction: TransactionWithCategory & {
         details?: string | null;
+        ends?: TransferLogRow["ends"];
         fee?: { amount: number; currency: string | null };
         moved?: TransferMove;
     };
@@ -194,27 +245,31 @@ export function TransactionRow({
             }
             onPress={() => onPress(transaction.id)}
         >
-            <View>
-                <CategoryIconTile
-                    color={isTransfer ? colors.transfer : identity.color}
-                    emoji={identity.emoji}
-                    future={future}
-                    glyph={isFee ? feeGlyph : undefined}
-                    icon={identity.icon}
-                    imageUri={transaction.imageUri}
-                    radius={TILE_RADIUS}
-                    size={TILE_SIZE}
-                    type="solid"
-                />
-                {recurring ? (
-                    <View
-                        className="bg-surface-secondary absolute rounded-md"
-                        style={{ bottom: -5, padding: 3, right: -5 }}
-                    >
-                        <HugeiconsIcon color={colors.foreground} icon={RefreshIcon} size={12} strokeWidth={2} />
-                    </View>
-                ) : null}
-            </View>
+            {transaction.ends ? (
+                <TransferTile ends={transaction.ends} future={future} />
+            ) : (
+                <View>
+                    <CategoryIconTile
+                        color={isTransfer ? colors.transfer : identity.color}
+                        emoji={identity.emoji}
+                        future={future}
+                        glyph={isFee ? feeGlyph : undefined}
+                        icon={identity.icon}
+                        imageUri={transaction.imageUri}
+                        radius={TILE_RADIUS}
+                        size={TILE_SIZE}
+                        type="solid"
+                    />
+                    {recurring ? (
+                        <View
+                            className="bg-surface-secondary absolute rounded-md"
+                            style={{ bottom: BADGE_OFFSET, padding: 3, right: BADGE_OFFSET }}
+                        >
+                            <HugeiconsIcon color={colors.foreground} icon={RefreshIcon} size={12} strokeWidth={2} />
+                        </View>
+                    ) : null}
+                </View>
+            )}
             <View className="flex-1 gap-0.5">
                 <Text
                     className={cn("font-sans-medium text-callout", future ? "text-future" : "text-foreground")}

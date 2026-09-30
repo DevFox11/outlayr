@@ -1,5 +1,7 @@
 import { roundMoney } from "@outlayr/money/round";
 
+import type { Account } from "@/data/accounts-core";
+
 import { minorUnitsFor } from "./money";
 import { savedRate, transferGap } from "./transfer-reconcile";
 
@@ -24,6 +26,8 @@ export interface TransferLogFee {
     amount: number;
 }
 
+export type TransferEnd = Pick<Account, "customColor" | "emoji" | "icon" | "imageColor" | "imageUri" | "name">;
+
 export interface TransferMove {
     arrived: number;
     arrivedCurrency: string;
@@ -45,6 +49,7 @@ export interface TransferLogRow {
     date: Date;
     day: Date;
     emoji: null;
+    ends: { from: TransferEnd; to: TransferEnd } | null;
     exchangeRate: null;
     exchangeRateType: null;
     excludedFromTotals: true;
@@ -95,11 +100,11 @@ function transferMove(transfer: TransferLogSource, fee: TransferLogFee | undefin
 
 export function toTransferLogRow(
     transfer: TransferLogSource,
-    accountNames: ReadonlyMap<string, string>,
+    accounts: ReadonlyMap<string, TransferEnd>,
     fees?: ReadonlyMap<string, TransferLogFee>
 ): TransferLogRow {
-    const from = accountNames.get(transfer.fromAccountId) ?? UNKNOWN_ACCOUNT;
-    const to = accountNames.get(transfer.toAccountId) ?? UNKNOWN_ACCOUNT;
+    const from = accounts.get(transfer.fromAccountId);
+    const to = accounts.get(transfer.toAccountId);
     return {
         amount: transfer.fromAmount,
         amountUsd: transfer.fromAmountUsd,
@@ -113,6 +118,7 @@ export function toTransferLogRow(
         date: transfer.date,
         day: transfer.day,
         emoji: null,
+        ends: from && to ? { from, to } : null,
         exchangeRate: null,
         exchangeRateType: null,
         excludedFromTotals: true,
@@ -123,7 +129,8 @@ export function toTransferLogRow(
         imageUri: null,
         income: false,
         moved: fees === undefined ? undefined : transferMove(transfer, fees.get(transfer.id)),
-        note: transfer.note === "" ? `${from} → ${to}` : transfer.note,
+        note:
+            transfer.note === "" ? `${from?.name ?? UNKNOWN_ACCOUNT} → ${to?.name ?? UNKNOWN_ACCOUNT}` : transfer.note,
         recurringAnchorDay: null,
         recurringCoefficient: 1,
         recurringEndDate: null,

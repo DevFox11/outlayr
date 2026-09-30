@@ -110,6 +110,6 @@ export function useLogTransfers(db: Database, nowMs: number, bounds: TransferBou
         [nowMs, bounds === null, bounds?.floorOn, bounds?.since?.getTime() ?? 0, bounds?.until?.getTime() ?? 0]
     );
     const fees = useTransferFees(db, bounds !== null);
-    const names = useMemo(() => new Map(accounts.map((account) => [account.id, account.name])), [accounts]);
-    return useMemo(() => rows.map((row) => toTransferLogRow(row, names, fees)), [rows, names, fees]);
+    const byId = useMemo(() => new Map(accounts.map((account) => [account.id, account])), [accounts]);
+    return useMemo(() => rows.map((row) => toTransferLogRow(row, byId, fees)), [rows, byId, fees]);
 }

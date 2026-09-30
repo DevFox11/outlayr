@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 
 import { mergeByRecency, toTransferLogRow } from "./transfer-log-rows";
+import type { TransferEnd } from "./transfer-log-rows";
 
 const DAY = new Date(2026, 7, 9);
 
@@ -20,30 +21,38 @@ const TRANSFER = {
     toCurrency: "VES",
 };
 
-const NAMES = new Map([
-    ["a", "Zinli"],
-    ["b", "Banesco"],
+const MARK = { customColor: null, emoji: null, icon: null, imageColor: null, imageUri: null };
+const ZINLI = { ...MARK, name: "Zinli" };
+const BANESCO = { ...MARK, imageUri: "file:///banesco.png", name: "Banesco" };
+const ACCOUNTS = new Map<string, TransferEnd>([
+    ["a", ZINLI],
+    ["b", BANESCO],
 ]);
 
 describe("toTransferLogRow", () => {
     it("names both ends in the direction the money went", () => {
-        expect(toTransferLogRow(TRANSFER, NAMES).note).toBe("Zinli → Banesco");
+        expect(toTransferLogRow(TRANSFER, ACCOUNTS).note).toBe("Zinli → Banesco");
+    });
+
+    it("carries both accounts for the tile, and neither once one is gone", () => {
+        expect(toTransferLogRow(TRANSFER, ACCOUNTS).ends).toStrictEqual({ from: ZINLI, to: BANESCO });
+        expect(toTransferLogRow(TRANSFER, new Map([["a", ZINLI]])).ends).toBeNull();
     });
 
     it("falls back to the transfer's own note when the user wrote one", () => {
-        expect(toTransferLogRow({ ...TRANSFER, note: "Cambio" }, NAMES).note).toBe("Cambio");
+        expect(toTransferLogRow({ ...TRANSFER, note: "Cambio" }, ACCOUNTS).note).toBe("Cambio");
     });
 
     it("carries the outbound leg, so the figure is what left", () => {
-        const row = toTransferLogRow(TRANSFER, NAMES);
+        const row = toTransferLogRow(TRANSFER, ACCOUNTS);
         expect(row.amount).toBe(100);
         expect(row.currency).toBe("USD");
     });
 
     it("states what left with a source fee in it, and what arrived with a destination fee out of it", () => {
         const sameCurrency = { ...TRANSFER, exchangeRate: 1, fromAmount: 98, toAmount: 98, toCurrency: "USD" };
-        const atSource = toTransferLogRow(sameCurrency, NAMES, new Map([["t1", { accountId: "a", amount: 2 }]]));
-        const atDestination = toTransferLogRow(TRANSFER, NAMES, new Map([["t1", { accountId: "b", amount: 50 }]]));
+        const atSource = toTransferLogRow(sameCurrency, ACCOUNTS, new Map([["t1", { accountId: "a", amount: 2 }]]));
+        const atDestination = toTransferLogRow(TRANSFER, ACCOUNTS, new Map([["t1", { accountId: "b", amount: 50 }]]));
 
         expect(atSource.moved).toStrictEqual({
             arrived: 98,
@@ -60,8 +69,8 @@ describe("toTransferLogRow", () => {
             sent: 100,
         });
         expect(atSource.amount).toBe(98);
-        expect(toTransferLogRow(TRANSFER, NAMES, new Map()).moved?.fee).toBeNull();
-        expect(toTransferLogRow(TRANSFER, NAMES).moved).toBeUndefined();
+        expect(toTransferLogRow(TRANSFER, ACCOUNTS, new Map()).moved?.fee).toBeNull();
+        expect(toTransferLogRow(TRANSFER, ACCOUNTS).moved).toBeUndefined();
     });
 
     it("names what arrived beyond the saved rate as money from another account, in the fee's currency", () => {
@@ -73,7 +82,7 @@ describe("toTransferLogRow", () => {
         };
 
         expect(
-            toTransferLogRow(binance, NAMES, new Map([["t1", { accountId: "a", amount: 7.34 }]])).moved?.outside
+            toTransferLogRow(binance, ACCOUNTS, new Map([["t1", { accountId: "a", amount: 7.34 }]])).moved?.outside
         ).toStrictEqual({
             amount: 11.87,
             currency: "USD",
@@ -82,7 +91,7 @@ describe("toTransferLogRow", () => {
 
     it("finds nothing from outside when the saved rate reproduces the arrival", () => {
         const rounded = { ...TRANSFER, exchangeRate: 957.1, fromAmount: 152.66, toAmount: 146_110.89 };
-        expect(toTransferLogRow(rounded, NAMES, new Map()).moved?.outside).toBeNull();
+        expect(toTransferLogRow(rounded, ACCOUNTS, new Map()).moved?.outside).toBeNull();
     });
 
     it("finds nothing from outside in a rate saved as the ten-decimal ratio of its legs", () => {
@@ -94,24 +103,24 @@ describe("toTransferLogRow", () => {
             toAmount: 8954.32,
             toCurrency: "USD",
         };
-        expect(toTransferLogRow(dong, NAMES, new Map()).moved?.outside).toBeNull();
+        expect(toTransferLogRow(dong, ACCOUNTS, new Map()).moved?.outside).toBeNull();
     });
 
     it("finds nothing from outside between two accounts in one currency", () => {
         const level = { ...TRANSFER, exchangeRate: 1, fromAmount: 100, toAmount: 105, toCurrency: "USD" };
-        expect(toTransferLogRow(level, NAMES, new Map()).moved?.outside).toBeNull();
+        expect(toTransferLogRow(level, ACCOUNTS, new Map()).moved?.outside).toBeNull();
     });
 
     it("is excluded from day totals", () => {
-        expect(toTransferLogRow(TRANSFER, NAMES).excludedFromTotals).toBe(true);
+        expect(toTransferLogRow(TRANSFER, ACCOUNTS).excludedFromTotals).toBe(true);
     });
 
     it("is marked a transfer so the row can be drawn unsigned and in transfer blue", () => {
-        expect(toTransferLogRow(TRANSFER, NAMES).transferId).toBe("t1");
+        expect(toTransferLogRow(TRANSFER, ACCOUNTS).transferId).toBe("t1");
     });
 
     it("reads as an expense so nothing downstream has to learn a third direction", () => {
-        expect(toTransferLogRow(TRANSFER, NAMES).income).toBe(false);
+        expect(toTransferLogRow(TRANSFER, ACCOUNTS).income).toBe(false);
     });
 
     it("keeps an unknown account readable rather than blank", () => {

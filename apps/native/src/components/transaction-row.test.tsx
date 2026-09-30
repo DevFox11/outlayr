@@ -138,4 +138,20 @@ describe("a transfer's row", () => {
         expect(getByText("Bs.157,471.66 arrived · $7.34 fee")).toBeTruthy();
         expect(getByText("$11.87 from another account")).toBeTruthy();
     });
+
+    it("draws the account it left, badged with the one it landed in", async () => {
+        const mark = { customColor: null, emoji: null, icon: null, imageColor: null };
+        const ends = {
+            from: { ...mark, imageUri: "file:///chase.png", name: "Chase" },
+            to: { ...mark, imageUri: "file:///ally.png", name: "Ally Savings" },
+        };
+        const { toJSON } = await render(
+            <TransactionRow currency="USD" onPress={() => {}} transaction={{ ...TRANSFER, ends } as never} />
+        );
+
+        expect(JSON.stringify(toJSON()).match(/file:\/\/\/\w+\.png/g)).toStrictEqual([
+            "file:///chase.png",
+            "file:///ally.png",
+        ]);
+    });
 });
