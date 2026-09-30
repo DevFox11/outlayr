@@ -632,6 +632,10 @@ const transaction = {
             en: "Expense or income",
             es: "Gasto o ingreso",
         }),
+        "transaction.sentence.noAccount": t({
+            en: "no account",
+            es: "ninguna cuenta",
+        }),
         // The chips are lowercase, and `transaction.cadence.*` is title-case because
         // it heads a row elsewhere. Lowercasing that at the call site would be right
         // in Spanish and wrong in the first locale where case carries meaning.

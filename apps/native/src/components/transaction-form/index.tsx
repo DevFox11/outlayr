@@ -1259,6 +1259,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         setAllocations: setSplitAllocations,
     } = useSplitDraft(db, mode, initial);
     const allAccounts = useAccounts(db);
+    const [accountDeclined, setAccountDeclined] = useState(initial != null && initial.accountId == null);
     const recentNames = useRecentMerchants(db, income);
     const allTags = useTags(db);
     const savedTagIds = useTagIdsFor(db, initial?.id ?? null);
@@ -1900,7 +1901,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         if (step === "category") {
             return categoryLabel !== null || queueable(merchant);
         }
-        return account != null;
+        return account != null || accountDeclined || (allAccounts.length === 0 && !seed?.accountUnresolved);
     };
 
     /** The first fact still missing from `from` onwards, or null once none is. */
@@ -2167,6 +2168,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                         accounts={allAccounts}
                         onSelect={(picked) => {
                             form.setFieldValue("account", picked);
+                            setAccountDeclined(picked === null);
                             advance("account", amountNumber, merchant);
                         }}
                         selectedId={account?.id ?? null}
@@ -2490,7 +2492,10 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                     return (
                                         <RNHostView matchContents>
                                             <TransactionSentenceBody
-                                                account={account?.name ?? null}
+                                                account={
+                                                    account?.name ??
+                                                    (accountDeclined ? t("transaction.sentence.noAccount") : null)
+                                                }
                                                 accountTile={accountTile}
                                                 amount={
                                                     amountNumber <= 0

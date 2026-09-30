@@ -2497,6 +2497,73 @@ describe("transactionForm account attachment", () => {
         ).toBe(true);
     });
 
+    it("counts no account as an answer once it is picked", async () => {
+        const db = dbHolder.current as Database;
+        const categoryId = await seedCategory(db);
+        await seedAccount(db);
+        const screen = await render(
+            <Providers>
+                <TransactionForm
+                    db={db}
+                    mode="create"
+                    onDone={() => {}}
+                    seed={{ accountUnresolved: true, amount: 25, categoryId }}
+                />
+            </Providers>
+        );
+        expect(
+            containsText(
+                sentenceSlot(screen.toJSON() as JsonNode, "transaction.field.account"),
+                "transaction.sentence.blank.account"
+            )
+        ).toBe(true);
+        expect(screen.getByTestId("stage-footer")).toHaveTextContent("common.next");
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.field.account"));
+        });
+        await act(async () => {
+            pickOption(screen, "transaction.account.none");
+        });
+
+        expect(
+            containsText(
+                sentenceSlot(screen.toJSON() as JsonNode, "transaction.field.account"),
+                "transaction.sentence.noAccount"
+            )
+        ).toBe(true);
+        expect(screen.getByTestId("stage-footer")).toHaveTextContent("transaction.cta.add");
+    });
+
+    it("saves from the footer when the ledger has no accounts", async () => {
+        const db = dbHolder.current as Database;
+        const categoryId = await seedCategory(db);
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} seed={{ amount: 25, categoryId }} />
+            </Providers>
+        );
+
+        expect(screen.getByTestId("stage-footer")).toHaveTextContent("transaction.cta.add");
+    });
+
+    it("still asks for an account that could not be placed when the ledger has none", async () => {
+        const db = dbHolder.current as Database;
+        const categoryId = await seedCategory(db);
+        const screen = await render(
+            <Providers>
+                <TransactionForm
+                    db={db}
+                    mode="create"
+                    onDone={() => {}}
+                    seed={{ accountUnresolved: true, amount: 25, categoryId }}
+                />
+            </Providers>
+        );
+
+        expect(screen.getByTestId("stage-footer")).toHaveTextContent("common.next");
+    });
+
     it("seeds a create with the last-used account", async () => {
         const db = dbHolder.current as Database;
         const accountId = await seedAccount(db);
