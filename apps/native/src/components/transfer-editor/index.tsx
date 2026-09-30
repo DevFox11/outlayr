@@ -35,12 +35,12 @@ import type { TransferSeed } from "./use-transfer-draft";
 
 type Step = Exclude<TransferSentenceSlot, "feeSide"> | "date";
 
-type TransferEditorProps = { onDone: () => void } & (
+type TransferEditorProps = { onDirtyChange?: (dirty: boolean) => void; onDone: () => void } & (
     | { saved: SavedTransfer; seed?: never }
     | { saved?: never; seed?: TransferSeed & { note?: string } }
 );
 
-export default function TransferEditor({ onDone, saved, seed }: TransferEditorProps) {
+export default function TransferEditor({ onDirtyChange, onDone, saved, seed }: TransferEditorProps) {
     const db = useDatabase();
     const router = useRouter();
     const accountCreateRoute = useAccountCreateRoute();
@@ -93,6 +93,8 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
         setStep(next);
     };
 
+    const touch = () => onDirtyChange?.(true);
+
     const typed =
         (pad: { minorUnits: number; mode?: NumpadMode; onChange: (text: string) => void; value: string }) =>
         (text: string, key: NumpadKey) => {
@@ -100,6 +102,7 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
             freshRef.current = false;
             setFresh(false);
             setFlagged(null);
+            touch();
             pad.onChange(trimsEntry ? applyNumpadKey(pad.value, "back", pad.minorUnits, pad.mode ?? entryMode) : text);
         };
 
@@ -169,9 +172,15 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
         enter(next);
     };
 
+    const resolveGap = (resolve: () => void) => () => {
+        touch();
+        resolve();
+    };
+
     const onSlotPress = (slot: TransferSentenceSlot) => {
         setFlagged(null);
         if (slot === "feeSide") {
+            touch();
             draft.toggleFeeSide();
             return;
         }
@@ -250,6 +259,7 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
                         accounts={draft.accounts}
                         allowNone={false}
                         onSelect={(account) => {
+                            touch();
                             (step === "from" ? draft.chooseFrom : draft.chooseTo)(account);
                             enter("amount");
                         }}
@@ -261,6 +271,7 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
                 return (
                     <StageOptionRow
                         onSelect={(next) => {
+                            touch();
                             draft.setRateType(next);
                             enter(next === "custom" ? "rate" : "amount");
                         }}
@@ -283,6 +294,7 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
                         now={new Date()}
                         onPick={() => enter("date")}
                         onSelect={(next) => {
+                            touch();
                             draft.setDate(next);
                             enter("amount");
                         }}
@@ -290,7 +302,15 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
                     />
                 );
             }
-            return <StepDate date={draft.date} onChange={draft.setDate} />;
+            return (
+                <StepDate
+                    date={draft.date}
+                    onChange={(next) => {
+                        touch();
+                        draft.setDate(next);
+                    }}
+                />
+            );
         };
         const titles = {
             date: t("transfers.field.date"),
@@ -369,14 +389,14 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
                             <MetaLine statement={gap.message} tone={draft.block === null ? "warning" : "danger"} />
                             <View className="flex-row flex-wrap gap-x-5 gap-y-2">
                                 {gap.feeLabel && gap.onFee ? (
-                                    <Pressable accessibilityRole="button" hitSlop={10} onPress={gap.onFee}>
+                                    <Pressable accessibilityRole="button" hitSlop={10} onPress={resolveGap(gap.onFee)}>
                                         <Text className="text-subtitle text-tint font-sans-semibold">
                                             {gap.feeLabel}
                                         </Text>
                                     </Pressable>
                                 ) : null}
                                 {gap.rateLabel && gap.onRate ? (
-                                    <Pressable accessibilityRole="button" hitSlop={10} onPress={gap.onRate}>
+                                    <Pressable accessibilityRole="button" hitSlop={10} onPress={resolveGap(gap.onRate)}>
                                         <Text className="text-subtitle text-tint font-sans-semibold">
                                             {gap.rateLabel}
                                         </Text>
@@ -428,6 +448,7 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
                         onChangeText={(next) => {
                             noteRef.current = next;
                             setNoteFilled(next !== "");
+                            touch();
                         }}
                         placeholder={t("transfers.field.note")}
                         placeholderTextColor={colors.muted}

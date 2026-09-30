@@ -8,6 +8,7 @@ jest.mock("expo-router", () => ({}));
 jest.mock("@/contexts/local-data-context", () => ({}));
 jest.mock("@/data/transactions-core", () => ({}));
 jest.mock("@/i18n/context", () => ({}));
+jest.mock("@/hooks/use-discard-guard", () => ({}));
 jest.mock("@/components/close-toolbar", () => ({}));
 jest.mock("@/components/transaction-form", () => ({}));
 

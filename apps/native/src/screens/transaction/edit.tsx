@@ -7,11 +7,13 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { getTransactionById } from "@/data/transactions-core";
 import { savedTransfer } from "@/data/transfers-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
+import { useDiscardGuard } from "@/hooks/use-discard-guard";
 import { useTranslation } from "@/i18n/context";
 import { EditTransfer } from "@/screens/transfers/edit";
 
 export function EditTransaction({ id }: { id: string }) {
     const router = useRouter();
+    const { leave, setDirty } = useDiscardGuard();
     const db = useDatabase();
     const t = useTranslation();
     const { requestDelete } = useDeferredDelete("row");
@@ -41,7 +43,7 @@ export function EditTransaction({ id }: { id: string }) {
             return;
         }
         requestDelete(initial.id);
-        router.back();
+        leave();
     };
 
     if (initial == null) {
@@ -61,7 +63,8 @@ export function EditTransaction({ id }: { id: string }) {
                 initial={initial}
                 mode="edit"
                 onDelete={deleteTransaction}
-                onDone={() => router.back()}
+                onDirtyChange={setDirty}
+                onDone={leave}
             />
         </>
     );

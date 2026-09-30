@@ -2662,6 +2662,28 @@ describe("transactionForm account attachment", () => {
         expect(screen.getByTestId("stage-footer")).toHaveTextContent("transaction.cta.add");
     });
 
+    it("reports an edit only once the user makes one", async () => {
+        const db = dbHolder.current as Database;
+        const categoryId = await seedCategory(db);
+        const onDirtyChange = jest.fn();
+        const screen = await render(
+            <Providers>
+                <TransactionForm
+                    db={db}
+                    mode="create"
+                    onDirtyChange={onDirtyChange}
+                    onDone={() => {}}
+                    seed={{ amount: 25, categoryId }}
+                />
+            </Providers>
+        );
+        expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+
+        await pressKeys(screen, ["1"]);
+
+        expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+    });
+
     it("saves from the footer when the ledger has no accounts", async () => {
         const db = dbHolder.current as Database;
         const categoryId = await seedCategory(db);

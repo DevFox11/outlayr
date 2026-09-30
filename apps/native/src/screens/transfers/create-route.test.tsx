@@ -12,6 +12,9 @@ jest.mock("expo-router", () => ({
     useRouter: () => ({ back: jest.fn() }),
 }));
 jest.mock("@/components/close-toolbar", () => ({ CloseToolbar: () => null }));
+jest.mock("@/hooks/use-discard-guard", () => ({
+    useDiscardGuard: () => ({ leave: jest.fn(), setDirty: jest.fn() }),
+}));
 jest.mock("@/components/transfer-editor", () => ({
     __esModule: true,
     default: (props: { seed: TransferSeed }) => mockEditor(props),

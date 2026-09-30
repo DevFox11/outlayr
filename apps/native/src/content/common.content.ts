@@ -31,6 +31,18 @@ const common = {
             en: "Delete",
             es: "Eliminar",
         }),
+        "common.discard.confirm": t({
+            en: "Discard",
+            es: "Descartar",
+        }),
+        "common.discard.keep": t({
+            en: "Keep editing",
+            es: "Seguir editando",
+        }),
+        "common.discard.title": t({
+            en: "Discard changes?",
+            es: "¿Descartar los cambios?",
+        }),
         "common.done": t({
             en: "Done",
             es: "Listo",

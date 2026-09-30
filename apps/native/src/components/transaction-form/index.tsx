@@ -335,6 +335,7 @@ interface TransactionFormProps {
     /** Adds a destructive item beside Save. Edit routes only — there is nothing
      * to delete before the row exists. */
     onDelete?: () => void;
+    onDirtyChange?: (dirty: boolean) => void;
     onDone: () => void;
     /** Ignored when `initial` is present — an edit is never seeded. */
     seed?: TransactionSeed;
@@ -552,7 +553,16 @@ function useTransactionRateControls({
 }
 
 // oxlint-disable-next-line complexity -- known debt: this component owns entry, edit, copy and log-again in one tree. Splitting it is its own change, tracked separately from the lint gate.
-export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDelete }: TransactionFormProps) {
+export function TransactionForm({
+    db,
+    mode,
+    initial,
+    seed,
+    copyOf,
+    onDone,
+    onDelete,
+    onDirtyChange,
+}: TransactionFormProps) {
     const colors = useColors();
     const haptics = useHaptics();
     const t = useTranslation();
@@ -1530,21 +1540,21 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             if (suggestion.categoryId != null) {
                 const matchedCategory = getCategoryById(db, suggestion.categoryId);
                 if (matchedCategory != null) {
-                    form.setFieldValue("category", matchedCategory);
-                    form.setFieldValue("pendingCategory", null);
+                    form.setFieldValue("category", matchedCategory, { dontUpdateMeta: true });
+                    form.setFieldValue("pendingCategory", null, { dontUpdateMeta: true });
                     setCategoryError(false);
                     setCategorySource("suggested");
                 }
             } else if (suggestion.pendingCategory != null) {
-                form.setFieldValue("category", null);
-                form.setFieldValue("pendingCategory", suggestion.pendingCategory);
+                form.setFieldValue("category", null, { dontUpdateMeta: true });
+                form.setFieldValue("pendingCategory", suggestion.pendingCategory, { dontUpdateMeta: true });
                 setCategoryError(false);
                 setCategorySource("suggested");
             } else if (categorySource === "suggested") {
                 // This name has no answer, so the last one's category goes with it
                 // rather than captioning an entry it has nothing to do with.
-                form.setFieldValue("category", null);
-                form.setFieldValue("pendingCategory", null);
+                form.setFieldValue("category", null, { dontUpdateMeta: true });
+                form.setFieldValue("pendingCategory", null, { dontUpdateMeta: true });
                 setCategorySource("initial");
             }
         }
@@ -1554,12 +1564,12 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         const savedTagsStand = tagsSource === "initial" && savedTagIds.length > 0;
         if ((forced && !touched.has("tags")) || (tagsSource !== "user" && !savedTagsStand)) {
             if (suggestion.tagIds.length > 0 || suggestion.pendingTagNames.length > 0) {
-                form.setFieldValue("tagIds", [...suggestion.tagIds]);
-                form.setFieldValue("pendingTagNames", [...suggestion.pendingTagNames]);
+                form.setFieldValue("tagIds", [...suggestion.tagIds], { dontUpdateMeta: true });
+                form.setFieldValue("pendingTagNames", [...suggestion.pendingTagNames], { dontUpdateMeta: true });
                 setTagsSource("suggested");
             } else if (tagsSource === "suggested") {
-                form.setFieldValue("tagIds", []);
-                form.setFieldValue("pendingTagNames", []);
+                form.setFieldValue("tagIds", [], { dontUpdateMeta: true });
+                form.setFieldValue("pendingTagNames", [], { dontUpdateMeta: true });
                 setTagsSource("initial");
             }
         }
@@ -1851,6 +1861,13 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
 
     const chosenCategoryTint = category?.income ? colors.income : (category?.color ?? colors.foreground);
     const categoryGlyphTint = category ? chosenCategoryTint : (pendingCategory?.color ?? colors.muted);
+
+    const formDirty = useSelector(form.store, (state) => state.isDirty);
+    const [edited, setEdited] = useState(false);
+    const dirty = formDirty || edited || identitySource === "user";
+    useEffect(() => {
+        onDirtyChange?.(dirty);
+    }, [dirty, onDirtyChange]);
 
     const [noteOpen, setNoteOpen] = useState(notesSeed.length > 0);
     const [noteSummary, setNoteSummary] = useState(notesSeed);
@@ -2655,6 +2672,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                             multiline
                                             onChangeText={(next) => {
                                                 notesRef.current = next;
+                                                setEdited(true);
                                             }}
                                             onEndEditing={() => setNoteSummary(notesRef.current)}
                                             placeholder={t("transaction.field.notesPlaceholder")}
@@ -2774,7 +2792,10 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     db={db}
                     income={income}
                     minorUnits={minorUnitsFor(currency)}
-                    onChange={setSplitAllocations}
+                    onChange={(next) => {
+                        setEdited(true);
+                        setSplitAllocations(next);
+                    }}
                     ref={splitSheetRef}
                     total={numpadToNumber(form.store.state.values.amount)}
                 />

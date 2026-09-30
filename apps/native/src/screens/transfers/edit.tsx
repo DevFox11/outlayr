@@ -7,11 +7,13 @@ import TransferEditor from "@/components/transfer-editor";
 import { useDatabase } from "@/contexts/local-data-context";
 import { savedTransfer } from "@/data/transfers-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
+import { useDiscardGuard } from "@/hooks/use-discard-guard";
 import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 export function EditTransfer({ id }: { id: string }) {
     const router = useRouter();
+    const { leave, setDirty } = useDiscardGuard();
     const db = useDatabase();
     const t = useTranslation();
     const colors = useColors();
@@ -38,13 +40,13 @@ export function EditTransfer({ id }: { id: string }) {
                     accessibilityLabel={t("transfers.delete.row")}
                     onPress={() => {
                         requestDelete(id);
-                        router.back();
+                        leave();
                     }}
                     tintColor={colors.danger}
                 />
             </Stack.Toolbar>
 
-            <TransferEditor onDone={() => router.back()} saved={saved} />
+            <TransferEditor onDirtyChange={setDirty} onDone={leave} saved={saved} />
         </>
     );
 }

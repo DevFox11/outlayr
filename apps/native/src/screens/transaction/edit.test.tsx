@@ -45,6 +45,10 @@ jest.mock("@/i18n/context", () => ({
 
 jest.mock("@/components/close-toolbar", () => ({ CloseToolbar: () => null }));
 
+jest.mock("@/hooks/use-discard-guard", () => ({
+    useDiscardGuard: () => ({ leave: jest.fn(), setDirty: jest.fn() }),
+}));
+
 jest.mock("@/components/transaction-form", () => ({
     TransactionForm: ({ initial }: { initial: { id: string } }) => <MockText>{`form:${initial.id}`}</MockText>,
 }));

@@ -1,5 +1,5 @@
 import { isPickableCurrency } from "@outlayr/money/currency";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { useState } from "react";
 
 import { CloseToolbar } from "@/components/close-toolbar";
@@ -11,6 +11,7 @@ import { AMOUNT_CEILING } from "@/domain/numpad";
 import { SELECTABLE_RECURRING_TYPES } from "@/domain/recurrence";
 import { logAgainDraft } from "@/domain/transaction-actions";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
+import { useDiscardGuard } from "@/hooks/use-discard-guard";
 import { useTranslation } from "@/i18n/context";
 
 type LinkParam = string | string[];
@@ -81,7 +82,7 @@ export function entrySeed({
 }
 
 export function NewTransaction({ from, ...params }: EntryParams & { from?: LinkParam }) {
-    const router = useRouter();
+    const { leave, setDirty } = useDiscardGuard();
     const db = useDatabase();
     const t = useTranslation();
     // Read once while mounting, as the edit route does: the driver runs on the JS
@@ -104,7 +105,8 @@ export function NewTransaction({ from, ...params }: EntryParams & { from?: LinkP
                 copyOf={copyOf}
                 db={db}
                 mode="create"
-                onDone={() => router.back()}
+                onDirtyChange={setDirty}
+                onDone={leave}
                 seed={entrySeed(params)}
             />
         </>

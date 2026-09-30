@@ -145,6 +145,22 @@ describe("transfer editor keypad", () => {
         expect(slotValue(SENT)).not.toContain("$");
     });
 
+    it("reports an edit on the first key", async () => {
+        const onDirtyChange = jest.fn();
+        await render(
+            <TransferEditor
+                onDirtyChange={onDirtyChange}
+                onDone={jest.fn()}
+                seed={{ amount: 100, fromAccountId: "usd", toAccountId: "usd-2" }}
+            />
+        );
+        expect(onDirtyChange).not.toHaveBeenCalled();
+
+        await press("5");
+
+        expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+    });
+
     it("trims the last digit when backspace is the first key", async () => {
         await render(<TransferEditor onDone={jest.fn()} seed={SEED} />);
 
