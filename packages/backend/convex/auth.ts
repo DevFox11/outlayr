@@ -29,6 +29,8 @@ function resolveNativeAppUrl() {
     return process.env.NATIVE_APP_URL || "outlayr://";
 }
 
+const LONGEST_COOKIE_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
+
 export const authComponent = createClient<DataModel>(components.betterAuth);
 
 const appleConfig = (() => {
@@ -115,6 +117,9 @@ function createAuth(ctx: GenericCtx<DataModel>) {
                 jwksRotateOnTokenGenerationError: true,
             }),
         ],
+        session: {
+            expiresIn: LONGEST_COOKIE_MAX_AGE_SECONDS,
+        },
         socialProviders: {
             // Better Auth awaits this factory and then drops the provider whole
             // on `enabled: false` — `createAuthContext` returns null for it, so
