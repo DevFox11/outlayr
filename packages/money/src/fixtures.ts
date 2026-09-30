@@ -11,9 +11,6 @@ const DAY_MS = 86_400_000;
 /** Fixed reference instant: 2026-06-30, UTC. */
 export const REFERENCE_DATE_MS = Date.UTC(2026, 5, 30);
 
-/** Backend rate-snapshot window; every vector date stays inside it. */
-export const RATES_WINDOW_DAYS = 90;
-
 export function dateWithinWindow(daysBeforeReference: number): string {
     return new Date(REFERENCE_DATE_MS - daysBeforeReference * DAY_MS).toISOString().slice(0, DATE_STRING_LENGTH);
 }
@@ -51,11 +48,9 @@ export interface ComputeUsdVector {
         date: string;
     };
     name: string;
-    rateTable: RateTableRow[];
 }
 
 const ENTRY_DATE = dateWithinWindow(0);
-const EUR_GAP_DATE = dateWithinWindow(45);
 
 /** Vectors whose result is a finite canonical USD amount at micro-dollar scale. */
 export const COMPUTE_USD_VECTORS: ComputeUsdVector[] = [
@@ -68,7 +63,6 @@ export const COMPUTE_USD_VECTORS: ComputeUsdVector[] = [
             exchangeRateType: "official",
         },
         name: "single-leg official, exact quotient",
-        rateTable: [],
     },
     {
         expectedUSD: 33.333333,
@@ -79,7 +73,6 @@ export const COMPUTE_USD_VECTORS: ComputeUsdVector[] = [
             exchangeRateType: "official",
         },
         name: "single-leg official, repeating quotient rounds half-even at scale 6",
-        rateTable: [],
     },
     {
         expectedUSD: 2.5,
@@ -90,29 +83,16 @@ export const COMPUTE_USD_VECTORS: ComputeUsdVector[] = [
             exchangeRateType: "custom",
         },
         name: "single-leg custom rate",
-        rateTable: [],
     },
     {
-        expectedUSD: 114.379833,
+        expectedUSD: 100,
         input: {
             baseAmount: 74_733,
             date: ENTRY_DATE,
             exchangeRate: 747.33,
             exchangeRateType: "eur_reference",
         },
-        name: "eur_reference two-leg, EUR official on the entry date",
-        rateTable: [{ date: ENTRY_DATE, quote: "EUR", rate: 0.87428, rateType: "official" }],
-    },
-    {
-        expectedUSD: 103.795833,
-        input: {
-            baseAmount: 74_733,
-            date: ENTRY_DATE,
-            exchangeRate: 800,
-            exchangeRateType: "eur_reference",
-        },
-        name: "eur_reference two-leg resolves the newest EUR row across a weekend gap",
-        rateTable: [{ date: EUR_GAP_DATE, quote: "EUR", rate: 0.9, rateType: "official" }],
+        name: "single-leg eur_reference, the BCV euro figure applied per dollar",
     },
     {
         expectedUSD: -33.333333,
@@ -123,7 +103,6 @@ export const COMPUTE_USD_VECTORS: ComputeUsdVector[] = [
             exchangeRateType: "official",
         },
         name: "negative base amount keeps its sign through half-even division",
-        rateTable: [],
     },
     {
         expectedUSD: 9_000_000_000,
@@ -135,7 +114,6 @@ export const COMPUTE_USD_VECTORS: ComputeUsdVector[] = [
         },
         name: "large amount stays exact just under the 2^53 micro-dollar ceiling",
         // 9e9 USD = 9e15 micro-dollars < Number.MAX_SAFE_INTEGER (~9.007e15).
-        rateTable: [],
     },
 ];
 
@@ -148,7 +126,6 @@ export interface ComputeUsdThrowVector {
     };
     messagePattern: RegExp;
     name: string;
-    rateTable: RateTableRow[];
 }
 
 /** Vectors that MUST reject with a `MoneyValidationError`. */
@@ -162,18 +139,6 @@ export const COMPUTE_USD_THROW_VECTORS: ComputeUsdThrowVector[] = [
         },
         messagePattern: /not finite/,
         name: "overflow guard: a sub-normal custom rate derives a non-finite amount",
-        rateTable: [],
-    },
-    {
-        input: {
-            baseAmount: 100,
-            date: ENTRY_DATE,
-            exchangeRate: 50,
-            exchangeRateType: "eur_reference",
-        },
-        messagePattern: /No EUR official rate/,
-        name: "eur_reference with no cached EUR official leg blocks the entry",
-        rateTable: [],
     },
 ];
 

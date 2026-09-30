@@ -171,13 +171,12 @@ describe("scheduleSuccessor", () => {
             exchangeRateType: "eur_reference",
         });
         await seedRate(db, "VES", "eur_reference", "2025-07-01", 80);
-        await seedRate(db, "EUR", "official", "2025-07-01", 0.9);
         const [carrier] = await db.select().from(transactions).where(eq(transactions.id, id));
 
         const successor = await scheduleSuccessor(db, carrier, NOW);
 
         expect(successor).toMatchObject({
-            amountUsd: 0.13875,
+            amountUsd: 0.124875,
             exchangeRate: 80,
             exchangeRateType: "eur_reference",
         });
@@ -316,7 +315,6 @@ describe("backfillRecurring", () => {
             ["2025-06-01", 60],
         ] as const) {
             await seedRate(db, "VES", "eur_reference", date, rate);
-            await seedRate(db, "EUR", "official", date, 0.8);
         }
         await backfillRecurring(db, id, NOW);
         const generated = await generatedRows(db, id);
@@ -894,13 +892,12 @@ describe("repairOrphanedRecurrence", () => {
             exchangeRateType: "eur_reference",
         });
         await seedRate(db, "VES", "eur_reference", "2025-07-01", 80);
-        await seedRate(db, "EUR", "official", "2025-07-01", 0.9);
         await orphanCarrier(db, id);
 
         await expect(repairOrphanedRecurrence(db, NOW)).resolves.toBe(1);
 
         await expect(liveCarrier(db)).resolves.toMatchObject({
-            amountUsd: 0.13875,
+            amountUsd: 0.124875,
             exchangeRate: 80,
             exchangeRateType: "eur_reference",
         });

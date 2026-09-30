@@ -929,26 +929,10 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const converts = transactionRateOptions(currency).length > 0;
     const rateInForce = effectiveEntryRate(rateSelection, rateSuggestions);
     const rateUnitLabel = t("transaction.rate.unit", pairUnitSymbols("USD", currency));
-    const eurReferenceUnitLabel = t("transaction.rate.unit", pairUnitSymbols("EUR", currency));
-    const unitOf = (type: EntryRateType) => (type === "eur_reference" ? eurReferenceUnitLabel : rateUnitLabel);
     const rateFigure = (rate: number) => formatQuotedRateFigure(currency, rate, language);
 
-    /**
-     * What the entered amount comes to in USD at the rate in force, or null while
-     * nothing honest can be stated. `eur_reference` is two-legged — its rate is
-     * this currency per EUR — so the EUR-official leg divides in as well, exactly
-     * as `computeAmountUSD` does at save time.
-     */
-    const amountInUsd = (amount: number): number | null => {
-        if (amount <= 0 || rateInForce === null || rateInForce <= 0) {
-            return null;
-        }
-        if (rateSelection.exchangeRateType !== "eur_reference") {
-            return amount / rateInForce;
-        }
-        const eurLeg = rateSuggestions.eurOfficial;
-        return eurLeg === null || eurLeg <= 0 ? null : amount / rateInForce / eurLeg;
-    };
+    const amountInUsd = (amount: number): number | null =>
+        amount <= 0 || rateInForce === null || rateInForce <= 0 ? null : amount / rateInForce;
 
     const suggestionFor = (type: EntryRateType): number | null => {
         if (type === "custom") {
@@ -1163,7 +1147,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     };
     const rateOptions = (): StepRateOption[] =>
         transactionRateOptions(currency).map((type) => {
-            const shared = { name: t(RATE_NAME_KEYS[type]), type, unit: unitOf(type) };
+            const shared = { name: t(RATE_NAME_KEYS[type]), type, unit: rateUnitLabel };
             if (type === "custom") {
                 const prior = rateSuggestions.priorCustom;
                 const typed = rateSelection.exchangeRateType === "custom" ? rateInForce : null;
@@ -1229,8 +1213,6 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         let template = t("transaction.sentence.rate.provider");
         if (missing) {
             template = t("transaction.sentence.rate.missing");
-        } else if (usd === null) {
-            template = t("transaction.sentence.rate.pending");
         } else if (type === "custom") {
             template = t("transaction.sentence.rate.custom");
         }
@@ -1240,7 +1222,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             onConvertedPress: openUsd,
             onRatePress: () => (missing ? enterStep("rate") : openCustomRate(null)),
             onSourcePress: () => enterStep("rate"),
-            rate: missing ? null : `${rateFigure(rateInForce)} ${unitOf(type)}`,
+            rate: missing ? null : `${rateFigure(rateInForce)} ${rateUnitLabel}`,
             shake: rateShake,
             source: t(RATE_SOURCE_WORD_KEYS[type]),
             template,

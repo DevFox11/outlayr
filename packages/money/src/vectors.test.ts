@@ -3,32 +3,21 @@ import { describe, expect, it } from "vitest";
 import { CURRENCY_DECIMALS, PICKABLE_CURRENCY_CODES } from "./catalog.generated";
 import { currencyDisplayFor, isPickableCurrency } from "./currency";
 import { MoneyValidationError } from "./errors";
-import {
-    COMPUTE_USD_THROW_VECTORS,
-    COMPUTE_USD_VECTORS,
-    makeRateLookup,
-    RATES_WINDOW_DAYS,
-    REFERENCE_DATE_MS,
-    ROUND_MONEY_VECTORS,
-} from "./fixtures";
+import { COMPUTE_USD_THROW_VECTORS, COMPUTE_USD_VECTORS, ROUND_MONEY_VECTORS } from "./fixtures";
 import { computeAmountUSD } from "./rates";
 import { convertFromUsd, roundMoney } from "./round";
 
-const WINDOW_MS = RATES_WINDOW_DAYS * 86_400_000;
-
 describe("golden vectors — computeAmountUSD", () => {
     for (const vector of COMPUTE_USD_VECTORS) {
-        it(vector.name, async () => {
-            const lookup = makeRateLookup(vector.rateTable);
-            await expect(computeAmountUSD(lookup, vector.input)).resolves.toBe(vector.expectedUSD);
+        it(vector.name, () => {
+            expect(computeAmountUSD(vector.input)).toBe(vector.expectedUSD);
         });
     }
 
     for (const vector of COMPUTE_USD_THROW_VECTORS) {
-        it(`rejects: ${vector.name}`, async () => {
-            const lookup = makeRateLookup(vector.rateTable);
-            await expect(computeAmountUSD(lookup, vector.input)).rejects.toThrow(MoneyValidationError);
-            await expect(computeAmountUSD(lookup, vector.input)).rejects.toThrow(vector.messagePattern);
+        it(`rejects: ${vector.name}`, () => {
+            expect(() => computeAmountUSD(vector.input)).toThrow(MoneyValidationError);
+            expect(() => computeAmountUSD(vector.input)).toThrow(vector.messagePattern);
         });
     }
 });
@@ -39,17 +28,6 @@ describe("golden vectors — roundMoney half-even", () => {
             expect(roundMoney(vector.value, vector.decimals)).toBe(vector.expected);
         });
     }
-});
-
-describe("golden vectors — determinism guards", () => {
-    it("keeps every rate-table date inside the snapshot window", () => {
-        const dates = COMPUTE_USD_VECTORS.flatMap((vector) => vector.rateTable.map((row) => Date.parse(row.date)));
-        expect(dates.length).toBeGreaterThan(0);
-        for (const date of dates) {
-            expect(REFERENCE_DATE_MS - date).toBeGreaterThanOrEqual(0);
-            expect(REFERENCE_DATE_MS - date).toBeLessThanOrEqual(WINDOW_MS);
-        }
-    });
 });
 
 interface ConvertVector {

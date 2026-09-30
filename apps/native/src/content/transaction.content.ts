@@ -399,8 +399,8 @@ const transaction = {
             es: "Tasa según lo que pagaste: {rate}",
         }),
         "transaction.rate.eur_reference": t({
-            en: "EUR reference",
-            es: "Referencia EUR",
+            en: "EUR (BCV)",
+            es: "EUR (BCV)",
         }),
         "transaction.rate.inDollars": t({
             en: "In dollars",
@@ -643,10 +643,6 @@ const transaction = {
             en: "It counts in dollars once it has {rate}.",
             es: "Suma en dólares cuando tenga {rate}.",
         }),
-        "transaction.sentence.rate.pending": t({
-            en: "At the {rateSource} rate, {rate}, it counts in dollars once that day's euro rate arrives.",
-            es: "A la tasa {rateSource}, {rate}, suma en dólares cuando llegue la tasa del euro de ese día.",
-        }),
         "transaction.sentence.rate.provider": t({
             en: "At the {rateSource} rate, {rate}, that's {converted}.",
             es: "A la tasa {rateSource}, {rate}, son {converted}.",
@@ -656,8 +652,8 @@ const transaction = {
             es: "mi tasa",
         }),
         "transaction.sentence.rateSource.eur_reference": t({
-            en: "EUR reference",
-            es: "de referencia EUR",
+            en: "EUR (BCV)",
+            es: "EUR (BCV)",
         }),
         "transaction.sentence.rateSource.official": t({
             en: "official",

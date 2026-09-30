@@ -45,11 +45,6 @@ describe("transaction sentence templates", () => {
                 ]);
             });
         }
-        it(`states the rate and its source while the dollars wait in ${language}`, () => {
-            expect(
-                [...sentenceSlotNames(CATALOGS[language]["transaction.sentence.rate.pending"] ?? "")].sort()
-            ).toStrictEqual(["rate", "rateSource"]);
-        });
         it(`asks for the rate alone in ${language} transaction.sentence.rate.missing`, () => {
             expect([...sentenceSlotNames(CATALOGS[language]["transaction.sentence.rate.missing"] ?? "")]).toStrictEqual(
                 ["rate"]

@@ -648,7 +648,7 @@ describe("applyImport", () => {
         });
     });
 
-    it("preserves a supplied EUR-reference rate as unresolved when its EUR-official leg is unavailable", async () => {
+    it("resolves a supplied EUR (BCV) rate per dollar with no EUR rate on hand", async () => {
         const plan = buildImportPlan(
             [["Food", "EUR-reference offline", "2026-07-28", "100", "VES", "eur_reference", "50"]],
             { ...MAPPING, currency: 4, exchangeRate: 6, exchangeRateType: 5 },
@@ -660,7 +660,7 @@ describe("applyImport", () => {
         await applyImport(db, plan);
 
         expect((await db.select().from(transactions))[0]).toMatchObject({
-            amountUsd: null,
+            amountUsd: 2,
             exchangeRate: 50,
             exchangeRateType: "eur_reference",
         });
@@ -740,7 +740,7 @@ describe("applyImport", () => {
             },
             {
                 amount: 100,
-                amountUsd: 2.5,
+                amountUsd: 2,
                 categoryId: "cat-food",
                 currency: "VES",
                 date: new Date(2026, 6, 28, 11),
@@ -791,7 +791,7 @@ describe("applyImport", () => {
             exchangeRateType: "official",
         });
         expect(imported.find((row) => row.note === "EUR reference source")).toMatchObject({
-            amountUsd: 2.5,
+            amountUsd: 2,
             exchangeRate: 50,
             exchangeRateType: "eur_reference",
         });

@@ -107,23 +107,23 @@ describe("canonicalUsd", () => {
         expect(seen.calls).toBe(0);
     });
 
-    it("resolves a selected VES EUR-reference rate and computes the two-legged USD value", async () => {
+    it("freezes an EUR (BCV) entry per dollar, without a EUR leg", async () => {
         const lookup: RateLookup = async (quote, rateType, date) => {
             const rows: Record<string, number> = {
-                "EUR:official": 0.8,
-                "VES:eur_reference": 50,
+                "EUR:official": 0.87428,
+                "VES:eur_reference": 747.33,
             };
             const rate = rows[`${quote}:${rateType}`];
             return rate === undefined ? null : { date, rate };
         };
         const result = await canonicalUsd(lookup, {
-            amount: 100,
+            amount: 74_733,
             currency: "VES",
             date: DATE,
             displayCurrency: "VES",
             exchangeRateType: "eur_reference",
         });
-        expect(result).toStrictEqual({ amountUsd: 2.5, exchangeRate: 50, exchangeRateType: "eur_reference" });
+        expect(result).toStrictEqual({ amountUsd: 100, exchangeRate: 747.33, exchangeRateType: "eur_reference" });
     });
 
     it("keeps a custom occurrence rate-needed when no actual rate was supplied", async () => {
@@ -163,14 +163,7 @@ describe("canonicalUsd", () => {
 
     it("uses a positive supplied provider rate verbatim for CSV restoration", async () => {
         const seen = { calls: 0 };
-        const lookup: RateLookup = async (quote, rateType, date) => {
-            seen.calls += 1;
-            if (quote === "EUR" && rateType === "official") {
-                return { date, rate: 0.8 };
-            }
-            return null;
-        };
-        const result = await canonicalUsd(lookup, {
+        const result = await canonicalUsd(lookupOf({}, seen), {
             amount: 100,
             currency: "VES",
             date: DATE,
@@ -178,21 +171,8 @@ describe("canonicalUsd", () => {
             exchangeRate: 50,
             exchangeRateType: "eur_reference",
         });
-        expect(result).toStrictEqual({ amountUsd: 2.5, exchangeRate: 50, exchangeRateType: "eur_reference" });
-        expect(seen.calls).toBe(1);
-    });
-
-    it("preserves a supplied EUR-reference rate only while its EUR-official dependency is missing", async () => {
-        const result = await canonicalUsd(lookupOf({}), {
-            amount: 100,
-            currency: "VES",
-            date: DATE,
-            displayCurrency: "VES",
-            exchangeRate: 50,
-            exchangeRateType: "eur_reference",
-        });
-
-        expect(result).toStrictEqual({ amountUsd: null, exchangeRate: 50, exchangeRateType: "eur_reference" });
+        expect(result).toStrictEqual({ amountUsd: 2, exchangeRate: 50, exchangeRateType: "eur_reference" });
+        expect(seen.calls).toBe(0);
     });
 
     it.each([

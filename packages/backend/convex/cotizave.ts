@@ -13,9 +13,7 @@ const VES_QUOTE = "VES";
 
 /**
  * Cotizave market name → unified `exchangeRateType`. `reference` is the BCV
- * official rate. Note: the `eur_reference` mid is denominated VES-per-EUR (the
- * BCV official EUR rate), NOT USD→VES — it is stored verbatim per spec; any
- * USD conversion for eur_reference entries must account for that denomination.
+ * official rate.
  */
 // A Map rather than an object: the key is a market name off the remote feed, so
 // the lookup is of an untrusted string and `.get` answers `undefined` for one we

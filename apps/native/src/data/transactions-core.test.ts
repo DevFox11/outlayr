@@ -205,13 +205,13 @@ describe("transactionsRepo entry-rate selections", () => {
         });
     });
 
-    it("freezes a VES transaction from the EUR-reference feed", async () => {
+    it("freezes a VES transaction at the EUR (BCV) figure per dollar", async () => {
         const db = makeDb();
         await seedRate(db, "VES", "eur_reference", 50);
         await seedRate(db, "EUR", "official", 0.8);
         const id = await transactionsRepo.create(db, { ...DRAFT, currency: "VES", exchangeRateType: "eur_reference" });
         await expect(frozen(db, id)).resolves.toMatchObject({
-            amountUsd: 2.5,
+            amountUsd: 2,
             exchangeRate: 50,
             exchangeRateType: "eur_reference",
         });

@@ -5,12 +5,6 @@ import type { Database } from "@/db/client";
 import { exchangeRates, transactions } from "@/db/schema";
 
 export interface TransactionRateSuggestions {
-    /**
-     * The second leg of an `eur_reference` conversion, EUR per USD. Exposed
-     * because that policy is two-legged: `exchangeRate` alone converts to EUR,
-     * and a caller stating a USD figure has to divide by this as well.
-     */
-    eurOfficial: number | null;
     eurReference: number | null;
     eurReferenceFetchedAt: number | null;
     official: number | null;
@@ -39,9 +33,7 @@ function providerRate(
 export function transactionRateSuggestions(db: Database, currency: string, date: Date): TransactionRateSuggestions {
     const rateDate = utcDateString(date.getTime());
     const official = providerRate(db, currency, "official", rateDate);
-    const vesEurReference = currency === "VES" ? providerRate(db, currency, "eur_reference", rateDate) : null;
-    const eurOfficial = vesEurReference === null ? null : providerRate(db, "EUR", "official", rateDate);
-    const eurReference = eurOfficial === null ? null : vesEurReference;
+    const eurReference = currency === "VES" ? providerRate(db, currency, "eur_reference", rateDate) : null;
     const [priorCustom] = db
         .select({ date: transactions.date, rate: transactions.exchangeRate })
         .from(transactions)
@@ -59,7 +51,6 @@ export function transactionRateSuggestions(db: Database, currency: string, date:
         .all();
 
     return {
-        eurOfficial: eurOfficial?.rate ?? null,
         eurReference: eurReference?.rate ?? null,
         eurReferenceFetchedAt: eurReference?.fetchedAt ?? null,
         official: official?.rate ?? null,

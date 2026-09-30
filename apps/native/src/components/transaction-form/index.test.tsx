@@ -77,7 +77,6 @@ jest.mock("@/i18n/context", () => {
         "transaction.sentence.income": catalog.EN["transaction.sentence.income"] ?? "",
         "transaction.sentence.rate.custom": catalog.EN["transaction.sentence.rate.custom"] ?? "",
         "transaction.sentence.rate.missing": catalog.EN["transaction.sentence.rate.missing"] ?? "",
-        "transaction.sentence.rate.pending": catalog.EN["transaction.sentence.rate.pending"] ?? "",
         "transaction.sentence.rate.provider": catalog.EN["transaction.sentence.rate.provider"] ?? "",
     };
     return {
@@ -2850,7 +2849,7 @@ describe("transactionForm entry-rate confirmation", () => {
         expect((await db.select().from(transactions))[0]).toMatchObject({ exchangeRateType: "official" });
     });
 
-    it("states an EUR-reference rate that has no dollar value yet instead of asking for one", async () => {
+    it("states the dollars of an EUR (BCV) rate per dollar", async () => {
         const db = dbHolder.current as Database;
         const initial = await seedStoredTransaction(db, {
             amountUsd: null,
@@ -2867,7 +2866,9 @@ describe("transactionForm entry-rate confirmation", () => {
         expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
             text: "50.000 transaction.rate.unit",
         });
-        expect(screen.queryByLabelText("transaction.rate.inDollars")).toBeNull();
+        expect(screen.getByLabelText("transaction.rate.inDollars").props.accessibilityValue).toMatchObject({
+            text: "$2.00",
+        });
     });
 
     it("submits the exact positive custom rate the user confirmed", async () => {
@@ -3042,7 +3043,7 @@ describe("transactionForm entry-rate confirmation", () => {
         });
     });
 
-    it("submits an offered EUR-reference suggestion only when its EUR-official leg is cached", async () => {
+    it("submits an offered EUR (BCV) suggestion per dollar", async () => {
         const db = dbHolder.current as Database;
         const categoryId = await seedCategory(db);
         await db.insert(exchangeRates).values([
@@ -3072,7 +3073,7 @@ describe("transactionForm entry-rate confirmation", () => {
         await act(async () => saveButton?.props.onButtonPress());
 
         expect((await db.select().from(transactions))[0]).toMatchObject({
-            amountUsd: 2.5,
+            amountUsd: 2,
             exchangeRate: 50,
             exchangeRateType: "eur_reference",
         });
@@ -3350,7 +3351,7 @@ describe("transactionForm entry-rate confirmation", () => {
         });
     });
 
-    it("re-resolves both legs of an existing EUR-reference rate when the date changes", async () => {
+    it("re-resolves an existing EUR (BCV) rate when the date changes", async () => {
         const db = dbHolder.current as Database;
         await db.insert(exchangeRates).values([
             {
@@ -3364,7 +3365,7 @@ describe("transactionForm entry-rate confirmation", () => {
             { date: "2026-08-09", fetchedAt: 1, quote: "EUR", rate: 0.8, rateType: "official", source: "provider" },
         ]);
         const initial = await seedStoredTransaction(db, {
-            amountUsd: 2,
+            amountUsd: 2.222222,
             exchangeRate: 45,
             exchangeRateType: "eur_reference",
         });
@@ -3382,7 +3383,7 @@ describe("transactionForm entry-rate confirmation", () => {
         await act(async () => saveButton?.props.onButtonPress());
 
         expect((await db.select().from(transactions))[0]).toMatchObject({
-            amountUsd: 2.5,
+            amountUsd: 2,
             exchangeRate: 50,
             exchangeRateType: "eur_reference",
         });

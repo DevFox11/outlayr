@@ -25,7 +25,6 @@ export interface RateRow {
 export type RateLookup = (quote: string, rateType: MarketRateType, date: string) => Promise<RateRow | null>;
 
 /**
- * - `eur_reference` is VES-only: its mid is VES-per-EUR.
  * - A resolved rate must be positive; a non-positive one would later divide the
  *   base amount into a garbage or non-finite USD value.
  */
@@ -58,13 +57,6 @@ export async function resolveEntryRate(
     return requirePositiveRate(row.rate, currency, rateType, date);
 }
 
-/**
- * A rate divides, so a zero or a negative one does not merely misprice: it sends
- * the amount to infinity or flips its sign, turning an expense into income. Both
- * legs of an `eur_reference` conversion go through here — ingestion validates
- * too, but `exchangeRates` stores a bare `v.number()` and `RateLookup` is an
- * injectable interface, so this is the last guard before the divide.
- */
 function requirePositiveRate(rate: number, currency: string, rateType: string, date: string): number {
     if (!Number.isFinite(rate) || rate <= 0) {
         throw new MoneyValidationError(
@@ -81,22 +73,12 @@ export interface ComputeAmountUSDInput {
     exchangeRateType: EntryRateType;
 }
 
-/**
- * `numerator / Π denominators`, evaluated as one exact rational and reduced to
- * a micro-dollar (`USD_SCALE`) integer with a SINGLE half-even rounding.
- */
-function divideToUsd(numerator: ScaledInt, denominators: ScaledInt[]): number {
-    let denominatorScaleSum = 0n;
-    let denominatorProduct = 1n;
-    for (const denominator of denominators) {
-        denominatorScaleSum += denominator.scale;
-        denominatorProduct *= denominator.amount;
-    }
-    if (denominatorProduct === 0n) {
+function divideToUsd(numerator: ScaledInt, denominator: ScaledInt): number {
+    if (denominator.amount === 0n) {
         return Number.POSITIVE_INFINITY;
     }
-    const scaledNumerator = numerator.amount * DECIMAL_RADIX ** (denominatorScaleSum + USD_SCALE);
-    const scaledDenominator = denominatorProduct * DECIMAL_RADIX ** numerator.scale;
+    const scaledNumerator = numerator.amount * DECIMAL_RADIX ** (denominator.scale + USD_SCALE);
+    const scaledDenominator = denominator.amount * DECIMAL_RADIX ** numerator.scale;
     const micro = divideHalfEven(scaledNumerator, scaledDenominator);
     const money = dinero({ amount: micro, currency: USD, scale: USD_SCALE });
     return Number(toDecimal(money));
@@ -105,28 +87,14 @@ function divideToUsd(numerator: ScaledInt, denominators: ScaledInt[]): number {
 /**
  * Freezes an UNROUNDED (micro-dollar precision) USD amount.
  *
- * `eur_reference` (VES-only) is two-legged: the stored `exchangeRate` is the
- * VES-per-EUR mid, so the amount is `baseAmount / exchangeRate / eurRate` with
- * the EUR leg resolved as the EUR `official` rate on `date`.
- *
  * A finite `(baseAmount, exchangeRate)` pair can still overflow the division to
  * a non-representable amount, which is rejected here rather than stored.
  */
-export async function computeAmountUSD(lookup: RateLookup, input: ComputeAmountUSDInput): Promise<number> {
-    const numerator = toScaledInt(input.baseAmount);
-    const denominators: ScaledInt[] = [
-        toScaledInt(requirePositiveRate(input.exchangeRate, "the entry", input.exchangeRateType, input.date)),
-    ];
-    if (input.exchangeRateType === "eur_reference") {
-        const eurRow = await lookup("EUR", "official", input.date);
-        if (!eurRow) {
-            throw new MoneyValidationError(
-                `No EUR official rate available on ${input.date} for eur_reference conversion`
-            );
-        }
-        denominators.push(toScaledInt(requirePositiveRate(eurRow.rate, "EUR", "official", input.date)));
-    }
-    const amountUSD = divideToUsd(numerator, denominators);
+export function computeAmountUSD(input: ComputeAmountUSDInput): number {
+    const amountUSD = divideToUsd(
+        toScaledInt(input.baseAmount),
+        toScaledInt(requirePositiveRate(input.exchangeRate, "the entry", input.exchangeRateType, input.date))
+    );
     if (!Number.isFinite(amountUSD)) {
         throw new MoneyValidationError(
             `Computed USD amount is not finite (baseAmount ${input.baseAmount} at rate ${input.exchangeRate})`

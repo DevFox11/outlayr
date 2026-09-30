@@ -129,43 +129,26 @@ describe(resolveEntryRate, () => {
         );
     });
 
-    it("rejects a negative entry rate rather than flipping the amount's sign", async () => {
-        await expect(
-            computeAmountUSD(lookup, {
+    it("rejects a negative entry rate rather than flipping the amount's sign", () => {
+        expect(() =>
+            computeAmountUSD({
                 baseAmount: 100,
                 date: "2026-06-30",
                 exchangeRate: -40,
                 exchangeRateType: "official",
             })
-        ).rejects.toThrow(MoneyValidationError);
+        ).toThrow(MoneyValidationError);
     });
 
-    it("rejects a zero entry rate, which divides to infinity rather than to a price", async () => {
-        await expect(
-            computeAmountUSD(lookup, {
+    it("rejects a zero entry rate, which divides to infinity rather than to a price", () => {
+        expect(() =>
+            computeAmountUSD({
                 baseAmount: 100,
                 date: "2026-06-30",
                 exchangeRate: 0,
                 exchangeRateType: "official",
             })
-        ).rejects.toThrow(MoneyValidationError);
-    });
-
-    it("rejects a negative EUR leg rather than flipping the amount's sign", async () => {
-        // The second leg of an `eur_reference` conversion is a divisor too, so a
-        const badEur = makeRateLookup([
-            { date: "2026-06-01", quote: "VES", rate: 747.33, rateType: "eur_reference" },
-            { date: "2026-06-01", quote: "EUR", rate: -0.87, rateType: "official" },
-        ]);
-
-        await expect(
-            computeAmountUSD(badEur, {
-                baseAmount: 100,
-                date: "2026-06-30",
-                exchangeRate: 747.33,
-                exchangeRateType: "eur_reference",
-            })
-        ).rejects.toThrow(MoneyValidationError);
+        ).toThrow(MoneyValidationError);
     });
 });
 

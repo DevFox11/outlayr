@@ -62,14 +62,6 @@ describe("transactionRateSuggestions", () => {
                 },
                 {
                     date: "2026-08-09",
-                    fetchedAt: 5,
-                    quote: "EUR",
-                    rate: 0.8,
-                    rateType: "official",
-                    source: "provider",
-                },
-                {
-                    date: "2026-08-09",
                     fetchedAt: 4,
                     quote: "VES",
                     rate: 50,
@@ -80,29 +72,12 @@ describe("transactionRateSuggestions", () => {
             .run();
 
         expect(transactionRateSuggestions(db, "VES", SELECTED_DATE)).toStrictEqual({
-            eurOfficial: 0.8,
             eurReference: 50,
             eurReferenceFetchedAt: 4,
             official: 42,
             officialFetchedAt: 2,
             priorCustom: null,
         });
-    });
-
-    it("withholds EUR-reference when the required EUR-official leg is missing", () => {
-        const db = makeDb();
-        db.insert(exchangeRates)
-            .values({
-                date: "2026-08-09",
-                fetchedAt: 1,
-                quote: "VES",
-                rate: 50,
-                rateType: "eur_reference",
-                source: "provider",
-            })
-            .run();
-
-        expect(transactionRateSuggestions(db, "VES", SELECTED_DATE).eurReference).toBeNull();
     });
 
     it("never suggests EUR-reference outside VES", () => {
