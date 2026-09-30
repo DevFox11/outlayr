@@ -90,10 +90,10 @@ describe("transactionFormAmountPad", () => {
     });
 
     // Docked, the pad has no sheet chrome to say what it is entering, and the
-    // form can be showing either an amount or an exchange rate.
+    // transfer shows three of them: what is sent, what arrives and the fee.
     it("names what it is entering", async () => {
-        const { toJSON } = await render(<TransactionFormAmountPad {...BASE} code="VES/USD" label="Entry rate" />);
-        expect(texts(toJSON() as JsonNode)).toStrictEqual(expect.arrayContaining(["Entry rate", "VES/USD"]));
+        const { toJSON } = await render(<TransactionFormAmountPad {...BASE} code="VES" label="Arrives" />);
+        expect(texts(toJSON() as JsonNode)).toStrictEqual(expect.arrayContaining(["Arrives", "VES"]));
     });
 
     it("opens the currency picker from the code", async () => {
@@ -108,9 +108,9 @@ describe("transactionFormAmountPad", () => {
         expect(onCodePress).toHaveBeenCalledTimes(1);
     });
 
-    // The rate pad's "VES/USD" is a pair, not a currency the picker can swap.
+    // A transfer pad's code is its account's currency, not one the picker can swap.
     it("leaves the code inert when nothing can be opened from it", async () => {
-        await render(<TransactionFormAmountPad {...BASE} code="VES/USD" label="Entry rate" />);
+        await render(<TransactionFormAmountPad {...BASE} code="VES" label="Arrives" />);
 
         expect(screen.queryByLabelText("transaction.amount.changeCurrency")).toBeNull();
     });

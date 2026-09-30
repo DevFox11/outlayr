@@ -27,11 +27,11 @@ interface TransactionFormAmountPadProps {
     onChange: (next: string, key: NumpadKey) => void;
     /**
      * Opens the currency picker. Omitted for a field whose code is not a
-     * currency the user can swap — the rate pad's "VES/USD" pair — and the code
+     * currency the user can swap — a transfer's pads, fixed to their account's — and the code
      * then draws as plain text rather than claiming a button role.
      */
     onCodePress?: () => void;
-    /** Distinguishes the amount and rate keypads, so the stage animates between them. */
+    /** Distinguishes one keypad from the next, so the stage animates between them. */
     stepKey: string;
     value: string;
 }
@@ -70,7 +70,7 @@ export function TransactionFormAmountPad({
     const codeText = <Text className="text-callout text-foreground tracking-eyebrow font-mono-medium">{code}</Text>;
     // Rendered here rather than through the stage's own `rightAction`: that draws
     // a tinted sans label, and the code has to stay mono to read as the figure's
-    // unit. A code with nothing to swap to — the rate pad's "VES/USD" pair — is
+    // unit. A code with nothing to swap to — a transfer pad's account currency — is
     // plain text rather than a button claiming an action it does not have.
     /**
      * The keypad's header is the currency and nothing else: naming the field
@@ -102,7 +102,7 @@ export function TransactionFormAmountPad({
             value={value}
         />
     );
-    // `label` names the rate pad, whose header is a pair rather than a control.
+    // `label` names a transfer's pad, whose code is not a control.
     // The money pad carries no title at all — the sentence above already states
     // the amount — so the currency is the header's only element and sits where
     // every other step's trailing control does.

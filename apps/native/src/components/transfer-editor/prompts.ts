@@ -1,6 +1,7 @@
 import { formatSignedAmount } from "@/domain/account-display";
 import { formatAmount } from "@/domain/money";
 import { formatEnteredRate, formatRateFigure, quotePairRate } from "@/domain/transaction-entry-rate";
+import { quotedByBcv, rateDeltaLine } from "@/domain/transaction-form-labels";
 import type { useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 
@@ -19,6 +20,22 @@ type Translate = ReturnType<typeof useTranslation>;
 
 export function formatRate(draft: Pick<Draft, "rateInverse">, rate: number | null, language: Language): string | null {
     return rate === null ? null : formatRateFigure(quotePairRate(draft.rateInverse, rate), language);
+}
+
+export function rateDeltaNote(draft: Draft, t: Translate, language: Language): string | null {
+    const { official } = draft.marketRates;
+    const rate = draft.quotedRate;
+    if (rate === null || official === null) {
+        return null;
+    }
+    const moved = draft.sent - (draft.feeSide === "source" ? draft.fee : 0);
+    return rateDeltaLine(t, {
+        bcv: quotedByBcv(draft.fromCurrency, draft.toCurrency),
+        code: draft.toCurrency,
+        difference: moved > 0 ? moved * (rate - official) : 0,
+        language,
+        percent: (quotePairRate(draft.rateInverse, rate) / quotePairRate(draft.rateInverse, official) - 1) * 100,
+    });
 }
 
 function offeredRateText(draft: Pick<Draft, "rateInverse">, rate: number, language: Language): string {

@@ -64,14 +64,7 @@ import { computeCurtainHues } from "@/domain/curtain-hues";
 import { formatSentenceDate } from "@/domain/dates";
 import { merchantKey } from "@/domain/merchant-resolver";
 import { suggestMerchants } from "@/domain/merchant-suggest";
-import {
-    formatAmount,
-    formatFixed,
-    minorUnitsFor,
-    numberLocale,
-    roundToMinorUnits,
-    symbolIsShared,
-} from "@/domain/money";
+import { formatAmount, minorUnitsFor, numberLocale, roundToMinorUnits, symbolIsShared } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { rateAge } from "@/domain/rate-age";
 import type { RateAge } from "@/domain/rate-age";
@@ -98,6 +91,7 @@ import {
     ctaKey,
     namedWithCount,
     quotedByBcv,
+    rateDeltaLine,
     rateNameKey,
     rateSourceWordKey,
     transactionWhenLabel,
@@ -169,10 +163,6 @@ const CURRENCY_LIST_FRACTION = 0.34;
 
 /** One row of pills beside the remembered ones, which come first. */
 const MERCHANT_SUGGESTION_LIMIT = 4;
-
-const RATE_DELTA_SAME = 0.05;
-
-const RATE_DELTA_MONEY_FLOOR = 0.005;
 
 /**
  * What the stage at the bottom of the form is showing. One value rather than a
@@ -943,22 +933,13 @@ export function TransactionForm({
         if (rate === null || official === null) {
             return null;
         }
-        const percent = rateDeltaPercent(currency, rate, official);
-        const shown = `${formatFixed(Math.abs(percent), 1, language)}%`;
-        const source = t(rateSourceWordKey("official", quotedByBcv(currency)));
-        let line = t("transaction.rate.deltaSame", { source });
-        if (Math.abs(percent) >= RATE_DELTA_SAME) {
-            line = t(percent > 0 ? "transaction.rate.deltaAbove" : "transaction.rate.deltaBelow", {
-                percent: shown,
-                source,
-            });
-        }
-        const difference = amount / rate - amount / official;
-        if (amount <= 0 || Math.abs(difference) < RATE_DELTA_MONEY_FLOOR) {
-            return line;
-        }
-        const money = formatAmount(Math.abs(difference), "USD", true, language);
-        return `${line} · ${t(difference > 0 ? "transaction.rate.deltaMore" : "transaction.rate.deltaLess", { amount: money, source })}`;
+        return rateDeltaLine(t, {
+            bcv: quotedByBcv(currency),
+            code: "USD",
+            difference: amount > 0 ? amount / rate - amount / official : 0,
+            language,
+            percent: rateDeltaPercent(currency, rate, official),
+        });
     };
 
     const feeable = !income && initial?.transferId == null && initial?.feeForId == null;

@@ -87,6 +87,10 @@ const transfers = {
             en: "{amount} unaccounted",
             es: "{amount} sin explicar",
         }),
+        "transfers.rate.lastUsed": t({
+            en: "Last used · {date}",
+            es: "Última · {date}",
+        }),
         "transfers.rate.unavailable": t({
             en: "No rate for this pair. Enter one.",
             es: "No hay tasa para este par. Ingresa una.",

@@ -1,4 +1,5 @@
 import { addDays, formatSentenceDate, startOfDay } from "@/domain/dates";
+import { formatAmount, formatFixed, minorUnitsFor } from "@/domain/money";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 import { leadLabelKey } from "@/domain/subscription-reminder";
 import type { LeadLabelKey } from "@/domain/subscription-reminder";
@@ -47,6 +48,32 @@ export function rateNameKey(type: TransferRateChoice, bcv: boolean): Translation
 
 export function rateSourceWordKey(type: TransferRateChoice, bcv: boolean): TranslationKey {
     return bcv && type === "official" ? "transaction.sentence.rateSource.officialBcv" : RATE_SOURCE_WORD_KEYS[type];
+}
+
+const RATE_DELTA_SAME = 0.05;
+
+interface RateDelta {
+    bcv: boolean;
+    code: string;
+    difference: number;
+    language: Language;
+    percent: number;
+}
+
+export function rateDeltaLine(t: TranslateFn, { bcv, code, difference, language, percent }: RateDelta): string {
+    const source = t(rateSourceWordKey("official", bcv));
+    const line =
+        Math.abs(percent) >= RATE_DELTA_SAME
+            ? t(percent > 0 ? "transaction.rate.deltaAbove" : "transaction.rate.deltaBelow", {
+                  percent: `${formatFixed(Math.abs(percent), 1, language)}%`,
+                  source,
+              })
+            : t("transaction.rate.deltaSame", { source });
+    if (Math.abs(difference) < 10 ** -minorUnitsFor(code) / 2) {
+        return line;
+    }
+    const amount = formatAmount(Math.abs(difference), code, true, language);
+    return `${line} · ${t(difference > 0 ? "transaction.rate.deltaMore" : "transaction.rate.deltaLess", { amount, source })}`;
 }
 
 const NAMED_LIMIT = 28;

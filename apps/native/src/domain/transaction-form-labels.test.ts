@@ -11,6 +11,7 @@ import {
     leadLabel,
     namedWithCount,
     quotedByBcv,
+    rateDeltaLine,
     rateNameKey,
     rateSourceWordKey,
     transactionWhenLabel,
@@ -48,6 +49,17 @@ describe("rate names", () => {
     it("leaves the other sources' names alone", () => {
         expect(en(rateNameKey("eur_reference", true))).toBe("EUR (BCV)");
         expect(en(rateNameKey("custom", true))).toBe("My rate");
+    });
+});
+
+describe("rateDeltaLine", () => {
+    const line = (code: string, difference: number) =>
+        rateDeltaLine(en, { bcv: false, code, difference, language: "en", percent: 0.01 });
+
+    it("names a difference only when it survives the currency's own rounding", () => {
+        expect(line("JPY", 0.3)).toBe("Same as official");
+        expect(line("JPY", 0.6)).toBe("Same as official · ¥1 more than at official");
+        expect(line("USD", 0.3)).toBe("Same as official · $0.30 more than at official");
     });
 });
 

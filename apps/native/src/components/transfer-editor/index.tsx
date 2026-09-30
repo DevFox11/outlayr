@@ -2,15 +2,17 @@ import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { AccessibilityInfo, Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
 
+import { AmountNumpad } from "@/components/amount-numpad";
 import { InlineFailure } from "@/components/form/inline-failure";
 import { Text } from "@/components/text";
 import { TransactionFormAmountPad } from "@/components/transaction-form/amount-pad";
 import { TransactionFormCta } from "@/components/transaction-form/cta";
 import { MetaLine } from "@/components/transaction-form/stage/meta-line";
 import { TransactionStage } from "@/components/transaction-form/stage/stage";
+import type { StageFooter } from "@/components/transaction-form/stage/stage";
 import { StepAccount } from "@/components/transaction-form/stage/step-account";
 import { StepDate } from "@/components/transaction-form/stage/step-date";
-import { StepRate } from "@/components/transaction-form/stage/step-rate";
+import { StepRate, StepRateField } from "@/components/transaction-form/stage/step-rate";
 import { StepWhen } from "@/components/transaction-form/stage/step-when";
 import { useDisplaySettings, useSettingNumber } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
@@ -37,7 +39,7 @@ import { notifySaved } from "@/lib/notify";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
-import { blockPrompt, formatRate, gapPrompt } from "./prompts";
+import { blockPrompt, formatRate, gapPrompt, rateDeltaNote } from "./prompts";
 import { TransferSentence } from "./transfer-sentence";
 import type { TransferSentenceSlot } from "./transfer-sentence";
 import { useTransferDraft } from "./use-transfer-draft";
@@ -98,9 +100,6 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
     const saves = draft.canSave && draft.arrivalSeen;
 
     const enter = (next: Step, direction = true) => {
-        if (next === "rate" && draft.rateType !== "custom") {
-            draft.setRateType("custom");
-        }
         if (next === "arrives") {
             draft.prefillArrival();
         }
@@ -256,18 +255,55 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
             onChange: draft.setFee,
             value: draft.feeText,
         },
-        rate: {
-            code: rateUnit,
-            label: t("transfers.field.rate"),
-            minorUnits: RATE_ENTRY_DECIMALS,
-            mode: "explicitSeparator",
-            onChange: draft.setCustomRate,
-            value: draft.customRatePadText,
+    } as const;
+    const ratePad = {
+        minorUnits: RATE_ENTRY_DECIMALS,
+        mode: "explicitSeparator",
+        onChange: (text: string) => {
+            draft.setRateType("custom");
+            draft.setCustomRate(text);
         },
+        value: draft.customRatePadText,
     } as const;
 
+    const rateReferences = () => {
+        const chosen = (change: () => void) => () => {
+            touch();
+            change();
+            enter("amount", false);
+        };
+        const providers = draft.rateOptions.flatMap((type) => {
+            const figure = type === "eur_reference" ? null : formatRate(draft, draft.marketRates[type], language);
+            return figure === null
+                ? []
+                : [
+                      {
+                          figure,
+                          label: t(rateNameKey(type, quotedByBcv(draft.fromCurrency, draft.toCurrency))),
+                          onPress: chosen(() => draft.setRateType(type)),
+                      },
+                  ];
+        });
+        const prior = draft.priorCustomRate;
+        if (prior === null) {
+            return providers;
+        }
+        const quoted = quotePairRate(draft.rateInverse, prior.rate);
+        return [
+            ...providers,
+            {
+                figure: formatRateFigure(quoted, language),
+                label: t("transfers.rate.lastUsed", { date: formatSentenceDate(prior.date, language) }),
+                onPress: chosen(() => {
+                    draft.setRateType("custom");
+                    draft.setCustomRate(rateEntryText(quoted), prior.rate);
+                }),
+            },
+        ];
+    };
+
     const renderStage = () => {
-        if (step === "amount" || step === "arrives" || step === "fee" || step === "rate") {
+        if (step === "amount" || step === "arrives" || step === "fee") {
             const pad = pads[step];
             return (
                 <TransactionFormAmountPad
@@ -296,6 +332,28 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
                     />
                 );
             }
+            if (step === "rate") {
+                const rateTyped = typingRate && draft.customRatePadText !== "";
+                return (
+                    <StepRateField
+                        error={null}
+                        note={rateTyped ? rateDeltaNote(draft, t, language) : null}
+                        placeholder={!rateTyped}
+                        references={rateReferences()}
+                        unit={rateUnit}
+                        value={rateFigure ?? t("transaction.rate.type")}
+                    >
+                        <AmountNumpad
+                            code={draft.toCurrency}
+                            minorUnits={ratePad.minorUnits}
+                            mode={ratePad.mode}
+                            onChange={typed(ratePad)}
+                            showDisplay={false}
+                            value={fresh ? "" : ratePad.value}
+                        />
+                    </StepRateField>
+                );
+            }
             if (step === "rateType") {
                 return (
                     <StepRate
@@ -303,7 +361,10 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
                             touch();
                             const prior = draft.priorCustomRate;
                             if (next === "custom" && draft.rateType !== "custom" && prior !== null) {
-                                draft.setCustomRate(rateEntryText(quotePairRate(draft.rateInverse, prior.rate)));
+                                draft.setCustomRate(
+                                    rateEntryText(quotePairRate(draft.rateInverse, prior.rate)),
+                                    prior.rate
+                                );
                             }
                             draft.setRateType(next);
                             enter(next === "custom" ? "rate" : "amount");
@@ -382,15 +443,25 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
         const titles = {
             date: t("transfers.field.date"),
             from: t("transfers.field.from"),
+            rate: t("transaction.rate.custom"),
             rateType: t("transaction.rate.title"),
             to: t("transfers.field.to"),
             when: t("transfers.field.date"),
         } as const;
         const toAmount = () => enter("amount", false);
+        const stageFooter = (): StageFooter => {
+            if (step === "rateType") {
+                return { label: t("common.done"), onPress: toAmount, tone: "primary" };
+            }
+            const used = step === "rate" ? formatRate(draft, draft.quotedRate, language) : null;
+            return used === null
+                ? footer
+                : { label: t("transaction.rate.use", { value: used }), onPress: toAmount, tone: "primary" };
+        };
         return (
             <TransactionStage
                 backLabel={t("common.back")}
-                footer={step === "rateType" ? { label: t("common.done"), onPress: toAmount, tone: "primary" } : footer}
+                footer={stageFooter()}
                 forward={forward}
                 onBack={toAmount}
                 stepKey={step}

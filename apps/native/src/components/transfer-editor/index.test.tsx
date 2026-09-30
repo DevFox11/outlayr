@@ -12,6 +12,8 @@ const mockAccounts = [
     { currency: "USD", id: "usd", initialBalance: 0, name: "Zinli" } as Account,
     { currency: "USD", id: "usd-2", initialBalance: 0, name: "Mercantil" } as Account,
     { currency: "VES", id: "ves", initialBalance: 0, name: "Banesco" } as Account,
+    { currency: "ARS", id: "ars", initialBalance: 0, name: "Galicia" } as Account,
+    { currency: "MXN", id: "mxn", initialBalance: 0, name: "BBVA" } as Account,
 ];
 const mockRateTables = jest.fn<typeof import("@/data/transfer-rates").useTransferRates>(() => ({}));
 const mockPriorRate = jest.fn<typeof import("@/data/transfer-rates").usePriorCustomRate>(() => null);
@@ -71,7 +73,9 @@ jest.mock("@/i18n/context", () => {
     return {
         useLanguage: () => ({ language: "en" }),
         useTranslation: () => (key: string, params?: Record<string, string | number>) =>
-            /^(transfers\.(a11y|gap|saved\.title|sentence)(?!\.blank)|transaction\.rate\.)/.test(key)
+            /^(transfers\.(a11y|gap|rate|saved\.title|sentence)(?!\.blank)|transaction\.(rate|sentence\.rateSource)\.)/.test(
+                key
+            )
                 ? translate(key, { catalog: catalog.EN, fallback: catalog.EN, params })
                 : key,
     };
@@ -474,8 +478,108 @@ describe("transfer editor rate step", () => {
 
         await press("My rate");
 
-        expect(screen.getByText("transfers.field.rate")).toBeTruthy();
+        expect(screen.getByText("My rate")).toBeTruthy();
         expect(screen.getByLabelText("1")).toBeTruthy();
+    });
+});
+
+describe("transfer editor typed rate", () => {
+    const reference = (name: string) => screen.getByRole("button", { name }).props.accessibilityValue?.text;
+
+    beforeEach(() => {
+        mockPriorRate.mockReturnValue({ date: new Date(2026, 8, 27), rate: 1020 });
+    });
+
+    it("weighs a typed rate against USD (BCV) and offers it, USDT (Binance) and the last one used", async () => {
+        mockRateTables.mockReturnValue({
+            binance: quotedAt(1031.52),
+            eur_reference: quotedAt(974.42),
+            official: quotedAt(848.55),
+        });
+        await render(<TransferEditor onDone={jest.fn()} seed={CROSS} />);
+        await press("transfers.field.rate");
+
+        for (const key of "900") {
+            await press(key);
+        }
+
+        expect(screen.getByText("6.1% above USD (BCV) · Bs.2,572.50 more than at USD (BCV)")).toBeTruthy();
+        expect(reference("USD (BCV)")).toBe("848.55");
+        expect(reference("USDT (Binance)")).toBe("1,031.52");
+        expect(reference("Last used · 27 Sep")).toBe("1,020.00");
+        expect(screen.queryByRole("button", { name: "EUR (BCV)" })).toBeNull();
+        expect(screen.getByLabelText("Use 900.00")).toBeTruthy();
+    });
+
+    it("offers no USDT (Binance) for dollars to pesos", async () => {
+        mockRateTables.mockReturnValue({ binance: quotedAt(19.5), official: quotedAt(18.3) });
+        mockPriorRate.mockReturnValue({ date: new Date(2026, 8, 27), rate: 18.1 });
+        await render(<TransferEditor onDone={jest.fn()} seed={{ ...CROSS, toAccountId: "mxn" }} />);
+        await press("transfers.field.rate");
+
+        await press("1");
+        await press("9");
+
+        expect(screen.getByText(/^3\.8% above official · /)).toBeTruthy();
+        expect(reference("Official")).toBe("18.30");
+        expect(reference("Last used · 27 Sep")).toBe("18.10");
+        expect(screen.queryByRole("button", { name: "USDT (Binance)" })).toBeNull();
+    });
+
+    it("says how far off a rate with a missed separator is", async () => {
+        mockRateTables.mockReturnValue({ official: quotedAt(1523.4) });
+        await render(<TransferEditor onDone={jest.fn()} seed={{ ...CROSS, toAccountId: "ars" }} />);
+        await press("transfers.field.rate");
+
+        for (const key of "15984") {
+            await press(key);
+        }
+
+        expect(screen.getByText(/^949\.2% above official · /)).toBeTruthy();
+    });
+
+    it("applies the last used rate at full precision, not the four decimals it shows", async () => {
+        mockRateTables.mockReturnValue({ official: quotedAt(848.55) });
+        mockPriorRate.mockReturnValue({ date: new Date(2026, 8, 27), rate: 1020.123456 });
+        await render(<TransferEditor onDone={jest.fn()} seed={{ ...CROSS, amount: 10_000 }} />);
+        await press("transfers.field.rate");
+
+        await press("Last used · 27 Sep");
+
+        expect(slotValue("transfers.field.rate")).toBe("1,020.1235 Bs. per $");
+        expect(slotValue("transfers.field.arrives")).toBe("Bs.10,201,234.56");
+    });
+
+    it("applies My rate from the rate list at the same full precision", async () => {
+        mockRateTables.mockReturnValue({ official: quotedAt(848.55) });
+        mockPriorRate.mockReturnValue({ date: new Date(2026, 8, 27), rate: 1020.123456 });
+        await render(<TransferEditor onDone={jest.fn()} seed={{ ...CROSS, amount: 10_000 }} />);
+        await press("transfers.field.rateType");
+
+        await press("My rate");
+        await press("common.back");
+
+        expect(slotValue("transfers.field.arrives")).toBe("Bs.10,201,234.56");
+    });
+
+    it("leaves a picked reference in force when the rate step is opened and left untouched", async () => {
+        mockRateTables.mockReturnValue({ official: quotedAt(848.55) });
+        await render(<TransferEditor onDone={jest.fn()} seed={CROSS} />);
+        await press("transfers.field.rate");
+        for (const key of "900") {
+            await press(key);
+        }
+        await press("Use 900.00");
+        await press("transfers.field.rate");
+        await press("USD (BCV)");
+
+        await press("transfers.field.rate");
+        await press("common.back");
+
+        expect(slotValue("transfers.field.arrives")).toBe("Bs.42,427.50");
+        await press("common.next");
+        await press("transfers.save");
+        expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({ exchangeRateType: "official", toAmount: 42_427.5 });
     });
 });
 

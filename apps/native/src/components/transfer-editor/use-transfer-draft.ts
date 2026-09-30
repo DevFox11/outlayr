@@ -180,7 +180,7 @@ export interface TransferDraft {
     sent: number;
     sentText: string;
     setArrived: (text: string) => void;
-    setCustomRate: (text: string) => void;
+    setCustomRate: (text: string, exact?: number) => void;
     setDate: (date: Date) => void;
     setFee: (text: string) => void;
     setRateType: (type: TransferRateChoice) => void;
