@@ -84,6 +84,8 @@ jest.mock("@/i18n/context", () => {
     // then every assertion below is driving a sentence the app does not render.
     const catalog = require("@/i18n/catalog") as typeof import("@/i18n/catalog");
     const TRANSLATED: Record<string, string> = {
+        "transaction.fee.comesTo": catalog.EN["transaction.fee.comesTo"] ?? "",
+        "transaction.fee.pays": catalog.EN["transaction.fee.pays"] ?? "",
         "transaction.rate.asOf": catalog.EN["transaction.rate.asOf"] ?? "",
         "transaction.rate.asOfTime": catalog.EN["transaction.rate.asOfTime"] ?? "",
         "transaction.rate.daysOld": catalog.EN["transaction.rate.daysOld_other"] ?? "",
@@ -2965,6 +2967,67 @@ describe("transactionForm account attachment", () => {
         expect(savedTx).toHaveLength(1);
         expect(savedTx[0].accountId).toBe(accountId);
         await expect(getMeta(db, META_KEYS.lastTransactionAccount)).resolves.toBe(accountId);
+    });
+});
+
+describe("transactionForm card fee", () => {
+    it("leads with the rate the account was charged before and states a typed fee on the keys", async () => {
+        const db = dbHolder.current as Database;
+        await db.insert(accounts).values({
+            currency: "USD",
+            dateCreated: new Date(),
+            id: "chase",
+            initialBalance: 0,
+            initialBalanceDate: new Date(),
+            initialBalanceUsd: 0,
+            name: "Chase",
+            sortOrder: 0,
+            updatedAt: new Date(),
+        });
+        await setMeta(db, META_KEYS.lastTransactionAccount, "chase");
+        const { categoryId } = await seedStoredTransaction(db, {
+            accountId: "chase",
+            currency: null,
+            exchangeRate: null,
+            exchangeRateType: null,
+            feeRate: 0.03,
+        });
+        const screen = await render(
+            <Providers>
+                <TransactionForm
+                    db={db}
+                    mode="create"
+                    onDone={() => {}}
+                    seed={{ amount: 25, categoryId: categoryId ?? "" }}
+                />
+            </Providers>
+        );
+
+        await act(async () => {
+            pressVerb(screen, "transaction.sentence.add.fee");
+        });
+        const choices = within(screen.getByTestId("stage-body"))
+            .getAllByRole("button")
+            .map((choice) => choice.props.accessibilityLabel);
+        expect(choices.slice(0, 4)).toStrictEqual([
+            "transaction.fee.none",
+            "3%, $0.75",
+            "transaction.fee.percent",
+            "transaction.fee.amount",
+        ]);
+        expect(screen.queryByTestId("stage-fee-field")).toBeNull();
+
+        await act(async () => {
+            pickOption(screen, "transaction.fee.percent");
+        });
+        await pressKeys(screen, ["3", ".", "5"]);
+
+        expect(screen.getByTestId("stage-fee-field").props.accessibilityValue).toMatchObject({
+            text: "3.5 %, a $0.88 fee",
+        });
+        const stage = within(screen.getByTestId("stage-body"));
+        expect(stage.getByText("Chase pays")).toBeTruthy();
+        expect(stage.getByText("$25.88")).toBeTruthy();
     });
 });
 

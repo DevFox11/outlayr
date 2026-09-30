@@ -131,6 +131,7 @@ import { IdentityFlyUpLayer } from "../identity-fly-up";
 import { revealEntering } from "../sentence/sentence-motion";
 import { SplitSheet } from "../split-sheet";
 import { TagPickerSheet } from "../tag-picker-sheet";
+import { Text } from "../text";
 import { ThinkingOrb } from "../thinking-orb/thinking-orb";
 import { TransactionFormAmountPad } from "./amount-pad";
 import { TransactionFormCta } from "./cta";
@@ -147,6 +148,7 @@ import { StepCategory } from "./stage/step-category";
 import { StepCurrency } from "./stage/step-currency";
 import { StepDate } from "./stage/step-date";
 import { StepFee } from "./stage/step-fee";
+import type { StepFeeField } from "./stage/step-fee";
 import { StepMerchant } from "./stage/step-merchant";
 import { StepRate, StepRateField } from "./stage/step-rate";
 import type { StepRateOption } from "./stage/step-rate";
@@ -1019,6 +1021,24 @@ export function TransactionForm({
         return feeDraft.kind === "typed"
             ? `+ ${formatAmount(numpadToNumber(feeDraft.text), feeDraft.currency, true, language)}`
             : null;
+    };
+    const feeField = (charged: number): StepFeeField | null => {
+        if (feeDraft.kind !== "typed") {
+            return null;
+        }
+        return {
+            comesTo:
+                feeDraft.unit === "percent" && charged > 0
+                    ? {
+                          amount: formatAmount(charged, feeCurrency, true, language),
+                          template: t("transaction.fee.comesTo"),
+                      }
+                    : null,
+            label: t("transaction.fee.title"),
+            placeholder: feeDraft.text === "",
+            unit: feeDraft.unit === "percent" ? "%" : feeDraft.currency,
+            value: feeDraft.text === "" ? "0" : feeDraft.text.replace(".", numberLocale(language).decimal),
+        };
     };
     const feeRateChoices =
         feeDraft.kind === "percent" && !feeRates.includes(feeDraft.rate)
@@ -2048,21 +2068,41 @@ export function TransactionForm({
             const charged = feeAmountFor(amountNumber) ?? 0;
             const options: StageOptionItem<FeeOptionId>[] = [
                 { id: "none", label: t("transaction.fee.none") },
-                ...feeRateChoices.map((rate) => ({
-                    id: `rate:${rate}` as const,
-                    label:
+                ...feeRateChoices.map((rate) => {
+                    const percent = formatFeeRate(rate, language);
+                    const money =
                         base === null
-                            ? formatFeeRate(rate, language)
-                            : `${formatFeeRate(rate, language)} · ${formatAmount(cardFeeAmount({ kind: "percent", rate }, base, feeCurrency), feeCurrency, true, language)}`,
-                })),
-                { id: "percent", label: t("transaction.fee.otherPercent") },
+                            ? null
+                            : formatAmount(
+                                  cardFeeAmount({ kind: "percent", rate }, base, feeCurrency),
+                                  feeCurrency,
+                                  true,
+                                  language
+                              );
+                    return {
+                        accessibilityLabel: money === null ? percent : `${percent}, ${money}`,
+                        id: `rate:${rate}` as const,
+                        label: percent,
+                        trailing:
+                            money === null ? undefined : (
+                                <Text className="text-label text-muted font-mono tabular-nums">{money}</Text>
+                            ),
+                    };
+                }),
+                { id: "percent", label: t("transaction.fee.percent") },
                 { id: "amount", label: t("transaction.fee.amount") },
             ];
             return {
                 body: (
                     <StepFee
-                        charged={base === null ? null : formatAmount(base + charged, feeCurrency, true, language)}
-                        labels={{ charged: t("transaction.fee.charged"), loggedAs: t("transaction.fee.loggedAs") }}
+                        field={feeField(charged)}
+                        labels={{
+                            loggedAs: t("transaction.fee.loggedAs"),
+                            total:
+                                account == null
+                                    ? t("transaction.fee.total")
+                                    : t("transaction.fee.pays", { account: account.name }),
+                        }}
                         loggedAs={feeCategory?.name ?? t("transaction.sentence.blank.category")}
                         onLoggedAsPress={() => enterStep("feeCategory")}
                         onSelect={(id) => {
@@ -2087,6 +2127,7 @@ export function TransactionForm({
                         }}
                         options={options}
                         selectedId={feeSelectedId()}
+                        total={base === null ? null : formatAmount(base + charged, feeCurrency, true, language)}
                     >
                         {feeDraft.kind === "typed" ? (
                             <AmountNumpad

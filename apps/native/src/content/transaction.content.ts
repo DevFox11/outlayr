@@ -115,9 +115,9 @@ const transaction = {
             en: "Amount",
             es: "Monto",
         }),
-        "transaction.fee.charged": t({
-            en: "Charged",
-            es: "Cobrado",
+        "transaction.fee.comesTo": t({
+            en: "a {amount} fee",
+            es: "una comisión de {amount}",
         }),
         "transaction.fee.line": t({
             en: "{base} plus {fee}",
@@ -135,10 +135,6 @@ const transaction = {
             en: "Fee · {merchant}",
             es: "Comisión · {merchant}",
         }),
-        "transaction.fee.otherPercent": t({
-            en: "Other %",
-            es: "Otro %",
-        }),
         "transaction.fee.part": t({
             en: "{fee} in fees",
             es: "{fee} de comisión",
@@ -146,6 +142,10 @@ const transaction = {
         "transaction.fee.pays": t({
             en: "{account} pays",
             es: "{account} paga",
+        }),
+        "transaction.fee.percent": t({
+            en: "Percent",
+            es: "Porcentaje",
         }),
         "transaction.fee.title": t({
             en: "Card fee",
