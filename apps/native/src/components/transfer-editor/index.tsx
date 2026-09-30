@@ -388,7 +388,7 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
                                 >
                                     <Text className="text-label text-muted font-mono">{account.name}</Text>
                                     <Text className="text-label text-foreground font-mono">
-                                        {after === before
+                                        {draft.legs === null || after === before
                                             ? formatSignedAmount(before, account.currency, true, language)
                                             : `${formatSignedAmount(before, account.currency, true, language)} → ${formatSignedAmount(after, account.currency, true, language)}`}
                                     </Text>

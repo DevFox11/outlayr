@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 
 import type { Account } from "@/data/accounts-core";
+import type { SavedTransfer } from "@/data/transfers-core";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import TransferEditor from "./index";
@@ -47,6 +48,22 @@ jest.mock("@/i18n/context", () => {
 });
 
 const SENT = "transfers.field.sent";
+
+const SAVED: SavedTransfer = {
+    arrived: 100,
+    date: new Date(2026, 8, 1),
+    fee: 0,
+    feeSide: "source",
+    fromAccountId: "usd",
+    fromCurrency: "USD",
+    id: "transfer",
+    note: "",
+    rate: 1,
+    rateType: null,
+    sent: 100,
+    toAccountId: "usd-2",
+    toCurrency: "USD",
+};
 
 async function press(label: string): Promise<void> {
     await act(async () => {
@@ -125,5 +142,16 @@ describe("transfer editor keypad", () => {
         await press("transaction.numpad.delete");
 
         expect(slotValue(SENT)).toBe("$10.00");
+    });
+});
+
+describe("transfer editor balances", () => {
+    it("shows the current balance alone once an edit has no amount", async () => {
+        await render(<TransferEditor onDone={jest.fn()} saved={SAVED} />);
+
+        await press("1");
+        await press("transaction.numpad.delete");
+
+        expect(screen.getAllByText("$500.00")).toHaveLength(2);
     });
 });
