@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
 import { AccessibilityInfo } from "react-native";
 
 import type { Account } from "@/data/accounts-core";
-import type { SavedTransfer } from "@/data/transfers-core";
+import type { SavedTransfer, TransferInput } from "@/data/transfers-core";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import TransferEditor from "./index";
@@ -13,12 +13,16 @@ const mockAccounts = [
     { currency: "USD", id: "usd-2", initialBalance: 0, name: "Mercantil" } as Account,
 ];
 const mockNumberEntryType = jest.fn<() => number>(() => 1);
+const mockCreate = jest.fn<(db: unknown, input: TransferInput) => Promise<string>>();
 
 jest.mock("@/data/accounts", () => ({
     useAccountBalance: () => ({ total: 500 }),
     useAccounts: () => mockAccounts,
 }));
 jest.mock("@/data/transfer-rates", () => ({ useTransferRates: () => ({}) }));
+jest.mock("@/data/transfers-core", () => ({
+    transfersRepo: { create: (db: unknown, input: TransferInput) => mockCreate(db, input) },
+}));
 jest.mock("@/contexts/local-data-context", () => ({ useDatabase: () => ({}) }));
 jest.mock("@/contexts/display-settings-context", () => ({
     useSettingNumber: () => mockNumberEntryType(),
@@ -56,6 +60,7 @@ jest.mock("@/i18n/context", () => {
 });
 
 const SENT = "transfers.field.sent";
+const SEED = { amount: 100, fromAccountId: "usd", toAccountId: "usd-2" };
 
 const SAVED: SavedTransfer = {
     arrived: 100,
@@ -83,6 +88,8 @@ const slotValue = (label: string) => screen.getByLabelText(label).props.accessib
 
 beforeEach(() => {
     mockNumberEntryType.mockReturnValue(1);
+    mockCreate.mockReset();
+    mockCreate.mockResolvedValue("transfer");
 });
 
 describe("transfer editor keypad", () => {
@@ -92,9 +99,7 @@ describe("transfer editor keypad", () => {
 
     it("replaces the amount when 0 is the first key on a pre-dotted pad", async () => {
         mockNumberEntryType.mockReturnValue(1);
-        await render(
-            <TransferEditor onDone={jest.fn()} seed={{ amount: 100, fromAccountId: "usd", toAccountId: "usd-2" }} />
-        );
+        await render(<TransferEditor onDone={jest.fn()} seed={SEED} />);
 
         await press("0");
         await press("5");
@@ -104,9 +109,7 @@ describe("transfer editor keypad", () => {
     });
 
     it("ends empty when a first digit and a backspace land in one render", async () => {
-        await render(
-            <TransferEditor onDone={jest.fn()} seed={{ amount: 100, fromAccountId: "usd", toAccountId: "usd-2" }} />
-        );
+        await render(<TransferEditor onDone={jest.fn()} seed={SEED} />);
 
         const digit = screen.getByLabelText("5");
         const backspace = screen.getByLabelText("transaction.numpad.delete");
@@ -143,9 +146,7 @@ describe("transfer editor keypad", () => {
     });
 
     it("trims the last digit when backspace is the first key", async () => {
-        await render(
-            <TransferEditor onDone={jest.fn()} seed={{ amount: 100, fromAccountId: "usd", toAccountId: "usd-2" }} />
-        );
+        await render(<TransferEditor onDone={jest.fn()} seed={SEED} />);
 
         await press("transaction.numpad.delete");
 
@@ -178,9 +179,7 @@ describe("transfer editor accessibility", () => {
     });
 
     it("reads each balance line as one element", async () => {
-        await render(
-            <TransferEditor onDone={jest.fn()} seed={{ amount: 100, fromAccountId: "usd", toAccountId: "usd-2" }} />
-        );
+        await render(<TransferEditor onDone={jest.fn()} seed={SEED} />);
 
         expect(screen.getByLabelText("Zinli, $500.00, then $400.00").props.accessible).toBe(true);
         expect(screen.getByLabelText("Mercantil, $500.00, then $600.00").props.accessible).toBe(true);
@@ -193,5 +192,61 @@ describe("transfer editor accessibility", () => {
         await press("common.next");
 
         expect(announce).toHaveBeenCalledWith("Missing: transfers.field.sent");
+    });
+});
+
+describe("transfer editor footer", () => {
+    it("moves an incomplete draft to the missing step, flags it and does not save", async () => {
+        await render(<TransferEditor onDone={jest.fn()} />);
+        await press("transfers.field.date");
+        expect(screen.queryByLabelText("1")).toBeNull();
+
+        await press("common.next");
+
+        expect(screen.getByLabelText("1")).toBeTruthy();
+        const blank = within(screen.getByLabelText(SENT)).getByText("transfers.sentence.blank.amount");
+        expect(blank.props.className).toContain("text-danger");
+        expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it("saves a same-currency transfer with its fee", async () => {
+        const onDone = jest.fn();
+        await render(<TransferEditor onDone={onDone} seed={SEED} />);
+        await press("transfers.field.fee");
+        await press("5");
+        await press("0");
+        await press("0");
+
+        await press("transfers.save");
+
+        expect(mockCreate).toHaveBeenCalledWith(expect.anything(), {
+            date: expect.any(Date),
+            exchangeRate: 1,
+            exchangeRateType: null,
+            fee: { amount: 5, note: "transfers.fee.note", side: "source" },
+            fromAccountId: "usd",
+            fromAmount: 95,
+            fromCurrency: "USD",
+            note: "",
+            toAccountId: "usd-2",
+            toAmount: 95,
+            toCurrency: "USD",
+        });
+        expect(onDone).toHaveBeenCalledTimes(1);
+    });
+
+    it("shows a failed save inline and takes the footer again", async () => {
+        jest.spyOn(console, "error").mockImplementation(() => {});
+        mockCreate.mockRejectedValueOnce(new Error("disk full"));
+        const onDone = jest.fn();
+        await render(<TransferEditor onDone={onDone} seed={SEED} />);
+
+        await press("transfers.save");
+        expect(screen.getByText("transfers.save.failed")).toBeTruthy();
+        expect(onDone).not.toHaveBeenCalled();
+
+        await press("transfers.save");
+        expect(mockCreate).toHaveBeenCalledTimes(2);
+        expect(onDone).toHaveBeenCalledTimes(1);
     });
 });
