@@ -60,7 +60,7 @@ interface SentenceVerb {
     key: SentenceFactKey;
     /**
      * Resolved by the caller, and dynamic: once the fact is set this is its
-     * VALUE — "2 tags", "monthly", "3 ways" — not the noun that offered it.
+     * VALUE — the tags' names, "monthly", "3 ways" — not the noun that offered it.
      */
     label: string;
     onPress: () => void;

@@ -664,16 +664,16 @@ const transaction = {
         // it heads a row elsewhere. Lowercasing that at the call site would be right
         // in Spanish and wrong in the first locale where case carries meaning.
         "transaction.sentence.rate.custom": t({
-            en: "At {rateSource} rate, {rate}, that's {converted}.",
-            es: "A {rateSource}, {rate}, son {converted}.",
+            en: ", {converted} at {rateSource} rate.",
+            es: ", {converted} a {rateSource}.",
         }),
         "transaction.sentence.rate.missing": t({
             en: "It counts in dollars once it has {rate}.",
             es: "Suma en dólares cuando tenga {rate}.",
         }),
         "transaction.sentence.rate.provider": t({
-            en: "At the {rateSource} rate, {rate}, that's {converted}.",
-            es: "A la tasa {rateSource}, {rate}, son {converted}.",
+            en: ", {converted} at the {rateSource} rate.",
+            es: ", {converted} a la tasa {rateSource}.",
         }),
         "transaction.sentence.rateSource.custom": t({
             en: "my",
@@ -714,14 +714,6 @@ const transaction = {
         "transaction.sentence.set.split_other": t({
             en: "{count} ways",
             es: "{count} partes",
-        }),
-        "transaction.sentence.set.tag_one": t({
-            en: "1 tag",
-            es: "1 etiqueta",
-        }),
-        "transaction.sentence.set.tag_other": t({
-            en: "{count} tags",
-            es: "{count} etiquetas",
         }),
         "transaction.sentence.when.on": t({
             en: "on {date}",

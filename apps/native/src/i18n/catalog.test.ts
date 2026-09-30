@@ -97,8 +97,6 @@ describe("catalog parity", () => {
     });
 
     it.each([
-        ["transaction.sentence.set.tag", 1, "1 tag", "1 etiqueta"],
-        ["transaction.sentence.set.tag", 3, "3 tags", "3 etiquetas"],
         ["transaction.sentence.set.split", 1, "1 way", "1 parte"],
         ["transaction.sentence.set.split", 4, "4 ways", "4 partes"],
     ])("resolves %s at count %i to both forms", (key, count, en, es) => {

@@ -1,3 +1,4 @@
+import { CURRENCY_META, PICKABLE_CURRENCY_CODES } from "@outlayr/money/catalog";
 import { currencyDisplayFor, decimalsFor } from "@outlayr/money/currency";
 import { roundMoney } from "@outlayr/money/round";
 import type { Locale } from "expo-localization";
@@ -61,6 +62,16 @@ export { decimalsFor as minorUnitsFor } from "@outlayr/money/currency";
 
 export function currencySymbol(code: string): string {
     return currencyDisplayFor(code).symbol;
+}
+
+const SHARED_SYMBOLS: ReadonlySet<string> = new Set(
+    PICKABLE_CURRENCY_CODES.map((code) => CURRENCY_META[code].symbol).filter(
+        (symbol, index, symbols) => symbols.indexOf(symbol) !== index
+    )
+);
+
+export function symbolIsShared(code: string): boolean {
+    return SHARED_SYMBOLS.has(currencySymbol(code));
 }
 
 /** Exact half-even rounding to whatever precision the code actually stores. */

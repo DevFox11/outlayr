@@ -5,6 +5,7 @@ import { CATALOGS } from "@/i18n/catalog";
 import { SUPPORTED_LANGUAGES } from "@/i18n/languages";
 
 import {
+    continueSentence,
     TRANSACTION_RATE_SENTENCE_KEYS,
     TRANSACTION_RATE_SLOTS,
     TRANSACTION_SENTENCE_KEYS,
@@ -39,10 +40,11 @@ describe("transaction sentence templates", () => {
 
     for (const language of SUPPORTED_LANGUAGES) {
         for (const key of TRANSACTION_RATE_SENTENCE_KEYS) {
-            it(`states the rate, its source and the dollars in ${language} ${key}`, () => {
-                expect([...sentenceSlotNames(CATALOGS[language][key] ?? "")].sort()).toStrictEqual([
-                    ...TRANSACTION_RATE_SLOTS,
-                ]);
+            it(`continues the sentence with the dollars and the source in ${language} ${key}`, () => {
+                const clause = CATALOGS[language][key] ?? "";
+                expect([...sentenceSlotNames(clause)].sort()).toStrictEqual([...TRANSACTION_RATE_SLOTS]);
+                expect(continueSentence("Spent {amount} {when}.", clause)).toBe(`Spent {amount} {when}${clause}`);
+                expect(clause.startsWith(",") && clause.endsWith(".")).toBe(true);
             });
         }
         it(`asks for the rate alone in ${language} transaction.sentence.rate.missing`, () => {

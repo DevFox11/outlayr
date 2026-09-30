@@ -7,13 +7,14 @@ import { SentenceToggle } from "../../sentence/sentence-toggle";
 import { SentenceValue } from "../../sentence/sentence-value";
 import type { SentenceFigure } from "../../sentence/sentence-value";
 import { CurrencyCode } from "./currency-code";
+import { continueSentence } from "./slots";
 import type { TransactionRateSlot, TransactionSentenceMark, TransactionSentenceSlot } from "./slots";
 
 export interface TransactionSentenceLabels {
     account: { blank: string; field: string };
     amount: { blank: string; field: string };
     category: { blank: string; field: string };
-    currency: { code: string; field: string };
+    currency: { code: string | null; field: string };
     fee: { field: string };
     kind: { switchLabel: string; verb: string };
     merchant: { field: string; placeholder: string };
@@ -25,10 +26,9 @@ export interface TransactionSentenceLabels {
 export interface TransactionRateClause {
     converted: { amount: number; text: string } | null;
     flagged: boolean;
+    missing: boolean;
     onConvertedPress: () => void;
-    onRatePress: () => void;
     onSourcePress: () => void;
-    rate: string | null;
     shake: boolean;
     source: string;
     template: string;
@@ -107,34 +107,13 @@ export function TransactionSentence({
     rate,
     when,
 }: TransactionSentenceProps) {
-    let rateFill: ReactNode = null;
-    if (rate?.rate === null) {
-        rateFill = (
-            <SentenceBlank
-                accessibilityLabel={labels.rate.field}
-                active={activeSlot === "rate"}
-                flagged={rate.flagged}
-                label={labels.rate.blank}
-                onPress={rate.onRatePress}
-                shake={rate.shake}
-            />
-        );
-    } else if (rate !== undefined) {
-        rateFill = (
-            <SentenceValue
-                accessibilityLabel={labels.rate.field}
-                active={activeSlot === "rate"}
-                flagged={rate.flagged}
-                onPress={rate.onRatePress}
-                shake={rate.shake}
-                swapKey="rate"
-                value={rate.rate}
-            />
-        );
+    let { template } = labels;
+    if (rate !== undefined) {
+        template = rate.missing ? `${template} ${rate.template}` : continueSentence(template, rate.template);
     }
 
     return (
-        <Sentence<TransactionRateSlot | TransactionSentenceSlot>
+        <Sentence<TransactionRateSlot | TransactionSentenceSlot | "rate">
             slots={{
                 account:
                     account === null ? (
@@ -177,11 +156,13 @@ export function TransactionSentence({
                                 value={amount}
                             />
                         )}
-                        <CurrencyCode
-                            accessibilityLabel={labels.currency.field}
-                            code={labels.currency.code}
-                            onPress={onCurrencyPress}
-                        />
+                        {labels.currency.code === null ? null : (
+                            <CurrencyCode
+                                accessibilityLabel={labels.currency.field}
+                                code={labels.currency.code}
+                                onPress={onCurrencyPress}
+                            />
+                        )}
                         {fee === null ? null : (
                             <SentenceValue
                                 accessibilityLabel={labels.fee.field}
@@ -257,13 +238,25 @@ export function TransactionSentence({
                             {merchantTile}
                         </SentenceValue>
                     ),
-                rate: rateFill,
+                rate:
+                    rate === undefined ? null : (
+                        <SentenceBlank
+                            accessibilityLabel={labels.rate.field}
+                            active={activeSlot === "rateSource"}
+                            flagged={rate.flagged}
+                            label={labels.rate.blank}
+                            onPress={rate.onSourcePress}
+                            shake={rate.shake}
+                        />
+                    ),
                 rateSource:
                     rate === undefined ? null : (
                         <SentenceValue
                             accessibilityLabel={labels.rate.source}
                             active={activeSlot === "rateSource"}
+                            flagged={rate.flagged}
                             onPress={rate.onSourcePress}
+                            shake={rate.shake}
                             value={rate.source}
                         />
                     ),
@@ -276,7 +269,7 @@ export function TransactionSentence({
                     />
                 ),
             }}
-            template={rate === undefined ? labels.template : `${labels.template} ${rate.template}`}
+            template={template}
         />
     );
 }

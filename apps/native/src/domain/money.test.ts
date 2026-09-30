@@ -9,6 +9,7 @@ import {
     minorUnitsFor,
     numberLocale,
     roundToMinorUnits,
+    symbolIsShared,
 } from "./money";
 
 const ARGENTINA = { decimalSeparator: ",", digitGroupingSeparator: ".", regionCode: "AR" };
@@ -81,6 +82,13 @@ describe("amountDigits", () => {
 
     it("omits the mark entirely when there is no fraction", () => {
         expect(amountDigits(amountParts(1234, "JPY", true, "en"))).toBe("1,234");
+    });
+});
+
+describe("symbolIsShared", () => {
+    it("is true for a symbol more than one offered currency uses", () => {
+        expect(symbolIsShared("USD")).toBe(true);
+        expect(symbolIsShared("VES")).toBe(false);
     });
 });
 

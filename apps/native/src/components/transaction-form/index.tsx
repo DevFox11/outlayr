@@ -64,7 +64,14 @@ import { computeCurtainHues } from "@/domain/curtain-hues";
 import { formatSentenceDate } from "@/domain/dates";
 import { merchantKey } from "@/domain/merchant-resolver";
 import { suggestMerchants } from "@/domain/merchant-suggest";
-import { formatAmount, formatFixed, minorUnitsFor, numberLocale, roundToMinorUnits } from "@/domain/money";
+import {
+    formatAmount,
+    formatFixed,
+    minorUnitsFor,
+    numberLocale,
+    roundToMinorUnits,
+    symbolIsShared,
+} from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { rateAge } from "@/domain/rate-age";
 import type { RateAge } from "@/domain/rate-age";
@@ -87,7 +94,13 @@ import {
     transactionRateOptions,
 } from "@/domain/transaction-entry-rate";
 import type { TransactionEntryRate } from "@/domain/transaction-entry-rate";
-import { ctaKey, RATE_NAME_KEYS, RATE_SOURCE_WORD_KEYS, transactionWhenLabel } from "@/domain/transaction-form-labels";
+import {
+    ctaKey,
+    namedWithCount,
+    RATE_NAME_KEYS,
+    RATE_SOURCE_WORD_KEYS,
+    transactionWhenLabel,
+} from "@/domain/transaction-form-labels";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
 import { transactionFormErrors } from "@/domain/transaction-form-validate";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
@@ -225,7 +238,7 @@ function guidedIndex(step: StageStep): number {
 
 /**
  * The word the stage is editing, so the sentence can wash it. The currency step
- * reports the amount, whose code it is setting; each rate step marks its own word.
+ * reports the amount, whose code it is setting; both rate steps mark the source.
  */
 const STEP_SLOTS = {
     account: "account",
@@ -238,7 +251,7 @@ const STEP_SLOTS = {
     feeCategory: "fee",
     merchant: "merchant",
     rate: "rateSource",
-    rateCustom: "rate",
+    rateCustom: "rateSource",
     rateUsd: "converted",
     repeat: "when",
     when: "when",
@@ -1195,10 +1208,9 @@ export function TransactionForm({
         return {
             converted: usd === null ? null : { amount: usd, text: formatAmount(usd, "USD", true, language) },
             flagged: rateMissingAfterRefusal,
+            missing,
             onConvertedPress: openUsd,
-            onRatePress: () => (missing ? enterStep("rate") : openCustomRate(null)),
             onSourcePress: () => enterStep("rate"),
-            rate: missing ? null : `${rateFigure(rateInForce)} ${rateUnitLabel}`,
             shake: rateShake,
             source: t(RATE_SOURCE_WORD_KEYS[type]),
             template,
@@ -1243,16 +1255,10 @@ export function TransactionForm({
     /** Until the user or a suggestion touches them, the row's tags are the saved
      * ones — the form field is still the empty array it mounted with. */
     const effectiveTagIdsOf = (tagIds: readonly string[]) => (tagsSource === "initial" ? savedTagIds : tagIds);
-    const tagLabelsOf = (tagIds: readonly string[], pendingTagNames: readonly string[]) => {
-        const labels = [
-            ...allTags.filter((tag) => effectiveTagIdsOf(tagIds).includes(tag.id)).map((tag) => tag.name),
-            ...pendingTagNames,
-        ];
-        return labels.length > 0 ? labels.join(", ") : null;
-    };
-    const tagCountOf = (tagIds: readonly string[], pendingTagNames: readonly string[]) =>
-        allTags.filter((tag) => effectiveTagIdsOf(tagIds).includes(tag.id)).length + pendingTagNames.length;
-    const tagLabel = (count: number) => t("transaction.sentence.set.tag", { count });
+    const tagLabelsOf = (tagIds: readonly string[], pendingTagNames: readonly string[]) => [
+        ...allTags.filter((tag) => effectiveTagIdsOf(tagIds).includes(tag.id)).map((tag) => tag.name),
+        ...pendingTagNames,
+    ];
     const splitLabel = (count: number) => t("transaction.sentence.set.split", { count });
     const repeatChipLabel = () => {
         if (recurringType === RECURRING_TYPE.daily) {
@@ -1973,7 +1979,7 @@ export function TransactionForm({
         // number belongs here and what shape it takes, which "an amount" does not.
         amount: { blank: formatAmount(0, currency, true, language), field: t("transaction.field.amount") },
         category: { blank: t("transaction.sentence.blank.category"), field: t("transaction.field.category") },
-        currency: { code: currency, field: t("transaction.sentence.currency") },
+        currency: { code: symbolIsShared(currency) ? currency : null, field: t("transaction.sentence.currency") },
         fee: { field: t("transaction.fee.title") },
         kind: {
             switchLabel: t("transaction.sentence.kind.switch"),
@@ -2478,11 +2484,6 @@ export function TransactionForm({
                                     const feeBaseNow = feeBase(amountNumber);
                                     const feeNow = feeAmountFor(amountNumber);
                                     const tagLabels = tagLabelsOf(tagIds, pendingTagNames);
-                                    const tagCount = tagCountOf(tagIds, pendingTagNames);
-                                    const tagsLine =
-                                        tagLabels === null
-                                            ? null
-                                            : t("transaction.sentence.extra.tags", { tags: tagLabels });
                                     const splitLine =
                                         splitAllocations.length === 0
                                             ? null
@@ -2549,7 +2550,7 @@ export function TransactionForm({
                                                 }
                                                 amountFlagged={amountError}
                                                 amountShake={amountShake}
-                                                extras={[tagsLine, splitLine, noteLine].filter((line) => line !== null)}
+                                                extras={[splitLine, noteLine].filter((line) => line !== null)}
                                                 fee={feeLabel()}
                                                 labels={sentenceLabels}
                                                 merchant={merchantSeed.length === 0 ? null : merchantSeed}
@@ -2581,13 +2582,17 @@ export function TransactionForm({
                                                     },
                                                     {
                                                         accessibilityLabel:
-                                                            tagsLine ?? addLabel(t("transaction.sentence.add.tags")),
-                                                        active: tagLabels !== null,
+                                                            tagLabels.length === 0
+                                                                ? addLabel(t("transaction.sentence.add.tags"))
+                                                                : t("transaction.sentence.extra.tags", {
+                                                                      tags: tagLabels.join(", "),
+                                                                  }),
+                                                        active: tagLabels.length > 0,
                                                         key: "tags",
                                                         label:
-                                                            tagCount === 0
+                                                            tagLabels.length === 0
                                                                 ? t("transaction.sentence.add.tags")
-                                                                : tagLabel(tagCount),
+                                                                : namedWithCount(tagLabels),
                                                         onPress: () => {
                                                             Keyboard.dismiss();
                                                             tagSheetRef.current?.present();

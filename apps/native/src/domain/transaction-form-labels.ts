@@ -34,6 +34,17 @@ export const RATE_SOURCE_WORD_KEYS = {
     official: "transaction.sentence.rateSource.official",
 } as const satisfies Record<EntryRateType, TranslationKey>;
 
+const NAMED_LIMIT = 28;
+
+export function namedWithCount(names: readonly string[], limit = NAMED_LIMIT): string {
+    let shown = 1;
+    while (shown < names.length && names.slice(0, shown + 1).join(", ").length <= limit) {
+        shown += 1;
+    }
+    const stated = names.slice(0, shown).join(", ");
+    return shown === names.length ? stated : `${stated} +${names.length - shown}`;
+}
+
 export function ctaKey(mode: "create" | "edit", isSubscription: boolean): TranslationKey {
     if (mode === "edit") {
         return "transaction.cta.save";

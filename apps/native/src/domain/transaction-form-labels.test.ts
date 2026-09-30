@@ -5,7 +5,7 @@ import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";
 
 import { RECURRING_TYPE } from "./recurrence";
-import { cadenceLabel, ctaKey, leadLabel, transactionWhenLabel } from "./transaction-form-labels";
+import { cadenceLabel, ctaKey, leadLabel, namedWithCount, transactionWhenLabel } from "./transaction-form-labels";
 
 const en: TranslateFn = (key, params) => translate(key, { catalog: EN, fallback: EN, params });
 
@@ -21,6 +21,16 @@ describe("ctaKey", () => {
 
     it("is the plain add key when creating a one-off", () => {
         expect(ctaKey("create", false)).toBe("transaction.cta.add");
+    });
+});
+
+describe("namedWithCount", () => {
+    it("states every name that fits, and counts the rest", () => {
+        expect(namedWithCount(["Development", "Subscription"])).toBe("Development, Subscription");
+        expect(namedWithCount(["Development", "Subscription", "Work", "Tools"])).toBe("Development, Subscription +2");
+        expect(namedWithCount(["A name longer than the whole chip allows", "Work"])).toBe(
+            "A name longer than the whole chip allows +1"
+        );
     });
 });
 

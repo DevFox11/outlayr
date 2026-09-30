@@ -76,8 +76,8 @@ jest.mock<Partial<typeof import("@/lib/notify")>>("@/lib/notify", () => ({
 // thing under test, and keeps key-as-copy for every other one. The sentence
 // template is the form's layout — `parseSentence` reads the slot order out of
 // it — so handing back the key would render a sentence with no slots at all and
-// there would be nothing left to drive. The extras line is here for the same
-// reason its tags are asserted by name.
+// there would be nothing left to drive. The tags chip's label is here for the
+// same reason: its tags are asserted by name.
 jest.mock("@/i18n/context", () => {
     // Read out of the catalog rather than restated here: a copy of the template
     // silently stops matching the shipped one the moment a slot is added, and
@@ -300,11 +300,6 @@ const REPEAT_OFF = "transaction.schedule.stopRepeat";
 /** The verb that opens the identity picker. */
 const IDENTITY_VERB = "transaction.sentence.add.icon";
 
-/** The extras line the sentence adds for tags, as the catalog phrases it. */
-function taggedLine(names: string): string {
-    return `Tagged ${names}.`;
-}
-
 /**
  * The identity mark rides inline on the merchant slot now rather than on a hero
  * of its own, so it is read out of that slot: the nearest ancestor of the
@@ -420,12 +415,15 @@ async function openDateWheel(screen: Screen): Promise<void> {
 }
 
 /**
- * Walks to the currency list: the sentence's currency word opens the stage's
- * currency step. Nothing presents over the form, so both taps land on it.
+ * Walks to the currency list from the amount keypad's currency button, which
+ * is there whether or not the sentence shows a code beside the amount.
  */
 async function pickCurrency(screen: Screen, code: "EUR" | "VES"): Promise<void> {
     await act(async () => {
-        fireEvent.press(screen.getByLabelText("transaction.sentence.currency"));
+        fireEvent.press(screen.getByLabelText("transaction.field.amount"));
+    });
+    await act(async () => {
+        fireEvent.press(screen.getByLabelText("transaction.amount.changeCurrency"));
     });
     await act(async () => {
         fireEvent.press(screen.getByLabelText(`test.selectCurrency.${code}`));
@@ -441,9 +439,15 @@ async function openRateStep(screen: Screen): Promise<void> {
 }
 
 async function openMyRate(screen: Screen): Promise<void> {
-    await act(async () => {
-        fireEvent.press(screen.getByLabelText("transaction.rate.title"));
-    });
+    await openRateStep(screen);
+    await pickRate(screen, "transaction.rate.custom");
+}
+
+async function rateInForce(screen: Screen): Promise<string | undefined> {
+    await openRateStep(screen);
+    const chosen = screen.getAllByRole("radio").find((row) => row.props.accessibilityState.checked === true);
+    await pressFooter(screen);
+    return String(chosen?.props.accessibilityValue.text).split(", ")[0];
 }
 
 async function pickRate(screen: Screen, name: string): Promise<void> {
@@ -1286,7 +1290,7 @@ describe("transactionForm stage", () => {
         expect(screen.getByLabelText("transaction.amount.changeCurrency")).toBeTruthy();
     });
 
-    it("takes the picked currency into the sentence and closes the step", async () => {
+    it("names the currency beside the amount only while its symbol is shared", async () => {
         const db = dbHolder.current as Database;
         const screen = await render(
             <Providers>
@@ -1301,10 +1305,13 @@ describe("transactionForm stage", () => {
             fireEvent.press(screen.getByLabelText("test.selectCurrency.EUR"));
         });
 
-        expect(screen.getByLabelText("transaction.sentence.currency").props.accessibilityValue).toMatchObject({
+        expect(screen.queryByLabelText("transaction.sentence.currency")).toBeNull();
+        expect(screen.getByLabelText("transaction.field.amount").props.accessibilityValue).toMatchObject({
+            text: "€0.00",
+        });
+        expect(screen.getByLabelText("transaction.amount.changeCurrency").props.accessibilityValue).toMatchObject({
             text: "EUR",
         });
-        expect(screen.getByLabelText("transaction.amount.changeCurrency")).toBeTruthy();
     });
 
     it("names the save once nothing is missing", async () => {
@@ -1745,7 +1752,8 @@ describe("transactionForm enrichment", () => {
 
         const tree = screen.toJSON() as JsonNode;
         expect(containsText(sentenceSlot(tree, "transaction.field.category"), "Entertainment")).toBe(true);
-        expect(containsText(tree, taggedLine("Streaming, Subscription"))).toBe(true);
+        expect(screen.getByLabelText("Tagged Streaming, Subscription.")).toHaveTextContent("Streaming, Subscription");
+        expect(screen.queryByText("Tagged Streaming, Subscription.")).toBeNull();
     });
 
     it("does not let a later suggestion overwrite a category the form already carries", async () => {
@@ -1801,8 +1809,8 @@ describe("transactionForm enrichment", () => {
         const tree = screen.toJSON() as JsonNode;
         expect(containsText(sentenceSlot(tree, "transaction.field.category"), "Transport")).toBe(true);
         expect(containsText(tree, "Entertainment")).toBe(false);
-        expect(containsText(tree, taggedLine("Rideshare"))).toBe(true);
-        expect(containsText(tree, taggedLine("Streaming, Subscription"))).toBe(false);
+        expect(containsText(tree, "Rideshare")).toBe(true);
+        expect(containsText(tree, "Streaming, Subscription")).toBe(false);
     });
 
     // An edit looks its merchant up, but a saved category is the user's: the
@@ -2577,7 +2585,7 @@ describe("transactionForm pending category and tag materialization", () => {
         await changeMerchant(screen, "netflix");
 
         const tree = toJSON() as JsonNode;
-        expect(containsText(tree, taggedLine("Streaming, Subscription"))).toBe(true);
+        expect(containsText(tree, "Streaming, Subscription")).toBe(true);
 
         await pressSave(screen, "transaction.cta.add");
 
@@ -2973,11 +2981,12 @@ describe("transactionForm entry-rate confirmation", () => {
         expect(screen.getByLabelText("transaction.rate.inDollars").props.accessibilityValue).toMatchObject({
             text: "$1.80",
         });
-        expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
-            text: "55.500 transaction.rate.unit",
-        });
+        expect(screen.queryByLabelText("transaction.rate.title")).toBeNull();
 
         await openRateStep(screen);
+        expect(screen.getByRole("radio", { name: "transaction.rate.custom" }).props.accessibilityValue).toMatchObject({
+            text: expect.stringContaining("55.500 transaction.rate.unit"),
+        });
         expect(screen.getByRole("radio", { name: "transaction.rate.custom" }).props.accessibilityState).toMatchObject({
             checked: true,
         });
@@ -3088,9 +3097,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
-            text: "55.500 transaction.rate.unit",
-        });
+        await expect(rateInForce(screen)).resolves.toBe("55.500 transaction.rate.unit");
         await pickCurrency(screen, "EUR");
 
         expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
@@ -3233,9 +3240,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
-            text: "50.000 transaction.rate.unit",
-        });
+        await expect(rateInForce(screen)).resolves.toBe("50.000 transaction.rate.unit");
         expect(screen.getByLabelText("transaction.rate.inDollars").props.accessibilityValue).toMatchObject({
             text: "$2.00",
         });
@@ -3293,9 +3298,7 @@ describe("transactionForm entry-rate confirmation", () => {
         await openRateStep(screen);
         await pickRate(screen, "transaction.rate.custom");
         await pressKeys(screen, ["1", ".", "1", "4", "8", "5"]);
-        expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
-            text: "1.1485 transaction.rate.unit",
-        });
+        expect(screen.getByText("1.1485")).toBeTruthy();
         await pressFooter(screen);
         await pressSave(screen, "transaction.cta.add");
 
@@ -3321,9 +3324,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
-            text: "1.1479 transaction.rate.unit",
-        });
+        await expect(rateInForce(screen)).resolves.toBe("1.1479 transaction.rate.unit");
         await openMyRate(screen);
         await pressKeys(screen, ["5"]);
         await pressFooter(screen);
@@ -3852,10 +3853,8 @@ describe("transactionForm entry-rate confirmation", () => {
             text: "transaction.sentence.rateSource.official",
         });
         await pressKeys(screen, ["2", ".", "1"]);
-        expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
-            text: "40.000 transaction.rate.unit",
-        });
         await pressFooter(screen);
+        await expect(rateInForce(screen)).resolves.toBe("40.000 transaction.rate.unit");
         await pressSave(screen, "transaction.cta.add");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({

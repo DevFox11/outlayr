@@ -26,11 +26,11 @@ const words = (node: JsonNode | string | null): string[] => {
     return (node.children ?? []).flatMap(words);
 };
 
-const labelsFor = (template: string): TransactionSentenceLabels => ({
+const labelsFor = (template: string, code: string | null = "USD"): TransactionSentenceLabels => ({
     account: { blank: "an account", field: "Account" },
     amount: { blank: "an amount", field: "Amount" },
     category: { blank: "a category", field: "Category" },
-    currency: { code: "USD", field: "Change currency" },
+    currency: { code, field: "Change currency" },
     fee: { field: "Card fee" },
     kind: { switchLabel: "Expense or income", verb: "Spent" },
     merchant: { field: "Name", placeholder: "a merchant" },
@@ -191,19 +191,20 @@ describe("transactionSentence", () => {
         expect(screen.getByLabelText("Name").props.accessibilityValue).toMatchObject({ text: "Netflix" });
     });
 
-    it("appends the rate clause with its source, rate and dollar value as facts to tap", async () => {
-        const onRatePress = jest.fn();
+    it("continues the sentence with the dollars and the source, without the code or the rate figure", async () => {
+        const onSourcePress = jest.fn();
+        const onConvertedPress = jest.fn();
         const screen = await render(
             <TransactionSentence
                 account="Banesco"
-                activeSlot="rate"
+                activeSlot="rateSource"
                 amount="Bs.15,000.00"
                 category="Health"
                 categoryFlagged={false}
                 categoryPending={false}
                 categoryShake={false}
                 fee={null}
-                labels={labelsFor(EN)}
+                labels={labelsFor(EN, null)}
                 merchant="Farmatodo"
                 onAccountPress={jest.fn()}
                 onAmountPress={jest.fn()}
@@ -216,25 +217,33 @@ describe("transactionSentence", () => {
                 rate={{
                     converted: { amount: 17.68, text: "$17.68" },
                     flagged: false,
-                    onConvertedPress: jest.fn(),
-                    onRatePress,
-                    onSourcePress: jest.fn(),
-                    rate: "848.55 Bs. per $",
+                    missing: false,
+                    onConvertedPress,
+                    onSourcePress,
                     shake: false,
                     source: "official",
-                    template: "At the {rateSource} rate, {rate}, that's {converted}.",
+                    template: ", {converted} at the {rateSource} rate.",
                 }}
                 when="today"
             />
         );
 
-        expect(screen.getByLabelText("Rate source").props.accessibilityValue).toMatchObject({ text: "official" });
-        expect(screen.getByLabelText("In dollars").props.accessibilityValue).toMatchObject({ text: "$17.68" });
-        await fireEvent.press(screen.getByLabelText("Rate"));
-        expect(onRatePress).toHaveBeenCalledTimes(1);
+        const closing = ["today", ",", "$17.68", "at", "the", "official", "rate."];
+        expect(
+            words(screen.toJSON() as JsonNode)
+                .slice(8)
+                .filter((word) => closing.includes(word))
+        ).toStrictEqual(closing);
+        expect(screen.queryByLabelText("Change currency")).toBeNull();
+        expect(screen.queryByLabelText("Rate")).toBeNull();
+        await fireEvent.press(screen.getByLabelText("Rate source"));
+        await fireEvent.press(screen.getByLabelText("In dollars"));
+        expect(onSourcePress).toHaveBeenCalledTimes(1);
+        expect(onConvertedPress).toHaveBeenCalledTimes(1);
     });
 
     it("asks for a rate instead of stating dollars it does not have", async () => {
+        const onSourcePress = jest.fn();
         const screen = await render(
             <TransactionSentence
                 account="Banesco"
@@ -245,7 +254,7 @@ describe("transactionSentence", () => {
                 categoryPending={false}
                 categoryShake={false}
                 fee={null}
-                labels={labelsFor(EN)}
+                labels={labelsFor(EN, null)}
                 merchant="Farmatodo"
                 onAccountPress={jest.fn()}
                 onAmountPress={jest.fn()}
@@ -258,10 +267,9 @@ describe("transactionSentence", () => {
                 rate={{
                     converted: null,
                     flagged: true,
+                    missing: true,
                     onConvertedPress: jest.fn(),
-                    onRatePress: jest.fn(),
-                    onSourcePress: jest.fn(),
-                    rate: null,
+                    onSourcePress,
                     shake: false,
                     source: "my",
                     template: "It counts in dollars once it has {rate}.",
@@ -272,5 +280,7 @@ describe("transactionSentence", () => {
 
         expect(screen.getByLabelText("Rate").props.accessibilityValue).toMatchObject({ text: "a rate" });
         expect(screen.queryByLabelText("In dollars")).toBeNull();
+        await fireEvent.press(screen.getByLabelText("Rate"));
+        expect(onSourcePress).toHaveBeenCalledTimes(1);
     });
 });

@@ -8,7 +8,7 @@ export const TRANSACTION_SENTENCE_SLOTS = ["account", "amount", "category", "kin
 
 export type TransactionSentenceSlot = (typeof TRANSACTION_SENTENCE_SLOTS)[number];
 
-export const TRANSACTION_RATE_SLOTS = ["converted", "rate", "rateSource"] as const;
+export const TRANSACTION_RATE_SLOTS = ["converted", "rateSource"] as const;
 
 export type TransactionRateSlot = (typeof TRANSACTION_RATE_SLOTS)[number];
 
@@ -20,3 +20,9 @@ export const TRANSACTION_RATE_SENTENCE_KEYS = [
     "transaction.sentence.rate.custom",
     "transaction.sentence.rate.provider",
 ] as const;
+
+const CLOSING_STOP = /\.\s*$/;
+
+export function continueSentence(sentence: string, clause: string): string {
+    return `${sentence.replace(CLOSING_STOP, "")}${clause}`;
+}
