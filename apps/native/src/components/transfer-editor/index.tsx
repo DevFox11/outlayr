@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
-import { Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
+import { AccessibilityInfo, Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
 
 import { InlineFailure } from "@/components/form/inline-failure";
 import { Text } from "@/components/text";
@@ -27,7 +27,7 @@ import { freshEntries } from "@/lib/fresh-entries";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
-import { blockPrompt, formatRate, gapPrompt } from "./prompts";
+import { blockMessage, blockPrompt, formatRate, gapPrompt } from "./prompts";
 import { TransferSentence } from "./transfer-sentence";
 import type { TransferSentenceSlot } from "./transfer-sentence";
 import { useTransferDraft } from "./use-transfer-draft";
@@ -52,6 +52,7 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
     const draft = useTransferDraft(db, seed, saved);
     const initialNote = saved?.note ?? seed?.note ?? "";
     const noteRef = useRef(initialNote);
+    const [noteFilled, setNoteFilled] = useState(initialNote !== "");
     const savingRef = useRef(false);
     const [saving, setSaving] = useState(false);
     const [saveFailure, setSaveFailure] = useState<string | null>(null);
@@ -159,6 +160,12 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
         const next = missing() ?? "amount";
         haptics("error");
         setFlagged(next === "date" ? "when" : next);
+        const field = next === "from" || next === "to" ? next : "sent";
+        AccessibilityInfo.announceForAccessibility(
+            next === "rate" || next === "fee"
+                ? blockMessage(draft, t, language)
+                : t("transfers.a11y.missing", { field: t(`transfers.field.${field}`) })
+        );
         enter(next);
     };
 
@@ -380,30 +387,47 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
                     ) : null}
 
                     <View className="border-separator border-t">
-                        {ledger.map(({ account, after, before }) =>
-                            account ? (
+                        {ledger.map(({ account, after, before }) => {
+                            if (account === null) {
+                                return null;
+                            }
+                            const balance = formatSignedAmount(before, account.currency, true, language);
+                            const next =
+                                draft.legs === null || after === before
+                                    ? null
+                                    : formatSignedAmount(after, account.currency, true, language);
+                            return (
                                 <View
+                                    accessibilityLabel={
+                                        next === null
+                                            ? t("transfers.a11y.balance", { account: account.name, balance })
+                                            : t("transfers.a11y.balanceChange", {
+                                                  account: account.name,
+                                                  after: next,
+                                                  before: balance,
+                                              })
+                                    }
+                                    accessible
                                     className="border-separator flex-row justify-between gap-3 border-b py-2.5"
                                     key={account.id}
                                 >
                                     <Text className="text-label text-muted font-mono">{account.name}</Text>
                                     <Text className="text-label text-foreground font-mono">
-                                        {draft.legs === null || after === before
-                                            ? formatSignedAmount(before, account.currency, true, language)
-                                            : `${formatSignedAmount(before, account.currency, true, language)} → ${formatSignedAmount(after, account.currency, true, language)}`}
+                                        {next === null ? balance : `${balance} → ${next}`}
                                     </Text>
                                 </View>
-                            ) : null
-                        )}
+                            );
+                        })}
                     </View>
 
                     <TextInput
-                        accessibilityLabel={t("transfers.field.note")}
+                        accessibilityLabel={noteFilled ? t("transfers.field.note") : undefined}
                         className="text-body text-foreground min-h-12"
                         defaultValue={initialNote}
                         multiline
                         onChangeText={(next) => {
                             noteRef.current = next;
+                            setNoteFilled(next !== "");
                         }}
                         placeholder={t("transfers.field.note")}
                         placeholderTextColor={colors.muted}

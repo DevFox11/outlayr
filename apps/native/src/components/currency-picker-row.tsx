@@ -235,6 +235,7 @@ export function CurrencyRow({
     const t = useTranslation();
     const swipeRef = useRef<SwipeableMethods>(null);
     const armedFullSwipe = useRef(false);
+    const { name, symbol } = CURRENCY_META[code];
 
     const refuses = !favourite && full;
     const fullLabel = t("settings.currency.favouritesFull", {
@@ -335,6 +336,7 @@ export function CurrencyRow({
                 title={refuses ? t("settings.currency.favouritesFullBody") : undefined}
             >
                 <Pressable
+                    accessibilityLabel={[...new Set([symbol, code, name])].join(", ")}
                     accessibilityRole="button"
                     accessibilityState={{ selected }}
                     className={cn(ROW_SURFACE, last ? undefined : ROW_RULE, "active:opacity-60")}

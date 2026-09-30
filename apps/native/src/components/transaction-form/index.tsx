@@ -10,6 +10,7 @@ import { PortalHost, PortalProvider } from "panelui-native";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+    AccessibilityInfo,
     Alert,
     Keyboard,
     KeyboardAvoidingView,
@@ -846,10 +847,10 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 flagMissingAmount();
             }
             if (fields.category !== undefined) {
-                flagMissingCategory();
+                flagMissingCategory(fields.amount === undefined);
             }
             if (fields.exchangeRate !== undefined) {
-                flagMissingRate();
+                flagMissingRate(fields.amount === undefined && fields.category === undefined);
             }
             // Marking the sentence alone leaves the answer further away than the
             // question, and the stage is where every other fact is answered.
@@ -1815,8 +1816,11 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         }
     };
 
-    const flagMissingCategory = () => {
+    const flagMissingCategory = (announce = true) => {
         haptics("error");
+        if (announce) {
+            AccessibilityInfo.announceForAccessibility(t("transaction.category.required"));
+        }
         setCategoryError(true);
         setCategoryShake(true);
         shakeTimer.current = setTimeout(() => setCategoryShake(false), 500);
@@ -1831,13 +1835,17 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
      */
     const flagMissingAmount = () => {
         haptics("error");
+        AccessibilityInfo.announceForAccessibility(t("transaction.amount.required"));
         setAmountError(true);
         setAmountShake(true);
         amountShakeTimer.current = setTimeout(() => setAmountShake(false), 500);
     };
 
-    const flagMissingRate = () => {
+    const flagMissingRate = (announce = true) => {
         haptics("error");
+        if (announce) {
+            AccessibilityInfo.announceForAccessibility(t("transaction.rate.required"));
+        }
         setRefusedCurrency(currency);
         setRateShake(true);
         rateShakeTimer.current = setTimeout(() => setRateShake(false), 500);
@@ -2482,6 +2490,23 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                     const feeNow = feeAmountFor(amountNumber);
                                     const tagLabels = tagLabelsOf(tagIds, pendingTagNames);
                                     const tagCount = tagCountOf(tagIds, pendingTagNames);
+                                    const tagsLine =
+                                        tagLabels === null
+                                            ? null
+                                            : t("transaction.sentence.extra.tags", { tags: tagLabels });
+                                    const splitLine =
+                                        splitAllocations.length === 0
+                                            ? null
+                                            : t("transaction.sentence.extra.split", {
+                                                  parts: t("transaction.split.count", {
+                                                      count: splitAllocations.length,
+                                                  }),
+                                              });
+                                    const noteLine =
+                                        noteSummary.length === 0
+                                            ? null
+                                            : t("transaction.sentence.extra.note", { note: noteSummary });
+                                    const addLabel = (fact: string) => t("transaction.sentence.add.label", { fact });
                                     return (
                                         <RNHostView matchContents>
                                             <TransactionSentenceBody
@@ -2535,21 +2560,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                 }
                                                 amountFlagged={amountError}
                                                 amountShake={amountShake}
-                                                extras={[
-                                                    tagLabels === null
-                                                        ? null
-                                                        : t("transaction.sentence.extra.tags", { tags: tagLabels }),
-                                                    splitAllocations.length === 0
-                                                        ? null
-                                                        : t("transaction.sentence.extra.split", {
-                                                              parts: t("transaction.split.count", {
-                                                                  count: splitAllocations.length,
-                                                              }),
-                                                          }),
-                                                    noteSummary.length === 0
-                                                        ? null
-                                                        : t("transaction.sentence.extra.note", { note: noteSummary }),
-                                                ].filter((line) => line !== null)}
+                                                extras={[tagsLine, splitLine, noteLine].filter((line) => line !== null)}
                                                 fee={feeLabel()}
                                                 labels={sentenceLabels}
                                                 merchant={merchantSeed.length === 0 ? null : merchantSeed}
@@ -2567,6 +2578,9 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                 onWhenPress={() => enterStep("when")}
                                                 verbs={[
                                                     {
+                                                        accessibilityLabel: hasIdentityMark
+                                                            ? t("transaction.sentence.set.icon")
+                                                            : addLabel(t("transaction.sentence.add.icon")),
                                                         active: hasIdentityMark,
                                                         key: "icon",
                                                         label: t("transaction.sentence.add.icon"),
@@ -2577,6 +2591,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                         ),
                                                     },
                                                     {
+                                                        accessibilityLabel:
+                                                            tagsLine ?? addLabel(t("transaction.sentence.add.tags")),
                                                         active: tagLabels !== null,
                                                         key: "tags",
                                                         label:
@@ -2589,6 +2605,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                         },
                                                     },
                                                     {
+                                                        accessibilityLabel: splitLine ?? undefined,
                                                         active: splitAllocations.length > 0,
                                                         disabled: amountNumber <= 0,
                                                         key: "split",
@@ -2606,6 +2623,15 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                         },
                                                     },
                                                     {
+                                                        accessibilityLabel: isSubscription
+                                                            ? t("transaction.schedule.every", {
+                                                                  interval: intervalPhrase(
+                                                                      t,
+                                                                      recurringType,
+                                                                      coefficient
+                                                                  ),
+                                                              })
+                                                            : undefined,
                                                         active: isSubscription,
                                                         key: "repeat",
                                                         label: isSubscription
@@ -2619,6 +2645,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                         removeAccessibilityLabel: t("transaction.schedule.stopRepeat"),
                                                     },
                                                     {
+                                                        accessibilityLabel:
+                                                            noteLine ?? addLabel(t("transaction.sentence.add.note")),
                                                         active: noteOpen || noteSummary.length > 0,
                                                         key: "note",
                                                         label: t("transaction.sentence.add.note"),
@@ -2627,6 +2655,9 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                                                     ...(feeable && !feeShown()
                                                         ? [
                                                               {
+                                                                  accessibilityLabel: addLabel(
+                                                                      t("transaction.sentence.add.fee")
+                                                                  ),
                                                                   active: false,
                                                                   key: "fee" as const,
                                                                   label: t("transaction.sentence.add.fee"),

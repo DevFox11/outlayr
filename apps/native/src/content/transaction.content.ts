@@ -23,6 +23,10 @@ const transaction = {
             en: "Change currency",
             es: "Cambiar moneda",
         }),
+        "transaction.amount.required": t({
+            en: "Type an amount first",
+            es: "Primero escribe un monto",
+        }),
         "transaction.cadence.daily": t({
             en: "Daily",
             es: "Diario",
@@ -78,6 +82,10 @@ const transaction = {
         "transaction.category.recent": t({
             en: "Recent",
             es: "Recientes",
+        }),
+        "transaction.category.required": t({
+            en: "Pick a category first",
+            es: "Primero elige una categoría",
         }),
         "transaction.category.search": t({
             en: "Search categories",
@@ -358,6 +366,10 @@ const transaction = {
             en: "New",
             es: "Nueva",
         }),
+        "transaction.numpad.clear": t({
+            en: "Clear all",
+            es: "Borrar todo",
+        }),
         "transaction.numpad.delete": t({
             en: "Delete",
             es: "Borrar",
@@ -544,6 +556,10 @@ const transaction = {
             en: "icon",
             es: "ícono",
         }),
+        "transaction.sentence.add.label": t({
+            en: "Add {fact}",
+            es: "Agregar {fact}",
+        }),
         "transaction.sentence.add.note": t({
             en: "note",
             es: "nota",
@@ -662,6 +678,10 @@ const transaction = {
         "transaction.sentence.rateSource.official": t({
             en: "official",
             es: "oficial",
+        }),
+        "transaction.sentence.set.icon": t({
+            en: "Change icon",
+            es: "Cambiar ícono",
         }),
         "transaction.sentence.set.repeatDaily": t({
             en: "daily",

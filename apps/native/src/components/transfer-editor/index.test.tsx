@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { AccessibilityInfo } from "react-native";
 
 import type { Account } from "@/data/accounts-core";
 import type { SavedTransfer } from "@/data/transfers-core";
@@ -43,7 +44,14 @@ jest.mock("@/i18n/context", () => {
     const catalog = require("@/i18n/catalog") as typeof import("@/i18n/catalog");
     return {
         useLanguage: () => ({ language: "en" }),
-        useTranslation: () => (key: string) => (key.startsWith("transfers.sentence.") ? catalog.EN[key] : key),
+        useTranslation: () => (key: string, params?: Record<string, unknown>) => {
+            const template = /^transfers\.(a11y|sentence)\.(?!blank)/.test(key) ? catalog.EN[key] : undefined;
+            return template === undefined
+                ? key
+                : template.replaceAll(/\{(\w+)\}/g, (match, name: string) =>
+                      params && name in params ? String(params[name]) : match
+                  );
+        },
     };
 });
 
@@ -153,5 +161,37 @@ describe("transfer editor balances", () => {
         await press("transaction.numpad.delete");
 
         expect(screen.getAllByText("$500.00")).toHaveLength(2);
+    });
+});
+
+describe("transfer editor accessibility", () => {
+    it("names the note once, by its placeholder while empty and by its label after", async () => {
+        await render(<TransferEditor onDone={jest.fn()} />);
+        const note = () => screen.getByPlaceholderText("transfers.field.note");
+        expect(note().props.accessibilityLabel).toBeUndefined();
+
+        await act(async () => {
+            fireEvent.changeText(note(), "rent");
+        });
+
+        expect(note().props.accessibilityLabel).toBe("transfers.field.note");
+    });
+
+    it("reads each balance line as one element", async () => {
+        await render(
+            <TransferEditor onDone={jest.fn()} seed={{ amount: 100, fromAccountId: "usd", toAccountId: "usd-2" }} />
+        );
+
+        expect(screen.getByLabelText("Zinli, $500.00, then $400.00").props.accessible).toBe(true);
+        expect(screen.getByLabelText("Mercantil, $500.00, then $600.00").props.accessible).toBe(true);
+    });
+
+    it("announces the field a refused save is missing", async () => {
+        const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
+        await render(<TransferEditor onDone={jest.fn()} />);
+
+        await press("common.next");
+
+        expect(announce).toHaveBeenCalledWith("Missing: transfers.field.sent");
     });
 });

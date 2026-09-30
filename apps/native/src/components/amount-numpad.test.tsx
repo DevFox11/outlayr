@@ -136,3 +136,20 @@ describe("amountNumpad keystroke ordering", () => {
         expect(entry()).toBe("12");
     });
 });
+
+describe("amountNumpad clear", () => {
+    it("offers clearing the entry as an accessibility action on the delete key", async () => {
+        mockNumberEntryType.mockReturnValue(2);
+        await render(<Harness />);
+        await press("1");
+        await press("2");
+
+        const key = screen.getByLabelText("transaction.numpad.delete");
+        expect(key.props.accessibilityActions).toStrictEqual([{ label: "transaction.numpad.clear", name: "clear" }]);
+        await act(async () => {
+            fireEvent(key, "accessibilityAction", { nativeEvent: { actionName: "clear" } });
+        });
+
+        expect(entry()).toBe("");
+    });
+});

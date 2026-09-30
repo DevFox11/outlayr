@@ -52,6 +52,7 @@ const ON_TINT = "#ffffff";
 const CHIP_ICON = 15;
 
 interface SentenceVerb {
+    accessibilityLabel?: string;
     /** Already set, so the chip states the value and reads as a way back to it. */
     active: boolean;
     /** A fact that cannot be set yet — the split has nothing to divide without an amount. */
@@ -213,6 +214,7 @@ export function TransactionSentenceBody({
             <Animated.View className="mt-7 flex-row flex-wrap gap-2" layout={LinearTransition.duration(240)}>
                 {verbs.map((verb) => (
                     <Chip
+                        accessibilityLabel={verb.accessibilityLabel}
                         className={cn(
                             "h-[34px] gap-[7px]",
                             verb.active ? "border-tint bg-tint" : "border-separator border-dashed",

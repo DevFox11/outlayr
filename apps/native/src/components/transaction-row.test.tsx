@@ -2,6 +2,7 @@ import { describe, expect, it, jest } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 
 import { testDisplaySettingsValue as mockTestDisplaySettingsValue } from "@/contexts/test-settings";
+import { buildRateTable } from "@/domain/valuation";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { TransactionRow } from "./transaction-row";
@@ -59,5 +60,19 @@ describe("transactionRow", () => {
 
         expect(getByText("log.row.rateNeeded")).toBeTruthy();
         expect(getByLabelText("log.row.rateNeededAccessibility")).toBeTruthy();
+    });
+
+    it("reads the unplaced badge through a row that has no label of its own", async () => {
+        const { getByLabelText, getByRole } = await render(
+            <TransactionRow
+                currency="EUR"
+                onPress={() => {}}
+                rates={buildRateTable([])}
+                transaction={{ ...PENDING_CUSTOM, currency: null, exchangeRateType: null } as never}
+            />
+        );
+
+        expect(getByLabelText("log.row.unplaced")).toBeTruthy();
+        expect(getByRole("button").props.accessibilityLabel).toBeUndefined();
     });
 });

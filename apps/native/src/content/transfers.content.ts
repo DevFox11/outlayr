@@ -3,6 +3,18 @@ import type { Dictionary } from "intlayer";
 
 const transfers = {
     content: {
+        "transfers.a11y.balance": t({
+            en: "{account}, {balance}",
+            es: "{account}, {balance}",
+        }),
+        "transfers.a11y.balanceChange": t({
+            en: "{account}, {before}, then {after}",
+            es: "{account}, {before}, luego {after}",
+        }),
+        "transfers.a11y.missing": t({
+            en: "Missing: {field}",
+            es: "Falta: {field}",
+        }),
         "transfers.a11y.new": t({
             en: "New transfer",
             es: "Nueva transferencia",

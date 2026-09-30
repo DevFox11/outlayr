@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, waitFor, within } from "@testing-library/react-native";
 import { eq } from "drizzle-orm";
-import { Alert } from "react-native";
+import { AccessibilityInfo, Alert } from "react-native";
 
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { IdentityDraftProvider, useIdentityFlyUp } from "@/contexts/identity-draft-context";
@@ -73,6 +73,7 @@ jest.mock("@/i18n/context", () => {
     const TRANSLATED: Record<string, string> = {
         "transaction.rate.asOf": catalog.EN["transaction.rate.asOf"] ?? "",
         "transaction.rate.asOfTime": catalog.EN["transaction.rate.asOfTime"] ?? "",
+        "transaction.sentence.add.label": catalog.EN["transaction.sentence.add.label"] ?? "",
         "transaction.sentence.expense": catalog.EN["transaction.sentence.expense"] ?? "",
         "transaction.sentence.extra.tags": catalog.EN["transaction.sentence.extra.tags"] ?? "",
         "transaction.sentence.income": catalog.EN["transaction.sentence.income"] ?? "",
@@ -867,7 +868,7 @@ describe("transactionForm", () => {
         // to keep reading as set — otherwise closing the editor looks like it
         // discarded what was typed.
         expect(
-            screen.getByRole("button", { name: "transaction.sentence.add.note" }).props.accessibilityState
+            screen.getByRole("button", { name: "transaction.sentence.extra.note" }).props.accessibilityState
         ).toMatchObject({ selected: true });
     });
 
@@ -970,6 +971,41 @@ describe("transactionForm", () => {
                 </Providers>
             );
         });
+    });
+
+    it("announces the fact a rejected save is missing", async () => {
+        const db = dbHolder.current as Database;
+        const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility").mockImplementation(() => {});
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} seed={{ amount: 25 }} />
+            </Providers>
+        );
+
+        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
+        await act(async () => {
+            saveButton?.props.onButtonPress();
+        });
+
+        expect(announce).toHaveBeenCalledWith("transaction.category.required");
+        announce.mockRestore();
+    });
+
+    it("names each optional chip's action or value without changing its text", async () => {
+        const db = dbHolder.current as Database;
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+
+        expect(screen.getByLabelText("Add transaction.sentence.add.tags")).toHaveTextContent(
+            "transaction.sentence.add.tags"
+        );
+
+        await repeatMonthly(screen);
+
+        expect(screen.getByLabelText("transaction.schedule.every")).toHaveTextContent(REPEAT_VERB_SET);
     });
 
     it("asks for notifications only once the entry repeats", async () => {

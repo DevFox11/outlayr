@@ -3,6 +3,7 @@ import { SymbolView } from "expo-symbols";
 import { NumberFlow } from "number-flow-react-native";
 import { useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import type { AccessibilityActionEvent } from "react-native";
 
 import { useSettingNumber } from "@/contexts/display-settings-context";
 import { currencySymbol, numberLocale } from "@/domain/money";
@@ -19,6 +20,8 @@ const GLASS = isLiquidGlassAvailable();
 /** `GlassContainer` is third-party, so it takes a style rather than a class —
     the same reason `GlassView` is never wrapped by uniwind (see `styled.ts`). */
 const GRID_GAP = { gap: 8 } as const;
+
+const CLEAR_ACTION = "clear";
 
 const ROWS: NumpadTileKey[][] = [
     ["1", "2", "3"],
@@ -162,9 +165,21 @@ function NumpadKeyTile({
     }
     return (
         <Pressable
+            accessibilityActions={
+                onLongPress ? [{ label: t("transaction.numpad.clear"), name: CLEAR_ACTION }] : undefined
+            }
             accessibilityLabel={label === "back" ? t("transaction.numpad.delete") : glyph}
             accessibilityRole="button"
             className="h-12 flex-1 items-center justify-center overflow-hidden rounded-xl active:scale-[0.96] active:opacity-65"
+            onAccessibilityAction={
+                onLongPress
+                    ? (event: AccessibilityActionEvent) => {
+                          if (event.nativeEvent.actionName === CLEAR_ACTION) {
+                              onLongPress();
+                          }
+                      }
+                    : undefined
+            }
             onLongPress={onLongPress}
             onPress={onPress}
         >
