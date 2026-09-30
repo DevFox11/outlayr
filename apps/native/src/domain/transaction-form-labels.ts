@@ -21,18 +21,32 @@ export function cadenceLabel(t: TranslateFn, type: number): string {
     return t(CADENCE_LABEL_KEY.get(type) ?? "transaction.cadence.monthly");
 }
 
-/** Names the policy a stated conversion was produced by. */
-export const RATE_NAME_KEYS = {
+const BCV_CURRENCY = "VES";
+
+export function quotedByBcv(...currencies: readonly string[]): boolean {
+    return currencies.includes(BCV_CURRENCY);
+}
+
+const RATE_NAME_KEYS = {
     custom: "transaction.rate.custom",
     eur_reference: "transaction.rate.eur_reference",
     official: "transaction.rate.official",
 } as const satisfies Record<EntryRateType, TranslationKey>;
 
-export const RATE_SOURCE_WORD_KEYS = {
+const RATE_SOURCE_WORD_KEYS = {
     custom: "transaction.sentence.rateSource.custom",
     eur_reference: "transaction.sentence.rateSource.eur_reference",
     official: "transaction.sentence.rateSource.official",
 } as const satisfies Record<EntryRateType, TranslationKey>;
+
+/** Names the policy a stated conversion was produced by. */
+export function rateNameKey(type: EntryRateType, bcv: boolean): TranslationKey {
+    return bcv && type === "official" ? "transaction.rate.officialBcv" : RATE_NAME_KEYS[type];
+}
+
+export function rateSourceWordKey(type: EntryRateType, bcv: boolean): TranslationKey {
+    return bcv && type === "official" ? "transaction.sentence.rateSource.officialBcv" : RATE_SOURCE_WORD_KEYS[type];
+}
 
 const NAMED_LIMIT = 28;
 

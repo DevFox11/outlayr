@@ -5,7 +5,16 @@ import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";
 
 import { RECURRING_TYPE } from "./recurrence";
-import { cadenceLabel, ctaKey, leadLabel, namedWithCount, transactionWhenLabel } from "./transaction-form-labels";
+import {
+    cadenceLabel,
+    ctaKey,
+    leadLabel,
+    namedWithCount,
+    quotedByBcv,
+    rateNameKey,
+    rateSourceWordKey,
+    transactionWhenLabel,
+} from "./transaction-form-labels";
 
 const en: TranslateFn = (key, params) => translate(key, { catalog: EN, fallback: EN, params });
 
@@ -21,6 +30,24 @@ describe("ctaKey", () => {
 
     it("is the plain add key when creating a one-off", () => {
         expect(ctaKey("create", false)).toBe("transaction.cta.add");
+    });
+});
+
+describe("rate names", () => {
+    it("names the official rate after the BCV wherever a bolívar is priced", () => {
+        expect(en(rateNameKey("official", quotedByBcv("VES")))).toBe("USD (BCV)");
+        expect(en(rateNameKey("official", quotedByBcv("USD", "VES")))).toBe("USD (BCV)");
+        expect(en(rateSourceWordKey("official", quotedByBcv("VES")))).toBe("USD (BCV)");
+    });
+
+    it("keeps the official rate's name for every other currency", () => {
+        expect(en(rateNameKey("official", quotedByBcv("EUR")))).toBe("Official");
+        expect(en(rateSourceWordKey("official", quotedByBcv("USD", "COP")))).toBe("official");
+    });
+
+    it("leaves the other sources' names alone", () => {
+        expect(en(rateNameKey("eur_reference", true))).toBe("EUR (BCV)");
+        expect(en(rateNameKey("custom", true))).toBe("My rate");
     });
 });
 

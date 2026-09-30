@@ -97,8 +97,9 @@ import type { TransactionEntryRate } from "@/domain/transaction-entry-rate";
 import {
     ctaKey,
     namedWithCount,
-    RATE_NAME_KEYS,
-    RATE_SOURCE_WORD_KEYS,
+    quotedByBcv,
+    rateNameKey,
+    rateSourceWordKey,
     transactionWhenLabel,
 } from "@/domain/transaction-form-labels";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
@@ -944,16 +945,20 @@ export function TransactionForm({
         }
         const percent = rateDeltaPercent(currency, rate, official);
         const shown = `${formatFixed(Math.abs(percent), 1, language)}%`;
-        let line = t("transaction.rate.deltaSame");
+        const source = t(rateSourceWordKey("official", quotedByBcv(currency)));
+        let line = t("transaction.rate.deltaSame", { source });
         if (Math.abs(percent) >= RATE_DELTA_SAME) {
-            line = t(percent > 0 ? "transaction.rate.deltaAbove" : "transaction.rate.deltaBelow", { percent: shown });
+            line = t(percent > 0 ? "transaction.rate.deltaAbove" : "transaction.rate.deltaBelow", {
+                percent: shown,
+                source,
+            });
         }
         const difference = amount / rate - amount / official;
         if (amount <= 0 || Math.abs(difference) < RATE_DELTA_MONEY_FLOOR) {
             return line;
         }
         const money = formatAmount(Math.abs(difference), "USD", true, language);
-        return `${line} · ${t(difference > 0 ? "transaction.rate.deltaMore" : "transaction.rate.deltaLess", { amount: money })}`;
+        return `${line} · ${t(difference > 0 ? "transaction.rate.deltaMore" : "transaction.rate.deltaLess", { amount: money, source })}`;
     };
 
     const feeable = !income && initial?.transferId == null && initial?.feeForId == null;
@@ -1156,7 +1161,7 @@ export function TransactionForm({
     };
     const rateOptions = (): StepRateOption[] =>
         transactionRateOptions(currency).map((type) => {
-            const shared = { name: t(RATE_NAME_KEYS[type]), type, unit: rateUnitLabel };
+            const shared = { name: t(rateNameKey(type, quotedByBcv(currency))), type, unit: rateUnitLabel };
             if (type === "custom") {
                 const prior = rateSuggestions.priorCustom;
                 const typed = rateSelection.exchangeRateType === "custom" ? rateInForce : null;
@@ -1204,7 +1209,7 @@ export function TransactionForm({
                 : [
                       {
                           figure: rateFigure(offered),
-                          label: t(RATE_NAME_KEYS[type]),
+                          label: t(rateNameKey(type, quotedByBcv(currency))),
                           onPress: () => handleRateSuggestion(offered, type),
                       },
                   ];
@@ -1232,7 +1237,7 @@ export function TransactionForm({
             onConvertedPress: openUsd,
             onSourcePress: () => enterStep("rate"),
             shake: rateShake,
-            source: t(RATE_SOURCE_WORD_KEYS[type]),
+            source: t(rateSourceWordKey(type, quotedByBcv(currency))),
             template,
         };
     };

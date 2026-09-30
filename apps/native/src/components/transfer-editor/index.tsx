@@ -29,7 +29,7 @@ import {
     RATE_ENTRY_DECIMALS,
     rateEntryText,
 } from "@/domain/transaction-entry-rate";
-import { RATE_NAME_KEYS, RATE_SOURCE_WORD_KEYS, transactionWhenLabel } from "@/domain/transaction-form-labels";
+import { quotedByBcv, rateNameKey, rateSourceWordKey, transactionWhenLabel } from "@/domain/transaction-form-labels";
 import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { freshEntries } from "@/lib/fresh-entries";
@@ -303,7 +303,11 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
                             enter(next === "custom" ? "rate" : "amount");
                         }}
                         options={draft.rateOptions.map((type) => {
-                            const shared = { name: t(RATE_NAME_KEYS[type]), type, unit: rateUnit };
+                            const shared = {
+                                name: t(rateNameKey(type, quotedByBcv(draft.fromCurrency, draft.toCurrency))),
+                                type,
+                                unit: rateUnit,
+                            };
                             if (type === "custom") {
                                 const prior = draft.priorCustomRate;
                                 return {
@@ -431,7 +435,9 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
                             feeSide: feeSideAccount?.name ?? null,
                             from: draft.from?.name ?? null,
                             rate: rateLabel,
-                            rateType: t(RATE_SOURCE_WORD_KEYS[draft.rateType]),
+                            rateType: t(
+                                rateSourceWordKey(draft.rateType, quotedByBcv(draft.fromCurrency, draft.toCurrency))
+                            ),
                             to: draft.to?.name ?? null,
                             when: transactionWhenLabel(t, {
                                 date: draft.date,

@@ -395,24 +395,24 @@ const transaction = {
             es: "De hace {count} días · {date}",
         }),
         "transaction.rate.deltaAbove": t({
-            en: "{percent} above official",
-            es: "{percent} sobre la oficial",
+            en: "{percent} above {source}",
+            es: "{percent} sobre la {source}",
         }),
         "transaction.rate.deltaBelow": t({
-            en: "{percent} below official",
-            es: "{percent} bajo la oficial",
+            en: "{percent} below {source}",
+            es: "{percent} bajo la {source}",
         }),
         "transaction.rate.deltaLess": t({
-            en: "{amount} less than at official",
-            es: "{amount} menos que a la oficial",
+            en: "{amount} less than at {source}",
+            es: "{amount} menos que a la {source}",
         }),
         "transaction.rate.deltaMore": t({
-            en: "{amount} more than at official",
-            es: "{amount} más que a la oficial",
+            en: "{amount} more than at {source}",
+            es: "{amount} más que a la {source}",
         }),
         "transaction.rate.deltaSame": t({
-            en: "Same as official",
-            es: "Igual a la oficial",
+            en: "Same as {source}",
+            es: "Igual a la {source}",
         }),
         "transaction.rate.derived": t({
             en: "Rate from what you paid: {rate}",
@@ -433,6 +433,10 @@ const transaction = {
         "transaction.rate.official": t({
             en: "Official",
             es: "Oficial",
+        }),
+        "transaction.rate.officialBcv": t({
+            en: "USD (BCV)",
+            es: "USD (BCV)",
         }),
         "transaction.rate.required": t({
             en: "Type a rate first",
@@ -686,6 +690,10 @@ const transaction = {
         "transaction.sentence.rateSource.official": t({
             en: "official",
             es: "oficial",
+        }),
+        "transaction.sentence.rateSource.officialBcv": t({
+            en: "USD (BCV)",
+            es: "USD (BCV)",
         }),
         "transaction.sentence.set.icon": t({
             en: "Change icon",

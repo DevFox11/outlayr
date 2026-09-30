@@ -352,7 +352,7 @@ describe("transfer editor rate step", () => {
 
         const rows = screen.getAllByRole("radio");
         expect(rows.map((row) => [row.props.accessibilityLabel, row.props.accessibilityValue.text])).toStrictEqual([
-            ["Official", "848.55 Bs. per $, 10 days old · 19 Sep"],
+            ["USD (BCV)", "848.55 Bs. per $, 10 days old · 19 Sep"],
             ["EUR (BCV)", "974.42 Bs. per $, 10 days old · 19 Sep"],
             ["My rate", "Type, Last used 1,020.0 · 27 Sep"],
         ]);

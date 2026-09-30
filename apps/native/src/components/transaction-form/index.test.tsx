@@ -3094,9 +3094,11 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
         await openRateStep(ves);
-        expect(ves.getByRole("radio", { name: "transaction.rate.official" }).props.accessibilityState).toMatchObject({
-            checked: true,
-        });
+        expect(ves.getByRole("radio", { name: "transaction.rate.officialBcv" }).props.accessibilityState).toMatchObject(
+            {
+                checked: true,
+            }
+        );
         await ves.unmount();
 
         const usd = await render(
@@ -3277,13 +3279,13 @@ describe("transactionForm entry-rate confirmation", () => {
         await pressKeys(screen, ["5", "transaction.numpad.delete"]);
         await saveFromBlankRate(screen, "transaction.cta.add");
         await openRateStep(screen);
-        await pickRate(screen, "transaction.rate.official");
+        await pickRate(screen, "transaction.rate.officialBcv");
         await openRateStep(screen);
         await pickRate(screen, "transaction.rate.custom");
         await pressKeys(screen, ["5", "transaction.numpad.delete"]);
         expect(screen.queryByText("transaction.rate.required")).toBeNull();
         await openRateStep(screen);
-        await pickRate(screen, "transaction.rate.official");
+        await pickRate(screen, "transaction.rate.officialBcv");
         await pressSave(screen, "transaction.cta.add");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({ exchangeRateType: "official" });
@@ -3467,7 +3469,7 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await openRateStep(screen);
-        await pickRate(screen, "transaction.rate.official");
+        await pickRate(screen, "transaction.rate.officialBcv");
         await pressSave(screen, "transaction.cta.add");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({
@@ -3531,11 +3533,11 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
         await openRateStep(screen);
-        expect(screen.getByRole("radio", { name: "transaction.rate.official" }).props.accessibilityValue).toMatchObject(
-            {
-                text: expect.stringContaining("transaction.rate.unavailable"),
-            }
-        );
+        expect(
+            screen.getByRole("radio", { name: "transaction.rate.officialBcv" }).props.accessibilityValue
+        ).toMatchObject({
+            text: expect.stringContaining("transaction.rate.unavailable"),
+        });
 
         await act(async () => {
             await db.insert(exchangeRates).values({
@@ -3551,7 +3553,7 @@ describe("transactionForm entry-rate confirmation", () => {
 
         await waitFor(() => {
             expect(
-                screen.getByRole("radio", { name: "transaction.rate.official" }).props.accessibilityValue
+                screen.getByRole("radio", { name: "transaction.rate.officialBcv" }).props.accessibilityValue
             ).toMatchObject({ text: expect.stringContaining("42.000 transaction.rate.unit") });
         });
     });
@@ -3605,11 +3607,11 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await openRateStep(screen);
-        expect(screen.getByRole("radio", { name: "transaction.rate.official" }).props.accessibilityState).toMatchObject(
-            {
-                checked: true,
-            }
-        );
+        expect(
+            screen.getByRole("radio", { name: "transaction.rate.officialBcv" }).props.accessibilityState
+        ).toMatchObject({
+            checked: true,
+        });
         expect(screen.getByText("transaction.rate.lastUsed")).toBeTruthy();
     });
 
@@ -3642,7 +3644,7 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await openRateStep(screen);
-        await pickRate(screen, "transaction.rate.official");
+        await pickRate(screen, "transaction.rate.officialBcv");
         await pickCurrency(screen, "EUR");
         await pressSave(screen, "transaction.cta.add");
 
@@ -3913,7 +3915,7 @@ describe("transactionForm entry-rate confirmation", () => {
         });
         await pressKeys(screen, ["2", "transaction.numpad.delete"]);
         expect(screen.getByLabelText("transaction.rate.source").props.accessibilityValue).toMatchObject({
-            text: "transaction.sentence.rateSource.official",
+            text: "transaction.sentence.rateSource.officialBcv",
         });
         await pressKeys(screen, ["2", ".", "1"]);
         await pressFooter(screen);
@@ -3956,7 +3958,7 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await openRateStep(screen);
-        await pickRate(screen, "transaction.rate.official");
+        await pickRate(screen, "transaction.rate.officialBcv");
         await act(async () => {
             fireEvent.press(screen.getByLabelText("transaction.rate.inDollars"));
         });
@@ -4026,7 +4028,7 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await openRateStep(screen);
-        const official = within(screen.getByRole("radio", { name: "transaction.rate.official" }));
+        const official = within(screen.getByRole("radio", { name: "transaction.rate.officialBcv" }));
         expect(official.getByText("As of 10 Aug").props.className).toContain("text-muted");
     });
 });
