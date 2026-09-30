@@ -81,9 +81,6 @@ async function overpaidDraft(): Promise<{ current: TransferDraft }> {
         result.current.setSent(SENT);
     });
     await act(async () => {
-        result.current.pinArrival();
-    });
-    await act(async () => {
         result.current.setArrived(PINNED_ARRIVAL);
     });
     return result;
@@ -177,9 +174,6 @@ describe("accepting the suggested rate", () => {
         });
         await act(async () => {
             result.current.setSent("10000000");
-        });
-        await act(async () => {
-            result.current.pinArrival();
         });
         await act(async () => {
             result.current.setArrived("9234567.89");
@@ -606,6 +600,25 @@ describe("reopening a saved transfer", () => {
         });
     });
 
+    it("moves the arrival with a new amount when both accounts hold the same currency", async () => {
+        const result = await reopened({
+            ...saved,
+            arrived: 95,
+            fee: 5,
+            rate: null,
+            rateType: null,
+            sent: 100,
+            toAccountId: "usd-2",
+            toCurrency: "USD",
+        });
+
+        await act(async () => {
+            result.current.setSent("150");
+        });
+
+        expect(result.current).toMatchObject({ arrived: 145, canSave: true, gapAmount: 0 });
+    });
+
     it("stops quoting its own rate once the rate source changes", async () => {
         const result = await reopened(saved);
 
@@ -644,10 +657,13 @@ describe("reopening a saved transfer", () => {
         });
 
         await act(async () => {
-            result.current.setFee("3.7");
+            result.current.setSent("110");
+        });
+        await act(async () => {
+            result.current.setArrived("5500");
         });
 
-        expect(result.current).toMatchObject({ fromBalanceAfter: 897.3, toBalanceAfter: 5494.5 });
+        expect(result.current).toMatchObject({ fromBalanceAfter: 890, toBalanceAfter: 5500 });
     });
 });
 
@@ -655,9 +671,6 @@ async function pinnedDraft(sent: string, arrived: string): Promise<{ current: Tr
     const result = await draft();
     await act(async () => {
         result.current.setSent(sent);
-    });
-    await act(async () => {
-        result.current.pinArrival();
     });
     await act(async () => {
         result.current.setArrived(arrived);
@@ -712,9 +725,6 @@ describe("dollars from Payoneer that arrive as bolívares through Binance", () =
         });
         await act(async () => {
             result.current.setSent("160");
-        });
-        await act(async () => {
-            result.current.pinArrival();
         });
         await act(async () => {
             result.current.setArrived("157471.66");
@@ -806,9 +816,6 @@ describe("a gap measured on the side that carries the fee", () => {
             result.current.setSent("160");
         });
         await act(async () => {
-            result.current.pinArrival();
-        });
-        await act(async () => {
             result.current.setArrived("2900");
         });
         expect(result.current.gapAmount).toBe(3.24);
@@ -822,9 +829,6 @@ describe("a gap measured on the side that carries the fee", () => {
         });
         await act(async () => {
             result.current.setSent("100");
-        });
-        await act(async () => {
-            result.current.pinArrival();
         });
         await act(async () => {
             result.current.setArrived("5400");
@@ -850,9 +854,6 @@ describe("a gap measured on the side that carries the fee", () => {
             result.current.setSent("25000");
         });
         await act(async () => {
-            result.current.pinArrival();
-        });
-        await act(async () => {
             result.current.setArrived("160");
         });
         expect(result.current).toMatchObject({ feeCurrency: "JPY", gapAmount: 1443 });
@@ -872,9 +873,6 @@ describe("a gap measured on the side that carries the fee", () => {
         });
         await act(async () => {
             result.current.setSent("1000");
-        });
-        await act(async () => {
-            result.current.pinArrival();
         });
         await act(async () => {
             result.current.setArrived("300.123");
@@ -898,9 +896,6 @@ describe("a gap measured on the side that carries the fee", () => {
         });
         await act(async () => {
             result.current.setSent("100000");
-        });
-        await act(async () => {
-            result.current.pinArrival();
         });
         await act(async () => {
             result.current.setArrived("30698.5");
@@ -928,5 +923,109 @@ describe("a gap measured on the side that carries the fee", () => {
             })
         );
         expect(result.current).toMatchObject({ canSave: true, gapAmount: 0, rateType: "official" });
+    });
+});
+
+describe("an arrival the user typed", () => {
+    beforeEach(() => {
+        mockRates.set("VES", 50);
+        mockBinanceRates.set("VES", 49);
+    });
+
+    async function typedArrival(): Promise<{ current: TransferDraft }> {
+        const result = await pinnedDraft("100", "4900");
+        expect(result.current).toMatchObject({ arrived: 4900, gapAmount: 0, rateType: "binance" });
+        return result;
+    }
+
+    it("stays when the amount sent changes, and counts the difference", async () => {
+        const result = await typedArrival();
+        await act(async () => {
+            result.current.setSent("110");
+        });
+        expect(result.current).toMatchObject({ arrived: 4900, gapAmount: 10 });
+    });
+
+    it("stays when a fee is typed", async () => {
+        const result = await typedArrival();
+        await act(async () => {
+            result.current.setFee("4");
+        });
+        expect(result.current).toMatchObject({ arrived: 4900, gapAmount: -4 });
+    });
+
+    it("stays when another rate source is picked", async () => {
+        const result = await typedArrival();
+        await act(async () => {
+            result.current.setRateType("official");
+        });
+        expect(result.current).toMatchObject({ arrived: 4900, gapAmount: 2 });
+    });
+
+    it("stays when a rate is typed", async () => {
+        const result = await typedArrival();
+        await act(async () => {
+            result.current.setRateType("custom");
+        });
+        await act(async () => {
+            result.current.setCustomRate("50");
+        });
+        expect(result.current).toMatchObject({ arrived: 4900, gapAmount: 2, rateType: "custom" });
+    });
+
+    it("stays when the fee moves to the receiver, and counts the difference there", async () => {
+        const result = await typedArrival();
+        await act(async () => {
+            result.current.setRateType("official");
+        });
+        await act(async () => {
+            result.current.toggleFeeSide();
+        });
+        expect(result.current).toMatchObject({ arrived: 4900, feeCurrency: "VES", gapAmount: 100 });
+    });
+
+    it("stays when the day's rate moves with the date", async () => {
+        const result = await typedArrival();
+        mockBinanceRates.set("VES", 50);
+        await act(async () => {
+            result.current.setDate(new Date(Date.UTC(2026, 0, 1)));
+        });
+        expect(result.current).toMatchObject({ arrived: 4900, gapAmount: 2 });
+    });
+
+    it("follows the rate again once it is cleared", async () => {
+        const result = await typedArrival();
+        await act(async () => {
+            result.current.setArrived("");
+        });
+        await act(async () => {
+            result.current.setSent("110");
+        });
+        expect(result.current).toMatchObject({ arrived: 5390, gapAmount: 0 });
+    });
+
+    it("holds nothing while the keypad reads zero", async () => {
+        const result = await draft();
+        await act(async () => {
+            result.current.setArrived("0.");
+        });
+        await act(async () => {
+            result.current.setSent("100");
+        });
+        expect(result.current).toMatchObject({ arrived: 4900, block: null, gapAmount: 0 });
+    });
+
+    it("holds nothing when only prefilled for the keypad", async () => {
+        const result = await draft();
+        await act(async () => {
+            result.current.setSent("100");
+        });
+        await act(async () => {
+            result.current.prefillArrival();
+        });
+        await act(async () => {
+            result.current.setSent("110");
+        });
+        expect(result.current).toMatchObject({ arrived: 5390, gapAmount: 0 });
     });
 });

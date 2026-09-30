@@ -160,7 +160,7 @@ export interface TransferDraft {
     gapRate: number | null;
     legs: TransferLegs | null;
     marketRates: Record<TransferRateChoice, number | null>;
-    pinArrival: () => void;
+    prefillArrival: () => void;
     priorCustomRate: { date: Date; rate: number } | null;
     quotedRate: number | null;
     rateInverse: boolean;
@@ -269,7 +269,7 @@ function savedState(accounts: readonly Account[], saved: SavedTransfer): Opening
     const rateType = saved.rateType ?? "official";
     const inverse = pairQuotedInverse(saved.fromCurrency, saved.toCurrency, saved.rate);
     return {
-        arrivalPinned: true,
+        arrivalPinned: fromCurrency !== toCurrency,
         arrivedText: numberToNumpad(saved.arrived, minorUnitsFor(toCurrency)),
         customRates:
             rateType === "custom" && saved.rate !== null
@@ -429,13 +429,6 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
         crossCurrency
     );
 
-    const unpin =
-        <T>(apply: (value: T) => void) =>
-        (value: T) => {
-            apply(value);
-            setArrivalPinned(false);
-        };
-
     /**
      * Picks one leg. Choosing the account the other leg holds swaps them. A
      * pinned arrival is in the destination's currency, so it survives a new
@@ -502,9 +495,8 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
         gapRate: math.gapRate,
         legs: math.legs,
         marketRates: marketRatesOf(quoteType, tableRates, ownQuote),
-        pinArrival: () => {
+        prefillArrival: () => {
             setArrivedText(math.arrived === null ? "" : numberToNumpad(math.arrived, toDecimals));
-            setArrivalPinned(true);
         },
         priorCustomRate,
         quotedRate: rate,
@@ -530,18 +522,20 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
         },
         sent,
         sentText,
-        setArrived: setArrivedText,
-        setCustomRate: unpin(setCustomRateText),
+        setArrived: (text) => {
+            setArrivedText(text);
+            setArrivalPinned(numpadToNumber(text) > 0);
+        },
+        setCustomRate: setCustomRateText,
         setDate,
-        setFee: unpin(setFeeText),
+        setFee: setFeeText,
         setRateType: (next) => {
             setChosenRate(next);
             if (next !== "custom") {
                 setMarketType(next);
             }
-            setArrivalPinned(false);
         },
-        setSent: unpin(setSentText),
+        setSent: setSentText,
         to,
         toBalance: roundMoney(toBalance.total, toDecimals),
         toBalanceAfter: roundMoney(toBalance.total + toRestored + (math.arrived ?? 0), toDecimals),
@@ -555,7 +549,6 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
                 setFeeText(numberToNumpad(converted, decimals));
             }
             setFeeSide(toDestination ? "destination" : "source");
-            setArrivalPinned(false);
         },
     };
 }

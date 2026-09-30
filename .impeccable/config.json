@@ -29,6 +29,48 @@
         ],
         "createdAt": "2026-09-29T10:59:56.939Z",
         "reason": "agent triage: #f2f0ea is the app's light --background token (apps/native/global.css:21), the mock reproduces the real screen"
+      },
+      {
+        "rule": "overused-font",
+        "value": "geist mono",
+        "createdAt": "2026-09-30T13:14:57.769Z",
+        "reason": "Agent: Geist Mono is the app's own mono face (apps/native/global.css --font-mono)"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "docs/design/transfer-flow-ease.html"
+        ],
+        "createdAt": "2026-09-30T13:14:57.786Z",
+        "reason": "Agent: paper theme is Outlayr's brand ground (#f2f0ea); the page tone frames the phone mocks"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "docs/design/transfer-flow-ease.html"
+        ],
+        "createdAt": "2026-09-30T13:14:57.803Z",
+        "reason": "Agent: every hit is the .phone device frame, whose screen runs edge to edge by design"
+      },
+      {
+        "rule": "repeated-container-text",
+        "value": "*",
+        "files": [
+          "docs/design/transfer-flow-ease.html"
+        ],
+        "createdAt": "2026-09-30T13:14:57.818Z",
+        "reason": "Agent: phone mocks reproduce the app screen, where the sentence, chips and ledger name the same accounts"
+      },
+      {
+        "rule": "nested-cards",
+        "value": "*",
+        "files": [
+          "docs/design/transfer-flow-ease.html"
+        ],
+        "createdAt": "2026-09-30T13:14:57.834Z",
+        "reason": "Agent: device frame holding the sheet and the iOS context-menu lift, not card chrome"
       }
     ]
   }

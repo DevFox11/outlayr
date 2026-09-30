@@ -101,7 +101,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
             draft.setRateType("custom");
         }
         if (next === "arrives") {
-            draft.pinArrival();
+            draft.prefillArrival();
         }
         Keyboard.dismiss();
         setForward(direction);

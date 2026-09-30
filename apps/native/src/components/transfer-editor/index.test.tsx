@@ -432,6 +432,40 @@ describe("transfer editor rate step", () => {
         });
     });
 
+    it("keeps an arrival typed before USDT (Binance) is picked, and closes the loss as a fee", async () => {
+        mockRateTables.mockReturnValue({ binance: quotedAt(1031.52), official: quotedAt(848.55) });
+        await render(<TransferEditor onDone={jest.fn()} seed={{ ...CROSS, amount: 160 }} />);
+        await press("transfers.field.rateType");
+        await press("USD (BCV)");
+        await press("transfers.field.arrives");
+        for (const key of "15747166") {
+            await press(key);
+        }
+        await press("transfers.field.rateType");
+
+        await press("USDT (Binance)");
+
+        expect(slotValue("transfers.field.arrives")).toBe("Bs.157,471.66");
+        expect(screen.getByText("-$7.34 unaccounted")).toBeTruthy();
+        await act(async () => {
+            fireEvent.press(screen.getByText("It's a fee"));
+        });
+        expect(screen.queryByText(/unaccounted/)).toBeNull();
+        expect(slotValue("transfers.field.arrives")).toBe("Bs.157,471.66");
+    });
+
+    it("lets an arrival opened but never typed follow the amount", async () => {
+        mockNumberEntryType.mockReturnValue(2);
+        await render(<TransferEditor onDone={jest.fn()} seed={CROSS} />);
+        await press("transfers.field.arrives");
+        await press("common.back");
+
+        await press("6");
+        await press("0");
+
+        expect(slotValue("transfers.field.arrives")).toBe("Bs.50,913.00");
+    });
+
     it("opens the rate keypad from My rate", async () => {
         await render(<TransferEditor onDone={jest.fn()} seed={CROSS} />);
         await press("transfers.field.rateType");
