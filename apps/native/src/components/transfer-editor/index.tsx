@@ -131,10 +131,11 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
         savingRef.current = true;
         setSaving(true);
         setSaveFailure(null);
+        const storedRateType = rateType === "binance" ? "custom" : rateType;
         const input: TransferInput = {
             date,
             exchangeRate: effectiveRate,
-            exchangeRateType: crossCurrency ? rateType : null,
+            exchangeRateType: crossCurrency ? storedRateType : null,
             fee:
                 fee > 0
                     ? {

@@ -382,6 +382,10 @@ const transaction = {
             en: "As of {time}",
             es: "Hoy, {time}",
         }),
+        "transaction.rate.binance": t({
+            en: "USDT (Binance)",
+            es: "USDT (Binance)",
+        }),
         "transaction.rate.custom": t({
             en: "My rate",
             es: "Mi tasa",

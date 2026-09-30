@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { marketRateFor, rateTypeOptions } from "./transfer-rate-options";
+import { marketRateFor, rateTypeOptions, transferRateOptions } from "./transfer-rate-options";
 import { buildRateTable } from "./valuation";
 
 const RATES = buildRateTable([
@@ -33,6 +33,19 @@ describe("rateTypeOptions", () => {
 
     it("puts official first so the default needs no lookup", () => {
         expect(rateTypeOptions("VES")[0]).toBe("official");
+    });
+});
+
+describe("transferRateOptions", () => {
+    it("offers the Binance reference between dollars and bolívares, in either direction, before my rate", () => {
+        expect(transferRateOptions("USD", "VES")).toStrictEqual(["official", "eur_reference", "binance", "custom"]);
+        expect(transferRateOptions("VES", "USD")).toStrictEqual(["official", "binance", "custom"]);
+    });
+
+    it("offers no Binance reference on any other pair", () => {
+        expect(transferRateOptions("USD", "MXN")).not.toContain("binance");
+        expect(transferRateOptions("EUR", "VES")).not.toContain("binance");
+        expect(transferRateOptions("VES", "VES")).not.toContain("binance");
     });
 });
 

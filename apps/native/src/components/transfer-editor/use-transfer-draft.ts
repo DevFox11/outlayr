@@ -1,4 +1,5 @@
-import type { EntryRateType } from "@outlayr/money/rates";
+import { MARKET_RATE_TYPES } from "@outlayr/money/rates";
+import type { MarketRateType } from "@outlayr/money/rates";
 import { roundMoney } from "@outlayr/money/round";
 import { useMemo, useState } from "react";
 
@@ -11,7 +12,8 @@ import type { Database } from "@/db/client";
 import { minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { pairQuotedInverse, quotePairRate, rateEntryText } from "@/domain/transaction-entry-rate";
-import { marketRateFor, rateTypeOptions } from "@/domain/transfer-rate-options";
+import { marketRateFor, transferRateOptions } from "@/domain/transfer-rate-options";
+import type { TransferRateChoice } from "@/domain/transfer-rate-options";
 import { solveTransfer, transferGap, transferLegs } from "@/domain/transfer-reconcile";
 import type { FeeSide, TransferLegs, TransferValues } from "@/domain/transfer-reconcile";
 import type { RateTable } from "@/domain/valuation";
@@ -38,6 +40,7 @@ interface DraftMath {
 }
 
 interface CustomRate {
+    exact: number | null;
     inverse: boolean;
     text: string;
 }
@@ -50,13 +53,13 @@ function pairRate(
     unquote: (rate: number) => number
 ): number | null {
     const typed = custom === undefined ? null : numpadToNumber(custom.text);
-    const rate = typed === null ? market : unquote(typed);
+    const rate = custom?.exact ?? (typed === null ? market : unquote(typed));
     return rate !== null && Number.isFinite(rate) && rate > 0 ? rate : null;
 }
 
 function selectedRate(
     crossCurrency: boolean,
-    rateType: EntryRateType,
+    rateType: TransferRateChoice,
     custom: number | null,
     market: number | null
 ): number | null {
@@ -64,6 +67,16 @@ function selectedRate(
         return 1;
     }
     return rateType === "custom" ? custom : market;
+}
+
+function quoteOf(rateType: TransferRateChoice | null, market: MarketRateType | null) {
+    return rateType === "custom" ? market : rateType;
+}
+
+function rateChoices(chosen: TransferRateChoice | null, market: MarketRateType | null, binanceRate: number | null) {
+    const fallback: MarketRateType = binanceRate === null ? "official" : "binance";
+    const rateType = chosen ?? fallback;
+    return { quoteType: quoteOf(rateType, market) ?? fallback, rateType };
 }
 
 function transferBlock(
@@ -106,12 +119,15 @@ function reconcile(
             legs: null,
         };
     }
-    const gap = pinned === null ? 0 : transferGap(values, units.to);
+    const gap = pinned === null ? 0 : transferGap(values, units.fee, units.to);
+    const gapFee = solveTransfer(values, "fee", units.fee);
+    const feeCloses =
+        gapFee !== null && gapFee > 0 && transferLegs({ ...values, fee: gapFee }, units.from, units.to) !== null;
     return {
         arrived,
         block: null,
         gap,
-        gapFee: solveTransfer({ ...values, feeSide: "destination" }, "fee", units.to),
+        gapFee: feeCloses ? gapFee : null,
         gapRate: solveTransfer(values, "rate", RATE_PRECISION),
         legs: crossCurrency || gap === 0 ? transferLegs(values, units.from, units.to) : null,
     };
@@ -143,14 +159,14 @@ export interface TransferDraft {
     gapFee: number | null;
     gapRate: number | null;
     legs: TransferLegs | null;
-    marketRates: Record<EntryRateType, number | null>;
+    marketRates: Record<TransferRateChoice, number | null>;
     pinArrival: () => void;
     priorCustomRate: { date: Date; rate: number } | null;
     quotedRate: number | null;
     rateInverse: boolean;
-    rateOptions: EntryRateType[];
-    rateSources: Record<EntryRateType, RateSource | null>;
-    rateType: EntryRateType;
+    rateOptions: TransferRateChoice[];
+    rateSources: Record<TransferRateChoice, RateSource | null>;
+    rateType: TransferRateChoice;
     resolveAsFee: () => void;
     resolveAsRate: () => void;
     sent: number;
@@ -159,7 +175,7 @@ export interface TransferDraft {
     setCustomRate: (text: string) => void;
     setDate: (date: Date) => void;
     setFee: (text: string) => void;
-    setRateType: (type: EntryRateType) => void;
+    setRateType: (type: TransferRateChoice) => void;
     setSent: (text: string) => void;
     to: Account | null;
     toBalance: number;
@@ -203,7 +219,7 @@ interface Opening {
     feeSide: FeeSide;
     feeText: string;
     fromId: string | null;
-    rateType: EntryRateType;
+    rateType: TransferRateChoice | null;
     sentText: string;
     toId: string | null;
 }
@@ -232,7 +248,7 @@ function openingState(accounts: readonly Account[], seed: TransferSeed | undefin
         feeSide: "source",
         feeText: "",
         fromId,
-        rateType: "official",
+        rateType: null,
         sentText: onSent ? numberToNumpad(amount, minorUnitsFor(from.currency)) : "",
         toId,
     };
@@ -259,6 +275,7 @@ function savedState(accounts: readonly Account[], saved: SavedTransfer): Opening
             rateType === "custom" && saved.rate !== null
                 ? {
                       [`${fromCurrency}/${toCurrency}`]: {
+                          exact: saved.rate,
                           inverse,
                           text: rateEntryText(quotePairRate(inverse, saved.rate)),
                       },
@@ -274,27 +291,36 @@ function savedState(accounts: readonly Account[], saved: SavedTransfer): Opening
     };
 }
 
-const QUOTED_RATE_TYPES = ["official", "eur_reference"] as const;
-
-function tableRatesFor(from: string, to: string, date: Date, tables: Partial<Record<EntryRateType, RateTable>>) {
+function tableRatesFor(from: string, to: string, date: Date, tables: Partial<Record<MarketRateType, RateTable>>) {
     const rateIn = (table: RateTable | undefined) =>
         table === undefined ? null : marketRateFor(from, to, date, table);
     return {
+        binance: rateIn(tables.binance),
         custom: null,
         eur_reference: rateIn(tables.eur_reference),
         official: rateIn(tables.official),
-    } satisfies Record<EntryRateType, number | null>;
+    } satisfies Record<TransferRateChoice, number | null>;
 }
 
-function marketRatesOf(quoteType: EntryRateType, table: Record<EntryRateType, number | null>, own: number | null) {
+function marketRatesOf(
+    quoteType: TransferRateChoice,
+    table: Record<TransferRateChoice, number | null>,
+    own: number | null
+) {
     return {
+        binance: table.binance,
         custom: null,
-        eur_reference: table.eur_reference ?? (quoteType === "eur_reference" ? own : null),
-        official: table.official ?? (quoteType === "official" ? own : null),
-    } satisfies Record<EntryRateType, number | null>;
+        eur_reference: (quoteType === "eur_reference" ? own : null) ?? table.eur_reference,
+        official: (quoteType === "official" ? own : null) ?? table.official,
+    } satisfies Record<TransferRateChoice, number | null>;
 }
 
-function savedQuote(saved: SavedTransfer | undefined, pair: string, type: EntryRateType, date: Date): number | null {
+function savedQuote(
+    saved: SavedTransfer | undefined,
+    pair: string,
+    type: TransferRateChoice,
+    date: Date
+): number | null {
     const same =
         saved !== undefined &&
         pair === `${saved.fromCurrency}/${saved.toCurrency}` &&
@@ -320,8 +346,8 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
     const [sentText, setSentText] = useState(opening.sentText);
     const [arrivedText, setArrivedText] = useState(opening.arrivedText);
     const [arrivalPinned, setArrivalPinned] = useState(opening.arrivalPinned);
-    const [rateType, setRateTypeState] = useState<EntryRateType>(opening.rateType);
-    const [marketType, setMarketType] = useState<EntryRateType>(
+    const [chosenRate, setChosenRate] = useState<TransferRateChoice | null>(opening.rateType);
+    const [marketType, setMarketType] = useState<MarketRateType | null>(
         opening.rateType === "custom" ? "official" : opening.rateType
     );
     const [customRates, setCustomRates] = useState<Record<string, CustomRate>>(opening.customRates);
@@ -348,33 +374,37 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
         initialBalance: to?.initialBalance ?? 0,
     });
 
-    const quoteType = rateType === "custom" ? marketType : rateType;
+    const chosenQuote = quoteOf(chosenRate, marketType);
     const quotedTypes = useMemo(
-        () => QUOTED_RATE_TYPES.filter((type) => type === quoteType || rateTypeOptions(toCurrency).includes(type)),
-        [quoteType, toCurrency]
+        () =>
+            MARKET_RATE_TYPES.filter(
+                (type) => type === chosenQuote || transferRateOptions(fromCurrency, toCurrency).includes(type)
+            ),
+        [chosenQuote, fromCurrency, toCurrency]
     );
     const rateTables = useTransferRates(db, [fromCurrency, toCurrency], quotedTypes);
     const tableRates = useMemo(
         () => tableRatesFor(fromCurrency, toCurrency, date, rateTables),
         [fromCurrency, toCurrency, date, rateTables]
     );
+    const { quoteType, rateType } = rateChoices(chosenRate, marketType, tableRates.binance);
     const tableRate = tableRates[quoteType];
     const priorCustomRate = usePriorCustomRate(db, fromCurrency, toCurrency, date);
     const pair = `${fromCurrency}/${toCurrency}`;
     const ownQuote = savedQuote(saved, pair, quoteType, date);
-    const marketRate = tableRate ?? ownQuote;
+    const marketRate = ownQuote ?? tableRate;
     const customRate = customRates[pair];
     const rateInverse = customRate?.inverse ?? pairQuotedInverse(fromCurrency, toCurrency, marketRate);
     const quote = (value: number) => quotePairRate(rateInverse, value);
     /** Keyed by pair, so a rate typed for another one does not answer here — and
      * without this the rate list would label the market rate user-authored. */
-    const shownRateType: EntryRateType = rateType === "custom" && customRate === undefined ? marketType : rateType;
+    const shownRateType = rateType === "custom" && customRate === undefined ? quoteType : rateType;
     const rate = selectedRate(crossCurrency, rateType, pairRate(customRate, marketRate, quote), marketRate);
 
-    function setCustomRateText(text: string) {
+    function setCustomRateText(text: string, exact: number | null = null) {
         setCustomRates((current) => ({
             ...current,
-            [pair]: { inverse: current[pair]?.inverse ?? rateInverse, text },
+            [pair]: { exact, inverse: current[pair]?.inverse ?? rateInverse, text },
         }));
     }
 
@@ -479,26 +509,23 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
         priorCustomRate,
         quotedRate: rate,
         rateInverse,
-        rateOptions: crossCurrency ? rateTypeOptions(toCurrency) : [],
+        rateOptions: crossCurrency ? transferRateOptions(fromCurrency, toCurrency) : [],
         rateSources: {
+            binance: pairRateSource(fromCurrency, toCurrency, date, rateTables.binance),
             custom: null,
             eur_reference: pairRateSource(fromCurrency, toCurrency, date, rateTables.eur_reference),
             official: pairRateSource(fromCurrency, toCurrency, date, rateTables.official),
         },
         rateType: shownRateType,
-        // Destination side whatever the current one is: the gap is a
-        // destination-currency figure, so it lands there exactly. Carrying it to the
-        // source rounds to source cents and leaves a residual nobody can clear.
         resolveAsFee: () => {
-            if (math.gapFee !== null && math.gapFee > 0) {
-                setFeeSide("destination");
-                setFeeText(numberToNumpad(math.gapFee, toDecimals));
+            if (math.gapFee !== null) {
+                setFeeText(numberToNumpad(math.gapFee, feeDecimals));
             }
         },
         resolveAsRate: () => {
             if (math.gapRate !== null) {
-                setRateTypeState("custom");
-                setCustomRateText(rateEntryText(quote(math.gapRate)));
+                setChosenRate("custom");
+                setCustomRateText(rateEntryText(quote(math.gapRate)), math.gapRate);
             }
         },
         sent,
@@ -508,7 +535,7 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
         setDate,
         setFee: unpin(setFeeText),
         setRateType: (next) => {
-            setRateTypeState(next);
+            setChosenRate(next);
             if (next !== "custom") {
                 setMarketType(next);
             }

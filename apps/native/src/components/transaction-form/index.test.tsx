@@ -3068,7 +3068,7 @@ describe("transactionForm entry-rate confirmation", () => {
 
         await openRateStep(screen);
         expect(screen.getByRole("radio", { name: "transaction.rate.custom" }).props.accessibilityValue).toMatchObject({
-            text: expect.stringContaining("55.500 transaction.rate.unit"),
+            text: expect.stringContaining("55.50 transaction.rate.unit"),
         });
         expect(screen.getByRole("radio", { name: "transaction.rate.custom" }).props.accessibilityState).toMatchObject({
             checked: true,
@@ -3182,7 +3182,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        await expect(rateInForce(screen)).resolves.toBe("55.500 transaction.rate.unit");
+        await expect(rateInForce(screen)).resolves.toBe("55.50 transaction.rate.unit");
         await pickCurrency(screen, "EUR");
 
         expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
@@ -3325,7 +3325,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        await expect(rateInForce(screen)).resolves.toBe("50.000 transaction.rate.unit");
+        await expect(rateInForce(screen)).resolves.toBe("50.00 transaction.rate.unit");
         expect(screen.getByLabelText("transaction.rate.inDollars").props.accessibilityValue).toMatchObject({
             text: "$2.00",
         });
@@ -3574,7 +3574,7 @@ describe("transactionForm entry-rate confirmation", () => {
         await waitFor(() => {
             expect(
                 screen.getByRole("radio", { name: "transaction.rate.officialBcv" }).props.accessibilityValue
-            ).toMatchObject({ text: expect.stringContaining("42.000 transaction.rate.unit") });
+            ).toMatchObject({ text: expect.stringContaining("42.00 transaction.rate.unit") });
         });
     });
 
@@ -3939,7 +3939,7 @@ describe("transactionForm entry-rate confirmation", () => {
         });
         await pressKeys(screen, ["2", ".", "1"]);
         await pressFooter(screen);
-        await expect(rateInForce(screen)).resolves.toBe("40.000 transaction.rate.unit");
+        await expect(rateInForce(screen)).resolves.toBe("40.00 transaction.rate.unit");
         await pressSave(screen, "transaction.cta.add");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({

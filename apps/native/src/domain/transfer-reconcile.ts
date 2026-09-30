@@ -42,13 +42,13 @@ function preFeeArrival(values: TransferValues): number {
     return values.feeSide === "source" ? values.arrived : values.arrived + values.fee;
 }
 
+function expectedArrival(values: TransferValues): number {
+    const gross = convertedPortion(values) * values.rate;
+    return values.feeSide === "source" ? gross : gross - values.fee;
+}
+
 function solveArrived(values: TransferValues, decimals: number): number | null {
-    if (!Number.isFinite(values.rate)) {
-        return null;
-    }
-    const converted = convertedPortion(values);
-    const gross = converted * values.rate;
-    return money(values.feeSide === "source" ? gross : gross - values.fee, decimals);
+    return Number.isFinite(values.rate) ? money(expectedArrival(values), decimals) : null;
 }
 
 function solveSent(values: TransferValues, decimals: number): number | null {
@@ -59,14 +59,18 @@ function solveSent(values: TransferValues, decimals: number): number | null {
     return money(values.feeSide === "source" ? converted + values.fee : converted, decimals);
 }
 
-function solveFee(values: TransferValues, decimals: number): number | null {
+function neededFee(values: TransferValues): number | null {
     if (!finitePositive(values.rate)) {
         return null;
     }
-    if (values.feeSide === "source") {
-        return money(values.sent - values.arrived / values.rate, decimals);
-    }
-    return money(values.sent * values.rate - values.arrived, decimals);
+    return values.feeSide === "source"
+        ? values.sent - values.arrived / values.rate
+        : values.sent * values.rate - values.arrived;
+}
+
+function solveFee(values: TransferValues, decimals: number): number | null {
+    const fee = neededFee(values);
+    return fee === null ? null : money(fee, decimals);
 }
 
 function solveRate(values: TransferValues, decimals: number): number | null {
@@ -113,10 +117,10 @@ export function transferLegs(
     return finitePositive(exchangeRate) ? { exchangeRate, fromAmount, toAmount } : null;
 }
 
-export function transferGap(values: TransferValues, decimals: number): number {
-    const expected = solveTransfer(values, "arrived", decimals);
-    if (expected === null) {
+export function transferGap(values: TransferValues, feeDecimals: number, arrivalDecimals: number): number {
+    const needed = neededFee(values);
+    if (needed === null || solveArrived(values, arrivalDecimals) === values.arrived) {
         return 0;
     }
-    return roundMoney(expected - values.arrived, decimals);
+    return roundMoney(roundMoney(needed, feeDecimals) - values.fee, feeDecimals) || 0;
 }

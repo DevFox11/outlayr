@@ -70,7 +70,7 @@ jest.mock("@/i18n/context", () => {
     return {
         useLanguage: () => ({ language: "en" }),
         useTranslation: () => (key: string, params?: Record<string, string | number>) =>
-            /^(transfers\.(a11y|saved\.title|sentence)(?!\.blank)|transaction\.rate\.)/.test(key)
+            /^(transfers\.(a11y|gap|saved\.title|sentence)(?!\.blank)|transaction\.rate\.)/.test(key)
                 ? translate(key, { catalog: catalog.EN, fallback: catalog.EN, params })
                 : key,
     };
@@ -354,13 +354,14 @@ describe("transfer editor rate step", () => {
         expect(rows.map((row) => [row.props.accessibilityLabel, row.props.accessibilityValue.text])).toStrictEqual([
             ["USD (BCV)", "848.55 Bs. per $, 10 days old · 19 Sep"],
             ["EUR (BCV)", "974.42 Bs. per $, 10 days old · 19 Sep"],
-            ["My rate", "Type, Last used 1,020.0 · 27 Sep"],
+            ["USDT (Binance)", "Unavailable, As of 29 Sep"],
+            ["My rate", "Type, Last used 1,020.00 · 27 Sep"],
         ]);
-        expect(rows.map((row) => row.props.accessibilityState.checked)).toStrictEqual([true, false, false]);
+        expect(rows.map((row) => row.props.accessibilityState.checked)).toStrictEqual([true, false, false, false]);
         const stale = screen.getAllByText("10 days old · 19 Sep");
         expect(stale).toHaveLength(2);
         expect(stale[0].props.className).toContain("text-warning-foreground");
-        expect(screen.getByText("Last used 1,020.0 · 27 Sep")).toBeTruthy();
+        expect(screen.getByText("Last used 1,020.00 · 27 Sep")).toBeTruthy();
     });
 
     it("returns to the amount from Done without saving", async () => {
@@ -387,6 +388,47 @@ describe("transfer editor rate step", () => {
             exchangeRate: 1020,
             exchangeRateType: "custom",
             toAmount: 51_000,
+        });
+    });
+
+    it("opens dollars to bolívares on the Binance rate and names it in the sentence", async () => {
+        mockRateTables.mockReturnValue({
+            binance: quotedAt(1031.52),
+            eur_reference: quotedAt(974.42),
+            official: quotedAt(848.55),
+        });
+        await render(<TransferEditor onDone={jest.fn()} seed={CROSS} />);
+
+        expect(slotValue("transfers.field.rateType")).toBe("USDT (Binance)");
+        await press("transfers.field.rateType");
+
+        const checked = screen.getAllByRole("radio").find((row) => row.props.accessibilityState.checked);
+        expect(checked?.props.accessibilityValue.text).toBe("1,031.52 Bs. per $, 10 days old · 19 Sep");
+        expect(checked?.props.accessibilityLabel).toBe("USDT (Binance)");
+    });
+
+    it("books what Payoneer lost on the way to Binance as a dollar fee and saves it as my rate", async () => {
+        mockRateTables.mockReturnValue({ binance: quotedAt(1031.52), official: quotedAt(848.55) });
+        await render(<TransferEditor onDone={jest.fn()} seed={{ ...CROSS, amount: 160 }} />);
+        await press("transfers.field.arrives");
+        for (const key of "15747166") {
+            await press(key);
+        }
+        expect(screen.getByText("-$7.34 unaccounted")).toBeTruthy();
+
+        await act(async () => {
+            fireEvent.press(screen.getByText("It's a fee"));
+        });
+
+        expect(screen.queryByText(/unaccounted/)).toBeNull();
+        expect(slotValue("transfers.field.fee")).toBe("$7.34");
+        expect(slotValue("transfers.field.feeSide")).toBe("Zinli");
+        await press("transfers.save");
+        expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({
+            exchangeRateType: "custom",
+            fee: { amount: 7.34, side: "source" },
+            fromAmount: 152.66,
+            toAmount: 157_471.66,
         });
     });
 

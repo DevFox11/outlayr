@@ -71,3 +71,51 @@ describe("what an unexplained remainder offers", () => {
         expect(prompt).toMatchObject({ feeLabel: "transfers.gap.itsAFee", onRate: null, rateLabel: null });
     });
 });
+
+describe("the sign on an unexplained remainder", () => {
+    it("reads dollars lost on the way as a minus in the sender's currency, with a fee to explain it", () => {
+        const prompt = gapPrompt(
+            {
+                feeCurrency: "USD",
+                fromCurrency: "USD",
+                gapAmount: 7.34,
+                gapFee: 7.34,
+                gapRate: 1031.5188,
+                quotedRate: 1031.52,
+                resolveAsFee: () => {},
+                resolveAsRate: () => {},
+                toCurrency: "VES",
+            } as Parameters<typeof gapPrompt>[0],
+            t,
+            "en"
+        );
+
+        expect(prompt).toMatchObject({
+            feeLabel: "transfers.gap.itsAFee",
+            message: 'transfers.gap.unaccounted:{"amount":"-$7.34"}',
+        });
+    });
+
+    it("reads more arriving than the rate implies as an explicit plus, with only the rate to explain it", () => {
+        const prompt = gapPrompt(
+            {
+                feeCurrency: "USD",
+                fromCurrency: "USD",
+                gapAmount: -4.53,
+                gapFee: null,
+                gapRate: 157_471.66 / 160,
+                quotedRate: 957.1,
+                resolveAsRate: () => {},
+                toCurrency: "VES",
+            } as Parameters<typeof gapPrompt>[0],
+            t,
+            "en"
+        );
+
+        expect(prompt).toMatchObject({
+            feeLabel: null,
+            message: 'transfers.gap.unaccounted:{"amount":"+$4.53"}',
+            rateLabel: 'transfers.gap.rateWas:{"rate":"984.1979"}',
+        });
+    });
+});

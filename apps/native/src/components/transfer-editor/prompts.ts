@@ -51,20 +51,22 @@ export function blockPrompt(draft: Draft, t: Translate, language: Language): Tra
     };
 }
 
-/** Only offers a resolution that would actually move the gap: a negative one is no
- * fee, and a rate the transfer already carries changes nothing. */
+/** Only offers a resolution that would actually close the gap: a fee only when one
+ * above zero does, and a rate only when it differs from the one carried. */
 export function gapPrompt(draft: Draft, t: Translate, language: Language): TransferGapPrompt | null {
     if (draft.gapAmount === 0 || draft.gapRate === null) {
         return null;
     }
     const offered = offeredRateText(draft, draft.gapRate, language);
+    const arrivalGap = -draft.gapAmount;
+    const amount = formatSignedAmount(arrivalGap, draft.feeCurrency, true, language);
     const rateMoves =
         draft.fromCurrency !== draft.toCurrency &&
         (draft.quotedRate === null || offered !== offeredRateText(draft, draft.quotedRate, language));
     return {
         feeLabel: draft.gapFee === null ? null : t("transfers.gap.itsAFee"),
         message: t("transfers.gap.unaccounted", {
-            amount: formatSignedAmount(draft.gapAmount, draft.toCurrency, true, language),
+            amount: arrivalGap > 0 ? `+${amount}` : amount,
         }),
         onFee: draft.gapFee === null ? null : draft.resolveAsFee,
         onRate: rateMoves ? draft.resolveAsRate : null,

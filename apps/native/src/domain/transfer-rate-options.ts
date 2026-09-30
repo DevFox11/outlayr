@@ -7,13 +7,24 @@ import type { RateTable } from "./valuation";
 /** The only currency `resolveEntryRate` accepts `eur_reference` for. */
 const EUR_REFERENCE_CURRENCY = "VES";
 
+const BINANCE_PAIR: ReadonlySet<string> = new Set(["USD", "VES"]);
+
+export type TransferRateChoice = EntryRateType | "binance";
+
 /**
- * Offered rate sources for a currency, `official` first so the default costs no
- * lookup. `binance` is absent by construction: it lives in `MARKET_RATE_TYPES`
- * as VES-per-USDT market data, and USDT is not USD.
+ * Entry rate sources for a currency, `official` first. `binance` is never an
+ * entry type, since USDT is not USD; `transferRateOptions` offers it to the
+ * transfer editor as a reference that saves as `custom`.
  */
 export function rateTypeOptions(currency: string): EntryRateType[] {
     return ENTRY_RATE_TYPES.filter((type) => type !== "eur_reference" || currency === EUR_REFERENCE_CURRENCY);
+}
+
+export function transferRateOptions(from: string, to: string): TransferRateChoice[] {
+    const binance = from !== to && BINANCE_PAIR.has(from) && BINANCE_PAIR.has(to);
+    return rateTypeOptions(to).flatMap<TransferRateChoice>((type) =>
+        binance && type === "custom" ? ["binance", type] : [type]
+    );
 }
 
 function perUsd(currency: string, dateKey: string, rates: RateTable): number | null {

@@ -8,23 +8,23 @@ import { FlowAmount } from "../../amount-text";
 import { Text } from "../../text";
 import { cn } from "../../tw";
 
-export interface StepRateOption {
+export interface StepRateOption<Type extends string = EntryRateType> {
     detail: string;
     figure: string | null;
     name: string;
     placeholder: string;
     stale?: boolean;
-    type: EntryRateType;
+    type: Type;
     unit: string;
 }
 
-interface StepRateProps {
-    onSelect: (type: EntryRateType) => void;
-    options: readonly StepRateOption[];
-    selected: EntryRateType;
+interface StepRateProps<Type extends string> {
+    onSelect: (type: Type) => void;
+    options: readonly StepRateOption<Type>[];
+    selected: Type;
 }
 
-export function StepRate({ onSelect, options, selected }: StepRateProps) {
+export function StepRate<Type extends string>({ onSelect, options, selected }: StepRateProps<Type>) {
     return (
         <View className="border-separator border-t">
             {options.map((option) => {

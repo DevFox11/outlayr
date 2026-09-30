@@ -62,10 +62,15 @@ describe("transaction entry rate policy", () => {
         expect(rateEntryText(-1)).toBe("");
     });
 
-    it("shows a rate at five significant digits with the language's grouping", () => {
-        expect(formatRateFigure(848.5458, "en")).toBe("848.55");
-        expect(formatRateFigure(36.5, "en")).toBe("36.500");
-        expect(formatRateFigure(25_803.1, "en")).toBe("25,803");
+    it("shows a rate to the four decimals it is typed in, never fewer than two, with the language's grouping", () => {
+        expect(formatRateFigure(1031.52, "en")).toBe("1,031.52");
+        expect(formatRateFigure(848.5458, "en")).toBe("848.5458");
+        expect(formatRateFigure(36.5, "en")).toBe("36.50");
+        expect(formatRateFigure(25_803.1, "en")).toBe("25,803.10");
+        expect(formatRateFigure(1031.5187999476, "en")).toBe("1,031.5188");
+    });
+
+    it("shows a rate below one at five significant digits", () => {
         expect(formatRateFigure(0.0011785, "en")).toBe("0.0011785");
         expect(formatQuotedRateFigure("EUR", 0.87113, "en")).toBe("1.1479");
         expect(formatEnteredRate(848.5512, "en")).toBe("848.5512");

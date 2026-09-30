@@ -1,9 +1,8 @@
-import type { EntryRateType } from "@outlayr/money/rates";
-
 import { addDays, formatSentenceDate, startOfDay } from "@/domain/dates";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 import { leadLabelKey } from "@/domain/subscription-reminder";
 import type { LeadLabelKey } from "@/domain/subscription-reminder";
+import type { TransferRateChoice } from "@/domain/transfer-rate-options";
 import type { TranslationKey } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
@@ -28,23 +27,25 @@ export function quotedByBcv(...currencies: readonly string[]): boolean {
 }
 
 const RATE_NAME_KEYS = {
+    binance: "transaction.rate.binance",
     custom: "transaction.rate.custom",
     eur_reference: "transaction.rate.eur_reference",
     official: "transaction.rate.official",
-} as const satisfies Record<EntryRateType, TranslationKey>;
+} as const satisfies Record<TransferRateChoice, TranslationKey>;
 
 const RATE_SOURCE_WORD_KEYS = {
+    binance: "transaction.rate.binance",
     custom: "transaction.sentence.rateSource.custom",
     eur_reference: "transaction.sentence.rateSource.eur_reference",
     official: "transaction.sentence.rateSource.official",
-} as const satisfies Record<EntryRateType, TranslationKey>;
+} as const satisfies Record<TransferRateChoice, TranslationKey>;
 
 /** Names the policy a stated conversion was produced by. */
-export function rateNameKey(type: EntryRateType, bcv: boolean): TranslationKey {
+export function rateNameKey(type: TransferRateChoice, bcv: boolean): TranslationKey {
     return bcv && type === "official" ? "transaction.rate.officialBcv" : RATE_NAME_KEYS[type];
 }
 
-export function rateSourceWordKey(type: EntryRateType, bcv: boolean): TranslationKey {
+export function rateSourceWordKey(type: TransferRateChoice, bcv: boolean): TranslationKey {
     return bcv && type === "official" ? "transaction.sentence.rateSource.officialBcv" : RATE_SOURCE_WORD_KEYS[type];
 }
 

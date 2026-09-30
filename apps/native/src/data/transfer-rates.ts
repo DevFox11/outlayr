@@ -1,5 +1,5 @@
 import { utcDateString } from "@outlayr/money/dates";
-import type { EntryRateType } from "@outlayr/money/rates";
+import type { MarketRateType } from "@outlayr/money/rates";
 import { and, desc, eq, gt, inArray, isNull, lt, or } from "drizzle-orm";
 import { useMemo } from "react";
 
@@ -54,8 +54,8 @@ export function pairRateSource(
 export function useTransferRates(
     db: Database,
     codes: readonly string[],
-    rateTypes: readonly EntryRateType[]
-): Partial<Record<EntryRateType, TransferRateTable>> {
+    rateTypes: readonly MarketRateType[]
+): Partial<Record<MarketRateType, TransferRateTable>> {
     const quotes = useMemo(() => [...new Set(codes.filter((code) => code !== "USD"))].sort(), [codes]);
     const rows = useRatesRead(
         () =>

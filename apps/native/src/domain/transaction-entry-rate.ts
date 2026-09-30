@@ -132,11 +132,14 @@ const RATE_SIGNIFICANT_DIGITS = 5;
 
 const RATE_MAX_DECIMALS = 10;
 
+const RATE_MIN_DECIMALS = 2;
+
 export function formatRateFigure(rate: number, language?: Language): string {
-    const decimals = Math.min(
-        RATE_MAX_DECIMALS,
-        Math.max(0, RATE_SIGNIFICANT_DIGITS - (Math.floor(Math.log10(rate)) + 1))
-    );
+    if (rate >= 1) {
+        const [, fraction = ""] = rateEntryText(rate).split(".");
+        return formatFixed(rate, Math.max(RATE_MIN_DECIMALS, fraction.length), language);
+    }
+    const decimals = Math.min(RATE_MAX_DECIMALS, RATE_SIGNIFICANT_DIGITS - (Math.floor(Math.log10(rate)) + 1));
     return formatFixed(rate, decimals, language);
 }
 
