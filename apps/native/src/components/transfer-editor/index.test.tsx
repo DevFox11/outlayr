@@ -31,6 +31,7 @@ jest.mock<typeof import("@/data/transfer-rates")>("@/data/transfer-rates", () =>
     useTransferRates: (...args) => mockRateTables(...args),
 }));
 jest.mock("@/data/transfers-core", () => ({
+    lastTransfer: () => null,
     transfersRepo: {
         create: (db: unknown, input: TransferInput) => mockCreate(db, input),
         update: (db: unknown, id: string, input: TransferInput) => mockUpdate(db, id, input),

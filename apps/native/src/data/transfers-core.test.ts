@@ -9,7 +9,7 @@ import { testDatabase, withAsyncTransactions } from "@/db/test-database";
 import { firstOfMonth, startOfDay } from "@/domain/dates";
 
 import { accountsRepo } from "./accounts-core";
-import { savedTransfer, transfersRepo } from "./transfers-core";
+import { lastTransfer, savedTransfer, transfersRepo } from "./transfers-core";
 
 const DAY = new Date(Date.UTC(2026, 7, 9));
 const OFFICIAL_VES_PER_USD = 55.5;
@@ -456,6 +456,27 @@ describe("savedTransfer", () => {
         await transfersRepo.softDelete(db, id, DAY);
 
         expect(savedTransfer(db, id)).toBeNull();
+    });
+});
+
+describe("lastTransfer", () => {
+    it("is the newest live transfer, past a deleted one", async () => {
+        const db = makeDb();
+        const { from, to } = await twoAccounts(db);
+        const ids = [
+            await transfersRepo.create(db, baseInput(from, to)),
+            await transfersRepo.create(db, baseInput(from, to)),
+            await transfersRepo.create(db, baseInput(from, to)),
+        ];
+        for (const [index, id] of ids.entries()) {
+            await db
+                .update(transfers)
+                .set({ dateCreated: new Date(index + 1) })
+                .where(eq(transfers.id, id));
+        }
+        await transfersRepo.softDelete(db, ids[2] ?? "", DAY);
+
+        expect(lastTransfer(db)?.id).toBe(ids[1]);
     });
 });
 

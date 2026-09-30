@@ -647,7 +647,7 @@ function VoiceThreadScreen() {
     const openTransferForm = useCallback(
         (draft: ResolvedVoiceTransfer) => {
             // A leg sync removed since the draft resolved is a question for the
-            // editor, not a seed it would quietly swap for the first account.
+            // editor, not a seed it would quietly swap for another account.
             const leg = (account: { id: string } | null, unresolved: boolean) => {
                 const current = account !== null && live.accountIds.has(account.id);
                 return {

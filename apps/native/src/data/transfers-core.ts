@@ -1,7 +1,7 @@
 import { ENTRY_RATE_TYPES } from "@outlayr/money/rates";
 import type { EntryRateType } from "@outlayr/money/rates";
 import { roundMoney } from "@outlayr/money/round";
-import { and, count, eq, inArray, isNull, ne, or } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull, ne, or } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { transactions, transfers } from "@/db/schema";
@@ -186,6 +186,17 @@ export function savedTransfer(db: Database, id: string): SavedTransfer | null {
         toAccountId: transfer.toAccountId,
         toCurrency: transfer.toCurrency,
     };
+}
+
+export function lastTransfer(db: Database): SavedTransfer | null {
+    const [row] = db
+        .select({ id: transfers.id })
+        .from(transfers)
+        .where(isNull(transfers.deletedAt))
+        .orderBy(desc(transfers.dateCreated))
+        .limit(1)
+        .all();
+    return row === undefined ? null : savedTransfer(db, row.id);
 }
 
 function touchesAccount(accountId: string) {

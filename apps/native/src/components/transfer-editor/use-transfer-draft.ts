@@ -7,6 +7,7 @@ import { useAccountBalance, useAccounts } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
 import { pairRateSource, usePriorCustomRate, useTransferRates } from "@/data/transfer-rates";
 import type { RateSource } from "@/data/transfer-rates";
+import { lastTransfer } from "@/data/transfers-core";
 import type { SavedTransfer } from "@/data/transfers-core";
 import type { Database } from "@/db/client";
 import { minorUnitsFor } from "@/domain/money";
@@ -69,14 +70,20 @@ function selectedRate(
     return rateType === "custom" ? custom : market;
 }
 
-function quoteOf(rateType: TransferRateChoice | null, market: MarketRateType | null) {
-    return rateType === "custom" ? market : rateType;
+function quoteOf(rateType: TransferRateChoice | null, market: MarketRateType | null, carried?: MarketRateType) {
+    const type = rateType ?? carried ?? null;
+    return type === "custom" ? (market ?? carried ?? null) : type;
 }
 
-function rateChoices(chosen: TransferRateChoice | null, market: MarketRateType | null, binanceRate: number | null) {
+function rateChoices(
+    chosen: TransferRateChoice | null,
+    market: MarketRateType | null,
+    carried: MarketRateType | undefined,
+    binanceRate: number | null
+) {
     const fallback: MarketRateType = binanceRate === null ? "official" : "binance";
-    const rateType = chosen ?? fallback;
-    return { quoteType: quoteOf(rateType, market) ?? fallback, rateType };
+    const rateType = chosen ?? carried ?? fallback;
+    return { quoteType: quoteOf(rateType, market, carried) ?? fallback, rateType };
 }
 
 function transferBlock(
@@ -215,6 +222,7 @@ export interface TransferSeed {
 interface Opening {
     arrivalPinned: boolean;
     arrivedText: string;
+    carriedRates: Partial<Record<string, MarketRateType>>;
     customRates: Record<string, CustomRate>;
     date: Date;
     feeSide: FeeSide;
@@ -225,25 +233,42 @@ interface Opening {
     toId: string | null;
 }
 
-/** The editor's opening state: the seed where it speaks, the first two accounts where it does not. */
-function openingState(accounts: readonly Account[], seed: TransferSeed | undefined): Opening {
+/** The editor's opening state: the seed where it speaks, else the last transfer's route, else the first two accounts. */
+function openingState(
+    accounts: readonly Account[],
+    seed: TransferSeed | undefined,
+    last: SavedTransfer | null
+): Opening {
     const from = accounts.find((account) => account.id === seed?.fromAccountId);
     const to = accounts.find((account) => account.id === seed?.toAccountId);
     const amount = seed?.amount;
     const spokenIn = seed?.currency;
     const onSent = amount !== undefined && from !== undefined && (spokenIn === undefined || spokenIn === from.currency);
     const onArrival = amount !== undefined && !onSent && to !== undefined && spokenIn === to.currency;
-    // A leg the seed left unnamed takes the first account that is not the
-    // other leg, so a half-resolved move never opens as an account paying
-    // itself. A leg that was named and missed stays empty: guessing a balance
-    // the person never named is worse than asking.
-    const fallbackFrom = seed?.fromUnresolved ? null : accounts.find((account) => account.id !== to?.id)?.id;
+    const holds = (id: string, currency: string) =>
+        accounts.some((account) => account.id === id && account.currency === currency);
+    const route =
+        last !== null && holds(last.fromAccountId, last.fromCurrency) && holds(last.toAccountId, last.toCurrency)
+            ? last
+            : null;
+    // A leg the seed left unnamed takes the last transfer's leg, else the first
+    // account, whichever is not the other leg, so a half-resolved move never
+    // opens as an account paying itself. A leg that was named and missed stays
+    // empty: guessing a balance the person never named is worse than asking.
+    const leg = (routed: string | undefined, other: string | null | undefined) =>
+        [routed, ...accounts.map((account) => account.id)].find((id) => id !== undefined && id !== other);
+    const fallbackFrom = seed?.fromUnresolved ? null : leg(route?.fromAccountId, to?.id);
     const fromId = from?.id ?? fallbackFrom ?? null;
-    const fallbackTo = seed?.toUnresolved ? null : accounts.find((account) => account.id !== fromId)?.id;
+    const fallbackTo = seed?.toUnresolved ? null : leg(route?.toAccountId, fromId);
     const toId = to?.id ?? fallbackTo ?? null;
+    const onRoute = route !== null && fromId === route.fromAccountId && toId === route.toAccountId;
     return {
         arrivalPinned: onArrival,
         arrivedText: onArrival ? numberToNumpad(amount, minorUnitsFor(to.currency)) : "",
+        carriedRates:
+            onRoute && route.rateType !== null && route.rateType !== "custom"
+                ? { [`${route.fromCurrency}/${route.toCurrency}`]: route.rateType }
+                : {},
         customRates: {},
         date: seed?.date ?? new Date(),
         feeSide: "source",
@@ -259,19 +284,24 @@ function savedState(accounts: readonly Account[], saved: SavedTransfer): Opening
     const fromCurrency = accounts.find((account) => account.id === saved.fromAccountId)?.currency;
     const toCurrency = accounts.find((account) => account.id === saved.toAccountId)?.currency;
     if (fromCurrency !== saved.fromCurrency || toCurrency !== saved.toCurrency) {
-        return openingState(accounts, {
-            date: saved.date,
-            fromAccountId: saved.fromAccountId,
-            fromUnresolved: true,
-            toAccountId: saved.toAccountId,
-            toUnresolved: true,
-        });
+        return openingState(
+            accounts,
+            {
+                date: saved.date,
+                fromAccountId: saved.fromAccountId,
+                fromUnresolved: true,
+                toAccountId: saved.toAccountId,
+                toUnresolved: true,
+            },
+            null
+        );
     }
     const rateType = saved.rateType ?? "official";
     const inverse = pairQuotedInverse(saved.fromCurrency, saved.toCurrency, saved.rate);
     return {
         arrivalPinned: fromCurrency !== toCurrency,
         arrivedText: numberToNumpad(saved.arrived, minorUnitsFor(toCurrency)),
+        carriedRates: {},
         customRates:
             rateType === "custom" && saved.rate !== null
                 ? {
@@ -341,7 +371,9 @@ function restoredBy(saved: SavedTransfer | undefined, account: Account | null): 
 
 export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: SavedTransfer): TransferDraft {
     const accounts = useAccounts(db);
-    const [opening] = useState(() => (saved ? savedState(accounts, saved) : openingState(accounts, seed)));
+    const [opening] = useState(() =>
+        saved ? savedState(accounts, saved) : openingState(accounts, seed, lastTransfer(db))
+    );
     const [fromId, setFromId] = useState<string | null>(opening.fromId);
     const [toId, setToId] = useState<string | null>(opening.toId);
     const [sentText, setSentText] = useState(opening.sentText);
@@ -362,6 +394,8 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
     const fromCurrency = from?.currency ?? "USD";
     const toCurrency = to?.currency ?? "USD";
     const crossCurrency = fromCurrency !== toCurrency;
+    const pair = `${fromCurrency}/${toCurrency}`;
+    const carriedRate = opening.carriedRates[pair];
     const fromRestored = restoredBy(saved, from);
     const toRestored = restoredBy(saved, to);
 
@@ -376,7 +410,7 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
         initialBalance: to?.initialBalance ?? 0,
     });
 
-    const chosenQuote = quoteOf(chosenRate, marketType);
+    const chosenQuote = quoteOf(chosenRate, marketType, carriedRate);
     const quotedTypes = useMemo(
         () =>
             MARKET_RATE_TYPES.filter(
@@ -389,10 +423,9 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
         () => tableRatesFor(fromCurrency, toCurrency, date, rateTables),
         [fromCurrency, toCurrency, date, rateTables]
     );
-    const { quoteType, rateType } = rateChoices(chosenRate, marketType, tableRates.binance);
+    const { quoteType, rateType } = rateChoices(chosenRate, marketType, carriedRate, tableRates.binance);
     const tableRate = tableRates[quoteType];
     const priorCustomRate = usePriorCustomRate(db, fromCurrency, toCurrency, date);
-    const pair = `${fromCurrency}/${toCurrency}`;
     const ownQuote = savedQuote(saved, pair, quoteType, date);
     const marketRate = ownQuote ?? tableRate;
     const customRate = customRates[pair];

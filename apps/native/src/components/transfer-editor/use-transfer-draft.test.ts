@@ -23,10 +23,15 @@ const mockAccounts = [
 const mockRates = new Map<string, number>();
 const mockBinanceRates = new Map<string, number>();
 const mockBalances = new Map<string, number>();
+const mockLastTransfer = jest.fn<() => SavedTransfer | null>(() => null);
 
 jest.mock("@/data/accounts", () => ({
     useAccountBalance: (_db: unknown, account: { id: string }) => ({ total: mockBalances.get(account.id) ?? 0 }),
     useAccounts: () => mockAccounts,
+}));
+
+jest.mock("@/data/transfers-core", () => ({
+    lastTransfer: () => mockLastTransfer(),
 }));
 
 jest.mock("@/data/transfer-rates", () => ({
@@ -58,6 +63,8 @@ beforeEach(() => {
     mockRates.clear();
     mockBinanceRates.clear();
     mockBalances.clear();
+    mockLastTransfer.mockReset();
+    mockLastTransfer.mockReturnValue(null);
 });
 
 async function draft(): Promise<{ current: TransferDraft }> {
@@ -481,6 +488,84 @@ describe("useTransferDraft seed", () => {
         );
         expect(missedDestination.result.current.from?.id).toBe("usd");
         expect(missedDestination.result.current.to).toBeNull();
+    });
+});
+
+describe("a new transfer after the last one", () => {
+    const last: SavedTransfer = {
+        arrived: 157_471.66,
+        date: new Date(Date.UTC(2026, 8, 22)),
+        fee: 7.34,
+        feeSide: "destination",
+        fromAccountId: "usd-2",
+        fromCurrency: "USD",
+        id: "last",
+        note: "",
+        rate: 984.1979,
+        rateType: "official",
+        sent: 160,
+        toAccountId: "ves",
+        toCurrency: "VES",
+    };
+
+    beforeEach(() => {
+        mockRates.set("VES", 36.5);
+        mockBinanceRates.set("VES", 1031.52);
+    });
+
+    it("opens on its pair and market rate, with the fee on the sender and every figure empty", async () => {
+        mockLastTransfer.mockReturnValue(last);
+        const result = await draft();
+        expect(result.current).toMatchObject({
+            arrivedText: "",
+            feeSide: "source",
+            feeText: "",
+            from: { id: "usd-2" },
+            quotedRate: 36.5,
+            rateType: "official",
+            sentText: "",
+            to: { id: "ves" },
+        });
+    });
+
+    it("leaves a custom rate behind and opens on the day's Binance rate", async () => {
+        mockLastTransfer.mockReturnValue({ ...last, rateType: "custom" });
+        const result = await draft();
+        expect(result.current).toMatchObject({ from: { id: "usd-2" }, quotedRate: 1031.52, rateType: "binance" });
+    });
+
+    it("drops its rate source once a leg leaves its pair", async () => {
+        mockLastTransfer.mockReturnValue({ ...last, toAccountId: "eur", toCurrency: "EUR" });
+        const result = await draft();
+        expect(result.current).toMatchObject({ rateType: "official", to: { id: "eur" } });
+        await act(async () => {
+            result.current.chooseTo(mockAccounts[1] ?? null);
+        });
+        expect(result.current).toMatchObject({ quotedRate: 1031.52, rateType: "binance", to: { id: "ves" } });
+    });
+
+    it.each([
+        ["an account that is gone", { toAccountId: "gone" }],
+        ["an account in another currency now", { fromCurrency: "EUR" }],
+    ])("opens on the first two accounts when its route has %s", async (_case, change) => {
+        mockLastTransfer.mockReturnValue({ ...last, ...change });
+        const result = await draft();
+        expect(result.current).toMatchObject({
+            feeSide: "source",
+            from: { id: "usd" },
+            rateType: "binance",
+            to: { id: "ves" },
+        });
+    });
+
+    it("gives way to a seeded leg and keeps the other", async () => {
+        mockLastTransfer.mockReturnValue(last);
+        const { result } = await renderHook(() => useTransferDraft({} as Database, { fromAccountId: "eur" }));
+        expect(result.current).toMatchObject({ feeSide: "source", from: { id: "eur" }, to: { id: "ves" } });
+
+        const missed = await renderHook(() => useTransferDraft({} as Database, { fromUnresolved: true }));
+        expect(missed.result.current.from).toBeNull();
+        expect(missed.result.current.to?.id).toBe("ves");
     });
 });
 
