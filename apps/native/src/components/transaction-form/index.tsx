@@ -61,11 +61,13 @@ import type { Database } from "@/db/client";
 import { cardFeeAmount, cardFeeBase, cardFeeOf, feeDraftOf, formatFeeRate, NO_FEE } from "@/domain/card-fee";
 import type { FeeDraft } from "@/domain/card-fee";
 import { computeCurtainHues } from "@/domain/curtain-hues";
-import { formatSentenceDate, formatTime, startOfDay } from "@/domain/dates";
+import { formatSentenceDate } from "@/domain/dates";
 import { merchantKey } from "@/domain/merchant-resolver";
 import { suggestMerchants } from "@/domain/merchant-suggest";
 import { formatAmount, formatFixed, minorUnitsFor, numberLocale, roundToMinorUnits } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
+import { rateAge } from "@/domain/rate-age";
+import type { RateAge } from "@/domain/rate-age";
 import { ensureRecurringType, RECURRING_TYPE } from "@/domain/recurrence";
 import { enableReminderStep } from "@/domain/reminder";
 import { isBalanced } from "@/domain/split";
@@ -1106,16 +1108,18 @@ export function TransactionForm({
         setRateType: (next) => form.setFieldValue("exchangeRateType", next),
         stageStep,
     });
-    const rateAsOf = (type: Exclude<EntryRateType, "custom">, offered: number | null): string => {
-        const fetchedAt =
-            type === "official" ? rateSuggestions.officialFetchedAt : rateSuggestions.eurReferenceFetchedAt;
-        if (fetchedAt === null || offered !== suggestionFor(type)) {
-            return t("transaction.rate.asOf", { date: formatSentenceDate(date, language) });
-        }
-        const fetched = new Date(fetchedAt);
-        return startOfDay(fetched).getTime() === startOfDay(new Date()).getTime()
-            ? t("transaction.rate.asOfTime", { time: formatTime(fetched, use24Hour, language) })
-            : t("transaction.rate.asOf", { date: formatSentenceDate(fetched, language) });
+    const rateAgeOf = (type: Exclude<EntryRateType, "custom">, offered: number | null): RateAge => {
+        const official = type === "official";
+        const suggested = offered === suggestionFor(type);
+        const suggestedDate = official ? rateSuggestions.officialDate : rateSuggestions.eurReferenceDate;
+        return rateAge(t, {
+            entryDate: date,
+            fetchedAt: official ? rateSuggestions.officialFetchedAt : rateSuggestions.eurReferenceFetchedAt,
+            language,
+            now: new Date(),
+            rateDate: suggested ? suggestedDate : null,
+            use24Hour,
+        });
     };
     const rateOptions = (): StepRateOption[] =>
         transactionRateOptions(currency).map((type) => {
@@ -1140,7 +1144,7 @@ export function TransactionForm({
                 rateSelection.exchangeRateType === type && rateInForce !== null ? rateInForce : suggestionFor(type);
             return {
                 ...shared,
-                detail: rateAsOf(type, offered),
+                ...rateAgeOf(type, offered),
                 figure: offered === null ? null : rateFigure(offered),
                 placeholder: t("transaction.rate.unavailable"),
             };

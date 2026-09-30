@@ -6,8 +6,10 @@ import { exchangeRates, transactions } from "@/db/schema";
 
 export interface TransactionRateSuggestions {
     eurReference: number | null;
+    eurReferenceDate: string | null;
     eurReferenceFetchedAt: number | null;
     official: number | null;
+    officialDate: string | null;
     officialFetchedAt: number | null;
     priorCustom: { date: Date; rate: number } | null;
 }
@@ -17,9 +19,9 @@ function providerRate(
     currency: string,
     rateType: "eur_reference" | "official",
     date: string
-): { fetchedAt: number; rate: number } | null {
+): { date: string; fetchedAt: number; rate: number } | null {
     const [row] = db
-        .select({ fetchedAt: exchangeRates.fetchedAt, rate: exchangeRates.rate })
+        .select({ date: exchangeRates.date, fetchedAt: exchangeRates.fetchedAt, rate: exchangeRates.rate })
         .from(exchangeRates)
         .where(
             and(eq(exchangeRates.quote, currency), eq(exchangeRates.rateType, rateType), lte(exchangeRates.date, date))
@@ -52,8 +54,10 @@ export function transactionRateSuggestions(db: Database, currency: string, date:
 
     return {
         eurReference: eurReference?.rate ?? null,
+        eurReferenceDate: eurReference?.date ?? null,
         eurReferenceFetchedAt: eurReference?.fetchedAt ?? null,
         official: official?.rate ?? null,
+        officialDate: official?.date ?? null,
         officialFetchedAt: official?.fetchedAt ?? null,
         priorCustom:
             priorCustom?.rate == null

@@ -386,6 +386,14 @@ const transaction = {
             en: "My rate",
             es: "Mi tasa",
         }),
+        "transaction.rate.daysOld_one": t({
+            en: "{count} day old · {date}",
+            es: "De hace {count} día · {date}",
+        }),
+        "transaction.rate.daysOld_other": t({
+            en: "{count} days old · {date}",
+            es: "De hace {count} días · {date}",
+        }),
         "transaction.rate.deltaAbove": t({
             en: "{percent} above official",
             es: "{percent} sobre la oficial",

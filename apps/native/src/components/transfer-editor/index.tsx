@@ -7,19 +7,27 @@ import { Text } from "@/components/text";
 import { TransactionFormAmountPad } from "@/components/transaction-form/amount-pad";
 import { MetaLine } from "@/components/transaction-form/stage/meta-line";
 import { TransactionStage } from "@/components/transaction-form/stage/stage";
-import { StageOptionRow } from "@/components/transaction-form/stage/stage-options";
 import { StepAccount } from "@/components/transaction-form/stage/step-account";
 import { StepDate } from "@/components/transaction-form/stage/step-date";
+import { StepRate } from "@/components/transaction-form/stage/step-rate";
 import { StepWhen } from "@/components/transaction-form/stage/step-when";
-import { useSettingNumber } from "@/contexts/display-settings-context";
+import { useDisplaySettings, useSettingNumber } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { transfersRepo } from "@/data/transfers-core";
 import type { SavedTransfer, TransferInput } from "@/data/transfers-core";
 import { formatSignedAmount } from "@/domain/account-display";
+import { formatSentenceDate } from "@/domain/dates";
 import { formatAmount, numberLocale } from "@/domain/money";
 import { applyNumpadKey, numpadMode } from "@/domain/numpad";
 import type { NumpadKey, NumpadMode } from "@/domain/numpad";
-import { pairUnitSymbols, RATE_ENTRY_DECIMALS } from "@/domain/transaction-entry-rate";
+import { rateAge } from "@/domain/rate-age";
+import {
+    formatRateFigure,
+    pairUnitSymbols,
+    quotePairRate,
+    RATE_ENTRY_DECIMALS,
+    rateEntryText,
+} from "@/domain/transaction-entry-rate";
 import { RATE_NAME_KEYS, RATE_SOURCE_WORD_KEYS, transactionWhenLabel } from "@/domain/transaction-form-labels";
 import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -50,6 +58,7 @@ export default function TransferEditor({ onDirtyChange, onDone, saved, seed }: T
     const colors = useColors();
     const haptics = useHaptics();
     const entryMode = numpadMode(useSettingNumber("numberEntryType"));
+    const { use24Hour } = useDisplaySettings().state;
     const draft = useTransferDraft(db, seed, saved);
     const initialNote = saved?.note ?? seed?.note ?? "";
     const noteRef = useRef(initialNote);
@@ -278,21 +287,55 @@ export default function TransferEditor({ onDirtyChange, onDone, saved, seed }: T
             }
             if (step === "rateType") {
                 return (
-                    <StageOptionRow
+                    <StepRate
                         onSelect={(next) => {
                             touch();
+                            const prior = draft.priorCustomRate;
+                            if (next === "custom" && draft.rateType !== "custom" && prior !== null) {
+                                draft.setCustomRate(rateEntryText(quotePairRate(draft.rateInverse, prior.rate)));
+                            }
                             draft.setRateType(next);
                             enter(next === "custom" ? "rate" : "amount");
                         }}
-                        options={draft.rateOptions.map((option) => {
-                            const name = t(RATE_NAME_KEYS[option]);
-                            const figure = formatRate(draft, draft.marketRates[option], language);
+                        options={draft.rateOptions.map((type) => {
+                            const shared = { name: t(RATE_NAME_KEYS[type]), type, unit: rateUnit };
+                            if (type === "custom") {
+                                const prior = draft.priorCustomRate;
+                                return {
+                                    ...shared,
+                                    detail:
+                                        prior === null
+                                            ? t("transaction.rate.typeHint")
+                                            : t("transaction.rate.lastUsed", {
+                                                  date: formatSentenceDate(prior.date, language),
+                                                  rate: formatRateFigure(
+                                                      quotePairRate(draft.rateInverse, prior.rate),
+                                                      language
+                                                  ),
+                                              }),
+                                    figure:
+                                        draft.rateType === "custom"
+                                            ? formatRate(draft, draft.quotedRate, language)
+                                            : null,
+                                    placeholder: t("transaction.rate.type"),
+                                };
+                            }
+                            const source = draft.rateSources[type];
                             return {
-                                id: option,
-                                label: figure === null ? name : t("transfers.rate.option", { name, rate: figure }),
+                                ...shared,
+                                ...rateAge(t, {
+                                    entryDate: draft.date,
+                                    fetchedAt: source?.fetchedAt ?? null,
+                                    language,
+                                    now: new Date(),
+                                    rateDate: source?.date ?? null,
+                                    use24Hour,
+                                }),
+                                figure: formatRate(draft, draft.marketRates[type], language),
+                                placeholder: t("transaction.rate.unavailable"),
                             };
                         })}
-                        selectedId={draft.rateType}
+                        selected={draft.rateType}
                     />
                 );
             }
@@ -324,16 +367,17 @@ export default function TransferEditor({ onDirtyChange, onDone, saved, seed }: T
         const titles = {
             date: t("transfers.field.date"),
             from: t("transfers.field.from"),
-            rateType: t("transfers.field.rateType"),
+            rateType: t("transaction.rate.title"),
             to: t("transfers.field.to"),
             when: t("transfers.field.date"),
         } as const;
+        const toAmount = () => enter("amount", false);
         return (
             <TransactionStage
                 backLabel={t("common.back")}
-                footer={footer}
+                footer={step === "rateType" ? { label: t("common.done"), onPress: toAmount, tone: "primary" } : footer}
                 forward={forward}
-                onBack={() => enter("amount", false)}
+                onBack={toAmount}
                 stepKey={step}
                 title={titles[step]}
             >

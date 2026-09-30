@@ -13,6 +13,7 @@ export interface StepRateOption {
     figure: string | null;
     name: string;
     placeholder: string;
+    stale?: boolean;
     type: EntryRateType;
     unit: string;
 }
@@ -34,7 +35,7 @@ export function StepRate({ onSelect, options, selected }: StepRateProps) {
                         accessibilityRole="radio"
                         accessibilityState={{ checked }}
                         accessibilityValue={{
-                            text: option.figure === null ? option.placeholder : `${option.figure} ${option.unit}`,
+                            text: `${option.figure === null ? option.placeholder : `${option.figure} ${option.unit}`}, ${option.detail}`,
                         }}
                         className="border-separator flex-row items-center gap-3 border-b py-2.5 active:opacity-60"
                         key={option.type}
@@ -51,7 +52,10 @@ export function StepRate({ onSelect, options, selected }: StepRateProps) {
                         </View>
                         <View className="min-w-0 flex-1">
                             <Text className="font-sans-semibold text-callout text-foreground">{option.name}</Text>
-                            <Text className="text-footnote text-muted" numberOfLines={1}>
+                            <Text
+                                className={cn("text-footnote", option.stale ? "text-warning-foreground" : "text-muted")}
+                                numberOfLines={1}
+                            >
                                 {option.detail}
                             </Text>
                         </View>

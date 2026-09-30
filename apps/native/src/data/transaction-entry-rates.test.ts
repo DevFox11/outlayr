@@ -73,8 +73,10 @@ describe("transactionRateSuggestions", () => {
 
         expect(transactionRateSuggestions(db, "VES", SELECTED_DATE)).toStrictEqual({
             eurReference: 50,
+            eurReferenceDate: "2026-08-09",
             eurReferenceFetchedAt: 4,
             official: 42,
+            officialDate: "2026-08-10",
             officialFetchedAt: 2,
             priorCustom: null,
         });

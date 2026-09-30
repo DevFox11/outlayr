@@ -26,6 +26,8 @@ jest.mock("@/data/accounts", () => ({
 }));
 
 jest.mock("@/data/transfer-rates", () => ({
+    pairRateSource: () => null,
+    usePriorCustomRate: () => null,
     useTransferRates: (_db: unknown, _codes: unknown, rateTypes: readonly string[]) =>
         Object.fromEntries(
             rateTypes.map((rateType) => [
@@ -296,6 +298,22 @@ describe("swapping a transfer that carries a custom rate", () => {
         });
         expect(result.current.customRatePadText).toBe("600");
         expect(result.current.effectiveRate).toBe(600);
+    });
+});
+
+describe("choosing my rate before typing one", () => {
+    it("stays on the quoted source until a rate is typed", async () => {
+        mockRates.set("VES", OFFICIAL_VES_PER_USD);
+        const result = await draft();
+        await act(async () => {
+            result.current.setRateType("custom");
+        });
+        expect(result.current.rateType).toBe("official");
+
+        await act(async () => {
+            result.current.setCustomRate(TYPED_RATE);
+        });
+        expect(result.current.rateType).toBe("custom");
     });
 });
 

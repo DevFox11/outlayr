@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { utcDateString } from "@outlayr/money/dates";
 import { act, fireEvent, render, waitFor, within } from "@testing-library/react-native";
 import { eq } from "drizzle-orm";
 import { AccessibilityInfo, Alert } from "react-native";
@@ -85,6 +86,7 @@ jest.mock("@/i18n/context", () => {
     const TRANSLATED: Record<string, string> = {
         "transaction.rate.asOf": catalog.EN["transaction.rate.asOf"] ?? "",
         "transaction.rate.asOfTime": catalog.EN["transaction.rate.asOfTime"] ?? "",
+        "transaction.rate.daysOld": catalog.EN["transaction.rate.daysOld_other"] ?? "",
         "transaction.sentence.add.label": catalog.EN["transaction.sentence.add.label"] ?? "",
         "transaction.sentence.expense": catalog.EN["transaction.sentence.expense"] ?? "",
         "transaction.sentence.extra.tags": catalog.EN["transaction.sentence.extra.tags"] ?? "",
@@ -3467,7 +3469,7 @@ describe("transactionForm entry-rate confirmation", () => {
         await openRateStep(screen);
         expect(screen.getByRole("radio", { name: "transaction.rate.official" }).props.accessibilityValue).toMatchObject(
             {
-                text: "transaction.rate.unavailable",
+                text: expect.stringContaining("transaction.rate.unavailable"),
             }
         );
 
@@ -3486,7 +3488,7 @@ describe("transactionForm entry-rate confirmation", () => {
         await waitFor(() => {
             expect(
                 screen.getByRole("radio", { name: "transaction.rate.official" }).props.accessibilityValue
-            ).toMatchObject({ text: "42.000 transaction.rate.unit" });
+            ).toMatchObject({ text: expect.stringContaining("42.000 transaction.rate.unit") });
         });
     });
 
@@ -3909,14 +3911,15 @@ describe("transactionForm entry-rate confirmation", () => {
     });
 
     it.each([
-        ["today", new Date().setHours(12, 5, 0, 0), "As of 12:05 PM"],
-        ["an earlier day", new Date(2026, 7, 10, 12, 5).getTime(), "As of 10 Aug"],
-    ])("states when the official rate was fetched %s", async (_day, fetchedAt, label) => {
+        ["the time of a rate fetched today", 0, "As of 12:05 PM", "text-muted"],
+        ["the age of a rate from before the entry's day", 10, "10 days old", "text-warning-foreground"],
+    ])("states %s", async (_case, daysOld, label, ink) => {
         const db = dbHolder.current as Database;
         const categoryId = await seedCategory(db);
+        const today = new Date().setHours(12, 5, 0, 0);
         await db.insert(exchangeRates).values({
-            date: "2026-08-10",
-            fetchedAt,
+            date: utcDateString(Date.now() - daysOld * 86_400_000),
+            fetchedAt: today,
             quote: "EUR",
             rate: 0.88,
             rateType: "official",
@@ -3940,6 +3943,28 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await openRateStep(screen);
-        expect(screen.getByText(label)).toBeTruthy();
+        expect(screen.getByText(label, { exact: false }).props.className).toContain(ink);
+    });
+
+    it("keeps an entry's own stored rate reading as of the entry's day", async () => {
+        const db = dbHolder.current as Database;
+        await db.insert(exchangeRates).values({
+            date: "2026-08-01",
+            fetchedAt: 1,
+            quote: "VES",
+            rate: 42,
+            rateType: "official",
+            source: "provider",
+        });
+        const initial = await seedStoredTransaction(db, { exchangeRate: 40, exchangeRateType: "official" });
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+            </Providers>
+        );
+
+        await openRateStep(screen);
+        const official = within(screen.getByRole("radio", { name: "transaction.rate.official" }));
+        expect(official.getByText("As of 10 Aug").props.className).toContain("text-muted");
     });
 });

@@ -11,7 +11,10 @@ import TransferEditor from "./index";
 const mockAccounts = [
     { currency: "USD", id: "usd", initialBalance: 0, name: "Zinli" } as Account,
     { currency: "USD", id: "usd-2", initialBalance: 0, name: "Mercantil" } as Account,
+    { currency: "VES", id: "ves", initialBalance: 0, name: "Banesco" } as Account,
 ];
+const mockRateTables = jest.fn<typeof import("@/data/transfer-rates").useTransferRates>(() => ({}));
+const mockPriorRate = jest.fn<typeof import("@/data/transfer-rates").usePriorCustomRate>(() => null);
 const mockNumberEntryType = jest.fn<() => number>(() => 1);
 const mockCreate = jest.fn<(db: unknown, input: TransferInput) => Promise<string>>();
 const mockUpdate = jest.fn<(db: unknown, id: string, input: TransferInput) => Promise<void>>();
@@ -22,7 +25,11 @@ jest.mock("@/data/accounts", () => ({
     useAccountBalance: () => ({ total: 500 }),
     useAccounts: () => mockAccounts,
 }));
-jest.mock("@/data/transfer-rates", () => ({ useTransferRates: () => ({}) }));
+jest.mock<typeof import("@/data/transfer-rates")>("@/data/transfer-rates", () => ({
+    ...jest.requireActual<typeof import("@/data/transfer-rates")>("@/data/transfer-rates"),
+    usePriorCustomRate: (...args) => mockPriorRate(...args),
+    useTransferRates: (...args) => mockRateTables(...args),
+}));
 jest.mock("@/data/transfers-core", () => ({
     transfersRepo: {
         create: (db: unknown, input: TransferInput) => mockCreate(db, input),
@@ -34,6 +41,7 @@ jest.mock<Partial<typeof import("@/lib/notify")>>("@/lib/notify", () => ({
 }));
 jest.mock("@/contexts/local-data-context", () => ({ useDatabase: () => ({}) }));
 jest.mock("@/contexts/display-settings-context", () => ({
+    useDisplaySettings: () => ({ state: { use24Hour: true } }),
     useSettingNumber: () => mockNumberEntryType(),
 }));
 jest.mock("@/hooks/use-pro-gate", () => ({ useAccountCreateRoute: () => "/accounts/create" }));
@@ -58,18 +66,13 @@ jest.mock("number-flow-react-native", () => {
 });
 jest.mock("@/i18n/context", () => {
     const catalog = require("@/i18n/catalog") as typeof import("@/i18n/catalog");
+    const { translate } = require("@/i18n/translate") as typeof import("@/i18n/translate");
     return {
         useLanguage: () => ({ language: "en" }),
-        useTranslation: () => (key: string, params?: Record<string, unknown>) => {
-            const template = /^transfers\.(a11y|saved\.title|sentence)(?!\.blank)/.test(key)
-                ? catalog.EN[key]
-                : undefined;
-            return template === undefined
-                ? key
-                : template.replaceAll(/\{(\w+)\}/g, (match, name: string) =>
-                      params && name in params ? String(params[name]) : match
-                  );
-        },
+        useTranslation: () => (key: string, params?: Record<string, string | number>) =>
+            /^(transfers\.(a11y|saved\.title|sentence)(?!\.blank)|transaction\.rate\.)/.test(key)
+                ? translate(key, { catalog: catalog.EN, fallback: catalog.EN, params })
+                : key,
     };
 });
 
@@ -108,6 +111,10 @@ beforeEach(() => {
     mockUpdate.mockResolvedValue();
     mockPush.mockReset();
     mockNotifySaved.mockReset();
+    mockRateTables.mockReset();
+    mockRateTables.mockReturnValue({});
+    mockPriorRate.mockReset();
+    mockPriorRate.mockReturnValue(null);
 });
 
 describe("transfer editor keypad", () => {
@@ -307,5 +314,74 @@ describe("transfer editor saved notice", () => {
         expect(mockUpdate).toHaveBeenCalledTimes(1);
         expect(onDone).toHaveBeenCalledTimes(1);
         expect(mockNotifySaved).not.toHaveBeenCalled();
+    });
+});
+
+describe("transfer editor rate step", () => {
+    const CROSS = { amount: 50, date: new Date(2026, 8, 29, 12), fromAccountId: "usd", toAccountId: "ves" };
+    const quotedAt = (rate: number) => ({
+        earliest: () => null,
+        get: () => rate,
+        source: () => ({ date: "2026-09-19", fetchedAt: 0 }),
+    });
+
+    beforeEach(() => {
+        mockRateTables.mockReturnValue({ eur_reference: quotedAt(974.42), official: quotedAt(848.55) });
+        mockPriorRate.mockReturnValue({ date: new Date(2026, 8, 27), rate: 1020 });
+    });
+
+    it("lists each source with its figure, unit and age, and marks the one in force", async () => {
+        await render(<TransferEditor onDone={jest.fn()} seed={CROSS} />);
+
+        await press("transfers.field.rateType");
+
+        const rows = screen.getAllByRole("radio");
+        expect(rows.map((row) => [row.props.accessibilityLabel, row.props.accessibilityValue.text])).toStrictEqual([
+            ["Official", "848.55 Bs. per $, 10 days old · 19 Sep"],
+            ["EUR (BCV)", "974.42 Bs. per $, 10 days old · 19 Sep"],
+            ["My rate", "Type, Last used 1,020.0 · 27 Sep"],
+        ]);
+        expect(rows.map((row) => row.props.accessibilityState.checked)).toStrictEqual([true, false, false]);
+        const stale = screen.getAllByText("10 days old · 19 Sep");
+        expect(stale).toHaveLength(2);
+        expect(stale[0].props.className).toContain("text-warning-foreground");
+        expect(screen.getByText("Last used 1,020.0 · 27 Sep")).toBeTruthy();
+    });
+
+    it("returns to the amount from Done without saving", async () => {
+        await render(<TransferEditor onDone={jest.fn()} seed={CROSS} />);
+        await press("transfers.field.rateType");
+        expect(screen.queryByLabelText("transfers.save")).toBeNull();
+
+        await press("common.done");
+
+        expect(mockCreate).not.toHaveBeenCalled();
+        expect(screen.queryAllByRole("radio")).toHaveLength(0);
+        expect(screen.getByLabelText("transfers.save")).toBeTruthy();
+    });
+
+    it("applies the last used rate from My rate", async () => {
+        await render(<TransferEditor onDone={jest.fn()} seed={CROSS} />);
+        await press("transfers.field.rateType");
+
+        await press("My rate");
+        await press("common.back");
+        await press("transfers.save");
+
+        expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({
+            exchangeRate: 1020,
+            exchangeRateType: "custom",
+            toAmount: 51_000,
+        });
+    });
+
+    it("opens the rate keypad from My rate", async () => {
+        await render(<TransferEditor onDone={jest.fn()} seed={CROSS} />);
+        await press("transfers.field.rateType");
+
+        await press("My rate");
+
+        expect(screen.getByText("transfers.field.rate")).toBeTruthy();
+        expect(screen.getByLabelText("1")).toBeTruthy();
     });
 });

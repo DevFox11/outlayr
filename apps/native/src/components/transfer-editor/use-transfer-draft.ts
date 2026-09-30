@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 
 import { useAccountBalance, useAccounts } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
-import { useTransferRates } from "@/data/transfer-rates";
+import { pairRateSource, usePriorCustomRate, useTransferRates } from "@/data/transfer-rates";
+import type { RateSource } from "@/data/transfer-rates";
 import type { SavedTransfer } from "@/data/transfers-core";
 import type { Database } from "@/db/client";
 import { minorUnitsFor } from "@/domain/money";
@@ -138,9 +139,11 @@ export interface TransferDraft {
     legs: TransferLegs | null;
     marketRates: Record<EntryRateType, number | null>;
     pinArrival: () => void;
+    priorCustomRate: { date: Date; rate: number } | null;
     quotedRate: number | null;
     rateInverse: boolean;
     rateOptions: EntryRateType[];
+    rateSources: Record<EntryRateType, RateSource | null>;
     rateType: EntryRateType;
     resolveAsFee: () => void;
     resolveAsRate: () => void;
@@ -350,6 +353,7 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
         [fromCurrency, toCurrency, date, rateTables]
     );
     const tableRate = tableRates[quoteType];
+    const priorCustomRate = usePriorCustomRate(db, fromCurrency, toCurrency, date);
     const pair = `${fromCurrency}/${toCurrency}`;
     const ownQuote = savedQuote(saved, pair, quoteType, date);
     const marketRate = tableRate ?? ownQuote;
@@ -357,9 +361,8 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
     const rateInverse = customRate?.inverse ?? pairQuotedInverse(fromCurrency, toCurrency, marketRate);
     const quote = (value: number) => quotePairRate(rateInverse, value);
     /** Keyed by pair, so a rate typed for another one does not answer here — and
-     * without this the segmented control would label the market rate user-authored. */
-    const shownRateType: EntryRateType =
-        rateType === "custom" && customRate === undefined && marketRate === null ? marketType : rateType;
+     * without this the rate list would label the market rate user-authored. */
+    const shownRateType: EntryRateType = rateType === "custom" && customRate === undefined ? marketType : rateType;
     const rate = selectedRate(crossCurrency, rateType, pairRate(customRate, marketRate, quote), marketRate);
 
     function setCustomRateText(text: string) {
@@ -466,9 +469,15 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
             setArrivedText(math.arrived === null ? "" : numberToNumpad(math.arrived, toDecimals));
             setArrivalPinned(true);
         },
+        priorCustomRate,
         quotedRate: rate,
         rateInverse,
         rateOptions: crossCurrency ? rateTypeOptions(toCurrency) : [],
+        rateSources: {
+            custom: null,
+            eur_reference: pairRateSource(fromCurrency, toCurrency, date, rateTables.eur_reference),
+            official: pairRateSource(fromCurrency, toCurrency, date, rateTables.official),
+        },
         rateType: shownRateType,
         // Destination side whatever the current one is: the gap is a
         // destination-currency figure, so it lands there exactly. Carrying it to the

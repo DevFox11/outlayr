@@ -1,29 +1,68 @@
+import { utcDateString } from "@outlayr/money/dates";
 import type { EntryRateType } from "@outlayr/money/rates";
-import { and, inArray } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, lt, or } from "drizzle-orm";
 import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
-import { exchangeRates } from "@/db/schema";
+import { exchangeRates, transfers } from "@/db/schema";
+import { addDays, startOfDay } from "@/domain/dates";
 import { buildRateTable } from "@/domain/valuation";
 import type { RateTable } from "@/domain/valuation";
 
-import { useRatesRead } from "./live-query";
+import { useLiveQuery, useRatesRead } from "./live-query";
+
+export interface RateSource {
+    date: string;
+    fetchedAt: number;
+}
+
+export interface TransferRateTable extends RateTable {
+    source: (code: string, dateKey: string) => RateSource | null;
+}
+
+function isOlder(a: RateSource, b: RateSource): boolean {
+    return a.date < b.date || (a.date === b.date && a.fetchedAt < b.fetchedAt);
+}
+
+export function pairRateSource(
+    from: string,
+    to: string,
+    date: Date,
+    table: TransferRateTable | undefined
+): RateSource | null {
+    if (table === undefined) {
+        return null;
+    }
+    const dateKey = utcDateString(date.getTime());
+    let oldest: RateSource | null = null;
+    for (const code of [from, to]) {
+        if (code !== "USD") {
+            const source = table.source(code, dateKey);
+            if (source === null) {
+                return null;
+            }
+            oldest = oldest === null || isOlder(source, oldest) ? source : oldest;
+        }
+    }
+    return oldest;
+}
 
 /**
- * The rate tables the transfer sheet quotes from, one per requested rate type,
+ * The rate tables the transfer editor quotes from, one per requested rate type,
  * for the pair it is on.
  */
 export function useTransferRates(
     db: Database,
     codes: readonly string[],
     rateTypes: readonly EntryRateType[]
-): Partial<Record<EntryRateType, RateTable>> {
+): Partial<Record<EntryRateType, TransferRateTable>> {
     const quotes = useMemo(() => [...new Set(codes.filter((code) => code !== "USD"))].sort(), [codes]);
     const rows = useRatesRead(
         () =>
             db
                 .select({
                     date: exchangeRates.date,
+                    fetchedAt: exchangeRates.fetchedAt,
                     quote: exchangeRates.quote,
                     rate: exchangeRates.rate,
                     rateType: exchangeRates.rateType,
@@ -41,8 +80,59 @@ export function useTransferRates(
     return useMemo(
         () =>
             Object.fromEntries(
-                rateTypes.map((type) => [type, buildRateTable(rows.filter((row) => row.rateType === type))])
+                rateTypes.map((type) => {
+                    const ofType = rows.filter((row) => row.rateType === type);
+                    const source = (code: string, dateKey: string) => {
+                        let newest: (typeof ofType)[number] | null = null;
+                        for (const row of ofType) {
+                            if (
+                                row.quote === code &&
+                                row.date <= dateKey &&
+                                (newest === null || row.date > newest.date)
+                            ) {
+                                newest = row;
+                            }
+                        }
+                        return newest === null ? null : { date: newest.date, fetchedAt: newest.fetchedAt };
+                    };
+                    return [type, { ...buildRateTable(ofType), source }];
+                })
             ),
         [rows, rateTypes]
     );
+}
+
+export function usePriorCustomRate(
+    db: Database,
+    from: string,
+    to: string,
+    entryDate: Date
+): { date: Date; rate: number } | null {
+    const nextDay = addDays(startOfDay(entryDate), 1);
+    const [prior] = useLiveQuery(
+        transfers,
+        () =>
+            db
+                .select({ date: transfers.date, from: transfers.fromCurrency, rate: transfers.exchangeRate })
+                .from(transfers)
+                .where(
+                    and(
+                        or(
+                            and(eq(transfers.fromCurrency, from), eq(transfers.toCurrency, to)),
+                            and(eq(transfers.fromCurrency, to), eq(transfers.toCurrency, from))
+                        ),
+                        eq(transfers.exchangeRateType, "custom"),
+                        gt(transfers.exchangeRate, 0),
+                        lt(transfers.date, nextDay),
+                        isNull(transfers.deletedAt)
+                    )
+                )
+                .orderBy(desc(transfers.date), desc(transfers.id))
+                .limit(1),
+        [db, from, to, nextDay.getTime()]
+    );
+    if (prior === undefined || prior.rate === null) {
+        return null;
+    }
+    return { date: prior.date, rate: prior.from === from ? prior.rate : 1 / prior.rate };
 }

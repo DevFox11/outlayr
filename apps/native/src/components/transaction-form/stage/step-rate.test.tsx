@@ -17,10 +17,10 @@ const options: StepRateOption[] = [
     {
         detail: "As of 26 Sep",
         figure: null,
-        name: "EUR reference",
+        name: "EUR (BCV)",
         placeholder: "Unavailable",
         type: "eur_reference",
-        unit: "Bs. per €",
+        unit: "Bs. per $",
     },
     {
         detail: "Type the rate you got",
@@ -33,12 +33,12 @@ const options: StepRateOption[] = [
 ];
 
 describe("stepRate", () => {
-    it("checks only the selected option and states each figure with its unit", async () => {
+    it("checks only the selected option and states each figure with its unit and age", async () => {
         const { getByRole } = await render(<StepRate onSelect={jest.fn()} options={options} selected="official" />);
 
         const official = getByRole("radio", { name: "Official" });
         expect(official.props.accessibilityState).toMatchObject({ checked: true });
-        expect(official.props.accessibilityValue).toMatchObject({ text: "848.55 Bs. per $" });
+        expect(official.props.accessibilityValue).toMatchObject({ text: "848.55 Bs. per $, As of 26 Sep" });
         expect(getByRole("radio", { name: "My rate" }).props.accessibilityState).toMatchObject({ checked: false });
     });
 
@@ -46,7 +46,7 @@ describe("stepRate", () => {
         const onSelect = jest.fn();
         const { getByRole } = await render(<StepRate onSelect={onSelect} options={options} selected="custom" />);
 
-        await fireEvent.press(getByRole("radio", { name: "EUR reference" }));
+        await fireEvent.press(getByRole("radio", { name: "EUR (BCV)" }));
 
         expect(onSelect).toHaveBeenCalledWith("eur_reference");
     });
