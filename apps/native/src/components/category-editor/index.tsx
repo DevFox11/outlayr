@@ -37,6 +37,7 @@ import { firstAvailableColor } from "@/domain/category-color";
 import { CATEGORY_ERROR_KEYS, categoryErrorCode } from "@/domain/category-error";
 import { useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
+import { posthog } from "@/lib/posthog";
 import { CATEGORY_DETENT, LARGE_ONLY, SUBCATEGORY_DETENT } from "@/lib/sheet-detents";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
@@ -164,6 +165,11 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
                     emoji: draft.emoji ?? null,
                     icon: draft.icon ?? null,
                     name: value.name,
+                });
+                posthog?.capture("category_saved", {
+                    category_type: loaded.income ? "income" : "expense",
+                    is_subcategory: isSubcategory,
+                    mode: "edit",
                 });
                 haptics("success");
                 router.back();
@@ -364,6 +370,11 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
             income: value.income,
             name: value.name,
             parentId,
+        });
+        posthog?.capture("category_saved", {
+            category_type: value.income ? "income" : "expense",
+            is_subcategory: isSubcategory,
+            mode: "create",
         });
         haptics("success");
         // A top-level add stays put for a run of them; a subcategory returns

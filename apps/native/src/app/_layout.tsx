@@ -37,6 +37,8 @@ import { cloudRuntime } from "@/lib/cloud-runtime";
 import { setCloudAuthenticated } from "@/lib/convex";
 import { DeviceResetRecovery } from "@/lib/device-reset-recovery";
 import { LedgerAdoptionProvider, useLedgerAdoption } from "@/lib/ledger-adoption";
+import { useScreenTracking } from "@/lib/posthog";
+import { usePostHogIdentity } from "@/lib/posthog-identity";
 import { identityPickerDetent } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
 import { useAccent } from "@/theme/use-accent";
@@ -85,8 +87,14 @@ function CloudRuntimeProvider({ children }: { children: ReactNode }) {
     );
 }
 
+function ScreenTracking() {
+    useScreenTracking();
+    return null;
+}
+
 function ActivatedCloudRuntime({ children }: { children: ReactNode }) {
     const { accountId } = useAuthSession();
+    usePostHogIdentity();
     if (cloudRuntime === null || accountId === null) {
         return children;
     }
@@ -165,6 +173,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
                             <AuthCover>
                                 <AppLockGate>
                                     <RootStack />
+                                    <ScreenTracking />
                                     <UpdateSheet />
                                     <CelebrationConfetti />
                                 </AppLockGate>

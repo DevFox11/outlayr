@@ -47,6 +47,7 @@ import { useCurrencyBlocked } from "@/hooks/use-pro-gate";
 import { useRegionCode } from "@/hooks/use-region-code";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
+import { posthog } from "@/lib/posthog";
 import { ACCOUNT_DETENT, LARGE_ONLY } from "@/lib/sheet-detents";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji } from "@/theme/glow";
@@ -180,6 +181,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                             : loaded.initialBalance,
                     });
                 }
+                posthog?.capture("account_saved", { account_kind: input.kind, mode });
                 haptics("success");
                 router.back();
                 return await holdSubmitting();

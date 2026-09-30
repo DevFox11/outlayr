@@ -37,6 +37,7 @@ import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { freshEntries } from "@/lib/fresh-entries";
 import { notifySaved } from "@/lib/notify";
+import { posthog } from "@/lib/posthog";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
@@ -167,6 +168,12 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
                     }),
                 });
             }
+            posthog?.capture("transfer_saved", {
+                cross_currency: crossCurrency,
+                has_fee: fee > 0,
+                mode: saved ? "edit" : "create",
+                source: "form",
+            });
             haptics("success");
             onDone();
         } catch (error) {

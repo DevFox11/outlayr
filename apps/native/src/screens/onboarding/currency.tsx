@@ -24,6 +24,7 @@ import { finishOnboarding } from "@/data/onboarding-core";
 import { setCurrency } from "@/data/settings-core";
 import { useTranslation } from "@/i18n/context";
 import { notifyFailure } from "@/lib/notify";
+import { posthog } from "@/lib/posthog";
 
 type CommitKind = "continue" | "finish";
 
@@ -106,6 +107,7 @@ export function OnboardingCurrency() {
                     // would race it.
                     await finishOnboarding(db);
                 }
+                posthog?.capture("onboarding_currency_saved", { onboarding_path: meta });
                 return await holdSubmitting();
             } catch (error) {
                 // A toast, unlike its sheet-bound siblings: onboarding is a plain

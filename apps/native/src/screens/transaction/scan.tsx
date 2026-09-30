@@ -48,6 +48,7 @@ import type { TranslateFn } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 import { useAuthSession } from "@/lib/auth-session";
 import { freshEntries } from "@/lib/fresh-entries";
+import { posthog } from "@/lib/posthog";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
@@ -748,6 +749,13 @@ function ScanFlowScreen() {
                 if (draft.accountId) {
                     await rememberLastUsedAccount(db, draft.accountId).catch(() => null);
                 }
+                posthog?.capture("transaction_saved", {
+                    has_split: false,
+                    is_subscription: false,
+                    mode: "create",
+                    source: "scan",
+                    transaction_type: draft.income ? "income" : "expense",
+                });
                 haptics("success");
                 // A modal gesture can dismiss this screen mid-write; popping again
                 // would take the screen underneath with it.

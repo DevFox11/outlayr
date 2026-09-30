@@ -110,6 +110,7 @@ import { sendEnrichmentQueue } from "@/lib/enrichment-queue";
 import { freshEntries } from "@/lib/fresh-entries";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
 import { notifyFailure, notifySaved } from "@/lib/notify";
+import { posthog } from "@/lib/posthog";
 import { openNotificationSettings, reminderPermission, requestReminderPermission } from "@/lib/reminders";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useHaptics } from "@/lib/use-haptics";
@@ -764,6 +765,13 @@ export function TransactionForm({
                 setSaveFailure(t("transaction.save.failedBody"));
                 return;
             }
+            posthog?.capture("transaction_saved", {
+                has_split: isRealSplit(splitAllocations),
+                is_subscription: value.isSubscription,
+                mode,
+                source: "form",
+                transaction_type: value.income ? "income" : "expense",
+            });
             // The row is COMMITTED from here down, so no failure below may re-enable the
             // CTA: a second tap runs `create` again, which mints a fresh id rather than
             // rewriting this row, and the ledger ends up with two subscriptions — each

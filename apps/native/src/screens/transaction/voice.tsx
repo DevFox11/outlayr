@@ -66,6 +66,7 @@ import type { Language } from "@/i18n/languages";
 import { useAuthSession } from "@/lib/auth-session";
 import type { VoiceDraft } from "@/lib/convex";
 import { freshEntries } from "@/lib/fresh-entries";
+import { posthog } from "@/lib/posthog";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
@@ -708,6 +709,13 @@ function VoiceThreadScreen() {
                     return;
                 }
                 freshEntries.mark(id);
+                posthog?.capture("transaction_saved", {
+                    has_split: false,
+                    is_subscription: draft.recurrence !== null,
+                    mode: "create",
+                    source: "voice",
+                    transaction_type: draft.income ? "income" : "expense",
+                });
                 // Past this line the row is committed, so nothing below may send
                 // the person back to a form that would write it a second time.
                 if (draft.recurrence) {
@@ -765,6 +773,12 @@ function VoiceThreadScreen() {
                     }
                     return;
                 }
+                posthog?.capture("transfer_saved", {
+                    cross_currency: false,
+                    has_fee: false,
+                    mode: "create",
+                    source: "voice",
+                });
                 haptics("success");
                 // A modal gesture can dismiss this screen mid-write; popping again
                 // would take the screen underneath with it.
