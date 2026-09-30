@@ -39,6 +39,28 @@ describe("toTransferLogRow", () => {
         expect(row.currency).toBe("USD");
     });
 
+    it("states what left with a source fee in it, and what arrived with a destination fee out of it", () => {
+        const sameCurrency = { ...TRANSFER, fromAmount: 98, toAmount: 98, toCurrency: "USD" };
+        const atSource = toTransferLogRow(sameCurrency, NAMES, new Map([["t1", { accountId: "a", amount: 2 }]]));
+        const atDestination = toTransferLogRow(TRANSFER, NAMES, new Map([["t1", { accountId: "b", amount: 50 }]]));
+
+        expect(atSource.moved).toStrictEqual({
+            arrived: 98,
+            arrivedCurrency: "USD",
+            fee: { amount: 2, currency: "USD" },
+            sent: 100,
+        });
+        expect(atDestination.moved).toStrictEqual({
+            arrived: 5500,
+            arrivedCurrency: "VES",
+            fee: { amount: 50, currency: "VES" },
+            sent: 100,
+        });
+        expect(atSource.amount).toBe(98);
+        expect(toTransferLogRow(TRANSFER, NAMES, new Map()).moved?.fee).toBeNull();
+        expect(toTransferLogRow(TRANSFER, NAMES).moved).toBeUndefined();
+    });
+
     it("is excluded from day totals", () => {
         expect(toTransferLogRow(TRANSFER, NAMES).excludedFromTotals).toBe(true);
     });

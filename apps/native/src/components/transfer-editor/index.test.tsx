@@ -385,3 +385,43 @@ describe("transfer editor rate step", () => {
         expect(screen.getByLabelText("1")).toBeTruthy();
     });
 });
+
+describe("transfer editor arrival", () => {
+    it("says what arrives after a fee in one currency, and opens its keypad", async () => {
+        await render(<TransferEditor onDone={jest.fn()} seed={SEED} />);
+        expect(screen.queryByLabelText("transfers.field.arrives")).toBeNull();
+
+        await press("transfers.field.fee");
+        await press("2");
+        await press("0");
+        await press("0");
+
+        expect(screen.getByText("After")).toBeTruthy();
+        expect(screen.getByText("arrives.")).toBeTruthy();
+        expect(slotValue("transfers.field.arrives")).toBe("$98.00");
+
+        await press("transfers.field.arrives");
+
+        expect(screen.getByText("transfers.field.arrives")).toBeTruthy();
+    });
+
+    it("refuses an arrival in one currency that the amount and the fee do not add up to", async () => {
+        await render(<TransferEditor onDone={jest.fn()} seed={SEED} />);
+        await press("transfers.field.fee");
+        await press("2");
+        await press("0");
+        await press("0");
+        await press("transfers.field.arrives");
+        await press("1");
+        await press("5");
+        await press("0");
+        await press("0");
+        await press("0");
+        expect(slotValue("transfers.field.arrives")).toBe("$150.00");
+        expect(screen.queryByLabelText("transfers.save")).toBeNull();
+
+        await press("common.next");
+
+        expect(mockCreate).not.toHaveBeenCalled();
+    });
+});

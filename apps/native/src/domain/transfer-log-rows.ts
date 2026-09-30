@@ -1,3 +1,7 @@
+import { roundMoney } from "@outlayr/money/round";
+
+import { minorUnitsFor } from "./money";
+
 export interface TransferLogSource {
     date: Date;
     day: Date;
@@ -11,6 +15,18 @@ export interface TransferLogSource {
     toAmount: number;
     toAmountUsd: number | null;
     toCurrency: string;
+}
+
+export interface TransferLogFee {
+    accountId: string | null;
+    amount: number;
+}
+
+export interface TransferMove {
+    arrived: number;
+    arrivedCurrency: string;
+    fee: { amount: number; currency: string } | null;
+    sent: number;
 }
 
 export interface TransferLogRow {
@@ -35,6 +51,7 @@ export interface TransferLogRow {
     imageColor: null;
     imageUri: null;
     income: boolean;
+    moved?: TransferMove;
     note: string;
     recurringAnchorDay: number | null;
     recurringCoefficient: number;
@@ -45,9 +62,30 @@ export interface TransferLogRow {
 
 const UNKNOWN_ACCOUNT = "—";
 
+function transferMove(transfer: TransferLogSource, fee: TransferLogFee | undefined): TransferMove {
+    if (fee === undefined) {
+        return {
+            arrived: transfer.toAmount,
+            arrivedCurrency: transfer.toCurrency,
+            fee: null,
+            sent: transfer.fromAmount,
+        };
+    }
+    const atDestination = fee.accountId === transfer.toAccountId;
+    const currency = atDestination ? transfer.toCurrency : transfer.fromCurrency;
+    const decimals = minorUnitsFor(currency);
+    return {
+        arrived: atDestination ? roundMoney(transfer.toAmount - fee.amount, decimals) : transfer.toAmount,
+        arrivedCurrency: transfer.toCurrency,
+        fee: { amount: fee.amount, currency },
+        sent: atDestination ? transfer.fromAmount : roundMoney(transfer.fromAmount + fee.amount, decimals),
+    };
+}
+
 export function toTransferLogRow(
     transfer: TransferLogSource,
-    accountNames: ReadonlyMap<string, string>
+    accountNames: ReadonlyMap<string, string>,
+    fees?: ReadonlyMap<string, TransferLogFee>
 ): TransferLogRow {
     const from = accountNames.get(transfer.fromAccountId) ?? UNKNOWN_ACCOUNT;
     const to = accountNames.get(transfer.toAccountId) ?? UNKNOWN_ACCOUNT;
@@ -73,6 +111,7 @@ export function toTransferLogRow(
         imageColor: null,
         imageUri: null,
         income: false,
+        moved: fees === undefined ? undefined : transferMove(transfer, fees.get(transfer.id)),
         note: transfer.note === "" ? `${from} → ${to}` : transfer.note,
         recurringAnchorDay: null,
         recurringCoefficient: 1,

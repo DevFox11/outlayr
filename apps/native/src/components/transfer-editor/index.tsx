@@ -36,7 +36,7 @@ import { notifySaved } from "@/lib/notify";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
-import { blockMessage, blockPrompt, formatRate, gapPrompt } from "./prompts";
+import { blockPrompt, formatRate, gapPrompt } from "./prompts";
 import { TransferSentence } from "./transfer-sentence";
 import type { TransferSentenceSlot } from "./transfer-sentence";
 import { useTransferDraft } from "./use-transfer-draft";
@@ -68,6 +68,8 @@ export default function TransferEditor({ onDirtyChange, onDone, saved, seed }: T
     const [saveFailure, setSaveFailure] = useState<string | null>(null);
     const [flagged, setFlagged] = useState<TransferSentenceSlot | null>(null);
 
+    const gap = blockPrompt(draft, t, language) ?? gapPrompt(draft, t, language);
+
     const missing = () => {
         if (draft.from === null) {
             return "from";
@@ -81,7 +83,10 @@ export default function TransferEditor({ onDirtyChange, onDone, saved, seed }: T
         if (draft.block?.kind === "rate") {
             return "rate";
         }
-        return draft.block?.kind === "fee" ? "fee" : null;
+        if (draft.block?.kind === "fee") {
+            return "fee";
+        }
+        return !draft.crossCurrency && draft.gapAmount !== 0 ? "arrives" : null;
     };
 
     const [step, setStep] = useState<Step>(() => missing() ?? "amount");
@@ -182,10 +187,9 @@ export default function TransferEditor({ onDirtyChange, onDone, saved, seed }: T
         haptics("error");
         setFlagged(next);
         const field = next === "from" || next === "to" ? next : "sent";
+        const refusal = next === "rate" || next === "fee" || next === "arrives" ? gap?.message : undefined;
         AccessibilityInfo.announceForAccessibility(
-            next === "rate" || next === "fee"
-                ? blockMessage(draft, t, language)
-                : t("transfers.a11y.missing", { field: t(`transfers.field.${field}`) })
+            refusal ?? t("transfers.a11y.missing", { field: t(`transfers.field.${field}`) })
         );
         enter(next);
     };
@@ -215,7 +219,6 @@ export default function TransferEditor({ onDirtyChange, onDone, saved, seed }: T
         : formatRate(draft, draft.quotedRate, language);
     const rateLabel = rateFigure === null ? null : `${rateFigure} ${rateUnit}`;
     const feeSideAccount = draft.feeSide === "destination" ? draft.to : draft.from;
-    const gap = blockPrompt(draft, t, language) ?? gapPrompt(draft, t, language);
     const footer = {
         label: draft.canSave ? t("transfers.save") : t("common.next"),
         onPress: onFooter,

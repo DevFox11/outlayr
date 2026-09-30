@@ -127,6 +127,10 @@ const transfers = {
             en: "A {fee} fee from {feeSide}.",
             es: "Comisión de {fee} desde {feeSide}.",
         }),
+        "transfers.sentence.feeArrives": t({
+            en: "After a {fee} fee from {feeSide}, {arrives} arrives.",
+            es: "Tras una comisión de {fee} desde {feeSide}, llegan {arrives}.",
+        }),
         "transfers.sentence.move": t({
             en: "Move {amount} from {from} to {to} {when}.",
             es: "Mueve {amount} de {from} a {to} {when}.",

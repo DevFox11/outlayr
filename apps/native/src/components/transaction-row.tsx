@@ -11,6 +11,7 @@ import { formatTime, formatUpcomingDate, isFuture } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
 import { isTransactionRateNeeded } from "@/domain/transaction-entry-rate";
 import { FALLBACK_IDENTITY_COLOR, resolveTransactionIdentity } from "@/domain/transaction-identity";
+import type { TransferMove } from "@/domain/transfer-log-rows";
 import { isExact } from "@/domain/valuation";
 import type { RateTable } from "@/domain/valuation";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -33,6 +34,45 @@ const DELETE_ACTION = "delete";
 
 function feeGlyph({ color, size }: { color: string; size: number }) {
     return <HugeiconsIcon color={color} icon={PercentCircleSolidIcon} size={size} />;
+}
+
+const UNDER_AMOUNT = "text-eyebrow text-muted font-mono tabular-nums";
+
+interface UnderAmountProps {
+    fee: { amount: number; currency: string } | undefined;
+    moved: TransferMove | undefined;
+    sentCurrency: string;
+    showCents: boolean;
+}
+
+function UnderAmount({ fee, moved, sentCurrency, showCents }: UnderAmountProps) {
+    const t = useTranslation();
+    const { language } = useLanguage();
+    if (moved === undefined) {
+        return fee === undefined ? null : (
+            <Text className={UNDER_AMOUNT} numberOfLines={1}>
+                {t("log.row.fee", { amount: formatAmount(fee.amount, fee.currency, showCents, language) })}
+            </Text>
+        );
+    }
+    const arrived = formatAmount(moved.arrived, moved.arrivedCurrency, showCents, language);
+    if (moved.fee === null) {
+        return moved.arrivedCurrency === sentCurrency ? null : (
+            <Text className={UNDER_AMOUNT} numberOfLines={1}>
+                {t("log.row.arrived", { arrived })}
+            </Text>
+        );
+    }
+    const charged = formatAmount(moved.fee.amount, moved.fee.currency, showCents, language);
+    return (
+        <Text
+            accessibilityLabel={t("log.row.arrivedAfterFee", { arrived, fee: charged })}
+            className={UNDER_AMOUNT}
+            numberOfLines={1}
+        >
+            {t("log.row.arrivedFee", { arrived, fee: charged })}
+        </Text>
+    );
 }
 
 interface TransactionRowProps {
@@ -68,6 +108,7 @@ interface TransactionRowProps {
     transaction: TransactionWithCategory & {
         details?: string | null;
         fee?: { amount: number; currency: string | null };
+        moved?: TransferMove;
     };
 }
 
@@ -205,25 +246,24 @@ export function TransactionRow({
             </View>
             <View className="items-end">
                 <RowAmount
-                    amount={transaction.amount}
+                    amount={transaction.moved?.sent ?? transaction.amount}
                     code={code}
                     income={transaction.income}
                     isFuture={future}
                     showCents={showCents}
                     transfer={isTransfer}
                 />
-                {transaction.fee ? (
-                    <Text className="text-eyebrow text-muted font-mono tabular-nums" numberOfLines={1}>
-                        {t("log.row.fee", {
-                            amount: formatAmount(
-                                transaction.fee.amount,
-                                transaction.fee.currency ?? currency,
-                                showCents,
-                                language
-                            ),
-                        })}
-                    </Text>
-                ) : null}
+                <UnderAmount
+                    fee={
+                        transaction.fee && {
+                            amount: transaction.fee.amount,
+                            currency: transaction.fee.currency ?? currency,
+                        }
+                    }
+                    moved={transaction.moved}
+                    sentCurrency={code}
+                    showCents={showCents}
+                />
             </View>
         </Pressable>
     );

@@ -1,8 +1,11 @@
 import { describe, expect, it } from "@jest/globals";
+import { renderHook } from "@testing-library/react-native";
 
+import { transactions, transfers } from "@/db/schema";
+import { migratedDatabase } from "@/db/test-database";
 import type { LogFilter } from "@/domain/log-filter";
 
-import { logTransferBounds } from "./transfer-log";
+import { logTransferBounds, useLogTransfers } from "./transfer-log";
 import type { TransferScope } from "./transfer-log";
 
 const MID_MARCH = new Date(2026, 2, 18, 15, 30);
@@ -95,5 +98,40 @@ describe("logTransferBounds", () => {
 
     it("leaves the transfers tab every transfer ever recorded", () => {
         expect(logTransferBounds(scope("transfers"))).toStrictEqual({ floorOn: "day", since: null, until: null });
+    });
+});
+
+describe("useLogTransfers", () => {
+    it("reads each transfer with the fee charged on it", async () => {
+        const db = migratedDatabase({ foreignKeys: false });
+        const when = { date: MID_MARCH, day: MARCH_1, month: MARCH_1, updatedAt: MID_MARCH };
+        await db.insert(transfers).values({
+            ...when,
+            dateCreated: MID_MARCH,
+            fromAccountId: "chase",
+            fromAmount: 98,
+            fromCurrency: "USD",
+            id: "move",
+            toAccountId: "ally",
+            toAmount: 98,
+            toCurrency: "USD",
+        });
+        await db.insert(transactions).values({
+            ...when,
+            accountId: "chase",
+            amount: 2,
+            currency: "USD",
+            id: "fee",
+            income: false,
+            transferId: "move",
+        });
+
+        const { result } = await renderHook(() =>
+            useLogTransfers(db, APRIL_1.getTime(), { floorOn: "day", since: null, until: null })
+        );
+
+        expect(result.current.map((row) => row.moved)).toStrictEqual([
+            { arrived: 98, arrivedCurrency: "USD", fee: { amount: 2, currency: "USD" }, sent: 100 },
+        ]);
     });
 });

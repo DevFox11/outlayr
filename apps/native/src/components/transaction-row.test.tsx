@@ -2,6 +2,7 @@ import { describe, expect, it, jest } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 
 import { testDisplaySettingsValue as mockTestDisplaySettingsValue } from "@/contexts/test-settings";
+import type { TransferMove } from "@/domain/transfer-log-rows";
 import { buildRateTable } from "@/domain/valuation";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
@@ -10,10 +11,17 @@ import { TransactionRow } from "./transaction-row";
 jest.mock<Partial<typeof import("@/contexts/display-settings-context")>>("@/contexts/display-settings-context", () => ({
     useDisplaySettings: () => mockTestDisplaySettingsValue({ showCents: true, swapTimeLabel: false, use24Hour: false }),
 }));
-jest.mock<Partial<typeof import("@/i18n/context")>>("@/i18n/context", () => ({
-    useLanguage: () => ({ language: "en" }),
-    useTranslation: () => (key: string) => key,
-}));
+jest.mock<Partial<typeof import("@/i18n/context")>>("@/i18n/context", () => {
+    const { EN } = require("@/i18n/catalog") as typeof import("@/i18n/catalog");
+    const { translate } = require("@/i18n/translate") as typeof import("@/i18n/translate");
+    return {
+        useLanguage: () => ({ language: "en" }),
+        useTranslation: () => (key, params) =>
+            /^log\.row\.(arrived|amountTransfer)/.test(key)
+                ? translate(key, { catalog: EN, fallback: EN, params })
+                : key,
+    };
+});
 jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
     useColors: () =>
         mockTestColors({
@@ -74,5 +82,41 @@ describe("transactionRow", () => {
 
         expect(getByLabelText("log.row.unplaced")).toBeTruthy();
         expect(getByRole("button").props.accessibilityLabel).toBeUndefined();
+    });
+});
+
+describe("a transfer's row", () => {
+    const TRANSFER = {
+        ...PENDING_CUSTOM,
+        amount: 98,
+        categoryId: null,
+        categoryName: null,
+        currency: "USD",
+        exchangeRateType: null,
+        id: "move",
+        note: "Chase → Ally Savings",
+        transferId: "move",
+    };
+    const moved = { arrived: 98, arrivedCurrency: "USD", fee: { amount: 2, currency: "USD" }, sent: 100 };
+    const drawn = (move: TransferMove) =>
+        render(
+            <TransactionRow currency="USD" onPress={() => {}} transaction={{ ...TRANSFER, moved: move } as never} />
+        );
+
+    it("leads with what left and states the arrival and the fee under it, in words too", async () => {
+        const { getByLabelText, getByText } = await drawn(moved);
+
+        expect(getByText("$100.00")).toBeTruthy();
+        expect(getByLabelText("$100.00 moved")).toBeTruthy();
+        expect(getByText("$98.00 arrived · $2.00 fee")).toBeTruthy();
+        expect(getByLabelText("$98.00 arrived after a $2.00 fee")).toBeTruthy();
+    });
+
+    it("states the arrival of a feeless move only when it landed in another currency", async () => {
+        const crossed = await drawn({ arrived: 42_427.29, arrivedCurrency: "VES", fee: null, sent: 50 });
+        expect(crossed.getByText("Bs.42,427.29 arrived")).toBeTruthy();
+
+        const level = await drawn({ ...moved, fee: null, sent: 98 });
+        expect(level.queryByText(/arrived/)).toBeNull();
     });
 });

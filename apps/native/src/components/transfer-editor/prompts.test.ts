@@ -51,4 +51,23 @@ describe("what an unexplained remainder offers", () => {
 
         expect(prompt?.rateLabel).toBe('transfers.gap.rateWas:{"rate":"55.5004"}');
     });
+
+    it("offers no rate between two accounts in one currency, where a rate changes nothing", () => {
+        const prompt = gapPrompt(
+            {
+                fromCurrency: "USD",
+                gapAmount: 1,
+                gapFee: 3,
+                gapRate: 0.9898,
+                quotedRate: 1,
+                resolveAsFee: () => {},
+                resolveAsRate: () => {},
+                toCurrency: "USD",
+            } as Parameters<typeof gapPrompt>[0],
+            t,
+            "en"
+        );
+
+        expect(prompt).toMatchObject({ feeLabel: "transfers.gap.itsAFee", onRate: null, rateLabel: null });
+    });
 });

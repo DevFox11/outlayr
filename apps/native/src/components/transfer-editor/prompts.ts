@@ -58,7 +58,9 @@ export function gapPrompt(draft: Draft, t: Translate, language: Language): Trans
         return null;
     }
     const offered = offeredRateText(draft, draft.gapRate, language);
-    const rateMoves = draft.quotedRate === null || offered !== offeredRateText(draft, draft.quotedRate, language);
+    const rateMoves =
+        draft.fromCurrency !== draft.toCurrency &&
+        (draft.quotedRate === null || offered !== offeredRateText(draft, draft.quotedRate, language));
     return {
         feeLabel: draft.gapFee === null ? null : t("transfers.gap.itsAFee"),
         message: t("transfers.gap.unaccounted", {

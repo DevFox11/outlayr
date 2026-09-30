@@ -3,7 +3,7 @@ import { render } from "@testing-library/react-native";
 import { Text } from "react-native";
 
 import type { Database } from "@/db/client";
-import { accounts, transfers } from "@/db/schema";
+import { accounts, transactions, transfers } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
 import type { TransferLogRow } from "@/domain/transfer-log-rows";
 
@@ -81,6 +81,31 @@ describe("an account's transfers", () => {
 
         const rows = await readTransfers(db, "savings");
         expect(rows[0].note).toBe("Checking → Savings");
+    });
+
+    it("states what left and what arrived when the source paid a fee", async () => {
+        await addTransfer(db, { fromAccountId: "checking", id: "tr1", toAccountId: "savings" });
+        await db.insert(transactions).values({
+            accountId: "checking",
+            amount: 2,
+            currency: "USD",
+            date: AUG_9,
+            day: AUG_9,
+            id: "fee1",
+            income: false,
+            month: AUG_9,
+            note: "Fee",
+            transferId: "tr1",
+            updatedAt: AUG_9,
+        });
+
+        const [row] = await readTransfers(db, "checking");
+        expect(row?.moved).toStrictEqual({
+            arrived: 40,
+            arrivedCurrency: "USD",
+            fee: { amount: 2, currency: "USD" },
+            sent: 42,
+        });
     });
 
     it("keeps the row out of every total", async () => {

@@ -172,6 +172,18 @@ const log = {
             en: "{amount} moved",
             es: "{amount} movidos",
         }),
+        "log.row.arrived": t({
+            en: "{arrived} arrived",
+            es: "Llegaron {arrived}",
+        }),
+        "log.row.arrivedAfterFee": t({
+            en: "{arrived} arrived after a {fee} fee",
+            es: "Llegaron {arrived} tras una comisión de {fee}",
+        }),
+        "log.row.arrivedFee": t({
+            en: "{arrived} arrived · {fee} fee",
+            es: "Llegaron {arrived} · {fee} de comisión",
+        }),
         "log.row.delete": t({
             en: "Delete",
             es: "Eliminar",

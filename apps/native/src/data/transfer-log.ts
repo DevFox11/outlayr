@@ -1,8 +1,8 @@
-import { and, desc, eq, gte, isNull, lt, lte } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, isNull, lt, lte } from "drizzle-orm";
 import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
-import { transfers } from "@/db/schema";
+import { transactions, transfers } from "@/db/schema";
 import type { LogFilter } from "@/domain/log-filter";
 import { filterPeriodUnit } from "@/domain/log-filter";
 import { cursorEnd, cursorStart } from "@/domain/log-period-cursor";
@@ -64,6 +64,27 @@ export function logTransferBounds(scope: TransferScope): TransferBounds | null {
     }
 }
 
+export function useTransferFees(db: Database, enabled = true) {
+    const feeRows = useLiveQuery(
+        transactions,
+        () =>
+            db
+                .select({
+                    accountId: transactions.accountId,
+                    amount: transactions.amount,
+                    transferId: transactions.transferId,
+                })
+                .from(transactions)
+                .where(
+                    enabled
+                        ? and(isNotNull(transactions.transferId), isNull(transactions.deletedAt))
+                        : eq(transactions.id, "")
+                ),
+        [enabled]
+    );
+    return useMemo(() => new Map(feeRows.map((fee) => [fee.transferId ?? "", fee])), [feeRows]);
+}
+
 /** Null bounds admit no transfer at all, as a query matching nothing: a hook cannot be skipped. */
 export function useLogTransfers(db: Database, nowMs: number, bounds: TransferBounds | null): TransferLogRow[] {
     const accounts = useAccounts(db);
@@ -88,6 +109,7 @@ export function useLogTransfers(db: Database, nowMs: number, bounds: TransferBou
                 .orderBy(desc(transfers.day), desc(transfers.date)),
         [nowMs, bounds === null, bounds?.floorOn, bounds?.since?.getTime() ?? 0, bounds?.until?.getTime() ?? 0]
     );
+    const fees = useTransferFees(db, bounds !== null);
     const names = useMemo(() => new Map(accounts.map((account) => [account.id, account.name])), [accounts]);
-    return useMemo(() => rows.map((row) => toTransferLogRow(row, names)), [rows, names]);
+    return useMemo(() => rows.map((row) => toTransferLogRow(row, names, fees)), [rows, names, fees]);
 }

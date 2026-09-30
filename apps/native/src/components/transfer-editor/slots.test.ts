@@ -4,7 +4,12 @@ import { sentenceSlotNames } from "@/domain/sentence-template";
 import { CATALOGS } from "@/i18n/catalog";
 import { SUPPORTED_LANGUAGES } from "@/i18n/languages";
 
-import { TRANSFER_CUSTOM_RATE_KEY, TRANSFER_SENTENCE_KEYS, TRANSFER_SENTENCE_SLOTS } from "./transfer-sentence";
+import {
+    TRANSFER_CUSTOM_RATE_KEY,
+    TRANSFER_FEE_ARRIVAL_KEY,
+    TRANSFER_SENTENCE_KEYS,
+    TRANSFER_SENTENCE_SLOTS,
+} from "./transfer-sentence";
 
 describe("transfer sentence templates", () => {
     for (const language of SUPPORTED_LANGUAGES) {
@@ -18,6 +23,12 @@ describe("transfer sentence templates", () => {
         it(`states the same facts for a custom rate as for a quoted one in ${language}`, () => {
             expect(sentenceSlotNames(CATALOGS[language][TRANSFER_CUSTOM_RATE_KEY] ?? "")).toStrictEqual(
                 sentenceSlotNames(CATALOGS[language]["transfers.sentence.rate"] ?? "")
+            );
+        });
+
+        it(`adds the arrival to the fee's facts when no rate clause states it in ${language}`, () => {
+            expect([...sentenceSlotNames(CATALOGS[language][TRANSFER_FEE_ARRIVAL_KEY] ?? "")].sort()).toStrictEqual(
+                [...sentenceSlotNames(CATALOGS[language]["transfers.sentence.fee"] ?? ""), "arrives"].sort()
             );
         });
 

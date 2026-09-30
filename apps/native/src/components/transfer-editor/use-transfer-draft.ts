@@ -86,7 +86,12 @@ function transferBlock(
 /** An arrival of null or zero is `transfer-reconcile`'s verdict that the fee takes
  * everything reaching its side. Both refuse: a transfer that delivers nothing is a
  * fee wearing a transfer's clothes, and the legs would credit it as money moved. */
-function reconcile(entered: EnteredTransfer | null, pinned: number | null, units: Units): DraftMath {
+function reconcile(
+    entered: EnteredTransfer | null,
+    pinned: number | null,
+    units: Units,
+    crossCurrency: boolean
+): DraftMath {
     const arrived =
         pinned ?? (entered === null ? null : solveTransfer({ ...entered, arrived: 0 }, "arrived", units.to));
     const values: TransferValues | null =
@@ -101,13 +106,14 @@ function reconcile(entered: EnteredTransfer | null, pinned: number | null, units
             legs: null,
         };
     }
+    const gap = pinned === null ? 0 : transferGap(values, units.to);
     return {
         arrived,
         block: null,
-        gap: pinned === null ? 0 : transferGap(values, units.to),
+        gap,
         gapFee: solveTransfer({ ...values, feeSide: "destination" }, "fee", units.to),
         gapRate: solveTransfer(values, "rate", RATE_PRECISION),
-        legs: transferLegs(values, units.from, units.to),
+        legs: crossCurrency || gap === 0 ? transferLegs(values, units.from, units.to) : null,
     };
 }
 
@@ -389,7 +395,8 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
             fee: feeDecimals,
             from: fromDecimals,
             to: toDecimals,
-        }
+        },
+        crossCurrency
     );
 
     const unpin =
