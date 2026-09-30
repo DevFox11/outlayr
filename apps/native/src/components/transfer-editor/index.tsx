@@ -58,7 +58,7 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
     const [saveFailure, setSaveFailure] = useState<string | null>(null);
     const [flagged, setFlagged] = useState<TransferSentenceSlot | null>(null);
 
-    const missing = (): Step | null => {
+    const missing = () => {
         if (draft.from === null) {
             return "from";
         }
@@ -159,7 +159,7 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
         }
         const next = missing() ?? "amount";
         haptics("error");
-        setFlagged(next === "date" ? "when" : next);
+        setFlagged(next);
         const field = next === "from" || next === "to" ? next : "sent";
         AccessibilityInfo.announceForAccessibility(
             next === "rate" || next === "fee"

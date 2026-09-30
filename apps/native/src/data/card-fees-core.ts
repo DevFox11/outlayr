@@ -6,10 +6,10 @@ import { transactions } from "@/db/schema";
 import { cardFeeAmount, cardFeeBase } from "@/domain/card-fee";
 import { translateNow } from "@/i18n/runtime";
 
+import { getMetaSync, META_KEYS, setMeta } from "./app-meta-core";
 import { getCategoryById } from "./categories-core";
 import { frozenUsdAmount } from "./frozen-usd";
 import { localRateLookup } from "./rates";
-import { lastFeeCategoryId } from "./transfers-core";
 
 type Row = typeof transactions.$inferSelect;
 type Insert = typeof transactions.$inferInsert;
@@ -83,6 +83,14 @@ export function goesWithPendingDelete(
     pendingId: string | null
 ): boolean {
     return pendingId !== null && [row.id, row.feeForId, row.transferId].includes(pendingId);
+}
+
+export function lastFeeCategoryId(db: Database): string | null {
+    return getMetaSync(db, META_KEYS.lastTransferFeeCategory);
+}
+
+export async function rememberFeeCategory(db: Database, categoryId: string): Promise<void> {
+    await setMeta(db, META_KEYS.lastTransferFeeCategory, categoryId);
 }
 
 export function feeCategoryFor(db: Database, purchaseCategoryId: string | null): string | null {

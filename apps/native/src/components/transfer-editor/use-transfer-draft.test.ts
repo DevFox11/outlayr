@@ -270,7 +270,7 @@ describe("swapping a transfer that carries a custom rate", () => {
     it("values the inverted pair at its own rate, never at the one typed for the other", async () => {
         const result = await customRateDraft();
         await act(async () => {
-            result.current.swap();
+            result.current.chooseFrom(result.current.to);
         });
         expect(result.current.legs).toStrictEqual({ exchangeRate: 0.018, fromAmount: 100, toAmount: 1.8 });
         expect(result.current.customRatePadText).toBe("55.5");
@@ -289,10 +289,10 @@ describe("swapping a transfer that carries a custom rate", () => {
     it("gives the rate back to the pair it was typed for", async () => {
         const result = await customRateDraft();
         await act(async () => {
-            result.current.swap();
+            result.current.chooseFrom(result.current.to);
         });
         await act(async () => {
-            result.current.swap();
+            result.current.chooseFrom(result.current.to);
         });
         expect(result.current.customRatePadText).toBe("600");
         expect(result.current.effectiveRate).toBe(600);

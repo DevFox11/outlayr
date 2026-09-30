@@ -11,7 +11,6 @@ import { newId } from "@/domain/ids";
 import { minorUnitsFor } from "@/domain/money";
 import type { FeeSide } from "@/domain/transfer-reconcile";
 
-import { getMetaSync, META_KEYS, setMeta } from "./app-meta-core";
 import { frozenUsdAmount } from "./frozen-usd";
 
 interface TransferFeeInput {
@@ -50,14 +49,6 @@ export interface SavedTransfer {
     sent: number;
     toAccountId: string;
     toCurrency: string;
-}
-
-export function lastFeeCategoryId(db: Database): string | null {
-    return getMetaSync(db, META_KEYS.lastTransferFeeCategory);
-}
-
-export async function rememberFeeCategory(db: Database, categoryId: string): Promise<void> {
-    await setMeta(db, META_KEYS.lastTransferFeeCategory, categoryId);
 }
 
 function assertMovable(input: TransferInput): void {

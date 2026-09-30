@@ -1,7 +1,7 @@
 import { Easing, Keyframe, ReduceMotion } from "react-native-reanimated";
 
 /** The app's motion curve, shared so nothing here invents a second one. */
-const EASE = Easing.bezier(0.645, 0.045, 0.355, 1);
+export const EASE = Easing.bezier(0.645, 0.045, 0.355, 1);
 
 const WRITE_MS = 260;
 

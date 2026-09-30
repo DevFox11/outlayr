@@ -3,7 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react-native";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { Keyboard, Pressable, View } from "react-native";
-import Animated, { Easing, Keyframe, ReduceMotion } from "react-native-reanimated";
+import Animated, { Keyframe, ReduceMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GlassButton } from "@/components/glass-button";
@@ -11,12 +11,7 @@ import { FontScaleCapContext, Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useColors } from "@/theme/use-colors";
 
-/**
- * The app's motion curve. Restated rather than imported because
- * `../../sentence/sentence-motion.ts` keeps its `EASE` module-private; that file
- * owns the value, and this must not drift from it.
- */
-const EASE = Easing.bezier(0.645, 0.045, 0.355, 1);
+import { EASE } from "../../sentence/sentence-motion";
 
 const SWAP_MS = 240;
 

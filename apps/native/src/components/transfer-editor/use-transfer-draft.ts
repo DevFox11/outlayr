@@ -152,7 +152,6 @@ export interface TransferDraft {
     setFee: (text: string) => void;
     setRateType: (type: EntryRateType) => void;
     setSent: (text: string) => void;
-    swap: () => void;
     to: Account | null;
     toBalance: number;
     toBalanceAfter: number;
@@ -500,11 +499,6 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
             setArrivalPinned(false);
         },
         setSent: unpin(setSentText),
-        swap: () => {
-            setFromId(toId);
-            setToId(fromId);
-            setArrivalPinned(false);
-        },
         to,
         toBalance: roundMoney(toBalance.total, toDecimals),
         toBalanceAfter: roundMoney(toBalance.total + toRestored + (math.arrived ?? 0), toDecimals),

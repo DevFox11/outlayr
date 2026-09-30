@@ -178,7 +178,6 @@ function transfer(id: string, note: string) {
         recurringEndDate: null,
         recurringType: 0,
         transferId: id,
-        transferTo: null,
     };
 }
 

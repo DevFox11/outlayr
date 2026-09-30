@@ -33,7 +33,13 @@ import { EMPTY_DRAFT, useIdentityDraft, useIdentityFlyUp } from "@/contexts/iden
 import { useAccounts } from "@/data/accounts";
 import { getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
-import { cardFeeFor, feeRatesOn, lastForeignFeeRate } from "@/data/card-fees-core";
+import {
+    cardFeeFor,
+    feeRatesOn,
+    lastFeeCategoryId,
+    lastForeignFeeRate,
+    rememberFeeCategory,
+} from "@/data/card-fees-core";
 import type { CardFeeInput } from "@/data/card-fees-core";
 import { useCategoriesByNamespace } from "@/data/categories";
 import { ensureCategoryByName, getCategoryById } from "@/data/categories-core";
@@ -53,7 +59,6 @@ import { tagIdsForQuery, tagsRepo } from "@/data/tags-core";
 import { transactionRateSuggestions } from "@/data/transaction-entry-rates";
 import { getTransactionById, transactionsRepo } from "@/data/transactions-core";
 import type { Transaction, TransactionInput } from "@/data/transactions-core";
-import { lastFeeCategoryId, rememberFeeCategory } from "@/data/transfers-core";
 import type { Database } from "@/db/client";
 import { cardFeeAmount, cardFeeBase, cardFeeOf, feeDraftOf, formatFeeRate, NO_FEE } from "@/domain/card-fee";
 import type { FeeDraft } from "@/domain/card-fee";
@@ -138,12 +143,7 @@ import { StepRepeat } from "./stage/step-repeat";
 import { StepWhen } from "./stage/step-when";
 import { useSplitDraft } from "./use-split-draft";
 
-/**
- * Only reached if `onGeometryChange` never fires; a real measurement always
- * supersedes it. A 70pt nav-bar scroll inset plus the hero section's own top
- * padding.
- */
-const HERO_REST_TOP_FALLBACK = 88;
+const HERO_REST_TOP = 88;
 
 /**
  * Floor for the currency step's virtualised list. A stage body has no intrinsic
@@ -551,13 +551,6 @@ function useTransactionRateControls({
     };
 }
 
-/**
- * The add/edit transaction form.
- *
- * Hand-built cards over a `ScrollView` rather than an inset-grouped `List`:
- * SwiftUI's `List` imposes its own section spacing, corner radius and row
- * insets, none of which are settable.
- */
 // oxlint-disable-next-line complexity -- known debt: this component owns entry, edit, copy and log-again in one tree. Splitting it is its own change, tracked separately from the lint gate.
 export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDelete }: TransactionFormProps) {
     const colors = useColors();
@@ -1059,29 +1052,8 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
     const queueable = (merchant: string) => aiEnrichment && merchant.trim() !== "";
     const groundedLookup = useAppSettings().state.bool("groundedLookup");
     const [burstSeed, setBurstSeed] = useState(0);
-    // Shared values, not state: the fly-up is the only reader and it reads them from
-    // the UI thread, so measuring the form must not cost the SwiftUI tree a render.
     const containerHeight = useSharedValue(0);
-    // Global (window) points straight from SwiftUI, NaN until it reports.
-    // `measureInWindow` cannot stand in here — it answers 0 for RN views living
-    // inside the `Host`.
-    const heroWinY = useSharedValue(Number.NaN);
-    // The twin is an overlay on this screen's ROOT, so the hero's window frame has to
-    // be rebased on the root's window origin. The `ScrollView`'s frame is no use as a
-    // reference: it is inset below the transparent nav bar. The root is bottom-anchored
-    // and full-bleed, so what it is missing off the window IS its top inset.
-    //
-    // That holds only because a `modal` presentation on iPhone insets the top alone,
-    // and `supportsTablet` is unset so iPad runs iPhone-compatibility. Turning iPad
-    // support on breaks this silently: a real iPad modal is a centred card inset on ALL
-    // sides, so this subtraction yields the TOTAL vertical inset and launches the twin
-    // roughly half of it too low. Halve it — or measure the top inset directly —
-    // before shipping an iPad build.
-    const heroRestTop = useDerivedValue(() =>
-        Number.isNaN(heroWinY.get()) || containerHeight.get() <= 0
-            ? HERO_REST_TOP_FALLBACK
-            : heroWinY.get() - (windowHeight - containerHeight.get())
-    );
+    const heroRestTop = useDerivedValue(() => HERO_REST_TOP);
     const isDark = useIsDark();
     const router = useRouter();
     const accountCreateRoute = useAccountCreateRoute();

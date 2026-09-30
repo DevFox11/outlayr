@@ -41,7 +41,6 @@ export interface TransferLogRow {
     recurringEndDate: null;
     recurringType: number;
     transferId: string;
-    transferTo: { amount: number; currency: string } | null;
 }
 
 const UNKNOWN_ACCOUNT = "—";
@@ -52,7 +51,6 @@ export function toTransferLogRow(
 ): TransferLogRow {
     const from = accountNames.get(transfer.fromAccountId) ?? UNKNOWN_ACCOUNT;
     const to = accountNames.get(transfer.toAccountId) ?? UNKNOWN_ACCOUNT;
-    const crossCurrency = transfer.fromCurrency !== transfer.toCurrency;
     return {
         amount: transfer.fromAmount,
         amountUsd: transfer.fromAmountUsd,
@@ -81,7 +79,6 @@ export function toTransferLogRow(
         recurringEndDate: null,
         recurringType: 0,
         transferId: transfer.id,
-        transferTo: crossCurrency ? { amount: transfer.toAmount, currency: transfer.toCurrency } : null,
     };
 }
 
