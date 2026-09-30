@@ -30,7 +30,7 @@ const BOTTOM_PAD = 30;
  */
 const KEYBOARD_BOTTOM_PAD = 12;
 
-function useKeyboardShown(): boolean {
+export function useKeyboardShown(): boolean {
     const [shown, setShown] = useState(false);
     useEffect(() => {
         const show = Keyboard.addListener("keyboardWillShow", () => setShown(true));

@@ -2749,14 +2749,32 @@ export function TransactionForm({
                     <InlineFailure message={saveFailure} />
                 </View>
 
-                <TransactionFormCta
-                    deleteLabel={t("common.delete")}
-                    deleteTint={colors.danger}
-                    lookupBusy={enriching}
-                    lookupLabel={t("transaction.cta.lookup")}
-                    onDelete={onDelete}
-                    onLookup={mode === "edit" ? lookUpMerchant : undefined}
-                />
+                <SubscribeFields
+                    selector={(s) => ({
+                        amount: s.values.amount,
+                        busy: s.isSubmitting,
+                        merchant: s.values.merchant,
+                    })}
+                    store={form.store}
+                >
+                    {({ amount, busy, merchant }) => (
+                        <TransactionFormCta
+                            deleteLabel={t("common.delete")}
+                            deleteTint={colors.danger}
+                            lookupBusy={enriching}
+                            lookupLabel={t("transaction.cta.lookup")}
+                            onDelete={onDelete}
+                            onLookup={mode === "edit" ? lookUpMerchant : undefined}
+                            save={{
+                                blockedTint: colors.subtle,
+                                busy,
+                                label: ctaLabel,
+                                onPress: () => pressSubmit(form),
+                                ready: entryWhole(numpadToNumber(amount), merchant),
+                            }}
+                        />
+                    )}
+                </SubscribeFields>
 
                 {/* The stage's merchant step edits the same string the sentence
 				    does, and the software keyboard covers a surface docked to the

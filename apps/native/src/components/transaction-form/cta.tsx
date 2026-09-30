@@ -1,8 +1,19 @@
 import { Stack } from "expo-router";
-import { memo, useCallback, useLayoutEffect, useRef } from "react";
+import type { StackHeaderItemSharedProps } from "expo-router";
+import { memo, useCallback, useLayoutEffect, useMemo, useRef } from "react";
 
 import { toolbarIcon } from "@/components/toolbar-icons";
 import type { ToolbarIconName } from "@/components/toolbar-icons";
+
+import { useKeyboardShown } from "./stage/stage";
+
+export interface KeyboardSave {
+    blockedTint?: string;
+    busy: boolean;
+    label: string;
+    onPress: () => void;
+    ready: boolean;
+}
 
 export interface TransactionFormCtaProps {
     deleteLabel?: string;
@@ -13,15 +24,17 @@ export interface TransactionFormCtaProps {
     onDelete?: () => void;
     /** Given only while editing: a new entry looks its merchant up as it is typed. */
     onLookup?: () => void;
+    save?: KeyboardSave;
 }
 
 export interface TransactionFormCtaAction {
     accessibilityLabel: string;
     disabled: boolean;
     icon: ToolbarIconName;
-    key: "delete" | "lookup";
+    key: "delete" | "lookup" | "save";
     onPress: () => void;
     tintColor?: string;
+    variant?: StackHeaderItemSharedProps["variant"];
 }
 
 export function transactionFormCtaActions({
@@ -31,6 +44,7 @@ export function transactionFormCtaActions({
     lookupBusy,
     lookupLabel,
     onLookup,
+    save,
 }: TransactionFormCtaProps): TransactionFormCtaAction[] {
     const actions: TransactionFormCtaAction[] = [];
     if (onLookup) {
@@ -52,6 +66,17 @@ export function transactionFormCtaActions({
             tintColor: deleteTint,
         });
     }
+    if (save) {
+        actions.push({
+            accessibilityLabel: save.label,
+            disabled: save.busy,
+            icon: "done",
+            key: "save",
+            onPress: save.onPress,
+            tintColor: save.ready ? undefined : save.blockedTint,
+            variant: save.ready ? "done" : undefined,
+        });
+    }
     return actions;
 }
 
@@ -70,6 +95,7 @@ function CtaToolbarBody(props: TransactionFormCtaProps) {
                     key={action.key}
                     onPress={action.onPress}
                     tintColor={action.tintColor}
+                    variant={action.variant}
                 />
             ))}
         </Stack.Toolbar>
@@ -85,7 +111,17 @@ export function TransactionFormCta(props: TransactionFormCtaProps) {
     });
     const remove = useCallback(() => handlers.current.onDelete?.(), []);
     const lookup = useCallback(() => handlers.current.onLookup?.(), []);
+    const press = useCallback(() => handlers.current.save?.onPress(), []);
+    const keyboardShown = useKeyboardShown();
     const lookable = props.onLookup !== undefined;
+    const { blockedTint, busy, label, ready } = props.save ?? {};
+    const save = useMemo(
+        () =>
+            keyboardShown && label !== undefined
+                ? { blockedTint, busy: busy === true, label, onPress: press, ready: ready === true }
+                : undefined,
+        [blockedTint, busy, keyboardShown, label, press, ready]
+    );
     return (
         <CtaToolbar
             deleteLabel={props.deleteLabel}
@@ -94,6 +130,7 @@ export function TransactionFormCta(props: TransactionFormCtaProps) {
             lookupLabel={props.lookupLabel}
             onDelete={props.onDelete === undefined ? undefined : remove}
             onLookup={lookable ? lookup : undefined}
+            save={save}
         />
     );
 }

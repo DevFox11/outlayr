@@ -5,6 +5,7 @@ import { AccessibilityInfo, Keyboard, Pressable, ScrollView, TextInput, View } f
 import { InlineFailure } from "@/components/form/inline-failure";
 import { Text } from "@/components/text";
 import { TransactionFormAmountPad } from "@/components/transaction-form/amount-pad";
+import { TransactionFormCta } from "@/components/transaction-form/cta";
 import { MetaLine } from "@/components/transaction-form/stage/meta-line";
 import { TransactionStage } from "@/components/transaction-form/stage/stage";
 import { StepAccount } from "@/components/transaction-form/stage/step-account";
@@ -44,12 +45,13 @@ import type { TransferSeed } from "./use-transfer-draft";
 
 type Step = Exclude<TransferSentenceSlot, "feeSide"> | "date";
 
-type TransferEditorProps = { onDirtyChange?: (dirty: boolean) => void; onDone: () => void } & (
-    | { saved: SavedTransfer; seed?: never }
-    | { saved?: never; seed?: TransferSeed & { note?: string } }
-);
+type TransferEditorProps = {
+    onDelete?: () => void;
+    onDirtyChange?: (dirty: boolean) => void;
+    onDone: () => void;
+} & ({ saved: SavedTransfer; seed?: never } | { saved?: never; seed?: TransferSeed & { note?: string } });
 
-export default function TransferEditor({ onDirtyChange, onDone, saved, seed }: TransferEditorProps) {
+export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved, seed }: TransferEditorProps) {
     const db = useDatabase();
     const router = useRouter();
     const accountCreateRoute = useAccountCreateRoute();
@@ -513,6 +515,18 @@ export default function TransferEditor({ onDirtyChange, onDone, saved, seed }: T
                 </ScrollView>
             </View>
 
+            <TransactionFormCta
+                deleteLabel={t("transfers.delete.row")}
+                deleteTint={colors.danger}
+                onDelete={onDelete}
+                save={{
+                    blockedTint: colors.subtle,
+                    busy: saving,
+                    label: t("transfers.save"),
+                    onPress: onFooter,
+                    ready: draft.canSave,
+                }}
+            />
             <View className="px-5">
                 <InlineFailure message={saveFailure} />
             </View>

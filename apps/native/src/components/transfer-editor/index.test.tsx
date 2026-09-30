@@ -170,6 +170,21 @@ describe("transfer editor keypad", () => {
         expect(slotValue(SENT)).not.toContain("$");
     });
 
+    it("puts Delete in the bar when the screen can delete", async () => {
+        const onDelete = jest.fn();
+        await render(
+            <TransferEditor
+                onDelete={onDelete}
+                onDone={jest.fn()}
+                seed={{ amount: 100, fromAccountId: "usd", toAccountId: "usd-2" }}
+            />
+        );
+
+        screen.getByLabelText("transfers.delete.row").props.onButtonPress();
+
+        expect(onDelete).toHaveBeenCalledTimes(1);
+    });
+
     it("reports an edit on the first key", async () => {
         const onDirtyChange = jest.fn();
         await render(

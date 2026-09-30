@@ -5,6 +5,9 @@ import type { ReactNode } from "react";
 import { TransactionFormCta, transactionFormCtaActions } from "./cta";
 
 const mockToolbarRenders = jest.fn();
+const mockKeyboardShown = jest.fn<() => boolean>(() => false);
+
+jest.mock("./stage/stage", () => ({ useKeyboardShown: () => mockKeyboardShown() }));
 
 jest.mock<Partial<typeof import("expo-router")>>("expo-router", () => {
     const stub = require("../../../jest/expo-router-stub");
@@ -58,8 +61,48 @@ describe("transactionFormCtaActions", () => {
     });
 });
 
+describe("save while typing", () => {
+    const SAVE = { busy: false, label: "Add Transaction", onPress: () => {}, ready: true };
+
+    it("stays out of the bar while the footer is in reach", async () => {
+        mockKeyboardShown.mockReturnValue(false);
+        const view = await render(<TransactionFormCta save={SAVE} />);
+        expect(view.toJSON()).toBeNull();
+    });
+
+    it("joins the bar, after delete, while the keyboard covers the footer", async () => {
+        mockKeyboardShown.mockReturnValue(true);
+        const onPress = jest.fn();
+        const view = await render(
+            <TransactionFormCta deleteLabel="Delete" onDelete={() => {}} save={{ ...SAVE, onPress }} />
+        );
+        const bar = view.toJSON();
+        if (bar === null || Array.isArray(bar)) {
+            throw new TypeError("expected one toolbar");
+        }
+        const buttons = (bar.children ?? []).filter((child) => typeof child !== "string");
+        expect(buttons.map((button) => button.props.accessibilityLabel)).toStrictEqual(["Delete", "Add Transaction"]);
+        buttons[1]?.props.onButtonPress();
+        expect(onPress).toHaveBeenCalledTimes(1);
+        mockKeyboardShown.mockReturnValue(false);
+    });
+
+    it("keeps its press while the entry is not whole, and only loses its prominence", () => {
+        const [save] = transactionFormCtaActions({ save: { ...SAVE, blockedTint: "#999999", ready: false } });
+        expect(save).toMatchObject({ disabled: false, key: "save", tintColor: "#999999", variant: undefined });
+        const [ready] = transactionFormCtaActions({ save: SAVE });
+        expect(ready).toMatchObject({ tintColor: undefined, variant: "done" });
+    });
+
+    it("waits out a save that is already in flight", () => {
+        const [save] = transactionFormCtaActions({ save: { ...SAVE, busy: true } });
+        expect(save?.disabled).toBe(true);
+    });
+});
+
 describe("toolbar", () => {
     it("is not rebuilt by a render that only changes the handlers, and presses reach the latest one", async () => {
+        mockToolbarRenders.mockClear();
         const first = jest.fn();
         const second = jest.fn();
         const view = await render(<TransactionFormCta deleteLabel="Delete" onDelete={first} />);
