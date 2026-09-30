@@ -741,14 +741,6 @@ const transaction = {
             en: "Edit amount",
             es: "Editar monto",
         }),
-        "transaction.split.failedBody": t({
-            en: "The entry was saved, but how it splits across categories was not.",
-            es: "La transacción se guardó, pero la división entre categorías no.",
-        }),
-        "transaction.split.failedTitle": t({
-            en: "Couldn't save the split",
-            es: "No se pudo guardar la división",
-        }),
         "transaction.split.fillRest": t({
             en: "Give the rest to the last category",
             es: "Dar el resto a la última categoría",
@@ -764,6 +756,10 @@ const transaction = {
         "transaction.split.title": t({
             en: "Split",
             es: "Dividir",
+        }),
+        "transaction.split.unbalanced": t({
+            en: "The split does not add up to the amount.",
+            es: "La división no suma el monto.",
         }),
         "transaction.stopRecurring.failedBody": t({
             en: "The schedule couldn't be stopped, so the next charge will still be logged.",
@@ -784,14 +780,6 @@ const transaction = {
         "transaction.tags.empty": t({
             en: "No tags yet. Type a name to add one.",
             es: "Aún no hay etiquetas. Escribe un nombre para agregar una.",
-        }),
-        "transaction.tags.failedBody": t({
-            en: "The entry was saved. Open it again to set its tags.",
-            es: "El registro se guardó. Ábrelo de nuevo para asignar sus etiquetas.",
-        }),
-        "transaction.tags.failedTitle": t({
-            en: "Couldn't save the tags",
-            es: "No se pudieron guardar las etiquetas",
         }),
         "transaction.tags.searchPlaceholder": t({
             en: "Search or add",

@@ -108,48 +108,44 @@ export const tagsRepo = {
      * identity the other devices already know.
      */
     async setTagsFor(db: Database, transactionId: string, tagIds: readonly string[]): Promise<void> {
+        await withTransaction(db, () => tagsRepo.writeTagsFor(db, transactionId, tagIds));
+    },
+
+    async writeTagsFor(db: Database, transactionId: string, tagIds: readonly string[]): Promise<void> {
         const now = new Date();
         const rows = await tagIdsForQuery(db, transactionId);
         const current = rows.map((row) => row.tagId);
         const { attach, detach } = tagLinkDiff(current, tagIds);
-        if (attach.length === 0 && detach.length === 0) {
-            return;
+        if (detach.length > 0) {
+            await db
+                .update(transactionTags)
+                .set({ deletedAt: now, updatedAt: now })
+                .where(
+                    and(eq(transactionTags.transactionId, transactionId), inArray(transactionTags.tagId, [...detach]))
+                );
         }
-        await withTransaction(db, async () => {
-            if (detach.length > 0) {
+        /* oxlint-disable no-await-in-loop -- expo-sqlite's withTransactionAsync shares one connection, so statements issued concurrently inside the callback interleave with the transaction boundary */
+        for (const tagId of attach) {
+            const retired = await db
+                .select({ id: transactionTags.id })
+                .from(transactionTags)
+                .where(and(eq(transactionTags.transactionId, transactionId), eq(transactionTags.tagId, tagId)))
+                .limit(1);
+            if (retired[0]) {
                 await db
                     .update(transactionTags)
-                    .set({ deletedAt: now, updatedAt: now })
-                    .where(
-                        and(
-                            eq(transactionTags.transactionId, transactionId),
-                            inArray(transactionTags.tagId, [...detach])
-                        )
-                    );
+                    .set({ deletedAt: null, updatedAt: now })
+                    .where(eq(transactionTags.id, retired[0].id));
+                continue;
             }
-            /* oxlint-disable no-await-in-loop -- expo-sqlite's withTransactionAsync shares one connection, so statements issued concurrently inside the callback interleave with the transaction boundary */
-            for (const tagId of attach) {
-                const retired = await db
-                    .select({ id: transactionTags.id })
-                    .from(transactionTags)
-                    .where(and(eq(transactionTags.transactionId, transactionId), eq(transactionTags.tagId, tagId)))
-                    .limit(1);
-                if (retired[0]) {
-                    await db
-                        .update(transactionTags)
-                        .set({ deletedAt: null, updatedAt: now })
-                        .where(eq(transactionTags.id, retired[0].id));
-                    continue;
-                }
-                await db.insert(transactionTags).values({
-                    deletedAt: null,
-                    id: newId(),
-                    tagId,
-                    transactionId,
-                    updatedAt: now,
-                });
-            }
-            /* oxlint-enable no-await-in-loop */
-        });
+            await db.insert(transactionTags).values({
+                deletedAt: null,
+                id: newId(),
+                tagId,
+                transactionId,
+                updatedAt: now,
+            });
+        }
+        /* oxlint-enable no-await-in-loop */
     },
 };

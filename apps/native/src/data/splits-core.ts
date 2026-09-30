@@ -2,7 +2,6 @@ import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { transactionSplits } from "@/db/schema";
-import { withTransaction } from "@/db/transaction";
 import { newId } from "@/domain/ids";
 import { isBalanced } from "@/domain/split";
 import type { Allocation } from "@/domain/split";
@@ -62,7 +61,7 @@ export const splitsRepo = {
      * Clearing is how an entry goes back to being attributed by its own
      * `categoryId`: no rows is the implicit whole, not "attributed to nothing".
      */
-    async setSplit(
+    async writeSplit(
         db: Database,
         transactionId: string,
         total: number,
@@ -74,25 +73,23 @@ export const splitsRepo = {
             throw new UnbalancedSplitError(total, allocated);
         }
         const now = new Date();
-        await withTransaction(db, async () => {
-            await db
-                .update(transactionSplits)
-                .set({ deletedAt: now, updatedAt: now })
-                .where(and(eq(transactionSplits.transactionId, transactionId), isNull(transactionSplits.deletedAt)));
-            if (allocations.length === 0) {
-                return;
-            }
-            await db.insert(transactionSplits).values(
-                allocations.map((allocation, index) => ({
-                    amount: allocation.amount,
-                    categoryId: allocation.categoryId,
-                    deletedAt: null,
-                    id: newId(),
-                    sortOrder: index,
-                    transactionId,
-                    updatedAt: now,
-                }))
-            );
-        });
+        await db
+            .update(transactionSplits)
+            .set({ deletedAt: now, updatedAt: now })
+            .where(and(eq(transactionSplits.transactionId, transactionId), isNull(transactionSplits.deletedAt)));
+        if (allocations.length === 0) {
+            return;
+        }
+        await db.insert(transactionSplits).values(
+            allocations.map((allocation, index) => ({
+                amount: allocation.amount,
+                categoryId: allocation.categoryId,
+                deletedAt: null,
+                id: newId(),
+                sortOrder: index,
+                transactionId,
+                updatedAt: now,
+            }))
+        );
     },
 };

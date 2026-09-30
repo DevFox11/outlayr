@@ -10,11 +10,12 @@ import { getMeta, META_KEYS, setMeta } from "@/data/app-meta-core";
 import { categoriesRepo } from "@/data/categories-core";
 import { bumpRatesRevision } from "@/data/rates-revision";
 import { backfillRecurring } from "@/data/recurrence-backfill";
+import { splitsRepo } from "@/data/splits-core";
 import { tagIdsForQuery, tagsRepo } from "@/data/tags-core";
 import type { Transaction } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { accounts, categories, exchangeRates, tags, transactions } from "@/db/schema";
-import { migratedDatabase } from "@/db/test-database";
+import { migratedDatabase, transactionalDatabase } from "@/db/test-database";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
@@ -2377,9 +2378,9 @@ describe("transactionForm pending category and tag materialization", () => {
         alertSpy.mockRestore();
     });
 
-    it("materializes pending tags via ensureTag and merges them into a single setTagsFor call", async () => {
+    it("materializes pending tags via ensureTag and merges them into a single tag write", async () => {
         const db = dbHolder.current as Database;
-        const setTagsSpy = jest.spyOn(tagsRepo, "setTagsFor");
+        const setTagsSpy = jest.spyOn(tagsRepo, "writeTagsFor");
 
         const screen = await render(
             <Providers>
@@ -2459,6 +2460,67 @@ describe("transactionForm pending category and tag materialization", () => {
         expect(mockHaptic).not.toHaveBeenCalledWith("success");
 
         createSpy.mockRestore();
+    });
+
+    it("writes nothing and says so when the split cannot be saved", async () => {
+        const db = transactionalDatabase();
+        dbHolder.current = db;
+        const categoryId = await seedCategory(db);
+        const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+        const splitSpy = jest.spyOn(splitsRepo, "writeSplit").mockRejectedValueOnce(new Error("boom"));
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} seed={{ amount: 25, categoryId }} />
+            </Providers>
+        );
+
+        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
+        await act(async () => {
+            saveButton?.props.onButtonPress();
+        });
+
+        await expect(db.select().from(transactions)).resolves.toHaveLength(0);
+        expect(containsText(screen.toJSON() as JsonNode, "transaction.save.failedBody")).toBe(true);
+
+        splitSpy.mockRestore();
+        errorSpy.mockRestore();
+    });
+
+    it("refuses a split that no longer adds up and names it", async () => {
+        const db = transactionalDatabase();
+        dbHolder.current = db;
+        const initial = await seedStoredTransaction(db, {
+            amount: 40,
+            amountUsd: 40,
+            currency: "USD",
+            exchangeRate: null,
+            exchangeRateType: null,
+        });
+        await splitsRepo.writeSplit(
+            db,
+            initial.id,
+            40,
+            [
+                { amount: 25, categoryId: initial.categoryId },
+                { amount: 15, categoryId: null },
+            ],
+            2
+        );
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} initial={initial} mode="edit" onDone={() => {}} />
+            </Providers>
+        );
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.field.amount"));
+        });
+        await pressKeys(screen, ["5"]);
+        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
+        await act(async () => saveButton?.props.onButtonPress());
+
+        expect((await db.select().from(transactions))[0]).toMatchObject({ amount: 40 });
+        expect(containsText(screen.toJSON() as JsonNode, "transaction.split.unbalanced")).toBe(true);
     });
 
     it("saves a named merchant nothing could file yet, and queues it for the lookup", async () => {

@@ -65,6 +65,7 @@ import { formatAmount, formatFixed, minorUnitsFor, numberLocale, roundToMinorUni
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { ensureRecurringType, RECURRING_TYPE } from "@/domain/recurrence";
 import { enableReminderStep } from "@/domain/reminder";
+import { isBalanced } from "@/domain/split";
 import { isRealSplit } from "@/domain/split-draft";
 import { normalizeLead } from "@/domain/subscription-reminder";
 import { findTagByName, normalizeTagName } from "@/domain/tags";
@@ -388,13 +389,14 @@ async function persistTransaction(
     db: Database,
     mode: "create" | "edit",
     initial: Transaction | undefined,
-    input: TransactionInput
+    input: TransactionInput,
+    inSameTransaction: (id: string) => Promise<void>
 ): Promise<string> {
     if (mode === "edit" && initial) {
-        await transactionsRepo.update(db, initial.id, input);
+        await transactionsRepo.update(db, initial.id, input, { inSameTransaction });
         return initial.id;
     }
-    return await transactionsRepo.create(db, input);
+    return await transactionsRepo.create(db, input, { inSameTransaction });
 }
 
 function initialEntryRateType(currency: string, rateType: string | null | undefined): EntryRateType | null {
@@ -668,6 +670,15 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         onSubmit: async ({ value }) => {
             setSaveFailure(null);
 
+            const entryCurrency = value.txCurrency ?? globalCurrency;
+            const amount = roundToMinorUnits(numpadToNumber(value.amount), entryCurrency);
+            if (isRealSplit(splitAllocations) && !isBalanced(amount, splitAllocations, minorUnitsFor(entryCurrency))) {
+                haptics("error");
+                setSaveFailure(t("transaction.split.unbalanced"));
+                splitSheetRef.current?.present();
+                return;
+            }
+
             let categoryId: string | null = null;
             if (value.category) {
                 categoryId = value.category.id;
@@ -691,7 +702,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 // the currency has no units for. `account-editor` already rounds
                 // at save; this is the same rule, and `draft.currency` is nullable
                 // so the pure builder cannot apply it.
-                amount: roundToMinorUnits(numpadToNumber(value.amount), value.txCurrency ?? globalCurrency),
+                amount,
                 categoryId,
                 coefficient: value.coefficient,
                 currency: value.txCurrency,
@@ -700,10 +711,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 details: notesRef.current,
                 emoji: identity.emoji,
                 endDate: value.endDate,
-                exchangeRate:
-                    value.exchangeRateType == null
-                        ? null
-                        : entryRateOf(value.rateEntry, value.txCurrency ?? globalCurrency),
+                exchangeRate: value.exchangeRateType == null ? null : entryRateOf(value.rateEntry, entryCurrency),
                 exchangeRateType: value.exchangeRateType,
                 hasEndDate: value.hasEndDate,
                 icon: identity.icon,
@@ -721,7 +729,19 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
             };
             let savedId: string;
             try {
-                savedId = await persistTransaction(db, mode, initial, input);
+                savedId = await persistTransaction(db, mode, initial, input, async (id) => {
+                    if (tagsSource !== "initial") {
+                        const materializedTagIds = await materializeTagIds(db, value.tagIds, value.pendingTagNames);
+                        await tagsRepo.writeTagsFor(db, id, materializedTagIds);
+                    }
+                    await splitsRepo.writeSplit(
+                        db,
+                        id,
+                        amount,
+                        isRealSplit(splitAllocations) ? splitAllocations : [],
+                        minorUnitsFor(entryCurrency)
+                    );
+                });
                 if (mode === "create") {
                     freshEntries.mark(savedId);
                 }
@@ -745,19 +765,6 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     console.error("Failed to remember the account", error);
                 });
             }
-            if (tagsSource !== "initial") {
-                // After the row exists, because the link points at it. A failure here
-                // costs the tags, not the entry, so it is reported rather than thrown.
-                try {
-                    // Guarded by `tagsSource !== "initial"`, where the effective ids
-                    // are the field's own — `savedTagIds` only stands in before that.
-                    const materializedTagIds = await materializeTagIds(db, value.tagIds, value.pendingTagNames);
-                    await tagsRepo.setTagsFor(db, savedId, materializedTagIds);
-                } catch (error) {
-                    console.error("Failed to save tags", error);
-                    notifyFailure({ body: t("transaction.tags.failedBody"), title: t("transaction.tags.failedTitle") });
-                }
-            }
             if (mode === "create" && queueable(value.merchant)) {
                 queueEnrichment(db, savedId)
                     .then(() => sendEnrichmentQueue(db))
@@ -779,22 +786,6 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                 carryLookupToSiblings(savedId, value.income, value.merchant, value.txCurrency).catch((error) => {
                     console.error("Failed to carry the merchant lookup to its other rows", error);
                 });
-            }
-            // After the row exists, for the same reason tags are: the parts point at
-            // it. A single part is stored as no split at all, which is what keeps an
-            // entry attributed by its own `categoryId` rather than by an equivalent
-            // row saying the same thing.
-            try {
-                await splitsRepo.setSplit(
-                    db,
-                    savedId,
-                    numpadToNumber(value.amount),
-                    isRealSplit(splitAllocations) ? splitAllocations : [],
-                    minorUnitsFor(value.txCurrency ?? globalCurrency)
-                );
-            } catch (error) {
-                console.error("Failed to save the split", error);
-                notifyFailure({ body: t("transaction.split.failedBody"), title: t("transaction.split.failedTitle") });
             }
             let scheduleFailed = false;
             if (value.isSubscription) {

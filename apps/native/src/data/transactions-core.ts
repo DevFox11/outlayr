@@ -426,6 +426,7 @@ export interface CreateOptions {
      * and one candidate write per row would make a large import quadratic.
      */
     logoCandidate?: boolean;
+    inSameTransaction?: (id: string) => Promise<void>;
 }
 
 export const transactionsRepo = {
@@ -433,9 +434,14 @@ export const transactionsRepo = {
         const id = newId();
         const row = await toRow(db, id, input);
         const fee = input.fee == null ? null : await cardFeeValues(db, id, row, input.fee);
-        await db
-            .insert(transactions)
-            .values(fee === null ? [row] : [row, { ...fee, id: newId(), updatedAt: row.updatedAt }]);
+        const { inSameTransaction } = options;
+        const write = async () => {
+            await db
+                .insert(transactions)
+                .values(fee === null ? [row] : [row, { ...fee, id: newId(), updatedAt: row.updatedAt }]);
+            await inSameTransaction?.(id);
+        };
+        await (inSameTransaction ? withTransaction(db, write) : write());
         // Bookkeeping, so it cannot fail the save: the row is already in, and a
         // caller told otherwise would retry and write it twice. Judged on the
         // merchant the caller gave, not on `row.note`: a blank merchant is filled
@@ -567,7 +573,12 @@ export const transactionsRepo = {
         });
     },
 
-    async update(db: Database, id: string, input: TransactionInput): Promise<void> {
+    async update(
+        db: Database,
+        id: string,
+        input: TransactionInput,
+        { inSameTransaction }: Pick<CreateOptions, "inSameTransaction"> = {}
+    ): Promise<void> {
         const previous = getTransactionById(db, id);
         const row = await toRow(db, id, input);
         const { id: _omit, ...rest } = row;
@@ -628,6 +639,7 @@ export const transactionsRepo = {
             if (input.fee !== undefined && previous != null && previous.deletedAt == null) {
                 await writeFee(db, id, fee, row.updatedAt, kept !== null);
             }
+            await inSameTransaction?.(id);
         });
     },
 };
