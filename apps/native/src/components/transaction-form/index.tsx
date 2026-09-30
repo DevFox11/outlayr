@@ -332,8 +332,8 @@ interface TransactionFormProps {
     db: Database;
     initial?: Transaction;
     mode: "create" | "edit";
-    /** Adds a destructive item beside Save. Edit routes only — there is nothing
-     * to delete before the row exists. */
+    /** Adds a destructive item to the navigation bar. Edit routes only — there is
+     * nothing to delete before the row exists. */
     onDelete?: () => void;
     onDirtyChange?: (dirty: boolean) => void;
     onDone: () => void;
@@ -755,7 +755,7 @@ export function TransactionForm({
                 // first: un-dimming the CTA in silence is indistinguishable from having
                 // missed the button. Under the header rather than in a toast, which
                 // this sheet would cover, and pinned rather than in the scroll, so it
-                // stays beside the Save button that has to be pressed again.
+                // stays on screen while the footer is pressed again.
                 haptics("error");
                 setSaveFailure(t("transaction.save.failedBody"));
                 return;
@@ -839,8 +839,8 @@ export function TransactionForm({
             doneTimer.current = setTimeout(onDone, celebrate ? CONFETTI_FLIGHT_MS : 600);
             return await holdSubmitting();
         },
-        // The CTA stays lit on amount alone, so a tap with no category lands here
-        // rather than on a dimmed button that explains nothing.
+        // The footer is never disabled, so a tap with no category lands here
+        // rather than on a button that explains nothing.
         onSubmitInvalid: ({ value }) => {
             const fields = formErrorsOf(value)?.fields ?? {};
             // The amount flags where the category already does: the stage's
@@ -1899,8 +1899,10 @@ export function TransactionForm({
         GUIDED_STEPS.slice(from).find((step) => !answered(step, amountNumber, merchant)) ?? null;
 
     /** Every fact the entry cannot be saved without is answered. */
-    const entryWhole = (amountNumber: number, merchant: string): boolean =>
-        GUIDED_STEPS.every((step) => OPTIONAL_STEPS.has(step) || answered(step, amountNumber, merchant));
+    const entryWhole = (amountNumber: number, merchant: string, skipped?: GuidedStep): boolean =>
+        GUIDED_STEPS.every(
+            (step) => step === skipped || OPTIONAL_STEPS.has(step) || answered(step, amountNumber, merchant)
+        );
 
     /**
      * Where a resolved step hands over: the next fact the entry needs, and the
@@ -1917,7 +1919,7 @@ export function TransactionForm({
     };
 
     /**
-     * The stage's one button. It reads Save once the entry is whole, and walks
+     * The stage's one button. It reads Save once a press would save, and walks
      * FORWARD from the step on screen otherwise — pressing it on the step it is
      * asking for IS the skip, so a backward target would put the ladder in a
      * loop between two unanswered facts.
@@ -1931,8 +1933,9 @@ export function TransactionForm({
         // already declared unnecessary, so a whole entry submits from wherever it
         // is standing rather than walking on to an optional step.
         const onward = whole ? null : nextMissing(amountNumber, merchant, guidedIndex(stageStep) + 1);
+        const saves = whole || (stageStep === "account" && entryWhole(amountNumber, merchant, "account"));
         return {
-            label: whole ? ctaLabel : t("common.next"),
+            label: saves ? ctaLabel : t("common.next"),
             onPress: () => {
                 if (onward === null) {
                     pressSubmit(form);
@@ -1940,7 +1943,7 @@ export function TransactionForm({
                 }
                 enterStep(onward);
             },
-            tone: "primary",
+            tone: saves ? "primary" : "muted",
         };
     };
 
@@ -2686,8 +2689,8 @@ export function TransactionForm({
                     </ScrollView>
                 </Host>
 
-                {/* A strip under the header, not a floating pill: it is the Save button's
-				    own line, and it must not be mistaken for a row of the form. */}
+                {/* A strip under the header, not a floating pill: it is the save's own
+				    line, and it must not be mistaken for a row of the form. */}
                 <View
                     className="absolute right-0 left-0 px-5 pt-2"
                     onLayout={(e) => setFailureHeight(e.nativeEvent.layout.height)}
@@ -2703,36 +2706,14 @@ export function TransactionForm({
                     <InlineFailure message={saveFailure} />
                 </View>
 
-                <SubscribeFields
-                    selector={(s) => ({
-                        busy: s.isSubmitting,
-                        complete: numpadToNumber(s.values.amount) > 0,
-                    })}
-                    store={form.store}
-                >
-                    {({ busy, complete }) => (
-                        <TransactionFormCta
-                            blockedTint={colors.subtle}
-                            busy={busy}
-                            canSave={complete && !busy}
-                            deleteLabel={t("common.delete")}
-                            deleteTint={colors.danger}
-                            lookupBusy={enriching}
-                            lookupLabel={t("transaction.cta.lookup")}
-                            onDelete={onDelete}
-                            onLookup={mode === "edit" ? lookUpMerchant : undefined}
-                            onPress={() => {
-                                if (complete) {
-                                    pressSubmit(form);
-                                    return;
-                                }
-                                flagMissingAmount();
-                                leaveTo("amount");
-                            }}
-                            saveLabel={ctaLabel}
-                        />
-                    )}
-                </SubscribeFields>
+                <TransactionFormCta
+                    deleteLabel={t("common.delete")}
+                    deleteTint={colors.danger}
+                    lookupBusy={enriching}
+                    lookupLabel={t("transaction.cta.lookup")}
+                    onDelete={onDelete}
+                    onLookup={mode === "edit" ? lookUpMerchant : undefined}
+                />
 
                 {showToast ? (
                     <Animated.View

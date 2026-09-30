@@ -436,6 +436,29 @@ async function pickRate(screen: Screen, name: string): Promise<void> {
     });
 }
 
+async function pressFooter(screen: Screen, times = 1): Promise<void> {
+    for (let press = 0; press < times; press += 1) {
+        // oxlint-disable-next-line no-await-in-loop -- each press lands on the step the previous one opened
+        await act(async () => {
+            fireEvent.press(screen.getByTestId("stage-footer"));
+        });
+    }
+}
+
+async function saveFromBlankRate(screen: Screen, label: string): Promise<void> {
+    await act(async () => {
+        fireEvent.press(screen.getByLabelText("common.back"));
+    });
+    await pressFooter(screen);
+    await pressSave(screen, label);
+}
+
+async function pressSave(screen: Screen, label: string): Promise<void> {
+    await act(async () => {
+        fireEvent.press(within(screen.getByTestId("stage-footer")).getByText(label));
+    });
+}
+
 async function pressKeys(screen: Screen, keys: readonly string[]): Promise<void> {
     for (const key of keys) {
         // oxlint-disable-next-line no-await-in-loop -- each key builds on the text the previous one committed
@@ -973,6 +996,30 @@ describe("transactionForm", () => {
         });
     });
 
+    it("keeps one Save, in the footer, muted as Next until the entry is whole", async () => {
+        const db = dbHolder.current as Database;
+        await seedCategory(db);
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} seed={{ amount: 25 }} />
+            </Providers>
+        );
+
+        expect(findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add")).toBeNull();
+        expect(screen.getByTestId("stage-footer")).toHaveTextContent("common.next");
+        expect(screen.getByTestId("stage-footer").props.className).toContain("bg-surface-secondary");
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.field.category"));
+        });
+        await act(async () => {
+            pickOption(screen, "Groceries");
+        });
+
+        expect(screen.getByTestId("stage-footer")).toHaveTextContent("transaction.cta.add");
+        expect(screen.getByTestId("stage-footer").props.className).toContain("bg-tint");
+    });
+
     it("announces the fact a rejected save is missing", async () => {
         const db = dbHolder.current as Database;
         const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility").mockImplementation(() => {});
@@ -982,10 +1029,7 @@ describe("transactionForm", () => {
             </Providers>
         );
 
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
-        await act(async () => {
-            saveButton?.props.onButtonPress();
-        });
+        await pressFooter(screen, 3);
 
         expect(announce).toHaveBeenCalledWith("transaction.category.required");
         announce.mockRestore();
@@ -1485,25 +1529,22 @@ describe("transactionForm submit re-entrancy", () => {
             note: "",
         };
 
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
 
-        const saveButton = findButtonWithText(toJSON() as JsonNode, "transaction.cta.add");
-        expect(saveButton).not.toBeNull();
-
         await act(async () => {
-            saveButton?.props.onButtonPress();
-            saveButton?.props.onButtonPress();
+            fireEvent.press(screen.getByTestId("stage-footer"));
+            fireEvent.press(screen.getByTestId("stage-footer"));
         });
 
         const savedTx = await db.select().from(transactions);
         expect(savedTx).toHaveLength(1);
     });
 
-    it("keeps the CTA disabled through the recurrence backfill after the row commits", async () => {
+    it("refuses a second save once the row has committed, even after the backfill settles", async () => {
         const db = dbHolder.current as Database;
         const categoryId = await seedCategory(db);
         const copyOf: LogAgainDraft = {
@@ -1531,19 +1572,13 @@ describe("transactionForm submit re-entrancy", () => {
                 <TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
-        const { toJSON } = screen;
 
         expect(screen.getByRole("button", { name: REPEAT_VERB }).props.accessibilityState).toMatchObject({
             selected: false,
         });
         await repeatMonthly(screen);
 
-        const saveButton = findButtonWithText(toJSON() as JsonNode, "transaction.cta.addSubscription");
-        expect(saveButton).not.toBeNull();
-
-        await act(async () => {
-            saveButton?.props.onButtonPress();
-        });
+        await pressSave(screen, "transaction.cta.addSubscription");
 
         const savedTx = await db.select().from(transactions);
         expect(savedTx).toHaveLength(1);
@@ -1556,10 +1591,10 @@ describe("transactionForm submit re-entrancy", () => {
             });
         });
 
-        const stillDisabled = findButtonWithText(toJSON() as JsonNode, "transaction.cta.addSubscription") as
-            | (JsonNode & { props: { disabled?: boolean } })
-            | null;
-        expect(stillDisabled?.props.disabled).toBe(true);
+        await pressSave(screen, "transaction.cta.addSubscription");
+
+        await expect(db.select().from(transactions)).resolves.toHaveLength(1);
+        expect(backfillRecurring).toHaveBeenCalledTimes(1);
     });
 });
 
@@ -1765,8 +1800,7 @@ describe("transactionForm enrichment", () => {
             refresh: true,
         });
 
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressSave(screen, "transaction.cta.save");
         await act(async () => {
             await jest.advanceTimersByTimeAsync(0);
         });
@@ -1811,8 +1845,7 @@ describe("transactionForm enrichment", () => {
             findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.lookup")?.props.onButtonPress();
             await jest.advanceTimersByTimeAsync(0);
         });
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressSave(screen, "transaction.cta.save");
         await act(async () => {
             await jest.advanceTimersByTimeAsync(0);
         });
@@ -1867,8 +1900,7 @@ describe("transactionForm enrichment", () => {
             await jest.advanceTimersByTimeAsync(0);
         });
         expect(answers).toHaveLength(3);
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressSave(screen, "transaction.cta.save");
         await act(async () => {
             await jest.advanceTimersByTimeAsync(0);
         });
@@ -1912,8 +1944,7 @@ describe("transactionForm enrichment", () => {
         await act(async () => {
             pickOption(screen, "Work");
         });
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressSave(screen, "transaction.cta.save");
         await act(async () => {
             await jest.advanceTimersByTimeAsync(0);
         });
@@ -2392,11 +2423,7 @@ describe("transactionForm pending category and tag materialization", () => {
         await expect(db.select().from(categories).where(eq(categories.name, "Entertainment"))).resolves.toHaveLength(0);
         expect(slotFlagged(tree, "transaction.field.category")).toBe(false);
 
-        const saveButton = findButtonWithText(tree, "transaction.cta.add");
-        expect(saveButton).not.toBeNull();
-        await act(async () => {
-            saveButton?.props.onButtonPress();
-        });
+        await pressSave(screen, "transaction.cta.add");
 
         expect(alertSpy).not.toHaveBeenCalled();
         const created = await db.select().from(categories).where(eq(categories.name, "Entertainment"));
@@ -2430,10 +2457,7 @@ describe("transactionForm pending category and tag materialization", () => {
         const tree = toJSON() as JsonNode;
         expect(containsText(tree, taggedLine("Streaming, Subscription"))).toBe(true);
 
-        const saveButton = findButtonWithText(tree, "transaction.cta.add");
-        await act(async () => {
-            saveButton?.props.onButtonPress();
-        });
+        await pressSave(screen, "transaction.cta.add");
 
         expect(setTagsSpy).toHaveBeenCalledTimes(1);
         const calledTagIds = setTagsSpy.mock.calls[0]?.[2];
@@ -2483,10 +2507,7 @@ describe("transactionForm pending category and tag materialization", () => {
         );
         expect(createSpy).not.toHaveBeenCalled();
 
-        const saveButton = findButtonWithText(toJSON() as JsonNode, "transaction.cta.add");
-        await act(async () => {
-            saveButton?.props.onButtonPress();
-        });
+        await pressSave(screen, "transaction.cta.add");
 
         expect(createSpy).toHaveBeenCalledTimes(1);
         await expect(db.select().from(transactions)).resolves.toHaveLength(0);
@@ -2510,10 +2531,7 @@ describe("transactionForm pending category and tag materialization", () => {
             </Providers>
         );
 
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
-        await act(async () => {
-            saveButton?.props.onButtonPress();
-        });
+        await pressSave(screen, "transaction.cta.add");
 
         await expect(db.select().from(transactions)).resolves.toHaveLength(0);
         expect(containsText(screen.toJSON() as JsonNode, "transaction.save.failedBody")).toBe(true);
@@ -2552,8 +2570,7 @@ describe("transactionForm pending category and tag materialization", () => {
             fireEvent.press(screen.getByLabelText("transaction.field.amount"));
         });
         await pressKeys(screen, ["5"]);
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressSave(screen, "transaction.cta.save");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({ amount: 40 });
         expect(containsText(screen.toJSON() as JsonNode, "transaction.split.unbalanced")).toBe(true);
@@ -2568,9 +2585,7 @@ describe("transactionForm pending category and tag materialization", () => {
         );
 
         await changeMerchant(screen, "CARE4BAG AE");
-        await act(async () => {
-            findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add")?.props.onButtonPress();
-        });
+        await pressSave(screen, "transaction.cta.add");
 
         const saved = await db.select().from(transactions);
         expect(saved).toHaveLength(1);
@@ -2586,9 +2601,7 @@ describe("transactionForm pending category and tag materialization", () => {
             </Providers>
         );
 
-        await act(async () => {
-            findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add")?.props.onButtonPress();
-        });
+        await pressFooter(screen, 3);
 
         await expect(db.select().from(transactions)).resolves.toHaveLength(0);
         expect(slotFlagged(screen.toJSON() as JsonNode, "transaction.field.category")).toBe(true);
@@ -2660,6 +2673,33 @@ describe("transactionForm account attachment", () => {
             )
         ).toBe(true);
         expect(screen.getByTestId("stage-footer")).toHaveTextContent("transaction.cta.add");
+    });
+
+    it("reads as the Save on the account step once the account is all that is missing", async () => {
+        const db = dbHolder.current as Database;
+        const categoryId = await seedCategory(db);
+        await seedAccount(db);
+        const screen = await render(
+            <Providers>
+                <TransactionForm
+                    db={db}
+                    mode="create"
+                    onDone={() => {}}
+                    seed={{ amount: 25, categoryId, note: "GitHub" }}
+                />
+            </Providers>
+        );
+        expect(screen.getByTestId("stage-footer")).toHaveTextContent("common.next");
+
+        await pressFooter(screen);
+
+        expect(screen.getByTestId("stage-accounts")).toBeTruthy();
+        expect(screen.getByTestId("stage-footer")).toHaveTextContent("transaction.cta.add");
+        expect(screen.getByTestId("stage-footer").props.className).toContain("bg-tint");
+
+        await pressSave(screen, "transaction.cta.add");
+
+        await expect(db.select().from(transactions)).resolves.toHaveLength(1);
     });
 
     it("reports an edit only once the user makes one", async () => {
@@ -2783,16 +2823,13 @@ describe("transactionForm account attachment", () => {
             note: "",
         };
 
-        const { toJSON } = await render(
+        const screen = await render(
             <Providers>
                 <TransactionForm copyOf={copyOf} db={db} mode="create" onDone={() => {}} />
             </Providers>
         );
 
-        const saveButton = findButtonWithText(toJSON() as JsonNode, "transaction.cta.add");
-        await act(async () => {
-            saveButton?.props.onButtonPress();
-        });
+        await pressSave(screen, "transaction.cta.add");
 
         const savedTx = await db.select().from(transactions);
         expect(savedTx).toHaveLength(1);
@@ -2963,8 +3000,7 @@ describe("transactionForm entry-rate confirmation", () => {
         await pickRate(screen, "transaction.rate.custom");
         expect(screen.queryByText("transaction.rate.required")).toBeNull();
         await pressKeys(screen, ["5", "transaction.numpad.delete"]);
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
-        await act(async () => saveButton?.props.onButtonPress());
+        await saveFromBlankRate(screen, "transaction.cta.add");
 
         await expect(db.select().from(transactions)).resolves.toHaveLength(0);
         expect(screen.getByText("transaction.rate.required")).toBeTruthy();
@@ -3000,8 +3036,7 @@ describe("transactionForm entry-rate confirmation", () => {
         await openRateStep(screen);
         await pickRate(screen, "transaction.rate.custom");
         await pressKeys(screen, ["5", "transaction.numpad.delete"]);
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
-        await act(async () => saveButton?.props.onButtonPress());
+        await saveFromBlankRate(screen, "transaction.cta.add");
         expect(screen.getByText("transaction.rate.required")).toBeTruthy();
 
         await pickCurrency(screen, "VES");
@@ -3048,8 +3083,7 @@ describe("transactionForm entry-rate confirmation", () => {
         await openRateStep(screen);
         await pickRate(screen, "transaction.rate.custom");
         await pressKeys(screen, ["5", "transaction.numpad.delete"]);
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
-        await act(async () => saveButton?.props.onButtonPress());
+        await saveFromBlankRate(screen, "transaction.cta.add");
         await openRateStep(screen);
         await pickRate(screen, "transaction.rate.official");
         await openRateStep(screen);
@@ -3058,9 +3092,7 @@ describe("transactionForm entry-rate confirmation", () => {
         expect(screen.queryByText("transaction.rate.required")).toBeNull();
         await openRateStep(screen);
         await pickRate(screen, "transaction.rate.official");
-        await act(async () =>
-            findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add")?.props.onButtonPress()
-        );
+        await pressSave(screen, "transaction.cta.add");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({ exchangeRateType: "official" });
     });
@@ -3109,8 +3141,8 @@ describe("transactionForm entry-rate confirmation", () => {
 
         await openRateStep(screen);
         await pickRate(screen, "transaction.rate.custom");
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressFooter(screen);
+        await pressSave(screen, "transaction.cta.add");
 
         const saved = (await db.select().from(transactions)).find((row) => row.id !== prior.id);
         expect(saved).toMatchObject({ exchangeRate: 55.5, exchangeRateType: "custom" });
@@ -3142,8 +3174,8 @@ describe("transactionForm entry-rate confirmation", () => {
         expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
             text: "1.1485 transaction.rate.unit",
         });
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressFooter(screen);
+        await pressSave(screen, "transaction.cta.add");
 
         const [saved] = await db.select().from(transactions);
         expect(saved).toMatchObject({
@@ -3172,8 +3204,8 @@ describe("transactionForm entry-rate confirmation", () => {
         });
         await openMyRate(screen);
         await pressKeys(screen, ["5"]);
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressFooter(screen);
+        await pressSave(screen, "transaction.cta.save");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({ exchangeRate: 0.87113 });
     });
@@ -3193,8 +3225,8 @@ describe("transactionForm entry-rate confirmation", () => {
 
         await openMyRate(screen);
         await pressKeys(screen, ["transaction.numpad.delete", "9"]);
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressFooter(screen);
+        await pressSave(screen, "transaction.cta.save");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({ exchangeRate: 0.87113 });
     });
@@ -3214,8 +3246,8 @@ describe("transactionForm entry-rate confirmation", () => {
 
         await openMyRate(screen);
         await pressKeys(screen, ["transaction.numpad.delete"]);
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressFooter(screen);
+        await pressSave(screen, "transaction.cta.save");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({ exchangeRate: 1 / 1.148 });
     });
@@ -3250,8 +3282,7 @@ describe("transactionForm entry-rate confirmation", () => {
 
         await openRateStep(screen);
         await pickRate(screen, "transaction.rate.official");
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressSave(screen, "transaction.cta.add");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({
             exchangeRate: 42,
@@ -3285,8 +3316,7 @@ describe("transactionForm entry-rate confirmation", () => {
 
         await openRateStep(screen);
         await pickRate(screen, "transaction.rate.eur_reference");
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressSave(screen, "transaction.cta.add");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({
             amountUsd: 2,
@@ -3361,8 +3391,8 @@ describe("transactionForm entry-rate confirmation", () => {
 
         await openRateStep(screen);
         await pickRate(screen, "transaction.rate.custom");
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressFooter(screen);
+        await pressSave(screen, "transaction.cta.save");
 
         const [saved] = await db.select().from(transactions).where(eq(transactions.id, pending.id));
         expect(saved).toMatchObject({ amountUsd: 1.801802, exchangeRate: 55.5, exchangeRateType: "custom" });
@@ -3428,8 +3458,7 @@ describe("transactionForm entry-rate confirmation", () => {
         await openRateStep(screen);
         await pickRate(screen, "transaction.rate.official");
         await pickCurrency(screen, "EUR");
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressSave(screen, "transaction.cta.add");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({
             amountUsd: 105,
@@ -3467,8 +3496,7 @@ describe("transactionForm entry-rate confirmation", () => {
         const changeDate = findFunctionProp(screen.toJSON() as JsonNode, "onDateChange");
         expect(changeDate).not.toBeNull();
         await act(async () => changeDate?.({ nativeEvent: { date: new Date("2026-07-31T12:00:00.000Z").getTime() } }));
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressSave(screen, "transaction.cta.add");
 
         expect((await db.select().from(transactions)).map((row) => row.id)).toStrictEqual([prior.id]);
         expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
@@ -3489,8 +3517,7 @@ describe("transactionForm entry-rate confirmation", () => {
         const changeDate = findFunctionProp(screen.toJSON() as JsonNode, "onDateChange");
         expect(changeDate).not.toBeNull();
         await act(async () => changeDate?.({ nativeEvent: { date: new Date("2026-07-31T12:00:00.000Z").getTime() } }));
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressSave(screen, "transaction.cta.save");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({
             amountUsd: 1.801802,
@@ -3524,8 +3551,7 @@ describe("transactionForm entry-rate confirmation", () => {
         const changeDate = findFunctionProp(screen.toJSON() as JsonNode, "onDateChange");
         expect(changeDate).not.toBeNull();
         await act(async () => changeDate?.({ nativeEvent: { date: new Date("2026-08-09T12:00:00.000Z").getTime() } }));
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressSave(screen, "transaction.cta.save");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({
             amountUsd: 2.5,
@@ -3556,8 +3582,7 @@ describe("transactionForm entry-rate confirmation", () => {
         );
 
         await pickCurrency(screen, "EUR");
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressSave(screen, "transaction.cta.save");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({
             amountUsd: 125,
@@ -3595,8 +3620,7 @@ describe("transactionForm entry-rate confirmation", () => {
         const changeDate = findFunctionProp(screen.toJSON() as JsonNode, "onDateChange");
         expect(changeDate).not.toBeNull();
         await act(async () => changeDate?.({ nativeEvent: { date: new Date("2026-08-09T12:00:00.000Z").getTime() } }));
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressSave(screen, "transaction.cta.save");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({
             amountUsd: 2,
@@ -3634,8 +3658,8 @@ describe("transactionForm entry-rate confirmation", () => {
 
         await openRateStep(screen);
         await pickRate(screen, "transaction.rate.custom");
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressFooter(screen);
+        await pressSave(screen, "transaction.cta.add");
 
         const saved = (await db.select().from(transactions)).find((row) => row.id !== prior.id);
         expect(saved).toMatchObject({
@@ -3657,8 +3681,7 @@ describe("transactionForm entry-rate confirmation", () => {
             </Providers>
         );
 
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.save");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressSave(screen, "transaction.cta.save");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({
             amountUsd: 1.8,
@@ -3710,8 +3733,8 @@ describe("transactionForm entry-rate confirmation", () => {
         expect(screen.getByLabelText("transaction.rate.title").props.accessibilityValue).toMatchObject({
             text: "40.000 transaction.rate.unit",
         });
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressFooter(screen);
+        await pressSave(screen, "transaction.cta.add");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({
             amountUsd: 2.1,
@@ -3757,8 +3780,7 @@ describe("transactionForm entry-rate confirmation", () => {
         await openDateWheel(screen);
         const changeDate = findFunctionProp(screen.toJSON() as JsonNode, "onDateChange");
         await act(async () => changeDate?.({ nativeEvent: { date: new Date("2026-07-31T12:00:00.000Z").getTime() } }));
-        const saveButton = findButtonWithText(screen.toJSON() as JsonNode, "transaction.cta.add");
-        await act(async () => saveButton?.props.onButtonPress());
+        await pressSave(screen, "transaction.cta.add");
 
         expect((await db.select().from(transactions))[0]).toMatchObject({
             exchangeRate: 40,

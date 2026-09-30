@@ -43,7 +43,7 @@ export default function TransferCreateScreen() {
     return (
         <>
             <Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title>
-            <CloseToolbar placement="right" />
+            <CloseToolbar placement="left" />
 
             <TransferEditor onDirtyChange={setDirty} onDone={leave} seed={seed} />
         </>

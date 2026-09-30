@@ -43,11 +43,7 @@ function useKeyboardShown(): boolean {
     return shown;
 }
 
-/**
- * Matches the header's own ✕ and ✓, which are 38pt circles. A bare chevron beside
- * a title was the smallest control on a screen whose other two are a 38pt circle
- * and a 52pt bar, and it reads as decoration rather than as the way back.
- */
+/** Matches the header's own ✕, a 38pt circle. */
 const BACK_GLYPH = 19;
 
 const STAGE_FONT_SCALE_CAP = 1.35;

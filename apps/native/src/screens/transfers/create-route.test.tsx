@@ -5,13 +5,16 @@ import type { TransferSeed } from "@/components/transfer-editor/use-transfer-dra
 
 const mockParams = jest.fn<() => Record<string, string>>();
 const mockEditor = jest.fn<(props: { seed: TransferSeed }) => null>(() => null);
+const mockClose = jest.fn<(props: { placement: string }) => null>(() => null);
 
 jest.mock("expo-router", () => ({
     Stack: { Screen: { Title: () => null } },
     useLocalSearchParams: () => mockParams(),
     useRouter: () => ({ back: jest.fn() }),
 }));
-jest.mock("@/components/close-toolbar", () => ({ CloseToolbar: () => null }));
+jest.mock("@/components/close-toolbar", () => ({
+    CloseToolbar: (props: { placement: string }) => mockClose(props),
+}));
 jest.mock("@/hooks/use-discard-guard", () => ({
     useDiscardGuard: () => ({ leave: jest.fn(), setDirty: jest.fn() }),
 }));
@@ -29,6 +32,11 @@ const seedFor = async (params: Record<string, string>) => {
 };
 
 describe("transferCreateScreen", () => {
+    it("puts Close on the left", async () => {
+        await seedFor({});
+        expect(mockClose.mock.lastCall?.[0].placement).toBe("left");
+    });
+
     it("drops a currency the app does not know, and the amount given in it", async () => {
         await expect(seedFor({ amount: "50", currency: "VES" })).resolves.toMatchObject({
             amount: 50,

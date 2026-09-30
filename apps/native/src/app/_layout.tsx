@@ -36,7 +36,7 @@ import { cloudRuntime } from "@/lib/cloud-runtime";
 import { setCloudAuthenticated } from "@/lib/convex";
 import { DeviceResetRecovery } from "@/lib/device-reset-recovery";
 import { LedgerAdoptionProvider, useLedgerAdoption } from "@/lib/ledger-adoption";
-import { identityPickerDetent, LARGE_ONLY } from "@/lib/sheet-detents";
+import { identityPickerDetent } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
 import { useAccent } from "@/theme/use-accent";
 import { useApplyThemePreference } from "@/theme/use-theme-preference";
@@ -353,18 +353,6 @@ function RootStack() {
                     }}
                 />
 
-                <Stack.Screen
-                    name="transactions/transfers/create"
-                    options={{
-                        presentation: "formSheet",
-                        sheetAllowedDetents: LARGE_ONLY,
-                        sheetGrabberVisible: true,
-                    }}
-                >
-                    <Stack.Header transparent />
-                    <Stack.Screen.BackButton displayMode="minimal" />
-                    <Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title>
-                </Stack.Screen>
                 {MODAL_SCREENS.map((modal) => (
                     <Stack.Screen key={modal.name} name={modal.name} options={{ presentation: "modal" }}>
                         <Stack.Header transparent />
