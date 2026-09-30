@@ -7,6 +7,7 @@ const DAY = new Date(2026, 7, 9);
 const TRANSFER = {
     date: DAY,
     day: DAY,
+    exchangeRate: 55.5,
     fromAccountId: "a",
     fromAmount: 100,
     fromAmountUsd: 100,
@@ -40,7 +41,7 @@ describe("toTransferLogRow", () => {
     });
 
     it("states what left with a source fee in it, and what arrived with a destination fee out of it", () => {
-        const sameCurrency = { ...TRANSFER, fromAmount: 98, toAmount: 98, toCurrency: "USD" };
+        const sameCurrency = { ...TRANSFER, exchangeRate: 1, fromAmount: 98, toAmount: 98, toCurrency: "USD" };
         const atSource = toTransferLogRow(sameCurrency, NAMES, new Map([["t1", { accountId: "a", amount: 2 }]]));
         const atDestination = toTransferLogRow(TRANSFER, NAMES, new Map([["t1", { accountId: "b", amount: 50 }]]));
 
@@ -48,17 +49,57 @@ describe("toTransferLogRow", () => {
             arrived: 98,
             arrivedCurrency: "USD",
             fee: { amount: 2, currency: "USD" },
+            outside: null,
             sent: 100,
         });
         expect(atDestination.moved).toStrictEqual({
             arrived: 5500,
             arrivedCurrency: "VES",
             fee: { amount: 50, currency: "VES" },
+            outside: null,
             sent: 100,
         });
         expect(atSource.amount).toBe(98);
         expect(toTransferLogRow(TRANSFER, NAMES, new Map()).moved?.fee).toBeNull();
         expect(toTransferLogRow(TRANSFER, NAMES).moved).toBeUndefined();
+    });
+
+    it("names what arrived beyond the saved rate as money from another account, in the fee's currency", () => {
+        const binance = {
+            ...TRANSFER,
+            exchangeRate: 957.1,
+            fromAmount: 152.66,
+            toAmount: 157_471.66,
+        };
+
+        expect(
+            toTransferLogRow(binance, NAMES, new Map([["t1", { accountId: "a", amount: 7.34 }]])).moved?.outside
+        ).toStrictEqual({
+            amount: 11.87,
+            currency: "USD",
+        });
+    });
+
+    it("finds nothing from outside when the saved rate reproduces the arrival", () => {
+        const rounded = { ...TRANSFER, exchangeRate: 957.1, fromAmount: 152.66, toAmount: 146_110.89 };
+        expect(toTransferLogRow(rounded, NAMES, new Map()).moved?.outside).toBeNull();
+    });
+
+    it("finds nothing from outside in a rate saved as the ten-decimal ratio of its legs", () => {
+        const dong = {
+            ...TRANSFER,
+            exchangeRate: 0.0000392394,
+            fromAmount: 228_196_944,
+            fromCurrency: "VND",
+            toAmount: 8954.32,
+            toCurrency: "USD",
+        };
+        expect(toTransferLogRow(dong, NAMES, new Map()).moved?.outside).toBeNull();
+    });
+
+    it("finds nothing from outside between two accounts in one currency", () => {
+        const level = { ...TRANSFER, exchangeRate: 1, fromAmount: 100, toAmount: 105, toCurrency: "USD" };
+        expect(toTransferLogRow(level, NAMES, new Map()).moved?.outside).toBeNull();
     });
 
     it("is excluded from day totals", () => {

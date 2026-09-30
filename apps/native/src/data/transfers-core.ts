@@ -9,6 +9,7 @@ import { withTransaction } from "@/db/transaction";
 import { firstOfMonth, startOfDay } from "@/domain/dates";
 import { newId } from "@/domain/ids";
 import { minorUnitsFor } from "@/domain/money";
+import { savedRate } from "@/domain/transfer-reconcile";
 import type { FeeSide } from "@/domain/transfer-reconcile";
 
 import { frozenUsdAmount } from "./frozen-usd";
@@ -177,7 +178,7 @@ export function savedTransfer(db: Database, id: string): SavedTransfer | null {
         fromCurrency: transfer.fromCurrency,
         id,
         note: transfer.note,
-        rate: transfer.exchangeRate,
+        rate: savedRate(transfer.fromAmount, transfer.toAmount, transfer.exchangeRate),
         rateType: ENTRY_RATE_TYPES.find((type) => type === transfer.exchangeRateType) ?? null,
         sent:
             feeSide === "source"

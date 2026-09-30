@@ -420,13 +420,13 @@ describe("transfer editor rate step", () => {
         for (const key of "15747166") {
             await press(key);
         }
-        expect(screen.getByText("-$7.34 unaccounted")).toBeTruthy();
+        expect(screen.getByText("$7.34 less arrived")).toBeTruthy();
 
         await act(async () => {
             fireEvent.press(screen.getByText("It's a fee"));
         });
 
-        expect(screen.queryByText(/unaccounted/)).toBeNull();
+        expect(screen.queryByText(/ (less|more) arrived/)).toBeNull();
         expect(slotValue("transfers.field.fee")).toBe("$7.34");
         expect(slotValue("transfers.field.feeSide")).toBe("Zinli");
         await press("transfers.save");
@@ -452,11 +452,11 @@ describe("transfer editor rate step", () => {
         await press("USDT (Binance)");
 
         expect(slotValue("transfers.field.arrives")).toBe("Bs.157,471.66");
-        expect(screen.getByText("-$7.34 unaccounted")).toBeTruthy();
+        expect(screen.getByText("$7.34 less arrived")).toBeTruthy();
         await act(async () => {
             fireEvent.press(screen.getByText("It's a fee"));
         });
-        expect(screen.queryByText(/unaccounted/)).toBeNull();
+        expect(screen.queryByText(/ (less|more) arrived/)).toBeNull();
         expect(slotValue("transfers.field.arrives")).toBe("Bs.157,471.66");
     });
 
@@ -580,6 +580,45 @@ describe("transfer editor typed rate", () => {
         await press("common.next");
         await press("transfers.save");
         expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({ exchangeRateType: "official", toAmount: 42_427.5 });
+    });
+});
+
+describe("transfer editor money from another account", () => {
+    it("holds a surplus until it came from another account, then saves it at the rate typed", async () => {
+        mockRateTables.mockReturnValue({ official: quotedAt(848.55) });
+        mockPriorRate.mockReturnValue({ date: new Date(2026, 8, 27), rate: 957.1 });
+        await render(<TransferEditor onDone={jest.fn()} seed={{ ...CROSS, amount: 160 }} />);
+        await press("transfers.field.rate");
+        await press("Last used · 27 Sep");
+        await press("transfers.field.arrives");
+        for (const key of "15747166") {
+            await press(key);
+        }
+        expect(screen.getByText("$4.53 more arrived")).toBeTruthy();
+        expect(screen.queryByText("It's a fee")).toBeNull();
+        expect(screen.queryByLabelText("transfers.save")).toBeNull();
+        await press("common.next");
+        expect(mockCreate).not.toHaveBeenCalled();
+
+        await act(async () => {
+            fireEvent.press(screen.getByText("It came from another account"));
+        });
+        expect(screen.queryByText(/more arrived/)).toBeNull();
+        expect(slotValue("transfers.field.outside")).toBe("$4.53");
+
+        await press("transfers.field.outside");
+        expect(screen.getByText("$4.53 more arrived")).toBeTruthy();
+        await act(async () => {
+            fireEvent.press(screen.getByText("It came from another account"));
+        });
+
+        await press("transfers.save");
+        expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({
+            exchangeRate: 957.1,
+            exchangeRateType: "custom",
+            fromAmount: 160,
+            toAmount: 157_471.66,
+        });
     });
 });
 
@@ -729,14 +768,14 @@ describe("transfer editor fee on top", () => {
         for (const key of "50000") {
             await press(key);
         }
-        expect(screen.getByText("+$25.00 unaccounted")).toBeTruthy();
+        expect(screen.getByText("$25.00 more arrived")).toBeTruthy();
         expect(screen.queryByText("It's a fee")).toBeNull();
 
         await act(async () => {
             fireEvent.press(screen.getByText("It's on top"));
         });
 
-        expect(screen.queryByText(/unaccounted/)).toBeNull();
+        expect(screen.queryByText(/ (less|more) arrived/)).toBeNull();
         expect(screen.queryByText("transfers.field.arrives")).toBeNull();
         expect(screen.getByText("transfers.field.sent")).toBeTruthy();
         await press("transfers.save");

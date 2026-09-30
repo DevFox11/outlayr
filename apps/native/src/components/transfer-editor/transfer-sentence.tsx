@@ -10,6 +10,7 @@ export const TRANSFER_SENTENCE_SLOTS = [
     "fee",
     "feeSide",
     "from",
+    "outside",
     "rate",
     "rateType",
     "to",
@@ -23,6 +24,7 @@ export const TRANSFER_SENTENCE_KEYS = [
     "transfers.sentence.rate",
     "transfers.sentence.fee",
     "transfers.sentence.noFee",
+    "transfers.sentence.outside",
 ] as const;
 
 export const TRANSFER_CUSTOM_RATE_KEY = "transfers.sentence.rateCustom";
@@ -42,6 +44,7 @@ interface TransferSentenceProps {
     hasFee: boolean;
     onSlotPress: (slot: TransferSentenceSlot) => void;
     onTop: boolean;
+    outside: boolean;
     values: TransferSentenceValues;
 }
 
@@ -54,6 +57,7 @@ export function TransferSentence({
     hasFee,
     onSlotPress,
     onTop,
+    outside,
     values,
 }: TransferSentenceProps) {
     const t = useTranslation();
@@ -64,6 +68,7 @@ export function TransferSentence({
         fee: t("transfers.field.fee"),
         feeSide: t("transfers.field.feeSide"),
         from: t("transfers.field.from"),
+        outside: t("transfers.field.outside"),
         rate: t("transfers.field.rate"),
         rateType: t("transfers.field.rateType"),
         to: t("transfers.field.to"),
@@ -76,6 +81,7 @@ export function TransferSentence({
         fee: t("transfers.sentence.blank.noFee"),
         feeSide: t("transfers.sentence.blank.account"),
         from: t("transfers.sentence.blank.account"),
+        outside: t("transfers.sentence.blank.amount"),
         rate: t("transfers.sentence.blank.rate"),
         rateType: t("transfers.sentence.blank.rate"),
         to: t("transfers.sentence.blank.account"),
@@ -110,6 +116,7 @@ export function TransferSentence({
         t("transfers.sentence.move"),
         crossCurrency ? rateClause : null,
         hasFee ? feeClause : t("transfers.sentence.noFee"),
+        outside ? t("transfers.sentence.outside") : null,
     ]
         .filter((clause) => clause !== null)
         .join(" ");
@@ -122,6 +129,7 @@ export function TransferSentence({
                 fee: part("fee"),
                 feeSide: part("feeSide"),
                 from: part("from"),
+                outside: part("outside"),
                 rate: part("rate"),
                 rateType: part("rateType"),
                 to: part("to"),

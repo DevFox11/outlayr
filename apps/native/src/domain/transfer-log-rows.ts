@@ -1,10 +1,12 @@
 import { roundMoney } from "@outlayr/money/round";
 
 import { minorUnitsFor } from "./money";
+import { savedRate, transferGap } from "./transfer-reconcile";
 
 export interface TransferLogSource {
     date: Date;
     day: Date;
+    exchangeRate: number | null;
     fromAccountId: string;
     fromAmount: number;
     fromAmountUsd: number | null;
@@ -26,6 +28,7 @@ export interface TransferMove {
     arrived: number;
     arrivedCurrency: string;
     fee: { amount: number; currency: string } | null;
+    outside: { amount: number; currency: string } | null;
     sent: number;
 }
 
@@ -63,22 +66,30 @@ export interface TransferLogRow {
 const UNKNOWN_ACCOUNT = "—";
 
 function transferMove(transfer: TransferLogSource, fee: TransferLogFee | undefined): TransferMove {
-    if (fee === undefined) {
-        return {
-            arrived: transfer.toAmount,
-            arrivedCurrency: transfer.toCurrency,
-            fee: null,
-            sent: transfer.fromAmount,
-        };
-    }
-    const atDestination = fee.accountId === transfer.toAccountId;
+    const atDestination = fee !== undefined && fee.accountId === transfer.toAccountId;
     const currency = atDestination ? transfer.toCurrency : transfer.fromCurrency;
     const decimals = minorUnitsFor(currency);
+    const charged = fee?.amount ?? 0;
+    const arrived = atDestination ? roundMoney(transfer.toAmount - charged, decimals) : transfer.toAmount;
+    const sent = atDestination ? transfer.fromAmount : roundMoney(transfer.fromAmount + charged, decimals);
+    const rate =
+        transfer.fromCurrency === transfer.toCurrency
+            ? null
+            : savedRate(transfer.fromAmount, transfer.toAmount, transfer.exchangeRate);
+    const gap =
+        rate === null
+            ? 0
+            : transferGap(
+                  { arrived, fee: charged, feeSide: atDestination ? "destination" : "source", rate, sent },
+                  decimals,
+                  minorUnitsFor(transfer.toCurrency)
+              );
     return {
-        arrived: atDestination ? roundMoney(transfer.toAmount - fee.amount, decimals) : transfer.toAmount,
+        arrived,
         arrivedCurrency: transfer.toCurrency,
-        fee: { amount: fee.amount, currency },
-        sent: atDestination ? transfer.fromAmount : roundMoney(transfer.fromAmount + fee.amount, decimals),
+        fee: fee === undefined ? null : { amount: fee.amount, currency },
+        outside: gap < 0 ? { amount: -gap, currency } : null,
+        sent,
     };
 }
 

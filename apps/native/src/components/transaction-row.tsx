@@ -56,22 +56,35 @@ function UnderAmount({ fee, moved, sentCurrency, showCents }: UnderAmountProps) 
         );
     }
     const arrived = formatAmount(moved.arrived, moved.arrivedCurrency, showCents, language);
+    const outside = moved.outside && (
+        <Text className={UNDER_AMOUNT} numberOfLines={1}>
+            {t("log.row.outside", {
+                amount: formatAmount(moved.outside.amount, moved.outside.currency, showCents, language),
+            })}
+        </Text>
+    );
     if (moved.fee === null) {
         return moved.arrivedCurrency === sentCurrency ? null : (
-            <Text className={UNDER_AMOUNT} numberOfLines={1}>
-                {t("log.row.arrived", { arrived })}
-            </Text>
+            <>
+                <Text className={UNDER_AMOUNT} numberOfLines={1}>
+                    {t("log.row.arrived", { arrived })}
+                </Text>
+                {outside}
+            </>
         );
     }
     const charged = formatAmount(moved.fee.amount, moved.fee.currency, showCents, language);
     return (
-        <Text
-            accessibilityLabel={t("log.row.arrivedAfterFee", { arrived, fee: charged })}
-            className={UNDER_AMOUNT}
-            numberOfLines={1}
-        >
-            {t("log.row.arrivedFee", { arrived, fee: charged })}
-        </Text>
+        <>
+            <Text
+                accessibilityLabel={t("log.row.arrivedAfterFee", { arrived, fee: charged })}
+                className={UNDER_AMOUNT}
+                numberOfLines={1}
+            >
+                {t("log.row.arrivedFee", { arrived, fee: charged })}
+            </Text>
+            {outside}
+        </>
     );
 }
 

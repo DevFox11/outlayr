@@ -104,6 +104,7 @@ describe("an account's transfers", () => {
             arrived: 40,
             arrivedCurrency: "USD",
             fee: { amount: 2, currency: "USD" },
+            outside: null,
             sent: 42,
         });
     });

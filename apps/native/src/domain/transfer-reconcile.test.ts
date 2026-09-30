@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import { roundMoney } from "@outlayr/money/round";
 
-import { solveTransfer, transferGap, transferLegs } from "./transfer-reconcile";
+import { savedRate, solveTransfer, transferGap, transferLegs } from "./transfer-reconcile";
 import type { TransferValues } from "./transfer-reconcile";
 
 const VES_DECIMALS = 2;
@@ -122,7 +122,6 @@ describe("solveTransfer refuses the unanswerable", () => {
 describe("transferLegs stores movement and leaves the fee outside", () => {
     it("shrinks the outbound leg by a source-side fee", () => {
         expect(transferLegs(sourceFeeCase(), USD_DECIMALS, VES_DECIMALS)).toStrictEqual({
-            exchangeRate: 55.5,
             fromAmount: 97.3,
             toAmount: 5400.15,
         });
@@ -130,7 +129,6 @@ describe("transferLegs stores movement and leaves the fee outside", () => {
 
     it("grows the inbound leg by a destination-side fee", () => {
         expect(transferLegs(destFeeCase(), USD_DECIMALS, VES_DECIMALS)).toStrictEqual({
-            exchangeRate: 55.5,
             fromAmount: 100,
             toAmount: 5550,
         });
@@ -140,14 +138,25 @@ describe("transferLegs stores movement and leaves the fee outside", () => {
         for (const values of [sourceFeeCase(), destFeeCase()]) {
             const legs = transferLegs(values, USD_DECIMALS, VES_DECIMALS);
             expect(legs).not.toBeNull();
-            expect(
-                (legs as NonNullable<typeof legs>).fromAmount * (legs as NonNullable<typeof legs>).exchangeRate
-            ).toBeCloseTo((legs as NonNullable<typeof legs>).toAmount, 6);
+            expect((legs as NonNullable<typeof legs>).fromAmount * values.rate).toBeCloseTo(
+                (legs as NonNullable<typeof legs>).toAmount,
+                6
+            );
         }
     });
 
     it("refuses a transfer whose source fee is the whole amount", () => {
         expect(transferLegs(sourceFeeCase({ fee: 100, sent: 100 }), USD_DECIMALS, VES_DECIMALS)).toBeNull();
+    });
+});
+
+describe("savedRate", () => {
+    it("reads a rate saved as the ten-decimal ratio of its legs at full precision", () => {
+        expect(savedRate(228_196_944, 8954.32, 0.0000392394)).toBe(8954.32 / 228_196_944);
+    });
+
+    it("keeps a typed rate the legs do not reproduce", () => {
+        expect(savedRate(160, 157_471.66, 957.1)).toBe(957.1);
     });
 });
 
@@ -249,6 +258,6 @@ describe("resolving a gap as a fee", () => {
         const gapped: TransferValues = { arrived: 5400, fee: 0, feeSide: "destination", rate: 55.5, sent: 100 };
         const fee = solveTransfer(gapped, "fee", VES_DECIMALS) as number;
         const legs = transferLegs({ ...gapped, fee }, USD_DECIMALS, VES_DECIMALS);
-        expect(legs?.exchangeRate).toBeCloseTo(55.5, 9);
+        expect((legs?.toAmount ?? 0) / (legs?.fromAmount ?? 1)).toBeCloseTo(55.5, 9);
     });
 });

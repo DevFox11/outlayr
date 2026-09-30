@@ -196,6 +196,10 @@ const log = {
             en: "+{amount} fee",
             es: "+{amount} de comisión",
         }),
+        "log.row.outside": t({
+            en: "{amount} from another account",
+            es: "{amount} de otra cuenta",
+        }),
         "log.row.rateNeeded": t({
             en: "Rate needed",
             es: "Falta la tasa",

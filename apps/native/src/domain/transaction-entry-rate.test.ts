@@ -2,7 +2,6 @@ import { describe, expect, it } from "@jest/globals";
 
 import {
     flipRateForQuote,
-    formatEnteredRate,
     formatQuotedRate,
     formatQuotedRateFigure,
     formatRateFigure,
@@ -73,9 +72,6 @@ describe("transaction entry rate policy", () => {
     it("shows a rate below one at five significant digits", () => {
         expect(formatRateFigure(0.0011785, "en")).toBe("0.0011785");
         expect(formatQuotedRateFigure("EUR", 0.87113, "en")).toBe("1.1479");
-        expect(formatEnteredRate(848.5512, "en")).toBe("848.5512");
-        expect(formatEnteredRate(56, "en")).toBe("56");
-        expect(formatEnteredRate(4012.3456, "en")).toBe("4,012.3456");
     });
 
     it("names a unit by its code wherever its symbol is shared, keeping $ for the dollar", () => {

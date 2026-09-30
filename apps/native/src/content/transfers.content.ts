@@ -71,6 +71,10 @@ const transfers = {
             en: "Note",
             es: "Nota",
         }),
+        "transfers.field.outside": t({
+            en: "From another account",
+            es: "De otra cuenta",
+        }),
         "transfers.field.rate": t({
             en: "Rate",
             es: "Tasa",
@@ -95,13 +99,17 @@ const transfers = {
             en: "It's on top",
             es: "Es aparte",
         }),
-        "transfers.gap.rateWas": t({
-            en: "Rate was {rate}",
-            es: "La tasa era {rate}",
+        "transfers.gap.less": t({
+            en: "{amount} less arrived",
+            es: "Llegaron {amount} de menos",
         }),
-        "transfers.gap.unaccounted": t({
-            en: "{amount} unaccounted",
-            es: "{amount} sin explicar",
+        "transfers.gap.more": t({
+            en: "{amount} more arrived",
+            es: "Llegaron {amount} de más",
+        }),
+        "transfers.gap.outside": t({
+            en: "It came from another account",
+            es: "Salió de otra cuenta",
         }),
         "transfers.rate.lastUsed": t({
             en: "Last used · {date}",
@@ -162,6 +170,10 @@ const transfers = {
         "transfers.sentence.noFee": t({
             en: "{fee}.",
             es: "{fee}.",
+        }),
+        "transfers.sentence.outside": t({
+            en: "Includes {outside} from another account.",
+            es: "Incluye {outside} de otra cuenta.",
         }),
         "transfers.sentence.rate": t({
             en: "At the {rateType} rate, {rate}, it arrives as {arrives}.",

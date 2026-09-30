@@ -1,6 +1,5 @@
-import { formatSignedAmount } from "@/domain/account-display";
 import { formatAmount } from "@/domain/money";
-import { formatEnteredRate, formatRateFigure, quotePairRate } from "@/domain/transaction-entry-rate";
+import { formatRateFigure, quotePairRate } from "@/domain/transaction-entry-rate";
 import { quotedByBcv, rateDeltaLine } from "@/domain/transaction-form-labels";
 import type { useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
@@ -11,9 +10,9 @@ export interface TransferGapPrompt {
     feeLabel: string | null;
     message: string;
     onFee: (() => void) | null;
-    onRate: (() => void) | null;
+    onOutside: (() => void) | null;
     onTop: (() => void) | null;
-    rateLabel: string | null;
+    outsideLabel: string | null;
     topLabel: string | null;
 }
 
@@ -40,10 +39,6 @@ export function rateDeltaNote(draft: Draft, t: Translate, language: Language): s
     });
 }
 
-function offeredRateText(draft: Pick<Draft, "rateInverse">, rate: number, language: Language): string {
-    return formatEnteredRate(quotePairRate(draft.rateInverse, rate), language);
-}
-
 export function blockMessage(draft: Draft, t: Translate, language: Language): string {
     if (draft.block === null || draft.block.kind === "rate") {
         return t("transfers.rate.unavailable");
@@ -65,36 +60,29 @@ export function blockPrompt(draft: Draft, t: Translate, language: Language): Tra
         feeLabel: null,
         message: blockMessage(draft, t, language),
         onFee: null,
-        onRate: null,
+        onOutside: null,
         onTop: null,
-        rateLabel: null,
+        outsideLabel: null,
         topLabel: null,
     };
 }
 
-/** Only offers a resolution that would actually close the gap: a fee only when one
- * above zero does, and a rate only when it differs from the one carried. */
 export function gapPrompt(draft: Draft, t: Translate, language: Language): TransferGapPrompt | null {
-    const { gapRate } = draft;
-    if (draft.gapAmount === 0 || (gapRate === null && !draft.gapOnTop)) {
+    const gap = draft.gapAmount;
+    if (gap === 0 || draft.outside > 0) {
         return null;
     }
-    const offered = gapRate === null ? null : offeredRateText(draft, gapRate, language);
-    const arrivalGap = -draft.gapAmount;
-    const amount = formatSignedAmount(arrivalGap, draft.feeCurrency, true, language);
-    const rateMoves =
-        offered !== null &&
-        draft.fromCurrency !== draft.toCurrency &&
-        (draft.quotedRate === null || offered !== offeredRateText(draft, draft.quotedRate, language));
+    const offersFee = gap > 0 && draft.gapFee !== null;
+    const offersOutside = gap < 0 && draft.crossCurrency;
     return {
-        feeLabel: draft.gapFee === null ? null : t("transfers.gap.itsAFee"),
-        message: t("transfers.gap.unaccounted", {
-            amount: arrivalGap > 0 ? `+${amount}` : amount,
+        feeLabel: offersFee ? t("transfers.gap.itsAFee") : null,
+        message: t(gap < 0 ? "transfers.gap.more" : "transfers.gap.less", {
+            amount: formatAmount(Math.abs(gap), draft.feeCurrency, true, language),
         }),
-        onFee: draft.gapFee === null ? null : draft.resolveAsFee,
-        onRate: rateMoves ? draft.resolveAsRate : null,
+        onFee: offersFee ? draft.resolveAsFee : null,
+        onOutside: offersOutside ? () => draft.setOutside(true) : null,
         onTop: draft.gapOnTop ? draft.resolveAsOnTop : null,
-        rateLabel: rateMoves ? t("transfers.gap.rateWas", { rate: offered }) : null,
+        outsideLabel: offersOutside ? t("transfers.gap.outside") : null,
         topLabel: draft.gapOnTop ? t("transfers.gap.itsOnTop") : null,
     };
 }

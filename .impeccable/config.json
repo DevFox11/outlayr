@@ -71,6 +71,24 @@
         ],
         "createdAt": "2026-09-30T13:14:57.834Z",
         "reason": "Agent: device frame holding the sheet and the iOS context-menu lift, not card chrome"
+      },
+      {
+        "rule": "tight-leading",
+        "value": "*",
+        "files": [
+          "docs/design/transfer-outside-money.html"
+        ],
+        "createdAt": "2026-09-30T18:58:39.964Z",
+        "reason": "agent: only h1/h2 headings sit below 1.3x (1.08, 1.2); body and the app sentence are 1.46+, same metrics as docs/design/transfer-flow-ease.html"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "docs/design/transfer-outside-money.html"
+        ],
+        "createdAt": "2026-09-30T18:58:39.984Z",
+        "reason": "agent: #e9e6de is Outlayr's paper brand ground from apps/native/global.css light tokens, shared by every docs/design mock"
       }
     ]
   }

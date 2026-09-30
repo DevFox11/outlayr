@@ -17,7 +17,7 @@ jest.mock<Partial<typeof import("@/i18n/context")>>("@/i18n/context", () => {
     return {
         useLanguage: () => ({ language: "en" }),
         useTranslation: () => (key, params) =>
-            /^log\.row\.(arrived|amountTransfer)/.test(key)
+            /^log\.row\.(arrived|amountTransfer|outside)/.test(key)
                 ? translate(key, { catalog: EN, fallback: EN, params })
                 : key,
     };
@@ -97,7 +97,13 @@ describe("a transfer's row", () => {
         note: "Chase → Ally Savings",
         transferId: "move",
     };
-    const moved = { arrived: 98, arrivedCurrency: "USD", fee: { amount: 2, currency: "USD" }, sent: 100 };
+    const moved = {
+        arrived: 98,
+        arrivedCurrency: "USD",
+        fee: { amount: 2, currency: "USD" },
+        outside: null,
+        sent: 100,
+    };
     const drawn = (move: TransferMove) =>
         render(
             <TransactionRow currency="USD" onPress={() => {}} transaction={{ ...TRANSFER, moved: move } as never} />
@@ -113,10 +119,23 @@ describe("a transfer's row", () => {
     });
 
     it("states the arrival of a feeless move only when it landed in another currency", async () => {
-        const crossed = await drawn({ arrived: 42_427.29, arrivedCurrency: "VES", fee: null, sent: 50 });
+        const crossed = await drawn({ arrived: 42_427.29, arrivedCurrency: "VES", fee: null, outside: null, sent: 50 });
         expect(crossed.getByText("Bs.42,427.29 arrived")).toBeTruthy();
 
         const level = await drawn({ ...moved, fee: null, sent: 98 });
         expect(level.queryByText(/arrived/)).toBeNull();
+    });
+
+    it("adds what came from an untracked account on its own line", async () => {
+        const { getByText } = await drawn({
+            arrived: 157_471.66,
+            arrivedCurrency: "VES",
+            fee: { amount: 7.34, currency: "USD" },
+            outside: { amount: 11.87, currency: "USD" },
+            sent: 160,
+        });
+
+        expect(getByText("Bs.157,471.66 arrived · $7.34 fee")).toBeTruthy();
+        expect(getByText("$11.87 from another account")).toBeTruthy();
     });
 });

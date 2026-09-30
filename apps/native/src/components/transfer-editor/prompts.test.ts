@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, jest } from "@jest/globals";
 
 import { blockMessage, gapPrompt } from "./prompts";
 
@@ -22,8 +22,6 @@ describe("what a blocked transfer says", () => {
         );
     });
 
-    /** The boundary that used to save: the fee equals the arrival exactly, so there
-     * is nothing over to report and "0 unaccounted" would say nothing at all. */
     it("says nothing would arrive when the fee takes precisely all of it", () => {
         expect(blockMessage(drafted({ kind: "fee", shortfall: 0 }), t, "en")).toBe("transfers.block.nothingArrives");
     });
@@ -33,89 +31,50 @@ describe("what a blocked transfer says", () => {
     });
 });
 
+function gapped(draft: Partial<Parameters<typeof gapPrompt>[0]>) {
+    return gapPrompt(
+        { crossCurrency: true, feeCurrency: "USD", gapFee: null, gapOnTop: false, outside: 0, ...draft } as Parameters<
+            typeof gapPrompt
+        >[0],
+        t,
+        "en"
+    );
+}
+
 describe("what an unexplained remainder offers", () => {
-    it("offers the rate that would close it even when it rounds to the same five digits", () => {
-        const prompt = gapPrompt(
-            {
-                fromCurrency: "USD",
-                gapAmount: -0.4,
-                gapFee: null,
-                gapRate: 55.5004,
-                quotedRate: 55.5,
-                resolveAsRate: () => {},
-                toCurrency: "VES",
-            } as Parameters<typeof gapPrompt>[0],
-            t,
-            "en"
-        );
-
-        expect(prompt?.rateLabel).toBe('transfers.gap.rateWas:{"rate":"55.5004"}');
-    });
-
-    it("offers no rate between two accounts in one currency, where a rate changes nothing", () => {
-        const prompt = gapPrompt(
-            {
-                fromCurrency: "USD",
-                gapAmount: 1,
-                gapFee: 3,
-                gapRate: 0.9898,
-                quotedRate: 1,
-                resolveAsFee: () => {},
-                resolveAsRate: () => {},
-                toCurrency: "USD",
-            } as Parameters<typeof gapPrompt>[0],
-            t,
-            "en"
-        );
-
-        expect(prompt).toMatchObject({ feeLabel: "transfers.gap.itsAFee", onRate: null, rateLabel: null });
-    });
-});
-
-describe("the sign on an unexplained remainder", () => {
-    it("reads dollars lost on the way as a minus in the sender's currency, with a fee to explain it", () => {
-        const prompt = gapPrompt(
-            {
-                feeCurrency: "USD",
-                fromCurrency: "USD",
-                gapAmount: 7.34,
-                gapFee: 7.34,
-                gapRate: 1031.5188,
-                quotedRate: 1031.52,
-                resolveAsFee: () => {},
-                resolveAsRate: () => {},
-                toCurrency: "VES",
-            } as Parameters<typeof gapPrompt>[0],
-            t,
-            "en"
-        );
-
-        expect(prompt).toMatchObject({
+    it("reads dollars lost on the way as less arriving, with a fee and never a rate to explain it", () => {
+        expect(gapped({ gapAmount: 7.34, gapFee: 7.34, resolveAsFee: () => {} })).toMatchObject({
             feeLabel: "transfers.gap.itsAFee",
-            message: 'transfers.gap.unaccounted:{"amount":"-$7.34"}',
+            message: 'transfers.gap.less:{"amount":"$7.34"}',
+            outsideLabel: null,
         });
     });
 
-    it("reads more arriving than the rate implies as an explicit plus, with only the rate to explain it", () => {
-        const prompt = gapPrompt(
-            {
-                feeCurrency: "USD",
-                fromCurrency: "USD",
-                gapAmount: -4.53,
-                gapFee: null,
-                gapRate: 157_471.66 / 160,
-                quotedRate: 957.1,
-                resolveAsRate: () => {},
-                toCurrency: "VES",
-            } as Parameters<typeof gapPrompt>[0],
-            t,
-            "en"
-        );
+    it("reads more arriving than the typed rate converts as money from another account", () => {
+        const setOutside = jest.fn();
+        const prompt = gapped({ gapAmount: -4.53, setOutside });
 
         expect(prompt).toMatchObject({
             feeLabel: null,
-            message: 'transfers.gap.unaccounted:{"amount":"+$4.53"}',
-            rateLabel: 'transfers.gap.rateWas:{"rate":"984.1979"}',
+            message: 'transfers.gap.more:{"amount":"$4.53"}',
+            outsideLabel: "transfers.gap.outside",
         });
+        prompt?.onOutside?.();
+        expect(setOutside).toHaveBeenCalledWith(true);
+    });
+
+    it("offers no fee for a surplus, where booking one would only shrink the fee typed", () => {
+        expect(gapped({ gapAmount: -4.53, gapFee: 5.47, resolveAsFee: () => {} })).toMatchObject({
+            feeLabel: null,
+            onFee: null,
+        });
+    });
+
+    it("offers no outside account between two accounts in one currency", () => {
+        expect(gapped({ crossCurrency: false, gapAmount: -5 })).toMatchObject({ onOutside: null, outsideLabel: null });
+    });
+
+    it("goes quiet once the surplus is confirmed, because the sentence states it", () => {
+        expect(gapped({ gapAmount: -4.53, outside: 4.53 })).toBeNull();
     });
 });

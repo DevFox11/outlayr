@@ -46,7 +46,7 @@ import type { TransferSentenceSlot } from "./transfer-sentence";
 import { useTransferDraft } from "./use-transfer-draft";
 import type { TransferSeed } from "./use-transfer-draft";
 
-type Step = Exclude<TransferSentenceSlot, "feeSide"> | "date";
+type Step = Exclude<TransferSentenceSlot, "feeSide" | "outside"> | "date";
 
 type TransferEditorProps = {
     onDelete?: () => void;
@@ -91,7 +91,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
         if (draft.block?.kind === "fee") {
             return "fee";
         }
-        return !draft.crossCurrency && draft.gapAmount !== 0 ? "arrives" : null;
+        return draft.gapAmount !== 0 && draft.legs === null ? "arrives" : null;
     };
 
     const [step, setStep] = useState<Step>(() => missing() ?? "amount");
@@ -125,8 +125,8 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
         };
 
     const save = async () => {
-        const { from, to, legs, effectiveRate, fee, feeSide, crossCurrency, rateType, date } = draft;
-        if (!(draft.canSave && from && to && legs && effectiveRate) || savingRef.current) {
+        const { from, to, legs, quotedRate, fee, feeSide, crossCurrency, rateType, date } = draft;
+        if (!(draft.canSave && from && to && legs && quotedRate) || savingRef.current) {
             return;
         }
         savingRef.current = true;
@@ -135,7 +135,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
         const storedRateType = rateType === "binance" ? "custom" : rateType;
         const input: TransferInput = {
             date,
-            exchangeRate: effectiveRate,
+            exchangeRate: quotedRate,
             exchangeRateType: crossCurrency ? storedRateType : null,
             fee:
                 fee > 0
@@ -215,6 +215,14 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
         if (slot === "feeSide") {
             touch();
             draft.toggleFeeSide();
+            return;
+        }
+        if (slot === "outside") {
+            touch();
+            draft.setOutside(false);
+            AccessibilityInfo.announceForAccessibility(
+                t("transfers.gap.more", { amount: formatAmount(draft.outside, draft.feeCurrency, true, language) })
+            );
             return;
         }
         enter(slot);
@@ -554,11 +562,13 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
                             arrives:
                                 draft.arrived === null ? undefined : { amount: draft.arrived, code: draft.toCurrency },
                             fee: { amount: draft.fee, code: draft.feeCurrency },
+                            outside: { amount: draft.outside, code: draft.feeCurrency },
                         }}
                         flaggedSlot={flagged}
                         hasFee={draft.fee > 0}
                         onSlotPress={onSlotPress}
                         onTop={draft.feeMode === "onTop"}
+                        outside={draft.outside > 0}
                         values={{
                             amount:
                                 draft.sent > 0 ? formatAmount(draft.sent, draft.fromCurrency, true, language) : null,
@@ -569,6 +579,10 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
                             fee: draft.fee > 0 ? formatAmount(draft.fee, draft.feeCurrency, true, language) : null,
                             feeSide: feeSideAccount?.name ?? null,
                             from: draft.from?.name ?? null,
+                            outside:
+                                draft.outside > 0
+                                    ? formatAmount(draft.outside, draft.feeCurrency, true, language)
+                                    : null,
                             rate: rateLabel,
                             rateType: t(
                                 rateSourceWordKey(draft.rateType, quotedByBcv(draft.fromCurrency, draft.toCurrency))
@@ -590,7 +604,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
                                 {(
                                     [
                                         [gap.feeLabel, gap.onFee, false],
-                                        [gap.rateLabel, gap.onRate, false],
+                                        [gap.outsideLabel, gap.onOutside, false],
                                         [gap.topLabel, gap.onTop, !draft.crossCurrency],
                                     ] as const
                                 ).map(([label, resolve, hidesArrival]) =>

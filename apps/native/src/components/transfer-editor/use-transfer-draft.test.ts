@@ -72,10 +72,6 @@ async function draft(): Promise<{ current: TransferDraft }> {
     return result;
 }
 
-/**
- * 1000 at 33.3333 lands three cents short of 33,333.33, so four decimals of rate
- * cannot reproduce this arrival; only the exact rate behind them can.
- */
 async function overpaidDraft(): Promise<{ current: TransferDraft }> {
     const result = await draft();
     await act(async () => {
@@ -137,64 +133,51 @@ async function customRateDraft(): Promise<{ current: TransferDraft }> {
     return result;
 }
 
-describe("an arrival above everything the rate ever converted", () => {
-    it("has no fee that could explain it, only a rate", async () => {
+describe("an arrival above everything the typed rate converts", () => {
+    it("has no fee that could explain it, and holds the save until the user says where the rest came from", async () => {
         const result = await overpaidDraft();
-        expect(result.current.gapAmount).toBeLessThan(0);
-        expect(result.current.gapFee).toBeNull();
-        expect(result.current.gapRate).toBe(33.33333);
-    });
-});
-
-describe("accepting the suggested rate", () => {
-    it("leaves the arrival the user pinned untouched", async () => {
-        const result = await overpaidDraft();
-        await act(async () => {
-            result.current.resolveAsRate();
+        expect(result.current).toMatchObject({
+            canSave: false,
+            gapAmount: -111.11,
+            gapFee: null,
+            legs: null,
+            outside: 0,
         });
-        expect(result.current.arrived).toBe(33_333.33);
-        expect(result.current.arrivedText).toBe(PINNED_ARRIVAL);
     });
 
-    it("adopts the rate it offered", async () => {
+    it("saves both legs as they happened at the typed rate once the rest came from another account", async () => {
         const result = await overpaidDraft();
         await act(async () => {
-            result.current.resolveAsRate();
-        });
-        expect(result.current.rateType).toBe("custom");
-        expect(result.current.customRatePadText).toBe("33.3333");
-    });
-
-    it("leaves no remainder where four decimals of rate cannot reproduce the arrival", async () => {
-        const result = await overpaidDraft();
-        await act(async () => {
-            result.current.resolveAsRate();
-        });
-        expect(result.current.gapAmount).toBe(0);
-    });
-
-    it("leaves none on ten million dollars at an inverse-quoted rate either", async () => {
-        mockRates.set("EUR", 0.9);
-        const result = await draft();
-        await act(async () => {
-            result.current.chooseTo(mockAccounts[2] ?? null);
-        });
-        await act(async () => {
-            result.current.setSent("10000000");
-        });
-        await act(async () => {
-            result.current.setArrived("9234567.89");
-        });
-        expect(result.current.gapAmount).not.toBe(0);
-        await act(async () => {
-            result.current.resolveAsRate();
+            result.current.setOutside(true);
         });
         expect(result.current).toMatchObject({
-            customRatePadText: "1.0829",
-            gapAmount: 0,
-            legs: { fromAmount: 10_000_000, toAmount: 9_234_567.89 },
-            rateInverse: true,
+            canSave: true,
+            legs: { fromAmount: 1000, toAmount: 33_333.33 },
+            outside: 111.11,
+            quotedRate: 30,
         });
+    });
+
+    it("asks again once the arrival it confirmed is typed over", async () => {
+        const result = await overpaidDraft();
+        await act(async () => {
+            result.current.setOutside(true);
+        });
+        await act(async () => {
+            result.current.setArrived("333333.3");
+        });
+        expect(result.current).toMatchObject({ canSave: false, outside: 0 });
+    });
+
+    it("holds the save again when the user takes it back", async () => {
+        const result = await overpaidDraft();
+        await act(async () => {
+            result.current.setOutside(true);
+        });
+        await act(async () => {
+            result.current.setOutside(false);
+        });
+        expect(result.current).toMatchObject({ canSave: false, outside: 0 });
     });
 });
 
@@ -217,7 +200,7 @@ describe("a fee larger than what reaches the other side", () => {
 
     it("keeps the official rate it was quoted at instead of one the fee implies", async () => {
         const result = await feeOverArrivalDraft();
-        expect(result.current.effectiveRate).toBe(OFFICIAL_VES_PER_USD);
+        expect(result.current.quotedRate).toBe(OFFICIAL_VES_PER_USD);
     });
 
     it("names the shortfall in the sender's own currency when the sender charges it", async () => {
@@ -238,7 +221,7 @@ describe("a fee larger than what reaches the other side", () => {
             result.current.setFee("55");
         });
         expect(result.current.arrived).toBe(500);
-        expect(result.current.legs).toStrictEqual({ exchangeRate: 55.5, fromAmount: 10, toAmount: 555 });
+        expect(result.current.legs).toStrictEqual({ fromAmount: 10, toAmount: 555 });
         expect(result.current.block).toBeNull();
         expect(result.current.canSave).toBe(true);
     });
@@ -272,7 +255,7 @@ describe("a pair no rate table covers", () => {
     it("has no rate to offer, and will not invent one", async () => {
         const result = await feeOverArrivalDraft();
 
-        expect(result.current.effectiveRate).toBeNull();
+        expect(result.current.quotedRate).toBeNull();
         expect(result.current.legs).toBeNull();
         expect(result.current.canSave).toBe(false);
         expect(result.current.block).toStrictEqual({ kind: "rate" });
@@ -307,7 +290,7 @@ describe("swapping a transfer that carries a custom rate", () => {
 
     it("converts 100 USD at the typed 600 before the swap", async () => {
         const result = await customRateDraft();
-        expect(result.current.legs).toStrictEqual({ exchangeRate: 600, fromAmount: 100, toAmount: 60_000 });
+        expect(result.current).toMatchObject({ legs: { fromAmount: 100, toAmount: 60_000 }, quotedRate: 600 });
     });
 
     it("values the inverted pair at its own rate, never at the one typed for the other", async () => {
@@ -315,7 +298,8 @@ describe("swapping a transfer that carries a custom rate", () => {
         await act(async () => {
             result.current.chooseFrom(result.current.to);
         });
-        expect(result.current.legs).toStrictEqual({ exchangeRate: 0.018, fromAmount: 100, toAmount: 1.8 });
+        expect(result.current.legs).toStrictEqual({ fromAmount: 100, toAmount: 1.8 });
+        expect(result.current.quotedRate).toBeCloseTo(1 / OFFICIAL_VES_PER_USD, 12);
         expect(result.current.customRatePadText).toBe("55.5");
     });
 
@@ -338,7 +322,7 @@ describe("swapping a transfer that carries a custom rate", () => {
             result.current.chooseFrom(result.current.to);
         });
         expect(result.current.customRatePadText).toBe("600");
-        expect(result.current.effectiveRate).toBe(600);
+        expect(result.current.quotedRate).toBe(600);
     });
 });
 
@@ -369,7 +353,7 @@ describe("changing the destination under a custom rate", () => {
         await act(async () => {
             result.current.chooseTo(mockAccounts[2] ?? null);
         });
-        expect(result.current.legs).toStrictEqual({ exchangeRate: 0.9, fromAmount: 100, toAmount: 90 });
+        expect(result.current).toMatchObject({ legs: { fromAmount: 100, toAmount: 90 }, quotedRate: 0.9 });
     });
 });
 
@@ -402,7 +386,7 @@ describe("a transfer between two currencies quoted the same way", () => {
             result.current.setDate(new Date(Date.UTC(2026, 0, 1)));
         });
         expect(result.current.rateInverse).toBe(true);
-        expect(result.current.legs).toStrictEqual({ exchangeRate: 0.00008, fromAmount: 1_250_000, toAmount: 100 });
+        expect(result.current).toMatchObject({ legs: { fromAmount: 1_250_000, toAmount: 100 }, quotedRate: 0.00008 });
     });
 });
 
@@ -800,7 +784,7 @@ describe("dollars from Payoneer that arrive as bolívares through Binance", () =
         });
     });
 
-    it("reads a stale custom rate as a surplus only a rate explains", async () => {
+    async function binanceP2p(): Promise<{ current: TransferDraft }> {
         const result = await draft();
         await act(async () => {
             result.current.setRateType("custom");
@@ -814,14 +798,60 @@ describe("dollars from Payoneer that arrive as bolívares through Binance", () =
         await act(async () => {
             result.current.setArrived("157471.66");
         });
-        expect(result.current).toMatchObject({ gapAmount: -4.53, gapFee: null });
-        expect(result.current.gapRate).toBeCloseTo(157_471.66 / 160, 9);
+        return result;
+    }
+
+    it("reads USDT already in Binance as a surplus no fee explains", async () => {
+        const result = await binanceP2p();
+        expect(result.current).toMatchObject({ canSave: false, gapAmount: -4.53, gapFee: null, quotedRate: 957.1 });
+    });
+
+    it("grows what came from Binance as the fee Payoneer took is typed", async () => {
+        const result = await binanceP2p();
+        await act(async () => {
+            result.current.setOutside(true);
+        });
+        expect(result.current.outside).toBe(4.53);
+        await act(async () => {
+            result.current.setFee("7.34");
+        });
+        expect(result.current).toMatchObject({
+            canSave: true,
+            legs: { fromAmount: 152.66, toAmount: 157_471.66 },
+            outside: 11.87,
+            quotedRate: 957.1,
+        });
+    });
+
+    it("reopens with what came from another account still confirmed", async () => {
+        const { result } = await renderHook(() =>
+            useTransferDraft({} as Database, undefined, {
+                arrived: 157_471.66,
+                date: new Date(Date.UTC(2026, 8, 30)),
+                fee: 7.34,
+                feeSide: "source",
+                fromAccountId: "usd",
+                fromCurrency: "USD",
+                id: "transfer",
+                note: "",
+                rate: 957.1,
+                rateType: "custom",
+                sent: 160,
+                toAccountId: "ves",
+                toCurrency: "VES",
+            })
+        );
+        expect(result.current).toMatchObject({
+            canSave: true,
+            legs: { fromAmount: 152.66, toAmount: 157_471.66 },
+            outside: 11.87,
+            quotedRate: 957.1,
+        });
     });
 
     it("offers no fee that would swallow everything sent", async () => {
         const result = await pinnedDraft("160", "1");
         expect(result.current).toMatchObject({ gapAmount: 160, gapFee: null });
-        expect(result.current.gapRate).not.toBeNull();
     });
 
     it("reopens a transfer saved at the official rate on the official rate", async () => {

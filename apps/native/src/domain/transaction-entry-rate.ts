@@ -123,11 +123,6 @@ export function formatQuotedRate(currency: string, rate: number): string {
     return rateEntryText(flipRateForQuote(currency, rate));
 }
 
-export function formatEnteredRate(rate: number, language?: Language): string {
-    const [, fraction = ""] = rateEntryText(rate).split(".");
-    return formatFixed(rate, fraction.length, language);
-}
-
 const RATE_SIGNIFICANT_DIGITS = 5;
 
 const RATE_MAX_DECIMALS = 10;

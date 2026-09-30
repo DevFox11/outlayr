@@ -12,7 +12,6 @@ export interface TransferValues {
 }
 
 export interface TransferLegs {
-    exchangeRate: number;
     fromAmount: number;
     toAmount: number;
 }
@@ -110,11 +109,18 @@ export function transferLegs(
 ): TransferLegs | null {
     const fromAmount = money(convertedPortion(values), sourceDecimals);
     const toAmount = money(preFeeArrival(values), destinationDecimals);
-    if (fromAmount === null || toAmount === null || !finitePositive(fromAmount)) {
+    if (fromAmount === null || toAmount === null || !finitePositive(fromAmount) || !finitePositive(toAmount)) {
         return null;
     }
-    const exchangeRate = roundMoney(toAmount / fromAmount, NOISE_DECIMALS);
-    return finitePositive(exchangeRate) ? { exchangeRate, fromAmount, toAmount } : null;
+    return { fromAmount, toAmount };
+}
+
+export function savedRate(fromAmount: number, toAmount: number, stored: number | null): number | null {
+    if (stored === null || !finitePositive(fromAmount)) {
+        return stored;
+    }
+    const blended = toAmount / fromAmount;
+    return roundMoney(blended, NOISE_DECIMALS) === stored ? blended : stored;
 }
 
 export function transferGap(values: TransferValues, feeDecimals: number, arrivalDecimals: number): number {
