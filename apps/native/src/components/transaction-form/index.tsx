@@ -1767,17 +1767,6 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         }
     };
 
-    /**
-     * Naming a cadence IS the choice to repeat: the repeat step is the only place
-     * a one-off becomes a subscription now, so the flag follows the cadence
-     * rather than waiting for a switch that no longer exists.
-     */
-    const handleCadenceChange = (type: number) => {
-        form.setFieldValue("recurringType", type);
-        form.setFieldValue("coefficient", 1);
-        form.setFieldValue("isSubscription", true);
-    };
-
     // The same ladder the notifications setting runs, for the same reason: a lead
     // iOS will never deliver is a promise this row would go on repeating, so it is
     // put back to Off rather than left standing. Neither branch schedules anything
@@ -1813,12 +1802,25 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
         form.setFieldValue("leadDays", null);
     };
 
+    const confirmLead = () => {
+        confirmRemindersAllowed().catch((error) => {
+            console.error("Reminder permission check failed", error);
+        });
+    };
+
     const handleLeadChange = (lead: number | null) => {
         form.setFieldValue("leadDays", lead);
-        if (lead !== null) {
-            confirmRemindersAllowed().catch((error) => {
-                console.error("Reminder permission check failed", error);
-            });
+        if (lead !== null && isSubscription) {
+            confirmLead();
+        }
+    };
+
+    const startRepeating = (type: number, every: number) => {
+        form.setFieldValue("recurringType", type);
+        form.setFieldValue("coefficient", every);
+        form.setFieldValue("isSubscription", true);
+        if (!isSubscription && leadDays !== null) {
+            confirmLead();
         }
     };
 
@@ -2352,7 +2354,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                         starting: t("transaction.schedule.starting"),
                     }}
                     leadDays={leadDays}
-                    onCadenceChange={handleCadenceChange}
+                    onCadenceChange={(type) => startRepeating(type, 1)}
                     onCustomPress={() => setScheduleSheetOpen(true)}
                     onEndDatePress={() => enterStep("endDate")}
                     onLeadChange={handleLeadChange}
@@ -2826,11 +2828,7 @@ export function TransactionForm({ db, mode, initial, seed, copyOf, onDone, onDel
                     {({ date: firstPaymentDate }) => (
                         <CustomScheduleSheet
                             firstPayment={firstPaymentDate}
-                            onDone={(type, every) => {
-                                form.setFieldValue("recurringType", type);
-                                form.setFieldValue("coefficient", every);
-                                form.setFieldValue("isSubscription", true);
-                            }}
+                            onDone={startRepeating}
                             onOpenChange={setScheduleSheetOpen}
                             open={scheduleSheetOpen}
                             recurringCoefficient={coefficient}

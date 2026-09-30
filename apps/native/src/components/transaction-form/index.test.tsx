@@ -127,6 +127,12 @@ jest.mock<Partial<typeof import("../currency-picker-list")>>("../currency-picker
 jest.mock<Partial<typeof import("@/lib/subscription-reminder-sync")>>("@/lib/subscription-reminder-sync", () => ({
     syncSubscriptionReminders: jest.fn(() => Promise.resolve()),
 }));
+const mockReminderPermission = jest.fn(() => Promise.resolve("granted" as const));
+jest.mock<Partial<typeof import("@/lib/reminders")>>("@/lib/reminders", () => ({
+    openNotificationSettings: jest.fn(),
+    reminderPermission: () => mockReminderPermission(),
+    requestReminderPermission: () => mockReminderPermission(),
+}));
 jest.mock("@/lib/logo-fetch", () => ({ fetchMerchantImage: jest.fn() }));
 
 const mockHaptic = jest.fn();
@@ -963,6 +969,29 @@ describe("transactionForm", () => {
                 </Providers>
             );
         });
+    });
+
+    it("asks for notifications only once the entry repeats", async () => {
+        const db = dbHolder.current as Database;
+        mockReminderPermission.mockClear();
+        const screen = await render(
+            <Providers>
+                <TransactionForm db={db} mode="create" onDone={() => {}} />
+            </Providers>
+        );
+
+        await act(async () => {
+            pressVerb(screen, REPEAT_VERB);
+        });
+        await act(async () => {
+            pickOption(screen, "transaction.remind.dayBefore");
+        });
+        expect(mockReminderPermission).not.toHaveBeenCalled();
+
+        await act(async () => {
+            pickOption(screen, "transaction.cadence.monthly");
+        });
+        expect(mockReminderPermission).toHaveBeenCalledTimes(1);
     });
 
     it("holds hook order across a create -> edit re-render sequence", async () => {
