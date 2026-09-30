@@ -11,11 +11,14 @@ import { StageOptionRow } from "@/components/transaction-form/stage/stage-option
 import { StepAccount } from "@/components/transaction-form/stage/step-account";
 import { StepDate } from "@/components/transaction-form/stage/step-date";
 import { StepWhen } from "@/components/transaction-form/stage/step-when";
+import { useSettingNumber } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { transfersRepo } from "@/data/transfers-core";
 import type { SavedTransfer, TransferInput } from "@/data/transfers-core";
 import { formatSignedAmount } from "@/domain/account-display";
 import { formatAmount, numberLocale } from "@/domain/money";
+import { applyNumpadKey, numpadMode } from "@/domain/numpad";
+import type { NumpadKey, NumpadMode } from "@/domain/numpad";
 import { pairUnitSymbols, RATE_ENTRY_DECIMALS } from "@/domain/transaction-entry-rate";
 import { RATE_NAME_KEYS, RATE_SOURCE_WORD_KEYS, transactionWhenLabel } from "@/domain/transaction-form-labels";
 import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
@@ -45,6 +48,7 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
     const { language } = useLanguage();
     const colors = useColors();
     const haptics = useHaptics();
+    const entryMode = numpadMode(useSettingNumber("numberEntryType"));
     const draft = useTransferDraft(db, seed, saved);
     const initialNote = saved?.note ?? seed?.note ?? "";
     const noteRef = useRef(initialNote);
@@ -72,6 +76,7 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
     const [step, setStep] = useState<Step>(() => missing() ?? "amount");
     const [forward, setForward] = useState(true);
     const [fresh, setFresh] = useState(true);
+    const freshRef = useRef(true);
 
     const enter = (next: Step, direction = true) => {
         if (next === "rate" && draft.rateType !== "custom") {
@@ -82,15 +87,20 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
         }
         Keyboard.dismiss();
         setForward(direction);
+        freshRef.current = true;
         setFresh(true);
         setStep(next);
     };
 
-    const typed = (apply: (text: string) => void) => (text: string) => {
-        setFresh(false);
-        setFlagged(null);
-        apply(text);
-    };
+    const typed =
+        (pad: { minorUnits: number; mode?: NumpadMode; onChange: (text: string) => void; value: string }) =>
+        (text: string, key: NumpadKey) => {
+            const trimsEntry = freshRef.current && key === "back";
+            freshRef.current = false;
+            setFresh(false);
+            setFlagged(null);
+            pad.onChange(trimsEntry ? applyNumpadKey(pad.value, "back", pad.minorUnits, pad.mode ?? entryMode) : text);
+        };
 
     const save = async () => {
         const { from, to, legs, effectiveRate, fee, feeSide, crossCurrency, rateType, date } = draft;
@@ -220,7 +230,7 @@ export default function TransferEditor({ onDone, saved, seed }: TransferEditorPr
                     {...back}
                     footer={footer}
                     forward={forward}
-                    onChange={typed(pad.onChange)}
+                    onChange={typed(pad)}
                     stepKey={step}
                     value={fresh ? "" : pad.value}
                 />

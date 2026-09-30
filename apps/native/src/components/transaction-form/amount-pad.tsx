@@ -2,7 +2,7 @@ import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon"
 import { HugeiconsIcon } from "@hugeicons/react-native";
 
 import { GlassButton } from "@/components/glass-button";
-import type { NumpadMode } from "@/domain/numpad";
+import type { NumpadKey, NumpadMode } from "@/domain/numpad";
 import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
@@ -24,7 +24,7 @@ interface TransactionFormAmountPadProps {
     /** Passed straight through — see `AmountNumpad`'s own `mode`. */
     mode?: NumpadMode;
     onBack?: () => void;
-    onChange: (next: string) => void;
+    onChange: (next: string, key: NumpadKey) => void;
     /**
      * Opens the currency picker. Omitted for a field whose code is not a
      * currency the user can swap — the rate pad's "VES/USD" pair — and the code

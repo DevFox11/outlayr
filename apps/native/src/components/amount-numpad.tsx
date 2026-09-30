@@ -36,7 +36,7 @@ interface AmountNumpadProps {
      * is typing, so the money preference must not reach it.
      */
     mode?: NumpadMode;
-    onChange: (next: string) => void;
+    onChange: (next: string, key: NumpadKey) => void;
     /** Off where the caller already shows the figure above the keys. */
     showDisplay?: boolean;
     toneClass?: string;
@@ -80,7 +80,7 @@ export function AmountNumpad({
         const current = chained.current?.base === value ? chained.current.next : value;
         const next = applyNumpadKey(current, key, minorUnits, mode);
         chained.current = { base: value, next };
-        onChange(next);
+        onChange(next, key);
     };
 
     return (
