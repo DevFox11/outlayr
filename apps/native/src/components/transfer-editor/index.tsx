@@ -95,6 +95,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
     const [forward, setForward] = useState(true);
     const [fresh, setFresh] = useState(true);
     const freshRef = useRef(true);
+    const saves = draft.canSave && draft.arrivalSeen;
 
     const enter = (next: Step, direction = true) => {
         if (next === "rate" && draft.rateType !== "custom") {
@@ -182,8 +183,12 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
             router.push(accountCreateRoute);
             return;
         }
-        if (draft.canSave) {
+        if (saves) {
             save();
+            return;
+        }
+        if (draft.canSave) {
+            enter("arrives");
             return;
         }
         const next = missing() ?? "amount";
@@ -223,9 +228,9 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
     const rateLabel = rateFigure === null ? null : `${rateFigure} ${rateUnit}`;
     const feeSideAccount = draft.feeSide === "destination" ? draft.to : draft.from;
     const footer = {
-        label: draft.canSave ? t("transfers.save") : t("common.next"),
+        label: saves ? t("transfers.save") : t("common.next"),
         onPress: onFooter,
-        tone: draft.canSave && !saving ? "primary" : "muted",
+        tone: saves && !saving ? "primary" : "muted",
     } as const;
     const back = step === "amount" ? {} : { backLabel: t("common.back"), onBack: () => enter("amount", false) };
 
@@ -531,7 +536,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
                     busy: saving,
                     label: t("transfers.save"),
                     onPress: onFooter,
-                    ready: draft.canSave,
+                    ready: saves,
                 }}
             />
             <View className="px-5">

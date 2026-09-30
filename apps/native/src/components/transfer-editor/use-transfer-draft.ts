@@ -135,6 +135,7 @@ function reconcile(
 
 export interface TransferDraft {
     accounts: Account[];
+    arrivalSeen: boolean;
     arrived: number | null;
     arrivedText: string;
     block: TransferBlock | null;
@@ -346,6 +347,7 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
     const [sentText, setSentText] = useState(opening.sentText);
     const [arrivedText, setArrivedText] = useState(opening.arrivedText);
     const [arrivalPinned, setArrivalPinned] = useState(opening.arrivalPinned);
+    const [shownPair, setShownPair] = useState<string | null>(null);
     const [chosenRate, setChosenRate] = useState<TransferRateChoice | null>(opening.rateType);
     const [marketType, setMarketType] = useState<MarketRateType | null>(
         opening.rateType === "custom" ? "official" : opening.rateType
@@ -456,6 +458,7 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
 
     return {
         accounts,
+        arrivalSeen: !crossCurrency || arrivalPinned || shownPair === pair,
         arrived: math.arrived,
         arrivedText,
         block: math.block,
@@ -497,6 +500,7 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
         marketRates: marketRatesOf(quoteType, tableRates, ownQuote),
         prefillArrival: () => {
             setArrivedText(math.arrived === null ? "" : numberToNumpad(math.arrived, toDecimals));
+            setShownPair(pair);
         },
         priorCustomRate,
         quotedRate: rate,

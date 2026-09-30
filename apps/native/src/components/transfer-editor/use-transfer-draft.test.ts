@@ -1029,3 +1029,35 @@ describe("an arrival the user typed", () => {
         expect(result.current).toMatchObject({ arrived: 5390, gapAmount: 0 });
     });
 });
+
+describe("an arrival seen for another pair", () => {
+    beforeEach(() => {
+        mockRates.set("VES", 50);
+        mockRates.set("MXN", 18);
+    });
+
+    it("does not count as seeing the conversion", async () => {
+        const result = await draft();
+        await act(async () => {
+            result.current.chooseFrom(mockAccounts[0] ?? null);
+        });
+        await act(async () => {
+            result.current.chooseTo(mockAccounts[3] ?? null);
+        });
+        await act(async () => {
+            result.current.prefillArrival();
+        });
+        await act(async () => {
+            result.current.chooseTo(mockAccounts[1] ?? null);
+        });
+        expect(result.current.arrivalSeen).toBe(false);
+        await act(async () => {
+            result.current.prefillArrival();
+        });
+        expect(result.current.arrivalSeen).toBe(true);
+        await act(async () => {
+            result.current.chooseTo(mockAccounts[8] ?? null);
+        });
+        expect(result.current.arrivalSeen).toBe(false);
+    });
+});

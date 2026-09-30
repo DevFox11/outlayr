@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
-import { AccessibilityInfo } from "react-native";
+import { AccessibilityInfo, DeviceEventEmitter } from "react-native";
 
 import type { Account } from "@/data/accounts-core";
 import type { SavedTransfer, TransferInput } from "@/data/transfers-core";
@@ -100,6 +100,13 @@ async function press(label: string): Promise<void> {
         fireEvent(screen.getByLabelText(label), "click");
     });
 }
+
+const CROSS = { amount: 50, date: new Date(2026, 8, 29, 12), fromAccountId: "usd", toAccountId: "ves" };
+const quotedAt = (rate: number) => ({
+    earliest: () => null,
+    get: () => rate,
+    source: () => ({ date: "2026-09-19", fetchedAt: 0 }),
+});
 
 const slotValue = (label: string) => screen.getByLabelText(label).props.accessibilityValue?.text;
 
@@ -333,13 +340,6 @@ describe("transfer editor saved notice", () => {
 });
 
 describe("transfer editor rate step", () => {
-    const CROSS = { amount: 50, date: new Date(2026, 8, 29, 12), fromAccountId: "usd", toAccountId: "ves" };
-    const quotedAt = (rate: number) => ({
-        earliest: () => null,
-        get: () => rate,
-        source: () => ({ date: "2026-09-19", fetchedAt: 0 }),
-    });
-
     beforeEach(() => {
         mockRateTables.mockReturnValue({ eur_reference: quotedAt(974.42), official: quotedAt(848.55) });
         mockPriorRate.mockReturnValue({ date: new Date(2026, 8, 27), rate: 1020 });
@@ -373,7 +373,7 @@ describe("transfer editor rate step", () => {
 
         expect(mockCreate).not.toHaveBeenCalled();
         expect(screen.queryAllByRole("radio")).toHaveLength(0);
-        expect(screen.getByLabelText("transfers.save")).toBeTruthy();
+        expect(screen.getByLabelText("common.next")).toBeTruthy();
     });
 
     it("applies the last used rate from My rate", async () => {
@@ -382,6 +382,7 @@ describe("transfer editor rate step", () => {
 
         await press("My rate");
         await press("common.back");
+        await press("common.next");
         await press("transfers.save");
 
         expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({
@@ -514,5 +515,58 @@ describe("transfer editor arrival", () => {
         await press("common.next");
 
         expect(mockCreate).not.toHaveBeenCalled();
+    });
+});
+
+describe("transfer editor conversion", () => {
+    beforeEach(() => {
+        mockRateTables.mockReturnValue({ official: quotedAt(848.55) });
+    });
+
+    it("reads Next on the amount, shows the estimate on what arrives, and saves it from there", async () => {
+        await render(<TransferEditor onDone={jest.fn()} seed={CROSS} />);
+        expect(screen.queryByLabelText("transfers.save")).toBeNull();
+
+        await press("common.next");
+
+        expect(mockCreate).not.toHaveBeenCalled();
+        expect(screen.getByText("transfers.field.arrives")).toBeTruthy();
+        expect(slotValue("transfers.field.arrives")).toBe("Bs.42,427.50");
+        await press("transfers.save");
+        expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({ fromAmount: 50, toAmount: 42_427.5 });
+    });
+
+    it("routes a save from the bar to what arrives until it has been seen", async () => {
+        await render(<TransferEditor onDone={jest.fn()} seed={CROSS} />);
+        await act(async () => {
+            DeviceEventEmitter.emit("keyboardWillShow", {});
+        });
+
+        await act(async () => {
+            screen.getByLabelText("transfers.save").props.onButtonPress();
+        });
+
+        expect(mockCreate).not.toHaveBeenCalled();
+        expect(screen.getByText("transfers.field.arrives")).toBeTruthy();
+    });
+
+    it("saves a reopened conversion without asking again", async () => {
+        await render(
+            <TransferEditor
+                onDone={jest.fn()}
+                saved={{
+                    ...SAVED,
+                    arrived: 42_427.5,
+                    rate: 848.55,
+                    rateType: "official",
+                    toAccountId: "ves",
+                    toCurrency: "VES",
+                }}
+            />
+        );
+
+        await press("transfers.save");
+
+        expect(mockUpdate).toHaveBeenCalledTimes(1);
     });
 });
