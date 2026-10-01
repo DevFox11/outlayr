@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, render, waitFor } from "@testing-library/react-native";
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { Text } from "react-native";
 
 import { FreezeOnBlur } from "./freeze-on-blur";
 
 const mockFocus = { current: true };
 const mockFocusListeners = new Set<() => void>();
+const mockSegments = { current: ["(tabs)", "insights"] };
+const mockTheme = { current: "light" };
 
 jest.mock<Partial<typeof import("expo-router")>>("expo-router", () => ({
     useIsFocused: () => {
@@ -21,6 +23,13 @@ jest.mock<Partial<typeof import("expo-router")>>("expo-router", () => ({
             () => mockFocus.current
         );
     },
+    useSegments: () => mockSegments.current as never,
+}));
+jest.mock<Partial<typeof import("uniwind")>>("uniwind", () => ({
+    useUniwind: () => ({ hasAdaptiveThemes: false, theme: mockTheme.current as never }),
+}));
+jest.mock<Partial<typeof import("@/contexts/display-settings-context")>>("@/contexts/display-settings-context", () => ({
+    useSettingNumber: () => 0,
 }));
 
 async function setFocus(next: boolean) {
@@ -52,6 +61,7 @@ async function tick(next: string) {
 }
 
 let renders = 0;
+let mounts = 0;
 
 function Screen() {
     const value = useSyncExternalStore(
@@ -64,6 +74,9 @@ function Screen() {
         () => ticker.value
     );
     renders += 1;
+    useEffect(() => {
+        mounts += 1;
+    }, []);
     return <Text testID="screen">{value}</Text>;
 }
 
@@ -71,6 +84,9 @@ describe("freezeOnBlur", () => {
     beforeEach(() => {
         mockFocus.current = true;
         mockFocusListeners.clear();
+        mockSegments.current = ["(tabs)", "insights"];
+        mockTheme.current = "light";
+        mounts = 0;
         ticker.value = "first";
         ticker.listeners.clear();
         renders = 0;
@@ -102,6 +118,41 @@ describe("freezeOnBlur", () => {
         await tick("third");
 
         expect(renders).toBe(whileBlurred);
+    });
+
+    it("keeps rendering under a screen opened over the tabs", async () => {
+        const { getByTestId } = await render(
+            <FreezeOnBlur>
+                <Screen />
+            </FreezeOnBlur>
+        );
+        mockSegments.current = ["transactions", "[id]"];
+        await setFocus(false);
+
+        await tick("second");
+
+        expect(getByTestId("screen").props.children).toBe("second");
+    });
+
+    it("remounts a tab whose theme changed while it was frozen, and only then", async () => {
+        await render(
+            <FreezeOnBlur>
+                <Screen />
+            </FreezeOnBlur>
+        );
+        await setFocus(false);
+        await setFocus(true);
+        expect(mounts).toBe(1);
+
+        mockTheme.current = "dark";
+        await setFocus(true);
+        expect(mounts).toBe(1);
+
+        await setFocus(false);
+        mockTheme.current = "light";
+        await setFocus(true);
+
+        expect(mounts).toBe(2);
     });
 
     it("catches up to the current value on return, without remounting", async () => {

@@ -120,6 +120,7 @@ interface TransactionRowProps {
         ends?: TransferLogRow["ends"];
         fee?: { amount: number; currency: string | null };
         moved?: TransferMove;
+        sign?: TransferLogRow["sign"];
     };
 }
 
@@ -267,6 +268,7 @@ export function TransactionRow({
                     isFuture={future}
                     showCents={showCents}
                     transfer={isTransfer}
+                    transferSign={transaction.sign}
                 />
                 <UnderAmount
                     fee={

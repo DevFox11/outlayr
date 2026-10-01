@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
+import { useState } from "react";
 import { AccessibilityInfo, DeviceEventEmitter } from "react-native";
 
 import type { Account } from "@/data/accounts-core";
@@ -260,6 +261,106 @@ describe("transfer editor accessibility", () => {
         await press("common.next");
 
         expect(announce).toHaveBeenCalledWith("Missing: transfers.field.sent");
+    });
+});
+
+describe("transfer editor at rest", () => {
+    const FEE = { ...SAVED, arrived: 98, fee: 2, note: "rent" };
+
+    function Resting({ onDirtyChange }: { onDirtyChange?: (dirty: boolean) => void }) {
+        const [awake, setAwake] = useState(false);
+        return (
+            <TransferEditor
+                onDirtyChange={onDirtyChange}
+                onDone={jest.fn()}
+                rest={awake ? undefined : { onHeight: jest.fn(), onWake: () => setAwake(true) }}
+                saved={FEE}
+            />
+        );
+    }
+
+    it("shows the sentence and a filled note without a keypad, balances or Save", async () => {
+        await render(
+            <TransferEditor onDone={jest.fn()} rest={{ onHeight: jest.fn(), onWake: jest.fn() }} saved={FEE} />
+        );
+
+        expect(slotValue(SENT)).toBe("$100.00");
+        expect(screen.getByDisplayValue("rent")).toBeTruthy();
+        expect(screen.queryByLabelText("5")).toBeNull();
+        expect(screen.queryByLabelText("Zinli, $500.00")).toBeNull();
+        expect(screen.queryByText("transfers.save")).toBeNull();
+    });
+
+    it("hides an empty note", async () => {
+        await render(
+            <TransferEditor onDone={jest.fn()} rest={{ onHeight: jest.fn(), onWake: jest.fn() }} saved={SAVED} />
+        );
+
+        expect(screen.queryByPlaceholderText("transfers.field.note")).toBeNull();
+    });
+
+    it("wakes on a tapped word and opens that word's step", async () => {
+        await render(<Resting />);
+        expect(screen.queryByText("transfers.field.date")).toBeNull();
+
+        await press("transfers.field.date");
+
+        expect(screen.getByText("transfers.field.date")).toBeTruthy();
+        expect(screen.getByText("transfers.save")).toBeTruthy();
+    });
+
+    it("only wakes when the fee's account is tapped, leaving the fee where it was", async () => {
+        const onDirtyChange = jest.fn();
+        await render(<Resting onDirtyChange={onDirtyChange} />);
+
+        await press("transfers.field.feeSide");
+
+        expect(screen.getByLabelText("5")).toBeTruthy();
+        expect(slotValue("transfers.field.feeSide")).toBe("Zinli");
+        expect(onDirtyChange).not.toHaveBeenCalled();
+    });
+
+    it("states a shortfall at rest without offering to resolve it there", async () => {
+        mockRateTables.mockReturnValue({ official: quotedAt(848.55) });
+        await render(
+            <TransferEditor
+                onDone={jest.fn()}
+                rest={{ onHeight: jest.fn(), onWake: jest.fn() }}
+                saved={{
+                    ...SAVED,
+                    arrived: 42_427.5,
+                    rate: 848.55,
+                    rateType: "official",
+                    toAccountId: "ves",
+                    toCurrency: "VES",
+                }}
+            />
+        );
+
+        expect(screen.getByText(/less arrived/)).toBeTruthy();
+        expect(screen.queryByText("It's a fee")).toBeNull();
+    });
+
+    it("reports its height so the sheet can fit it", async () => {
+        const onHeight = jest.fn();
+        await render(<TransferEditor onDone={jest.fn()} rest={{ onHeight, onWake: jest.fn() }} saved={FEE} />);
+
+        await act(async () => {
+            fireEvent(screen.getByLabelText("transfers.field.feeSide"), "contentSizeChange", 402, 96);
+        });
+
+        expect(onHeight).toHaveBeenLastCalledWith(96);
+    });
+
+    it("wakes when its note is focused", async () => {
+        const onWake = jest.fn();
+        await render(<TransferEditor onDone={jest.fn()} rest={{ onHeight: jest.fn(), onWake }} saved={FEE} />);
+
+        await act(async () => {
+            fireEvent(screen.getByDisplayValue("rent"), "focus");
+        });
+
+        expect(onWake).toHaveBeenCalledTimes(1);
     });
 });
 

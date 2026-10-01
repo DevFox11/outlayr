@@ -374,6 +374,12 @@ function RootStack() {
                         <Stack.Screen.Title>{t(modal.titleKey)}</Stack.Screen.Title>
                     </Stack.Screen>
                 ))}
+                <Stack.Screen name="transactions/[id]" options={{ presentation: "formSheet", title: "" }}>
+                    <Stack.Header transparent />
+                </Stack.Screen>
+                <Stack.Screen name="transactions/transfers/[id]" options={{ presentation: "formSheet", title: "" }}>
+                    <Stack.Header transparent />
+                </Stack.Screen>
                 <Stack.Screen name="transactions/voice" options={{ headerShown: false, presentation: "modal" }} />
                 <Stack.Screen name="transactions/scan" options={{ headerShown: false, presentation: "modal" }} />
                 <Stack.Screen

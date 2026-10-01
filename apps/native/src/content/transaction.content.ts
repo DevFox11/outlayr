@@ -576,6 +576,14 @@ const transaction = {
             en: "Add {fact}",
             es: "Agregar {fact}",
         }),
+        "transaction.sentence.add.more": t({
+            en: "add",
+            es: "agregar",
+        }),
+        "transaction.sentence.add.moreLabel": t({
+            en: "Add details",
+            es: "Agregar detalles",
+        }),
         "transaction.sentence.add.note": t({
             en: "note",
             es: "nota",
@@ -640,6 +648,10 @@ const transaction = {
         "transaction.sentence.extra.note": t({
             en: "Note: {note}",
             es: "Nota: {note}",
+        }),
+        "transaction.sentence.extra.rate": t({
+            en: "At {base}1 = {quote}{rate}.",
+            es: "A {base}1 = {quote}{rate}.",
         }),
         "transaction.sentence.extra.split": t({
             en: "Split across {parts}.",

@@ -2,18 +2,20 @@ import { useMemo } from "react";
 import { View } from "react-native";
 
 import { Text } from "@/components/text";
+import { cn } from "@/components/tw";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { ExpenseContribution } from "@/data/budget-spent";
 import { buildDaySlots, dayVerdictSentence } from "@/domain/budget-day-slots";
+import type { DaySlots } from "@/domain/budget-day-slots";
 import type { BudgetWindow } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
 interface BudgetDaySlotsProps {
-    /** Draw the blocks alone, for callers that place the verdict themselves. */
-    bandOnly?: boolean;
     /** Scope to one category and its subcategories; null for the overall budget. */
     categoryId?: string | null;
+    className?: string;
+    /** The short band alone, for callers that place the verdict themselves. */
     compact?: boolean;
     contributions: readonly ExpenseContribution[];
     currency: string;
@@ -22,7 +24,12 @@ interface BudgetDaySlotsProps {
     noun?: string;
     /** `Date.now()` from the screen, so the day matches the one spend is counted in. */
     nowMs: number;
+    tint?: string;
     window: BudgetWindow;
+}
+
+export function drawsDaySlots(slots: DaySlots): boolean {
+    return slots.scale > 0 && (slots.blocks.length > 0 || slots.ghost != null);
 }
 
 const BLOCK_GAP = 2;
@@ -38,7 +45,8 @@ export function BudgetDaySlots({
     currency,
     noun = "purchase",
     compact = false,
-    bandOnly = false,
+    className,
+    tint,
 }: BudgetDaySlotsProps) {
     const { showCents } = useDisplaySettings().state;
     const t = useTranslation();
@@ -54,7 +62,7 @@ export function BudgetDaySlots({
         [contributions, limit, window, nowMs, categoryId]
     );
 
-    if (slots.scale <= 0 || (slots.blocks.length === 0 && slots.ghost == null)) {
+    if (!drawsDaySlots(slots)) {
         return null;
     }
 
@@ -62,7 +70,7 @@ export function BudgetDaySlots({
     const sentence = dayVerdictSentence(slots, noun, t);
 
     return (
-        <View className={compact ? "pt-1.5" : "pt-4"}>
+        <View className={cn(compact ? "pt-1.5" : "pt-4", className)}>
             <View style={{ height: compact ? 10 : 18 }}>
                 {slots.blocks.map((block) => (
                     <View
@@ -77,7 +85,10 @@ export function BudgetDaySlots({
                     >
                         <View
                             className={block.over ? "bg-over-budget" : "bg-foreground"}
-                            style={{ borderRadius: 2, flex: 1, marginRight: BLOCK_GAP }}
+                            style={[
+                                { borderRadius: 2, flex: 1, marginRight: BLOCK_GAP },
+                                block.over || tint === undefined ? null : { backgroundColor: tint },
+                            ]}
                         />
                     </View>
                 ))}
@@ -118,7 +129,7 @@ export function BudgetDaySlots({
                 />
             </View>
 
-            {sentence && !bandOnly ? (
+            {sentence && !compact ? (
                 <View className="flex-row items-baseline gap-1.5 pt-2">
                     <Text className="text-foreground text-footnote">{sentence}</Text>
                     <Text className="text-muted text-footnote">

@@ -103,6 +103,7 @@ import { resolveTransactionIdentity } from "@/domain/transaction-identity";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
 import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 import { useRegionCode } from "@/hooks/use-region-code";
+import type { SheetRest } from "@/hooks/use-resting-sheet";
 import { useToggleFavouriteCurrency } from "@/hooks/use-toggle-favourite-currency";
 import { useTransactionEnrichment } from "@/hooks/use-transaction-enrichment";
 import type { EnrichmentSuggestion, PendingCategory } from "@/hooks/use-transaction-enrichment";
@@ -172,9 +173,9 @@ const MERCHANT_SUGGESTION_LIMIT = 4;
  * flag per surface: the stage is a single surface, so no two of these can be
  * true at once, and the sentence's washed word reads straight off it.
  *
- * There is no "closed": the stage is always occupied. A form whose bottom is
- * empty leaves no way forward except knowing that a word in the sentence is
- * tappable, which is the whole defect the stage replaced.
+ * There is no "closed": past an edit's resting sheet, which draws no stage,
+ * it is always occupied. A form whose bottom is empty leaves no way forward
+ * except knowing that a word is tappable, which is the defect the stage replaced.
  */
 type StageStep =
     | "account"
@@ -344,6 +345,7 @@ interface TransactionFormProps {
     onDelete?: () => void;
     onDirtyChange?: (dirty: boolean) => void;
     onDone: () => void;
+    rest?: SheetRest;
     /** Ignored when `initial` is present — an edit is never seeded. */
     seed?: TransactionSeed;
 }
@@ -569,7 +571,9 @@ export function TransactionForm({
     onDone,
     onDelete,
     onDirtyChange,
+    rest,
 }: TransactionFormProps) {
+    const resting = rest !== undefined;
     const colors = useColors();
     const haptics = useHaptics();
     const t = useTranslation();
@@ -1128,6 +1132,7 @@ export function TransactionForm({
         // was raised by the step or the note field being left behind, and it would
         // cover the one arriving. A no-op when nothing is focused.
         Keyboard.dismiss();
+        rest?.onWake();
         setStage({ forward, step });
     };
     /** Opens a step. The arriving body travels in from the right. */
@@ -1666,6 +1671,7 @@ export function TransactionForm({
     }, [currency, income, setForcedLookup]);
 
     const lookUpMerchant = () => {
+        rest?.onWake();
         setForcedLookup(true);
         haptics("light");
         lookupNow().catch(() => undefined);
@@ -2526,7 +2532,7 @@ export function TransactionForm({
                         <VStack
                             modifiers={[
                                 padding({
-                                    bottom: 40,
+                                    bottom: resting ? 0 : 40,
                                     horizontal: 20,
                                     top: saveFailure === null ? 0 : failureHeight,
                                 }),
@@ -2559,6 +2565,13 @@ export function TransactionForm({
                                         noteSummary.length === 0
                                             ? null
                                             : t("transaction.sentence.extra.note", { note: noteSummary });
+                                    const rateLine =
+                                        mode === "edit" && converts && rateInForce !== null
+                                            ? t("transaction.sentence.extra.rate", {
+                                                  ...pairUnitSymbols("USD", currency),
+                                                  rate: rateFigure(rateInForce),
+                                              })
+                                            : null;
                                     const addLabel = (fact: string) => t("transaction.sentence.add.label", { fact });
                                     return (
                                         <RNHostView matchContents>
@@ -2592,7 +2605,8 @@ export function TransactionForm({
                                                     ) : undefined
                                                 }
                                                 contentWidth={contentWidth}
-                                                activeSlot={activeSlot}
+                                                activeSlot={resting ? null : activeSlot}
+                                                onLayout={rest?.onHeight}
                                                 feeLine={
                                                     feeNow === null || feeBaseNow === null ? undefined : (
                                                         <FeeTotal
@@ -2610,7 +2624,7 @@ export function TransactionForm({
                                                 }
                                                 amountFlagged={amountError}
                                                 amountShake={amountShake}
-                                                extras={[splitLine, noteLine].filter((line) => line !== null)}
+                                                extras={[rateLine, splitLine, noteLine].filter((line) => line !== null)}
                                                 fee={feeLabel()}
                                                 labels={sentenceLabels}
                                                 merchant={merchantSeed.length === 0 ? null : merchantSeed}
@@ -2620,12 +2634,29 @@ export function TransactionForm({
                                                 onCategoryPress={() => enterStep("category")}
                                                 onCurrencyPress={() => enterStep("currency")}
                                                 onFeePress={() => enterStep("fee")}
-                                                onKindPress={() => handleTypeChange(income ? "expense" : "income")}
+                                                onKindPress={() => {
+                                                    if (rest !== undefined) {
+                                                        rest.onWake();
+                                                        return;
+                                                    }
+                                                    handleTypeChange(income ? "expense" : "income");
+                                                }}
                                                 // The word is a way into its step as much as the
                                                 // other facts are, and the step is what carries the
                                                 // names this ledger already knows.
                                                 onMerchantPress={() => enterStep("merchant")}
                                                 onWhenPress={() => enterStep("when")}
+                                                rest={
+                                                    rest === undefined
+                                                        ? undefined
+                                                        : {
+                                                              addAccessibilityLabel: t(
+                                                                  "transaction.sentence.add.moreLabel"
+                                                              ),
+                                                              addLabel: t("transaction.sentence.add.more"),
+                                                              onWake: rest.onWake,
+                                                          }
+                                                }
                                                 verbs={[
                                                     {
                                                         accessibilityLabel: hasIdentityMark
@@ -2727,7 +2758,7 @@ export function TransactionForm({
                                 }}
                             </SubscribeFields>
 
-                            {noteOpen ? (
+                            {noteOpen && !resting ? (
                                 <RNHostView matchContents>
                                     <Animated.View entering={revealEntering()} style={{ width: contentWidth }}>
                                         <TextInput
@@ -2799,14 +2830,16 @@ export function TransactionForm({
 				    does, and the software keyboard covers a surface docked to the
 				    bottom of the screen. Only that step lifts: every other one is
 				    what the keyboard is meant to uncover. */}
-                <KeyboardAvoidingView behavior="padding" enabled={stageStep === "merchant"}>
-                    <SubscribeFields
-                        selector={(s) => ({ amount: s.values.amount, merchant: s.values.merchant })}
-                        store={form.store}
-                    >
-                        {({ amount, merchant }) => renderStage(amount, merchant)}
-                    </SubscribeFields>
-                </KeyboardAvoidingView>
+                {resting ? null : (
+                    <KeyboardAvoidingView behavior="padding" enabled={stageStep === "merchant"}>
+                        <SubscribeFields
+                            selector={(s) => ({ amount: s.values.amount, merchant: s.values.merchant })}
+                            store={form.store}
+                        >
+                            {({ amount, merchant }) => renderStage(amount, merchant)}
+                        </SubscribeFields>
+                    </KeyboardAvoidingView>
+                )}
 
                 <SplitSheet
                     allocations={splitAllocations}

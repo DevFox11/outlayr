@@ -7,6 +7,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { savedTransfer } from "@/data/transfers-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useDiscardGuard } from "@/hooks/use-discard-guard";
+import { useRestingSheet } from "@/hooks/use-resting-sheet";
 import { useTranslation } from "@/i18n/context";
 
 export function EditTransfer({ id }: { id: string }) {
@@ -15,6 +16,7 @@ export function EditTransfer({ id }: { id: string }) {
     const db = useDatabase();
     const t = useTranslation();
     const { requestDelete } = useDeferredDelete("row");
+    const { awake, rest, sheet } = useRestingSheet(t("transfers.title"));
     const [saved] = useState(() => savedTransfer(db, id));
 
     useEffect(() => {
@@ -29,7 +31,8 @@ export function EditTransfer({ id }: { id: string }) {
 
     return (
         <>
-            <Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title>
+            <Stack.Screen options={sheet} />
+            {awake ? <Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title> : null}
             <CloseToolbar placement="left" />
 
             <TransferEditor
@@ -39,6 +42,7 @@ export function EditTransfer({ id }: { id: string }) {
                 }}
                 onDirtyChange={setDirty}
                 onDone={leave}
+                rest={rest}
                 saved={saved}
             />
         </>

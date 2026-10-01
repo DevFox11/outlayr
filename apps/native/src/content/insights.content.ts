@@ -40,8 +40,8 @@ const insights = {
             es: "Últimos seis meses",
         }),
         "insights.calendar.title": t({
-            en: "Spending calendar",
-            es: "Calendario de gastos",
+            en: "Spending",
+            es: "Gastos",
         }),
         "insights.categories": t({
             en: "Categories",

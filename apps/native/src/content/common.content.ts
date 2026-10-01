@@ -115,10 +115,6 @@ const common = {
             en: "Edit Category",
             es: "Editar categoría",
         }),
-        "nav.editTransaction": t({
-            en: "Edit Transaction",
-            es: "Editar transacción",
-        }),
         "nav.newCategory": t({
             en: "New Category",
             es: "Nueva categoría",

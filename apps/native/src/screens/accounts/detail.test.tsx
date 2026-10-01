@@ -166,7 +166,7 @@ function transfer(id: string, note: string) {
         date: AUG_9,
         day: AUG_9,
         emoji: null,
-        excludedFromTotals: true as const,
+        excludedFromTotals: false,
         icon: null,
         id,
         imageColor: null,
@@ -257,15 +257,6 @@ describe("an account's history", () => {
         const { getByText } = await render(<AccountDetail id="savings" />);
 
         getByText("accounts.detail.empty");
-    });
-
-    it("leaves the day's total to the transactions around the transfer", async () => {
-        setTransactions([transaction("t1", "Coffee"), transaction("t2", "Bus", 8)]);
-        setTransfers([transfer("tr1", "Checking → Savings")], true);
-
-        const { getByText } = await render(<AccountDetail id="savings" />);
-
-        getByText("-$20.00");
     });
 
     it("opens the transfer behind a transfer row, not a transaction that does not exist", async () => {

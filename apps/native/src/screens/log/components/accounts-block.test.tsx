@@ -83,7 +83,7 @@ describe("accountsBlock", () => {
         getByText("$220.00");
     });
 
-    it("states a liability as owed, positive, where an asset says its currency", async () => {
+    it("states a liability as owed, positive", async () => {
         const { getByText, queryByText } = await render(
             <AccountsBlock
                 accounts={[account("Visa", { kind: "liability" }), account("Zinli")]}
@@ -97,7 +97,24 @@ describe("accountsBlock", () => {
         getByText("accounts.overview.owed");
         getByText("$200.00");
         expect(queryByText("-$200.00")).toBeNull();
-        getByText("USD");
+    });
+
+    it("gives a row a second line only for what the display currency does not say", async () => {
+        const { getByLabelText, getByText, queryByText } = await render(
+            <AccountsBlock
+                accounts={[account("Zinli"), account("Banesco", { currency: "VES" }), account("Wise")]}
+                currency="USD"
+                onOpen={noop}
+                onOpenAll={noop}
+                overview={overview([row("Zinli", 500), row("Banesco", 12), row("Wise", 30, { multiCurrency: true })])}
+                showCents
+            />
+        );
+        expect(queryByText("USD")).toBeNull();
+        getByText("VES");
+        getByText("accounts.multiCurrency");
+        getByLabelText("Zinli, $500.00");
+        getByLabelText("Banesco, VES, $12.00");
     });
 
     it("keeps the minus on an overdrawn asset, which is a problem", async () => {

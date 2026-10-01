@@ -144,11 +144,10 @@ function eyebrowLabel(
     isNet: boolean,
     period: InsightsPeriod,
     measure: InsightsMeasure,
-    windowLabel: string,
     t: TranslateFn
 ): string {
     if (!scrubBucket) {
-        return `${t(MEASURE_KEY[measure])} · ${windowLabel}`;
+        return t(MEASURE_KEY[measure]);
     }
     const prefix = isNet ? `${t("insights.balance")} · ` : "";
     return `${prefix}${bucketDateLabel(period, scrubBucket.start)}`;
@@ -314,7 +313,7 @@ export function Insights() {
     const heroMagnitude = heroMagnitudeFor(filteredEntry, readBalance, readBucket, measure, totals);
     const heroPositive = heroPositiveFor(filteredEntry, readBalance, readBucket, isNet, measure, totals);
 
-    const eyebrow = eyebrowLabel(scrubBucket, isNet, period, measure, result.label, t);
+    const eyebrow = eyebrowLabel(scrubBucket, isNet, period, measure, t);
 
     const verdict = verdictFor(result, measure, totals, currency, showCents, t);
 

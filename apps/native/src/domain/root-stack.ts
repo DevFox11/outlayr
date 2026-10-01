@@ -75,9 +75,7 @@ export const MODAL_SCREENS: readonly {
     titleKey: TranslationKey;
 }[] = [
     { name: "transactions/create", titleKey: "nav.newTransaction" },
-    { name: "transactions/[id]", titleKey: "nav.editTransaction" },
     { name: "transactions/transfers/create", titleKey: "transfers.title" },
-    { name: "transactions/transfers/[id]", titleKey: "transfers.title" },
 ];
 
 export const ROOT_STACK_SCREEN_NAMES = {
@@ -94,6 +92,8 @@ export const ROOT_STACK_SCREEN_NAMES = {
         "settings/categories/reorder",
         "settings/licenses/[name]",
         "settings/category-symbol",
+        "transactions/[id]",
+        "transactions/transfers/[id]",
         "transactions/voice",
         "transactions/scan",
         "transactions/identity",

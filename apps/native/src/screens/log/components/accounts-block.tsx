@@ -36,9 +36,8 @@ interface AccountsBlockProps {
  * The accounts as they stand, under the week's net and above the day groups.
  *
  * One hairline row per account with its balance in the display currency. A
- * liability says "Owed" where an asset says its currency, and its figure is
- * muted and stated positive, so it cannot be read as an expense line among the
- * entries below.
+ * liability says "Owed" under its name, and its figure is muted and stated
+ * positive, so it cannot be read as an expense line among the entries below.
  */
 export function AccountsBlock({ accounts, overview, currency, showCents, onOpen, onOpenAll }: AccountsBlockProps) {
     const t = useTranslation();
@@ -96,12 +95,20 @@ export function AccountsBlock({ accounts, overview, currency, showCents, onOpen,
     );
 }
 
-/** A debt says so; an asset says its currency, unless it holds more than one. */
-function rowSubtitle(row: OverviewRow, currency: string, t: ReturnType<typeof useTranslation>): string {
+/** Only what the display-currency chip does not already say: a debt, a mix, or another currency. */
+function rowSubtitle(
+    row: OverviewRow,
+    accountCurrency: string,
+    displayCurrency: string,
+    t: ReturnType<typeof useTranslation>
+): string | null {
     if (row.kind === "liability") {
         return t("accounts.overview.owed");
     }
-    return row.multiCurrency ? t("accounts.multiCurrency") : currency;
+    if (row.multiCurrency) {
+        return t("accounts.multiCurrency");
+    }
+    return accountCurrency === displayCurrency ? null : accountCurrency;
 }
 
 interface AccountRowProps {
@@ -117,7 +124,7 @@ function AccountRow({ account, row, currency, showCents, language, onPress }: Ac
     const t = useTranslation();
     const colors = useColors();
     const owed = row.kind === "liability";
-    const subtitle = rowSubtitle(row, account.currency, t);
+    const subtitle = rowSubtitle(row, account.currency, currency, t);
     // A debt is stated as what is owed, not as a negative holding: the entries
     // right below are negative expenses in the same column.
     const figure = formatSignedAmount(owed ? -row.balance : row.balance, currency, showCents, language);
@@ -125,7 +132,7 @@ function AccountRow({ account, row, currency, showCents, language, onPress }: Ac
 
     return (
         <Pressable
-            accessibilityLabel={`${account.name}, ${subtitle}, ${figure}`}
+            accessibilityLabel={[account.name, subtitle, figure].filter((part) => part !== null).join(", ")}
             accessibilityRole="button"
             className="flex-row items-center gap-3 py-2 active:opacity-70"
             onPress={onPress}
@@ -143,9 +150,11 @@ function AccountRow({ account, row, currency, showCents, language, onPress }: Ac
                 <Text className="font-sans-medium text-callout text-foreground" numberOfLines={1}>
                     {account.name}
                 </Text>
-                <Text className="font-sans-medium text-subtitle text-muted" numberOfLines={1}>
-                    {subtitle}
-                </Text>
+                {subtitle === null ? null : (
+                    <Text className="font-sans-medium text-subtitle text-muted" numberOfLines={1}>
+                        {subtitle}
+                    </Text>
+                )}
             </View>
             {row.exact ? null : <MonoLabel className="text-subtle">{`${currency}?`}</MonoLabel>}
             <Text

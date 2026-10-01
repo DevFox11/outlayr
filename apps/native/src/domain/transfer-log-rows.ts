@@ -52,7 +52,7 @@ export interface TransferLogRow {
     ends: { from: TransferEnd; to: TransferEnd } | null;
     exchangeRate: null;
     exchangeRateType: null;
-    excludedFromTotals: true;
+    excludedFromTotals: boolean;
     feeForId: null;
     icon: null;
     id: string;
@@ -65,6 +65,7 @@ export interface TransferLogRow {
     recurringCoefficient: number;
     recurringEndDate: null;
     recurringType: number;
+    sign?: "+" | "-";
     transferId: string;
 }
 
@@ -136,6 +137,28 @@ export function toTransferLogRow(
         recurringEndDate: null,
         recurringType: 0,
         transferId: transfer.id,
+    };
+}
+
+export function toAccountTransferRow(
+    transfer: TransferLogSource,
+    accountId: string,
+    accounts: ReadonlyMap<string, TransferEnd>,
+    fees: ReadonlyMap<string, TransferLogFee>
+): TransferLogRow {
+    const row = { ...toTransferLogRow(transfer, accounts, fees), excludedFromTotals: false };
+    if (transfer.toAccountId !== accountId) {
+        return { ...row, sign: "-" };
+    }
+    const { arrived } = transferMove(transfer, fees.get(transfer.id));
+    return {
+        ...row,
+        amount: transfer.toAmount,
+        amountUsd: transfer.toAmountUsd,
+        currency: transfer.toCurrency,
+        income: true,
+        moved: { arrived, arrivedCurrency: transfer.toCurrency, fee: null, outside: null, sent: arrived },
+        sign: "+",
     };
 }
 

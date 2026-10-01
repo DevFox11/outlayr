@@ -28,8 +28,12 @@ export const LARGE_SHEET_TOP_INSET = 38;
  * error lands on the animation, not just the sheet.
  */
 export function identityPickerDetent(windowHeight: number): number {
+    return heightDetent(PICKER_HEIGHT, windowHeight);
+}
+
+export function heightDetent(height: number, windowHeight: number): number {
     const maxDetent = Math.max(1, windowHeight - LARGE_SHEET_TOP_INSET);
-    return Math.min(1, PICKER_HEIGHT / maxDetent);
+    return Math.min(1, height / maxDetent);
 }
 
 /**

@@ -5,9 +5,14 @@ import { Text } from "react-native";
 import type { Database } from "@/db/client";
 import { accounts, transactions, transfers } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
+import { accountBalance } from "@/domain/account-balance";
+import { groupByDay } from "@/domain/day-sections";
+import { mergeByRecency } from "@/domain/transfer-log-rows";
 import type { TransferLogRow } from "@/domain/transfer-log-rows";
+import { buildRateTable } from "@/domain/valuation";
 
 import { useAccountTransfers } from "./account-transfers";
+import { useAccountCells, useAccountTransactions } from "./accounts";
 
 const AUG_9 = new Date(Date.UTC(2026, 7, 9, 12));
 const AUG_10 = new Date(Date.UTC(2026, 7, 10, 12));
@@ -48,6 +53,21 @@ async function readTransfers(db: Database, accountId: string): Promise<TransferL
     function Probe() {
         seen = useAccountTransfers(db, accountId);
         return <Text testID="probe">{seen.length}</Text>;
+    }
+    await render(<Probe />);
+    return seen;
+}
+
+async function readDay(db: Database, accountId: string): Promise<{ balance: number; total: number }> {
+    let seen = { balance: 0, total: 0 };
+    function Probe() {
+        const rows = mergeByRecency(useAccountTransactions(db, accountId), useAccountTransfers(db, accountId));
+        const cells = useAccountCells(db, accountId);
+        seen = {
+            balance: accountBalance({ currency: "USD", initialBalance: 0 }, cells, buildRateTable([])).total,
+            total: groupByDay(rows, "USD")[0]?.total ?? 0,
+        };
+        return <Text testID="probe">{rows.length}</Text>;
     }
     await render(<Probe />);
     return seen;
@@ -109,11 +129,19 @@ describe("an account's transfers", () => {
         });
     });
 
-    it("keeps the row out of every total", async () => {
-        await addTransfer(db, { fromAccountId: "checking", id: "tr1", toAccountId: "savings" });
+    it("moves each account's day total by exactly what the day did to its balance", async () => {
+        const spend = { currency: "USD", date: AUG_9, day: AUG_9, income: false, month: AUG_9, updatedAt: AUG_9 };
+        const move = { fromAccountId: "checking", toAccountId: "savings" };
+        await addTransfer(db, { ...move, fromAmount: 100, id: "tr1", toAmount: 100 });
+        await addTransfer(db, { ...move, fromAmount: 50, id: "tr2", toAmount: 50 });
+        await db.insert(transactions).values([
+            { ...spend, accountId: "checking", amount: 2, id: "fee1", note: "Fee", transferId: "tr1" },
+            { ...spend, accountId: "savings", amount: 1, id: "fee2", note: "Fee", transferId: "tr2" },
+            { ...spend, accountId: "checking", amount: 10, id: "coffee", note: "Coffee" },
+        ]);
 
-        const rows = await readTransfers(db, "savings");
-        expect(rows[0].excludedFromTotals).toBe(true);
+        await expect(readDay(db, "checking")).resolves.toStrictEqual({ balance: -162, total: -162 });
+        await expect(readDay(db, "savings")).resolves.toStrictEqual({ balance: 149, total: 149 });
     });
 
     it("ignores a transfer between two other accounts", async () => {

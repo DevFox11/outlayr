@@ -1,7 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { mergeByRecency, toTransferLogRow } from "./transfer-log-rows";
-import type { TransferEnd } from "./transfer-log-rows";
+import { groupByDay } from "./day-sections";
+import { mergeByRecency, toAccountTransferRow, toTransferLogRow } from "./transfer-log-rows";
+import type { TransferEnd, TransferLogFee } from "./transfer-log-rows";
 
 const DAY = new Date(2026, 7, 9);
 
@@ -125,6 +126,57 @@ describe("toTransferLogRow", () => {
 
     it("keeps an unknown account readable rather than blank", () => {
         expect(toTransferLogRow(TRANSFER, new Map()).note).toContain("→");
+    });
+});
+
+describe("toAccountTransferRow", () => {
+    it("signs each account's own leg, net of a fee charged on that side", () => {
+        const atSource = new Map([["t1", { accountId: "a", amount: 2 }]]);
+        expect(toAccountTransferRow(TRANSFER, "a", ACCOUNTS, atSource)).toMatchObject({
+            currency: "USD",
+            moved: { sent: 102 },
+            sign: "-",
+        });
+        expect(toAccountTransferRow(TRANSFER, "b", ACCOUNTS, atSource)).toMatchObject({
+            amount: 5550,
+            currency: "VES",
+            moved: { fee: null, outside: null, sent: 5550 },
+            sign: "+",
+        });
+
+        const atDestination = new Map([["t1", { accountId: "b", amount: 2 }]]);
+        expect(toAccountTransferRow(TRANSFER, "b", ACCOUNTS, atDestination)).toMatchObject({
+            amount: 5550,
+            moved: { fee: null, sent: 5548 },
+            sign: "+",
+        });
+    });
+});
+
+describe("an account page's day total", () => {
+    const expense = (id: string, amount: number, currency: string, transferId: string | null) => ({
+        amount,
+        amountUsd: null,
+        currency,
+        date: DAY,
+        day: DAY,
+        feeForId: null,
+        id,
+        income: false,
+        transferId,
+    });
+
+    function dayTotals(accountId: string, currency: string, fee: TransferLogFee, own: ReturnType<typeof expense>[]) {
+        const transfer = toAccountTransferRow(TRANSFER, accountId, ACCOUNTS, new Map([["t1", fee]]));
+        const [section] = groupByDay([transfer, ...own], currency);
+        return section.totals.map((bucket) => [bucket.currencyCode, bucket.amount]);
+    }
+
+    it("is what arrived less the fee the receiving account paid", () => {
+        const fee = { accountId: "b", amount: 50 };
+
+        expect(dayTotals("a", "USD", fee, [expense("coffee", 10, "USD", null)])).toStrictEqual([["USD", -110]]);
+        expect(dayTotals("b", "VES", fee, [expense("fee", 50, "VES", "t1")])).toStrictEqual([["VES", 5500]]);
     });
 });
 

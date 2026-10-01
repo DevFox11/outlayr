@@ -5,11 +5,11 @@ import { useSentenceShake } from "@/components/sentence/use-sentence-shake";
 import { claimOverBudgetMoment, overBudgetMomentKey } from "@/lib/over-budget-moment";
 import { useHaptics } from "@/lib/use-haptics";
 
-export function useOverBudgetMoment(budgetId: string, overBudget: boolean, windowStart: Date | undefined) {
+export function useOverBudgetMoment(budgetId: string, overBudget: boolean, windowStart: Date) {
     const haptics = useHaptics();
     const focused = useIsFocused();
     const [crossed, setCrossed] = useState(false);
-    const key = overBudget && windowStart ? overBudgetMomentKey(budgetId, windowStart) : null;
+    const key = overBudget ? overBudgetMomentKey(budgetId, windowStart) : null;
 
     useEffect(() => {
         if (key === null || !focused) {

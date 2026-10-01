@@ -13,21 +13,22 @@ import { cn } from "@/components/tw";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { ExpenseContribution } from "@/data/budget-spent";
 import type { CategoryBudgetView } from "@/data/budgets";
-import type { Burndown } from "@/domain/budget-burndown";
 import { buildDaySlots, dayVerdictSentence } from "@/domain/budget-day-slots";
-import { BUDGET_TYPE, budgetTimeLeftLabel, leftPerDay } from "@/domain/budget-math";
+import { BUDGET_TYPE, leftPerDay } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
+import { useOverBudgetMoment } from "@/hooks/use-over-budget-moment";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
 
-import { BudgetBurndownChart } from "./budget-burndown-chart";
-import { BudgetDaySlots } from "./budget-day-slots";
+import { timeLeftUnlessHeroShows } from "../time-left";
+import { BudgetDaySlots, drawsDaySlots } from "./budget-day-slots";
+import { BudgetProgressBar } from "./budget-progress-bar";
 
 interface BudgetRowProps {
     budget: CategoryBudgetView;
-    burndown?: Burndown | null;
     contributions: readonly ExpenseContribution[];
     currency: string;
+    heroTimeLeft: string | null;
     /** The row's context menu, opened by holding it. Omit where there is none. */
     menuItems?: readonly ActionMenuItem[];
     /** `Date.now()` from the screen, so the clock tracks the same instant as spend. */
@@ -36,9 +37,6 @@ interface BudgetRowProps {
     onDelete: (id: string) => void;
     onPress: (id: string) => void;
 }
-
-const THUMB_WIDTH = 88;
-const THUMB_HEIGHT = 34;
 
 /** Custom, so it surfaces in the rotor's Actions rather than replacing a tap. */
 const DELETE_ACTION = "delete";
@@ -49,8 +47,8 @@ export function BudgetRow({
     onPress,
     menuItems,
     onDelete,
-    burndown,
     contributions,
+    heroTimeLeft,
     nowMs,
 }: BudgetRowProps) {
     const { showCents } = useDisplaySettings().state;
@@ -60,19 +58,21 @@ export function BudgetRow({
     const swipeRef = useRef<SwipeableMethods>(null);
     const now = new Date(nowMs);
     const over = budget.overBudget;
+    const crossedStyle = useOverBudgetMoment(budget.id, over, budget.window.start);
     const isDay = budget.type === BUDGET_TYPE.day;
-    const dayVerdict = useMemo(() => {
-        if (!isDay) {
-            return null;
-        }
-        const slots = buildDaySlots(contributions, {
-            categoryId: budget.categoryId,
-            limit: budget.amount,
-            now: new Date(nowMs),
-            window: budget.window,
-        });
-        return dayVerdictSentence(slots, budget.name, t);
-    }, [isDay, contributions, budget, nowMs, t]);
+    const daySlots = useMemo(
+        () =>
+            isDay
+                ? buildDaySlots(contributions, {
+                      categoryId: budget.categoryId,
+                      limit: budget.amount,
+                      now: new Date(nowMs),
+                      window: budget.window,
+                  })
+                : null,
+        [isDay, contributions, budget, nowMs]
+    );
+    const dayVerdict = daySlots ? dayVerdictSentence(daySlots, budget.name, t) : null;
     const difference = Math.abs(budget.leftover);
     const perDay = leftPerDay(budget.leftover, budget.window, now);
     // Cents off regardless of the setting: the exact figure is already alongside.
@@ -81,7 +81,7 @@ export function BudgetRow({
             limit: formatAmount(budget.amount, currency, false, language),
             spent: formatAmount(budget.spent, currency, false, language),
         }),
-        budgetTimeLeftLabel(budget.window, budget.type, now, t),
+        timeLeftUnlessHeroShows(budget, heroTimeLeft, now, t),
         over || isDay ? null : t("budgets.perDay", { amount: formatAmount(perDay, currency, false, language) }),
     ]
         .filter(Boolean)
@@ -128,7 +128,7 @@ export function BudgetRow({
                         accessibilityRole="button"
                         // The menu lifts this row into its preview, so the row carries the
                         // ground it is snapshotted against rather than borrowing the list's.
-                        className="bg-background flex-row items-center gap-3 py-3.5 active:opacity-70"
+                        className="bg-background gap-2 py-3.5 active:opacity-70"
                         onAccessibilityAction={(event: AccessibilityActionEvent) => {
                             if (event.nativeEvent.actionName === DELETE_ACTION) {
                                 onDelete(budget.id);
@@ -136,12 +136,11 @@ export function BudgetRow({
                         }}
                         onPress={() => onPress(budget.id)}
                     >
-                        <View className="flex-1 gap-1">
-                            <View className="flex-row items-center gap-2">
-                                <View className="size-2 rounded-full" style={{ backgroundColor: budget.color }} />
-                                <Text className="font-sans-semibold text-body text-foreground flex-1" numberOfLines={1}>
-                                    {budget.name}
-                                </Text>
+                        <View className="flex-row items-center gap-2">
+                            <Text className="font-sans-semibold text-body text-foreground flex-1" numberOfLines={1}>
+                                {budget.name}
+                            </Text>
+                            <Animated.View style={crossedStyle}>
                                 <Text
                                     className={cn(
                                         "tabular-nums",
@@ -155,39 +154,25 @@ export function BudgetRow({
                                         {` ${over ? t("budgets.suffix.over") : t("budgets.suffix.left")}`}
                                     </Text>
                                 </Text>
-                            </View>
-                            <MonoLabel numberOfLines={1}>{meta}</MonoLabel>
-
-                            {isDay && dayVerdict ? (
-                                <Text className="text-foreground text-label pt-1">{dayVerdict}</Text>
-                            ) : null}
+                            </Animated.View>
                         </View>
-
-                        {isDay ? (
-                            <View style={{ width: THUMB_WIDTH }}>
-                                <BudgetDaySlots
-                                    bandOnly
-                                    categoryId={budget.categoryId}
-                                    compact
-                                    contributions={contributions}
-                                    currency={currency}
-                                    limit={budget.amount}
-                                    noun={budget.name}
-                                    nowMs={nowMs}
-                                    window={budget.window}
-                                />
-                            </View>
-                        ) : null}
-
-                        {isDay || !burndown ? null : (
-                            <BudgetBurndownChart
-                                burndown={burndown}
-                                height={THUMB_HEIGHT}
-                                thumbnail
+                        {daySlots && drawsDaySlots(daySlots) ? (
+                            <BudgetDaySlots
+                                categoryId={budget.categoryId}
+                                className="pt-0"
+                                compact
+                                contributions={contributions}
+                                currency={currency}
                                 limit={budget.amount}
-                                width={THUMB_WIDTH}
+                                nowMs={nowMs}
+                                tint={budget.color}
+                                window={budget.window}
                             />
+                        ) : (
+                            <BudgetProgressBar limit={budget.amount} spent={budget.spent} tint={budget.color} />
                         )}
+                        <MonoLabel numberOfLines={1}>{meta}</MonoLabel>
+                        {dayVerdict ? <Text className="text-foreground text-label">{dayVerdict}</Text> : null}
                     </Pressable>
                 </ActionMenu>
             </Animated.View>

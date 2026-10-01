@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { SpendDb } from "@/data/budget-spent";
 import type { Database } from "@/db/client";
 import { transfers } from "@/db/schema";
-import { toTransferLogRow } from "@/domain/transfer-log-rows";
+import { toAccountTransferRow } from "@/domain/transfer-log-rows";
 import type { TransferLogRow } from "@/domain/transfer-log-rows";
 
 import { useAccounts } from "./accounts";
@@ -29,5 +29,8 @@ export function useAccountTransfers(db: Database, accountId: string): TransferLo
     const rows = useLiveQuery(transfers, () => accountTransfersQuery(db, accountId), [accountId]);
     const fees = useTransferFees(db);
     const byId = useMemo(() => new Map(accounts.map((account) => [account.id, account])), [accounts]);
-    return useMemo(() => rows.map((row) => toTransferLogRow(row, byId, fees)), [rows, byId, fees]);
+    return useMemo(
+        () => rows.map((row) => toAccountTransferRow(row, accountId, byId, fees)),
+        [rows, accountId, byId, fees]
+    );
 }

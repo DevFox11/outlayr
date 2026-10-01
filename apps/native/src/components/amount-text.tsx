@@ -196,15 +196,19 @@ export function RowAmount({
     showCents = true,
     struck = false,
     transfer = false,
+    transferSign,
 }: RowAmountProps) {
     const t = useTranslation();
     const { language } = useLanguage();
-    const sign = transfer ? "" : signFor(income);
+    const sign = transfer ? (transferSign ?? "") : signFor(income);
     return (
         <Text
             // Spelled out because neither the glyph nor the colour is a cue a screen
             // reader can read; `rowAmountLabel` owns the wording.
-            accessibilityLabel={rowAmountLabel({ amount, code, income: transfer ? null : income, showCents }, t)}
+            accessibilityLabel={rowAmountLabel(
+                { amount, code, income: transfer ? null : income, showCents, transferSign },
+                t
+            )}
             className={cn(rowAmount({ income: !transfer && income === true, isFuture, struck }), "tabular-nums")}
             numberOfLines={1}
         >

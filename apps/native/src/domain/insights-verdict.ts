@@ -7,6 +7,8 @@ import { formatAmount } from "./money";
 /** Below this, a window is the same as the one before it and says so. */
 const FLAT_BAND = 0.02;
 
+const BADGE_PERCENT_CAP = 1000;
+
 export interface VerdictInput {
     code: string;
     /**
@@ -24,7 +26,7 @@ export interface VerdictInput {
 }
 
 export interface Verdict {
-    /** The washed pill's text, e.g. "+18%", or null with nothing to compare. */
+    /** The washed pill's text, e.g. "+18%", or null with nothing to compare or a change of 1000% and up. */
     badge: string | null;
     /** Whether the change is the good kind. */
     favourable: boolean;
@@ -49,7 +51,7 @@ export function insightsVerdict(input: VerdictInput): Verdict {
     const favourable = measureRiseIsFavourable(measure) ? delta >= 0 : delta <= 0;
 
     const percent = Math.round(ratio * 100);
-    const badge = `${percent > 0 ? "+" : ""}${percent}%`;
+    const badge = Math.abs(percent) >= BADGE_PERCENT_CAP ? null : `${percent > 0 ? "+" : ""}${percent}%`;
 
     if (Math.abs(ratio) < FLAT_BAND) {
         return {

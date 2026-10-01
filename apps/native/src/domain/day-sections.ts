@@ -19,7 +19,7 @@ export interface DayGroupable {
      */
     date?: Date;
     day: Date;
-    /** Set on a transfer leg: money moved between the user's own accounts is neither income nor spending. */
+    /** Set on a transfer in the Log, where money moved between the user's own accounts is neither income nor spending. */
     excludedFromTotals?: boolean;
     feeForId?: string | null;
     id?: string;

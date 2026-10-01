@@ -169,11 +169,11 @@ describe("root stack total-partition invariant", () => {
         expect(ROOT_STACK_SCREEN_NAMES.ledger).toContain("settings/categories/reorder");
     });
 
-    it("presents a new transfer as a modal, like an edited one, never as a sheet", () => {
+    it("presents a new transfer as a modal and leaves an edited one to size its own sheet", () => {
         const modals = MODAL_SCREENS.map((modal) => modal.name);
         const sheets = SHEET_SCREENS.map((sheet) => sheet.name);
         expect(modals).toContain("transactions/transfers/create");
-        expect(modals).toContain("transactions/transfers/[id]");
+        expect(modals).not.toContain("transactions/transfers/[id]");
         expect(sheets.filter((name) => name.startsWith("transactions/"))).toStrictEqual([]);
     });
 });

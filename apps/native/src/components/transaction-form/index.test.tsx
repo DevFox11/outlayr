@@ -822,6 +822,32 @@ describe("transactionForm", () => {
         expect(merchant().accessibilityValue).toMatchObject({ text: "transaction.sentence.blank.payer" });
     });
 
+    it("only wakes a resting entry when its kind word is tapped, leaving the kind alone", async () => {
+        const db = dbHolder.current as Database;
+        const initial = await seedStoredTransaction(db);
+        const onWake = jest.fn();
+        const screen = await render(
+            <Providers>
+                <TransactionForm
+                    db={db}
+                    initial={initial}
+                    mode="edit"
+                    onDone={() => {}}
+                    rest={{ onHeight: () => {}, onWake }}
+                />
+            </Providers>
+        );
+        const kind = () => screen.getByLabelText("transaction.sentence.kind.switch").props.accessibilityValue;
+        const before = kind();
+
+        await act(async () => {
+            fireEvent.press(screen.getByLabelText("transaction.sentence.kind.switch"));
+        });
+
+        expect(onWake).toHaveBeenCalledTimes(1);
+        expect(kind()).toStrictEqual(before);
+    });
+
     it("opens a saved subscription on its own cadence, not as a one-off", async () => {
         const db = dbHolder.current as Database;
         const categoryId = await seedCategory(db);
@@ -3068,6 +3094,7 @@ describe("transactionForm entry-rate confirmation", () => {
             text: "$1.80",
         });
         expect(screen.queryByLabelText("transaction.rate.title")).toBeNull();
+        expect(screen.getByText("transaction.sentence.extra.rate")).toBeTruthy();
 
         await openRateStep(screen);
         expect(screen.getByRole("radio", { name: "transaction.rate.custom" }).props.accessibilityValue).toMatchObject({

@@ -15,6 +15,7 @@ import { StepDate } from "@/components/transaction-form/stage/step-date";
 import { StepFee } from "@/components/transaction-form/stage/step-fee";
 import { StepRate, StepRateField } from "@/components/transaction-form/stage/step-rate";
 import { StepWhen } from "@/components/transaction-form/stage/step-when";
+import { cn } from "@/components/tw";
 import { useDisplaySettings, useSettingNumber } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { transfersRepo } from "@/data/transfers-core";
@@ -35,6 +36,7 @@ import {
 } from "@/domain/transaction-entry-rate";
 import { quotedByBcv, rateNameKey, rateSourceWordKey, transactionWhenLabel } from "@/domain/transaction-form-labels";
 import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
+import type { SheetRest } from "@/hooks/use-resting-sheet";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { freshEntries } from "@/lib/fresh-entries";
 import { notifySaved } from "@/lib/notify";
@@ -54,9 +56,81 @@ type TransferEditorProps = {
     onDelete?: () => void;
     onDirtyChange?: (dirty: boolean) => void;
     onDone: () => void;
-} & ({ saved: SavedTransfer; seed?: never } | { saved?: never; seed?: TransferSeed & { note?: string } });
+} & (
+    | { rest?: SheetRest; saved: SavedTransfer; seed?: never }
+    | { rest?: never; saved?: never; seed?: TransferSeed & { note?: string } }
+);
 
-export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved, seed }: TransferEditorProps) {
+interface TransferNoteProps {
+    filled: boolean;
+    initial: string;
+    onChange: (note: string) => void;
+    rest: SheetRest | undefined;
+}
+
+function TransferNote({ filled, initial, onChange, rest }: TransferNoteProps) {
+    const t = useTranslation();
+    const colors = useColors();
+    if (rest !== undefined && !filled) {
+        return null;
+    }
+    return (
+        <TextInput
+            accessibilityLabel={filled ? t("transfers.field.note") : undefined}
+            className="text-body text-foreground min-h-12"
+            defaultValue={initial}
+            multiline
+            onChangeText={onChange}
+            onFocus={rest?.onWake}
+            placeholder={t("transfers.field.note")}
+            placeholderTextColor={colors.muted}
+            textAlignVertical="top"
+        />
+    );
+}
+
+interface TransferGapProps {
+    blocked: boolean;
+    crossCurrency: boolean;
+    gap: ReturnType<typeof blockPrompt> | ReturnType<typeof gapPrompt>;
+    onResolve: (resolve: () => void, hidesArrival: boolean) => () => void;
+    resting: boolean;
+}
+
+function TransferGap({ blocked, crossCurrency, gap, onResolve, resting }: TransferGapProps) {
+    if (!gap) {
+        return null;
+    }
+    return (
+        <View className="gap-2">
+            <MetaLine statement={gap.message} tone={blocked ? "danger" : "warning"} />
+            {resting ? null : (
+                <View className="flex-row flex-wrap gap-x-5 gap-y-2">
+                    {(
+                        [
+                            [gap.feeLabel, gap.onFee, false],
+                            [gap.outsideLabel, gap.onOutside, false],
+                            [gap.topLabel, gap.onTop, !crossCurrency],
+                        ] as const
+                    ).map(([label, resolve, hidesArrival]) =>
+                        label && resolve ? (
+                            <Pressable
+                                accessibilityRole="button"
+                                hitSlop={10}
+                                key={label}
+                                onPress={onResolve(resolve, hidesArrival)}
+                            >
+                                <Text className="text-subtitle text-tint font-sans-semibold">{label}</Text>
+                            </Pressable>
+                        ) : null
+                    )}
+                </View>
+            )}
+        </View>
+    );
+}
+
+export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, saved, seed }: TransferEditorProps) {
     const db = useDatabase();
     const router = useRouter();
     const accountCreateRoute = useAccountCreateRoute();
@@ -107,6 +181,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
             draft.prefillArrival();
         }
         Keyboard.dismiss();
+        rest?.onWake();
         setForward(direction);
         freshRef.current = true;
         setFresh(true);
@@ -224,6 +299,10 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
 
     const onSlotPress = (slot: TransferSentenceSlot) => {
         setFlagged(null);
+        if (rest !== undefined && (slot === "feeSide" || slot === "outside")) {
+            rest.onWake();
+            return;
+        }
         if (slot === "feeSide") {
             touch();
             draft.toggleFeeSide();
@@ -549,6 +628,8 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
         );
     };
 
+    const resting = rest !== undefined;
+    const activeSlot = step === "date" ? "when" : step;
     const ledger = [
         { account: draft.from, after: draft.fromBalanceAfter, before: draft.fromBalance },
         { account: draft.to, after: draft.toBalanceAfter, before: draft.toBalance },
@@ -560,13 +641,14 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
             <View collapsable={false} />
             <View className="flex-1">
                 <ScrollView
-                    contentContainerClassName="gap-4 px-5 pt-2 pb-10"
+                    contentContainerClassName={cn("gap-4 px-5 pt-2", resting ? null : "pb-10")}
                     contentInsetAdjustmentBehavior="automatic"
                     keyboardDismissMode="on-drag"
                     keyboardShouldPersistTaps="handled"
+                    onContentSizeChange={(_width, height) => rest?.onHeight(height)}
                 >
                     <TransferSentence
-                        activeSlot={step === "date" ? "when" : step}
+                        activeSlot={resting ? null : activeSlot}
                         crossCurrency={draft.crossCurrency}
                         customRate={draft.rateType === "custom"}
                         figures={{
@@ -609,79 +691,59 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
                         }}
                     />
 
-                    {gap ? (
-                        <View className="gap-2">
-                            <MetaLine statement={gap.message} tone={draft.block === null ? "warning" : "danger"} />
-                            <View className="flex-row flex-wrap gap-x-5 gap-y-2">
-                                {(
-                                    [
-                                        [gap.feeLabel, gap.onFee, false],
-                                        [gap.outsideLabel, gap.onOutside, false],
-                                        [gap.topLabel, gap.onTop, !draft.crossCurrency],
-                                    ] as const
-                                ).map(([label, resolve, hidesArrival]) =>
-                                    label && resolve ? (
-                                        <Pressable
-                                            accessibilityRole="button"
-                                            hitSlop={10}
-                                            key={label}
-                                            onPress={resolveGap(resolve, hidesArrival)}
-                                        >
-                                            <Text className="text-subtitle text-tint font-sans-semibold">{label}</Text>
-                                        </Pressable>
-                                    ) : null
-                                )}
-                            </View>
+                    <TransferGap
+                        blocked={draft.block !== null}
+                        crossCurrency={draft.crossCurrency}
+                        gap={gap}
+                        onResolve={resolveGap}
+                        resting={resting}
+                    />
+
+                    {resting ? null : (
+                        <View className="border-separator border-t">
+                            {ledger.map(({ account, after, before }) => {
+                                if (account === null) {
+                                    return null;
+                                }
+                                const balance = formatSignedAmount(before, account.currency, true, language);
+                                const next =
+                                    draft.legs === null || after === before
+                                        ? null
+                                        : formatSignedAmount(after, account.currency, true, language);
+                                return (
+                                    <View
+                                        accessibilityLabel={
+                                            next === null
+                                                ? t("transfers.a11y.balance", { account: account.name, balance })
+                                                : t("transfers.a11y.balanceChange", {
+                                                      account: account.name,
+                                                      after: next,
+                                                      before: balance,
+                                                  })
+                                        }
+                                        accessible
+                                        className="border-separator flex-row justify-between gap-3 border-b py-2.5"
+                                        key={account.id}
+                                    >
+                                        <Text className="text-label text-muted font-mono">{account.name}</Text>
+                                        <Text className="text-label text-foreground font-mono">
+                                            {next === null ? balance : `${balance} → ${next}`}
+                                        </Text>
+                                    </View>
+                                );
+                            })}
                         </View>
-                    ) : null}
+                    )}
 
-                    <View className="border-separator border-t">
-                        {ledger.map(({ account, after, before }) => {
-                            if (account === null) {
-                                return null;
-                            }
-                            const balance = formatSignedAmount(before, account.currency, true, language);
-                            const next =
-                                draft.legs === null || after === before
-                                    ? null
-                                    : formatSignedAmount(after, account.currency, true, language);
-                            return (
-                                <View
-                                    accessibilityLabel={
-                                        next === null
-                                            ? t("transfers.a11y.balance", { account: account.name, balance })
-                                            : t("transfers.a11y.balanceChange", {
-                                                  account: account.name,
-                                                  after: next,
-                                                  before: balance,
-                                              })
-                                    }
-                                    accessible
-                                    className="border-separator flex-row justify-between gap-3 border-b py-2.5"
-                                    key={account.id}
-                                >
-                                    <Text className="text-label text-muted font-mono">{account.name}</Text>
-                                    <Text className="text-label text-foreground font-mono">
-                                        {next === null ? balance : `${balance} → ${next}`}
-                                    </Text>
-                                </View>
-                            );
-                        })}
-                    </View>
-
-                    <TextInput
-                        accessibilityLabel={noteFilled ? t("transfers.field.note") : undefined}
-                        className="text-body text-foreground min-h-12"
-                        defaultValue={initialNote}
-                        multiline
-                        onChangeText={(next) => {
+                    <TransferNote
+                        filled={noteFilled}
+                        initial={initialNote}
+                        onChange={(next) => {
                             noteRef.current = next;
                             setNoteFilled(next !== "");
                             touch();
                         }}
-                        placeholder={t("transfers.field.note")}
-                        placeholderTextColor={colors.muted}
-                        textAlignVertical="top"
+                        rest={rest}
                     />
                 </ScrollView>
             </View>
@@ -701,7 +763,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
             <View className="px-5">
                 <InlineFailure message={saveFailure} />
             </View>
-            {renderStage()}
+            {resting ? null : renderStage()}
         </View>
     );
 }

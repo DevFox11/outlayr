@@ -139,6 +139,21 @@ describe("a transfer's row", () => {
         expect(getByText("$11.87 from another account")).toBeTruthy();
     });
 
+    it("signs the amount only when the row says which way it went", async () => {
+        const plain = await drawn(moved);
+        expect(plain.queryByText("-$100.00")).toBeNull();
+
+        const left = await render(
+            <TransactionRow
+                currency="USD"
+                onPress={() => {}}
+                transaction={{ ...TRANSFER, moved, sign: "-" } as never}
+            />
+        );
+        expect(left.getByText("-$100.00")).toBeTruthy();
+        expect(left.getByLabelText("$100.00 moved out")).toBeTruthy();
+    });
+
     it("draws the account it left, badged with the one it landed in", async () => {
         const mark = { customColor: null, emoji: null, icon: null, imageColor: null };
         const ends = {

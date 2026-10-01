@@ -34,7 +34,7 @@ import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
 import { dominantCategory } from "@/domain/budget-dominant";
-import { BUDGET_TYPE } from "@/domain/budget-math";
+import { BUDGET_TYPE, budgetTimeLeftLabel } from "@/domain/budget-math";
 import { blocksNewBudget, FREE_BUDGETS } from "@/domain/pro-limits";
 import { useAccountCreateRoute, useProCapped } from "@/hooks/use-pro-gate";
 import { useTranslation } from "@/i18n/context";
@@ -47,7 +47,6 @@ import { BudgetCard } from "./components/budget-card";
 import { BudgetEmptyState } from "./components/budget-empty-state";
 import type { LimitCommit, LimitTarget } from "./components/budget-limit-body";
 import { BudgetLimitSheet } from "./components/budget-limit-sheet";
-import { BudgetRings } from "./components/budget-rings";
 import { BudgetRow } from "./components/budget-row";
 import { GoalTargetSheet } from "./components/goal-target-sheet";
 import type { GoalCommit, GoalTarget } from "./components/goal-target-sheet";
@@ -59,6 +58,7 @@ import { pairs } from "./pairs";
 const CARD_GUTTER = 12;
 const ROW_REORDER = LinearTransition.duration(420).easing(Easing.out(Easing.cubic));
 const ROW_EXIT = FadeOut.duration(200);
+const NO_BUDGETS: readonly CategoryBudgetView[] = [];
 
 export function Budgets() {
     const db = useDatabase();
@@ -95,7 +95,8 @@ export function Budgets() {
     const budgets = useMemo(() => allBudgets.filter((budget) => budget.id !== pendingId), [allBudgets, pendingId]);
     const mainBurndown = useBurndown(contributions, nowMs, main, null);
     const dominant = useDominant(db, contributions, main, nowMs);
-    const burndowns = useBurndowns(contributions, nowMs, budgets);
+    const burndowns = useBurndowns(contributions, nowMs, asRows ? NO_BUDGETS : budgets);
+    const heroTimeLeft = main ? budgetTimeLeftLabel(main.window, main.type, new Date(nowMs), t) : null;
 
     const goals = useMemo(() => allGoals.filter((entry) => entry.goal.id !== pendingGoalId), [allGoals, pendingGoalId]);
     const ranked = useMemo(() => [...budgets].sort(compareBudgetSeverity), [budgets]);
@@ -390,8 +391,6 @@ export function Budgets() {
                     />
                 ) : null}
 
-                <BudgetRings budgets={ranked} currency={currency} />
-
                 {budgets.length ? (
                     <View className="pt-6">
                         <View className="flex-row items-baseline justify-between pb-2">
@@ -411,9 +410,9 @@ export function Budgets() {
                                     <Animated.View exiting={ROW_EXIT} key={budget.id} layout={ROW_REORDER}>
                                         <BudgetRow
                                             budget={budget}
-                                            burndown={burndowns.get(budget.id) ?? null}
                                             contributions={contributions}
                                             currency={currency}
+                                            heroTimeLeft={heroTimeLeft}
                                             menuItems={menuItems(budget)}
                                             nowMs={nowMs}
                                             onDelete={requestDelete}
@@ -435,6 +434,7 @@ export function Budgets() {
                                             burndown={burndowns.get(left.id) ?? null}
                                             contributions={contributions}
                                             currency={currency}
+                                            heroTimeLeft={heroTimeLeft}
                                             menuItems={menuItems(left)}
                                             nowMs={nowMs}
                                             onPress={(id) => router.push(`/budgets/${id}`)}
@@ -446,6 +446,7 @@ export function Budgets() {
                                                 burndown={burndowns.get(right.id) ?? null}
                                                 contributions={contributions}
                                                 currency={currency}
+                                                heroTimeLeft={heroTimeLeft}
                                                 menuItems={menuItems(right)}
                                                 nowMs={nowMs}
                                                 onPress={(id) => router.push(`/budgets/${id}`)}

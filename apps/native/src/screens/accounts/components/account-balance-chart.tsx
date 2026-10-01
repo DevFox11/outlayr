@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 
-import { Text } from "@/components/text";
+import { MonoLabel } from "@/components/mono-label";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import { accountBalanceSeries } from "@/domain/account-balance-series";
 import { formatSignedAmount } from "@/domain/account-display";
@@ -77,8 +77,7 @@ export function AccountBalanceChart({ account, cells, now = new Date(), rates, s
     return (
         <View className="w-full gap-2 pt-4">
             <View accessibilityLabel={summary} accessibilityRole="image" accessible testID="account-balance-summary">
-                <Text className="font-sans-semibold text-foreground text-subtitle">{t("accounts.chart.heading")}</Text>
-                <Text className="text-footnote text-muted">{summary}</Text>
+                <MonoLabel>{t("accounts.chart.heading")}</MonoLabel>
             </View>
             <View
                 accessibilityElementsHidden

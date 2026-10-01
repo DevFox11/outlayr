@@ -116,6 +116,33 @@
         ],
         "createdAt": "2026-10-01T18:29:48.732Z",
         "reason": "agent: #e9e6de stage matches existing artifacts (docs/design/fee-total.html) and the Grid brand paper #F2F0EA; the proposed UI itself is the dark theme"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "docs/design/budgets-dedupe.html"
+        ],
+        "createdAt": "2026-10-01T21:37:03.878Z",
+        "reason": "agent: #f2f0ea is the app's light --background token (apps/native/global.css), the mock reproduces the real screen"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "docs/design/editor-at-rest.html"
+        ],
+        "createdAt": "2026-10-01T21:37:08.202Z",
+        "reason": "agent: #f2f0ea is the app's light --background token (apps/native/global.css), the mock reproduces the real screen"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "docs/design/log-account-subtitle.html"
+        ],
+        "createdAt": "2026-10-01T21:37:08.249Z",
+        "reason": "agent: #f2f0ea is the app's light --background token (apps/native/global.css), the mock reproduces the real screen"
       }
     ]
   }

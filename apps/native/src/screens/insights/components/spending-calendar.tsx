@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 
+import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import { spendingCalendarStart } from "@/data/spending-calendar";
@@ -145,10 +146,14 @@ export function SpendingCalendar({
     return (
         <View className="gap-2">
             <View>
-                <Text className="font-sans-semibold text-foreground text-subtitle">{t("insights.calendar.title")}</Text>
-                <Text className="text-footnote text-muted">
-                    {entries.length === 0 ? t("insights.calendar.empty") : t("insights.calendar.range")}
-                </Text>
+                <MonoLabel>
+                    {entries.length === 0
+                        ? t("insights.calendar.title")
+                        : `${t("insights.calendar.title")} · ${t("insights.calendar.range")}`}
+                </MonoLabel>
+                {entries.length === 0 ? (
+                    <Text className="text-footnote text-muted">{t("insights.calendar.empty")}</Text>
+                ) : null}
             </View>
 
             <View>

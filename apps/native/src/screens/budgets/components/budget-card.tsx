@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import type { LayoutChangeEvent } from "react-native";
+import Animated from "react-native-reanimated";
 
 import { ActionMenu } from "@/components/action-menu";
 import type { ActionMenuItem } from "@/components/action-menu";
@@ -11,10 +12,12 @@ import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { ExpenseContribution } from "@/data/budget-spent";
 import type { CategoryBudgetView } from "@/data/budgets";
 import type { Burndown } from "@/domain/budget-burndown";
-import { BUDGET_TYPE, budgetTimeLeftLabel } from "@/domain/budget-math";
+import { BUDGET_TYPE } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
+import { useOverBudgetMoment } from "@/hooks/use-over-budget-moment";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
+import { timeLeftUnlessHeroShows } from "../time-left";
 import { BudgetBurndownChart } from "./budget-burndown-chart";
 import { BudgetDaySlots } from "./budget-day-slots";
 
@@ -23,6 +26,7 @@ interface BudgetCardProps {
     burndown?: Burndown | null;
     contributions: readonly ExpenseContribution[];
     currency: string;
+    heroTimeLeft: string | null;
     /** `Date.now()` from the screen, so the clock tracks the same instant as spend. */
     nowMs: number;
     /** The card's context menu, opened by holding it. */
@@ -53,6 +57,7 @@ export function BudgetCard({
     menuItems,
     burndown,
     contributions,
+    heroTimeLeft,
     nowMs,
     width,
 }: BudgetCardProps) {
@@ -62,6 +67,7 @@ export function BudgetCard({
     const [chartWidth, setChartWidth] = useState(0);
     const now = new Date(nowMs);
     const over = budget.overBudget;
+    const crossedStyle = useOverBudgetMoment(budget.id, over, budget.window.start);
     const isDay = budget.type === BUDGET_TYPE.day;
     const difference = Math.abs(budget.leftover);
     const differenceLabel = formatAmount(difference, currency, showCents, language);
@@ -95,29 +101,29 @@ export function BudgetCard({
                 </Text>
             </View>
 
-            <Text
-                className={cn(
-                    "tabular-nums",
-                    "font-sans-semibold text-body",
-                    over ? "text-over-budget" : "text-foreground"
-                )}
-                numberOfLines={1}
-            >
-                {differenceLabel}
-                <Text className="font-sans-medium text-label text-muted">
-                    {` ${over ? t("budgets.suffix.over") : t("budgets.suffix.left")}`}
+            <Animated.View style={crossedStyle}>
+                <Text
+                    className={cn(
+                        "tabular-nums",
+                        "font-sans-semibold text-body",
+                        over ? "text-over-budget" : "text-foreground"
+                    )}
+                    numberOfLines={1}
+                >
+                    {differenceLabel}
+                    <Text className="font-sans-medium text-label text-muted">
+                        {` ${over ? t("budgets.suffix.over") : t("budgets.suffix.left")}`}
+                    </Text>
                 </Text>
-            </Text>
+            </Animated.View>
 
             {isDay ? (
                 <BudgetDaySlots
-                    bandOnly
                     categoryId={budget.categoryId}
                     compact
                     contributions={contributions}
                     currency={currency}
                     limit={budget.amount}
-                    noun={budget.name}
                     nowMs={nowMs}
                     window={budget.window}
                 />
@@ -138,10 +144,15 @@ export function BudgetCard({
             )}
 
             <MonoLabel numberOfLines={1}>
-                {`${t("budgets.spentOfLimit", {
-                    limit: formatAmount(budget.amount, currency, false, language),
-                    spent: formatAmount(budget.spent, currency, false, language),
-                })} · ${budgetTimeLeftLabel(budget.window, budget.type, now, t)}`}
+                {[
+                    t("budgets.spentOfLimit", {
+                        limit: formatAmount(budget.amount, currency, false, language),
+                        spent: formatAmount(budget.spent, currency, false, language),
+                    }),
+                    timeLeftUnlessHeroShows(budget, heroTimeLeft, now, t),
+                ]
+                    .filter(Boolean)
+                    .join(" · ")}
             </MonoLabel>
         </Pressable>
     );

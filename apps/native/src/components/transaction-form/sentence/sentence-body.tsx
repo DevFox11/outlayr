@@ -7,6 +7,7 @@ import Tag01SolidIcon from "@hugeicons-pro/core-solid-rounded/Tag01Icon";
 import DivideSignCircleIcon from "@hugeicons-pro/core-stroke-rounded/DivideSignCircleIcon";
 import NoteEditIcon from "@hugeicons-pro/core-stroke-rounded/NoteEditIcon";
 import PercentCircleIcon from "@hugeicons-pro/core-stroke-rounded/PercentCircleIcon";
+import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
 import RepeatIcon from "@hugeicons-pro/core-stroke-rounded/RepeatIcon";
 import SparklesIcon from "@hugeicons-pro/core-stroke-rounded/SparklesIcon";
 import Tag01Icon from "@hugeicons-pro/core-stroke-rounded/Tag01Icon";
@@ -32,6 +33,7 @@ import type { TransactionRateClause, TransactionSentenceLabels } from "./transac
  * chip around it, so the row's state reads before any of its words do.
  */
 const FACT_GLYPHS = {
+    add: { set: PlusSignIcon, unset: PlusSignIcon },
     fee: { set: PercentCircleSolidIcon, unset: PercentCircleIcon },
     icon: { set: SparklesSolidIcon, unset: SparklesIcon },
     note: { set: NoteEditSolidIcon, unset: NoteEditIcon },
@@ -50,6 +52,8 @@ type SentenceFactKey = keyof typeof FACT_GLYPHS;
 const ON_TINT = "#ffffff";
 
 const CHIP_ICON = 15;
+
+const REST_FACTS: ReadonlySet<SentenceFactKey> = new Set(["repeat", "tags"]);
 
 interface SentenceVerb {
     accessibilityLabel?: string;
@@ -108,9 +112,11 @@ interface SentenceBodyProps {
     onCurrencyPress: () => void;
     onFeePress: () => void;
     onKindPress: () => void;
+    onLayout?: (height: number) => void;
     onMerchantPress: () => void;
     onWhenPress: () => void;
     rate?: TransactionRateClause;
+    rest?: { addAccessibilityLabel: string; addLabel: string; onWake: () => void };
     verbs: readonly SentenceVerb[];
     when: string;
 }
@@ -142,19 +148,47 @@ export function TransactionSentenceBody({
     onCurrencyPress,
     onFeePress,
     onKindPress,
+    onLayout,
     onMerchantPress,
     onWhenPress,
     rate,
+    rest,
     verbs,
     when,
 }: SentenceBodyProps) {
     const colors = useColors();
+    const chips: readonly SentenceVerb[] =
+        rest === undefined
+            ? verbs
+            : [
+                  ...verbs
+                      .filter((verb) => verb.active && REST_FACTS.has(verb.key))
+                      .map((verb) => ({
+                          ...verb,
+                          onPress: () => {
+                              rest.onWake();
+                              verb.onPress();
+                          },
+                          onRemove: undefined,
+                      })),
+                  {
+                      accessibilityLabel: rest.addAccessibilityLabel,
+                      active: false,
+                      key: "add",
+                      label: rest.addLabel,
+                      onPress: rest.onWake,
+                  },
+              ];
 
     // `pt-8`: the sentence opens the screen now that the segment above it is gone,
     // so it carries its own distance from the header rather than inheriting the
     // bar's bottom margin.
     return (
-        <View className="pt-8" style={{ width: contentWidth }}>
+        <View
+            className="pt-8"
+            onLayout={(event) => onLayout?.(event.nativeEvent.layout.height)}
+            style={{ width: contentWidth }}
+        >
             <TransactionSentence
                 account={account}
                 accountTile={accountTile}
@@ -212,7 +246,7 @@ export function TransactionSentenceBody({
                 target inside the pill, so clearing a fact no longer needs the ✕
                 this bar used to hand-roll beside each verb. */}
             <Animated.View className="mt-7 flex-row flex-wrap gap-2" layout={LinearTransition.duration(240)}>
-                {verbs.map((verb) => (
+                {chips.map((verb) => (
                     <Chip
                         accessibilityLabel={verb.accessibilityLabel}
                         className={cn(
@@ -223,6 +257,7 @@ export function TransactionSentenceBody({
                         closeLabel={verb.removeAccessibilityLabel}
                         disabled={verb.disabled}
                         haptics
+                        hitSlop={4}
                         key={verb.key}
                         // Sized with an arbitrary value on purpose: `text-subtitle`
                         // is this app's token and panelui merges with stock

@@ -172,6 +172,14 @@ const log = {
             en: "{amount} moved",
             es: "{amount} movidos",
         }),
+        "log.row.amountTransferIn": t({
+            en: "{amount} moved in",
+            es: "Entrada de {amount}",
+        }),
+        "log.row.amountTransferOut": t({
+            en: "{amount} moved out",
+            es: "Salida de {amount}",
+        }),
         "log.row.arrived": t({
             en: "{arrived} arrived",
             es: "Llegaron {arrived}",

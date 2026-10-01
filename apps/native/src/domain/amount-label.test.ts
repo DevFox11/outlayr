@@ -29,6 +29,12 @@ describe("rowAmountLabel states the direction in words", () => {
         expect(rowAmountLabel({ ...USD, income: true }, en)).not.toBe(rowAmountLabel({ ...USD, income: false }, en));
     });
 
+    it("says which way a transfer went on an account's own page, and stays neutral without a side", () => {
+        expect(rowAmountLabel({ ...USD, income: null, transferSign: "+" }, en)).toBe("$1,240.50 moved in");
+        expect(rowAmountLabel({ ...USD, income: null, transferSign: "-" }, es)).toBe("Salida de $1,240.50");
+        expect(rowAmountLabel({ ...USD, income: null }, en)).toBe("$1,240.50 moved");
+    });
+
     it("keeps the direction in Spanish too", () => {
         expect(rowAmountLabel({ ...USD, income: true }, es)).toMatch(/Ingreso/);
         expect(rowAmountLabel({ ...USD, income: false }, es)).toMatch(/Gasto/);

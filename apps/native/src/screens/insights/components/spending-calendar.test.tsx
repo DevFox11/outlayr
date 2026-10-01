@@ -27,7 +27,7 @@ const translations = {
     "insights.calendar.less": { en: "Less", es: "Menos" },
     "insights.calendar.more": { en: "More", es: "Más" },
     "insights.calendar.range": { en: "Last six months", es: "Últimos seis meses" },
-    "insights.calendar.title": { en: "Spending calendar", es: "Calendario de gastos" },
+    "insights.calendar.title": { en: "Spending", es: "Gastos" },
 } as const;
 
 let mockLanguage: "en" | "es" = "en";
@@ -121,6 +121,7 @@ describe("spendingCalendar", () => {
         mockLanguage = "es";
         await renderCalendar();
 
+        expect(screen.getByText("Gastos · Últimos seis meses")).toBeOnTheScreen();
         expect(mockHeatmapLegend.mock.calls[0]?.[0]).toStrictEqual(
             expect.objectContaining({ lessLabel: "Menos", moreLabel: "Más" })
         );
@@ -163,6 +164,7 @@ describe("spendingCalendar", () => {
         mockLanguage = "es";
         await renderCalendar([]);
 
+        expect(screen.getByText("Gastos")).toBeOnTheScreen();
         expect(screen.getByText("Sin gastos en los últimos seis meses.")).toBeOnTheScreen();
         expect(screen.queryAllByLabelText(/gastados$/i)).toHaveLength(0);
     });

@@ -38,6 +38,17 @@ describe("insightsVerdict", () => {
         expect(insightsVerdict({ ...base, current: 800 }).badge).toBe("-20%");
     });
 
+    it("drops the badge at a thousand percent and keeps the sentence", () => {
+        const verdict = insightsVerdict({ ...base, current: 120, prior: 2 });
+        expect(verdict.badge).toBeNull();
+        expect(verdict.sentence ?? "").toMatch(/118 more than 2025/);
+        expect(insightsVerdict({ ...base, current: 1100, prior: 100 }).badge).toBeNull();
+    });
+
+    it("still shows a badge just under a thousand percent", () => {
+        expect(insightsVerdict({ ...base, current: 1099, prior: 100 }).badge).toBe("+999%");
+    });
+
     it("treats spending more as unfavourable and spending less as favourable", () => {
         expect(insightsVerdict(base).favourable).toBe(false);
         expect(insightsVerdict({ ...base, current: 800 }).favourable).toBe(true);
