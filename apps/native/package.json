@@ -106,7 +106,6 @@
         "@jest/globals": "29.7.0",
         "@jridgewell/trace-mapping": "^0.3.31",
         "@outlayr/config": "workspace:*",
-        "@posthog/cli": "^0.18.9",
         "@testing-library/react-native": "^14.0.1",
         "@types/better-sqlite3": "^9.6.0",
         "@types/jest": "29.5.14",

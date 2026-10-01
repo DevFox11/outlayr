@@ -21,6 +21,7 @@
     },
     "devDependencies": {
         "@outlayr/config": "workspace:*",
+        "@posthog/cli": "^0.18.9",
         "@types/node": "^26.1.2",
         "oxfmt": "^0.63.0",
         "oxlint": "^1.78.0",
