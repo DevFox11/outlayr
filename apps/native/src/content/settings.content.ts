@@ -811,6 +811,10 @@ const settings = {
             en: "Number Entry",
             es: "Escritura de montos",
         }),
+        "settings.row.privacy": t({
+            en: "Privacy Policy",
+            es: "Política de privacidad",
+        }),
         "settings.row.rate": t({
             en: "Rate on App Store",
             es: "Califícanos en el App Store",
@@ -834,6 +838,10 @@ const settings = {
         "settings.row.sync": t({
             en: "Sync",
             es: "Sincronización",
+        }),
+        "settings.row.terms": t({
+            en: "Terms of Use",
+            es: "Términos de uso",
         }),
         "settings.row.theme": t({
             en: "Theme",

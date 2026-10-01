@@ -18,15 +18,13 @@ import { useIsMounted } from "@/hooks/use-is-mounted";
 import { useLongWait } from "@/hooks/use-long-wait";
 import { proSellable } from "@/hooks/use-pro-locked";
 import type { TranslationKey } from "@/i18n/catalog";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
 import { useAuthSession } from "@/lib/auth-session";
+import { legalUrl } from "@/lib/legal-url";
 import { useColors } from "@/theme/use-colors";
 
 const UNLIMITED = "\u221E";
-
-const TERMS_URL = "https://tryoutlayr.com/terms";
-const PRIVACY_URL = "https://tryoutlayr.com/privacy";
 
 function Row({ label, free, pro }: { free: string; label: string; pro: string }) {
     return (
@@ -215,6 +213,7 @@ function PlanPicker({
 
 export function Paywall() {
     const t = useTranslation();
+    const { language } = useLanguage();
     const colors = useColors();
     const router = useRouter();
     const { eligibleForTrial, getPackages, isMirrored, isPro, mirrorEntitlement, purchasePackage, restorePurchases } =
@@ -452,11 +451,11 @@ export function Paywall() {
                             <LegalDot />
                         </>
                     )}
-                    <Pressable accessibilityRole="link" onPress={() => openBrowserAsync(TERMS_URL)}>
+                    <Pressable accessibilityRole="link" onPress={() => openBrowserAsync(legalUrl("terms", language))}>
                         <MonoLabel>{t("pro.legal.terms")}</MonoLabel>
                     </Pressable>
                     <LegalDot />
-                    <Pressable accessibilityRole="link" onPress={() => openBrowserAsync(PRIVACY_URL)}>
+                    <Pressable accessibilityRole="link" onPress={() => openBrowserAsync(legalUrl("privacy", language))}>
                         <MonoLabel>{t("pro.legal.privacy")}</MonoLabel>
                     </Pressable>
                 </View>

@@ -10,6 +10,6 @@ export const getLegalDocument = createServerFn({ method: "GET" })
         if (!document) {
             throw notFound();
         }
-        const { description, intro, mdx, title, toc } = document;
-        return { description, intro, mdx, title, toc };
+        const { description, intro, mdx, slug, title, toc } = document;
+        return { description, intro, mdx, slug, title, toc };
     });

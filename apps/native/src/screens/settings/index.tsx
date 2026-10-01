@@ -1,6 +1,7 @@
 import Constants from "expo-constants";
 import { openSettings } from "expo-linking";
 import { useRouter } from "expo-router";
+import { openBrowserAsync } from "expo-web-browser";
 import { useRef } from "react";
 import { Linking, Platform, Share } from "react-native";
 
@@ -40,6 +41,7 @@ import { alternateIconsSupported, useAppIcon } from "@/lib/app-icon";
 import { requestUnlock } from "@/lib/app-lock";
 import { APP_BUILD, APP_VERSION } from "@/lib/app-version";
 import { importDraftStore } from "@/lib/import-draft-store";
+import { legalUrl } from "@/lib/legal-url";
 import { notifyFailure } from "@/lib/notify";
 import { useReminderSync } from "@/lib/reminder-sync";
 import { supportMailto } from "@/lib/support-mailto";
@@ -371,6 +373,16 @@ export function Settings() {
                         Linking.openURL(X_PROFILE);
                     }}
                     title={t("settings.row.followX")}
+                />
+                <LinkRow
+                    icon="SecurityCheck"
+                    onPress={() => openBrowserAsync(legalUrl("privacy", language))}
+                    title={t("settings.row.privacy")}
+                />
+                <LinkRow
+                    icon="LegalDocument01"
+                    onPress={() => openBrowserAsync(legalUrl("terms", language))}
+                    title={t("settings.row.terms")}
                 />
                 <LinkRow
                     icon="InformationCircle"

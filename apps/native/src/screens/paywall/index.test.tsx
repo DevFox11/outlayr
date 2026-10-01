@@ -10,6 +10,7 @@ const mockBack = jest.fn();
 jest.mock("expo-router", () => ({ useRouter: () => ({ back: mockBack, push: jest.fn() }) }));
 jest.mock("expo-web-browser", () => ({ openBrowserAsync: jest.fn() }));
 jest.mock("@/i18n/context", () => ({
+    useLanguage: () => ({ language: "en" }),
     useTranslation: () => (key: string, params?: Record<string, string | number>) =>
         params ? `${key}:${Object.values(params).join(",")}` : key,
 }));

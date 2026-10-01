@@ -41,11 +41,17 @@ function Contents({ toc }: { toc: Legal["toc"] }) {
     );
 }
 
-export function LegalDocument({ intro, mdx, title, toc }: Pick<Legal, "intro" | "mdx" | "title" | "toc">) {
+export function LegalDocument({
+    intro,
+    mdx,
+    slug,
+    title,
+    toc,
+}: Pick<Legal, "intro" | "mdx" | "slug" | "title" | "toc">) {
     const { legal } = useIntlayer("site");
     const { locale } = useLocale();
     return (
-        <Page meta={legal.effective({ date: legalDate(LANGUAGES[locale].date) })} title={title}>
+        <Page meta={legal.effective({ date: legalDate(slug, LANGUAGES[locale].date) })} title={title}>
             <div className={`${COLUMNS} mt-8 lg:mt-14`}>
                 <nav
                     aria-label={legal.contents.value}

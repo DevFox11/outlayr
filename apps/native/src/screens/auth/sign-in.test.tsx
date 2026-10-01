@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from "@jest/globals";
-import { render } from "@testing-library/react-native";
+import { fireEvent, render } from "@testing-library/react-native";
 
 import { testAppSettings as mockTestAppSettings } from "@/contexts/test-settings";
 import { unusedDatabase as mockUnusedDatabase } from "@/db/test-database";
@@ -13,6 +13,9 @@ jest.mock<Partial<typeof import("@react-native-async-storage/async-storage")>>(
 );
 
 jest.mock("@/lib/auth-client", () => ({ authClient: {} }));
+
+const mockOpenBrowser = jest.fn(async (_url: string) => undefined);
+jest.mock("expo-web-browser", () => ({ openBrowserAsync: (url: string) => mockOpenBrowser(url) }));
 
 jest.mock<Partial<typeof import("@/lib/google-sign-in")>>("@/lib/google-sign-in", () => ({
     googleIdToken: jest.fn<typeof import("@/lib/google-sign-in").googleIdToken>(),
@@ -52,5 +55,15 @@ describe("sign-in screen", () => {
         const alert = getByRole("alert");
         expect(alert.props.children).toBe("settings.account.genericFailure");
         expect(getByText("settings.account.genericFailure")).toBeTruthy();
+    });
+
+    it("links the agreement to the Terms of Use and Privacy Policy", async () => {
+        const { getByText } = await render(<SignIn />);
+        await fireEvent.press(getByText("settings.row.terms"));
+        await fireEvent.press(getByText("settings.row.privacy"));
+        expect(mockOpenBrowser.mock.calls).toStrictEqual([
+            ["https://tryoutlayr.com/terms"],
+            ["https://tryoutlayr.com/privacy"],
+        ]);
     });
 });

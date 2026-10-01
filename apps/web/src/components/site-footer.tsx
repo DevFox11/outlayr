@@ -25,7 +25,6 @@ function Row({ children, label }: { children: ReactNode; label: ReactNode }) {
 export function SiteFooter() {
     const { footer, home } = useIntlayer("site");
     const { locale } = useLocale();
-    const updated = footer.updated({ date: legalDate(LANGUAGES[locale].date) });
 
     return (
         <footer className="border-foreground border-t font-mono print:hidden">
@@ -46,10 +45,14 @@ export function SiteFooter() {
                         <Row label={footer.support}>{footer.supportDetail}</Row>
                     </LocalizedLink>
                     <LocalizedLink className={ROW} to="/terms">
-                        <Row label={footer.terms}>{updated}</Row>
+                        <Row label={footer.terms}>
+                            {footer.updated({ date: legalDate("terms", LANGUAGES[locale].date) })}
+                        </Row>
                     </LocalizedLink>
                     <LocalizedLink className={ROW} to="/privacy">
-                        <Row label={footer.privacy}>{updated}</Row>
+                        <Row label={footer.privacy}>
+                            {footer.updated({ date: legalDate("privacy", LANGUAGES[locale].date) })}
+                        </Row>
                     </LocalizedLink>
                 </nav>
                 <ThemeSwitch />

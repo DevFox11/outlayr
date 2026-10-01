@@ -1,5 +1,7 @@
 import type { Database } from "@/db/client";
+import { analyticsOnByDefault } from "@/domain/analytics-consent";
 import type { TranslationKey } from "@/i18n/catalog";
+import { firstLocale } from "@/i18n/device-language";
 import type { Language } from "@/i18n/languages";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
@@ -109,7 +111,7 @@ export const SETTING_DEFAULTS = {
     notificationOption: 1,
     numberEntryType: 2,
     sentenceCoachSeen: false,
-    shareAnalytics: true,
+    shareAnalytics: analyticsOnByDefault(firstLocale()?.regionCode),
     showCents: true,
     showNotifications: false,
     showUpcoming: true,

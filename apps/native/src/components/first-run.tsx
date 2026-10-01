@@ -144,7 +144,7 @@ interface FirstRunProps {
      */
     error?: string | null;
     eyebrow?: string;
-    footnote?: string;
+    footnote?: ReactNode;
     /**
      * The one thing the stage holds, centered over the layer-rings. Screens
      * without one (the adoption and unconfigured states) fall back to a head-

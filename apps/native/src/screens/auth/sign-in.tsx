@@ -1,5 +1,6 @@
 import { currencyDisplayFor } from "@outlayr/money/currency";
 import { router } from "expo-router";
+import { openBrowserAsync } from "expo-web-browser";
 import { View } from "react-native";
 
 import { ProviderSignInButtons } from "@/components/account/provider-sign-in-buttons";
@@ -14,6 +15,7 @@ import { flyleafDate } from "@/domain/flyleaf";
 import { clampTimeOfDay, formatTimeOfDay, reminderTime } from "@/domain/reminder";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { authClient } from "@/lib/auth-client";
+import { legalUrl } from "@/lib/legal-url";
 import { useProviderSignIn } from "@/lib/use-provider-sign-in";
 
 type AuthClient = NonNullable<typeof authClient>;
@@ -85,6 +87,33 @@ function FlyleafCard() {
     );
 }
 
+function Agreement() {
+    const t = useTranslation();
+    const { language } = useLanguage();
+    const [lead, middle, tail] = t("auth.signIn.agreement").split(PLACEHOLDER);
+    return (
+        <>
+            {lead}
+            <Text
+                accessibilityRole="link"
+                className="text-fr-ink underline"
+                onPress={() => openBrowserAsync(legalUrl("terms", language))}
+            >
+                {t("settings.row.terms")}
+            </Text>
+            {middle}
+            <Text
+                accessibilityRole="link"
+                className="text-fr-ink underline"
+                onPress={() => openBrowserAsync(legalUrl("privacy", language))}
+            >
+                {t("settings.row.privacy")}
+            </Text>
+            {tail}
+        </>
+    );
+}
+
 function SignInContent({ client }: { client: AuthClient }) {
     const db = useDatabase();
     const t = useTranslation();
@@ -100,7 +129,13 @@ function SignInContent({ client }: { client: AuthClient }) {
             body={t("auth.signIn.body")}
             error={error ?? null}
             eyebrow={t("auth.signIn.eyebrow")}
-            footnote={t("auth.signIn.offline")}
+            footnote={
+                <>
+                    {t("auth.signIn.offline")}
+                    {"\n"}
+                    <Agreement />
+                </>
+            }
             object={<FlyleafCard />}
             skip={{
                 label: t("auth.signIn.notNow"),

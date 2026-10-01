@@ -75,6 +75,10 @@ const auth = {
             en: "Opening your ledger",
             es: "Abriendo tu registro",
         }),
+        "auth.signIn.agreement": t({
+            en: "By using Outlayr, you agree to the {terms} and {privacy}.",
+            es: "Al usar Outlayr, aceptas los {terms} y la {privacy}.",
+        }),
         "auth.signIn.begun": t({
             en: "Begun {date}.",
             es: "Comenzado el {date}.",
