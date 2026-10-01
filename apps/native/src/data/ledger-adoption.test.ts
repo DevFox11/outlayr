@@ -157,6 +157,28 @@ describe("adoption marker", () => {
         await expect(adoptedAccount(db)).resolves.toBe("account-a");
     });
 
+    it("account-switch-forgets-photo-keys-so-held-photos-upload-again", async () => {
+        await markAdopted(db, "account-a");
+        await addTransaction(db, "held");
+        await addTransaction(db, "never-downloaded");
+        await db
+            .update(transactions)
+            .set({ imageKey: "photos/account-a/held.jpg", imageUri: "file:///photos/held.jpg" })
+            .where(eq(transactions.id, "held"));
+        await db
+            .update(transactions)
+            .set({ imageKey: "photos/account-a/remote.jpg" })
+            .where(eq(transactions.id, "never-downloaded"));
+
+        await prepareAccountAdoption(db, "account-b");
+
+        const rows = await db.select({ id: transactions.id, imageKey: transactions.imageKey }).from(transactions);
+        expect(Object.fromEntries(rows.map((row) => [row.id, row.imageKey]))).toStrictEqual({
+            held: null,
+            "never-downloaded": "photos/account-a/remote.jpg",
+        });
+    });
+
     it("unmarked-residual-sync-state-is-cleared-before-new-account-adoption", async () => {
         await setSyncEnabled(db, true);
         await setSyncCursor(db, 23);

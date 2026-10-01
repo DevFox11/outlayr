@@ -9,8 +9,8 @@ import { z } from "zod";
  * of every table verbatim and refuses anything it cannot vouch for.
  */
 
-/** Rises only when an older file can no longer be read as written. */
-export const ARCHIVE_VERSION = 1;
+/** Rises when a file carries something an older build would drop on restore. */
+export const ARCHIVE_VERSION = 2;
 
 export const ARCHIVE_FORMAT = "outlayr.archive";
 
@@ -26,6 +26,11 @@ export const ARCHIVE_TABLES = [
     "transactions",
     "budgets",
     "mainBudget",
+    "savingsGoals",
+    "tags",
+    "transactionTags",
+    "transactionPhotos",
+    "transactionSplits",
     "appMeta",
 ] as const;
 
@@ -39,25 +44,20 @@ export type ArchiveTable = (typeof ARCHIVE_TABLES)[number];
  * string — every date in the ledger silently becoming text that sorts and
  * compares differently. Naming them is what makes the round trip exact.
  */
-interface ArchiveDateColumns {
-    accounts: readonly string[];
-    appMeta: readonly string[];
-    budgets: readonly string[];
-    categories: readonly string[];
-    mainBudget: readonly string[];
-    transactions: readonly string[];
-    transfers: readonly string[];
-}
-
-const ARCHIVE_DATE_COLUMNS: ArchiveDateColumns = {
+const ARCHIVE_DATE_COLUMNS = {
     accounts: ["initialBalanceDate", "dateCreated", "updatedAt", "deletedAt"],
     appMeta: [],
     budgets: ["startDate", "dateCreated", "updatedAt", "deletedAt"],
     categories: ["dateCreated", "updatedAt", "deletedAt"],
     mainBudget: ["startDate", "dateCreated", "updatedAt", "deletedAt"],
+    savingsGoals: ["dateCreated", "targetDate", "updatedAt", "deletedAt"],
+    tags: ["updatedAt", "deletedAt"],
+    transactionPhotos: ["updatedAt", "deletedAt"],
+    transactionSplits: ["updatedAt", "deletedAt"],
+    transactionTags: ["updatedAt", "deletedAt"],
     transactions: ["date", "day", "month", "recurringEndDate", "updatedAt", "deletedAt"],
     transfers: ["date", "day", "month", "dateCreated", "updatedAt", "deletedAt"],
-};
+} satisfies Record<ArchiveTable, readonly string[]>;
 
 /** What a column can be once it is JSON. `Date` is encoded away before this. */
 type ArchiveValue = boolean | number | string | null;
@@ -72,6 +72,7 @@ export interface ArchiveDocument {
     /** Epoch ms, for the same reason every other instant here is. */
     exportedAt: number;
     format: typeof ARCHIVE_FORMAT;
+    photos: Record<string, string>;
     tables: Record<ArchiveTable, ArchiveRow[]>;
     version: number;
 }
@@ -97,7 +98,7 @@ export function encodeArchiveRow(row: TableRow): ArchiveRow {
  * whose date throws the moment anything formats it.
  */
 export function decodeArchiveRow(table: ArchiveTable, row: ArchiveRow): TableRow {
-    const dateColumns = ARCHIVE_DATE_COLUMNS[table];
+    const dateColumns: readonly string[] = ARCHIVE_DATE_COLUMNS[table];
     return Object.fromEntries(
         Object.entries(row).map(([column, value]) => {
             if (!dateColumns.includes(column)) {
@@ -121,11 +122,14 @@ const archiveValue = z.union([z.boolean(), z.number(), z.string(), z.null()]);
  */
 const archiveRow = z.record(z.string(), archiveValue);
 
+const PHOTO_NAME = /^(?!\.{1,2}$)[^/\\]+$/;
+
 const archiveDocument = z.object({
     // A file with an unreadable timestamp is still restorable; the stamp is only
     // shown on the confirmation.
     exportedAt: z.number().catch(0),
     format: z.literal(ARCHIVE_FORMAT),
+    photos: z.record(z.string().regex(PHOTO_NAME), z.string()).default({}),
     tables: z.record(z.string(), z.array(archiveRow)),
     version: z.number().int().min(1).max(ARCHIVE_VERSION),
 });
@@ -157,12 +161,18 @@ export function parseArchive(text: string): ArchiveDocument | null {
     return {
         exportedAt: parsed.data.exportedAt,
         format: ARCHIVE_FORMAT,
+        photos: parsed.data.photos,
         tables: {
             accounts: tables.accounts ?? [],
             appMeta: tables.appMeta ?? [],
             budgets: tables.budgets ?? [],
             categories: tables.categories ?? [],
             mainBudget: tables.mainBudget ?? [],
+            savingsGoals: tables.savingsGoals ?? [],
+            tags: tables.tags ?? [],
+            transactionPhotos: tables.transactionPhotos ?? [],
+            transactionSplits: tables.transactionSplits ?? [],
+            transactionTags: tables.transactionTags ?? [],
             transactions: tables.transactions ?? [],
             transfers: tables.transfers ?? [],
         },

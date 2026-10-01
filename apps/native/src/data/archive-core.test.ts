@@ -1,12 +1,22 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 import type { Database } from "@/db/client";
-import { accounts, categories, transactions } from "@/db/schema";
+import {
+    accounts,
+    categories,
+    savingsGoals,
+    tags,
+    transactionPhotos,
+    transactionSplits,
+    transactions,
+    transactionTags,
+} from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
-import { parseArchive, serializeArchive } from "@/domain/archive";
+import { ARCHIVE_TABLES, parseArchive, serializeArchive } from "@/domain/archive";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { buildArchive, restoreArchive } from "./archive-core";
+import { SYNCED_TABLES } from "./sync-outbox-core";
 
 const CATEGORY = {
     id: "c1",
@@ -85,6 +95,99 @@ describe("archiving a ledger", () => {
         expect(account.initialBalanceDate.getTime()).toBe(1_700_000_000_000);
         const [row] = await fresh.select().from(transactions);
         expect(row.accountId).toBe("a1");
+    });
+
+    it("carries every table the account replicates", () => {
+        expect([...ARCHIVE_TABLES].sort()).toStrictEqual([...SYNCED_TABLES].sort());
+    });
+
+    it("round-trips goals, tags, splits and photos with the entry they hang off", async () => {
+        const at = new Date(1_700_000_000_000);
+        await db.insert(categories).values(CATEGORY);
+        await db.insert(accounts).values({
+            currency: "USD",
+            dateCreated: at,
+            id: "a1",
+            initialBalance: 0,
+            initialBalanceDate: at,
+            name: "Savings",
+            updatedAt: at,
+        });
+        await db.insert(transactions).values(transactionRow("t1"));
+        await db.insert(savingsGoals).values({
+            accountId: "a1",
+            currency: "USD",
+            dateCreated: at,
+            id: "g1",
+            name: "Trip",
+            targetAmount: 900,
+            targetDate: new Date(1_800_000_000_000),
+            updatedAt: at,
+        });
+        await db.insert(tags).values({ id: "tag1", name: "work", updatedAt: at });
+        await db.insert(transactionTags).values({ id: "tt1", tagId: "tag1", transactionId: "t1", updatedAt: at });
+        await db.insert(transactionSplits).values({
+            amount: 12.5,
+            categoryId: "c1",
+            id: "s1",
+            transactionId: "t1",
+            updatedAt: at,
+        });
+        await db.insert(transactionPhotos).values({
+            id: "p1",
+            imageKey: "photos/u1/p1.jpg",
+            transactionId: "t1",
+            updatedAt: at,
+        });
+
+        const parsed = parseArchive(serializeArchive(await buildArchive(db, new Date())));
+        if (!parsed) {
+            throw new Error("expected the archive to parse");
+        }
+        const target = migratedDatabase();
+        await target.insert(categories).values(CATEGORY);
+        await target.insert(transactions).values(transactionRow("stale"));
+        await target.insert(tags).values({ id: "stale-tag", name: "old", updatedAt: at });
+        await target
+            .insert(transactionTags)
+            .values({ id: "stale-link", tagId: "stale-tag", transactionId: "stale", updatedAt: at });
+        await restoreArchive(target, parsed);
+
+        const [goal] = await target.select().from(savingsGoals);
+        expect(goal.name).toBe("Trip");
+        expect(goal.targetDate.getTime()).toBe(1_800_000_000_000);
+        await expect(target.select({ id: tags.id }).from(tags)).resolves.toStrictEqual([{ id: "tag1" }]);
+        await expect(target.select({ id: transactionTags.id }).from(transactionTags)).resolves.toStrictEqual([
+            { id: "tt1" },
+        ]);
+        const [split] = await target.select().from(transactionSplits);
+        expect(split.amount).toBe(12.5);
+        const [photo] = await target.select().from(transactionPhotos);
+        expect(photo.imageKey).toBe("photos/u1/p1.jpg");
+    });
+
+    it("forgets the key of a photo the file carries, and keeps one it does not", async () => {
+        await db.insert(categories).values(CATEGORY);
+        await db
+            .insert(transactions)
+            .values([
+                transactionRow("carried", { imageKey: "photos/u1/a.jpg", imageUri: "file:///old/a.jpg" }),
+                transactionRow("elsewhere", { imageKey: "photos/u1/b.jpg", imageUri: "file:///old/b.jpg" }),
+            ]);
+
+        const document = await buildArchive(db, new Date(), { "a.jpg": "AAEC" });
+        const parsed = parseArchive(serializeArchive(document));
+        if (!parsed) {
+            throw new Error("expected the archive to parse");
+        }
+        const fresh = migratedDatabase();
+        await restoreArchive(fresh, parsed);
+
+        const rows = await fresh.select({ id: transactions.id, imageKey: transactions.imageKey }).from(transactions);
+        expect(Object.fromEntries(rows.map((row) => [row.id, row.imageKey]))).toStrictEqual({
+            carried: null,
+            elsewhere: "photos/u1/b.jpg",
+        });
     });
 
     it("restores an instant as the same moment, not as text", async () => {

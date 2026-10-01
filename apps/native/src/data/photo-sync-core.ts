@@ -247,6 +247,15 @@ export async function downloadPhotos(db: SpendDb, files: PhotoFiles, transport: 
     return downloaded;
 }
 
+export async function downloadEveryPhoto(db: SpendDb, files: PhotoFiles, transport: PhotoTransport): Promise<void> {
+    for (;;) {
+        // oxlint-disable-next-line no-await-in-loop -- a pass fetches one batch, and what the next pass still wants depends on what this one wrote
+        if ((await downloadPhotos(db, files, transport)) === 0) {
+            return;
+        }
+    }
+}
+
 /**
  * One photo replication cycle. Upload first, for the same reason `runSync`
  * pushes first: bytes this device owns should reach the account before it

@@ -1,4 +1,4 @@
-import { and, count, eq, inArray, or } from "drizzle-orm";
+import { and, count, eq, inArray, isNotNull, or } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import {
@@ -237,6 +237,9 @@ export async function setSyncedAt(db: Database, at: Date): Promise<void> {
  */
 export async function resetSyncForAccountSwitch(db: Database): Promise<void> {
     await withTransaction(db, async () => {
+        await db.update(transactions).set({ imageKey: null }).where(isNotNull(transactions.imageUri));
+        await db.update(accounts).set({ imageKey: null }).where(isNotNull(accounts.imageUri));
+        await db.update(transactionPhotos).set({ imageKey: null }).where(isNotNull(transactionPhotos.imageUri));
         await db.delete(outbox);
         await db
             .delete(appMeta)

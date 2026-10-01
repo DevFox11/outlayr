@@ -1,12 +1,27 @@
 import { inArray } from "drizzle-orm";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
+import { z } from "zod";
 
 import type { Database } from "@/db/client";
-import { accounts, appMeta, budgets, categories, mainBudget, transactions, transfers } from "@/db/schema";
+import {
+    accounts,
+    appMeta,
+    budgets,
+    categories,
+    mainBudget,
+    savingsGoals,
+    tags,
+    transactionPhotos,
+    transactionSplits,
+    transactions,
+    transactionTags,
+    transfers,
+} from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { ARCHIVE_FORMAT, ARCHIVE_TABLES, ARCHIVE_VERSION, decodeArchiveRow, encodeArchiveRow } from "@/domain/archive";
 import type { ArchiveDocument, ArchiveRow, ArchiveTable, TableRow } from "@/domain/archive";
 
+import { photoFileName } from "./photo-store-core";
 import { SYNCED_META_KEYS } from "./sync-outbox-core";
 
 const TABLES = {
@@ -15,6 +30,11 @@ const TABLES = {
     budgets,
     categories,
     mainBudget,
+    savingsGoals,
+    tags,
+    transactionPhotos,
+    transactionSplits,
+    transactionTags,
     transactions,
     transfers,
 } satisfies Record<ArchiveTable, SQLiteTable>;
@@ -26,7 +46,11 @@ const TABLES = {
  * come back as a live row the moment a peer that never saw it pushed again, and
  * the undo window restores from them too.
  */
-export async function buildArchive(db: Database, now: Date): Promise<ArchiveDocument> {
+export async function buildArchive(
+    db: Database,
+    now: Date,
+    photos: Record<string, string> = {}
+): Promise<ArchiveDocument> {
     // SAFETY: filled for every `ARCHIVE_TABLES` member by the loop below, which
     // is the same union the type is keyed on.
     const tables = {} as Record<ArchiveTable, ArchiveRow[]>;
@@ -49,6 +73,7 @@ export async function buildArchive(db: Database, now: Date): Promise<ArchiveDocu
     return {
         exportedAt: now.getTime(),
         format: ARCHIVE_FORMAT,
+        photos,
         tables,
         version: ARCHIVE_VERSION,
     };
@@ -68,6 +93,10 @@ export async function buildArchive(db: Database, now: Date): Promise<ArchiveDocu
  */
 export async function restoreArchive(db: Database, document: ArchiveDocument): Promise<number> {
     let written = 0;
+    const carried = (row: TableRow) => {
+        const uri = z.string().safeParse(row.imageUri);
+        return uri.success && Object.hasOwn(document.photos, photoFileName(uri.data));
+    };
     await withTransaction(db, async () => {
         for (const table of [...ARCHIVE_TABLES].reverse()) {
             // oxlint-disable-next-line no-await-in-loop -- children must be deleted before their parents, so the reversed ARCHIVE_TABLES order has to be walked one table at a time
@@ -76,7 +105,9 @@ export async function restoreArchive(db: Database, document: ArchiveDocument): P
                 : db.delete(TABLES[table]));
         }
         for (const table of ARCHIVE_TABLES) {
-            const rows = document.tables[table].map((row) => decodeArchiveRow(table, row));
+            const rows = document.tables[table]
+                .map((row) => decodeArchiveRow(table, row))
+                .map((row) => (carried(row) ? { ...row, imageKey: null } : row));
             if (rows.length === 0) {
                 continue;
             }

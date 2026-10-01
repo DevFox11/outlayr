@@ -7,7 +7,14 @@ import { testSpendDb } from "@/db/test-database";
 
 import type { SpendDb } from "./budget-spent";
 import type { PhotoFiles } from "./photo-store-core";
-import { downloadPhotos, PHOTO_SYNC_BATCH, photoNameFromKey, runPhotoSync, uploadPhotos } from "./photo-sync-core";
+import {
+    downloadEveryPhoto,
+    downloadPhotos,
+    PHOTO_SYNC_BATCH,
+    photoNameFromKey,
+    runPhotoSync,
+    uploadPhotos,
+} from "./photo-sync-core";
 import type { PhotoTransport } from "./photo-sync-core";
 
 const DIRECTORY = "file:///container-a/Documents/transaction-photos";
@@ -489,6 +496,24 @@ describe("downloadPhotos", () => {
         // The path is this handset's business; presenting it as an edit would burn
         // a sequence number on every other device.
         expect(row.updatedAt.getTime()).toBe(EARLIER.getTime());
+    });
+});
+
+describe("downloadEveryPhoto", () => {
+    it("keeps fetching past one batch until nothing is missing", async () => {
+        const db = makeDb();
+        const peer = new FakeFiles(PEER_DIRECTORY);
+        const { bucket, transport } = fakeTransport();
+        const total = PHOTO_SYNC_BATCH + 3;
+        for (let i = 0; i < total; i += 1) {
+            const key = `transaction-photos/${USER}/p${i}.jpg`;
+            bucket.objects.set(key, new TextEncoder().encode("PHOTO"));
+            await insert(db, `t${i}`, { imageKey: key });
+        }
+
+        await downloadEveryPhoto(db, peer, transport);
+
+        expect(peer.list()).toHaveLength(total);
     });
 });
 

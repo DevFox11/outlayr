@@ -137,6 +137,24 @@ export async function persistLogoBytes(bytes: Uint8Array): Promise<string> {
     }
 }
 
+export function storedPhotosBase64(): Record<string, string> {
+    return Object.fromEntries(
+        photoDirectory()
+            .list()
+            .filter((entry): entry is File => entry instanceof File)
+            .map((file) => [file.name, file.base64Sync()])
+    );
+}
+
+export function writePhotosBase64(photos: Record<string, string>): void {
+    const directory = photoDirectory();
+    for (const [name, data] of Object.entries(photos)) {
+        const file = new File(directory, name);
+        file.create({ overwrite: true });
+        file.write(data, { encoding: "base64" });
+    }
+}
+
 /** Drops every stored photo. Paired with erasing the ledger that references them. */
 export function clearStoredPhotos(): void {
     const directory = new Directory(Paths.document, PHOTO_DIRECTORY);

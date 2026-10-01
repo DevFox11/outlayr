@@ -8,12 +8,14 @@ import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
 import { restoreArchive } from "@/data/archive-core";
+import { reconcilePhotos } from "@/data/photo-store-core";
 import { archiveRowCount, parseArchive } from "@/domain/archive";
 import type { ArchiveDocument } from "@/domain/archive";
 import { useTranslation } from "@/i18n/context";
 import { pickArchiveFile, TransferError } from "@/lib/data-transfer";
 import { armLogoBackfill, cancelLogoBackfill } from "@/lib/logo-backfill";
 import { notifyFailure } from "@/lib/notify";
+import { photoFiles, writePhotosBase64 } from "@/lib/photo-storage";
 import { useColors } from "@/theme/use-colors";
 
 export function RestoreData() {
@@ -29,7 +31,11 @@ export function RestoreData() {
     const applyArchive = (document: ArchiveDocument) => {
         setRestoring(archiveRowCount(document));
         cancelLogoBackfill()
-            .then(() => restoreArchive(db, document))
+            .then(() => {
+                writePhotosBase64(document.photos);
+                return restoreArchive(db, document);
+            })
+            .then(() => reconcilePhotos(db, photoFiles, Date.now()))
             .finally(() => armLogoBackfill(db))
             .then(() => router.back())
             .catch(() => {

@@ -8,14 +8,18 @@ import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
 import { buildArchive } from "@/data/archive-core";
+import { downloadEveryPhoto } from "@/data/photo-sync-core";
+import { isSyncEnabled } from "@/data/sync-outbox-core";
 import { useTransactionCount } from "@/data/transactions";
 import { exportFileName, exportTransactionsCsv } from "@/data/transfer-core";
 import { archiveFileName, serializeArchive } from "@/domain/archive";
 import { CSV_HEADER } from "@/domain/transaction-csv";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
+import { photoTransport } from "@/lib/convex";
 import { shareFile, TransferError } from "@/lib/data-transfer";
 import { notifyFailure } from "@/lib/notify";
+import { photoFiles, storedPhotosBase64 } from "@/lib/photo-storage";
 import { useColors } from "@/theme/use-colors";
 
 /**
@@ -68,7 +72,15 @@ export function ExportData() {
     const runArchive = () =>
         runExport(
             "archive",
-            async () => serializeArchive(await buildArchive(db, new Date())),
+            async () => {
+                if (await isSyncEnabled(db)) {
+                    await downloadEveryPhoto(db, photoFiles, photoTransport()).catch((cause: unknown) => {
+                        console.warn("[outlayr] fetching missing photos before export failed", cause);
+                    });
+                }
+                // ponytail: the whole archive is one in-memory string with photos as base64; stream it to a zip if ledgers outgrow 512px JPEGs
+                return serializeArchive(await buildArchive(db, new Date(), storedPhotosBase64()));
+            },
             archiveFileName(new Date()),
             "application/json",
             "settings.export.archiveShareTitle"

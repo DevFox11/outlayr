@@ -16,12 +16,18 @@ function emptyDocument(): ArchiveDocument {
     return {
         exportedAt: 1_700_000_000_000,
         format: ARCHIVE_FORMAT,
+        photos: {},
         tables: {
             accounts: [],
             appMeta: [],
             budgets: [],
             categories: [],
             mainBudget: [],
+            savingsGoals: [],
+            tags: [],
+            transactionPhotos: [],
+            transactionSplits: [],
+            transactionTags: [],
             transactions: [],
             transfers: [],
         },
@@ -89,6 +95,23 @@ describe("reading a file back", () => {
         // drop, and a restore replaces the whole ledger.
         const future = { ...emptyDocument(), version: ARCHIVE_VERSION + 1 };
         expect(parseArchive(JSON.stringify(future))).toBeNull();
+    });
+
+    it("carries photo bytes by file name", () => {
+        const document = { ...emptyDocument(), photos: { "p1.jpg": "AAEC" } };
+        expect(parseArchive(serializeArchive(document))?.photos).toStrictEqual({ "p1.jpg": "AAEC" });
+    });
+
+    it("reads a file written before photos travelled as holding none", () => {
+        const { photos: _photos, ...older } = emptyDocument();
+        expect(parseArchive(JSON.stringify(older))?.photos).toStrictEqual({});
+    });
+
+    it("refuses a photo name that would land outside the photo directory", () => {
+        for (const name of ["../../outlayr.db", "a/b.jpg", "a\\b.jpg", "..", "."]) {
+            const hostile = { ...emptyDocument(), photos: { [name]: "AAEC" } };
+            expect(parseArchive(JSON.stringify(hostile))).toBeNull();
+        }
     });
 
     it("refuses a table that is not a list of rows", () => {
