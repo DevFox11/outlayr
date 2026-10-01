@@ -21,6 +21,7 @@ import { cloudAction, cloudMutation, convex } from "@/lib/convex";
 import { deletionResumeSecretKey, resumePersistedCloudDeletion, resumeProviderRevocation } from "@/lib/deletion-resume";
 import type { StoredDeletionPreparation } from "@/lib/deletion-resume";
 import { createDeviceResetGate, writeDeviceResetMarker } from "@/lib/device-data-reset";
+import { posthog } from "@/lib/posthog";
 import { providerBindingFor } from "@/lib/provider-revocation";
 import { useProviderSignIn } from "@/lib/use-provider-sign-in";
 
@@ -101,6 +102,7 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
         }
         setError(null);
         setBusy(action);
+        posthog?.reset();
         const resetGate =
             action === "deleteAll"
                 ? createDeviceResetGate({

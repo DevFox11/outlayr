@@ -5,6 +5,7 @@ import { resumeCloudDeletion } from "./account-lifecycle";
 import type { DeletionPreparation } from "./account-lifecycle";
 import { authClient } from "./auth-client";
 import { cloudAction, cloudMutation, cloudQuery, convex } from "./convex";
+import { posthog } from "./posthog";
 import { revokeGoogleProviderSubject } from "./provider-revocation";
 
 export const deletionResumeSecretKey = "outlayr.account-deletion-resume";
@@ -99,6 +100,7 @@ export async function resumePersistedCloudDeletion({
         }
         return false;
     }
+    posthog?.reset();
     const poll = async (): Promise<DeletionStatus | null> =>
         await cloudQuery("accountDeletion:poll", { at: Date.now(), resumeSecret: preparation.resumeSecret });
     const status = await poll();

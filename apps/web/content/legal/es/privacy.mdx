@@ -1,6 +1,6 @@
 ---
 title: "Política de privacidad"
-description: "Qué guarda Outlayr en tu dispositivo, qué llega a nuestros servidores y a nuestro proveedor de IA, cuánto tiempo se conserva y cómo eliminarlo. Actualizado el 24 de septiembre de 2026."
+description: "Qué guarda Outlayr en tu dispositivo, qué llega a nuestros servidores, a nuestro proveedor de IA y a nuestro servicio de analíticas, cuánto tiempo se conserva y cómo eliminarlo. Actualizado el 1 de octubre de 2026."
 intro: "Esta política explica qué recopila Outlayr, adónde va, cuánto tiempo se conserva y qué puedes hacer al respecto. Esta traducción se ofrece para tu comodidad. Si hay alguna diferencia con la versión en inglés, prevalece la versión en inglés."
 ---
 
@@ -10,7 +10,8 @@ intro: "Esta política explica qué recopila Outlayr, adónde va, cuánto tiempo
 - Una cuenta (Iniciar sesión con Apple o Acceder con Google) activa las sugerencias de comercios, la entrada por voz y el escaneo de recibos. Con Outlayr Pro también activa la sincronización, que guarda una copia de tu registro y tus fotos en nuestros servidores hasta que elimines tu cuenta.
 - Las entradas por voz, los escaneos de recibos y las sugerencias de comercios los procesa xAI. No guardamos tus grabaciones ni las fotos escaneadas, y nunca le enviamos a xAI tu nombre, tu correo electrónico ni tu ID de cuenta.
 - Las sugerencias de comercios y las búsquedas web están activadas de forma predeterminada. Puedes oponerte a cualquiera de ellas desactivándola en **Configuración › Laboratorio de funciones**.
-- Sin anuncios, sin analíticas, sin rastreo. No vendemos ni compartimos tu información personal.
+- La app envía analíticas de uso y reportes de fallas a PostHog: qué pantallas abres, cuándo guardas algo y los errores. Nunca montos, comercios, notas ni nombres. Puedes desactivarlo en **Configuración › Compartir analíticas**.
+- Sin anuncios y sin rastreo en apps de otras empresas. No vendemos ni compartimos tu información personal.
 - Puedes eliminar tu cuenta y todo lo que está sincronizado con ella desde la app en cualquier momento: **Configuración › Cuenta › Eliminar cuenta**.
 
 ## Quiénes somos
@@ -37,6 +38,7 @@ Todos los tipos de datos que maneja Outlayr, en un solo lugar. Las secciones sig
 | Dirección web, dirección IP | Logos | Logo.dev, Google | Según sus políticas |
 | Registros de compra, ID de usuario | Al abrir la app, Pro | RevenueCat, Apple, nuestros servidores | Hasta la eliminación de la cuenta |
 | ID de instalación, versión de la app, errores | Búsqueda de actualizaciones | Expo | Según la política de Expo |
+| Pantallas, guardados, errores, ID de instalación, modelo del dispositivo | Uso de la app | PostHog | Hasta la eliminación de la cuenta, o según la política de PostHog si nunca inicias sesión |
 | Tus correos | Cuando nos escribes | Nuestra bandeja de entrada | Mientras sea necesario |
 
 ## Lo que se queda en tu dispositivo
@@ -59,6 +61,7 @@ No necesitas una cuenta para usar Outlayr. Sin una, no se nos envía nada de tu 
 - **Logos.** Para mostrar el logo de un comercio o de un banco, la app se lo pide a Logo.dev por su dirección web (por ejemplo, netflix.com), y al servicio de favicons de Google si Logo.dev no lo tiene. La solicitud sale de tu dispositivo, así que esos servicios ven tu dirección IP. Nunca incluye montos, notas ni quién eres. Después, los logos se guardan en caché en el celular.
 - **Actualizaciones de la app.** Cuando la app se inicia, le pregunta a Expo, la plataforma que usamos para publicar actualizaciones, si hay una versión más reciente del código de la app. La solicitud incluye un ID aleatorio creado para esta instalación (no vinculado a tu cuenta), la versión de la app y tu dirección IP. Si una actualización no pudo iniciarse la última vez, también incluye un breve mensaje de error.
 - **Estado de compra.** La app consulta con RevenueCat si tienes Outlayr Pro, usando un ID anónimo aleatorio hasta que inicies sesión. Consulta [Outlayr Pro](#outlayr-pro).
+- **Analíticas y reportes de fallas.** La app le avisa a PostHog, el servicio de analíticas que usamos, cuando se instala, se actualiza, se abre o se cierra, qué tipo de pantalla abres (por ejemplo, la pantalla de una cuenta, nunca cuál cuenta) y cuándo guardas una entrada, una transferencia, una cuenta o una categoría, con detalles como si es un gasto o un ingreso, si vino de un escaneo o de tu voz, y si es nueva o una edición. Si la app tiene un error, envía el mensaje de error y el lugar del código donde ocurrió. Cada evento lleva un ID aleatorio creado para esta instalación, la versión de la app, el modelo de tu dispositivo, el sistema operativo, el idioma, la zona horaria y el tamaño de la pantalla. Nunca incluye montos, comercios, notas, nombres de cuentas o categorías ni tu correo electrónico. PostHog descarta tu dirección IP. Cuando inicias sesión, estos eventos quedan vinculados a tu ID de cuenta de Outlayr. Desactivar **Configuración › Compartir analíticas** detiene todo esto en ese dispositivo.
 
 ## Tu cuenta
 
@@ -82,7 +85,7 @@ La sincronización es parte de Outlayr Pro. Si iniciaste sesión y tienes Pro, O
 - La configuración que te describe a ti y no al celular, como tu moneda, tus preferencias de visualización y si las sugerencias y las búsquedas web están activadas.
 - Un ID aleatorio para cada dispositivo, que se usa para ordenar las ediciones hechas en distintos dispositivos.
 
-La configuración ligada a un celular se queda en él: notificaciones, bloqueo de la app, escritura de montos y modo claro u oscuro.
+La configuración ligada a un celular se queda en él: notificaciones, bloqueo de la app, compartir analíticas, escritura de montos y modo claro u oscuro.
 
 ### Entradas eliminadas
 
@@ -172,12 +175,13 @@ Estas empresas nos ayudan a operar Outlayr. Cada una recibe solo lo que su funci
 - **[Google](https://policies.google.com/privacy)** proporciona Acceder con Google, según su propia política, y es una fuente alternativa de logos, para lo cual recibe una dirección web y tu dirección IP.
 - **Logo.dev** proporciona logos de comercios y bancos. Recibe una dirección web y tu dirección IP.
 - **[Expo](https://expo.dev/privacy)** distribuye las actualizaciones de la app. Recibe un ID de instalación aleatorio, la versión de la app, tu dirección IP y los mensajes de error de las actualizaciones.
+- **[PostHog](https://posthog.com/privacy)** proporciona las analíticas de uso y los reportes de fallas, desde servidores en Estados Unidos. Recibe los eventos descritos en [Lo que la app envía incluso sin cuenta](#lo-que-la-app-envía-incluso-sin-cuenta), un ID de instalación aleatorio y tu ID de cuenta cuando inicias sesión.
 
 Frankfurter y CotizaVE publican las tasas de cambio que lee nuestro servidor. No reciben nada sobre ti.
 
-## Sin anuncios, analíticas ni rastreo
+## Sin anuncios ni rastreo
 
-Outlayr no contiene software de publicidad, analíticas ni reporte de fallas. No usa el identificador de publicidad de tu dispositivo y no te rastrea en apps ni sitios web de otras empresas.
+Outlayr no contiene software de publicidad. Sus únicas analíticas son los eventos de PostHog descritos [arriba](#lo-que-la-app-envía-incluso-sin-cuenta), que usamos para corregir fallas y saber qué funciones mejorar. Outlayr no usa el identificador de publicidad de tu dispositivo y no te rastrea en apps ni sitios web de otras empresas.
 
 No vendemos tu información personal, no la compartimos para publicidad dirigida ni la usamos para crear un perfil tuyo. No usamos tus datos para entrenar modelos de IA.
 
@@ -196,6 +200,7 @@ Si estás en el Espacio Económico Europeo o en el Reino Unido, estas son las ba
 | Tu cuenta, la sincronización, el almacenamiento de fotos, la entrada por voz, el escaneo de recibos, la importación de CSV y Pro | Contrato: necesitamos estos datos para darte lo que pides. |
 | Las sugerencias de comercios, las búsquedas web, la lista compartida de comercios y los logos | Intereses legítimos: agilizar el registro de entradas. Las sugerencias y las búsquedas web están activadas de forma predeterminada, y desactivar cualquiera de ellas en el Laboratorio de funciones es la forma de oponerte. |
 | Las sesiones, los límites de uso, los registros de errores y las búsquedas de actualizaciones | Intereses legítimos: mantener Outlayr seguro, en funcionamiento y libre de abusos. |
+| Las analíticas de uso y los reportes de fallas | Intereses legítimos: corregir lo que falla y saber qué funciones mejorar. Desactivar Compartir analíticas es la forma de oponerte. |
 | La cámara, el micrófono, las fotos, el bloqueo biométrico y las notificaciones | Tu consentimiento, que das cuando tu dispositivo te pide permiso y retiras en su configuración (Configuración de iOS en iPhone). |
 | Atender requerimientos legales y conservar los registros que exige la ley | Obligación legal. |
 
@@ -211,6 +216,7 @@ La [tabla de arriba](#datos-de-un-vistazo) indica cuánto tiempo se conserva cad
 - Las solicitudes de sugerencias de comercios no se conservan una vez respondidas. Las que quedan en cola en segundo plano esperan en nuestro servidor hasta que tu dispositivo recoja la respuesta.
 - Los contadores de uso que aplican los límites de escaneos, entradas por voz y sugerencias guardan solo cantidades, asociadas a tu ID de cuenta, y se eliminan con tu cuenta.
 - Los elementos de la lista compartida de comercios no están vinculados a nadie. Se actualizan después de 30 o 90 días.
+- Los eventos de analíticas vinculados a tu cuenta se eliminan con ella. Los eventos de una instalación que nunca inició sesión llevan solo un ID de instalación aleatorio y se conservan según la política de conservación de PostHog.
 - Nuestros proveedores, incluidos xAI, Apple, Google y Expo, conservan los datos que reciben según sus propias políticas de conservación.
 
 ## Eliminar y exportar
@@ -222,6 +228,7 @@ Abre **Configuración › Cuenta › Eliminar cuenta**. Es posible que se te pid
 - Se revoca el acceso de Outlayr a tu inicio de sesión con Apple o Google. En el caso de Apple, nuestro servidor le pide a Apple que lo revoque. En el caso de Google, lo hace la app.
 - Tu registro sincronizado, los registros de eliminación, las fotos respaldadas y las solicitudes de sugerencia pendientes se eliminan de nuestros servidores.
 - Se eliminan tu registro de cliente en RevenueCat y nuestra copia del estado de tu suscripción.
+- Se eliminan tu perfil en PostHog y todos los eventos de analíticas vinculados a él.
 - Se eliminan tus contadores de uso, tus conversaciones de voz abiertas, tus sesiones, tus enlaces de inicio de sesión y tu cuenta.
 
 Empieza de inmediato y se ejecuta desde tu dispositivo. Si se interrumpe, abre de nuevo Configuración › Cuenta y la app continúa donde se detuvo. Si no puedes usar la app, escribe a [support@tryoutlayr.com](mailto:support@tryoutlayr.com).
@@ -263,10 +270,10 @@ Si vives en California o en otro estado de EE. UU. con una ley de privacidad, es
 
 | Categoría y ejemplos | Recibida por |
 | --- | --- |
-| **Identificadores:** nombre, correo electrónico, ID de cuenta, ID de instalación, dirección IP | Hetzner, RevenueCat, Expo, Logo.dev, Google |
+| **Identificadores:** nombre, correo electrónico, ID de cuenta, ID de instalación, dirección IP | Hetzner, RevenueCat, Expo, PostHog, Logo.dev, Google |
 | **Información comercial:** registros de suscripciones y compras | Apple, RevenueCat, Hetzner |
 | **Información de audio y visual:** clips de voz, escaneos de recibos, fotos adjuntas | xAI (clips y escaneos), Cloudflare (fotos) |
-| **Actividad en internet u otras redes:** dirección IP, agente de usuario, registros de solicitudes | Hetzner, Expo, el proveedor que aloja nuestro sitio web |
+| **Actividad en internet u otras redes:** dirección IP, agente de usuario, registros de solicitudes, uso de la app y reportes de fallas | Hetzner, Expo, PostHog, el proveedor que aloja nuestro sitio web |
 | **Registros que creas:** entradas sincronizadas, montos, comercios, notas, presupuestos | Hetzner; nombres de comercios, categorías y cuentas a xAI |
 
 Obtenemos esta información de ti, de tu dispositivo, de Apple y de Google, y la usamos para los fines descritos en esta política. La conservamos durante los plazos indicados en [Datos de un vistazo](#datos-de-un-vistazo).
@@ -289,7 +296,7 @@ Ningún sistema es perfectamente seguro. Si encuentras un problema de seguridad,
 
 ## Transferencias internacionales
 
-Nuestros servidores están en Helsinki, Finlandia, en la Unión Europea. danestves LLC es una empresa estadounidense, y xAI, RevenueCat, Expo, Cloudflare, Logo.dev, Apple y Google tratan los datos que reciben principalmente en Estados Unidos, cuyas leyes pueden protegerlos de forma distinta a las de tu país. Escribe a [support@tryoutlayr.com](mailto:support@tryoutlayr.com) para conocer los detalles de las garantías que se aplican.
+Nuestros servidores están en Helsinki, Finlandia, en la Unión Europea. danestves LLC es una empresa estadounidense, y xAI, RevenueCat, Expo, PostHog, Cloudflare, Logo.dev, Apple y Google tratan los datos que reciben principalmente en Estados Unidos, cuyas leyes pueden protegerlos de forma distinta a las de tu país. Escribe a [support@tryoutlayr.com](mailto:support@tryoutlayr.com) para conocer los detalles de las garantías que se aplican.
 
 ## Menores
 

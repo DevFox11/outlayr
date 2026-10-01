@@ -38,6 +38,7 @@ import { setCloudAuthenticated } from "@/lib/convex";
 import { DeviceResetRecovery } from "@/lib/device-reset-recovery";
 import { LedgerAdoptionProvider, useLedgerAdoption } from "@/lib/ledger-adoption";
 import { useScreenTracking } from "@/lib/posthog";
+import { useAnalyticsConsent } from "@/lib/posthog-consent";
 import { usePostHogIdentity } from "@/lib/posthog-identity";
 import { identityPickerDetent } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
@@ -87,7 +88,8 @@ function CloudRuntimeProvider({ children }: { children: ReactNode }) {
     );
 }
 
-function ScreenTracking() {
+function Analytics() {
+    useAnalyticsConsent();
     useScreenTracking();
     return null;
 }
@@ -173,7 +175,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
                             <AuthCover>
                                 <AppLockGate>
                                     <RootStack />
-                                    <ScreenTracking />
+                                    <Analytics />
                                     <UpdateSheet />
                                     <CelebrationConfetti />
                                 </AppLockGate>

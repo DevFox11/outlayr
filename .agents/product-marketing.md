@@ -47,7 +47,7 @@
 | Objection | Response |
 |-----------|----------|
 | Is it free? | The tracker is free; Pro raises limits and adds sync. |
-| Is my data private? | The ledger stays on the phone unless you turn on sync or use server features. No ads, no analytics, never sold. |
+| Is my data private? | The ledger stays on the phone unless you turn on sync or use server features. No ads, never sold; usage analytics and crash reports go to PostHog, never amounts or merchants. |
 | Is it on Android? | Not yet; coming soon. |
 
 **Anti-persona:** People who want automatic bank-feed syncing.
@@ -73,7 +73,7 @@
 | Theme | Proof |
 |-------|-------|
 | Fast logging | One-sentence form, voice entry, receipt scan (shown in the live demo and App Store preview) |
-| Privacy | Local-first storage; no analytics or ad SDKs in the app |
+| Privacy | Local-first storage; no ad SDKs; PostHog analytics without amounts, merchants, or notes |
 
 ## Goals
 **Business goal:** Downloads at launch on the App Store; Android waitlist later.

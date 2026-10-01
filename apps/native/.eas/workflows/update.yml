@@ -74,3 +74,9 @@ jobs:
                     *) echo "EAS_BUILD_PROFILE did not interpolate: '$EAS_BUILD_PROFILE'" >&2; exit 1 ;;
                   esac
                   npx eas-cli update --channel "$EAS_BUILD_PROFILE" --message "$UPDATE_MESSAGE" --platform ios --non-interactive
+            # An update ships new Hermes chunks, so its source maps are uploaded here;
+            # builds upload theirs from the Xcode phase posthog-react-native/expo adds.
+            - name: Upload source maps to PostHog
+              run: |
+                  APP_VERSION=$(npx expo config --type public --json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")
+                  pnpm exec posthog-cli hermes upload --directory dist --release-name com.tryoutlayr.app --release-version "$APP_VERSION"

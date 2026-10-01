@@ -20,6 +20,7 @@ export type BoolSettingKey =
     // Draws the hero's sparkline.
     | "logViewLineGraph"
     | "biometricLock"
+    | "shareAnalytics"
     | "showNotifications"
     // The subscription due-date notices. Its own key rather than a second reading
     // of `showNotifications`: the permission-revoke reconcile writes that one back
@@ -108,6 +109,7 @@ export const SETTING_DEFAULTS = {
     notificationOption: 1,
     numberEntryType: 2,
     sentenceCoachSeen: false,
+    shareAnalytics: true,
     showCents: true,
     showNotifications: false,
     showUpcoming: true,

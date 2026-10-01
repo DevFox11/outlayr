@@ -99,6 +99,7 @@ export function Settings() {
     const { showCents } = useDisplaySettings().state;
     const showNotifications = settings.bool("showNotifications");
     const biometricLock = settings.bool("biometricLock");
+    const shareAnalytics = settings.bool("shareAnalytics");
     const incomeTracking = settings.bool("incomeTracking");
     const showUpcoming = settings.bool("showUpcoming");
     const animatedCharts = settings.bool("animatedCharts");
@@ -270,6 +271,14 @@ export function Settings() {
                     }}
                     title={t("settings.row.authentication")}
                     value={biometricLock}
+                />
+                <ToggleRow
+                    icon="ChartBarLine"
+                    onValueChange={(next) => {
+                        setBoolSetting(db, "shareAnalytics", next);
+                    }}
+                    title={t("settings.row.shareAnalytics")}
+                    value={shareAnalytics}
                 />
                 <PickerRow
                     icon="Tap01"

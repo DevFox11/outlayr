@@ -827,6 +827,10 @@ const settings = {
             en: "Share with Friends",
             es: "Comparte con amigos",
         }),
+        "settings.row.shareAnalytics": t({
+            en: "Share Analytics",
+            es: "Compartir analíticas",
+        }),
         "settings.row.sync": t({
             en: "Sync",
             es: "Sincronización",

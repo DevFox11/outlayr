@@ -83,8 +83,10 @@ describe("resumable account deletion", () => {
     });
 });
 
-function stubUpstream(status: number) {
-    const fetchMock = vi.fn(async (_input: string, _init?: RequestInit) => new Response(null, { status }));
+function stubUpstream(status: number, deletionErrors: unknown[] = []) {
+    const fetchMock = vi.fn(async (_input: string, _init?: RequestInit) =>
+        Response.json({ deletion_errors: deletionErrors }, { status })
+    );
     vi.stubGlobal("fetch", fetchMock);
     return fetchMock;
 }
@@ -171,6 +173,13 @@ describe("billing erasure", () => {
             `https://api.revenuecat.com/v1/subscribers/${owner.userId}`,
             expect.objectContaining({ method: "DELETE" })
         );
+        expect(fetchMock).toHaveBeenCalledWith(
+            "https://us.posthog.com/api/projects/12345/persons/bulk_delete/",
+            expect.objectContaining({
+                body: JSON.stringify({ delete_events: true, distinct_ids: [owner.userId] }),
+                method: "POST",
+            })
+        );
         await expect(t.run((ctx) => isPro(ctx, owner.userId))).resolves.toBeFalsy();
         await expect(t.mutation(api.accountDeletion.advance, { resumeSecret })).resolves.toMatchObject({
             phase: "authDeleting",
@@ -185,6 +194,15 @@ describe("billing erasure", () => {
 
         await expect(t.query(api.accountDeletion.poll, { resumeSecret })).resolves.toMatchObject({ phase: "purged" });
         await expect(t.run((ctx) => isPro(ctx, owner.userId))).resolves.toBeTruthy();
+    });
+
+    test("keeps the job at purged when PostHog reports a person it could not delete", async () => {
+        stubUpstream(202, [{ person_uuid: "person" }]);
+        const { resumeSecret, t } = await purgedJob();
+
+        await expect(t.action(api.accountDeletion.eraseBilling, { resumeSecret })).rejects.toThrow("PostHog");
+
+        await expect(t.query(api.accountDeletion.poll, { resumeSecret })).resolves.toMatchObject({ phase: "purged" });
     });
 });
 

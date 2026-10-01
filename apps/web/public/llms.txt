@@ -27,7 +27,7 @@
 ## Privacy
 
 - The ledger is stored on the device. It reaches Outlayr's servers only when you sign in and turn on sync, or use a feature that needs the server (voice entry, receipt scanning, suggestions).
-- No ads, no analytics, no tracking, and data is never sold.
+- No ads, no cross-app tracking, and data is never sold. The app sends usage analytics and crash reports to PostHog, never amounts, merchants, or notes.
 
 ## Pages
 

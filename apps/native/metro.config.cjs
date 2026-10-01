@@ -2,13 +2,13 @@
 
 const path = require("node:path");
 
-const { getDefaultConfig } = require("expo/metro-config");
+const { getPostHogExpoConfig } = require("posthog-react-native/metro");
 const { configMetroIntlayerSync } = require("react-native-intlayer/metro");
 const { withUniwindConfig } = require("uniwind/metro");
 const { wrapWithReanimatedMetroConfig } = require("react-native-reanimated/metro-config");
 
 /** @type {import('expo/metro-config').MetroConfig} */
-const config = getDefaultConfig(__dirname);
+const config = getPostHogExpoConfig(__dirname);
 
 // The hoisted pnpm store must stay watched: `@shopify/react-native-skia` resolves
 // to `src/index.ts`, which re-exports a *directory* (`./views`), and directory-index

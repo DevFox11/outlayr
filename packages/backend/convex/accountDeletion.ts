@@ -7,10 +7,12 @@ import { action, internalMutation, internalQuery, mutation, query } from "./_gen
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { purgeUserBatch } from "./account";
 import { requireUserId } from "./lib/auth";
+import { erasePostHogPerson } from "./lib/posthog";
 import { sha256Hex } from "./lib/sha256Hex";
 import { eraseUpstreamCustomer, revenuecat } from "./revenuecat";
 
 const DELETE_JOB_TTL_MS = 24 * 60 * 60 * 1000;
+const UPSTREAM_ERASE_SECRETS = ["REVENUECAT_SECRET_KEY", "POSTHOG_PERSONAL_API_KEY", "POSTHOG_PROJECT_ID"] as const;
 const AUTH_DELETE_PAGE = 100;
 
 const usage = new RateLimiter(components.rateLimiter);
@@ -125,8 +127,9 @@ export const DELETION_JOBS_PER_USER = 20;
 export const prepare = mutation({
     args: {},
     handler: async (ctx) => {
-        if (!env.REVENUECAT_SECRET_KEY) {
-            throw new ConvexError("Account deletion needs REVENUECAT_SECRET_KEY before it can erase billing");
+        const missing = UPSTREAM_ERASE_SECRETS.filter((name) => !env[name]);
+        if (missing.length > 0) {
+            throw new ConvexError(`Account deletion needs ${missing.join(", ")} before it can erase upstream copies`);
         }
         const userId = await requireUserId(ctx);
         const identity = await ctx.auth.getUserIdentity();
@@ -324,6 +327,7 @@ export const eraseBilling = action({
         const appUserId = await ctx.runQuery(internal.accountDeletion.billingTarget, args);
         if (appUserId !== null) {
             await eraseUpstreamCustomer(appUserId);
+            await erasePostHogPerson(appUserId);
         }
         return await ctx.runMutation(internal.accountDeletion.recordBillingErased, args);
     },
