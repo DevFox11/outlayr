@@ -7,7 +7,14 @@ import { defineConfig } from "vite";
 import { intlayer } from "vite-intlayer";
 
 export default defineConfig({
-    plugins: [contentCollections(), tailwindcss(), intlayer(), tanstackStart(), nitro(), viteReact()],
+    plugins: [
+        contentCollections(),
+        tailwindcss(),
+        intlayer(),
+        tanstackStart(),
+        nitro({ routes: { "/assets/**": "./src/server/missing-asset.ts" } }),
+        viteReact(),
+    ],
     resolve: {
         tsconfigPaths: true,
     },
