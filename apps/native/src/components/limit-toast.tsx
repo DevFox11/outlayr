@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
-import { Toast } from "panelui-native";
-import Animated, { FadeInUp, FadeOutUp } from "react-native-reanimated";
+import Animated, { SlideInUp, SlideOutUp } from "react-native-reanimated";
 
+import { NoticeSlip } from "@/components/notice-slip";
 import { formatSentenceDate } from "@/domain/dates";
 import { formatWait } from "@/domain/usage-limits";
 import type { CaptureFeature, LimitNotice } from "@/hooks/use-usage-limits";
@@ -54,21 +54,18 @@ export function LimitToast({
 
     return (
         <Animated.View
-            entering={FadeInUp.duration(220)}
-            exiting={FadeOutUp.duration(180)}
+            entering={SlideInUp.duration(320)}
+            exiting={SlideOutUp.duration(260)}
             pointerEvents="box-none"
             style={{ left: 16, position: "absolute", right: 16, top: TOP_OFFSET }}
         >
-            <Toast variant={notice.kind === "paused" || notice.kind === "capturesEmpty" ? "destructive" : "warning"}>
-                <Toast.Indicator />
-                <Toast.Content>
-                    <Toast.Title>{title}</Toast.Title>
-                    {description === null ? null : <Toast.Description>{description}</Toast.Description>}
-                </Toast.Content>
-                <Toast.Action onPress={() => router.push(toPro ? "/paywall" : "/settings/usage")}>
-                    {t(toPro ? "settings.usage.toast.pro" : "settings.usage.toast.usage")}
-                </Toast.Action>
-            </Toast>
+            <NoticeSlip
+                actionLabel={t(toPro ? "settings.usage.toast.pro" : "settings.usage.toast.usage")}
+                body={description ?? undefined}
+                onAction={() => router.push(toPro ? "/paywall" : "/settings/usage")}
+                title={title}
+                tone={{ kind: notice.kind === "paused" || notice.kind === "capturesEmpty" ? "failure" : "warning" }}
+            />
         </Animated.View>
     );
 }

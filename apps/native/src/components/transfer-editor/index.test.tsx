@@ -327,7 +327,13 @@ describe("transfer editor saved notice", () => {
 
         expect(mockNotifySaved).toHaveBeenCalledTimes(1);
         const [[notice]] = mockNotifySaved.mock.calls;
-        expect(notice).toMatchObject({ actionLabel: "transfers.saved.another", title: "Moved $100.00 to Mercantil" });
+        expect(notice).toMatchObject({
+            actionLabel: "transfers.saved.another",
+            amount: { text: "$100.00" },
+            stamp: "Transfer added",
+            title: "Mercantil",
+            tone: { ends: { from: { name: "Zinli" }, to: { name: "Mercantil" } }, kind: "transfer" },
+        });
         notice.onActionPress?.({ hide: jest.fn(), id: "toast" });
         expect(mockPush).toHaveBeenCalledWith("/transactions/transfers/create");
     });

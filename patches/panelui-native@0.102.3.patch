@@ -1,0 +1,47 @@
+diff --git a/lib/module/components/toast/index.js b/lib/module/components/toast/index.js
+--- a/lib/module/components/toast/index.js
++++ b/lib/module/components/toast/index.js
+@@ -97,7 +97,7 @@
+     }]
+   },
+   100: {
+-    opacity: 0,
++    opacity: 1,
+     transform: [{
+       translateY: offset
+     }, {
+@@ -105,9 +105,9 @@
+     }],
+     easing: Easing.bezier(0.23, 1, 0.32, 1)
+   }
+-}).duration(240);
+-const exitingTop = exitKeyframe(-ENTER_OFFSET);
+-const exitingBottom = exitKeyframe(ENTER_OFFSET);
++}).duration(320);
++const exitingTop = exitKeyframe(-ENTER_OFFSET * 3);
++const exitingBottom = exitKeyframe(ENTER_OFFSET * 3);
+ const toastVariants = tv({
+   slots: {
+     root: 'w-full flex-row items-start gap-3 rounded-2xl border px-4 py-3.5 shadow-lg',
+diff --git a/src/components/toast/index.tsx b/src/components/toast/index.tsx
+--- a/src/components/toast/index.tsx
++++ b/src/components/toast/index.tsx
+@@ -115,14 +115,14 @@
+   new Keyframe({
+     0: { opacity: 1, transform: [{ translateY: 0 }, { scale: 1 }] },
+     100: {
+-      opacity: 0,
++      opacity: 1,
+       transform: [{ translateY: offset }, { scale: 0.97 }],
+       easing: Easing.bezier(0.23, 1, 0.32, 1),
+     },
+-  }).duration(240);
++  }).duration(320);
+ 
+-const exitingTop = exitKeyframe(-ENTER_OFFSET);
+-const exitingBottom = exitKeyframe(ENTER_OFFSET);
++const exitingTop = exitKeyframe(-ENTER_OFFSET * 3);
++const exitingBottom = exitKeyframe(ENTER_OFFSET * 3);
+ 
+ const toastVariants = tv({
+   slots: {

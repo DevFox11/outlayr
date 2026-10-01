@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { eq } from "drizzle-orm";
 import { toast } from "panelui-native";
+import type { ToastOptions } from "panelui-native";
+import { isValidElement } from "react";
 
+import type { NoticeSlipProps } from "@/components/notice-slip";
 import type { Database } from "@/db/client";
 import { accounts, budgets, categories, mainBudget, transactions, transfers } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
@@ -12,6 +15,11 @@ import { accountsRepo } from "./accounts-core";
 import { budgetsRepo } from "./budgets-core";
 import { createDeferredDeleteRegistry, UNDO_WINDOW_MS } from "./deferred-delete-registry";
 import { transfersRepo } from "./transfers-core";
+
+function slipOf(options: ToastOptions | string | undefined): NoticeSlipProps | null {
+    const slip = typeof options === "string" ? null : options?.component?.({ hide: jest.fn(), id: "toast" });
+    return isValidElement<NoticeSlipProps>(slip) ? slip.props : null;
+}
 
 const DAY = new Date(Date.UTC(2026, 7, 9));
 
@@ -78,8 +86,7 @@ describe("createDeferredDeleteRegistry", () => {
 
         registry.requestDelete("row", "tx-1");
         // The undo lives on the toast, so its button is the only way to reach it.
-        const offered = show.mock.calls[0][0] as { onActionPress: (handle: unknown) => void };
-        offered.onActionPress(null);
+        slipOf(show.mock.calls[0]?.[0])?.onAction?.();
 
         jest.advanceTimersByTime(UNDO_WINDOW_MS * 2);
         await settle();
@@ -172,9 +179,7 @@ describe("createDeferredDeleteRegistry", () => {
         jest.advanceTimersByTime(UNDO_WINDOW_MS);
         await settle();
 
-        const failures = show.mock.calls.filter(
-            ([notice]) => typeof notice !== "string" && notice.variant === "destructive"
-        );
+        const failures = show.mock.calls.filter(([notice]) => slipOf(notice)?.tone.kind === "failure");
         expect(failures).toHaveLength(1);
     });
 

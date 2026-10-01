@@ -45,6 +45,7 @@ catalogs:
 
 patchedDependencies:
   expo-widgets@57.0.21: fa3f0da02bb49a41726262d5f82d808ac4621715eef23da423a8c8c3acc83cc7
+  panelui-native@0.102.3: 1cada9d9400c3d27428cba89e1da4ac4cde45e911952445f4308f8bdbf45d3f3
 
 importers:
 
@@ -259,7 +260,7 @@ importers:
         version: 0.5.1(a7d9ced29fb689a812193726f6b70807)
       panelui-native:
         specifier: ^0.102.3
-        version: 0.102.3(ff1f021290ab2c16fc6cc327cd716b49)
+        version: 0.102.3(patch_hash=1cada9d9400c3d27428cba89e1da4ac4cde45e911952445f4308f8bdbf45d3f3)(ff1f021290ab2c16fc6cc327cd716b49)
       posthog-react-native:
         specifier: ^4.78.1
         version: 4.78.1(8e80c2a1c3026f7ffbd0b5ff70257999)
@@ -19833,7 +19834,7 @@ snapshots:
 
   pako@1.0.11: {}
 
-  panelui-native@0.102.3(ff1f021290ab2c16fc6cc327cd716b49):
+  panelui-native@0.102.3(patch_hash=1cada9d9400c3d27428cba89e1da4ac4cde45e911952445f4308f8bdbf45d3f3)(ff1f021290ab2c16fc6cc327cd716b49):
     dependencies:
       '@hugeicons/core-free-icons': 4.3.0
       '@hugeicons/react-native': 1.0.16(react-native-svg@15.15.4(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)

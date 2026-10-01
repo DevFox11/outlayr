@@ -20,6 +20,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { transfersRepo } from "@/data/transfers-core";
 import type { SavedTransfer, TransferInput } from "@/data/transfers-core";
 import { formatSignedAmount } from "@/domain/account-display";
+import { rowAmountLabel } from "@/domain/amount-label";
 import { formatSentenceDate } from "@/domain/dates";
 import { formatAmount, numberLocale } from "@/domain/money";
 import { applyNumpadKey, numpadMode } from "@/domain/numpad";
@@ -161,11 +162,15 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, saved,
                 freshEntries.mark(await transfersRepo.create(db, input));
                 notifySaved({
                     actionLabel: t("transfers.saved.another"),
+                    amount: {
+                        label: rowAmountLabel({ amount: draft.sent, code: draft.fromCurrency, income: null }, t),
+                        text: formatAmount(draft.sent, draft.fromCurrency, true, language),
+                    },
+                    body: t("transfers.saved.from", { from: from.name }),
                     onActionPress: () => router.push("/transactions/transfers/create"),
-                    title: t("transfers.saved.title", {
-                        amount: formatAmount(draft.sent, draft.fromCurrency, true, language),
-                        to: to.name,
-                    }),
+                    stamp: t("transfers.saved.title"),
+                    title: to.name,
+                    tone: { ends: { from, to }, kind: "transfer" },
                 });
             }
             posthog?.capture("transfer_saved", {

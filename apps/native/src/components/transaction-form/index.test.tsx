@@ -1673,10 +1673,13 @@ describe("transactionForm after a save", () => {
         expect(onDone).toHaveBeenCalledTimes(1);
         expect(mockNotifySaved).toHaveBeenCalledTimes(1);
         const [notice] = mockNotifySaved.mock.calls[0] ?? [];
-        expect(notice).toMatchObject({ actionLabel: "transaction.toast.another", title: "GitHub $25.00 added" });
-        const hide = jest.fn();
-        notice?.onActionPress?.({ hide, id: "saved" });
-        expect(hide).toHaveBeenCalledTimes(1);
+        expect(notice).toMatchObject({
+            actionLabel: "transaction.toast.another",
+            amount: { text: "-$25.00" },
+            stamp: "Added",
+            title: "GitHub",
+        });
+        notice?.onActionPress?.({ hide: jest.fn(), id: "saved" });
         expect(mockRouterPush).toHaveBeenCalledWith("/transactions/create");
     });
 
@@ -1686,7 +1689,7 @@ describe("transactionForm after a save", () => {
         await repeatMonthly(screen);
         await pressSave(screen, "transaction.cta.addSubscription");
 
-        expect(mockNotifySaved.mock.calls[0]?.[0].title).toBe("GitHub $25.00 subscription added");
+        expect(mockNotifySaved.mock.calls[0]?.[0].stamp).toBe("Subscription added");
     });
 
     it("asks the Log for the confetti only when the setting is on", async () => {

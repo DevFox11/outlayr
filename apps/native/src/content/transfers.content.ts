@@ -131,9 +131,13 @@ const transfers = {
             en: "Add another",
             es: "Agregar otra",
         }),
+        "transfers.saved.from": t({
+            en: "From {from}",
+            es: "Desde {from}",
+        }),
         "transfers.saved.title": t({
-            en: "Moved {amount} to {to}",
-            es: "Moviste {amount} a {to}",
+            en: "Transfer added",
+            es: "Transferencia agregada",
         }),
         "transfers.sentence.blank.account": t({
             en: "an account",

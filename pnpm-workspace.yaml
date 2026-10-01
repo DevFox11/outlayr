@@ -32,3 +32,4 @@ minimumReleaseAgeExclude:
 
 patchedDependencies:
     expo-widgets@57.0.21: patches/expo-widgets@57.0.21.patch
+    panelui-native@0.102.3: patches/panelui-native@0.102.3.patch

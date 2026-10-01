@@ -89,6 +89,33 @@
         ],
         "createdAt": "2026-09-30T18:58:39.984Z",
         "reason": "agent: #e9e6de is Outlayr's paper brand ground from apps/native/global.css light tokens, shared by every docs/design mock"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "docs/design/notifications.html"
+        ],
+        "createdAt": "2026-10-01T18:29:48.700Z",
+        "reason": "agent: tight insets are replicas of shipping chrome (the Log's EUR currency tag, the iOS battery badge), not the toast designs under review"
+      },
+      {
+        "rule": "nested-cards",
+        "value": "*",
+        "files": [
+          "docs/design/notifications.html"
+        ],
+        "createdAt": "2026-10-01T18:29:48.717Z",
+        "reason": "agent: the dark plates are the app's screen ground for showing floating toasts out of the phone, a presentation fixture, not cards in the proposed UI"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "docs/design/notifications.html"
+        ],
+        "createdAt": "2026-10-01T18:29:48.732Z",
+        "reason": "agent: #e9e6de stage matches existing artifacts (docs/design/fee-total.html) and the Grid brand paper #F2F0EA; the proposed UI itself is the dark theme"
       }
     ]
   }

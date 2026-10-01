@@ -1,6 +1,9 @@
 import { toast } from "panelui-native";
 import type { ToastHandle } from "panelui-native";
 
+import { NoticeSlip } from "@/components/notice-slip";
+import type { NoticeSlipProps, NoticeTone } from "@/components/notice-slip";
+
 /**
  * Transient notices surface as a toast at the top of the screen rather than a
  * modal `Alert`.
@@ -36,20 +39,39 @@ interface Notice {
     title: string;
 }
 
-function show(notice: Notice, variant: "default" | "destructive", duration?: number): string {
+interface SavedEntry {
+    amount: NonNullable<NoticeSlipProps["amount"]>;
+    stamp: string;
+    tone: Extract<NoticeTone, { kind: "entry" | "transfer" }>;
+}
+
+function show(
+    notice: Notice & Pick<NoticeSlipProps, "amount" | "stamp" | "tone">,
+    duration = notice.actionLabel ? ACTIONABLE_MS : NOTICE_MS
+): string {
     return toast.show({
-        actionLabel: notice.actionLabel,
-        description: notice.body,
-        duration: duration ?? (notice.actionLabel ? ACTIONABLE_MS : NOTICE_MS),
-        label: notice.title,
-        onActionPress: notice.onActionPress,
+        component: (handle) => (
+            <NoticeSlip
+                actionLabel={notice.actionLabel}
+                amount={notice.amount}
+                body={notice.body}
+                onAction={() => {
+                    notice.onActionPress?.(handle);
+                    handle.hide();
+                }}
+                onDismiss={handle.hide}
+                stamp={notice.stamp}
+                title={notice.title}
+                tone={notice.tone}
+            />
+        ),
+        duration,
         placement: "top",
-        variant,
     });
 }
 
 export function notifyFailure(notice: Notice): void {
-    show(notice, "destructive");
+    show({ ...notice, tone: { kind: "failure" } });
 }
 
 /**
@@ -58,11 +80,11 @@ export function notifyFailure(notice: Notice): void {
  * the write commits, not when the toast times out.
  */
 export function notifyUndoable(notice: Notice & { duration: number }): string {
-    return show(notice, "default", notice.duration);
+    return show({ ...notice, tone: { kind: "removed" } }, notice.duration);
 }
 
-export function notifySaved(notice: Notice): void {
-    show(notice, "default");
+export function notifySaved(notice: Notice & SavedEntry): void {
+    show(notice);
 }
 
 export function dismissNotice(id: string): void {

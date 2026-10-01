@@ -58,6 +58,7 @@ import { transactionRateSuggestions } from "@/data/transaction-entry-rates";
 import { getTransactionById, transactionsRepo } from "@/data/transactions-core";
 import type { Transaction, TransactionInput } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
+import { rowAmountLabel } from "@/domain/amount-label";
 import { cardFeeAmount, cardFeeBase, cardFeeOf, feeDraftOf, formatFeeRate, NO_FEE } from "@/domain/card-fee";
 import type { FeeDraft } from "@/domain/card-fee";
 import { computeCurtainHues } from "@/domain/curtain-hues";
@@ -98,6 +99,7 @@ import {
 } from "@/domain/transaction-form-labels";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
 import { transactionFormErrors } from "@/domain/transaction-form-validate";
+import { resolveTransactionIdentity } from "@/domain/transaction-identity";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
 import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 import { useRegionCode } from "@/hooks/use-region-code";
@@ -1071,16 +1073,35 @@ export function TransactionForm({
     const usdSnapshot = useRef<RateSnapshot>({ entry: NO_RATE, fromSuggestion: false, type: null });
     const celebrate = useAppSettings().state.bool("confetti");
     const announceSaved = (value: typeof initialValues, amount: number) => {
+        const chosen = value.category ?? value.pendingCategory;
+        const categoryName = chosen?.name ?? "";
+        const merchant = value.merchant.trim();
+        const body = [merchant ? categoryName : "", value.account?.name ?? ""].filter(Boolean).join(" · ");
+        const entryCode = value.txCurrency ?? globalCurrency;
         notifySaved({
             actionLabel: t("transaction.toast.another"),
-            onActionPress: (handle) => {
-                handle.hide();
-                router.push("/transactions/create");
+            amount: {
+                label: rowAmountLabel({ amount, code: entryCode, income: value.income }, t),
+                text: `${value.income ? "+" : "-"}${formatAmount(amount, entryCode, true, language)}`,
             },
-            title: t(value.isSubscription ? "transaction.toast.subscriptionAdded" : "transaction.toast.added", {
-                amount: formatAmount(amount, value.txCurrency ?? globalCurrency, true, language),
-                name: value.merchant.trim() || (value.category?.name ?? value.pendingCategory?.name ?? ""),
-            }),
+            body: body || undefined,
+            onActionPress: () => router.push("/transactions/create"),
+            stamp: t(value.isSubscription ? "transaction.toast.subscriptionAdded" : "transaction.toast.added"),
+            title: merchant || categoryName,
+            tone: {
+                identity: resolveTransactionIdentity({
+                    categoryColor: chosen?.color ?? null,
+                    categoryEmoji: chosen?.emoji ?? null,
+                    categoryIcon: chosen?.icon ?? null,
+                    customColor: identity.color,
+                    emoji: identity.emoji,
+                    icon: identity.icon,
+                    imageColor: identity.photoColor,
+                }),
+                imageUri: identity.photoUri,
+                income: value.income,
+                kind: "entry",
+            },
         });
         if (celebrate) {
             celebration.fire();

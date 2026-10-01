@@ -11,7 +11,7 @@ import { formatTime, formatUpcomingDate, isFuture } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
 import { isTransactionRateNeeded } from "@/domain/transaction-entry-rate";
 import { FALLBACK_IDENTITY_COLOR, resolveTransactionIdentity } from "@/domain/transaction-identity";
-import type { TransferEnd, TransferLogRow, TransferMove } from "@/domain/transfer-log-rows";
+import type { TransferLogRow, TransferMove } from "@/domain/transfer-log-rows";
 import { isExact } from "@/domain/valuation";
 import type { RateTable } from "@/domain/valuation";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -23,67 +23,14 @@ import { RowAmount } from "./amount-text";
 import { CategoryIconTile } from "./category-icon-tile";
 import { MonoLabel } from "./mono-label";
 import { Text } from "./text";
+import { BADGE_OFFSET, TILE_RADIUS, TILE_SIZE, TransferTile } from "./transfer-tile";
 import { cn } from "./tw";
-
-/** A 20pt glyph in 8pt of padding. */
-const TILE_SIZE = 36;
-const TILE_RADIUS = 9;
-
-const BADGE_OFFSET = -5;
-const BADGE_SIZE = 20;
-const BADGE_RADIUS = 6;
-const BADGE_RING = 2;
 
 /** Custom, so it surfaces in the rotor's Actions rather than replacing a tap. */
 const DELETE_ACTION = "delete";
 
 function feeGlyph({ color, size }: { color: string; size: number }) {
     return <HugeiconsIcon color={color} icon={PercentCircleSolidIcon} size={size} />;
-}
-
-function AccountTile({
-    end,
-    future,
-    radius,
-    size,
-}: {
-    end: TransferEnd;
-    future: boolean;
-    radius: number;
-    size: number;
-}) {
-    const colors = useColors();
-    return (
-        <CategoryIconTile
-            color={end.imageColor ?? end.customColor ?? colors.foreground}
-            emoji={end.emoji}
-            future={future}
-            icon={end.icon}
-            imageUri={end.imageUri}
-            radius={radius}
-            size={size}
-            type="solid"
-        />
-    );
-}
-
-function TransferTile({ ends, future }: { ends: NonNullable<TransferLogRow["ends"]>; future: boolean }) {
-    return (
-        <View>
-            <AccountTile end={ends.from} future={future} radius={TILE_RADIUS} size={TILE_SIZE} />
-            <View
-                className="bg-background absolute"
-                style={{
-                    borderRadius: BADGE_RADIUS + BADGE_RING,
-                    bottom: BADGE_OFFSET - BADGE_RING,
-                    padding: BADGE_RING,
-                    right: BADGE_OFFSET - BADGE_RING,
-                }}
-            >
-                <AccountTile end={ends.to} future={future} radius={BADGE_RADIUS} size={BADGE_SIZE} />
-            </View>
-        </View>
-    );
 }
 
 const UNDER_AMOUNT = "text-eyebrow text-muted font-mono tabular-nums";
