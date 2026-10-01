@@ -1,11 +1,16 @@
 import { HeadContent, Scripts, createRootRoute, useParams } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { defaultLocale, getIntlayer, getPathWithoutLocale, locales } from "intlayer";
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { IntlayerProvider } from "react-intlayer";
 
+import { ConsentBanner } from "@/components/consent-banner";
 import { NotFound } from "@/components/not-found";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { startAnalytics } from "@/lib/analytics";
 import { LANGUAGES, localeFromParam, pageUrl } from "@/lib/i18n";
 import { ldJson } from "@/lib/seo";
 import { COMPANY, SITE_URL, SUPPORT_EMAIL } from "@/lib/site";
@@ -14,6 +19,8 @@ import { THEME_SCRIPT } from "@/lib/theme";
 import appCss from "../index.css?url";
 
 const ORGANIZATION_ID = `${SITE_URL}/#organization`;
+
+const visitorCountry = createServerFn({ method: "GET" }).handler(() => getRequestHeader("cf-ipcountry") ?? null);
 
 const SITE_GRAPH = {
     "@context": "https://schema.org",
@@ -99,12 +106,16 @@ export const Route = createRootRoute({
             scripts: [{ children: THEME_SCRIPT }, ldJson(SITE_GRAPH)],
         };
     },
+    loader: () => visitorCountry(),
     notFoundComponent: NotFound,
     shellComponent: RootDocument,
+    staleTime: Number.POSITIVE_INFINITY,
 });
 
 function RootDocument({ children }: { children: ReactNode }) {
     const locale = localeFromParam(useParams({ strict: false }).locale);
+    const country = Route.useLoaderData();
+    useEffect(() => startAnalytics(country), [country]);
     return (
         <html lang={LANGUAGES[locale].lang} suppressHydrationWarning>
             <head>
@@ -115,6 +126,7 @@ function RootDocument({ children }: { children: ReactNode }) {
                     <SiteHeader />
                     <div className="flex-1">{children}</div>
                     <SiteFooter />
+                    <ConsentBanner />
                 </IntlayerProvider>
                 <Scripts />
             </body>

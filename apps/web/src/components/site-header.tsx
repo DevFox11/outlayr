@@ -15,7 +15,7 @@ export function SiteHeader() {
                     <LogoMark className="size-6" />
                     <span className="font-mono text-base font-medium">outlayr</span>
                 </LocalizedLink>
-                <AppStoreBadge size="small" />
+                <AppStoreBadge placement="header" size="small" />
             </div>
         </header>
     );

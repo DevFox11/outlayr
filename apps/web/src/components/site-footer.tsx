@@ -5,6 +5,7 @@ import { LANGUAGES } from "@/lib/i18n";
 import { CONTAINER } from "@/lib/layout";
 import { COMPANY, SUPPORT_EMAIL, legalDate } from "@/lib/site";
 
+import { ConsentSwitch } from "./consent-switch";
 import { LanguageSwitch } from "./language-switch";
 import { LocalizedLink } from "./localized-link";
 import { LogoMark } from "./logo-mark";
@@ -56,6 +57,7 @@ export function SiteFooter() {
                     </LocalizedLink>
                 </nav>
                 <ThemeSwitch />
+                <ConsentSwitch />
                 <LanguageSwitch />
                 <div className="border-foreground flex items-baseline justify-between gap-4 border-t-2 pt-3.5">
                     <span className="text-micro text-muted uppercase">© 2026</span>

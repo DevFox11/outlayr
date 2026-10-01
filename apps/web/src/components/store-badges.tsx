@@ -1,3 +1,4 @@
+import { posthog } from "posthog-js";
 import { useIntlayer, useLocale } from "react-intlayer";
 
 import type { Locale } from "@/lib/i18n";
@@ -15,11 +16,17 @@ const GOOGLE_PLAY_BADGE = {
     es: { height: 192, src: "/badges/google-play-es.png", width: 646 },
 } as const satisfies Record<Locale, { height: number; src: string; width: number }>;
 
-export function AppStoreBadge({ size = "large" }: { size?: keyof typeof HEIGHT }) {
+type Placement = "closing" | "header" | "hero";
+
+export function AppStoreBadge({ placement, size = "large" }: { placement: Placement; size?: keyof typeof HEIGHT }) {
     const { badges } = useIntlayer("site");
     const { locale } = useLocale();
     return (
-        <a className="shrink-0" href={APP_STORE_URL}>
+        <a
+            className="shrink-0"
+            href={APP_STORE_URL}
+            onClick={() => posthog.capture("app_store_badge_clicked", { placement })}
+        >
             <img
                 alt={badges.appStore.value}
                 className={`w-auto ${HEIGHT[size]}`}
@@ -31,13 +38,13 @@ export function AppStoreBadge({ size = "large" }: { size?: keyof typeof HEIGHT }
     );
 }
 
-export function StoreBadges() {
+export function StoreBadges({ placement }: { placement: Placement }) {
     const { badges } = useIntlayer("site");
     const { locale } = useLocale();
     const googlePlay = GOOGLE_PLAY_BADGE[locale];
     return (
         <div className="flex flex-wrap items-start gap-3 md:shrink-0">
-            <AppStoreBadge />
+            <AppStoreBadge placement={placement} />
             <figure className="flex shrink-0 flex-col items-center gap-1.5">
                 <img
                     alt={badges.googlePlay.value}

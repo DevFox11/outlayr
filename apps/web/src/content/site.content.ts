@@ -8,6 +8,17 @@ const site = {
             comingSoon: t({ en: "Coming soon", es: "Próximamente" }),
             googlePlay: "Google Play",
         },
+        consent: {
+            allow: t({ en: "Allow", es: "Permitir" }),
+            anchor: t({ en: "this-website", es: "este-sitio-web" }),
+            body: t({
+                en: "A cookie lets us count repeat visits and see which pages help.",
+                es: "Una cookie nos permite contar las visitas que vuelven y ver qué páginas ayudan.",
+            }),
+            decline: t({ en: "Decline", es: "Rechazar" }),
+            label: "Cookies",
+            privacy: t({ en: "Privacy", es: "Privacidad" }),
+        },
         footer: {
             email: t({ en: "Email", es: "Correo" }),
             language: t({ en: "Language", es: "Idioma" }),

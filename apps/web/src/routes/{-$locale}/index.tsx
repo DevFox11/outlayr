@@ -95,7 +95,7 @@ function Hero() {
                 <h1 className="text-display font-bold">{hero.title}</h1>
                 <p className="text-lead text-muted mt-6 max-w-[33rem]">{hero.lead}</p>
                 <div className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-4">
-                    <StoreBadges />
+                    <StoreBadges placement="hero" />
                     <a className="font-semibold whitespace-nowrap underline underline-offset-4" href="#plans">
                         {hero.secondary}
                     </a>
@@ -327,7 +327,7 @@ function Closing() {
                 className={`${CONTAINER} flex flex-col gap-10 pt-20 pb-24 md:flex-row md:items-baseline-last md:justify-between md:gap-16 md:pt-32 md:pb-36`}
             >
                 <h2 className="text-poster max-w-[12em] font-bold">{closingTitle}</h2>
-                <StoreBadges />
+                <StoreBadges placement="closing" />
             </div>
         </section>
     );

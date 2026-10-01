@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getIntlayer } from "intlayer";
+import { posthog } from "posthog-js";
 import { useIntlayer } from "react-intlayer";
 
 import { ASIDE, COLUMNS, Page } from "@/components/page";
@@ -29,6 +30,7 @@ function Support() {
                     <a
                         className="mt-5 inline-block font-mono font-medium whitespace-nowrap underline underline-offset-4"
                         href={`mailto:${SUPPORT_EMAIL}`}
+                        onClick={() => posthog.capture("support_email_clicked")}
                     >
                         {SUPPORT_EMAIL}
                     </a>

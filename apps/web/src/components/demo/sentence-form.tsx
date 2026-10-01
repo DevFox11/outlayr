@@ -1,3 +1,4 @@
+import { posthog } from "posthog-js";
 import { useEffect, useEffectEvent, useId, useReducer, useRef, useState } from "react";
 import type { FocusEvent, KeyboardEvent, ReactNode } from "react";
 import { useIntlayer } from "react-intlayer";
@@ -467,6 +468,7 @@ export function SentenceForm() {
             const merchant = state.draft.merchant.trim() || nameOf(state.draft.category ?? "");
             const money = signedMoney(amountOf(state.draft), state.draft.currency, state.draft.kind === "income");
             setAnnouncement(added({ merchant, money }));
+            posthog.capture("demo_entry_added", { currency: state.draft.currency, kind: state.draft.kind });
         }
         pendingFocus.current = focus;
         dispatch(action);

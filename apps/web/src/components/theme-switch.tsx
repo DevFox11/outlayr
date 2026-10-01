@@ -3,6 +3,9 @@ import { useIntlayer } from "react-intlayer";
 
 import { THEMES, chooseTheme, paintTheme, readTheme, subscribeTheme, watchSystemTheme } from "@/lib/theme";
 
+export const SWITCH_OPTION =
+    "text-muted peer-checked:text-foreground peer-checked:decoration-tint peer-focus-visible:outline-tint hover:text-foreground underline-offset-4 transition-colors duration-150 peer-checked:underline peer-checked:decoration-2 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4";
+
 export const SWITCH_ROW =
     "border-border grid grid-cols-[5.5rem_minmax(0,1fr)] items-baseline gap-4 border-b py-3.5 sm:grid-cols-[9rem_minmax(0,1fr)]";
 
@@ -34,9 +37,7 @@ export function ThemeSwitch() {
                             type="radio"
                             value={option}
                         />
-                        <span className="text-muted peer-checked:text-foreground peer-checked:decoration-tint peer-focus-visible:outline-tint hover:text-foreground underline-offset-4 transition-colors duration-150 peer-checked:underline peer-checked:decoration-2 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4">
-                            {labels[option]}
-                        </span>
+                        <span className={SWITCH_OPTION}>{labels[option]}</span>
                     </label>
                 ))}
             </div>

@@ -6,6 +6,7 @@ allowBuilds:
     "@posthog/cli": true
     "@shopify/react-native-skia": true
     better-sqlite3: true
+    core-js: false
     esbuild: true
     sharp: false
 catalog:

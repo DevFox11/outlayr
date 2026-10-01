@@ -11,6 +11,7 @@ intro: "Esta política explica qué recopila Outlayr, adónde va, cuánto tiempo
 - Las entradas por voz, los escaneos de recibos y las sugerencias de comercios los procesa xAI. No guardamos tus grabaciones ni las fotos escaneadas, y nunca le enviamos a xAI tu nombre, tu correo electrónico ni tu ID de cuenta.
 - Las sugerencias de comercios y las búsquedas web están activadas de forma predeterminada. Puedes oponerte a cualquiera de ellas desactivándola en **Configuración › Laboratorio de funciones**.
 - La app envía analíticas de uso y reportes de fallas a PostHog: qué pantallas abres, cuándo guardas algo y los errores. Nunca montos, comercios, notas ni nombres. Empieza desactivado si la región de tu dispositivo está en el EEE o el Reino Unido, y activado en el resto del mundo. Cámbialo en **Configuración › Compartir analíticas**.
+- Este sitio web también usa PostHog, con una cookie. Si estás en el EEE o el Reino Unido, te pregunta primero. Cambia tu respuesta en el pie de página, en **Cookies**.
 - Sin anuncios y sin rastreo en apps de otras empresas. No vendemos ni compartimos tu información personal.
 - Puedes eliminar tu cuenta y todo lo que está sincronizado con ella desde la app en cualquier momento: **Configuración › Cuenta › Eliminar cuenta**.
 
@@ -39,6 +40,7 @@ Todos los tipos de datos que maneja Outlayr, en un solo lugar. Las secciones sig
 | Registros de compra, ID de usuario | Al abrir la app, Pro | RevenueCat, Apple, nuestros servidores | Hasta la eliminación de la cuenta |
 | ID de instalación, versión de la app, errores | Búsqueda de actualizaciones | Expo | Según la política de Expo |
 | Pantallas, guardados, errores, ID de instalación, modelo del dispositivo | Uso de la app | PostHog | Hasta la eliminación de la cuenta, o según la política de PostHog si nunca inicias sesión |
+| Páginas, clics, desplazamiento, errores, velocidad de carga, grabaciones de visitas | Visitas al sitio web | PostHog | Según la política de PostHog |
 | Tus correos | Cuando nos escribes | Nuestra bandeja de entrada | Mientras sea necesario |
 
 ## Lo que se queda en tu dispositivo
@@ -175,7 +177,7 @@ Estas empresas nos ayudan a operar Outlayr. Cada una recibe solo lo que su funci
 - **[Google](https://policies.google.com/privacy)** proporciona Acceder con Google, según su propia política, y es una fuente alternativa de logos, para lo cual recibe una dirección web y tu dirección IP.
 - **Logo.dev** proporciona logos de comercios y bancos. Recibe una dirección web y tu dirección IP.
 - **[Expo](https://expo.dev/privacy)** distribuye las actualizaciones de la app. Recibe un ID de instalación aleatorio, la versión de la app, tu dirección IP y los mensajes de error de las actualizaciones.
-- **[PostHog](https://posthog.com/privacy)** proporciona las analíticas de uso y los reportes de fallas, desde servidores en Estados Unidos. Recibe los eventos descritos en [Lo que la app envía incluso sin cuenta](#lo-que-la-app-envía-incluso-sin-cuenta), un ID de instalación aleatorio y tu ID de cuenta cuando inicias sesión.
+- **[PostHog](https://posthog.com/privacy)** proporciona las analíticas de uso y los reportes de fallas, desde servidores en Estados Unidos. Recibe los eventos descritos en [Lo que la app envía incluso sin cuenta](#lo-que-la-app-envía-incluso-sin-cuenta), un ID de instalación aleatorio y tu ID de cuenta cuando inicias sesión. También recibe las analíticas de este sitio web, descritas en [Este sitio web](#este-sitio-web).
 
 Frankfurter y CotizaVE publican las tasas de cambio que lee nuestro servidor. No reciben nada sobre ti.
 
@@ -187,9 +189,13 @@ No vendemos tu información personal, no la compartimos para publicidad dirigida
 
 ## Este sitio web
 
-Este sitio web no instala cookies y no usa analíticas, publicidad ni scripts de terceros. Sus fuentes, imágenes y video se sirven desde el propio sitio.
+Este sitio web usa PostHog para saber cómo se usa. Mientras navegas, envía las páginas que ves y la página de la que vienes, los clics, hasta dónde te desplazas, qué tan rápido cargan las páginas, los errores y una grabación de la visita (clics, desplazamiento y lo que había en pantalla, con todo lo que escribes oculto). Cada evento lleva tu navegador, sistema operativo, idioma, zona horaria y tamaño de pantalla. Los eventos llegan a PostHog a través de relay.tryoutlayr.com, y PostHog descarta tu dirección IP. Nunca se vinculan con tu cuenta de Outlayr.
 
-La empresa que aloja el sitio puede conservar registros estándar de solicitudes, como tu dirección IP, el agente de usuario de tu navegador, la página solicitada y la hora, para entregar y proteger el sitio. Los enlaces a otros sitios, como el App Store, llevan a servicios con sus propias políticas.
+Para reconocerte en visitas posteriores, PostHog guarda un ID aleatorio en una cookie y en el almacenamiento de tu navegador. Si estás en el EEE o el Reino Unido, o tu navegador envía Global Privacy Control, el sitio te pregunta antes de instalarla y no registra nada hasta que respondas. En el resto del mundo se instala en tu primera visita. Cambia tu respuesta cuando quieras en el pie de página, en **Cookies**. Tu respuesta se guarda en tu navegador.
+
+Si la rechazas, el sitio igual cuenta tu visita sin cookie. PostHog convierte tu dirección IP y tu navegador en un código que cambia cada día, así que no puede reconocerte otro día, y la visita no se graba.
+
+Las fuentes, imágenes y video del sitio se sirven desde el propio sitio. La empresa que lo aloja puede conservar registros estándar de solicitudes, como tu dirección IP, el agente de usuario de tu navegador, la página solicitada y la hora, para entregar y proteger el sitio. Los enlaces a otros sitios, como el App Store, llevan a servicios con sus propias políticas.
 
 ## Bases legales
 
@@ -201,6 +207,7 @@ Si estás en el Espacio Económico Europeo o en el Reino Unido, estas son las ba
 | Las sugerencias de comercios, las búsquedas web, la lista compartida de comercios y los logos | Intereses legítimos: agilizar el registro de entradas. Las sugerencias y las búsquedas web están activadas de forma predeterminada, y desactivar cualquiera de ellas en el Laboratorio de funciones es la forma de oponerte. |
 | Las sesiones, los límites de uso, los registros de errores y las búsquedas de actualizaciones | Intereses legítimos: mantener Outlayr seguro, en funcionamiento y libre de abusos. |
 | Las analíticas de uso y los reportes de fallas | Tu consentimiento. Compartir analíticas empieza desactivado cuando la región de tu dispositivo está en el EEE o el Reino Unido. Activarlo es dar tu consentimiento, y desactivarlo es retirarlo. |
+| Las analíticas del sitio web | Tu consentimiento para la cookie y las grabaciones de visitas, que pedimos en tu primera visita. Rechazarla es retirarlo. Una visita rechazada se cuenta igual sin cookie, por nuestro interés legítimo en saber cuántas personas nos visitan. |
 | La cámara, el micrófono, las fotos, el bloqueo biométrico y las notificaciones | Tu consentimiento, que das cuando tu dispositivo te pide permiso y retiras en su configuración (Configuración de iOS en iPhone). |
 | Atender requerimientos legales y conservar los registros que exige la ley | Obligación legal. |
 
@@ -217,6 +224,7 @@ La [tabla de arriba](#datos-de-un-vistazo) indica cuánto tiempo se conserva cad
 - Los contadores de uso que aplican los límites de escaneos, entradas por voz y sugerencias guardan solo cantidades, asociadas a tu ID de cuenta, y se eliminan con tu cuenta.
 - Los elementos de la lista compartida de comercios no están vinculados a nadie. Se actualizan después de 30 o 90 días.
 - Los eventos de analíticas vinculados a tu cuenta se eliminan con ella. Los eventos de una instalación que nunca inició sesión llevan solo un ID de instalación aleatorio y se conservan según la política de conservación de PostHog.
+- Los eventos del sitio web llevan un ID aleatorio del navegador, o un código que cambia cada día si rechazaste las cookies, y se conservan según la política de conservación de PostHog.
 - Nuestros proveedores, incluidos xAI, Apple, Google y Expo, conservan los datos que reciben según sus propias políticas de conservación.
 
 ## Eliminar y exportar
@@ -273,7 +281,7 @@ Si vives en California o en otro estado de EE. UU. con una ley de privacidad, es
 | **Identificadores:** nombre, correo electrónico, ID de cuenta, ID de instalación, dirección IP | Hetzner, RevenueCat, Expo, PostHog, Logo.dev, Google |
 | **Información comercial:** registros de suscripciones y compras | Apple, RevenueCat, Hetzner |
 | **Información de audio y visual:** clips de voz, escaneos de recibos, fotos adjuntas | xAI (clips y escaneos), Cloudflare (fotos) |
-| **Actividad en internet u otras redes:** dirección IP, agente de usuario, registros de solicitudes, uso de la app y reportes de fallas | Hetzner, Expo, PostHog, el proveedor que aloja nuestro sitio web |
+| **Actividad en internet u otras redes:** dirección IP, agente de usuario, registros de solicitudes, uso de la app y del sitio web, reportes de fallas | Hetzner, Expo, PostHog, el proveedor que aloja nuestro sitio web |
 | **Registros que creas:** entradas sincronizadas, montos, comercios, notas, presupuestos | Hetzner; nombres de comercios, categorías y cuentas a xAI |
 
 Obtenemos esta información de ti, de tu dispositivo, de Apple y de Google, y la usamos para los fines descritos en esta política. La conservamos durante los plazos indicados en [Datos de un vistazo](#datos-de-un-vistazo).
@@ -282,7 +290,7 @@ No vendemos información personal ni la compartimos para publicidad conductual d
 
 Puedes pedir conocer, eliminar o corregir tu información personal, y no recibirás un trato diferente por pedirlo. Un agente autorizado puede hacer la solicitud por ti si podemos confirmar que le diste permiso. Si rechazamos una solicitud, puedes apelar respondiendo a nuestro mensaje.
 
-Como no vendemos ni compartimos, no hay nada de lo que una señal de Global Privacy Control (GPC) pueda excluirte, pero tratamos esa señal como una solicitud válida de exclusión (opt-out). Este sitio no te rastrea, así que funciona igual con o sin la señal Do Not Track (“No rastrear”).
+Como no vendemos ni compartimos, no hay nada de lo que una señal de Global Privacy Control (GPC) pueda excluirte, pero tratamos esa señal como una solicitud válida de exclusión (opt-out): este sitio te pregunta antes de instalar su cookie de analíticas, estés donde estés. Do Not Track (“No rastrear”) no tiene un significado acordado, así que el sitio no responde a esa señal.
 
 ## Seguridad
 
