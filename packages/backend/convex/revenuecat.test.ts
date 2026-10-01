@@ -104,6 +104,33 @@ describe("syncFromStore", () => {
         await expect(t.run((ctx) => isPro(ctx, identity.userId))).resolves.toBeTruthy();
     });
 
+    test("mirrors a subscriber carrying RevenueCat's reserved $ attributes", async () => {
+        const t = convexTest(schema, modules);
+        rateLimiterTest.register(t);
+        revenuecatTest.register(t);
+        const identity = await seedAuthUser(t);
+        const now = Date.now();
+        vi.stubGlobal(
+            "fetch",
+            vi.fn(async () =>
+                Response.json({
+                    subscriber: {
+                        entitlements: {
+                            pro: {
+                                expires_date: new Date(now + 86_400_000).toISOString(),
+                                product_identifier: "com.tryoutlayr.app.pro.monthly",
+                                purchase_date: new Date(now).toISOString(),
+                            },
+                        },
+                        subscriber_attributes: { $attConsentStatus: { updated_at_ms: now, value: "authorized" } },
+                    },
+                })
+            )
+        );
+
+        await expect(authenticatedAs(t, identity).action(api.revenuecat.syncFromStore, {})).resolves.toBeTruthy();
+    });
+
     test("mirrors nothing when the store call fails, and stays false", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);

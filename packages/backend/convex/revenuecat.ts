@@ -1,6 +1,7 @@
 import { HOUR, RateLimiter } from "@convex-dev/rate-limiter";
 import { env } from "@outlayr/env/backend";
 import { RevenueCat } from "convex-revenuecat";
+import type { RevenueCatSubscriber } from "convex-revenuecat";
 import { ConvexError, v } from "convex/values";
 import { z } from "zod";
 
@@ -51,8 +52,9 @@ const syncLimiter = new RateLimiter(components.rateLimiter, {
 });
 
 export const mirrorSubscriber = internalMutation({
-    args: { appUserId: v.string(), subscriber: v.any() },
+    args: { appUserId: v.string(), subscriber: v.string() },
     handler: async (ctx, args) => {
+        const subscriber: RevenueCatSubscriber = JSON.parse(args.subscriber);
         // `syncSubscriber` upserts and never removes, so an entitlement the
         // store has stopped listing would survive as a stale grant. An expired
         // one still arrives in the payload and ages out on its own date; a
@@ -60,10 +62,10 @@ export const mirrorSubscriber = internalMutation({
         // age out on. So the mirror is cleared in exactly that case, and only
         // when it currently disagrees — the same mutation re-syncs immediately,
         // so the two are one transaction.
-        if (!listsPro.safeParse(args.subscriber).success && (await isPro(ctx, args.appUserId))) {
+        if (!listsPro.safeParse(subscriber).success && (await isPro(ctx, args.appUserId))) {
             await revenuecat.deleteCustomer(ctx, { appUserId: args.appUserId });
         }
-        await revenuecat.syncSubscriber(ctx, { appUserId: args.appUserId, subscriber: args.subscriber });
+        await revenuecat.syncSubscriber(ctx, { appUserId: args.appUserId, subscriber });
         return isPro(ctx, args.appUserId);
     },
 });
@@ -137,7 +139,7 @@ export const syncFromStore = action({
         }
         return await ctx.runMutation(internal.revenuecat.mirrorSubscriber, {
             appUserId: userId,
-            subscriber,
+            subscriber: JSON.stringify(subscriber),
         });
     },
 });
