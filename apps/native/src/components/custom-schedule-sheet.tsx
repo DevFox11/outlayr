@@ -19,7 +19,7 @@ import type { TranslateFn } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
 import { MonoLabel } from "./mono-label";
-import { Text } from "./text";
+import { ROUNDED, Text } from "./text";
 
 const PREVIEW_COUNT = 3;
 
@@ -322,10 +322,8 @@ export function CustomScheduleSheet({
                     <NumberFlow
                         style={{
                             color: colors.foreground,
-                            fontFamily: "SFProRounded-Bold",
+                            fontFamily: ROUNDED,
                             fontSize: SENTENCE_SIZE,
-                            // The family name alone left the count rendering at the same
-                            // weight as the words either side of it; only this selects bold.
                             fontWeight: "700",
                             letterSpacing: COUNT_TRACKING,
                         }}

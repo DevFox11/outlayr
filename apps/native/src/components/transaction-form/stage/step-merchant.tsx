@@ -1,6 +1,6 @@
 import { View } from "react-native";
 
-import { Text, TextInput } from "@/components/text";
+import { ROUNDED, Text, TextInput } from "@/components/text";
 import { useColors } from "@/theme/use-colors";
 
 import { StageOptionRow } from "./stage-options";
@@ -73,7 +73,7 @@ export function StepMerchant({
                     returnKeyType="done"
                     style={{
                         color: colors.foreground,
-                        fontFamily: "SFProRounded-Regular",
+                        fontFamily: ROUNDED,
                         fontSize: 17,
                         padding: 0,
                         paddingBottom: 8,

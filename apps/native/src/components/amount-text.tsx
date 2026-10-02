@@ -36,7 +36,7 @@ interface FlowFigureProps {
 }
 
 export function FlowFigure({ className, format, locale, prefix, size, snapWidth, value }: FlowFigureProps) {
-    const { color, fontFamily, fontSize, fontVariant } = useResolveClassNames(className ?? "");
+    const { color, fontFamily, fontSize, fontVariant, fontWeight } = useResolveClassNames(className ?? "");
     const fontScaleCap = use(FontScaleCapContext);
     const { fontScale } = useWindowDimensions();
     const figureSize = size ?? fontSize;
@@ -55,6 +55,7 @@ export function FlowFigure({ className, format, locale, prefix, size, snapWidth,
                     fontFamily,
                     fontSize: overCap ? (figureSize * fontScaleCap) / fontScale : figureSize,
                     fontVariant,
+                    fontWeight,
                 }}
                 transformTiming={snapWidth ? SNAP_WIDTH : undefined}
                 value={value}

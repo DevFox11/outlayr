@@ -125,16 +125,3 @@ jobs:
             - name: Bundle
               working-directory: apps/native
               run: npx expo export --platform ios --output-dir /tmp/export-ci
-
-            # The OTFs are committed and `app.config.ts` lists them unconditionally,
-            # which is the loud-failure choice it documents: guarding with existsSync
-            # once dropped all four on EAS and shipped a build in the system face.
-            # This keeps checking that the config still resolves them.
-            - name: Assert the font layer is not silently empty
-              working-directory: apps/native
-              run: |
-                  if npx expo config --type public --json | grep -q '"SF-Pro-Rounded-Regular.otf"'; then
-                    echo "SF Pro Rounded is embedded."
-                  else
-                    echo "::warning::SF Pro Rounded OTFs are absent — this build renders in the system fallback face."
-                  fi

@@ -3,43 +3,7 @@ import type { ComponentProps, ComponentRef, Ref } from "react";
 import { Text as RNText, TextInput as RNTextInput, StyleSheet } from "react-native";
 import type { TextProps, TextStyle } from "react-native";
 
-const FAMILY = {
-    bold: "SFProRounded-Bold",
-    medium: "SFProRounded-Medium",
-    regular: "SFProRounded-Regular",
-    semibold: "SFProRounded-Semibold",
-} as const;
-
-/**
- * `fontWeight` is declared as a numeric scale plus the two names that stand for
- * points on it, so both spellings resolve to the same axis. A name RN accepts
- * but this does not map — "semibold", "heavy" — falls back to regular, which is
- * what the family table below would have picked for it anyway.
- */
-function toNumericWeight(weight: TextStyle["fontWeight"]): number {
-    if (weight === "bold") {
-        return 700;
-    }
-    if (weight == null || weight === "normal") {
-        return 400;
-    }
-    const parsed = Number(weight);
-    return Number.isFinite(parsed) ? parsed : 400;
-}
-
-function roundedFamily(weight: TextStyle["fontWeight"]): string {
-    const value = toNumericWeight(weight);
-    if (value >= 700) {
-        return FAMILY.bold;
-    }
-    if (value >= 600) {
-        return FAMILY.semibold;
-    }
-    if (value >= 500) {
-        return FAMILY.medium;
-    }
-    return FAMILY.regular;
-}
+export const ROUNDED = "ui-rounded";
 
 type ThemedTextProps = TextProps & {
     className?: string;
@@ -49,24 +13,20 @@ type ThemedTextProps = TextProps & {
 /**
  * Matches any `font-*` family utility — `font-sans`, `font-sans-semibold`,
  * `font-mono`, `font-mono-medium`. Deliberately not a plain `includes`, so a
- * class like `font-bold` (a weight, not a family) still lets the mapping below
- * pick the face.
+ * class like `font-bold` (a weight, not a family) still gets the rounded face.
  */
 const FAMILY_CLASS = /(^|\s)font-(sans|mono)(-\w+)?(\s|$)/;
 
 export const FontScaleCapContext = createContext<number | undefined>(undefined);
 
 /**
- * `Text` in SF Pro Rounded — the RN counterpart to SwiftUI's
- * `.system(design: .rounded)`. Static rounded faces don't synthesize weight, so
- * the node's `fontWeight` is mapped to the matching named face.
+ * `Text` in the system rounded face, the RN counterpart to SwiftUI's
+ * `.system(design: .rounded)`. `fontWeight` applies as is.
  *
- * Any caller that names a family opts out untouched — via `style.fontFamily`, or
- * via a `font-*` class. That second case matters: the injected family is applied
- * as an inline style, and inline style beats className in React Native, so
- * without this check a node styled `font-sans-semibold` would silently render
- * Regular. The token layer in `global.css` maps those classes to the same four
- * named faces, so both paths agree.
+ * Any caller that names a family opts out untouched, via `style.fontFamily` or
+ * a `font-*` class. That second case matters: the injected family is an inline
+ * style, and inline style beats className in React Native, so without this
+ * check a node styled `font-mono` would silently render rounded.
  */
 export function Text({ style, className, ref, ...rest }: ThemedTextProps) {
     const fontScaleCap = use(FontScaleCapContext);
@@ -74,13 +34,12 @@ export function Text({ style, className, ref, ...rest }: ThemedTextProps) {
     // `flatten` against the wider ViewStyle union for all callers.
     const flattened = StyleSheet.flatten(style) as TextStyle | undefined;
     const keepFamily = flattened?.fontFamily != null || FAMILY_CLASS.test(className ?? "");
-    const fontFamily = keepFamily ? undefined : roundedFamily(flattened?.fontWeight);
     return (
         <RNText
             className={className}
             maxFontSizeMultiplier={fontScaleCap}
             ref={ref}
-            style={fontFamily ? [style, { fontFamily }] : style}
+            style={keepFamily ? style : [style, { fontFamily: ROUNDED }]}
             {...rest}
         />
     );

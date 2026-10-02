@@ -320,10 +320,7 @@
 }
 
 @theme {
-    --font-sans: "SFProRounded-Regular";
-    --font-sans-medium: "SFProRounded-Medium";
-    --font-sans-semibold: "SFProRounded-Semibold";
-    --font-sans-bold: "SFProRounded-Bold";
+    --font-sans: "ui-rounded";
 
     --font-mono: "GeistMono_400Regular";
     --font-mono-medium: "GeistMono_500Medium";
@@ -359,4 +356,19 @@
     --tracking-label: 0.3px;
     --tracking-tight: -0.3px;
     --tracking-hero: -1px;
+}
+
+@utility font-sans-medium {
+    font-family: "ui-rounded";
+    font-weight: 500;
+}
+
+@utility font-sans-semibold {
+    font-family: "ui-rounded";
+    font-weight: 600;
+}
+
+@utility font-sans-bold {
+    font-family: "ui-rounded";
+    font-weight: 700;
 }

@@ -107,19 +107,6 @@ const WIDGETS = [
     },
 ];
 
-const roundedFontFiles = [
-    "SF-Pro-Rounded-Regular.otf",
-    "SF-Pro-Rounded-Medium.otf",
-    "SF-Pro-Rounded-Semibold.otf",
-    "SF-Pro-Rounded-Bold.otf",
-];
-// Listed unconditionally. These OTFs are committed, so a missing one is a
-// broken checkout and should fail the build loudly. Guarding with existsSync
-// silently dropped all four on EAS — `import.meta.dirname` points at the temp
-// directory Expo transpiles this config into, not the project — and shipped a
-// build in the system face instead of rounded.
-const roundedFonts = roundedFontFiles.map((file) => `./assets/fonts/${file}`);
-
 const GOOGLE_CLIENT_SUFFIX = /\.apps\.googleusercontent\.com$/i;
 
 function googleIosUrlScheme(clientId: string | undefined): string {
@@ -185,7 +172,6 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
                 },
             },
         ],
-        ["expo-font", { fonts: roundedFonts }],
         [
             "expo-widgets",
             {

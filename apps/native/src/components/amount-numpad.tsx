@@ -13,7 +13,7 @@ import { useLanguage, useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
-import { Text } from "./text";
+import { ROUNDED, Text } from "./text";
 
 const GLASS = isLiquidGlassAvailable();
 
@@ -107,8 +107,9 @@ export function AmountNumpad({
                             prefix={`${symbol} `}
                             style={{
                                 color: amountColor,
-                                fontFamily: "SFProRounded-Medium",
+                                fontFamily: ROUNDED,
                                 fontSize: 40,
+                                fontWeight: "500",
                             }}
                             value={numpadToNumber(value)}
                         />

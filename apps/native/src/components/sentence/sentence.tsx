@@ -37,10 +37,6 @@ interface SentenceProps<TSlot extends string> {
 }
 
 /**
- * `font-sans-medium` rather than a `font-medium` weight: SF Pro Rounded ships as
- * four separate static families and does not synthesize a weight, so naming the
- * face is the only way to reach 500 — see `components/text.tsx`.
- *
  * `text-grammar` reaches only the template's own connector words: every part
  * that fills a slot names its own colour over this one.
  */
