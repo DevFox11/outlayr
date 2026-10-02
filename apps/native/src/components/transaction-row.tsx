@@ -2,6 +2,7 @@ import PercentCircleSolidIcon from "@hugeicons-pro/core-solid-rounded/PercentCir
 import RefreshIcon from "@hugeicons-pro/core-stroke-rounded/RefreshIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { utcDateString } from "@outlayr/money/dates";
+import { use } from "react";
 import { Pressable, View } from "react-native";
 import type { AccessibilityActionEvent } from "react-native";
 
@@ -19,7 +20,7 @@ import { useColors } from "@/theme/use-colors";
 
 import { ActionMenu } from "./action-menu";
 import type { ActionMenuItem } from "./action-menu";
-import { RowAmount } from "./amount-text";
+import { AmountsHiddenContext, RowAmount } from "./amount-text";
 import { CategoryIconTile } from "./category-icon-tile";
 import { MonoLabel } from "./mono-label";
 import { Text } from "./text";
@@ -45,6 +46,9 @@ interface UnderAmountProps {
 function UnderAmount({ fee, moved, sentCurrency, showCents }: UnderAmountProps) {
     const t = useTranslation();
     const { language } = useLanguage();
+    if (use(AmountsHiddenContext)) {
+        return null;
+    }
     if (moved === undefined) {
         return fee === undefined ? null : (
             <Text className={UNDER_AMOUNT} numberOfLines={1}>

@@ -29,14 +29,20 @@ export function GlassButton({
             className="active:opacity-70"
             onPress={onPress}
         >
-            <View className={cn("flex-row items-center justify-center gap-1.5 overflow-hidden", className)}>
-                {GLASS ? (
-                    <GlassView glassEffectStyle="regular" isInteractive style={StyleSheet.absoluteFill} />
-                ) : (
-                    <View className="bg-surface absolute inset-0" />
-                )}
-                {children}
-            </View>
+            <GlassSurface className={className}>{children}</GlassSurface>
         </Pressable>
+    );
+}
+
+export function GlassSurface({ className, children }: { className: string; children: ReactNode }) {
+    return (
+        <View className={cn("flex-row items-center justify-center gap-1.5 overflow-hidden", className)}>
+            {GLASS ? (
+                <GlassView glassEffectStyle="regular" isInteractive style={StyleSheet.absoluteFill} />
+            ) : (
+                <View className="bg-surface absolute inset-0" />
+            )}
+            {children}
+        </View>
     );
 }

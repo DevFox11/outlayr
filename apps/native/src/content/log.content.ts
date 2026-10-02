@@ -32,6 +32,18 @@ const log = {
             en: "Speak an entry",
             es: "Dictar un registro",
         }),
+        "log.amounts.hidden": t({
+            en: "Amount hidden",
+            es: "Monto oculto",
+        }),
+        "log.amounts.hide": t({
+            en: "Hide amounts",
+            es: "Ocultar montos",
+        }),
+        "log.amounts.show": t({
+            en: "Show amounts",
+            es: "Mostrar montos",
+        }),
         "log.chip.earlier": t({
             en: "Earlier",
             es: "Anterior",

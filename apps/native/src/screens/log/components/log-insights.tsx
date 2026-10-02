@@ -1,8 +1,12 @@
 import { MenuView } from "@expo/ui/community/menu";
 import ArrowDown01Icon from "@hugeicons-pro/core-solid-rounded/ArrowDown01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
+import { GlassContainer } from "expo-glass-effect";
+import { use } from "react";
 import { View } from "react-native";
 
+import { AmountsHiddenContext } from "@/components/amount-text";
+import { GlassSurface } from "@/components/glass-button";
 import { LedgerHead } from "@/components/ledger-head";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
@@ -12,12 +16,16 @@ import type { LogInsights as LogInsightsData, LogPeriod } from "@/data/log-total
 import { measureIsIncome, measureIsPositive, measureMagnitude } from "@/domain/log-measure";
 import type { LogFigures, LogMeasure } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
-import { formatAmount } from "@/domain/money";
+import { formatAmount, maskedAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { useColors } from "@/theme/use-colors";
 
 import { measureCells, MEASURE_WORD_KEY, PERIOD_PHRASE_KEY } from "../labels";
+import { AmountsEyeButton, LOG_CONTROL_SHADOW, LOG_CONTROL_SIZE } from "./amounts-eye-button";
 import { LogHeroNumber } from "./log-hero-number";
 import { LogSparkline } from "./log-sparkline";
+
+const LOG_CONTROLS = { alignItems: "center", flexDirection: "row", gap: 8 } as const;
 
 interface LogInsightsProps {
     /** What the chip offers, ledger currency first — see `logCurrencyOptions`. */
@@ -70,32 +78,34 @@ export function LogInsights({
 
     return (
         <View className="pt-3.5 pb-1.5">
-            <View className="flex-row items-baseline gap-2.5">
-                <MonoLabel>{`${t(MEASURE_WORD_KEY[measure])} · ${t(PERIOD_PHRASE_KEY[period])}`}</MonoLabel>
-                <View className="flex-1" />
-                <DisplayCurrencyChip
-                    // The figures' own currency, not the requested one: when nothing in
-                    // the period could be placed in `displayCurrency` the numbers fall
-                    // back to the dominant bucket, and a chip still naming the request
-                    // would label the screen as something it is not.
-                    code={figures.currencyCode}
-                    onManage={onManageCurrencies}
-                    onSelect={(code) =>
-                        // The list leads with the ledger's own currency, so choosing it is
-                        // the way out of an override rather than an override onto itself.
-                        onDisplayCurrency(code === currencyOptions[0] ? null : code)
-                    }
-                    options={currencyOptions}
-                />
-            </View>
+            <MonoLabel>{`${t(MEASURE_WORD_KEY[measure])} · ${t(PERIOD_PHRASE_KEY[period])}`}</MonoLabel>
 
-            <View className="pt-1">
-                <LogHeroNumber
-                    code={figures.currencyCode}
-                    magnitude={measureMagnitude(measure, figures)}
-                    positive={measureIsPositive(measure, figures)}
-                    showCents={showCents}
-                />
+            <View className="flex-row items-center gap-2 pt-1">
+                <View className="flex-1">
+                    <LogHeroNumber
+                        code={figures.currencyCode}
+                        magnitude={measureMagnitude(measure, figures)}
+                        positive={measureIsPositive(measure, figures)}
+                        showCents={showCents}
+                    />
+                </View>
+                <GlassContainer style={LOG_CONTROLS}>
+                    <AmountsEyeButton />
+                    <DisplayCurrencyChip
+                        // The figures' own currency, not the requested one: when nothing in
+                        // the period could be placed in `displayCurrency` the numbers fall
+                        // back to the dominant bucket, and a chip still naming the request
+                        // would label the screen as something it is not.
+                        code={figures.currencyCode}
+                        onManage={onManageCurrencies}
+                        onSelect={(code) =>
+                            // The list leads with the ledger's own currency, so choosing it is
+                            // the way out of an override rather than an override onto itself.
+                            onDisplayCurrency(code === currencyOptions[0] ? null : code)
+                        }
+                        options={currencyOptions}
+                    />
+                </GlassContainer>
             </View>
 
             <View className="pt-3">
@@ -136,14 +146,19 @@ export function LogInsights({
 }
 
 function AlsoPill({ figures, measure, showCents }: { figures: LogFigures; measure: LogMeasure; showCents: boolean }) {
+    const t = useTranslation();
     const { language } = useLanguage();
+    const hidden = use(AmountsHiddenContext);
 
     const sign = measureIsPositive(measure, figures) ? "+" : "-";
-    const amount = `${sign}${formatAmount(measureMagnitude(measure, figures), figures.currencyCode, showCents, language)}`;
+    const magnitude = hidden
+        ? maskedAmount(figures.currencyCode)
+        : formatAmount(measureMagnitude(measure, figures), figures.currencyCode, showCents, language);
+    const amount = `${sign}${magnitude}`;
 
     return (
         <View
-            accessibilityLabel={`${figures.currencyCode}, ${amount}`}
+            accessibilityLabel={`${figures.currencyCode}, ${hidden ? t("log.amounts.hidden") : amount}`}
             accessible
             className="bg-surface-secondary flex-row items-center gap-1.5 rounded-[7px] px-2 py-1"
         >
@@ -180,6 +195,7 @@ function DisplayCurrencyChip({
     onManage: () => void;
 }) {
     const t = useTranslation();
+    const colors = useColors();
     return (
         <MenuView
             actions={[
@@ -209,10 +225,12 @@ function DisplayCurrencyChip({
                 accessibilityLabel={t("log.insights.currencyShown")}
                 accessibilityRole="button"
                 accessibilityValue={{ text: code }}
-                className="bg-surface-secondary flex-row items-center gap-1 rounded-full px-2.25 py-1"
+                style={LOG_CONTROL_SHADOW}
             >
-                <MonoLabel className="text-foreground">{code}</MonoLabel>
-                <HugeiconsIcon color="#767676" icon={ArrowDown01Icon} size={10} />
+                <GlassSurface className={`${LOG_CONTROL_SIZE} pr-3.25 pl-3.75`}>
+                    <MonoLabel className="text-foreground text-footnote">{code}</MonoLabel>
+                    <HugeiconsIcon color={colors.muted} icon={ArrowDown01Icon} size={12} />
+                </GlassSurface>
             </View>
         </MenuView>
     );

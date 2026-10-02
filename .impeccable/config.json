@@ -143,6 +143,60 @@
         ],
         "createdAt": "2026-10-01T21:37:08.249Z",
         "reason": "agent: #f2f0ea is the app's light --background token (apps/native/global.css), the mock reproduces the real screen"
+      },
+      {
+        "rule": "all-caps-body",
+        "value": "*",
+        "files": [
+          "docs/design/hide-amounts.html"
+        ],
+        "createdAt": "2026-10-02T18:10:18.243Z",
+        "reason": "agent: mono uppercase kicker and verdict pill are short labels, the convention of every docs/design artifact"
+      },
+      {
+        "rule": "nested-cards",
+        "value": "*",
+        "files": [
+          "docs/design/hide-amounts.html"
+        ],
+        "createdAt": "2026-10-02T18:10:18.259Z",
+        "reason": "agent: the outer 'card' is a drawn phone frame in a static mock, not app UI"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "docs/design/hide-amounts.html"
+        ],
+        "createdAt": "2026-10-02T18:10:18.277Z",
+        "reason": "agent: stage colour is Outlayr's paper brand family (#f2f0ea), not a default"
+      },
+      {
+        "rule": "all-caps-body",
+        "value": "*",
+        "files": [
+          "docs/design/hide-amounts-hero-controls.html"
+        ],
+        "createdAt": "2026-10-02T18:18:57.602Z",
+        "reason": "agent: mono uppercase kicker is a short label, the convention of every docs/design artifact"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "docs/design/hide-amounts-hero-controls.html"
+        ],
+        "createdAt": "2026-10-02T18:18:57.622Z",
+        "reason": "agent: stage colour is Outlayr's paper brand family (#f2f0ea), not a default"
+      },
+      {
+        "rule": "overused-font",
+        "value": "*",
+        "files": [
+          "docs/design/hide-amounts-hero-controls.html"
+        ],
+        "createdAt": "2026-10-02T18:18:57.640Z",
+        "reason": "agent: Geist Mono is the kicker face of every docs/design artifact and stands in for the app's mono labels"
       }
     ]
   }

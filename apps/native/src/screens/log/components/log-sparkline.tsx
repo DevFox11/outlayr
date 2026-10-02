@@ -1,15 +1,16 @@
-import { useMemo, useState } from "react";
+import { use, useMemo, useState } from "react";
 import { View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import { createAnimatedComponent, runOnJS, useAnimatedProps, useReducedMotion } from "react-native-reanimated";
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from "react-native-svg";
 
+import { AmountsHiddenContext } from "@/components/amount-text";
 import { Text } from "@/components/text";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import { monthAbbrevTitle } from "@/domain/dates";
 import type { LogMeasure } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
-import { formatAmount } from "@/domain/money";
+import { formatAmount, maskedAmount } from "@/domain/money";
 import { sparklineLabelKey } from "@/domain/sparkline-trend";
 import { useChartDraw } from "@/hooks/use-chart-draw";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -41,6 +42,7 @@ export function LogSparkline({ points, positive, range, byMonth, code, measure }
     const colors = useColors();
     const t = useTranslation();
     const { language } = useLanguage();
+    const hidden = use(AmountsHiddenContext);
     const reduceMotion = useReducedMotion();
     // Read here, not threaded from the screen: every chart answers to this setting itself.
     const animatedCharts = useSettingBool("animatedCharts") && !reduceMotion;
@@ -212,7 +214,9 @@ export function LogSparkline({ points, positive, range, byMonth, code, measure }
                         {formatSample(scrubbed.date, byMonth, language)}
                     </Text>
                     <Text className="font-sans-semibold text-foreground text-label">
-                        {formatAmount(scrubbed.amount, code, Math.abs(scrubbed.amount) < 1000, language)}
+                        {hidden
+                            ? maskedAmount(code)
+                            : formatAmount(scrubbed.amount, code, Math.abs(scrubbed.amount) < 1000, language)}
                     </Text>
                 </View>
             ) : null}

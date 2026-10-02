@@ -1,10 +1,11 @@
+import { use } from "react";
 import { Pressable, View } from "react-native";
 
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { currencySymbol, formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
-import { FlowAmount } from "./amount-text";
+import { AmountsHiddenContext, FlowAmount } from "./amount-text";
 import { MonoLabel } from "./mono-label";
 import { cn } from "./tw";
 
@@ -38,6 +39,7 @@ export function LedgerHead({ cells, code }: LedgerHeadProps) {
     const { showCents } = useDisplaySettings().state;
     const t = useTranslation();
     const { language } = useLanguage();
+    const hidden = use(AmountsHiddenContext);
     return (
         <View>
             <View className="bg-border h-px w-full" />
@@ -49,7 +51,7 @@ export function LedgerHead({ cells, code }: LedgerHeadProps) {
                         {index > 0 ? <View className="bg-border absolute inset-y-0 left-0 w-px" /> : null}
                         <Pressable
                             accessibilityHint={cell.accessibilityHint ?? t("log.ledger.showFigure")}
-                            accessibilityLabel={`${cell.label}, ${cell.positive ? "+" : "-"}${formatAmount(cell.magnitude, code, showCents, language)}`}
+                            accessibilityLabel={`${cell.label}, ${hidden ? t("log.amounts.hidden") : `${cell.positive ? "+" : "-"}${formatAmount(cell.magnitude, code, showCents, language)}`}`}
                             accessibilityRole="button"
                             className="gap-0.75 py-2.5 active:opacity-70"
                             onPress={cell.onPress}

@@ -31,6 +31,7 @@ export type BoolSettingKey =
     | "categorySuggestions"
     | "aiEnrichment"
     | "groundedLookup"
+    | "hideAmounts"
     // Swaps a Log row's time label for its category. No Settings row writes it
     // yet, so it always resolves to the default.
     | "swapTimeLabel"
@@ -100,6 +101,7 @@ export const SETTING_DEFAULTS = {
     firstWeekday: 1,
     groundedLookup: true,
     haptics: 1,
+    hideAmounts: false,
     incomeTracking: true,
     insightsMeasure: 1,
     insightsTimeFrame: 1,

@@ -1,6 +1,7 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render } from "@testing-library/react-native";
 
+import { AmountsHiddenContext } from "@/components/amount-text";
 import type { Account } from "@/data/accounts-core";
 import type { AccountsOverview, OverviewRow } from "@/domain/account-display";
 import { testColors as mockTestColors } from "@/theme/test-colors";
@@ -81,6 +82,24 @@ describe("accountsBlock", () => {
         getByText("$3,412.40");
         getByText("Cash");
         getByText("$220.00");
+    });
+
+    it("covers the total and every balance while amounts are hidden", async () => {
+        const { getAllByText, queryByText } = await render(
+            <AmountsHiddenContext value>
+                <AccountsBlock
+                    accounts={[account("Zinli"), account("Cash")]}
+                    currency="USD"
+                    onOpen={noop}
+                    onOpenAll={noop}
+                    overview={overview([row("Zinli", 3412.4), row("Cash", 220)])}
+                    showCents
+                />
+            </AmountsHiddenContext>
+        );
+        expect(getAllByText("$••••")).toHaveLength(3);
+        expect(queryByText("$3,632.40")).toBeNull();
+        expect(queryByText("$3,412.40")).toBeNull();
     });
 
     it("states a liability as owed, positive", async () => {

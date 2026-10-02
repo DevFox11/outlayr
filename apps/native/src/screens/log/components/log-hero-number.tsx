@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { use, useState } from "react";
 import { View } from "react-native";
 
-import { fittedHeroSize, FlowAmount } from "@/components/amount-text";
+import { AmountsHiddenContext, fittedHeroSize, FlowAmount } from "@/components/amount-text";
 import { Text } from "@/components/text";
 import { amountDigits, amountParts, withCurrencySymbol } from "@/domain/money";
-import { useLanguage } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 
 /**
  * Scaled by hand rather than by a text style: the figure has to stay
@@ -22,7 +22,9 @@ interface LogHeroNumberProps {
 }
 
 export function LogHeroNumber({ magnitude, code, positive, showCents }: LogHeroNumberProps) {
+    const t = useTranslation();
     const { language } = useLanguage();
+    const hidden = use(AmountsHiddenContext);
     const [width, setWidth] = useState(0);
     const parts = amountParts(magnitude, code, showCents, language);
     const digits = amountDigits(parts);
@@ -33,7 +35,7 @@ export function LogHeroNumber({ magnitude, code, positive, showCents }: LogHeroN
 
     return (
         <View
-            accessibilityLabel={`${sign}${withCurrencySymbol(parts, digits)}`}
+            accessibilityLabel={hidden ? t("log.amounts.hidden") : `${sign}${withCurrencySymbol(parts, digits)}`}
             // Symbol and digits are one figure, not two things to swipe between.
             accessible
             className="flex-row items-baseline gap-1"
@@ -48,7 +50,7 @@ export function LogHeroNumber({ magnitude, code, positive, showCents }: LogHeroN
                 className="text-foreground font-sans tabular-nums"
                 code={code}
                 showCents={showCents}
-                size={fittedHeroSize(FONT_SIZE, magnitude, parts.minorUnits, width)}
+                size={hidden ? FONT_SIZE : fittedHeroSize(FONT_SIZE, magnitude, parts.minorUnits, width)}
             />
         </View>
     );

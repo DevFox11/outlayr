@@ -1,6 +1,6 @@
 import { roundMoney } from "@outlayr/money/round";
 import { NumberFlow } from "number-flow-react-native";
-import { Fragment, use } from "react";
+import { createContext, Fragment, use } from "react";
 import { useWindowDimensions, View } from "react-native";
 import { Easing } from "react-native-reanimated";
 import { useResolveClassNames } from "uniwind";
@@ -9,7 +9,7 @@ import { amountHeroFontSize } from "@/domain/amount-hero-size";
 import { rowAmountLabel } from "@/domain/amount-label";
 import type { RowAmountLabelInput } from "@/domain/amount-label";
 import type { CurrencyBucket } from "@/domain/currency-totals";
-import { amountDigits, amountParts, formatAmount, withCurrencySymbol } from "@/domain/money";
+import { AMOUNT_MASK, amountDigits, amountParts, formatAmount, maskedAmount, withCurrencySymbol } from "@/domain/money";
 import type { NumberLocale } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
@@ -20,6 +20,8 @@ import { cn, tv } from "./tw";
 const BASELINE_STRUT = "\u200B";
 const HERO_GUTTER = 40;
 const SNAP_WIDTH = { duration: 0, easing: Easing.linear };
+
+export const AmountsHiddenContext = createContext(false);
 
 function intlDecimal(tag: string): string {
     return new Intl.NumberFormat(tag, { minimumFractionDigits: 1, useGrouping: false }).format(1.5).charAt(1);
@@ -77,6 +79,14 @@ interface FlowAmountProps {
 export function FlowAmount({ amount, className, code, prefix, showCents, size, snapWidth }: FlowAmountProps) {
     const { language } = useLanguage();
     const { locale, minorUnits } = amountParts(amount, code, showCents, language);
+    if (use(AmountsHiddenContext)) {
+        return (
+            <Text className={className} numberOfLines={1} style={size == null ? undefined : { fontSize: size }}>
+                {prefix}
+                {AMOUNT_MASK}
+            </Text>
+        );
+    }
     return (
         <FlowFigure
             className={className}
@@ -201,20 +211,22 @@ export function RowAmount({
 }: RowAmountProps) {
     const t = useTranslation();
     const { language } = useLanguage();
+    const hidden = use(AmountsHiddenContext);
     const sign = transfer ? (transferSign ?? "") : signFor(income);
     return (
         <Text
             // Spelled out because neither the glyph nor the colour is a cue a screen
             // reader can read; `rowAmountLabel` owns the wording.
-            accessibilityLabel={rowAmountLabel(
-                { amount, code, income: transfer ? null : income, showCents, transferSign },
-                t
-            )}
+            accessibilityLabel={
+                hidden
+                    ? t("log.amounts.hidden")
+                    : rowAmountLabel({ amount, code, income: transfer ? null : income, showCents, transferSign }, t)
+            }
             className={cn(rowAmount({ income: !transfer && income === true, isFuture, struck }), "tabular-nums")}
             numberOfLines={1}
         >
             {sign}
-            {formatAmount(amount, code, showCents, language)}
+            {hidden ? maskedAmount(code) : formatAmount(amount, code, showCents, language)}
         </Text>
     );
 }
@@ -232,13 +244,19 @@ interface MeasureCellAmountProps {
 
 /** Symbol, sign and digits share one tone, unlike the hero's muted symbol. */
 export function MeasureCellAmount({ magnitude, positive, income, code, showCents = true }: MeasureCellAmountProps) {
+    const t = useTranslation();
     const { language } = useLanguage();
+    const hidden = use(AmountsHiddenContext);
     const toneClass = income ? "text-income" : "text-foreground";
     const sign = positive ? "+" : "-";
     return (
-        <Text className={cn("font-sans-semibold text-body tabular-nums", toneClass)} numberOfLines={1}>
+        <Text
+            accessibilityLabel={hidden ? t("log.amounts.hidden") : undefined}
+            className={cn("font-sans-semibold text-body tabular-nums", toneClass)}
+            numberOfLines={1}
+        >
             {sign}
-            {formatAmount(magnitude, code, showCents, language)}
+            {hidden ? maskedAmount(code) : formatAmount(magnitude, code, showCents, language)}
         </Text>
     );
 }
@@ -252,8 +270,8 @@ interface DayTotalProps {
     totals: readonly CurrencyBucket[];
 }
 
-function signedAmount(amount: number, code: string, showCents: boolean, language: Language): string {
-    return `${amount < 0 ? "-" : "+"}${formatAmount(amount, code, showCents, language)}`;
+function signedAmount(amount: number, code: string, showCents: boolean, language: Language, hidden: boolean): string {
+    return `${amount < 0 ? "-" : "+"}${hidden ? maskedAmount(code) : formatAmount(amount, code, showCents, language)}`;
 }
 
 /**
@@ -261,14 +279,20 @@ function signedAmount(amount: number, code: string, showCents: boolean, language
  * added: there is no rate here, so a single number would be an invention.
  */
 export function DayTotal({ totals, showCents = true, sizeClass = "text-footnote" }: DayTotalProps) {
+    const t = useTranslation();
     const { language } = useLanguage();
+    const hidden = use(AmountsHiddenContext);
     return (
         <View className="flex-row items-baseline gap-1.5">
             {totals.map((bucket, index) => (
                 <Fragment key={bucket.currencyCode}>
                     {index > 0 ? <Text className={cn("font-sans-semibold text-subtle", sizeClass)}>/</Text> : null}
-                    <Text className={cn("font-sans-semibold text-muted tabular-nums", sizeClass)} numberOfLines={1}>
-                        {signedAmount(bucket.amount, bucket.currencyCode, showCents, language)}
+                    <Text
+                        accessibilityLabel={hidden ? t("log.amounts.hidden") : undefined}
+                        className={cn("font-sans-semibold text-muted tabular-nums", sizeClass)}
+                        numberOfLines={1}
+                    >
+                        {signedAmount(bucket.amount, bucket.currencyCode, showCents, language, hidden)}
                     </Text>
                 </Fragment>
             ))}

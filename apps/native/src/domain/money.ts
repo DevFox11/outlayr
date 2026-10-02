@@ -124,6 +124,12 @@ export function amountDigits(parts: AmountParts): string {
     return parts.fraction ? `${parts.integer}${parts.locale.decimal}${parts.fraction}` : parts.integer;
 }
 
+export const AMOUNT_MASK = "••••";
+
+export function maskedAmount(code: string): string {
+    return `${currencySymbol(code)}${AMOUNT_MASK}`;
+}
+
 /** Wraps already-built digits in the symbol. */
 export function withCurrencySymbol(parts: AmountParts, digits: string): string {
     return `${parts.symbol}${digits}`;

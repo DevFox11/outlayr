@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { ScrollView } from "react-native";
 
+import { AmountsHiddenContext } from "@/components/amount-text";
 import { DaySectionHeader } from "@/components/day-section-header";
 import { FloatingAddButton } from "@/components/floating-add-button";
 import { useDisplaySettings, useSettingBool, useSettingNumber } from "@/contexts/display-settings-context";
@@ -43,6 +44,7 @@ import { useDayCardShare } from "@/lib/use-day-card-share";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 
 import { AccountsBlock } from "./components/accounts-block";
+import { AmountsEyeButton } from "./components/amounts-eye-button";
 import { LogEmptyState } from "./components/log-empty-state";
 import { LogFilterChip } from "./components/log-filter-chip";
 import type { SparklineData } from "./components/log-insights";
@@ -118,6 +120,7 @@ export function Log() {
     const showUpcoming = useSettingBool("showUpcoming");
     const showUpcomingSoon = useSettingBool("showUpcomingSoon");
     const logViewLineGraph = useSettingBool("logViewLineGraph");
+    const amountsHidden = useSettingBool("hideAmounts");
     const firstWeekday = useSettingNumber("firstWeekday");
     const period = logPeriodFromStored(useSettingNumber("logInsightsTimeFrame"));
     const measure = logMeasureFromStored(useSettingNumber("logInsightsType"));
@@ -254,16 +257,14 @@ export function Log() {
         setNumberSetting(db, "logInsightsType", storedLogMeasure(next));
     };
 
-    const accountsBlock = (
-        <AccountsBlock
-            accounts={accountRows}
-            currency={currency}
-            onOpen={openAccount}
-            onOpenAll={() => router.push("/accounts")}
-            overview={accountsOverview}
-            showCents={showCents}
-        />
-    );
+    const accountsProps = {
+        accounts: accountRows,
+        currency,
+        onOpen: openAccount,
+        onOpenAll: () => router.push("/accounts"),
+        overview: accountsOverview,
+        showCents,
+    };
 
     const toolbar = (
         <LogToolbar
@@ -279,7 +280,7 @@ export function Log() {
 
     if (listRows.length === 0 && filter === "all") {
         return (
-            <>
+            <AmountsHiddenContext value={amountsHidden}>
                 {accountsOverview ? (
                     // The block rides a scroll view for its automatic inset: the header
                     // is transparent, so anything laid out flat here starts under the
@@ -290,19 +291,19 @@ export function Log() {
                         contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20 }}
                         contentInsetAdjustmentBehavior="automatic"
                     >
-                        {accountsBlock}
+                        <AccountsBlock {...accountsProps} trailing={<AmountsEyeButton />} />
                         <LogEmptyState />
                     </ScrollView>
                 ) : (
                     <LogEmptyState />
                 )}
                 <FloatingAddButton />
-            </>
+            </AmountsHiddenContext>
         );
     }
 
     return (
-        <>
+        <AmountsHiddenContext value={amountsHidden}>
             {toolbar}
             <SectionList
                 className="bg-background"
@@ -369,7 +370,7 @@ export function Log() {
                                 displayCurrency={currency}
                             />
                         )}
-                        {filter === "all" ? accountsBlock : null}
+                        {filter === "all" ? <AccountsBlock {...accountsProps} /> : null}
                         {showUpcomingSection ? (
                             <LogUpcoming
                                 transactions={upcomingRows}
@@ -404,6 +405,6 @@ export function Log() {
             />
 
             <FloatingAddButton />
-        </>
+        </AmountsHiddenContext>
     );
 }

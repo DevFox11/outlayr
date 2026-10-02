@@ -6,6 +6,7 @@ import type { TransferMove } from "@/domain/transfer-log-rows";
 import { buildRateTable } from "@/domain/valuation";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
+import { AmountsHiddenContext } from "./amount-text";
 import { TransactionRow } from "./transaction-row";
 
 jest.mock<Partial<typeof import("@/contexts/display-settings-context")>>("@/contexts/display-settings-context", () => ({
@@ -61,6 +62,30 @@ const PENDING_CUSTOM = {
 };
 
 describe("transactionRow", () => {
+    it("covers the amount and drops the fee line while amounts are hidden", async () => {
+        const { getByLabelText, getByText, queryByText } = await render(
+            <AmountsHiddenContext value>
+                <TransactionRow
+                    currency="USD"
+                    onPress={() => {}}
+                    transaction={
+                        {
+                            ...PENDING_CUSTOM,
+                            currency: "USD",
+                            exchangeRateType: null,
+                            fee: { amount: 2, currency: "USD" },
+                        } as never
+                    }
+                />
+            </AmountsHiddenContext>
+        );
+
+        expect(getByText("-$••••")).toBeTruthy();
+        expect(getByLabelText("log.amounts.hidden")).toBeTruthy();
+        expect(queryByText("-$100.00")).toBeNull();
+        expect(queryByText("log.row.fee")).toBeNull();
+    });
+
     it("shows an accessible Rate needed badge for the derived pending custom triple", async () => {
         const { getByLabelText, getByText } = await render(
             <TransactionRow currency="USD" onPress={() => {}} transaction={PENDING_CUSTOM as never} />

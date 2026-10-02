@@ -17,6 +17,7 @@ import { useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
 
 import { FILTER_LABEL_KEY, measureCells, scopeMeasureLabel } from "../labels";
+import { AmountsEyeButton } from "./amounts-eye-button";
 import { LogHeroNumber } from "./log-hero-number";
 
 interface LogFilterChipProps {
@@ -139,13 +140,16 @@ function ScopeFigures({
     return (
         <View className="pt-3 pb-1.5">
             <MonoLabel>{scopeMeasureLabel(t, measure, shown.currencyCode, displayCurrency)}</MonoLabel>
-            <View className="pt-1">
-                <LogHeroNumber
-                    code={shown.currencyCode}
-                    magnitude={measureMagnitude(measure, shown)}
-                    positive={measureIsPositive(measure, shown)}
-                    showCents={showCents}
-                />
+            <View className="flex-row items-center gap-2 pt-1">
+                <View className="flex-1">
+                    <LogHeroNumber
+                        code={shown.currencyCode}
+                        magnitude={measureMagnitude(measure, shown)}
+                        positive={measureIsPositive(measure, shown)}
+                        showCents={showCents}
+                    />
+                </View>
+                <AmountsEyeButton />
             </View>
             <View className="pt-3">
                 <LedgerHead cells={measureCells(measure, shown, t, onMeasure)} code={shown.currencyCode} />

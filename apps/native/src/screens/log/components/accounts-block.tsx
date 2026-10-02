@@ -1,5 +1,8 @@
+import { use } from "react";
+import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
+import { AmountsHiddenContext } from "@/components/amount-text";
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
@@ -7,6 +10,7 @@ import { cn } from "@/components/tw";
 import type { Account } from "@/data/accounts-core";
 import type { AccountsOverview, OverviewRow } from "@/domain/account-display";
 import { formatSignedAmount } from "@/domain/account-display";
+import { maskedAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 import { useColors } from "@/theme/use-colors";
@@ -30,6 +34,7 @@ interface AccountsBlockProps {
     /** Null hides the block entirely — no accounts, no ghost heading. */
     overview: AccountsOverview | null;
     showCents: boolean;
+    trailing?: ReactNode;
 }
 
 /**
@@ -39,12 +44,23 @@ interface AccountsBlockProps {
  * liability says "Owed" under its name, and its figure is muted and stated
  * positive, so it cannot be read as an expense line among the entries below.
  */
-export function AccountsBlock({ accounts, overview, currency, showCents, onOpen, onOpenAll }: AccountsBlockProps) {
+export function AccountsBlock({
+    accounts,
+    overview,
+    currency,
+    showCents,
+    onOpen,
+    onOpenAll,
+    trailing,
+}: AccountsBlockProps) {
     const t = useTranslation();
     const { language } = useLanguage();
+    const hidden = use(AmountsHiddenContext);
     if (overview == null) {
         return null;
     }
+
+    const total = hidden ? maskedAmount(currency) : formatSignedAmount(overview.total, currency, showCents, language);
 
     const byId = new Map(accounts.map((account) => [account.id, account]));
     const overflow = overview.rows.length > MAX_ROWS;
@@ -52,23 +68,26 @@ export function AccountsBlock({ accounts, overview, currency, showCents, onOpen,
 
     return (
         <View className="gap-1.25 pt-2.5 pb-4.5">
-            <Pressable
-                accessibilityHint={t("accounts.overview.openHint")}
-                accessibilityLabel={`${t("accounts.overview.heading")} · ${overview.count}`}
-                accessibilityRole="button"
-                accessibilityValue={{ text: formatSignedAmount(overview.total, currency, showCents, language) }}
-                className="flex-row items-baseline justify-between gap-2 active:opacity-70"
-                onPress={onOpenAll}
-                testID="accounts-overview-card"
-            >
-                <MonoLabel>{`${t("accounts.overview.heading")} · ${overview.count}  ›`}</MonoLabel>
-                <View className="flex-row items-baseline gap-1.5">
-                    {overview.exact ? null : <MonoLabel className="text-subtle">{`${currency}?`}</MonoLabel>}
-                    <Text className="font-sans-semibold text-body text-muted tabular-nums" numberOfLines={1}>
-                        {formatSignedAmount(overview.total, currency, showCents, language)}
-                    </Text>
-                </View>
-            </Pressable>
+            <View className="flex-row items-center gap-2">
+                <Pressable
+                    accessibilityHint={t("accounts.overview.openHint")}
+                    accessibilityLabel={`${t("accounts.overview.heading")} · ${overview.count}`}
+                    accessibilityRole="button"
+                    accessibilityValue={{ text: hidden ? t("log.amounts.hidden") : total }}
+                    className="flex-1 flex-row items-baseline justify-between gap-2 active:opacity-70"
+                    onPress={onOpenAll}
+                    testID="accounts-overview-card"
+                >
+                    <MonoLabel>{`${t("accounts.overview.heading")} · ${overview.count}  ›`}</MonoLabel>
+                    <View className="flex-row items-baseline gap-1.5">
+                        {overview.exact ? null : <MonoLabel className="text-subtle">{`${currency}?`}</MonoLabel>}
+                        <Text className="font-sans-semibold text-body text-muted tabular-nums" numberOfLines={1}>
+                            {total}
+                        </Text>
+                    </View>
+                </Pressable>
+                {trailing}
+            </View>
             {shown.map((row) => {
                 const account = byId.get(row.id);
                 return account ? (
@@ -127,12 +146,17 @@ function AccountRow({ account, row, currency, showCents, language, onPress }: Ac
     const subtitle = rowSubtitle(row, account.currency, currency, t);
     // A debt is stated as what is owed, not as a negative holding: the entries
     // right below are negative expenses in the same column.
-    const figure = formatSignedAmount(owed ? -row.balance : row.balance, currency, showCents, language);
+    const hidden = use(AmountsHiddenContext);
+    const figure = hidden
+        ? maskedAmount(currency)
+        : formatSignedAmount(owed ? -row.balance : row.balance, currency, showCents, language);
     const tileColor = account.imageColor ?? account.customColor ?? colors.foreground;
 
     return (
         <Pressable
-            accessibilityLabel={[account.name, subtitle, figure].filter((part) => part !== null).join(", ")}
+            accessibilityLabel={[account.name, subtitle, hidden ? t("log.amounts.hidden") : figure]
+                .filter((part) => part !== null)
+                .join(", ")}
             accessibilityRole="button"
             className="flex-row items-center gap-3 py-2 active:opacity-70"
             onPress={onPress}
