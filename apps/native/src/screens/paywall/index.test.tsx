@@ -42,6 +42,7 @@ jest.mock<Partial<typeof import("@/lib/auth-session")>>("@/lib/auth-session", ()
         activate: () => undefined,
         begin: () => undefined,
         gate: "signed-in",
+        profile: null,
         reject: () => undefined,
     }),
 }));

@@ -17,6 +17,7 @@ import {
     purchaseCancelled,
     refreshProEntitlement,
     restoreAndCheckPro,
+    setCustomerProfile,
 } from "@/lib/revenuecat";
 
 export type PurchaseOutcome = "cancelled" | "pro" | "unentitled";
@@ -63,7 +64,9 @@ export function useRevenueCat(): RevenueCatValue {
 }
 
 export function RevenueCatProvider({ children }: { children: ReactNode }) {
-    const { accountId } = useAuthSession();
+    const { accountId, profile } = useAuthSession();
+    const email = profile?.email;
+    const name = profile?.name;
     const [isConfigured] = useState(configureRevenueCat);
     const [isPro, setIsPro] = useState(false);
     const [isResolved, setIsResolved] = useState(false);
@@ -162,6 +165,17 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
         }
         syncIdentity(accountId);
     }, [accountId, isConfigured, syncIdentity]);
+
+    useEffect(() => {
+        if (!isResolved || email === undefined || name === undefined || appliedIdentity.current !== accountId) {
+            return;
+        }
+        identityQueue.current = identityQueue.current
+            .then(() => setCustomerProfile({ email, name }))
+            .catch((error) => {
+                console.warn("[revenuecat] profile sync failed", error);
+            });
+    }, [accountId, email, isResolved, name]);
 
     const runForSession = useCallback(
         <T,>(op: () => Promise<T>, fallback: T, apply?: (result: T) => void): Promise<T> => {

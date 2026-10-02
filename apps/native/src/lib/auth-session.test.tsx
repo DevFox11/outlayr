@@ -6,6 +6,8 @@ import { AuthSessionProvider, sessionView, useAuthSession } from "./auth-session
 
 jest.mock<Partial<typeof import("@/lib/auth-client")>>("@/lib/auth-client", () => ({ authClient: null }));
 
+const PROVISIONAL_USER = { email: "provisional@example.com", id: "provisional-user", name: "Provisional" };
+
 function Probe() {
     const session = useAuthSession();
     return <Text testID="probe">{JSON.stringify(session)}</Text>;
@@ -13,19 +15,22 @@ function Probe() {
 
 describe("useAuthSession", () => {
     it("apple-session-quarantined-until-grant-stored", () => {
-        expect(sessionView({ user: { id: "provisional-user" } }, false, true)).toStrictEqual({
+        expect(sessionView({ user: PROVISIONAL_USER }, false, true)).toStrictEqual({
             accountId: null,
             gate: "restoring",
+            profile: null,
         });
     });
 
     it("keeps the quarantine cover up after the cold-start restore budget has lapsed", () => {
-        expect(sessionView({ user: { id: "provisional-user" } }, false, true, true).gate).toBe("restoring");
+        expect(sessionView({ user: PROVISIONAL_USER }, false, true, true).gate).toBe("restoring");
     });
 
     it("resolves the unconfigured default via use() outside a provider", async () => {
         const { getByTestId } = await render(<Probe />);
-        expect(getByTestId("probe").props.children).toBe(JSON.stringify({ accountId: null, gate: "unconfigured" }));
+        expect(getByTestId("probe").props.children).toBe(
+            JSON.stringify({ accountId: null, gate: "unconfigured", profile: null })
+        );
     });
 
     it("makes zero cloud calls when no runtime is configured", async () => {
@@ -35,6 +40,8 @@ describe("useAuthSession", () => {
             </AuthSessionProvider>
         );
 
-        expect(getByTestId("probe").props.children).toBe(JSON.stringify({ accountId: null, gate: "unconfigured" }));
+        expect(getByTestId("probe").props.children).toBe(
+            JSON.stringify({ accountId: null, gate: "unconfigured", profile: null })
+        );
     });
 });

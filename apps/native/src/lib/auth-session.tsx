@@ -13,11 +13,24 @@ export interface AuthSession {
     activate: () => void;
     begin: () => void;
     gate: AuthGate;
+    profile: AccountProfile | null;
     reject: () => void;
 }
 
+export interface AccountProfile {
+    email: string;
+    name: string;
+}
+
 const NOOP = () => undefined;
-const UNCONFIGURED: AuthSession = { accountId: null, activate: NOOP, begin: NOOP, gate: "unconfigured", reject: NOOP };
+const UNCONFIGURED: AuthSession = {
+    accountId: null,
+    activate: NOOP,
+    begin: NOOP,
+    gate: "unconfigured",
+    profile: null,
+    reject: NOOP,
+};
 
 const AuthSessionContext = createContext<AuthSession>(UNCONFIGURED);
 
@@ -57,12 +70,13 @@ function LiveSession({ client, children }: { client: AuthClient; children: React
 }
 
 export function sessionView(
-    session: { user: { id: string } } | null | undefined,
+    session: { user: AccountProfile & { id: string } } | null | undefined,
     isPending: boolean,
     provisional: boolean,
     restoreExpired = false
-): Pick<AuthSession, "accountId" | "gate"> {
-    const accountId = provisional || session == null ? null : session.user.id;
+): Pick<AuthSession, "accountId" | "gate" | "profile"> {
+    const user = provisional || session == null ? null : session.user;
+    const accountId = user?.id ?? null;
     return {
         accountId,
         gate: authGate({
@@ -71,5 +85,6 @@ export function sessionView(
             restoreExpired: restoreExpired && !provisional,
             restoring: isPending || provisional,
         }),
+        profile: user === null ? null : { email: user.email, name: user.name },
     };
 }

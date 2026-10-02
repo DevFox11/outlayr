@@ -16,6 +16,7 @@ jest.mock<Partial<typeof import("@/lib/auth-session")>>("@/lib/auth-session", ()
         activate: () => undefined,
         begin: () => undefined,
         gate: "signed-in",
+        profile: mockSession.accountId === null ? null : { email: `${mockSession.accountId}@example.com`, name: "Ana" },
         reject: () => undefined,
     }),
 }));
@@ -36,6 +37,7 @@ jest.mock<typeof import("@/lib/revenuecat")>("@/lib/revenuecat", () => ({
     purchaseCancelled: { safeParse: () => ({ success: false }) } as never,
     refreshProEntitlement: jest.fn(async () => false),
     restoreAndCheckPro: jest.fn(async () => false),
+    setCustomerProfile: jest.fn(async () => undefined),
 }));
 
 const mockMirror = jest.fn<() => Promise<boolean>>(async () => true);
@@ -453,6 +455,27 @@ describe("revenueCatProvider identity", () => {
         expect(sdk.refreshProEntitlement).not.toHaveBeenCalled();
         expect(sdk.identifyUser).toHaveBeenCalledWith("user-4");
         expect(getByTestId("pro").props.children).toBe("true");
+    });
+
+    it("sends the profile only once RevenueCat has logged in as that account", async () => {
+        let releaseLogIn: (pro: boolean) => void = () => undefined;
+        sdk.identifyUser.mockImplementationOnce(
+            () =>
+                new Promise<boolean>((resolve) => {
+                    releaseLogIn = resolve;
+                })
+        );
+        mockSession.accountId = "user-30";
+        await renderHook(() => useRevenueCat(), { wrapper: RevenueCatProvider });
+        await act(async () => undefined);
+        expect(sdk.setCustomerProfile).not.toHaveBeenCalled();
+
+        await act(async () => {
+            releaseLogIn(false);
+        });
+
+        expect(sdk.setCustomerProfile).toHaveBeenCalledTimes(1);
+        expect(sdk.setCustomerProfile).toHaveBeenCalledWith({ email: "user-30@example.com", name: "Ana" });
     });
 
     it("holds the offerings until the queued sign-in has landed", async () => {

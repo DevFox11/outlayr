@@ -1,6 +1,6 @@
 ---
 title: "Privacy Policy"
-description: "What Outlayr stores on your device, what reaches our servers, AI provider, and analytics service, how long it is kept, and how to delete it. Updated 1 October 2026."
+description: "What Outlayr stores on your device, what reaches our servers, AI provider, and analytics service, how long it is kept, and how to delete it. Updated 2 October 2026."
 intro: "This policy explains what Outlayr collects, where it goes, how long it stays, and what you can do about it."
 ---
 
@@ -37,7 +37,7 @@ Every kind of data Outlayr handles, in one place. The sections below explain eac
 | Receipt photo | Receipt scan | Our servers, xAI | Not kept |
 | File descriptions | CSV import | Our servers, xAI (Pro) | Not kept |
 | Web address, IP address | Logos | Logo.dev, Google | Their policies |
-| Purchase records, user ID | App opens, Pro | RevenueCat, Apple, our servers | Until account deletion |
+| Purchase records, user ID, name, email | App opens, Pro | RevenueCat, Apple, our servers | Until account deletion |
 | Install ID, app version, errors | Update checks | Expo | Expo’s policy |
 | Screens, saves, errors, install ID, device model | App use | PostHog | Until account deletion, or PostHog’s policy if you never sign in |
 | Pages, clicks, scrolling, errors, page speed, visit recordings | Website visits | PostHog | PostHog’s policy |
@@ -62,7 +62,7 @@ You don’t need an account to use Outlayr. Without one, none of your ledger is 
 - **Exchange rates.** The app downloads market rates from our server. The request needs no account and carries no ledger data. Our server reads the rates from public sources (Frankfurter and CotizaVE), which receive nothing about you.
 - **Logos.** To show a logo for a merchant or bank, the app asks Logo.dev for it by web address (for example, netflix.com), and Google’s favicon service if Logo.dev has none. The request comes from your device, so those services see your IP address. It never includes amounts, notes, or who you are. Logos are then cached on the phone.
 - **App updates.** When the app starts, it asks Expo, the platform we use to ship updates, whether a newer version of the app’s code is available. The request includes a random ID created for this install (not linked to your account), the app version, and your IP address. If an update failed to start last time, it also includes a short error message.
-- **Purchase status.** The app checks with RevenueCat whether you have Outlayr Pro, using a random anonymous ID until you sign in. See [Outlayr Pro](#outlayr-pro).
+- **Purchase status.** The app checks with RevenueCat whether you have Outlayr Pro, using a random anonymous ID until you sign in, and your account ID, name, and email after. See [Outlayr Pro](#outlayr-pro).
 - **Analytics and crash reports.** The app tells PostHog, the analytics service we use, when it is installed, updated, opened, or closed, which kind of screen you open (for example, an account’s screen, never which account), and when you save an entry, transfer, account, or category, with details such as expense or income, whether it came from a scan or your voice, and whether it was new or an edit. If the app hits an error, it sends the error message and where in the code it happened. Each event carries a random ID created for this install, the app version, your device model, operating system, language, time zone, and screen size. It never includes amounts, merchants, notes, account or category names, or your email. PostHog discards your IP address. Once you sign in, these events are linked to your Outlayr account ID. If your device’s region is set to a country in the EEA or UK, **Settings › Share Analytics** starts off and none of this is sent until you turn it on. Turning it off stops all of it on that device.
 
 ## Your account
@@ -149,7 +149,7 @@ When the automation runs, Shortcuts gives Outlayr the amount, merchant, and card
 
 Payments for Outlayr Pro go through your app store (Apple’s App Store on iPhone). We never see your card details or your app store account details.
 
-RevenueCat manages subscription status for us. When the app opens, RevenueCat’s software checks whether you have Pro. Before you sign in it uses a random anonymous ID. After you sign in it uses your Outlayr account ID, which is not your name or email. RevenueCat receives your app store purchase and subscription records and basic technical details, such as the app and operating system versions.
+RevenueCat manages subscription status for us. When the app opens, RevenueCat’s software checks whether you have Pro. Before you sign in it uses a random anonymous ID. After you sign in it uses your Outlayr account ID, and the app also sends your name and email so we can find your purchases when you write to us. RevenueCat receives your app store purchase and subscription records and basic technical details, such as the app and operating system versions.
 
 Our server asks RevenueCat about your account ID to confirm Pro, and RevenueCat tells our server when your subscription changes. We keep a copy of your subscription records, such as the product, dates, price, and store country, and delete it with your account.
 
@@ -172,7 +172,7 @@ These companies help run Outlayr. Each receives only what its job needs.
 - **[Hetzner](https://www.hetzner.com/legal/privacy-policy)** hosts the servers in Helsinki, Finland, that run our database and server functions. They hold your account and synced data, and handle every request to our server.
 - **[Cloudflare](https://www.cloudflare.com/privacypolicy/)** stores the photos you attach to entries and accounts (Cloudflare R2), when photo backup is on.
 - **xAI** provides the Grok AI models behind suggestions, voice entry, receipt scans, CSV import, and web lookups. It receives the content described in [Suggestions, voice, and receipts](#suggestions-voice-and-receipts).
-- **[RevenueCat](https://www.revenuecat.com/privacy)** tracks subscription status. It receives an anonymous ID or your account ID, and your purchase records.
+- **[RevenueCat](https://www.revenuecat.com/privacy)** tracks subscription status. It receives an anonymous ID, or your account ID, name, and email once you sign in, and your purchase records.
 - **[Apple](https://www.apple.com/legal/privacy/)** provides Sign in with Apple, App Store payments, and iOS features such as Siri and Shortcuts, under its own policy.
 - **[Google](https://policies.google.com/privacy)** provides Sign in with Google, under its own policy, and is a fallback source for logos, for which it receives a web address and your IP address.
 - **Logo.dev** provides merchant and bank logos. It receives a web address and your IP address.

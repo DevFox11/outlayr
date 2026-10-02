@@ -4,6 +4,8 @@ import Purchases, { INTRO_ELIGIBILITY_STATUS, LOG_LEVEL } from "react-native-pur
 import type { CustomerInfo, PurchasesPackage } from "react-native-purchases";
 import { z } from "zod";
 
+import type { AccountProfile } from "@/lib/auth-session";
+
 const API_KEY = Platform.select({
     android: env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
     ios: env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
@@ -45,6 +47,10 @@ export async function refreshProEntitlement(): Promise<boolean> {
 export async function identifyUser(userId: string): Promise<boolean> {
     const { customerInfo } = await Purchases.logIn(userId);
     return hasProEntitlement(customerInfo);
+}
+
+export async function setCustomerProfile({ email, name }: AccountProfile): Promise<void> {
+    await Promise.all([Purchases.setEmail(email), Purchases.setDisplayName(name.trim() || null)]);
 }
 
 export async function logOutUser(): Promise<boolean> {

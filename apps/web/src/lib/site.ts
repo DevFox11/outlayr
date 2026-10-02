@@ -4,7 +4,7 @@ export const SUPPORT_EMAIL = "support@tryoutlayr.com";
 export const COMPANY = "danestves LLC";
 
 const LEGAL_DAYS = {
-    privacy: new Date(Date.UTC(2026, 9, 1)),
+    privacy: new Date(Date.UTC(2026, 9, 2)),
     terms: new Date(Date.UTC(2026, 8, 24)),
 } as const;
 
