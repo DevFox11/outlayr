@@ -7,7 +7,7 @@ import embossPreview from "@/assets/images/app-icon-previews/emboss.png";
 import hairlinePreview from "@/assets/images/app-icon-previews/hairline.png";
 import inkPreview from "@/assets/images/app-icon-previews/ink.png";
 import monoPreview from "@/assets/images/app-icon-previews/mono.png";
-import { ChoiceRow, SettingsSection } from "@/components/settings/settings-row";
+import { ChoiceRow, SettingsSection } from "@/components/list/list-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Image } from "@/components/styled";
 import { APP_ICONS, defaultRowDetail, RELEASE_PRIMARY_ICON } from "@/domain/app-icons";

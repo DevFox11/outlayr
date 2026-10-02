@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 
-import { LinkRow } from "@/components/settings/settings-row";
+import { LinkRow } from "@/components/list/list-row";
 import { projectLimit } from "@/domain/usage-limits";
 import { useTickingNow, useUsageLimits } from "@/hooks/use-usage-limits";
 import { useTranslation } from "@/i18n/context";

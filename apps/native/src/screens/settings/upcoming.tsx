@@ -3,7 +3,7 @@ import { View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 
 import { EmptyState, useMark } from "@/components/empty-state";
-import { SettingsSection, ToggleRow } from "@/components/settings/settings-row";
+import { SettingsSection, ToggleRow } from "@/components/list/list-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";

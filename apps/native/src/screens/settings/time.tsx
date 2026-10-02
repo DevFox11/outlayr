@@ -1,4 +1,4 @@
-import { ChoiceRow, PickerRow, SettingsSection } from "@/components/settings/settings-row";
+import { ChoiceRow, PickerRow, SettingsSection } from "@/components/list/list-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { useAppSettings, useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";

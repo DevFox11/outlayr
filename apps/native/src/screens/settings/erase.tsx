@@ -1,8 +1,8 @@
 import { useRouter } from "expo-router";
 import { Alert, View } from "react-native";
 
+import { LinkRow, SettingsSection } from "@/components/list/list-row";
 import { MonoLabel } from "@/components/mono-label";
-import { LinkRow, SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";

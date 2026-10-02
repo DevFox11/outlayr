@@ -1,0 +1,78 @@
+import { t } from "intlayer";
+import type { Dictionary } from "intlayer";
+
+const settingsFeatureLab = {
+    content: {
+        "settings.featureLab.addingSection": t({
+            en: "Adding a transaction",
+            es: "Al agregar una transacción",
+        }),
+        "settings.featureLab.aiEnrichment": t({
+            en: "Suggest category and tags",
+            es: "Sugerir categoría y etiquetas",
+        }),
+        "settings.featureLab.aiEnrichmentNote": t({
+            en: "Well-known services are recognised on this device, and only their web address goes to a logo service to fetch the logo. For anything else, only the merchant name of an entry (typed, spoken, scanned or logged from Wallet), whether it is an expense or income, its currency code, your language and device region, and your own category names leave the device, never amounts, dates or accounts, and the web address that comes back goes to the same logo service. A recent entry saved without a logo is looked up again in the background.",
+            es: "Los servicios conocidos se reconocen en este dispositivo, y solo su dirección web va a un servicio de logos para traer el logo. Para todo lo demás, solo salen del dispositivo el nombre del comercio de una entrada (escrita, dictada, escaneada o registrada desde Wallet), si es gasto o ingreso, su código de moneda, tu idioma y la región del dispositivo, y los nombres de tus categorías. Nunca montos, fechas ni cuentas. La dirección web que vuelve va al mismo servicio de logos. Si una entrada reciente se guardó sin logo, se vuelve a buscar en segundo plano.",
+        }),
+        "settings.featureLab.aiSection": t({
+            en: "Smart fill",
+            es: "Autocompletado",
+        }),
+        "settings.featureLab.budgetRows": t({
+            en: "Budget rows",
+            es: "Filas de presupuesto",
+        }),
+        "settings.featureLab.budgetRowsNote": t({
+            en: "Off lays the budgets out as a two-up grid of cards instead of a list.",
+            es: "Si lo desactivas, los presupuestos se muestran en una cuadrícula de tarjetas de dos en dos en vez de una lista.",
+        }),
+        "settings.featureLab.budgetsSection": t({
+            en: "Budgets",
+            es: "Presupuestos",
+        }),
+        "settings.featureLab.confetti": t({
+            en: "Celebrate expenses",
+            es: "Celebrar gastos",
+        }),
+        "settings.featureLab.confettiNote": t({
+            en: "Throws confetti over a transaction the moment you add it.",
+            es: "Lanza confeti sobre una transacción en el momento en que la agregas.",
+        }),
+        "settings.featureLab.experimental": t({
+            en: "Experimental: these can change or disappear.",
+            es: "Experimental: esto puede cambiar o desaparecer.",
+        }),
+        "settings.featureLab.groundedLookup": t({
+            en: "Look up new merchants",
+            es: "Buscar comercios nuevos",
+        }),
+        "settings.featureLab.groundedLookupNote": t({
+            en: "For a merchant nobody has seen before, the name, whether it is an expense or income, the entry's currency code and your language and device region may be searched on the web to learn its category, never on the transaction you're entering, and never with any amount, date or account. Off keeps every lookup on this device and the ones already known.",
+            es: "Para un comercio que nadie ha visto antes, el nombre, si es gasto o ingreso, el código de moneda de la entrada y tu idioma y región pueden buscarse en la web para conocer su categoría. Nunca para la transacción que estás ingresando y nunca con montos, fechas ni cuentas. Si lo desactivas, cada búsqueda se queda en este dispositivo y en los comercios ya conocidos.",
+        }),
+        "settings.featureLab.lineGraph": t({
+            en: "Show line graph",
+            es: "Mostrar gráfico de líneas",
+        }),
+        "settings.featureLab.logSection": t({
+            en: "The Log",
+            es: "El registro",
+        }),
+        "settings.featureLab.swapTime": t({
+            en: "Replace time label",
+            es: "Reemplazar etiqueta de hora",
+        }),
+        "settings.featureLab.swapTimeNote": t({
+            en: "Each transaction shows its category instead of its time. If you never write your own note, the note is already the category name, so both lines will read the same.",
+            es: "Cada transacción muestra su categoría en vez de su hora. Si nunca escribes tu propia nota, la nota ya es el nombre de la categoría, así que ambas líneas dirán lo mismo.",
+        }),
+        "settings.featureLab.transactionRowsSection": t({
+            en: "Transaction rows",
+            es: "Filas de transacción",
+        }),
+    },
+    key: "settings-feature-lab" as const,
+} satisfies Dictionary;
+
+export default settingsFeatureLab;

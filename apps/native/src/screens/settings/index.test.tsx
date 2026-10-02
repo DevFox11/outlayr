@@ -12,11 +12,6 @@ import { unusedDatabase as mockUnusedDatabase } from "@/db/test-database";
 
 import { Settings } from "./index";
 
-/**
- * The screen pulls a dozen hooks; every one is stubbed to its resting value
- * so the rows under test render and nothing else runs. What is asserted is
- * what a tap on a data-section row does, not how the screen looks.
- */
 jest.mock<Partial<typeof import("@/contexts/local-data-context")>>("@/contexts/local-data-context", () => ({
     useDatabase: () => mockUnusedDatabase(),
 }));
@@ -70,17 +65,23 @@ beforeEach(() => {
     mockGetResumeStep.mockReset();
 });
 
-describe("settings screen: data section rows", () => {
-    it("pushes the restore screen from the restore row", async () => {
+describe("settings screen: data and about rows", () => {
+    it.each([
+        ["settings.row.export", "/settings/export"],
+        ["settings.row.restore", "/settings/restore"],
+        ["settings.row.deleted", "/settings/deleted"],
+        ["settings.row.erase", "/settings/erase"],
+        ["settings.row.about", "/settings/about"],
+    ])("pushes %s to %s", async (title, href) => {
         const { getByText } = await render(<Settings />);
 
-        fireEvent.press(getByText("settings.row.restore"));
+        fireEvent.press(getByText(title));
 
-        expect(mockPush).toHaveBeenCalledWith("/settings/restore");
+        expect(mockPush).toHaveBeenCalledTimes(1);
+        expect(mockPush).toHaveBeenCalledWith(href);
     });
 
     it("presents the import sheet from the import row, seeded with the resume step, without routing", async () => {
-        // A value the handler cannot know on its own: only the getter can supply it.
         mockGetResumeStep.mockReturnValue("mapping");
         const { getByText } = await render(<Settings />);
 

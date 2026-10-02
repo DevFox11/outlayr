@@ -1,7 +1,7 @@
 import { DateTimePicker } from "@expo/ui/community/datetime-picker";
 import { Alert, View } from "react-native";
 
-import { ChoiceRow, SettingsSection, ToggleRow } from "@/components/settings/settings-row";
+import { ChoiceRow, SettingsSection, ToggleRow } from "@/components/list/list-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useAppSettings, useDisplaySettings } from "@/contexts/display-settings-context";

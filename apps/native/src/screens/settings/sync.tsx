@@ -2,9 +2,9 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 
+import { LinkRow, SettingsSection, ToggleRow } from "@/components/list/list-row";
 import { MonoLabel } from "@/components/mono-label";
 import { AccountRow } from "@/components/settings/account-row";
-import { LinkRow, SettingsSection, ToggleRow } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";

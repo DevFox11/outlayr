@@ -47,10 +47,6 @@ import UserRemove01Icon from "@hugeicons-pro/core-stroke-rounded/UserRemove01Ico
 import Wallet01Icon from "@hugeicons-pro/core-stroke-rounded/Wallet01Icon";
 import type { IconSvgElement } from "@hugeicons/react-native";
 
-/**
- * Keyed by Hugeicons name. Stroke, not solid: a filled glyph at 20pt blots next
- * to 16px text.
- */
 const REGISTRY = {
     Analytics01: Analytics01Icon,
     ArchiveRestore: ArchiveRestoreIcon,

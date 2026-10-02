@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 
 import { FirstRun } from "@/components/first-run";
-import { ToggleRow } from "@/components/settings/settings-row";
+import { ToggleRow } from "@/components/list/list-row";
 import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { setBoolSetting } from "@/data/settings-core";

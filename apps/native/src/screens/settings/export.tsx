@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { BusyText } from "@/components/busy-text";
+import { SettingsSection } from "@/components/list/list-row";
 import { MonoLabel } from "@/components/mono-label";
-import { SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";

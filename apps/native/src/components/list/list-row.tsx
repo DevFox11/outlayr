@@ -7,17 +7,15 @@ import type { ReactNode } from "react";
 import { Pressable, Switch, View } from "react-native";
 
 import { MonoLabel } from "@/components/mono-label";
+import type { SettingsIconName } from "@/components/settings/settings-icons";
+import { settingsIcon } from "@/components/settings/settings-icons";
+import { TintedLabel, tintedLabelAvailable } from "@/components/settings/tinted-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useColors } from "@/theme/use-colors";
 
-import type { SettingsIconName } from "./settings-icons";
-import { settingsIcon } from "./settings-icons";
-import { TintedLabel, tintedLabelAvailable } from "./tinted-label";
-
 const GLYPH = 20;
 
-/** Hangs a second line under the title rather than the icon: `GLYPH` plus `gap-3`. */
 const TITLE_INSET = "pl-8";
 
 export function SettingsSection({ title, footer, children }: { title: string; footer?: string; children?: ReactNode }) {
@@ -35,7 +33,6 @@ export function SettingsSection({ title, footer, children }: { title: string; fo
 interface RowShellProps {
     children?: ReactNode;
     destructive?: boolean;
-    /** Second line under the title, for a row whose behaviour needs a sentence. */
     detail?: string;
     icon?: SettingsIconName;
     title: string;
@@ -95,16 +92,10 @@ function RowTrailing({ interactive, value }: { interactive: boolean; value?: str
 
 interface LinkRowProps {
     destructive?: boolean;
-    /** Second line under the title, for a row whose behaviour needs a sentence. */
     detail?: string;
     icon?: SettingsIconName;
-    /**
-     * Tap handler. Omitted renders the row inert with no chevron — used for
-     * unavailable features (e.g. Sync before an account exists).
-     */
     onPress?: () => void;
     title: string;
-    /** Trailing detail — the current currency code, "Off", a count. */
     value?: string;
 }
 
@@ -139,15 +130,6 @@ export function PickerRow<T extends string | number | boolean>({
     icon: SettingsIconName;
     title: string;
     detail?: string;
-    /**
-     * A `swatch` renders the option through `TintedLabel`, a Glow view that
-     * pre-paints `circle.fill` with `.alwaysOriginal` at a fixed point size.
-     * Both halves of that matter. `UIMenu` discards SwiftUI styling, so a
-     * `Label` + `foregroundStyle` draws five identical grey circles
-     * (`docs/design/evidence/menu-swatch-rejected.png`); and an unpinned symbol
-     * arrives on the closed row at menu size, because a `.menu` picker's
-     * control *is* the selected item's label.
-     */
     options: readonly { label: string; swatch?: string; value: T }[];
     value: T;
     onChange: (value: T) => void;
@@ -201,9 +183,6 @@ export function ToggleRow({
     title: string;
     value: boolean;
     onValueChange: (value: boolean) => void;
-    /** The switch and its row label share `title` as their accessibility text, so
-     * an end-to-end driver selecting by text cannot tell them apart. Titles are
-     * localized, which rules out deriving a handle from them. */
     testID?: string;
 }) {
     const colors = useColors();
@@ -220,7 +199,6 @@ export function ToggleRow({
     );
 }
 
-/** One option on a choice screen — a list too long or too visual for `PickerRow`. */
 export function ChoiceRow({
     label,
     detail,
@@ -230,7 +208,6 @@ export function ChoiceRow({
 }: {
     label: string;
     detail?: string;
-    /** Sits before the label — a preview tile, a swatch. */
     leading?: ReactNode;
     selected: boolean;
     onPress: () => void;

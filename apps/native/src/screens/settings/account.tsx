@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { Alert, View } from "react-native";
 
 import { ProviderSignInButtons } from "@/components/account/provider-sign-in-buttons";
+import { LinkRow, SettingsSection } from "@/components/list/list-row";
 import { MonoLabel } from "@/components/mono-label";
-import { LinkRow, SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDatabase, useLocalData } from "@/contexts/local-data-context";

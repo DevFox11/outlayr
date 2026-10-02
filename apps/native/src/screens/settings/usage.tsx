@@ -1,8 +1,8 @@
 import { useRouter } from "expo-router";
 import { View } from "react-native";
 
+import { LinkRow, SettingsSection } from "@/components/list/list-row";
 import type { SettingsIconName } from "@/components/settings/settings-icons";
-import { LinkRow, SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { formatSentenceDate } from "@/domain/dates";

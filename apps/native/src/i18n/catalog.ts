@@ -27,6 +27,11 @@ type Pro = typeof import("@/content/pro.content").default;
 type Receipt = typeof import("@/content/receipt.content").default;
 type Search = typeof import("@/content/search.content").default;
 type Settings = typeof import("@/content/settings.content").default;
+type SettingsAccount = typeof import("@/content/settings-account.content").default;
+type SettingsData = typeof import("@/content/settings-data.content").default;
+type SettingsFeatureLab = typeof import("@/content/settings-feature-lab.content").default;
+type SettingsNotifications = typeof import("@/content/settings-notifications.content").default;
+type SettingsWallet = typeof import("@/content/settings-wallet.content").default;
 type Transaction = typeof import("@/content/transaction.content").default;
 type Transfers = typeof import("@/content/transfers.content").default;
 type Update = typeof import("@/content/update.content").default;
@@ -54,6 +59,11 @@ export const DICTIONARY_KEYS = [
     "receipt",
     "search",
     "settings",
+    "settings-account",
+    "settings-data",
+    "settings-feature-lab",
+    "settings-notifications",
+    "settings-wallet",
     "transaction",
     "transfers",
     "update",
@@ -77,6 +87,11 @@ type Content =
     | Receipt["content"]
     | Search["content"]
     | Settings["content"]
+    | SettingsAccount["content"]
+    | SettingsData["content"]
+    | SettingsFeatureLab["content"]
+    | SettingsNotifications["content"]
+    | SettingsWallet["content"]
     | Transaction["content"]
     | Transfers["content"]
     | Update["content"]

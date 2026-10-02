@@ -3,7 +3,7 @@ import { Pressable, View } from "react-native";
 import { RowAmount } from "@/components/amount-text";
 import { EmptyState } from "@/components/empty-state";
 import { Bar, GhostAvatar, Slot } from "@/components/empty-state-parts";
-import { SettingsSection } from "@/components/settings/settings-row";
+import { SettingsSection } from "@/components/list/list-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";

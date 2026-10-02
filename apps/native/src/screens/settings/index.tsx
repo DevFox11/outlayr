@@ -1,14 +1,16 @@
 import Constants from "expo-constants";
 import { openSettings } from "expo-linking";
 import { useRouter } from "expo-router";
+import type { Href } from "expo-router";
 import { openBrowserAsync } from "expo-web-browser";
 import { useRef, useState } from "react";
 import { Linking, Platform } from "react-native";
 
 import { ImportSheet } from "@/components/import-sheet/import-sheet";
 import type { ImportSheetHandle } from "@/components/import-sheet/import-sheet";
+import { LinkRow, PickerRow, SettingsSection, ToggleRow } from "@/components/list/list-row";
 import { AccountRow } from "@/components/settings/account-row";
-import { LinkRow, PickerRow, SettingsSection, ToggleRow } from "@/components/settings/settings-row";
+import type { SettingsIconName } from "@/components/settings/settings-icons";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { UsageRow } from "@/components/settings/usage-row";
 import { useAppSettings, useDisplaySettings } from "@/contexts/display-settings-context";
@@ -32,6 +34,7 @@ import { lockFailureMessage } from "@/domain/app-lock";
 import { syncPaused, syncStatusLabel } from "@/domain/sync-status";
 import { coverageNote } from "@/domain/valuation-coverage";
 import { useProEntitled } from "@/hooks/use-pro-locked";
+import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { languageLabel } from "@/i18n/languages";
 import { translateNow } from "@/i18n/runtime";
@@ -48,24 +51,19 @@ import type { SupportDiagnostics } from "@/lib/support-mailto";
 import { THEME_OPTIONS } from "@/theme/theme-preference";
 import { useIsDark } from "@/theme/use-is-dark";
 
-/**
- * iOS owns the per-app language, so the row is a signpost rather than a control:
- * it reports what the system resolved and hands the choice back to Settings.
- * Doing it here as well would leave two sources of truth, and the SwiftUI date
- * pickers would still follow the system one.
- */
 function openLanguageSettings() {
-    openSettings().catch(() => {
-        // Nothing to recover: the row is informational either way.
-    });
+    openSettings().catch(() => undefined);
 }
 
 const SUPPORT_EMAIL = "support@tryoutlayr.com";
 
-/**
- * Both directions pass the check first. Arming the lock without one is how a
- * user shuts themselves out behind a Face ID they never enrolled.
- */
+const DATA_LINKS = [
+    { href: "/settings/export", icon: "FileExport", title: "settings.row.export" },
+    { href: "/settings/restore", icon: "ArchiveRestore", title: "settings.row.restore" },
+    { href: "/settings/deleted", icon: "Clock04", title: "settings.row.deleted" },
+    { destructive: true, href: "/settings/erase", icon: "Delete02", title: "settings.row.erase" },
+] satisfies readonly { destructive?: boolean; href: Href; icon: SettingsIconName; title: TranslationKey }[];
+
 async function toggleAppLock(db: Database, next: boolean): Promise<void> {
     const result = await requestUnlock(translateNow(next ? "settings.lock.promptOn" : "settings.lock.promptOff"));
     if (result.success) {
@@ -202,9 +200,6 @@ export function Settings() {
                         swatch: accent[scheme],
                         value: accent.value,
                     }))}
-                    // The value the app is painting right now, not the light one: the two
-                    // halves of an accent differ, and a dot showing the other half would
-                    // disagree with every control around it.
                     title={t("settings.row.theme")}
                     value={accentColor}
                 />
@@ -308,27 +303,15 @@ export function Settings() {
                     }}
                     title={t("settings.row.import")}
                 />
-                <LinkRow
-                    icon="FileExport"
-                    onPress={() => router.push("/settings/export")}
-                    title={t("settings.row.export")}
-                />
-                <LinkRow
-                    icon="ArchiveRestore"
-                    onPress={() => router.push("/settings/restore")}
-                    title={t("settings.row.restore")}
-                />
-                <LinkRow
-                    icon="Clock04"
-                    onPress={() => router.push("/settings/deleted")}
-                    title={t("settings.row.deleted")}
-                />
-                <LinkRow
-                    destructive
-                    icon="Delete02"
-                    onPress={() => router.push("/settings/erase")}
-                    title={t("settings.row.erase")}
-                />
+                {DATA_LINKS.map((row) => (
+                    <LinkRow
+                        destructive={"destructive" in row}
+                        icon={row.icon}
+                        key={row.href}
+                        onPress={() => router.push(row.href)}
+                        title={t(row.title)}
+                    />
+                ))}
             </SettingsSection>
 
             <SettingsSection title={t("settings.section.about")}>
@@ -360,10 +343,6 @@ export function Settings() {
     );
 }
 
-/**
- * Its own component so that reading the icon back from iOS — and the focus
- * effect that keeps it current — happens only where the row exists at all.
- */
 function AppIconRow() {
     const router = useRouter();
     const t = useTranslation();
@@ -378,13 +357,6 @@ function AppIconRow() {
     );
 }
 
-/**
- * `expo-device` is not installed and adding it would force a dev-client rebuild,
- * so the model comes from `Constants.deviceName` (`UIDevice.name`). Since iOS 16
- * that reads back as the model — "iPhone" — unless the app holds the
- * user-assigned-device-name entitlement, which is coarser than Swift's
- * `modelName` but still narrows a report to a platform and OS release.
- */
 function supportDiagnostics(version: string, build: string): SupportDiagnostics {
     return {
         appBuild: build,

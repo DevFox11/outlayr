@@ -2,8 +2,8 @@ import { useRouter } from "expo-router";
 import { openBrowserAsync } from "expo-web-browser";
 import { Linking, Share, View } from "react-native";
 
+import { LinkRow, SettingsSection } from "@/components/list/list-row";
 import { MonoLabel } from "@/components/mono-label";
-import { LinkRow, SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useTranslation } from "@/i18n/context";
@@ -74,7 +74,6 @@ export function About() {
                     onPress={() => router.push("/settings/licenses")}
                     title={t("settings.about.openSourceLicenses")}
                 />
-                {/* Required by logo.dev's free plan: a visible, followable link. */}
                 <LinkRow
                     icon="Sparkles"
                     onPress={() => openBrowserAsync(LOGO_DEV)}

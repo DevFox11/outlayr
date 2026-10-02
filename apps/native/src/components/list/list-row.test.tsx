@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react-native";
 import { MonoLabel } from "@/components/mono-label";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
-import { SettingsSection } from "./settings-row";
+import { SettingsSection } from "./list-row";
 
 jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
     useColors: () => mockTestColors({}),

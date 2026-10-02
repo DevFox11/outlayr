@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 
-import { LinkRow } from "@/components/settings/settings-row";
+import { LinkRow } from "@/components/list/list-row";
 import { accountRowValue } from "@/domain/account";
 import type { AccountState } from "@/domain/account";
 import { useTranslation } from "@/i18n/context";

@@ -2,8 +2,8 @@ import { LegendList } from "@legendapp/list/react-native";
 import { Stack, useRouter } from "expo-router";
 import { View } from "react-native";
 
+import { LinkRow } from "@/components/list/list-row";
 import { MonoLabel } from "@/components/mono-label";
-import { LinkRow } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 
