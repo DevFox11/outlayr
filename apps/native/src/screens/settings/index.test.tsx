@@ -36,7 +36,7 @@ jest.mock("@/i18n/context", () => ({
 }));
 jest.mock("@/lib/reminder-sync", () => ({ useReminderSync: () => {} }));
 jest.mock("@/lib/app-icon", () => ({
-    alternateIconsSupported: () => false,
+    alternateIconsSupported: false,
     useAppIcon: () => ({ active: null, choose: () => {} }),
 }));
 jest.mock("@/components/settings/account-row", () => ({ AccountRow: () => null }));

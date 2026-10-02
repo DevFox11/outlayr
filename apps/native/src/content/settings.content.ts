@@ -4,8 +4,8 @@ import type { Dictionary } from "intlayer";
 const settings = {
     content: {
         "settings.about.copyright": t({
-            en: "Copyright © 2022–2023 Rafael Soh and Dime contributors. Modifications copyright © 2026 Daniel Esteves.",
-            es: "Copyright © 2022–2023 Rafael Soh y colaboradores de Dime. Modificaciones copyright © 2026 Daniel Esteves.",
+            en: "Copyright © 2022-2023 Rafael Soh and Dime contributors. Modifications copyright © 2026 Daniel Esteves.",
+            es: "Copyright © 2022-2023 Rafael Soh y colaboradores de Dime. Modificaciones copyright © 2026 Daniel Esteves.",
         }),
         "settings.about.dimeRepo": t({
             en: "Dime (original project)",
@@ -284,7 +284,7 @@ const settings = {
             es: "Eliminada {date}",
         }),
         "settings.deleted.empty": t({
-            en: "Nothing has been deleted. Entries you delete arrive here and wait — Outlayr never throws one away.",
+            en: "Nothing has been deleted. Entries you delete arrive here and wait. Outlayr never throws one away.",
             es: "No has eliminado nada. Las entradas que elimines llegan aquí y te esperan. Outlayr nunca descarta ninguna.",
         }),
         "settings.deleted.failedBody": t({
@@ -344,7 +344,7 @@ const settings = {
             es: "El borrado no terminó",
         }),
         "settings.erase.footer": t({
-            en: "Your categories are kept either way — they are the vocabulary you built, not the records you logged.",
+            en: "Your categories are kept either way: they are the vocabulary you built, not the records you logged.",
             es: "Tus categorías se conservan en ambos casos: son el vocabulario que armaste, no los registros que anotaste.",
         }),
         "settings.erase.onThisDevice": t({
@@ -396,7 +396,7 @@ const settings = {
             es: "Columnas",
         }),
         "settings.export.columnsNote": t({
-            en: "Dates are ISO 8601 instants and amounts are plain decimals with no grouping, so the file reads back into Outlayr — or into a spreadsheet — as the same figures.",
+            en: "Dates are ISO 8601 instants and amounts are plain decimals with no grouping, so the file reads back into Outlayr (or into a spreadsheet) as the same figures.",
             es: "Las fechas van en formato ISO 8601 y los montos como decimales simples sin separador de miles, así que el archivo se vuelve a leer en Outlayr (o en una hoja de cálculo) con las mismas cifras.",
         }),
         "settings.export.failedBody": t({
@@ -408,7 +408,7 @@ const settings = {
             es: "Error al exportar",
         }),
         "settings.export.footer": t({
-            en: "Deleted transactions are left out. Every other transaction is written, newest first — six columns of it.",
+            en: "Deleted transactions are left out. Every other transaction is written, newest first, in six columns.",
             es: "Las transacciones eliminadas se omiten. Todas las demás se escriben, de la más reciente a la más antigua, en seis columnas.",
         }),
         "settings.export.omitted": t({
@@ -416,7 +416,7 @@ const settings = {
             es: "No está en el archivo",
         }),
         "settings.export.omittedDetails": t({
-            en: "Notes — the longer text under a transaction",
+            en: "Notes: the longer text under a transaction",
             es: "Notas: el texto largo debajo de una transacción",
         }),
         "settings.export.omittedLook": t({
@@ -424,7 +424,7 @@ const settings = {
             es: "Emoji, ícono y color",
         }),
         "settings.export.omittedNote": t({
-            en: "A CSV is a readable copy of your figures, not a backup. Reading one back in re-creates only the date, name, amount, currency and type of each transaction, and every category has to be linked by hand — the file cannot create one. Your budgets, your categories and everything listed above live only on this device.",
+            en: "A CSV is a readable copy of your figures, not a backup. Reading one back in re-creates only the date, name, amount, currency and type of each transaction, and every category has to be linked by hand, because the file cannot create one. Your budgets, your categories and everything listed above live only on this device.",
             es: "Un CSV es una copia legible de tus cifras, no un respaldo. Al volver a importarlo solo se recrean la fecha, el nombre, el monto, la moneda y el tipo de cada transacción, y cada categoría se tiene que vincular a mano, porque el archivo no puede crearla. Tus presupuestos, tus categorías y todo lo anterior existen únicamente en este dispositivo.",
         }),
         "settings.export.omittedPhotos": t({
@@ -468,7 +468,7 @@ const settings = {
             es: "Sugerir categoría y etiquetas",
         }),
         "settings.featureLab.aiEnrichmentNote": t({
-            en: "Well-known services are recognised on this device, and only their web address goes to a logo service to fetch the logo. For anything else, only the merchant name of an entry (typed, spoken, scanned or logged from Wallet), whether it is an expense or income, its currency code, your language and device region, and your own category names leave the device — never amounts, dates or accounts — and the web address that comes back goes to the same logo service. A recent entry saved without a logo is looked up again in the background.",
+            en: "Well-known services are recognised on this device, and only their web address goes to a logo service to fetch the logo. For anything else, only the merchant name of an entry (typed, spoken, scanned or logged from Wallet), whether it is an expense or income, its currency code, your language and device region, and your own category names leave the device, never amounts, dates or accounts, and the web address that comes back goes to the same logo service. A recent entry saved without a logo is looked up again in the background.",
             es: "Los servicios conocidos se reconocen en este dispositivo, y solo su dirección web va a un servicio de logos para traer el logo. Para todo lo demás, solo salen del dispositivo el nombre del comercio de una entrada (escrita, dictada, escaneada o registrada desde Wallet), si es gasto o ingreso, su código de moneda, tu idioma y la región del dispositivo, y los nombres de tus categorías. Nunca montos, fechas ni cuentas. La dirección web que vuelve va al mismo servicio de logos. Si una entrada reciente se guardó sin logo, se vuelve a buscar en segundo plano.",
         }),
         "settings.featureLab.aiSection": t({
@@ -496,7 +496,7 @@ const settings = {
             es: "Lanza confeti sobre una transacción en el momento en que la agregas.",
         }),
         "settings.featureLab.experimental": t({
-            en: "Experimental — these can change or disappear.",
+            en: "Experimental: these can change or disappear.",
             es: "Experimental: esto puede cambiar o desaparecer.",
         }),
         "settings.featureLab.groundedLookup": t({
@@ -504,7 +504,7 @@ const settings = {
             es: "Buscar comercios nuevos",
         }),
         "settings.featureLab.groundedLookupNote": t({
-            en: "For a merchant nobody has seen before, the name, whether it is an expense or income, the entry's currency code and your language and device region may be searched on the web to learn its category — never on the transaction you're entering, and never with any amount, date or account. Off keeps every lookup on this device and the ones already known.",
+            en: "For a merchant nobody has seen before, the name, whether it is an expense or income, the entry's currency code and your language and device region may be searched on the web to learn its category, never on the transaction you're entering, and never with any amount, date or account. Off keeps every lookup on this device and the ones already known.",
             es: "Para un comercio que nadie ha visto antes, el nombre, si es gasto o ingreso, el código de moneda de la entrada y tu idioma y región pueden buscarse en la web para conocer su categoría. Nunca para la transacción que estás ingresando y nunca con montos, fechas ni cuentas. Si lo desactivas, cada búsqueda se queda en este dispositivo y en los comercios ya conocidos.",
         }),
         "settings.featureLab.lineGraph": t({
@@ -892,7 +892,7 @@ const settings = {
             es: "Dinero",
         }),
         "settings.share.message": t({
-            en: "Track your money with Outlayr — {url}",
+            en: "Track your money with Outlayr. {url}",
             es: "Controla tu dinero con Outlayr: {url}",
         }),
         "settings.support.bugSubject": t({
@@ -916,7 +916,7 @@ const settings = {
             es: "La sincronización no cambió",
         }),
         "settings.sync.footer": t({
-            en: "Turning sync off keeps every transaction, budget and category on this iPhone — it only stops queueing them for your account. Turning it back on hands over everything logged in between.",
+            en: "Turning sync off keeps every transaction, budget and category on this iPhone; it only stops queueing them for your account. Turning it back on hands over everything logged in between.",
             es: "Si desactivas la sincronización, cada transacción, presupuesto y categoría se queda en este iPhone; solo deja de enviarse a tu cuenta. Al activarla de nuevo, se envía todo lo que registraste mientras tanto.",
         }),
         "settings.sync.lastSynced": t({

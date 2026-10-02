@@ -10,6 +10,7 @@ import CalendarClockIcon from "@hugeicons-pro/core-stroke-rounded/CalendarClockI
 import Camera01Icon from "@hugeicons-pro/core-stroke-rounded/Camera01Icon";
 import ChartBarLineIcon from "@hugeicons-pro/core-stroke-rounded/ChartBarLineIcon";
 import ChartLineData01Icon from "@hugeicons-pro/core-stroke-rounded/ChartLineData01Icon";
+import Clock04Icon from "@hugeicons-pro/core-stroke-rounded/Clock04Icon";
 import CloudIcon from "@hugeicons-pro/core-stroke-rounded/CloudIcon";
 import CreditCardIcon from "@hugeicons-pro/core-stroke-rounded/CreditCardIcon";
 import CurrencyIcon from "@hugeicons-pro/core-stroke-rounded/CurrencyIcon";
@@ -64,6 +65,7 @@ const REGISTRY = {
     Camera01: Camera01Icon,
     ChartBarLine: ChartBarLineIcon,
     ChartLineData01: ChartLineData01Icon,
+    Clock04: Clock04Icon,
     Cloud: CloudIcon,
     CreditCard: CreditCardIcon,
     Currency: CurrencyIcon,

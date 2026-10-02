@@ -2,7 +2,7 @@ import Constants from "expo-constants";
 import { openSettings } from "expo-linking";
 import { useRouter } from "expo-router";
 import { openBrowserAsync } from "expo-web-browser";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Linking, Platform, Share } from "react-native";
 
 import { ImportSheet } from "@/components/import-sheet/import-sheet";
@@ -63,6 +63,7 @@ function openLanguageSettings() {
 
 const SUPPORT_EMAIL = "support@tryoutlayr.com";
 const WEBSITE = "https://tryoutlayr.com";
+const APP_STORE_REVIEW = "itms-apps://apps.apple.com/app/id6801652978?action=write-review";
 const X_PROFILE = "https://x.com/tryoutlayr";
 
 /**
@@ -90,6 +91,7 @@ export function Settings() {
     const t = useTranslation();
     const { isPro } = useRevenueCat();
     const importSheetRef = useRef<ImportSheetHandle>(null);
+    const [lockPending, setLockPending] = useState<boolean | null>(null);
     const { language } = useLanguage();
     useReminderSync(db);
 
@@ -269,10 +271,15 @@ export function Settings() {
                 <ToggleRow
                     icon="BiometricAccess"
                     onValueChange={async (next) => {
-                        await toggleAppLock(db, next);
+                        setLockPending(next);
+                        try {
+                            await toggleAppLock(db, next);
+                        } finally {
+                            setLockPending(null);
+                        }
                     }}
                     title={t("settings.row.authentication")}
-                    value={biometricLock}
+                    value={lockPending ?? biometricLock}
                 />
                 <ToggleRow
                     icon="ChartBarLine"
@@ -316,7 +323,7 @@ export function Settings() {
                     title={t("settings.row.restore")}
                 />
                 <LinkRow
-                    icon="Delete02"
+                    icon="Clock04"
                     onPress={() => router.push("/settings/deleted")}
                     title={t("settings.row.deleted")}
                 />
@@ -353,7 +360,7 @@ export function Settings() {
                 <LinkRow
                     icon="Star"
                     onPress={() => {
-                        Linking.openURL(WEBSITE);
+                        Linking.openURL(APP_STORE_REVIEW);
                     }}
                     title={t("settings.row.rate")}
                 />

@@ -213,7 +213,7 @@ export function ToggleRow({
                 accessibilityLabel={title}
                 onValueChange={onValueChange}
                 testID={testID}
-                trackColor={{ false: colors.subtle, true: colors.income }}
+                trackColor={{ false: colors.subtle, true: colors.tint }}
                 value={value}
             />
         </RowShell>
