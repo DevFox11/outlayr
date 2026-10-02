@@ -124,6 +124,7 @@ export const META_KEYS = {
      * device's success says nothing about whether this one is current.
      */
     syncedAt: "syncedAt",
+    walletCards: "walletCards",
     /**
      * Epoch ms of the last Wallet automation run, mirrored from the App Group
      * on foreground. Proof the automation fires even when nothing was logged.

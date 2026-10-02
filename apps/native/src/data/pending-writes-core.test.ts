@@ -7,7 +7,12 @@ import { migratedDatabase, transactionalDatabase } from "@/db/test-database";
 import type { PendingWrite } from "@/lib/pending-writes-core";
 
 import { cardFeeFor } from "./card-fees-core";
-import { applyPendingWrites, drainPendingWrites, WALLET_DEDUPE_WINDOW_MS } from "./pending-writes-core";
+import {
+    applyPendingWrites,
+    drainPendingWrites,
+    pickCardAccount,
+    WALLET_DEDUPE_WINDOW_MS,
+} from "./pending-writes-core";
 import { transactionsRepo } from "./transactions-core";
 
 const makeDb = migratedDatabase;
@@ -241,6 +246,26 @@ describe("applyPendingWrites", () => {
         await applyPendingWrites(db, [walletWrite("a", { card: "Apple Card" })], NOW);
         const [row] = await db.select({ accountId: transactions.accountId }).from(transactions);
         expect(row?.accountId).toBeNull();
+    });
+
+    it("files a card under the account picked for it once it has been seen", async () => {
+        await seedAccounts(db);
+        await applyPendingWrites(db, [walletWrite("a", { card: "Binance Card", dedupeKey: null })], NOW);
+        await pickCardAccount(db, "Binance Card", "acc-n26");
+        await applyPendingWrites(db, [walletWrite("b", { card: "Binance Card", dedupeKey: null })], NOW);
+
+        const rows = await db.select({ accountId: transactions.accountId }).from(transactions);
+        expect(rows.map((row) => String(row.accountId)).toSorted()).toStrictEqual(["acc-n26", "null"]);
+    });
+
+    it("leaves a card unattached when No account was picked over its name match", async () => {
+        await seedAccounts(db);
+        await applyPendingWrites(db, [walletWrite("a", { card: "Chase Sapphire", dedupeKey: null })], NOW);
+        await pickCardAccount(db, "Chase Sapphire", null);
+        await applyPendingWrites(db, [walletWrite("b", { card: "Chase Sapphire", dedupeKey: null })], NOW);
+
+        const rows = await db.select({ accountId: transactions.accountId }).from(transactions);
+        expect(rows.map((row) => String(row.accountId)).toSorted()).toStrictEqual(["acc-chase", "null"]);
     });
 
     it("takes the account's currency when the amount's symbol is ambiguous", async () => {

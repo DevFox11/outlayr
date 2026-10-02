@@ -11,6 +11,7 @@ import Camera01Icon from "@hugeicons-pro/core-stroke-rounded/Camera01Icon";
 import ChartBarLineIcon from "@hugeicons-pro/core-stroke-rounded/ChartBarLineIcon";
 import ChartLineData01Icon from "@hugeicons-pro/core-stroke-rounded/ChartLineData01Icon";
 import CloudIcon from "@hugeicons-pro/core-stroke-rounded/CloudIcon";
+import CreditCardIcon from "@hugeicons-pro/core-stroke-rounded/CreditCardIcon";
 import CurrencyIcon from "@hugeicons-pro/core-stroke-rounded/CurrencyIcon";
 import DarkModeIcon from "@hugeicons-pro/core-stroke-rounded/DarkModeIcon";
 import DashboardSpeed01Icon from "@hugeicons-pro/core-stroke-rounded/DashboardSpeed01Icon";
@@ -64,6 +65,7 @@ const REGISTRY = {
     ChartBarLine: ChartBarLineIcon,
     ChartLineData01: ChartLineData01Icon,
     Cloud: CloudIcon,
+    CreditCard: CreditCardIcon,
     Currency: CurrencyIcon,
     DarkMode: DarkModeIcon,
     DashboardSpeed01: DashboardSpeed01Icon,

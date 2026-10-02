@@ -9,9 +9,8 @@ import boundFrame from "@/assets/images/recipe/bound.jpg";
 import newShortcutFrame from "@/assets/images/recipe/new-shortcut.jpg";
 import pickerFrame from "@/assets/images/recipe/picker.jpg";
 import triggersFrame from "@/assets/images/recipe/triggers.jpg";
-import { CategoryIconTile } from "@/components/category-icon-tile";
 import { MonoLabel } from "@/components/mono-label";
-import { SettingsSection } from "@/components/settings/settings-row";
+import { PickerRow, SettingsSection } from "@/components/settings/settings-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
@@ -21,19 +20,15 @@ import { useGlobalCurrency } from "@/data/app-meta";
 import { META_KEYS, setMeta } from "@/data/app-meta-core";
 import { useLiveQuery, useLiveValue } from "@/data/live-query";
 import type { LastWalletEntry } from "@/data/pending-writes-core";
-import { parseLastWalletEntry } from "@/data/pending-writes-core";
+import { cardAccountId, parseLastWalletEntry, parseWalletCards, pickCardAccount } from "@/data/pending-writes-core";
 import type { Database } from "@/db/client";
 import { appMeta, transactions } from "@/db/schema";
-import { formatChargeDate, formatTime } from "@/domain/dates";
+import { formatChargeDate, formatSentenceDate, formatTime } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { notifyFailure } from "@/lib/notify";
 import { openShortcutsAutomations, openWalletShortcut, WALLET_SHORTCUT_URL } from "@/lib/wallet-shortcut";
-import { useColors } from "@/theme/use-colors";
-
-const TILE_SIZE = 30;
-const TILE_RADIUS = 8;
 
 interface Step {
     detail?: TranslationKey;
@@ -139,7 +134,6 @@ export function Wallet() {
                     </Button>
                     <Text className="text-muted text-subtitle leading-snug">{t("settings.wallet.getDetail")}</Text>
                 </View>
-                <AccountsSection db={db} />
             </SettingsScreen>
         );
     }
@@ -192,7 +186,7 @@ export function Wallet() {
                 <ProofBlock detail={t("settings.wallet.tryIt")} title={t("settings.wallet.nothingYet")} />
             )}
 
-            <AccountsSection db={db} />
+            <CardsSection db={db} />
         </SettingsScreen>
     );
 }
@@ -277,37 +271,47 @@ function ProofBlock({ title, detail }: { detail: string; title: string }) {
     );
 }
 
-/**
- * Every live account with its currency: the only lever the user has over the
- * card match is what they name the account.
- */
-function AccountsSection({ db }: { db: Database }) {
+const NO_ACCOUNT = "";
+
+function CardsSection({ db }: { db: Database }) {
     const t = useTranslation();
-    const colors = useColors();
+    const { language } = useLanguage();
     const accounts = useAccounts(db);
+    const raw = useLiveValue(
+        appMeta,
+        () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.walletCards)),
+        (rows) => rows[0]?.value ?? null
+    );
+    const cards = parseWalletCards(raw).sort((a, b) => b.lastAt - a.lastAt);
+    const options = [
+        ...accounts.map((account) => ({ label: account.name, value: account.id })),
+        { label: t("settings.wallet.unattached"), value: NO_ACCOUNT },
+    ];
 
     return (
-        <SettingsSection footer={t("settings.wallet.accountsFooter")} title={t("settings.wallet.accountsSection")}>
-            {accounts.length === 0 ? (
-                <Text className="text-muted text-body py-3.5">{t("settings.wallet.noAccounts")}</Text>
+        <SettingsSection footer={t("settings.wallet.cardsFooter")} title={t("settings.wallet.cardsSection")}>
+            {cards.length === 0 ? (
+                <Text className="text-muted text-body py-3.5">{t("settings.wallet.noCards")}</Text>
             ) : (
-                accounts.map((account) => (
-                    <View className="border-border flex-row items-center gap-3 border-b py-3" key={account.id}>
-                        <CategoryIconTile
-                            color={account.imageColor ?? account.customColor ?? colors.foreground}
-                            emoji={account.emoji}
-                            icon={account.icon}
-                            imageUri={account.imageUri}
-                            radius={TILE_RADIUS}
-                            size={TILE_SIZE}
-                            type="solid"
+                cards.map((card) => {
+                    const accountId = cardAccountId(card.text, cards, accounts) ?? NO_ACCOUNT;
+                    return (
+                        <PickerRow
+                            attention={accountId === NO_ACCOUNT}
+                            detail={t("settings.wallet.lastTap", {
+                                when: formatSentenceDate(new Date(card.lastAt), language),
+                            })}
+                            icon="CreditCard"
+                            key={card.text}
+                            onChange={(next) => {
+                                pickCardAccount(db, card.text, next || null);
+                            }}
+                            options={options}
+                            title={card.text}
+                            value={accountId}
                         />
-                        <Text className="text-body text-foreground flex-1" numberOfLines={1}>
-                            {account.name}
-                        </Text>
-                        <Text className="text-body text-muted">{account.currency}</Text>
-                    </View>
-                ))
+                    );
+                })
             )}
         </SettingsSection>
     );

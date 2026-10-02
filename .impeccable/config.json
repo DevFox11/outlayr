@@ -197,6 +197,15 @@
         ],
         "createdAt": "2026-10-02T18:18:57.640Z",
         "reason": "agent: Geist Mono is the kicker face of every docs/design artifact and stands in for the app's mono labels"
+      },
+      {
+        "rule": "all-caps-body",
+        "value": "*",
+        "files": [
+          "docs/design/wallet-card-rules.html"
+        ],
+        "createdAt": "2026-10-02T22:03:26.146Z",
+        "reason": "agent: uppercase is only on short mono section labels (MonoLabel convention shared by every docs/design artifact), no body passages"
       }
     ]
   }

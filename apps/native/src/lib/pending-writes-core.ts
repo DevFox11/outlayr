@@ -18,9 +18,9 @@ export interface PendingWrite {
      */
     amountText?: string | null;
     /**
-     * The Wallet card the purchase was made with, by its name in Wallet. The
-     * drain matches it to an account — see `matchCardAccount`. Null for a
-     * spoken entry.
+     * The Wallet card the purchase was made with, as text from Shortcuts. The
+     * drain maps it to an account — see `cardAccountId`. Null for a spoken
+     * entry.
      */
     card?: string | null;
     /** Category name as spoken; resolved to a real category by the drain. */

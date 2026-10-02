@@ -127,6 +127,7 @@ export function LinkRow({ icon, title, value, detail, destructive, onPress }: Li
 }
 
 export function PickerRow<T extends string | number | boolean>({
+    attention = false,
     icon,
     title,
     detail,
@@ -134,6 +135,7 @@ export function PickerRow<T extends string | number | boolean>({
     value,
     onChange,
 }: {
+    attention?: boolean;
     icon: SettingsIconName;
     title: string;
     detail?: string;
@@ -155,7 +157,7 @@ export function PickerRow<T extends string | number | boolean>({
         <RowShell detail={detail} icon={icon} title={title}>
             <Host matchContents>
                 <Picker
-                    modifiers={[pickerStyle("menu"), tint(colors.muted)]}
+                    modifiers={[pickerStyle("menu"), tint(attention ? colors.danger : colors.muted)]}
                     onSelectionChange={(next) => {
                         const picked = options.find((option) => String(option.value) === next);
                         if (picked) {

@@ -5,6 +5,7 @@ import type { Database } from "@/db/client";
 import { accounts, categories, transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { detectCurrency } from "@/domain/detect-currency";
+import type { CardAccountCandidate } from "@/domain/match-card-account";
 import { matchCardAccount } from "@/domain/match-card-account";
 import { parseNotification } from "@/domain/parse-notification";
 import type { ClaimedWrites, PendingWrite } from "@/lib/pending-writes-core";
@@ -50,6 +51,57 @@ export function parseLastWalletEntry(raw: string | null | undefined): LastWallet
     } catch {
         return null;
     }
+}
+
+const walletCardSchema = z.object({
+    accountId: z.string().nullable().optional(),
+    lastAt: z.number().finite(),
+    text: z.string(),
+});
+
+export type WalletCard = z.infer<typeof walletCardSchema>;
+
+const walletCardsSchema = z.array(walletCardSchema.nullable().catch(null));
+
+export function parseWalletCards(raw: string | null | undefined): WalletCard[] {
+    if (!raw) {
+        return [];
+    }
+    try {
+        const parsed = walletCardsSchema.safeParse(JSON.parse(raw));
+        return parsed.success ? parsed.data.filter((card) => card !== null) : [];
+    } catch {
+        return [];
+    }
+}
+
+export function cardAccountId(
+    text: string,
+    cards: readonly WalletCard[],
+    candidates: readonly CardAccountCandidate[]
+): string | null {
+    const picked = cards.find((card) => card.text === text)?.accountId;
+    if (picked === null) {
+        return null;
+    }
+    if (picked !== undefined && candidates.some((candidate) => candidate.id === picked)) {
+        return picked;
+    }
+    return matchCardAccount(text, candidates);
+}
+
+export async function pickCardAccount(db: Database, text: string, accountId: string | null): Promise<void> {
+    const cards = parseWalletCards(await getMeta(db, META_KEYS.walletCards));
+    const next = cards.map((card) => (card.text === text ? { ...card, accountId } : card));
+    await setMeta(db, META_KEYS.walletCards, JSON.stringify(next));
+}
+
+async function rememberCard(db: Database, text: string, at: number): Promise<void> {
+    const cards = parseWalletCards(await getMeta(db, META_KEYS.walletCards));
+    const next = cards.some((card) => card.text === text)
+        ? cards.map((card) => (card.text === text ? { ...card, lastAt: Math.max(card.lastAt, at) } : card))
+        : [...cards, { lastAt: at, text }];
+    await setMeta(db, META_KEYS.walletCards, JSON.stringify(next));
 }
 
 /**
@@ -216,6 +268,10 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
                 const entry: LastWalletEntry = { at, txId };
                 await setMeta(db, META_KEYS.lastWalletEntry, JSON.stringify(entry));
             }
+            const card = job.card?.trim();
+            if (card) {
+                await rememberCard(db, card, job.date);
+            }
         });
         applied += 1;
     }
@@ -230,8 +286,8 @@ interface MatchedAccount {
 }
 
 /**
- * The account a Wallet card maps to, or null when the job names no card or the
- * name is not a confident match — see `matchCardAccount`.
+ * The account a Wallet card maps to: the one the user picked for that card in
+ * Settings, else a confident name match, else null — see `cardAccountId`.
  */
 async function resolveAccount(db: Database, job: PendingWrite): Promise<MatchedAccount | null> {
     const card = job.card?.trim();
@@ -242,7 +298,7 @@ async function resolveAccount(db: Database, job: PendingWrite): Promise<MatchedA
         .select({ currency: accounts.currency, id: accounts.id, name: accounts.name })
         .from(accounts)
         .where(isNull(accounts.deletedAt));
-    const id = matchCardAccount(card, rows);
+    const id = cardAccountId(card, parseWalletCards(await getMeta(db, META_KEYS.walletCards)), rows);
     const matched = rows.find((row) => row.id === id);
     return matched ? { currency: matched.currency, id: matched.id } : null;
 }

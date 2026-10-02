@@ -1123,14 +1123,6 @@ const settings = {
             en: "Voice",
             es: "Voz",
         }),
-        "settings.wallet.accountsFooter": t({
-            en: "Name an account like its card in Wallet. A card that matches none still logs, unattached.",
-            es: "Ponle a la cuenta el mismo nombre que tiene su tarjeta en Wallet. Si una tarjeta no coincide con ninguna, igual se registra, sin cuenta.",
-        }),
-        "settings.wallet.accountsSection": t({
-            en: "Cards match these accounts",
-            es: "Las tarjetas coinciden con estas cuentas",
-        }),
         "settings.wallet.automationDetail": t({
             en: "Wallet trigger runs Outlayr - Apple Pay",
             es: "El disparador de Wallet ejecuta Outlayr - Apple Pay",
@@ -1142,6 +1134,14 @@ const settings = {
         "settings.wallet.automationRow": t({
             en: "Automation in Shortcuts",
             es: "Automatización en Atajos",
+        }),
+        "settings.wallet.cardsFooter": t({
+            en: "Each card you tap with shows up here. Its taps go to the account you choose.",
+            es: "Cada tarjeta con la que pagas aparece aquí. Sus pagos van a la cuenta que elijas.",
+        }),
+        "settings.wallet.cardsSection": t({
+            en: "Cards",
+            es: "Tarjetas",
         }),
         "settings.wallet.get": t({
             en: "Get the shortcut",
@@ -1166,6 +1166,10 @@ const settings = {
         "settings.wallet.lastSection": t({
             en: "Last from Wallet",
             es: "Último desde Wallet",
+        }),
+        "settings.wallet.lastTap": t({
+            en: "Last tap {when}",
+            es: "Último pago {when}",
         }),
         "settings.wallet.lead": t({
             en: "Every card tap lands on the Log, filed under the account it matches.",
@@ -1195,9 +1199,9 @@ const settings = {
             en: "Tap each, pick the Wallet variable above the keyboard, then the matching field",
             es: "Toca cada uno, elige la variable de Wallet sobre el teclado y luego el campo que corresponde",
         }),
-        "settings.wallet.noAccounts": t({
-            en: "No accounts yet",
-            es: "Aún no hay cuentas",
+        "settings.wallet.noCards": t({
+            en: "No cards yet",
+            es: "Aún no hay tarjetas",
         }),
         "settings.wallet.nothingLogged": t({
             en: "Nothing logged yet",
@@ -1296,7 +1300,7 @@ const settings = {
             es: "Paga con una tarjeta para probarlo",
         }),
         "settings.wallet.unattached": t({
-            en: "Unattached",
+            en: "No account",
             es: "Sin cuenta",
         }),
         "settings.wallet.v27Manual1": t({
