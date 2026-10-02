@@ -43,7 +43,7 @@ describe("settings row value", () => {
     });
 
     it("says so plainly when signed out", () => {
-        expect(accountRowValue({ kind: "signed-out" }, t)).toBe("Not signed in");
+        expect(accountRowValue({ kind: "signed-out" }, t)).toBe("Sign in");
     });
 
     it("shows nothing while the session is still restoring", () => {

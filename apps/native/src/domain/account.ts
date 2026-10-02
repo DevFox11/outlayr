@@ -25,7 +25,7 @@ export function accountRowValue(state: AccountState, t: TranslateFn): string {
         return "";
     }
     if (state.kind === "signed-out") {
-        return t("settings.account.notSignedIn");
+        return t("settings.account.signIn");
     }
     return accountLabel(state.user, t);
 }

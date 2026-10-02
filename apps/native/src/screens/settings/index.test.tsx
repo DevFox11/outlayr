@@ -41,6 +41,7 @@ jest.mock("@/lib/app-icon", () => ({
 }));
 jest.mock("@/components/settings/account-row", () => ({ AccountRow: () => null }));
 jest.mock("@/components/settings/usage-row", () => ({ UsageRow: () => null }));
+jest.mock("@/lib/auth-session", () => ({ useAuthSession: () => ({ accountId: null }) }));
 
 const mockPresent = jest.fn();
 jest.mock("@/components/import-sheet/import-sheet", () => ({

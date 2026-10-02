@@ -3,7 +3,6 @@ import ArchiveRestoreIcon from "@hugeicons-pro/core-stroke-rounded/ArchiveRestor
 import BadgeCentIcon from "@hugeicons-pro/core-stroke-rounded/BadgeCentIcon";
 import BankIcon from "@hugeicons-pro/core-stroke-rounded/BankIcon";
 import BiometricAccessIcon from "@hugeicons-pro/core-stroke-rounded/BiometricAccessIcon";
-import Bug01Icon from "@hugeicons-pro/core-stroke-rounded/Bug01Icon";
 import Calculator01Icon from "@hugeicons-pro/core-stroke-rounded/Calculator01Icon";
 import Calendar01Icon from "@hugeicons-pro/core-stroke-rounded/Calendar01Icon";
 import CalendarClockIcon from "@hugeicons-pro/core-stroke-rounded/CalendarClockIcon";
@@ -21,13 +20,13 @@ import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
 import FavouriteIcon from "@hugeicons-pro/core-stroke-rounded/FavouriteIcon";
 import FileExportIcon from "@hugeicons-pro/core-stroke-rounded/FileExportIcon";
 import FileImportIcon from "@hugeicons-pro/core-stroke-rounded/FileImportIcon";
-import Idea01Icon from "@hugeicons-pro/core-stroke-rounded/Idea01Icon";
 import InformationCircleIcon from "@hugeicons-pro/core-stroke-rounded/InformationCircleIcon";
 import LanguageSkillIcon from "@hugeicons-pro/core-stroke-rounded/LanguageSkillIcon";
 import LayoutTable01Icon from "@hugeicons-pro/core-stroke-rounded/LayoutTable01Icon";
 import LegalDocument01Icon from "@hugeicons-pro/core-stroke-rounded/LegalDocument01Icon";
 import LicenseIcon from "@hugeicons-pro/core-stroke-rounded/LicenseIcon";
 import Logout01Icon from "@hugeicons-pro/core-stroke-rounded/Logout01Icon";
+import Mail01Icon from "@hugeicons-pro/core-stroke-rounded/Mail01Icon";
 import Mic01Icon from "@hugeicons-pro/core-stroke-rounded/Mic01Icon";
 import MoneyAdd01Icon from "@hugeicons-pro/core-stroke-rounded/MoneyAdd01Icon";
 import NewTwitterIcon from "@hugeicons-pro/core-stroke-rounded/NewTwitterIcon";
@@ -58,7 +57,6 @@ const REGISTRY = {
     BadgeCent: BadgeCentIcon,
     Bank: BankIcon,
     BiometricAccess: BiometricAccessIcon,
-    Bug01: Bug01Icon,
     Calculator01: Calculator01Icon,
     Calendar01: Calendar01Icon,
     CalendarClock: CalendarClockIcon,
@@ -76,13 +74,13 @@ const REGISTRY = {
     Favourite: FavouriteIcon,
     FileExport: FileExportIcon,
     FileImport: FileImportIcon,
-    Idea01: Idea01Icon,
     InformationCircle: InformationCircleIcon,
     LanguageSkill: LanguageSkillIcon,
     LayoutTable01: LayoutTable01Icon,
     LegalDocument01: LegalDocument01Icon,
     License: LicenseIcon,
     Logout01: Logout01Icon,
+    Mail01: Mail01Icon,
     Mic01: Mic01Icon,
     MoneyAdd01: MoneyAdd01Icon,
     NewTwitter: NewTwitterIcon,

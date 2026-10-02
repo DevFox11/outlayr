@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { openBrowserAsync } from "expo-web-browser";
-import { View } from "react-native";
+import { Linking, Share, View } from "react-native";
 
 import { MonoLabel } from "@/components/mono-label";
 import { LinkRow, SettingsSection } from "@/components/settings/settings-row";
@@ -9,6 +9,9 @@ import { Text } from "@/components/text";
 import { useTranslation } from "@/i18n/context";
 import { APP_VERSION } from "@/lib/app-version";
 
+const WEBSITE = "https://tryoutlayr.com";
+const APP_STORE_REVIEW = "itms-apps://apps.apple.com/app/id6801652978?action=write-review";
+const X_PROFILE = "https://x.com/tryoutlayr";
 const OUTLAYR_REPO = "https://github.com/danestves/outlayr";
 const DIME_REPO = "https://github.com/rafsoh/dimeApp";
 const GPL_LICENSE = "https://www.gnu.org/licenses/gpl-3.0.html";
@@ -22,6 +25,33 @@ export function About() {
             <View className="pt-6">
                 <Text className="text-body text-foreground leading-relaxed">{t("settings.about.intro")}</Text>
             </View>
+
+            <SettingsSection title={t("settings.about.outlayr")}>
+                <LinkRow
+                    icon="Star"
+                    onPress={() => {
+                        Linking.openURL(APP_STORE_REVIEW);
+                    }}
+                    title={t("settings.row.rate")}
+                />
+                <LinkRow
+                    icon="Share08"
+                    onPress={() => {
+                        Share.share({
+                            message: t("settings.share.message", { url: WEBSITE }),
+                            url: WEBSITE,
+                        });
+                    }}
+                    title={t("settings.row.share")}
+                />
+                <LinkRow
+                    icon="NewTwitter"
+                    onPress={() => {
+                        Linking.openURL(X_PROFILE);
+                    }}
+                    title={t("settings.row.followX")}
+                />
+            </SettingsSection>
 
             <SettingsSection title={t("settings.about.links")}>
                 <LinkRow

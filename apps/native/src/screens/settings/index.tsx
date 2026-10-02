@@ -3,7 +3,7 @@ import { openSettings } from "expo-linking";
 import { useRouter } from "expo-router";
 import { openBrowserAsync } from "expo-web-browser";
 import { useRef, useState } from "react";
-import { Linking, Platform, Share } from "react-native";
+import { Linking, Platform } from "react-native";
 
 import { ImportSheet } from "@/components/import-sheet/import-sheet";
 import type { ImportSheetHandle } from "@/components/import-sheet/import-sheet";
@@ -38,6 +38,7 @@ import { translateNow } from "@/i18n/runtime";
 import { alternateIconsSupported, useAppIcon } from "@/lib/app-icon";
 import { requestUnlock } from "@/lib/app-lock";
 import { APP_BUILD, APP_VERSION } from "@/lib/app-version";
+import { useAuthSession } from "@/lib/auth-session";
 import { importDraftStore } from "@/lib/import-draft-store";
 import { legalUrl } from "@/lib/legal-url";
 import { notifyFailure } from "@/lib/notify";
@@ -60,9 +61,6 @@ function openLanguageSettings() {
 }
 
 const SUPPORT_EMAIL = "support@tryoutlayr.com";
-const WEBSITE = "https://tryoutlayr.com";
-const APP_STORE_REVIEW = "itms-apps://apps.apple.com/app/id6801652978?action=write-review";
-const X_PROFILE = "https://x.com/tryoutlayr";
 
 /**
  * Both directions pass the check first. Arming the lock without one is how a
@@ -91,6 +89,7 @@ export function Settings() {
     const importSheetRef = useRef<ImportSheetHandle>(null);
     const [lockPending, setLockPending] = useState<boolean | null>(null);
     const { language } = useLanguage();
+    const { accountId } = useAuthSession();
     useReminderSync(db);
 
     const currency = useGlobalCurrency(db);
@@ -132,12 +131,14 @@ export function Settings() {
                     value={isPro ? t("pro.entry.valuePro") : t("pro.entry.value")}
                 />
                 <UsageRow />
-                <LinkRow
-                    icon="Cloud"
-                    onPress={() => router.push("/settings/sync")}
-                    title={t("settings.row.sync")}
-                    value={syncValue}
-                />
+                {accountId === null ? null : (
+                    <LinkRow
+                        icon="Cloud"
+                        onPress={() => router.push("/settings/sync")}
+                        title={t("settings.row.sync")}
+                        value={syncValue}
+                    />
+                )}
             </SettingsSection>
 
             <SettingsSection footer={coverageNote(coverage, t) ?? undefined} title={t("settings.section.money")}>
@@ -291,6 +292,11 @@ export function Settings() {
                     title={t("settings.row.haptics")}
                     value={haptics}
                 />
+                <LinkRow
+                    icon="TestTube"
+                    onPress={() => router.push("/settings/feature-lab")}
+                    title={t("settings.row.featureLab")}
+                />
             </SettingsSection>
 
             <SettingsSection title={t("settings.section.data")}>
@@ -327,49 +333,11 @@ export function Settings() {
 
             <SettingsSection title={t("settings.section.about")}>
                 <LinkRow
-                    icon="TestTube"
-                    onPress={() => router.push("/settings/feature-lab")}
-                    title={t("settings.row.featureLab")}
-                />
-                <LinkRow
-                    icon="Bug01"
+                    icon="Mail01"
                     onPress={() => {
-                        Linking.openURL(supportMailto(SUPPORT_EMAIL, t("settings.support.bugSubject"), diagnostics));
+                        Linking.openURL(supportMailto(SUPPORT_EMAIL, t("settings.support.subject"), diagnostics));
                     }}
-                    title={t("settings.row.reportBug")}
-                />
-                <LinkRow
-                    icon="Idea01"
-                    onPress={() => {
-                        Linking.openURL(
-                            supportMailto(SUPPORT_EMAIL, t("settings.support.featureSubject"), diagnostics)
-                        );
-                    }}
-                    title={t("settings.row.featureRequest")}
-                />
-                <LinkRow
-                    icon="Star"
-                    onPress={() => {
-                        Linking.openURL(APP_STORE_REVIEW);
-                    }}
-                    title={t("settings.row.rate")}
-                />
-                <LinkRow
-                    icon="Share08"
-                    onPress={() => {
-                        Share.share({
-                            message: t("settings.share.message", { url: WEBSITE }),
-                            url: WEBSITE,
-                        });
-                    }}
-                    title={t("settings.row.share")}
-                />
-                <LinkRow
-                    icon="NewTwitter"
-                    onPress={() => {
-                        Linking.openURL(X_PROFILE);
-                    }}
-                    title={t("settings.row.followX")}
+                    title={t("settings.row.contactSupport")}
                 />
                 <LinkRow
                     icon="SecurityCheck"

@@ -39,6 +39,10 @@ const settings = {
             en: "Open source licenses",
             es: "Licencias de código abierto",
         }),
+        "settings.about.outlayr": t({
+            en: "Outlayr",
+            es: "Outlayr",
+        }),
         "settings.about.outlayrRepo": t({
             en: "Outlayr on GitHub",
             es: "Outlayr en GitHub",
@@ -138,6 +142,10 @@ const settings = {
         "settings.account.sectionTitle": t({
             en: "Account",
             es: "Cuenta",
+        }),
+        "settings.account.signIn": t({
+            en: "Sign in",
+            es: "Iniciar sesión",
         }),
         "settings.account.signInFooter": t({
             en: "Signing in does not change your ledger. It lets you choose whether to sync this device with your account.",
@@ -735,6 +743,10 @@ const settings = {
             en: "Color scheme",
             es: "Esquema de color",
         }),
+        "settings.row.contactSupport": t({
+            en: "Contact support",
+            es: "Contactar soporte",
+        }),
         "settings.row.currency": t({
             en: "Currency",
             es: "Moneda",
@@ -758,10 +770,6 @@ const settings = {
         "settings.row.featureLab": t({
             en: "Feature lab",
             es: "Laboratorio de funciones",
-        }),
-        "settings.row.featureRequest": t({
-            en: "Request a feature",
-            es: "Sugerir una función",
         }),
         "settings.row.followX": t({
             en: "Follow Outlayr on X",
@@ -798,10 +806,6 @@ const settings = {
         "settings.row.rate": t({
             en: "Rate on the App Store",
             es: "Califícanos en el App Store",
-        }),
-        "settings.row.reportBug": t({
-            en: "Report a bug",
-            es: "Reportar un error",
         }),
         "settings.row.restore": t({
             en: "Restore data",
@@ -875,13 +879,9 @@ const settings = {
             en: "Track your money with Outlayr. {url}",
             es: "Controla tu dinero con Outlayr: {url}",
         }),
-        "settings.support.bugSubject": t({
-            en: "Support Email",
-            es: "Correo de soporte",
-        }),
-        "settings.support.featureSubject": t({
-            en: "Feature Request",
-            es: "Solicitud de función",
+        "settings.support.subject": t({
+            en: "Outlayr feedback",
+            es: "Comentarios sobre Outlayr",
         }),
         "settings.sync.eyebrow": t({
             en: "This device",
