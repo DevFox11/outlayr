@@ -2,13 +2,15 @@ import { describe, expect, it } from "@jest/globals";
 import BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 
-import { appMeta, budgets, exchangeRates, mainBudget, transactions } from "@/db/schema";
-import { testSpendDb } from "@/db/test-database";
+import { accounts, appMeta, budgets, exchangeRates, mainBudget, transactions } from "@/db/schema";
+import { migratedDatabase, testSpendDb } from "@/db/test-database";
 
+import { accountsRepo } from "./accounts-core";
 import type { SpendDb } from "./budget-spent";
 import {
     backfillBudgetUsd,
     backfillCanonicalUsd,
+    backfillOpeningUsd,
     CANONICALIZE_BATCH,
     hasUncanonicalized,
     stampLedgerCurrency,
@@ -729,5 +731,35 @@ describe("backfillCanonicalUsd over a backlog", () => {
 
         await expect(backfillCanonicalUsd(db)).resolves.toBe(CANONICALIZE_BATCH + 40);
         await expect(hasUncanonicalized(db)).resolves.toBe(true);
+    });
+});
+
+describe("backfillOpeningUsd", () => {
+    it("values an opening saved before its rate arrived once the rate lands", async () => {
+        const db = migratedDatabase({ foreignKeys: false });
+        const id = await accountsRepo.create(db, {
+            currency: "VES",
+            initialBalance: -12_761.76,
+            initialBalanceDate: new Date("2026-09-20T20:59:25Z"),
+            name: "Mercantil",
+        });
+        await expect(backfillOpeningUsd(db)).resolves.toBe(0);
+
+        await db.insert(exchangeRates).values({
+            date: "2026-09-20",
+            fetchedAt: 1,
+            quote: "VES",
+            rate: 1000,
+            rateType: "official",
+            source: "cotizave",
+        });
+
+        await expect(backfillOpeningUsd(db)).resolves.toBe(1);
+        const [row] = await db
+            .select({ initialBalanceUsd: accounts.initialBalanceUsd })
+            .from(accounts)
+            .where(eq(accounts.id, id));
+        expect(row?.initialBalanceUsd).toBeCloseTo(-12.76176, 6);
+        await expect(backfillOpeningUsd(db)).resolves.toBe(0);
     });
 });

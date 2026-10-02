@@ -1,13 +1,15 @@
 import { utcDateString } from "@outlayr/money/dates";
-import { and, count, eq, isNotNull, isNull, min, not, or } from "drizzle-orm";
+import { and, count, eq, isNotNull, isNull, min, ne, not, or } from "drizzle-orm";
 
 import { getMeta, META_KEYS } from "@/data/app-meta-core";
 import type { SpendDb } from "@/data/budget-spent";
-import { budgets, exchangeRates, mainBudget, transactions } from "@/db/schema";
+import type { Database } from "@/db/client";
+import { accounts, budgets, exchangeRates, mainBudget, transactions } from "@/db/schema";
 import { canonicalUsd } from "@/domain/canonical-usd";
 import { DEFAULT_CURRENCY } from "@/domain/money";
 import type { ValuationCoverage } from "@/domain/valuation-coverage";
 
+import { frozenUsdAmount } from "./frozen-usd";
 import { localRateLookup } from "./rates";
 
 /**
@@ -215,6 +217,32 @@ export async function backfillBudgetUsd(db: SpendDb): Promise<number> {
             valued += 1;
         }
         /* oxlint-enable no-await-in-loop */
+    }
+    /* oxlint-enable no-await-in-loop */
+
+    return valued;
+}
+
+export async function backfillOpeningUsd(db: Database): Promise<number> {
+    const pending = await db
+        .select({
+            currency: accounts.currency,
+            id: accounts.id,
+            initialBalance: accounts.initialBalance,
+            initialBalanceDate: accounts.initialBalanceDate,
+        })
+        .from(accounts)
+        .where(and(isNull(accounts.initialBalanceUsd), isNull(accounts.deletedAt), ne(accounts.initialBalance, 0)));
+    let valued = 0;
+
+    /* oxlint-disable no-await-in-loop -- the rate lookup and the UPDATE are both synchronous on this driver (see CANONICALIZE_BATCH above), so issuing the rows together overlaps no I/O */
+    for (const row of pending) {
+        const initialBalanceUsd = await frozenUsdAmount(db, row.initialBalance, row.currency, row.initialBalanceDate);
+        if (initialBalanceUsd === null) {
+            continue;
+        }
+        await db.update(accounts).set({ initialBalanceUsd, updatedAt: new Date() }).where(eq(accounts.id, row.id));
+        valued += 1;
     }
     /* oxlint-enable no-await-in-loop */
 

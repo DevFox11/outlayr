@@ -3,7 +3,12 @@ import { useEffect } from "react";
 import { AppState } from "react-native";
 
 import { getMeta, META_KEYS, setMeta } from "@/data/app-meta-core";
-import { backfillBudgetUsd, backfillCanonicalUsd, stampLedgerCurrency } from "@/data/canonicalize-backfill";
+import {
+    backfillBudgetUsd,
+    backfillCanonicalUsd,
+    backfillOpeningUsd,
+    stampLedgerCurrency,
+} from "@/data/canonicalize-backfill";
 import { settlePendingFees } from "@/data/card-fees-core";
 import { drainPendingWrites } from "@/data/pending-writes-core";
 import { applyRecentRates, pullRatesIfDue } from "@/data/rates";
@@ -192,6 +197,7 @@ async function revalueLedger(db: Database): Promise<boolean> {
     try {
         changed = (await backfillCanonicalUsd(db)) > 0 || changed;
         changed = (await backfillBudgetUsd(db)) > 0 || changed;
+        changed = (await backfillOpeningUsd(db)) > 0 || changed;
         changed = (await settlePendingFees(db)) > 0 || changed;
     } catch (error) {
         console.warn("[outlayr] canonicalization backfill failed", error);

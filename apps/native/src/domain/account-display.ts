@@ -114,7 +114,7 @@ export function accountsOverview(
     return { count: accounts.length, exact, owe: worth.owe, own: worth.own, rows, total: worth.net };
 }
 
-/** `exact` is false when no rate reached the display currency and the figure is the raw one. */
+/** `exact` is false when no rate reached the display currency and the opening is left out. */
 export interface DisplayedBalance {
     exact: boolean;
     value: number;
@@ -128,14 +128,14 @@ export function initialInDisplay(
     if (account.currency === displayCurrency || account.initialBalance === 0) {
         return { exact: true, value: account.initialBalance };
     }
-    if (account.initialBalanceUsd == null) {
-        return { exact: false, value: account.initialBalance };
-    }
-    const converted = convertUsdSum(
-        account.initialBalanceUsd,
-        utcDateString(account.initialBalanceDate.getTime()),
-        displayCurrency,
-        rates
-    );
-    return converted == null ? { exact: false, value: account.initialBalance } : { exact: true, value: converted };
+    const converted =
+        account.initialBalanceUsd == null
+            ? null
+            : convertUsdSum(
+                  account.initialBalanceUsd,
+                  utcDateString(account.initialBalanceDate.getTime()),
+                  displayCurrency,
+                  rates
+              );
+    return converted == null ? { exact: false, value: 0 } : { exact: true, value: converted };
 }

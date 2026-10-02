@@ -104,7 +104,7 @@ describe("accountsOverview", () => {
         expect(summary(result)).toStrictEqual({ count: 1, exact: true, owe: 0, own: 40, total: 40 });
     });
 
-    it("falls back to face value and marks approximate when no rate reaches", () => {
+    it("leaves an unvalued foreign opening out rather than adding it at face value", () => {
         const result = accountsOverview(
             [
                 account({
@@ -117,7 +117,7 @@ describe("accountsOverview", () => {
             "USD",
             rates
         );
-        expect(summary(result)).toStrictEqual({ count: 1, exact: false, owe: 0, own: 80, total: 80 });
+        expect(summary(result)).toStrictEqual({ count: 1, exact: false, owe: 0, own: 0, total: 0 });
     });
 
     it("marks approximate when a cell cannot convert", () => {
