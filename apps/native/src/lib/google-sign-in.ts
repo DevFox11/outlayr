@@ -1,9 +1,5 @@
 import { env } from "@outlayr/env/native";
-import {
-    GoogleOneTapSignIn,
-    isNoSavedCredentialFoundResponse,
-    isSuccessResponse,
-} from "react-native-nitro-google-signin";
+import { GoogleOneTapSignIn, isSuccessResponse } from "react-native-nitro-google-signin";
 
 const webClientId = env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB;
 
@@ -13,12 +9,6 @@ const webClientId = env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB;
  */
 export const isGoogleSignInAvailable = Boolean(webClientId);
 
-/**
- * Resolves to the Google id token, or null when the user backed out — the three
- * calls are one flow, not three attempts: One Tap first, then account creation,
- * then the full picker, each only reached because the previous step found no
- * credential to offer.
- */
 export async function googleIdToken(): Promise<string | null> {
     if (!webClientId) {
         return null;
@@ -31,13 +21,6 @@ export async function googleIdToken(): Promise<string | null> {
 
     await GoogleOneTapSignIn.checkPlayServices();
 
-    let response = await GoogleOneTapSignIn.signIn();
-    if (isNoSavedCredentialFoundResponse(response)) {
-        response = await GoogleOneTapSignIn.createAccount();
-    }
-    if (isNoSavedCredentialFoundResponse(response)) {
-        response = await GoogleOneTapSignIn.presentExplicitSignIn();
-    }
-
+    const response = await GoogleOneTapSignIn.presentExplicitSignIn();
     return isSuccessResponse(response) ? response.data.idToken : null;
 }
