@@ -16,7 +16,6 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useRevenueCat } from "@/contexts/revenuecat-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
-    choiceDetail,
     HAPTICS_OPTIONS,
     NUMBER_ENTRY_OPTIONS,
     onOffLabel,
@@ -30,7 +29,6 @@ import type { Database } from "@/db/client";
 import { ACCENTS } from "@/domain/accent";
 import { appIconLabel } from "@/domain/app-icons";
 import { lockFailureMessage } from "@/domain/app-lock";
-import { numberLocale } from "@/domain/money";
 import { syncPaused, syncStatusLabel } from "@/domain/sync-status";
 import { coverageNote } from "@/domain/valuation-coverage";
 import { useProEntitled } from "@/hooks/use-pro-locked";
@@ -115,8 +113,6 @@ export function Settings() {
 
     const diagnostics = supportDiagnostics(APP_VERSION, APP_BUILD);
 
-    const numberEntryDetail = choiceDetail(NUMBER_ENTRY_OPTIONS, numberEntryType);
-
     const syncLabel = syncStatusLabel({
         enabled: sync.enabled,
         paused: syncPaused(sync.enabled, proEntitled),
@@ -152,11 +148,6 @@ export function Settings() {
                     value={currency}
                 />
                 <PickerRow
-                    detail={
-                        numberEntryDetail
-                            ? t(numberEntryDetail, { example: `12${numberLocale(language).decimal}34` })
-                            : undefined
-                    }
                     icon="Calculator01"
                     onChange={(next) => {
                         setNumberSetting(db, "numberEntryType", next);
@@ -218,7 +209,6 @@ export function Settings() {
                 />
                 {alternateIconsSupported ? <AppIconRow /> : null}
                 <LinkRow
-                    detail={t("language.footer")}
                     icon="LanguageSkill"
                     onPress={openLanguageSettings}
                     title={t("settings.row.language")}

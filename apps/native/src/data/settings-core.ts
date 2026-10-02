@@ -124,24 +124,20 @@ export const SETTING_DEFAULTS = {
 } as const satisfies Record<BoolSettingKey | NumberSettingKey, boolean | number>;
 
 interface ChoiceOption {
-    detail: TranslationKey;
     label: TranslationKey;
     value: number;
 }
 
 export const HAPTICS_OPTIONS: readonly ChoiceOption[] = [
     {
-        detail: "settings.haptics.noneDetail",
         label: "settings.haptics.none",
         value: 0,
     },
     {
-        detail: "settings.haptics.subtleDetail",
         label: "settings.haptics.subtle",
         value: 1,
     },
     {
-        detail: "settings.haptics.excessiveDetail",
         label: "settings.haptics.excessive",
         value: 2,
     },
@@ -149,21 +145,14 @@ export const HAPTICS_OPTIONS: readonly ChoiceOption[] = [
 
 export const NUMBER_ENTRY_OPTIONS: readonly ChoiceOption[] = [
     {
-        detail: "settings.numberEntry.type1Detail",
         label: "settings.numberEntry.type1",
         value: 1,
     },
     {
-        detail: "settings.numberEntry.type2Detail",
         label: "settings.numberEntry.type2",
         value: 2,
     },
 ];
-
-/** Null where no option owns the value, as the empty label used to signal. */
-export function choiceDetail(options: readonly ChoiceOption[], value: number): TranslationKey | null {
-    return options.find((option) => option.value === value)?.detail ?? null;
-}
 
 export function onOffLabel(value: boolean): TranslationKey {
     return value ? "common.on" : "common.off";

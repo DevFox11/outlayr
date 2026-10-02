@@ -132,7 +132,7 @@ const common = {
             es: "Buscar",
         }),
         "nav.settings.about": t({
-            en: "About & Credits",
+            en: "About and credits",
             es: "Acerca de y créditos",
         }),
         "nav.settings.account": t({
@@ -140,7 +140,7 @@ const common = {
             es: "Cuenta",
         }),
         "nav.settings.appIcon": t({
-            en: "App Icon",
+            en: "App icon",
             es: "Ícono de la app",
         }),
         "nav.settings.currency": t({
@@ -148,15 +148,15 @@ const common = {
             es: "Moneda",
         }),
         "nav.settings.erase": t({
-            en: "Erase Data",
+            en: "Erase data",
             es: "Borrar datos",
         }),
         "nav.settings.export": t({
-            en: "Export Data",
+            en: "Export data",
             es: "Exportar datos",
         }),
         "nav.settings.featureLab": t({
-            en: "Feature Lab",
+            en: "Feature lab",
             es: "Laboratorio de funciones",
         }),
         "nav.settings.notifications": t({
@@ -164,15 +164,15 @@ const common = {
             es: "Notificaciones",
         }),
         "nav.settings.restore": t({
-            en: "Restore Data",
+            en: "Restore data",
             es: "Restaurar datos",
         }),
         "nav.settings.time": t({
-            en: "Time Frames",
+            en: "Time frames",
             es: "Períodos de tiempo",
         }),
         "nav.settings.upcoming": t({
-            en: "Upcoming Logs",
+            en: "Upcoming entries",
             es: "Próximos registros",
         }),
         "nav.settings.usage": t({

@@ -300,7 +300,7 @@ const settings = {
             es: "Restaurar devuelve la entrada al registro justo donde le corresponde por fecha. Una suscripción que terminaste sigue terminada: vuelve solo el cargo, nunca la programación.",
         }),
         "settings.deleted.navTitle": t({
-            en: "Recently Deleted",
+            en: "Recently deleted",
             es: "Eliminados recientemente",
         }),
         "settings.deleted.restore": t({
@@ -464,7 +464,7 @@ const settings = {
             es: "Al agregar una transacción",
         }),
         "settings.featureLab.aiEnrichment": t({
-            en: "Suggest Category and Tags",
+            en: "Suggest category and tags",
             es: "Sugerir categoría y etiquetas",
         }),
         "settings.featureLab.aiEnrichmentNote": t({
@@ -476,7 +476,7 @@ const settings = {
             es: "Autocompletado",
         }),
         "settings.featureLab.budgetRows": t({
-            en: "Budget Rows",
+            en: "Budget rows",
             es: "Filas de presupuesto",
         }),
         "settings.featureLab.budgetRowsNote": t({
@@ -488,7 +488,7 @@ const settings = {
             es: "Presupuestos",
         }),
         "settings.featureLab.confetti": t({
-            en: "Celebrate Expenses",
+            en: "Celebrate expenses",
             es: "Celebrar gastos",
         }),
         "settings.featureLab.confettiNote": t({
@@ -500,7 +500,7 @@ const settings = {
             es: "Experimental: esto puede cambiar o desaparecer.",
         }),
         "settings.featureLab.groundedLookup": t({
-            en: "Look Up New Merchants",
+            en: "Look up new merchants",
             es: "Buscar comercios nuevos",
         }),
         "settings.featureLab.groundedLookupNote": t({
@@ -508,7 +508,7 @@ const settings = {
             es: "Para un comercio que nadie ha visto antes, el nombre, si es gasto o ingreso, el código de moneda de la entrada y tu idioma y región pueden buscarse en la web para conocer su categoría. Nunca para la transacción que estás ingresando y nunca con montos, fechas ni cuentas. Si lo desactivas, cada búsqueda se queda en este dispositivo y en los comercios ya conocidos.",
         }),
         "settings.featureLab.lineGraph": t({
-            en: "Show Line Graph",
+            en: "Show line graph",
             es: "Mostrar gráfico de líneas",
         }),
         "settings.featureLab.logSection": t({
@@ -516,7 +516,7 @@ const settings = {
             es: "El registro",
         }),
         "settings.featureLab.swapTime": t({
-            en: "Replace Time Label",
+            en: "Replace time label",
             es: "Reemplazar etiqueta de hora",
         }),
         "settings.featureLab.swapTimeNote": t({
@@ -531,25 +531,13 @@ const settings = {
             en: "Excessive",
             es: "Excesiva",
         }),
-        "settings.haptics.excessiveDetail": t({
-            en: "A tap for every action.",
-            es: "Un toque en cada acción.",
-        }),
         "settings.haptics.none": t({
             en: "None",
             es: "Ninguna",
         }),
-        "settings.haptics.noneDetail": t({
-            en: "No taps at all.",
-            es: "Sin ningún toque.",
-        }),
         "settings.haptics.subtle": t({
             en: "Subtle",
             es: "Suave",
-        }),
-        "settings.haptics.subtleDetail": t({
-            en: "A light tap when something lands.",
-            es: "Un toque ligero cuando algo se registra.",
         }),
         "settings.import.sourceClipboardSubtitle": t({
             en: "Transactions copied from another app.",
@@ -644,7 +632,7 @@ const settings = {
             es: "Cobros de suscripciones",
         }),
         "settings.notifications.subscriptionToggle": t({
-            en: "Warn Me Before a Charge",
+            en: "Warn me before a charge",
             es: "Avísame antes de un cobro",
         }),
         "settings.notifications.time": t({
@@ -652,7 +640,7 @@ const settings = {
             es: "Hora",
         }),
         "settings.notifications.toggle": t({
-            en: "Remind Me to Log",
+            en: "Remind me to log",
             es: "Recuérdame registrar",
         }),
         "settings.notifications.whenSection": t({
@@ -660,20 +648,12 @@ const settings = {
             es: "Cuándo",
         }),
         "settings.numberEntry.type1": t({
-            en: "Type 1",
-            es: "Tipo 1",
-        }),
-        "settings.numberEntry.type1Detail": t({
-            en: "The last two digits are cents. Type 1234 to get {example}.",
-            es: "Los dos últimos dígitos son centavos. Escribe 1234 para obtener {example}.",
+            en: "Cents last",
+            es: "Centavos al final",
         }),
         "settings.numberEntry.type2": t({
-            en: "Type 2",
-            es: "Tipo 2",
-        }),
-        "settings.numberEntry.type2Detail": t({
-            en: "Type the decimal point yourself. {example} stays {example}.",
-            es: "Escribe tú los decimales. {example} se queda en {example}.",
+            en: "Decimal point",
+            es: "Punto decimal",
         }),
         "settings.restore.action": t({
             en: "Restore from an archive",
@@ -728,7 +708,7 @@ const settings = {
             es: "Restaurando {count} filas\u2026",
         }),
         "settings.row.about": t({
-            en: "About & Credits",
+            en: "About and credits",
             es: "Acerca de y créditos",
         }),
         "settings.row.accounts": t({
@@ -736,11 +716,11 @@ const settings = {
             es: "Cuentas",
         }),
         "settings.row.animatedCharts": t({
-            en: "Animated Charts",
+            en: "Animated charts",
             es: "Gráficos animados",
         }),
         "settings.row.appIcon": t({
-            en: "App Icon",
+            en: "App icon",
             es: "Ícono de la app",
         }),
         "settings.row.authentication": t({
@@ -752,7 +732,7 @@ const settings = {
             es: "Categorías",
         }),
         "settings.row.colorScheme": t({
-            en: "Color Scheme",
+            en: "Color scheme",
             es: "Esquema de color",
         }),
         "settings.row.currency": t({
@@ -760,27 +740,27 @@ const settings = {
             es: "Moneda",
         }),
         "settings.row.deleted": t({
-            en: "Recently Deleted",
+            en: "Recently deleted",
             es: "Eliminados recientemente",
         }),
         "settings.row.displayCents": t({
-            en: "Display Cents",
+            en: "Show cents",
             es: "Mostrar centavos",
         }),
         "settings.row.erase": t({
-            en: "Erase Data",
+            en: "Erase data",
             es: "Borrar datos",
         }),
         "settings.row.export": t({
-            en: "Export Data",
+            en: "Export data",
             es: "Exportar datos",
         }),
         "settings.row.featureLab": t({
-            en: "Feature Lab",
+            en: "Feature lab",
             es: "Laboratorio de funciones",
         }),
         "settings.row.featureRequest": t({
-            en: "Feature Request",
+            en: "Request a feature",
             es: "Sugerir una función",
         }),
         "settings.row.followX": t({
@@ -792,47 +772,47 @@ const settings = {
             es: "Vibración",
         }),
         "settings.row.import": t({
-            en: "Import Data",
+            en: "Import data",
             es: "Importar datos",
         }),
         "settings.row.incomeTracking": t({
-            en: "Income Tracking",
+            en: "Income tracking",
             es: "Seguimiento de ingresos",
         }),
         "settings.row.language": t({
-            en: "Language",
-            es: "Idioma",
+            en: "Language (iOS)",
+            es: "Idioma (iOS)",
         }),
         "settings.row.notifications": t({
             en: "Notifications",
             es: "Notificaciones",
         }),
         "settings.row.numberEntry": t({
-            en: "Number Entry",
+            en: "Number entry",
             es: "Escritura de montos",
         }),
         "settings.row.privacy": t({
-            en: "Privacy Policy",
+            en: "Privacy policy",
             es: "Política de privacidad",
         }),
         "settings.row.rate": t({
-            en: "Rate on App Store",
+            en: "Rate on the App Store",
             es: "Califícanos en el App Store",
         }),
         "settings.row.reportBug": t({
-            en: "Report Bug",
+            en: "Report a bug",
             es: "Reportar un error",
         }),
         "settings.row.restore": t({
-            en: "Restore Data",
+            en: "Restore data",
             es: "Restaurar datos",
         }),
         "settings.row.share": t({
-            en: "Share with Friends",
-            es: "Comparte con amigos",
+            en: "Share Outlayr",
+            es: "Compartir Outlayr",
         }),
         "settings.row.shareAnalytics": t({
-            en: "Share Analytics",
+            en: "Share analytics",
             es: "Compartir analíticas",
         }),
         "settings.row.sync": t({
@@ -840,19 +820,19 @@ const settings = {
             es: "Sincronización",
         }),
         "settings.row.terms": t({
-            en: "Terms of Use",
+            en: "Terms of use",
             es: "Términos de uso",
         }),
         "settings.row.theme": t({
-            en: "Theme",
-            es: "Tema",
+            en: "Accent",
+            es: "Acento",
         }),
         "settings.row.timeFrames": t({
-            en: "Time Frames",
+            en: "Time frames",
             es: "Períodos de tiempo",
         }),
         "settings.row.upcoming": t({
-            en: "Upcoming Logs",
+            en: "Upcoming entries",
             es: "Próximos registros",
         }),
         "settings.row.wallet": t({
@@ -864,8 +844,8 @@ const settings = {
             es: "Configuración",
         }),
         "settings.section.about": t({
-            en: "About Outlayr",
-            es: "Acerca de Outlayr",
+            en: "About",
+            es: "Acerca de",
         }),
         "settings.section.account": t({
             en: "Account",
@@ -876,16 +856,16 @@ const settings = {
             es: "Apariencia",
         }),
         "settings.section.data": t({
-            en: "Your data",
-            es: "Tus datos",
+            en: "Data",
+            es: "Datos",
         }),
         "settings.section.device": t({
-            en: "This device",
-            es: "Este dispositivo",
+            en: "Device",
+            es: "Dispositivo",
         }),
         "settings.section.ledger": t({
-            en: "Your ledger",
-            es: "Tu registro",
+            en: "Ledger",
+            es: "Registro",
         }),
         "settings.section.money": t({
             en: "Money",
@@ -1024,7 +1004,7 @@ const settings = {
             es: "Lunes",
         }),
         "settings.time.monthSection": t({
-            en: "Start of Month",
+            en: "Start of month",
             es: "Inicio del mes",
         }),
         "settings.time.reopenNote": t({
@@ -1040,11 +1020,11 @@ const settings = {
             es: "Domingo",
         }),
         "settings.time.weekSection": t({
-            en: "Start of Week",
+            en: "Start of week",
             es: "Inicio de la semana",
         }),
         "settings.upcoming.displayOnLog": t({
-            en: "Display on Log Page",
+            en: "Show on the Log",
             es: "Mostrar en el registro",
         }),
         "settings.upcoming.empty": t({
