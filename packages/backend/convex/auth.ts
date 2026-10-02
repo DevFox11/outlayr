@@ -152,6 +152,7 @@ function createAuth(ctx: GenericCtx<DataModel>) {
                 ? {
                       clientId: googleConfig.clientId,
                       clientSecret: googleConfig.clientSecret,
+                      prompt: "select_account consent",
                   }
                 : {
                       clientId: [],
