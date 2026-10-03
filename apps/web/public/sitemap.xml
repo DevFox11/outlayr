@@ -56,4 +56,88 @@
         <xhtml:link rel="alternate" hreflang="es" href="https://tryoutlayr.com/es/privacy"/>
         <xhtml:link rel="alternate" hreflang="x-default" href="https://tryoutlayr.com/privacy"/>
     </url>
+    <url>
+        <loc>https://tryoutlayr.com/guides/multi-currency-expense-tracker</loc>
+        <lastmod>2026-10-03</lastmod>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tryoutlayr.com/guides/multi-currency-expense-tracker"/>
+        <xhtml:link rel="alternate" hreflang="es" href="https://tryoutlayr.com/es/guides/multi-currency-expense-tracker"/>
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://tryoutlayr.com/guides/multi-currency-expense-tracker"/>
+    </url>
+    <url>
+        <loc>https://tryoutlayr.com/guides/apple-pay-expense-tracker</loc>
+        <lastmod>2026-10-03</lastmod>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tryoutlayr.com/guides/apple-pay-expense-tracker"/>
+        <xhtml:link rel="alternate" hreflang="es" href="https://tryoutlayr.com/es/guides/apple-pay-expense-tracker"/>
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://tryoutlayr.com/guides/apple-pay-expense-tracker"/>
+    </url>
+    <url>
+        <loc>https://tryoutlayr.com/guides/receipt-scanner</loc>
+        <lastmod>2026-10-03</lastmod>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tryoutlayr.com/guides/receipt-scanner"/>
+        <xhtml:link rel="alternate" hreflang="es" href="https://tryoutlayr.com/es/guides/receipt-scanner"/>
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://tryoutlayr.com/guides/receipt-scanner"/>
+    </url>
+    <url>
+        <loc>https://tryoutlayr.com/compare/ynab</loc>
+        <lastmod>2026-10-03</lastmod>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tryoutlayr.com/compare/ynab"/>
+        <xhtml:link rel="alternate" hreflang="es" href="https://tryoutlayr.com/es/compare/ynab"/>
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://tryoutlayr.com/compare/ynab"/>
+    </url>
+    <url>
+        <loc>https://tryoutlayr.com/compare/monarch</loc>
+        <lastmod>2026-10-03</lastmod>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tryoutlayr.com/compare/monarch"/>
+        <xhtml:link rel="alternate" hreflang="es" href="https://tryoutlayr.com/es/compare/monarch"/>
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://tryoutlayr.com/compare/monarch"/>
+    </url>
+    <url>
+        <loc>https://tryoutlayr.com/compare/copilot</loc>
+        <lastmod>2026-10-03</lastmod>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tryoutlayr.com/compare/copilot"/>
+        <xhtml:link rel="alternate" hreflang="es" href="https://tryoutlayr.com/es/compare/copilot"/>
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://tryoutlayr.com/compare/copilot"/>
+    </url>
+    <url>
+        <loc>https://tryoutlayr.com/es/guides/multi-currency-expense-tracker</loc>
+        <lastmod>2026-10-03</lastmod>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tryoutlayr.com/guides/multi-currency-expense-tracker"/>
+        <xhtml:link rel="alternate" hreflang="es" href="https://tryoutlayr.com/es/guides/multi-currency-expense-tracker"/>
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://tryoutlayr.com/guides/multi-currency-expense-tracker"/>
+    </url>
+    <url>
+        <loc>https://tryoutlayr.com/es/guides/apple-pay-expense-tracker</loc>
+        <lastmod>2026-10-03</lastmod>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tryoutlayr.com/guides/apple-pay-expense-tracker"/>
+        <xhtml:link rel="alternate" hreflang="es" href="https://tryoutlayr.com/es/guides/apple-pay-expense-tracker"/>
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://tryoutlayr.com/guides/apple-pay-expense-tracker"/>
+    </url>
+    <url>
+        <loc>https://tryoutlayr.com/es/guides/receipt-scanner</loc>
+        <lastmod>2026-10-03</lastmod>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tryoutlayr.com/guides/receipt-scanner"/>
+        <xhtml:link rel="alternate" hreflang="es" href="https://tryoutlayr.com/es/guides/receipt-scanner"/>
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://tryoutlayr.com/guides/receipt-scanner"/>
+    </url>
+    <url>
+        <loc>https://tryoutlayr.com/es/compare/ynab</loc>
+        <lastmod>2026-10-03</lastmod>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tryoutlayr.com/compare/ynab"/>
+        <xhtml:link rel="alternate" hreflang="es" href="https://tryoutlayr.com/es/compare/ynab"/>
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://tryoutlayr.com/compare/ynab"/>
+    </url>
+    <url>
+        <loc>https://tryoutlayr.com/es/compare/monarch</loc>
+        <lastmod>2026-10-03</lastmod>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tryoutlayr.com/compare/monarch"/>
+        <xhtml:link rel="alternate" hreflang="es" href="https://tryoutlayr.com/es/compare/monarch"/>
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://tryoutlayr.com/compare/monarch"/>
+    </url>
+    <url>
+        <loc>https://tryoutlayr.com/es/compare/copilot</loc>
+        <lastmod>2026-10-03</lastmod>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tryoutlayr.com/compare/copilot"/>
+        <xhtml:link rel="alternate" hreflang="es" href="https://tryoutlayr.com/es/compare/copilot"/>
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://tryoutlayr.com/compare/copilot"/>
+    </url>
 </urlset>

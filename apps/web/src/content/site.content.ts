@@ -1,8 +1,21 @@
 import { insert, t } from "intlayer";
 import type { Dictionary } from "intlayer";
 
+import type answers from "./answers.content";
+
 const site = {
     content: {
+        answerLinks: {
+            compare: { copilot: "Copilot", monarch: "Monarch", ynab: "YNAB" } satisfies Record<
+                keyof typeof answers.content.compare,
+                string
+            >,
+            guides: {
+                "apple-pay-expense-tracker": t({ en: "Apple Pay", es: "Apple Pay" }),
+                "multi-currency-expense-tracker": t({ en: "Multi-currency", es: "Varias monedas" }),
+                "receipt-scanner": t({ en: "Receipt scanner", es: "Escáner de recibos" }),
+            } satisfies Record<keyof typeof answers.content.guides, ReturnType<typeof t<string>>>,
+        },
         badges: {
             appStore: t({ en: "Download on the App Store", es: "Descárgalo en el App Store" }),
             comingSoon: t({ en: "Coming soon", es: "Próximamente" }),
@@ -20,7 +33,9 @@ const site = {
             privacy: t({ en: "Privacy", es: "Privacidad" }),
         },
         footer: {
+            compare: t({ en: "Compare", es: "Comparar" }),
             email: t({ en: "Email", es: "Correo" }),
+            guides: t({ en: "Guides", es: "Guías" }),
             language: t({ en: "Language", es: "Idioma" }),
             nav: t({ en: "Footer", es: "Pie de página" }),
             privacy: t({ en: "Privacy", es: "Privacidad" }),

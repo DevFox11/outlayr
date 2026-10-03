@@ -36,12 +36,25 @@
 - [Privacy Policy](https://tryoutlayr.com/privacy): what is collected, where it goes, and how long it is kept
 - [Terms of Use](https://tryoutlayr.com/terms): the terms for Outlayr and Outlayr Pro
 
+## Guides
+
+- [Multi-currency expense tracking](https://tryoutlayr.com/guides/multi-currency-expense-tracker): 165 currencies, the rate from the day of each purchase, and accounts that each keep their own currency
+- [Apple Pay logging](https://tryoutlayr.com/guides/apple-pay-expense-tracker): how a Shortcuts automation logs each Apple Pay purchase on iPhone
+- [Receipt scanner](https://tryoutlayr.com/guides/receipt-scanner): what a scan reads, the free and Pro capture limits, and what it needs
+
+## Comparisons
+
+- [Outlayr and YNAB](https://tryoutlayr.com/compare/ynab): price, how entries are added, budgets, currencies, and platforms
+- [Outlayr and Monarch](https://tryoutlayr.com/compare/monarch): price, how entries are added, currencies, and platforms
+- [Outlayr and Copilot](https://tryoutlayr.com/compare/copilot): price, how entries are added, currencies, and platforms
+
 ## Pages in Spanish
 
 - [Inicio](https://tryoutlayr.com/es): the home page in Latin American Spanish
 - [Soporte](https://tryoutlayr.com/es/support): the support page in Spanish
 - [Política de privacidad](https://tryoutlayr.com/es/privacy): the Privacy Policy in Spanish
 - [Términos de uso](https://tryoutlayr.com/es/terms): the Terms of Use in Spanish
+- Every guide and comparison has a Spanish version under https://tryoutlayr.com/es, for example https://tryoutlayr.com/es/guides/receipt-scanner
 
 ## Contact
 

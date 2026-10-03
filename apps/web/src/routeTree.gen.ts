@@ -15,6 +15,8 @@ import { Route as Char123LocaleChar125SplatRouteImport } from './routes/{-$local
 import { Route as Char123LocaleChar125PrivacyRouteImport } from './routes/{-$locale}/privacy'
 import { Route as Char123LocaleChar125SupportRouteImport } from './routes/{-$locale}/support'
 import { Route as Char123LocaleChar125TermsRouteImport } from './routes/{-$locale}/terms'
+import { Route as Char123LocaleChar125CompareSlugRouteImport } from './routes/{-$locale}/compare.$slug'
+import { Route as Char123LocaleChar125GuidesSlugRouteImport } from './routes/{-$locale}/guides.$slug'
 
 const Char123LocaleChar125RouteRoute =
   Char123LocaleChar125RouteRouteImport.update({
@@ -52,6 +54,18 @@ const Char123LocaleChar125TermsRoute =
     path: '/terms',
     getParentRoute: () => Char123LocaleChar125RouteRoute,
   } as any)
+const Char123LocaleChar125CompareSlugRoute =
+  Char123LocaleChar125CompareSlugRouteImport.update({
+    id: '/compare/$slug',
+    path: '/compare/$slug',
+    getParentRoute: () => Char123LocaleChar125RouteRoute,
+  } as any)
+const Char123LocaleChar125GuidesSlugRoute =
+  Char123LocaleChar125GuidesSlugRouteImport.update({
+    id: '/guides/$slug',
+    path: '/guides/$slug',
+    getParentRoute: () => Char123LocaleChar125RouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/{-$locale}': typeof Char123LocaleChar125RouteRouteWithChildren
@@ -60,6 +74,8 @@ export interface FileRoutesByFullPath {
   '/{-$locale}/support': typeof Char123LocaleChar125SupportRoute
   '/{-$locale}/terms': typeof Char123LocaleChar125TermsRoute
   '/{-$locale}/': typeof Char123LocaleChar125IndexRoute
+  '/{-$locale}/compare/$slug': typeof Char123LocaleChar125CompareSlugRoute
+  '/{-$locale}/guides/$slug': typeof Char123LocaleChar125GuidesSlugRoute
 }
 export interface FileRoutesByTo {
   '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
@@ -67,6 +83,8 @@ export interface FileRoutesByTo {
   '/{-$locale}/support': typeof Char123LocaleChar125SupportRoute
   '/{-$locale}/terms': typeof Char123LocaleChar125TermsRoute
   '/{-$locale}': typeof Char123LocaleChar125IndexRoute
+  '/{-$locale}/compare/$slug': typeof Char123LocaleChar125CompareSlugRoute
+  '/{-$locale}/guides/$slug': typeof Char123LocaleChar125GuidesSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -76,6 +94,8 @@ export interface FileRoutesById {
   '/{-$locale}/support': typeof Char123LocaleChar125SupportRoute
   '/{-$locale}/terms': typeof Char123LocaleChar125TermsRoute
   '/{-$locale}/': typeof Char123LocaleChar125IndexRoute
+  '/{-$locale}/compare/$slug': typeof Char123LocaleChar125CompareSlugRoute
+  '/{-$locale}/guides/$slug': typeof Char123LocaleChar125GuidesSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -86,6 +106,8 @@ export interface FileRouteTypes {
     | '/{-$locale}/support'
     | '/{-$locale}/terms'
     | '/{-$locale}/'
+    | '/{-$locale}/compare/$slug'
+    | '/{-$locale}/guides/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/{-$locale}/$'
@@ -93,6 +115,8 @@ export interface FileRouteTypes {
     | '/{-$locale}/support'
     | '/{-$locale}/terms'
     | '/{-$locale}'
+    | '/{-$locale}/compare/$slug'
+    | '/{-$locale}/guides/$slug'
   id:
     | '__root__'
     | '/{-$locale}'
@@ -101,6 +125,8 @@ export interface FileRouteTypes {
     | '/{-$locale}/support'
     | '/{-$locale}/terms'
     | '/{-$locale}/'
+    | '/{-$locale}/compare/$slug'
+    | '/{-$locale}/guides/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -151,6 +177,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char123LocaleChar125TermsRouteImport
       parentRoute: typeof Char123LocaleChar125RouteRoute
     }
+    '/{-$locale}/compare/$slug': {
+      id: '/{-$locale}/compare/$slug'
+      path: '/compare/$slug'
+      fullPath: '/{-$locale}/compare/$slug'
+      preLoaderRoute: typeof Char123LocaleChar125CompareSlugRouteImport
+      parentRoute: typeof Char123LocaleChar125RouteRoute
+    }
+    '/{-$locale}/guides/$slug': {
+      id: '/{-$locale}/guides/$slug'
+      path: '/guides/$slug'
+      fullPath: '/{-$locale}/guides/$slug'
+      preLoaderRoute: typeof Char123LocaleChar125GuidesSlugRouteImport
+      parentRoute: typeof Char123LocaleChar125RouteRoute
+    }
   }
 }
 
@@ -160,6 +200,8 @@ interface Char123LocaleChar125RouteRouteChildren {
   Char123LocaleChar125SupportRoute: typeof Char123LocaleChar125SupportRoute
   Char123LocaleChar125TermsRoute: typeof Char123LocaleChar125TermsRoute
   Char123LocaleChar125IndexRoute: typeof Char123LocaleChar125IndexRoute
+  Char123LocaleChar125CompareSlugRoute: typeof Char123LocaleChar125CompareSlugRoute
+  Char123LocaleChar125GuidesSlugRoute: typeof Char123LocaleChar125GuidesSlugRoute
 }
 
 const Char123LocaleChar125RouteRouteChildren: Char123LocaleChar125RouteRouteChildren =
@@ -169,6 +211,8 @@ const Char123LocaleChar125RouteRouteChildren: Char123LocaleChar125RouteRouteChil
     Char123LocaleChar125SupportRoute: Char123LocaleChar125SupportRoute,
     Char123LocaleChar125TermsRoute: Char123LocaleChar125TermsRoute,
     Char123LocaleChar125IndexRoute: Char123LocaleChar125IndexRoute,
+    Char123LocaleChar125CompareSlugRoute: Char123LocaleChar125CompareSlugRoute,
+    Char123LocaleChar125GuidesSlugRoute: Char123LocaleChar125GuidesSlugRoute,
   }
 
 const Char123LocaleChar125RouteRouteWithChildren =

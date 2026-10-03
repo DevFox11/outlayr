@@ -1,11 +1,13 @@
 export function Screen({
     alt,
     className = "",
+    eager = false,
     pins,
     src,
 }: {
     alt: string;
     className?: string;
+    eager?: boolean;
     pins?: readonly number[];
     src: string;
 }) {
@@ -16,7 +18,8 @@ export function Screen({
                 className="screen light-only"
                 decoding="async"
                 height={1912}
-                loading="lazy"
+                fetchPriority={eager ? "high" : "auto"}
+                loading={eager ? "eager" : "lazy"}
                 src={src}
                 width={880}
             />

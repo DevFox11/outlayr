@@ -1,6 +1,8 @@
 import { t } from "intlayer";
 import type { Dictionary } from "intlayer";
 
+import { ACCOUNTS_SCREEN_ALT, RECEIPT_SCAN_ANSWER } from "./shared";
+
 const home = {
     content: {
         closingTitle: t({ en: "Log the next thing you buy.", es: "Registra lo próximo que compres." }),
@@ -100,10 +102,7 @@ const home = {
                 question: t({ en: "Is Outlayr on Android?", es: "¿Outlayr está en Android?" }),
             },
             {
-                answer: t({
-                    en: "Take a photo of the receipt or pick one from your library. Outlayr reads the store, the date, the total, and every line, then fills in the entry for you to save. Scanning needs an account, and each scan counts as one capture.",
-                    es: "Toma una foto del recibo o elige una de tu galería. Outlayr lee la tienda, la fecha, el total y cada línea, y llena el registro para que lo guardes. Para escanear necesitas una cuenta, y cada escaneo equivale a una captura.",
-                }),
+                answer: RECEIPT_SCAN_ANSWER,
                 question: t({ en: "How does receipt scanning work?", es: "¿Cómo funciona el escaneo de recibos?" }),
             },
             {
@@ -257,10 +256,7 @@ const home = {
                 title: t({ en: "See what moved since last week.", es: "Mira qué cambió desde la semana pasada." }),
             },
             {
-                alt: t({
-                    en: "Outlayr Accounts screen listing eight accounts, including Banesco in bolívares and an Apple Card with a negative balance, above a Transfer button.",
-                    es: "Pantalla de cuentas de Outlayr con ocho cuentas, entre ellas Banesco en bolívares y una Apple Card con saldo negativo, arriba de un botón para transferir.",
-                }),
+                alt: ACCOUNTS_SCREEN_ALT,
                 body: t({
                     en: "Cash, cards, savings, and debts side by side. A transfer moves money between them without counting as spending.",
                     es: "Efectivo, tarjetas, ahorros y deudas, todo junto. Una transferencia mueve dinero entre tus cuentas sin contar como gasto.",

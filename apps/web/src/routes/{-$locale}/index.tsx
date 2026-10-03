@@ -12,7 +12,7 @@ import type { Locale } from "@/lib/i18n";
 import { CONTAINER } from "@/lib/layout";
 import { useReducedMotion } from "@/lib/reduced-motion";
 import { faqPage, ldJson, pageMeta } from "@/lib/seo";
-import { COMPANY, SITE_URL } from "@/lib/site";
+import { APP_STORE_URL, COMPANY, SITE_URL } from "@/lib/site";
 
 const POSTER = "/screens/log-an-expense.webp";
 const DARK_POSTER = "/screens/log-an-expense-dark.webp";
@@ -25,6 +25,7 @@ function appGraph(locale: Locale) {
         "@type": "MobileApplication",
         applicationCategory: "FinanceApplication",
         description: meta.description,
+        downloadUrl: APP_STORE_URL,
         featureList: extras.map((extra) => extra.label),
         image: `${SITE_URL}${LANGUAGES[locale].image}`,
         inLanguage: Object.values(LANGUAGES).map((language) => language.lang),

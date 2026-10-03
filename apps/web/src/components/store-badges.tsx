@@ -16,7 +16,7 @@ const GOOGLE_PLAY_BADGE = {
     es: { height: 192, src: "/badges/google-play-es.png", width: 646 },
 } as const satisfies Record<Locale, { height: number; src: string; width: number }>;
 
-type Placement = "closing" | "header" | "hero";
+type Placement = "answer" | "closing" | "header" | "hero";
 
 export function AppStoreBadge({ placement, size = "large" }: { placement: Placement; size?: keyof typeof HEIGHT }) {
     const { badges } = useIntlayer("site");

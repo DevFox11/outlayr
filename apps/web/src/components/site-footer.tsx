@@ -1,3 +1,5 @@
+import { Link } from "@tanstack/react-router";
+import { getPrefix } from "intlayer";
 import type { ReactNode } from "react";
 import { useIntlayer, useLocale } from "react-intlayer";
 
@@ -12,6 +14,8 @@ import { LocalizedLink } from "./localized-link";
 import { LogoMark } from "./logo-mark";
 import { ThemeSwitch } from "./theme-switch";
 
+const ANSWER_LINK = "hover:decoration-tint underline decoration-1 underline-offset-4";
+
 const ROW = `hover:bg-surface transition-colors duration-150 ${FOOTER_ROW}`;
 
 function Row({ children, label }: { children: ReactNode; label: ReactNode }) {
@@ -23,8 +27,37 @@ function Row({ children, label }: { children: ReactNode; label: ReactNode }) {
     );
 }
 
+function AnswerLinks({
+    label,
+    links,
+    to,
+}: {
+    label: ReactNode;
+    links: Record<string, ReactNode>;
+    to: "/{-$locale}/compare/$slug" | "/{-$locale}/guides/$slug";
+}) {
+    const { locale } = useLocale();
+    return (
+        <div className={FOOTER_ROW}>
+            <span className="text-micro text-muted uppercase">{label}</span>
+            <div className="flex flex-wrap justify-end gap-x-4 gap-y-1 text-[0.8125rem] sm:text-sm">
+                {Object.entries(links).map(([slug, name]) => (
+                    <Link
+                        className={ANSWER_LINK}
+                        key={slug}
+                        params={{ locale: getPrefix(locale).localePrefix, slug }}
+                        to={to}
+                    >
+                        {name}
+                    </Link>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 export function SiteFooter() {
-    const { footer, home } = useIntlayer("site");
+    const { answerLinks, footer, home } = useIntlayer("site");
     const { locale } = useLocale();
 
     return (
@@ -55,6 +88,8 @@ export function SiteFooter() {
                             {footer.updated({ date: legalDate("privacy", LANGUAGES[locale].date) })}
                         </Row>
                     </LocalizedLink>
+                    <AnswerLinks label={footer.guides} links={answerLinks.guides} to="/{-$locale}/guides/$slug" />
+                    <AnswerLinks label={footer.compare} links={answerLinks.compare} to="/{-$locale}/compare/$slug" />
                 </nav>
                 <ThemeSwitch />
                 <ConsentSwitch />

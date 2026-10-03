@@ -156,7 +156,7 @@ function scanStatus(frame: number) {
     return frame >= 4 ? "review" : "reading";
 }
 
-function ScanPanel({ frame }: PanelProps) {
+export function ScanPanel({ frame }: PanelProps) {
     const { scan, status } = useIntlayer("demo");
     const nameOf = useNames();
     const fields = [
