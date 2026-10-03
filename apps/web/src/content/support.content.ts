@@ -37,8 +37,8 @@ const support = {
             },
             {
                 answer: t({
-                    en: "In Settings, choose Export CSV for a spreadsheet, or Export a full archive for a file that carries every entry, category, and budget.",
-                    es: "En Configuración, elige Exportar CSV para una hoja de cálculo, o Exportar un archivo completo para guardar cada registro, categoría y presupuesto.",
+                    en: "Open Settings, then Export data. Choose Export CSV for a spreadsheet, or Export a full archive for a file that carries every entry, category, and budget.",
+                    es: "Abre Configuración y luego Exportar datos. Elige Exportar CSV para una hoja de cálculo, o Exportar un archivo completo para guardar cada registro, categoría y presupuesto.",
                 }),
                 question: t({ en: "How do I export my data?", es: "¿Cómo exporto mis datos?" }),
             },

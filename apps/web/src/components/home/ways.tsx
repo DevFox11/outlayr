@@ -83,7 +83,7 @@ export function Ways() {
 
     return (
         <section
-            className={`${CONTAINER} grid gap-14 py-20 md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] md:items-start md:gap-12 md:py-28 lg:gap-20`}
+            className={`${CONTAINER} grid gap-8 py-20 md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] md:items-start md:gap-12 md:py-28 lg:gap-20`}
             ref={root}
         >
             <div>
@@ -92,7 +92,7 @@ export function Ways() {
                 <div
                     aria-label={ways.tabs.value}
                     aria-orientation="vertical"
-                    className="border-foreground mt-10 max-w-[34rem] border-t"
+                    className="border-foreground mt-10 grid max-w-[34rem] grid-cols-4 border-t md:block"
                     onFocus={() => setPlay((state) => (state.manual ? state : { ...state, manual: true }))}
                     role="tablist"
                 >
@@ -102,7 +102,7 @@ export function Ways() {
                             <button
                                 aria-controls={panelId}
                                 aria-selected={selected}
-                                className={`border-border grid w-full cursor-pointer grid-cols-[5.5rem_minmax(0,1fr)] gap-4 border-b border-l-2 py-4 pl-3 text-left transition-colors duration-150 ease-out ${selected ? "border-l-tint" : "border-l-background text-muted hover:text-foreground"}`}
+                                className={`cursor-pointer border-b-2 py-3 transition-colors duration-150 ease-out md:grid md:w-full md:grid-cols-[5.5rem_minmax(0,1fr)] md:gap-4 md:border-b md:border-l-2 md:py-4 md:pl-3 md:text-left ${selected ? "border-b-tint md:border-b-border md:border-l-tint" : "border-b-border text-muted hover:text-foreground md:border-l-background"}`}
                                 id={`${baseId}-tab-${index}`}
                                 key={mode.id}
                                 onClick={() => select(index)}
@@ -114,14 +114,17 @@ export function Ways() {
                                 tabIndex={selected ? 0 : -1}
                                 type="button"
                             >
-                                <span className={`text-micro pt-1 font-mono uppercase ${selected ? "text-tint" : ""}`}>
+                                <span
+                                    className={`text-micro font-mono uppercase md:pt-1 ${selected ? "text-tint" : ""}`}
+                                >
                                     {modes[mode.id].label}
                                 </span>
-                                <span>{modes[mode.id].text}</span>
+                                <span className="hidden md:block">{modes[mode.id].text}</span>
                             </button>
                         );
                     })}
                 </div>
+                <p className="mt-4 md:hidden">{modes[current.id].text}</p>
             </div>
             <div
                 aria-labelledby={`${baseId}-tab-${play.mode}`}

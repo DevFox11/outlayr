@@ -1,6 +1,6 @@
 ---
 title: "Privacy Policy"
-description: "What Outlayr stores on your device, what reaches our servers, AI provider, and analytics service, how long it is kept, and how to delete it. Updated 2 October 2026."
+description: "What Outlayr stores on your device, what reaches our servers, AI provider, and analytics service, how long it is kept, and how to delete it. Updated 3 October 2026."
 intro: "This policy explains what Outlayr collects, where it goes, how long it stays, and what you can do about it."
 ---
 
@@ -9,8 +9,8 @@ intro: "This policy explains what Outlayr collects, where it goes, how long it s
 - Your ledger is stored on your device. You can use Outlayr without an account, and then your entries, amounts, and notes never leave the phone.
 - An account (Sign in with Apple or Google) turns on merchant suggestions, voice entry, and receipt scans. With Outlayr Pro it also turns on sync, which keeps a copy of your ledger and photos on our servers until you delete your account.
 - Voice entries, receipt scans, and merchant suggestions are processed by xAI. We don’t store your recordings or scanned photos, and we never send xAI your name, email, or account ID.
-- Merchant suggestions and web lookups are on by default. You can object to either by turning it off in **Settings › Feature Lab**.
-- The app sends usage analytics and crash reports to PostHog: which screens you open, when you save something, and errors. Never amounts, merchants, notes, or names. It starts off if your device’s region is in the EEA or UK, and on everywhere else. Change it in **Settings › Share Analytics**.
+- Merchant suggestions and web lookups are on by default. You can object to either by turning it off in **Settings › Feature lab**.
+- The app sends usage analytics and crash reports to PostHog: which screens you open, when you save something, and errors. Never amounts, merchants, notes, or names. It starts off if your device’s region is in the EEA or UK, and on everywhere else. Change it in **Settings › Share analytics**.
 - This website uses PostHog too, with a cookie. If you’re in the EEA or UK, it asks first. Change your answer in the footer under **Cookies**.
 - No ads and no tracking across other companies’ apps. We don’t sell or share your personal information.
 - You can delete your account and everything synced to it from the app at any time: **Settings › Account › Delete account**.
@@ -45,7 +45,7 @@ Every kind of data Outlayr handles, in one place. The sections below explain eac
 
 ## What stays on your device
 
-Outlayr keeps your ledger in a database inside the app on your device: your entries (amount, currency, date, merchant or note, category, tags, account, repeat schedule, and any photos), accounts and their balances, transfers, budgets, savings goals, categories, tags, and settings. Entries you delete wait in **Recently Deleted** on the phone, where you can restore them.
+Outlayr keeps your ledger in a database inside the app on your device: your entries (amount, currency, date, merchant or note, category, tags, account, repeat schedule, and any photos), accounts and their balances, transfers, budgets, savings goals, categories, tags, and settings. Entries you delete wait in **Recently deleted** on the phone, where you can restore them.
 
 You don’t need an account to use Outlayr. Without one, none of your ledger is sent to us.
 
@@ -63,7 +63,7 @@ You don’t need an account to use Outlayr. Without one, none of your ledger is 
 - **Logos.** To show a logo for a merchant or bank, the app asks Logo.dev for it by web address (for example, netflix.com), and Google’s favicon service if Logo.dev has none. The request comes from your device, so those services see your IP address. It never includes amounts, notes, or who you are. Logos are then cached on the phone.
 - **App updates.** When the app starts, it asks Expo, the platform we use to ship updates, whether a newer version of the app’s code is available. The request includes a random ID created for this install (not linked to your account), the app version, and your IP address. If an update failed to start last time, it also includes a short error message.
 - **Purchase status.** The app checks with RevenueCat whether you have Outlayr Pro, using a random anonymous ID until you sign in, and your account ID, name, and email after. See [Outlayr Pro](#outlayr-pro).
-- **Analytics and crash reports.** The app tells PostHog, the analytics service we use, when it is installed, updated, opened, or closed, which kind of screen you open (for example, an account’s screen, never which account), and when you save an entry, transfer, account, or category, with details such as expense or income, whether it came from a scan or your voice, and whether it was new or an edit. If the app hits an error, it sends the error message and where in the code it happened. Each event carries a random ID created for this install, the app version, your device model, operating system, language, time zone, and screen size. It never includes amounts, merchants, notes, account or category names, or your email. PostHog discards your IP address. Once you sign in, these events are linked to your Outlayr account ID. If your device’s region is set to a country in the EEA or UK, **Settings › Share Analytics** starts off and none of this is sent until you turn it on. Turning it off stops all of it on that device.
+- **Analytics and crash reports.** The app tells PostHog, the analytics service we use, when it is installed, updated, opened, or closed, which kind of screen you open (for example, an account’s screen, never which account), and when you save an entry, transfer, account, or category, with details such as expense or income, whether it came from a scan or your voice, and whether it was new or an edit. If the app hits an error, it sends the error message and where in the code it happened. Each event carries a random ID created for this install, the app version, your device model, operating system, language, time zone, and screen size. It never includes amounts, merchants, notes, account or category names, or your email. PostHog discards your IP address. Once you sign in, these events are linked to your Outlayr account ID. If your device’s region is set to a country in the EEA or UK, **Settings › Share analytics** starts off and none of this is sent until you turn it on. Turning it off stops all of it on that device.
 
 ## Your account
 
@@ -87,7 +87,7 @@ Sync is part of Outlayr Pro. When you’re signed in with Pro, Outlayr copies yo
 - Settings that describe you rather than the phone, such as your currency, display preferences, and whether suggestions and web lookups are on.
 - A random ID for each device, used to order edits made on different devices.
 
-Settings tied to one phone stay on it: notifications, app lock, Share Analytics, number entry, and light or dark mode.
+Settings tied to one phone stay on it: notifications, app lock, Share analytics, number entry, and light or dark mode.
 
 ### Deleted entries
 
@@ -107,13 +107,13 @@ When you type, speak, scan, or log from Apple Pay a merchant Outlayr doesn’t r
 
 Our server first checks a shared list of known merchants (below). If the merchant isn’t there, it asks xAI’s Grok model, and the answer (a category, tags, an emoji, and the merchant’s web address) comes back to your device. Saved entries that still have no logo may be looked up again in the background. Those requests wait on our server only until your device collects the answer.
 
-On by default. Turn it off in **Settings › Feature Lab › Suggest Category and Tags**.
+On by default. Turn it off in **Settings › Feature lab › Suggest category and tags**.
 
 ### Web lookup of new merchants
 
 If the model can’t place a merchant and you have Pro, our server may ask xAI to search the web for it. xAI’s model runs the searches, using the merchant name and sometimes a country or city. It receives the merchant name, expense or income, currency code, language, and region, and for background lookups, your category names too. A web lookup usually improves the answer for the next entry with that merchant rather than the one you’re typing.
 
-On by default. Turn it off in **Settings › Feature Lab › Look Up New Merchants**. The app sends your choice with every request, and our server also honors the synced setting, so no web lookup runs for you while it’s off.
+On by default. Turn it off in **Settings › Feature lab › Look up new merchants**. The app sends your choice with every request, and our server also honors the synced setting, so no web lookup runs for you while it’s off.
 
 ### The shared merchant list
 
@@ -131,7 +131,7 @@ When you scan a receipt, the app compresses the photo on your device and sends i
 
 ### CSV import
 
-The file is read on your device. With Suggest Category and Tags on, descriptions Outlayr can’t match on the device are sent to our server, and with Pro, on to xAI to suggest categories: at most 200 at a time, with any run of four or more digits removed, together with your category names and device region. Amounts, dates, and the rest of the file stay on your device. With web lookup on, some descriptions may also be looked up on the web as described above.
+The file is read on your device. With Suggest category and tags on, descriptions Outlayr can’t match on the device are sent to our server, and with Pro, on to xAI to suggest categories: at most 200 at a time, with any run of four or more digits removed, together with your category names and device region. Amounts, dates, and the rest of the file stay on your device. With web lookup on, some descriptions may also be looked up on the web as described above.
 
 ### Who xAI is
 
@@ -204,9 +204,9 @@ If you’re in the European Economic Area or the United Kingdom, we rely on thes
 | Purpose | Legal basis |
 | --- | --- |
 | Your account, sync, photo storage, voice entry, receipt scans, CSV import, and Pro | Contract: we need this data to provide what you ask for. |
-| Merchant suggestions, web lookups, the shared merchant list, and logos | Legitimate interests: making entries faster to file. Suggestions and web lookups are on by default, and turning either off in Feature Lab is how you object. |
+| Merchant suggestions, web lookups, the shared merchant list, and logos | Legitimate interests: making entries faster to file. Suggestions and web lookups are on by default, and turning either off in Feature lab is how you object. |
 | Sessions, usage limits, error logs, and update checks | Legitimate interests: keeping Outlayr secure, working, and free of abuse. |
-| Usage analytics and crash reports | Your consent. Share Analytics starts off when your device’s region is in the EEA or UK. Turning it on gives consent, and turning it off withdraws it. |
+| Usage analytics and crash reports | Your consent. Share analytics starts off when your device’s region is in the EEA or UK. Turning it on gives consent, and turning it off withdraws it. |
 | Website analytics | Your consent for the cookie and visit recordings, asked on your first visit. Declining withdraws it. A declined visit is still counted without a cookie, under our legitimate interest in knowing how many people visit. |
 | Camera, microphone, photos, biometric lock, and notifications | Your permission, given when your device asks and withdrawn in its settings (iOS Settings on iPhone). |
 | Answering lawful requests and keeping records the law requires | Legal obligation. |
@@ -251,11 +251,11 @@ Your ledger on the phone stays after you delete your account, unless you choose 
 
 ### Without an account
 
-Nothing of your ledger is on our servers. **Settings › Erase Data** clears your transactions, and your budgets if you choose, from the phone. Entries already in Recently Deleted stay there. Deleting the app removes the whole ledger.
+Nothing of your ledger is on our servers. **Settings › Erase data** clears your transactions, and your budgets if you choose, from the phone. Entries already in Recently deleted stay there. Deleting the app removes the whole ledger.
 
 ### Export first
 
-**Settings › Export Data** offers two files. **Export CSV** is a readable copy of your transactions for a spreadsheet. **Export a full archive** carries every entry, category, and budget in full and can restore your ledger later. You choose where either file goes.
+**Settings › Export data** offers two files. **Export CSV** is a readable copy of your transactions for a spreadsheet. **Export a full archive** carries every entry, category, and budget in full and can restore your ledger later. You choose where either file goes.
 
 ## Your rights
 
@@ -318,4 +318,4 @@ When this policy changes, we’ll post the new version here and update the effec
 
 Questions about this policy or your data go to [support@tryoutlayr.com](mailto:support@tryoutlayr.com). For help with the app itself, see [Support](/support).
 
-We keep emails you send us as long as we need them to help you, and delete them if you ask. Report Bug and Feature Request in Settings open an email that already lists the app version, operating system version, and device type, which you can edit before sending.
+We keep emails you send us as long as we need them to help you, and delete them if you ask. Contact support in Settings opens an email that already lists the app version, operating system version, and device type, which you can edit before sending.

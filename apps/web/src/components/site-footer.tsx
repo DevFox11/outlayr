@@ -60,7 +60,7 @@ export function SiteFooter() {
                 <ConsentSwitch />
                 <LanguageSwitch />
                 <div className="border-foreground flex items-baseline justify-between gap-4 border-t-2 pt-3.5">
-                    <span className="text-micro text-muted uppercase">© 2026</span>
+                    <span className="text-micro text-muted uppercase">© {new Date().getUTCFullYear()}</span>
                     <span className="text-sm font-medium">{COMPANY}</span>
                 </div>
                 <p className="text-micro text-muted mt-6">{footer.trademarks}</p>

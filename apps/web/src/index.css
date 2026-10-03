@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
 
 @theme {
@@ -11,7 +12,7 @@
     --color-tint: #c2371b;
     --color-income: #00714a;
 
-    --font-sans: ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+    --font-sans: ui-rounded, "Geist Variable", system-ui, sans-serif;
     --font-mono: "Geist Mono Variable", ui-monospace, monospace;
 
     --text-micro: 0.6875rem;
