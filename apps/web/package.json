@@ -6,6 +6,7 @@
         "build": "vite build",
         "check-types": "content-collections build && intlayer build && tsc --noEmit",
         "dev": "vite dev",
+        "test": "vp test run",
         "start": "node .output/server/index.mjs"
     },
     "dependencies": {

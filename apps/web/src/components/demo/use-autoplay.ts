@@ -1,14 +1,9 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { RefObject } from "react";
 
-const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
-const IN_VIEW_THRESHOLD = 0.3;
+import { useReducedMotion } from "@/lib/reduced-motion";
 
-function subscribeMotion(onChange: () => void) {
-    const query = window.matchMedia(REDUCED_MOTION);
-    query.addEventListener("change", onChange);
-    return () => query.removeEventListener("change", onChange);
-}
+const IN_VIEW_THRESHOLD = 0.3;
 
 function subscribeVisibility(onChange: () => void) {
     document.addEventListener("visibilitychange", onChange);
@@ -16,11 +11,7 @@ function subscribeVisibility(onChange: () => void) {
 }
 
 export function useAutoplay(ref: RefObject<HTMLElement | null>) {
-    const reduced = useSyncExternalStore(
-        subscribeMotion,
-        () => window.matchMedia(REDUCED_MOTION).matches,
-        () => false
-    );
+    const reduced = useReducedMotion();
     const pageVisible = useSyncExternalStore(
         subscribeVisibility,
         () => document.visibilityState === "visible",

@@ -4,7 +4,7 @@ import { useIntlayer, useLocale } from "react-intlayer";
 
 import { LANGUAGES } from "@/lib/i18n";
 
-import { SWITCH_ROW } from "./theme-switch";
+import { FOOTER_ROW } from "./footer-row";
 
 export function LanguageSwitch() {
     const { footer } = useIntlayer("site");
@@ -12,7 +12,7 @@ export function LanguageSwitch() {
     const path = getPathWithoutLocale(useLocation({ select: (location) => location.pathname }));
 
     return (
-        <nav aria-label={footer.language.value} className={SWITCH_ROW}>
+        <nav aria-label={footer.language.value} className={FOOTER_ROW}>
             <span aria-hidden="true" className="text-micro text-muted uppercase">
                 {footer.language}
             </span>

@@ -3,7 +3,7 @@ import { useIntlayer } from "react-intlayer";
 
 import { chooseConsent, readConsent, subscribeConsent } from "@/lib/analytics";
 
-import { SWITCH_OPTION, SWITCH_ROW } from "./theme-switch";
+import { FOOTER_OPTION, FOOTER_ROW } from "./footer-row";
 
 export function ConsentSwitch() {
     const { consent: labels } = useIntlayer("site");
@@ -16,7 +16,7 @@ export function ConsentSwitch() {
         { granted: false, label: labels.decline },
     ];
     return (
-        <fieldset className={SWITCH_ROW}>
+        <fieldset className={FOOTER_ROW}>
             <legend className="sr-only">{labels.label}</legend>
             <span aria-hidden="true" className="text-micro text-muted uppercase">
                 {labels.label}
@@ -31,7 +31,7 @@ export function ConsentSwitch() {
                             onChange={() => chooseConsent(granted)}
                             type="radio"
                         />
-                        <span className={SWITCH_OPTION}>{label}</span>
+                        <span className={FOOTER_OPTION}>{label}</span>
                     </label>
                 ))}
             </div>

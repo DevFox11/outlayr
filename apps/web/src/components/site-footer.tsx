@@ -6,13 +6,13 @@ import { CONTAINER } from "@/lib/layout";
 import { COMPANY, SUPPORT_EMAIL, legalDate } from "@/lib/site";
 
 import { ConsentSwitch } from "./consent-switch";
+import { FOOTER_ROW } from "./footer-row";
 import { LanguageSwitch } from "./language-switch";
 import { LocalizedLink } from "./localized-link";
 import { LogoMark } from "./logo-mark";
 import { ThemeSwitch } from "./theme-switch";
 
-const ROW =
-    "hover:bg-surface border-border grid grid-cols-[5.5rem_minmax(0,1fr)] items-baseline gap-4 border-b py-3.5 transition-colors duration-150 sm:grid-cols-[9rem_minmax(0,1fr)]";
+const ROW = `hover:bg-surface transition-colors duration-150 ${FOOTER_ROW}`;
 
 function Row({ children, label }: { children: ReactNode; label: ReactNode }) {
     return (

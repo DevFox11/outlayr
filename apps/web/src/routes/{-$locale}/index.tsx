@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getIntlayer } from "intlayer";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useIntlayer } from "react-intlayer";
 
 import { Plate } from "@/components/home/plate";
@@ -10,6 +10,7 @@ import { StoreBadges } from "@/components/store-badges";
 import { LANGUAGES, localeFromParam } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
 import { CONTAINER } from "@/lib/layout";
+import { useReducedMotion } from "@/lib/reduced-motion";
 import { faqPage, ldJson, pageMeta } from "@/lib/seo";
 import { COMPANY, SITE_URL } from "@/lib/site";
 
@@ -122,22 +123,10 @@ const VIDEOS = [
     { className: "dark-only", poster: DARK_POSTER, src: "/screens/log-an-expense-dark.mp4" },
 ] as const;
 
-const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
-
-function subscribeReducedMotion(onChange: () => void) {
-    const query = window.matchMedia(REDUCED_MOTION);
-    query.addEventListener("change", onChange);
-    return () => query.removeEventListener("change", onChange);
-}
-
 function DemoVideo() {
     const { hero } = useIntlayer("home");
     const videos = useRef<HTMLVideoElement[]>([]);
-    const reduced = useSyncExternalStore(
-        subscribeReducedMotion,
-        () => window.matchMedia(REDUCED_MOTION).matches,
-        () => true
-    );
+    const reduced = useReducedMotion();
     const [choice, setChoice] = useState<boolean | null>(null);
     const playing = choice ?? !reduced;
 
