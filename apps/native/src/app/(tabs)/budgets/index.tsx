@@ -3,7 +3,7 @@ import { Budgets } from "@/screens/budgets";
 
 export default function BudgetsScreen() {
     return (
-        <FreezeOnBlur>
+        <FreezeOnBlur tab="budgets">
             <Budgets />
         </FreezeOnBlur>
     );

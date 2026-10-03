@@ -24,6 +24,7 @@ import { AppSettingsProvider } from "@/contexts/display-settings-context";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
 import { LocalDataProvider, useDatabase, useLocalData } from "@/contexts/local-data-context";
 import { RevenueCatProvider } from "@/contexts/revenuecat-context";
+import { BackgroundWork } from "@/data/background-work";
 import { useAccountDeferred, useOnboardingSettled } from "@/data/onboarding";
 import { useSeededClockPreference } from "@/data/settings";
 import { DeferredDeleteProvider } from "@/data/use-deferred-delete";
@@ -161,6 +162,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
             <LedgerAdoptionProvider>
                 <DeviceResetRecovery>
                     <RouteGate hideSplash={hideSplash} splashHidden={splashHidden}>
+                        <BackgroundWork />
                         <StatusBar style={isDark ? "light" : "dark"} />
 
                         <ThemeProvider

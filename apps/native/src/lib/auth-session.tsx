@@ -61,9 +61,10 @@ function LiveSession({ client, children }: { client: AuthClient; children: React
     const begin = useCallback(() => setProvisional(true), []);
     const activate = useCallback(() => setProvisional(false), []);
     const reject = useCallback(() => setProvisional(false), []);
+    const restoring = isPending && client.getCookie() !== "";
     const value = useMemo(
-        () => ({ ...sessionView(session, isPending, provisional, restoreExpired), activate, begin, reject }),
-        [activate, begin, isPending, provisional, reject, restoreExpired, session]
+        () => ({ ...sessionView(session, restoring, provisional, restoreExpired), activate, begin, reject }),
+        [activate, begin, restoring, provisional, reject, restoreExpired, session]
     );
 
     return <AuthSessionContext.Provider value={value}>{children}</AuthSessionContext.Provider>;

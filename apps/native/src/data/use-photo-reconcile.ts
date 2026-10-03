@@ -12,9 +12,6 @@ import { reconcilePhotos } from "./photo-store-core";
  * cascade-deleted photo is reclaimed, and running that sweep while the user is
  * inside the app widens the window in which a picked-but-unsaved photo survives
  * only on the purge grace period.
- *
- * `db` is nullable so this can be called before the database is open, matching
- * `useRecurrenceSweep`.
  */
 export function usePhotoReconcile(db: Database | null): void {
     useEffect(() => {

@@ -4,17 +4,8 @@ import { createContext, use, useEffect, useMemo, useState } from "react";
 
 import { bootstrapLocalData } from "@/data/bootstrap";
 import { settleLegacyOnboarding } from "@/data/onboarding-core";
-import { usePhotoReconcile } from "@/data/use-photo-reconcile";
-import { usePhotoSync } from "@/data/use-photo-sync";
-import { useRecurrenceSweep } from "@/data/use-recurrence-sweep";
-import { useSyncEngine } from "@/data/use-sync-engine";
 import { openDatabase } from "@/db/client";
 import type { Database } from "@/db/client";
-import { useProEntitled } from "@/hooks/use-pro-locked";
-import { useCloudAuthenticated } from "@/lib/convex";
-import { useEnrichmentQueue } from "@/lib/enrichment-queue";
-import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
-import { useSystemSync } from "@/lib/use-system-sync";
 
 import migrationsBundle from "../../drizzle/migrations";
 
@@ -68,8 +59,6 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
         status: "opening",
     });
     const { attempt, db, error, status } = state;
-    const proEntitled = useProEntitled();
-    const cloudAuthenticated = useCloudAuthenticated();
 
     // oxlint-disable-next-line react/exhaustive-deps -- `attempt` is the intentional re-run trigger — bumping it is what re-runs open → migrate → seed after a failure; the effect body never reads it.
     useEffect(() => {
@@ -115,23 +104,6 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
             cancelled = true;
         };
     }, [attempt]);
-
-    // Re-arming from the callback rather than relying on the reminder sync's own
-    // foreground listener: both fire on the same AppState event, and the sweep
-    // moves the very landing the notices are dated from.
-    useRecurrenceSweep(db, syncSubscriptionReminders);
-    // Ordered after the sweep so a subscription that advanced on this foreground
-    // is already in the table when the widgets are rebuilt from it.
-    useSystemSync(db);
-    useEnrichmentQueue(db);
-    // Inert until the sign-in flow opens the device-local sync gate, and held
-    // down entirely without a confirmed entitlement and session — the server
-    // refuses a lapsed customer, one it cannot verify, and a missing token.
-    useSyncEngine(db, !proEntitled || !cloudAuthenticated);
-    usePhotoReconcile(db);
-    // After the reconciliation, which owns whether a row's path still resolves —
-    // running first would upload against paths it is about to repair.
-    usePhotoSync(db, !proEntitled || !cloudAuthenticated);
 
     const value = useMemo<LocalDataContextValue>(
         () => ({

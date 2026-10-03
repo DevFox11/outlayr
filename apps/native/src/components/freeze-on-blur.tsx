@@ -6,6 +6,20 @@ import { useUniwind } from "uniwind";
 
 import { useSettingNumber } from "@/contexts/display-settings-context";
 
+let idleTurn: Promise<void> = Promise.resolve();
+
+function nextIdleTurn(): Promise<void> {
+    idleTurn = idleTurn.then(
+        () =>
+            new Promise((resolve) => {
+                requestIdleCallback(() => {
+                    resolve();
+                });
+            })
+    );
+    return idleTurn;
+}
+
 /**
  * Holds a tab's screen still while it is not the one on screen; a screen over the tabs leaves it be.
  *
@@ -18,9 +32,14 @@ import { useSettingNumber } from "@/contexts/display-settings-context";
  * effects survive and held updates land in one render on return. Layout effects
  * do not, and uniwind subscribes in them, so a look changed while frozen remounts.
  */
-export function FreezeOnBlur({ children }: { children: ReactNode }) {
+export function FreezeOnBlur({ children, tab }: { children: ReactNode; tab: "budgets" | "insights" | "settings" }) {
     const isFocused = useIsFocused();
-    const covered = useSegments()[0] !== "(tabs)";
+    const segments = useSegments();
+    const covered = segments[0] !== "(tabs)";
+    const [opened, setOpened] = useState(false);
+    if (!opened && (isFocused || segments.at(1) === tab)) {
+        setOpened(true);
+    }
     const [frozen, setFrozen] = useState(false);
     const look = `${useUniwind().theme}:${useSettingNumber("accentColor")}`;
     const [seenLook, setSeenLook] = useState(look);
@@ -31,6 +50,22 @@ export function FreezeOnBlur({ children }: { children: ReactNode }) {
             setGeneration(generation + 1);
         }
     }
+
+    useEffect(() => {
+        if (opened) {
+            return;
+        }
+        let cancelled = false;
+        nextIdleTurn().then(() => {
+            if (!cancelled) {
+                setFrozen(false);
+                setOpened(true);
+            }
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [opened]);
 
     // Deferred a macrotask, the way `react-native-screens` defers its own
     // `freezeOnBlur` (components/helpers/DelayedFreeze.tsx): focus flips when the
@@ -47,11 +82,11 @@ export function FreezeOnBlur({ children }: { children: ReactNode }) {
         return () => {
             clearTimeout(handle);
         };
-    }, [covered, isFocused]);
+    }, [covered, isFocused, opened]);
 
     return (
-        <Freeze freeze={frozen}>
-            <Fragment key={generation}>{children}</Fragment>
+        <Freeze freeze={frozen && !isFocused}>
+            <Fragment key={generation}>{opened ? children : null}</Fragment>
         </Freeze>
     );
 }

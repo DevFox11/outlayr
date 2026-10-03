@@ -48,6 +48,28 @@ async function setFocus(next: boolean) {
     });
 }
 
+const idleCallbacks: (() => void)[] = [];
+globalThis.requestIdleCallback = (callback) => {
+    idleCallbacks.push(() => {
+        callback({ didTimeout: false, timeRemaining: () => 50 });
+    });
+    return idleCallbacks.length;
+};
+
+async function idle() {
+    await act(async () => {
+        await new Promise((resolve) => {
+            setTimeout(resolve, 0);
+        });
+        for (const run of idleCallbacks.splice(0)) {
+            run();
+        }
+        await new Promise((resolve) => {
+            setTimeout(resolve, 0);
+        });
+    });
+}
+
 const ticker = { listeners: new Set<() => void>(), value: "first" };
 
 async function tick(next: string) {
@@ -94,7 +116,7 @@ describe("freezeOnBlur", () => {
 
     it("renders normally while the tab is focused", async () => {
         const { getByTestId } = await render(
-            <FreezeOnBlur>
+            <FreezeOnBlur tab="insights">
                 <Screen />
             </FreezeOnBlur>
         );
@@ -105,9 +127,56 @@ describe("freezeOnBlur", () => {
         expect(getByTestId("screen").props.children).toBe("second");
     });
 
+    it("draws a tab nobody has opened on an idle frame, not at launch", async () => {
+        mockFocus.current = false;
+        mockSegments.current = ["(tabs)", "(transactions)"];
+        const { queryByTestId } = await render(
+            <FreezeOnBlur tab="insights">
+                <Screen />
+            </FreezeOnBlur>
+        );
+        expect(queryByTestId("screen")).toBeNull();
+
+        await idle();
+
+        expect(queryByTestId("screen")).not.toBeNull();
+        await setFocus(false);
+        const drawn = renders;
+        await tick("second");
+        expect(renders).toBe(drawn);
+    });
+
+    it("draws a tab opened before the idle frame at once", async () => {
+        mockFocus.current = false;
+        mockSegments.current = ["(tabs)", "(transactions)"];
+        const { queryByTestId } = await render(
+            <FreezeOnBlur tab="insights">
+                <Screen />
+            </FreezeOnBlur>
+        );
+
+        mockSegments.current = ["(tabs)", "insights"];
+        await setFocus(true);
+
+        expect(queryByTestId("screen")).not.toBeNull();
+        await idle();
+    });
+
+    it("opens under a screen pushed within the tab", async () => {
+        mockFocus.current = false;
+        mockSegments.current = ["(tabs)", "budgets", "[id]"];
+        const { queryByTestId } = await render(
+            <FreezeOnBlur tab="budgets">
+                <Screen />
+            </FreezeOnBlur>
+        );
+
+        expect(queryByTestId("screen")).not.toBeNull();
+    });
+
     it("does not render the screen while the tab is blurred", async () => {
         await render(
-            <FreezeOnBlur>
+            <FreezeOnBlur tab="insights">
                 <Screen />
             </FreezeOnBlur>
         );
@@ -122,7 +191,7 @@ describe("freezeOnBlur", () => {
 
     it("keeps rendering under a screen opened over the tabs", async () => {
         const { getByTestId } = await render(
-            <FreezeOnBlur>
+            <FreezeOnBlur tab="insights">
                 <Screen />
             </FreezeOnBlur>
         );
@@ -136,7 +205,7 @@ describe("freezeOnBlur", () => {
 
     it("remounts a tab whose theme changed while it was frozen, and only then", async () => {
         await render(
-            <FreezeOnBlur>
+            <FreezeOnBlur tab="insights">
                 <Screen />
             </FreezeOnBlur>
         );
@@ -155,9 +224,29 @@ describe("freezeOnBlur", () => {
         expect(mounts).toBe(2);
     });
 
+    it("thaws in the same render the tab comes back into view", async () => {
+        const { getByTestId } = await render(
+            <FreezeOnBlur tab="insights">
+                <Screen />
+            </FreezeOnBlur>
+        );
+        await setFocus(false);
+        await tick("second");
+
+        mockFocus.current = true;
+        await act(async () => {
+            // oxlint-disable-next-line unicorn/no-useless-spread -- mirrors the copy the real subscriber list is iterated over
+            for (const notify of [...mockFocusListeners]) {
+                notify();
+            }
+        });
+
+        expect(getByTestId("screen").props.children).toBe("second");
+    });
+
     it("catches up to the current value on return, without remounting", async () => {
         const { getByTestId } = await render(
-            <FreezeOnBlur>
+            <FreezeOnBlur tab="insights">
                 <Screen />
             </FreezeOnBlur>
         );

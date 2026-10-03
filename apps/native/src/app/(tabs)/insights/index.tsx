@@ -3,7 +3,7 @@ import { Insights } from "@/screens/insights";
 
 export default function InsightsScreen() {
     return (
-        <FreezeOnBlur>
+        <FreezeOnBlur tab="insights">
             <Insights />
         </FreezeOnBlur>
     );

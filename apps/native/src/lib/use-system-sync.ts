@@ -26,9 +26,6 @@ import { claimPendingWrites, readWalletLastRun, releasePendingWrites } from "./w
  * Keeps the widget tiles and the Spotlight index current, each on its own
  * cadence — see `sync-cadence.ts` for which tables reach which surface and why
  * the index trails the tiles so far.
- *
- * `db` is nullable so this can be called before the database is open, matching
- * `useRecurrenceSweep`.
  */
 export function useSystemSync(db: Database | null): void {
     useEffect(() => {
