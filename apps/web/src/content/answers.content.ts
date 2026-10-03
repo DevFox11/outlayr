@@ -157,14 +157,6 @@ const answers = {
                         }),
                     },
                     {
-                        label: LABELS.currencies,
-                        outlayr: OUTLAYR.currencies,
-                        rival: t({
-                            en: "Built for US and Canadian accounts",
-                            es: "Pensada para cuentas de Estados Unidos y Canadá",
-                        }),
-                    },
-                    {
                         label: LABELS.platforms,
                         outlayr: OUTLAYR.platforms,
                         rival: t({ en: "iPhone, Android, web", es: "iPhone, Android, web" }),
