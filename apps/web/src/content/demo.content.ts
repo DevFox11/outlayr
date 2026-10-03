@@ -73,13 +73,6 @@ const demo = {
                     es: "Apunta la cámara a un recibo. El comercio, el monto y la fecha se llenan solos.",
                 }),
             },
-            type: {
-                label: t({ en: "Type", es: "Escribe" }),
-                text: t({
-                    en: "One sentence. Tap a word to change it.",
-                    es: "Una oración. Toca una palabra para cambiarla.",
-                }),
-            },
         },
         names: {
             Bonus: t({ en: "Bonus", es: "Bonos" }),
@@ -135,11 +128,9 @@ const demo = {
             es: "Recibí $1,450.00 USD de un comercio para una categoría en una cuenta ayer.",
         }),
         status: {
-            added: t({ en: "Transaction added", es: "Transacción agregada" }),
             draft: t({ en: "Draft", es: "Borrador" }),
             fieldDate: t({ en: "date", es: "fecha" }),
             listening: t({ en: "Listening…", es: "Escuchando…" }),
-            new: t({ en: "New", es: "Nueva" }),
             reading: t({ en: "Reading the receipt…", es: "Leyendo el recibo…" }),
             review: t({ en: "Review", es: "Revisar" }),
             saved: t({ en: "Saved", es: "Guardado" }),
@@ -161,7 +152,7 @@ const demo = {
                 es: "La mayoría de los registros toman unos segundos. Usa lo que tengas más a la mano.",
             }),
             tabs: t({ en: "Ways to log an entry", es: "Formas de registrar" }),
-            title: t({ en: "Type it, say it, or scan it.", es: "Escríbelo, díctalo o escanéalo." }),
+            title: t({ en: "Say it, scan it, or import it.", es: "Díctalo, escanéalo o impórtalo." }),
         },
     },
     key: "demo",

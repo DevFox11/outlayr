@@ -33,7 +33,6 @@ interface PanelProps {
 }
 
 export const CAPTURE_MODES = [
-    { Panel: TypePanel, durations: [1100, 900, 1200, 1000, 2800], id: "type" },
     { Panel: SayPanel, durations: [1400, 1100, 2400, 1300, 1000, 2400, 2800], id: "say" },
     { Panel: ScanPanel, durations: [1400, 900, 900, 900, 1200, 2800], id: "scan" },
     { Panel: ImportPanel, durations: [1500, 1600, 1800, 3000], id: "import" },
@@ -67,44 +66,6 @@ function Logged({ amount, category, merchant }: { amount: number; category: stri
                 <span className="shrink-0 font-mono tabular-nums">{signedMoney(amount, "USD", false)}</span>
             </div>
         </div>
-    );
-}
-
-function Word({ blank, children }: { blank: boolean; children: string }) {
-    const tone = blank ? "text-muted decoration-border decoration-dashed" : `decoration-tint ${FADE_IN}`;
-    return (
-        <span className={`inline-block underline decoration-2 underline-offset-[0.14em] ${tone}`} key={children}>
-            {children}
-        </span>
-    );
-}
-
-function TypePanel({ frame }: PanelProps) {
-    const { blank, kind, sentence, status } = useIntlayer("demo");
-    const nameOf = useNames();
-    return (
-        <Frame status={frame >= 4 ? status.added : status.new}>
-            <p className="text-title font-bold">
-                {sentence.expense({
-                    account: <Word blank={frame < 3}>{frame < 3 ? blank.account.value : "PayPal"}</Word>,
-                    amount: (
-                        <span className="whitespace-nowrap">
-                            <Word blank={frame < 1}>{formatMoney(frame < 1 ? 0 : 15, "USD")}</Word>
-                            <span className="ml-[0.2em] font-mono text-[0.34em] font-medium tracking-[0.08em]">
-                                USD
-                            </span>
-                        </span>
-                    ),
-                    category: (
-                        <Word blank={frame < 2}>{frame < 2 ? blank.category.value : nameOf("Subscriptions")}</Word>
-                    ),
-                    kind: kind.expense,
-                    merchant: <Word blank={frame < 2}>{frame < 2 ? blank.merchant.value : "Figma"}</Word>,
-                    when: <Word blank={false}>{nameOf("today")}</Word>,
-                })}
-            </p>
-            {frame >= 4 ? <Logged amount={15} category="Subscriptions" merchant="Figma" /> : null}
-        </Frame>
     );
 }
 

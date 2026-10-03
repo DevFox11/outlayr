@@ -6,18 +6,13 @@ import { CAPTURE_MODES } from "@/components/demo/capture-panels";
 import { useAutoplay } from "@/components/demo/use-autoplay";
 import { CONTAINER } from "@/lib/layout";
 
+import { tabTarget } from "./tab-target";
+
 interface Play {
     frame: number;
     manual: boolean;
     mode: number;
 }
-
-const STEP_KEYS = new Map([
-    ["ArrowDown", 1],
-    ["ArrowLeft", -1],
-    ["ArrowRight", 1],
-    ["ArrowUp", -1],
-]);
 
 function modeAt(index: number) {
     return CAPTURE_MODES[index] ?? CAPTURE_MODES[0];
@@ -61,16 +56,7 @@ export function Ways() {
     const select = (mode: number) => setPlay({ frame: 0, manual: true, mode });
 
     const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-        const count = CAPTURE_MODES.length;
-        let target: number | null = null;
-        const step = STEP_KEYS.get(event.key);
-        if (step !== undefined) {
-            target = (play.mode + step + count) % count;
-        } else if (event.key === "Home") {
-            target = 0;
-        } else if (event.key === "End") {
-            target = count - 1;
-        }
+        const target = tabTarget(event.key, play.mode, CAPTURE_MODES.length);
         if (target === null) {
             return;
         }
@@ -92,7 +78,7 @@ export function Ways() {
                 <div
                     aria-label={ways.tabs.value}
                     aria-orientation="vertical"
-                    className="border-foreground mt-10 grid max-w-[34rem] grid-cols-4 border-t md:block"
+                    className="border-foreground mt-10 grid max-w-[34rem] grid-cols-3 border-t md:block"
                     onFocus={() => setPlay((state) => (state.manual ? state : { ...state, manual: true }))}
                     role="tablist"
                 >

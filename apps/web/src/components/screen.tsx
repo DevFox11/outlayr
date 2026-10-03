@@ -2,13 +2,11 @@ export function Screen({
     alt,
     className = "",
     pins,
-    side = "left",
     src,
 }: {
     alt: string;
     className?: string;
     pins?: readonly number[];
-    side?: "left" | "right";
     src: string;
 }) {
     return (
@@ -34,7 +32,7 @@ export function Screen({
             {pins?.map((y, index) => (
                 <span
                     aria-hidden="true"
-                    className={`bg-tint text-background ring-background absolute flex size-6 -translate-y-1/2 items-center justify-center rounded-full font-mono text-xs font-medium ring-2 ${side === "left" ? "left-0 -translate-x-1/2" : "right-0 translate-x-1/2"}`}
+                    className="bg-tint text-background ring-background absolute left-0 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full font-mono text-xs font-medium ring-2"
                     key={y}
                     style={{ top: `${y}%` }}
                 >

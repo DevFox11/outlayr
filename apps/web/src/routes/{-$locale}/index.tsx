@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useIntlayer } from "react-intlayer";
 
 import { Plate } from "@/components/home/plate";
+import { Tour } from "@/components/home/tour";
 import { Ways } from "@/components/home/ways";
-import { Screen } from "@/components/screen";
 import { StoreBadges } from "@/components/store-badges";
 import { LANGUAGES, localeFromParam } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
@@ -16,8 +16,6 @@ import { COMPANY, SITE_URL } from "@/lib/site";
 
 const POSTER = "/screens/log-an-expense.webp";
 const DARK_POSTER = "/screens/log-an-expense-dark.webp";
-
-type Home = ReturnType<typeof useIntlayer<"home">>;
 
 function appGraph(locale: Locale) {
     const { extras, meta } = getIntlayer("home", locale);
@@ -69,15 +67,12 @@ export const Route = createFileRoute("/{-$locale}/")({
 });
 
 function HomePage() {
-    const { tour } = useIntlayer("home");
     return (
         <main>
             <Hero />
             <Plate />
             <Ways />
-            {tour.map((stop, index) => (
-                <TourStop flip={index % 2 === 0} key={stop.src.value} stop={stop} />
-            ))}
+            <Tour />
             <Extras />
             <Plans />
             <Questions />
@@ -87,7 +82,7 @@ function HomePage() {
 }
 
 function Hero() {
-    const { facts, hero } = useIntlayer("home");
+    const { hero } = useIntlayer("home");
     return (
         <section
             className={`${CONTAINER} grid gap-12 pt-10 pb-20 md:pt-16 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-center lg:gap-24`}
@@ -101,17 +96,6 @@ function Hero() {
                         {hero.secondary}
                     </a>
                 </div>
-                <dl className="border-foreground mt-10 grid max-w-[33rem] border-t sm:mt-14 sm:grid-cols-3">
-                    {facts.map((fact) => (
-                        <div
-                            className="border-border grid grid-cols-[6rem_minmax(0,1fr)] items-baseline gap-4 border-b py-2.5 sm:block sm:border-b-0 sm:border-l sm:py-3 sm:pl-3 sm:first:border-l-0 sm:first:pl-0"
-                            key={fact.label.value}
-                        >
-                            <dt className="text-micro text-muted font-mono uppercase">{fact.label}</dt>
-                            <dd className="text-sm sm:mt-1">{fact.value}</dd>
-                        </div>
-                    ))}
-                </dl>
             </div>
             <DemoVideo />
         </section>
@@ -147,7 +131,7 @@ function DemoVideo() {
     }, [playing]);
 
     return (
-        <figure className="w-full max-w-[22rem] lg:max-w-none">
+        <figure className="w-full max-w-[18rem] sm:max-w-[22rem] lg:max-w-none">
             {VIDEOS.map((video, index) => (
                 <video
                     aria-label={hero.videoLabel.value}
@@ -182,39 +166,6 @@ function DemoVideo() {
     );
 }
 
-function TourStop({ flip, stop }: { flip: boolean; stop: Home["tour"][number] }) {
-    return (
-        <section className="border-border border-t">
-            <div className={`${CONTAINER} grid gap-10 py-16 md:grid-cols-2 md:items-center md:gap-x-16 md:py-20`}>
-                <div className={flip ? "md:order-2" : ""}>
-                    <h2 className="text-title font-bold">{stop.title}</h2>
-                    <p className="text-lead text-muted mt-5 max-w-[30rem]">{stop.body}</p>
-                    <ol className="border-foreground mt-10 max-w-[30rem] border-t">
-                        {stop.notes.map((note, index) => (
-                            <li className="border-border flex items-start gap-4 border-b py-3.5" key={note.y.value}>
-                                <span
-                                    aria-hidden="true"
-                                    className="bg-tint text-background flex size-6 shrink-0 items-center justify-center rounded-full font-mono text-xs font-medium"
-                                >
-                                    {index + 1}
-                                </span>
-                                {note.text}
-                            </li>
-                        ))}
-                    </ol>
-                </div>
-                <Screen
-                    alt={stop.alt.value}
-                    className={flip ? "" : "md:justify-self-end"}
-                    pins={stop.notes.map((note) => note.y.value)}
-                    side={flip ? "right" : "left"}
-                    src={stop.src.value}
-                />
-            </div>
-        </section>
-    );
-}
-
 function Extras() {
     const { extras, extrasTitle } = useIntlayer("home");
     return (
@@ -238,13 +189,14 @@ function Extras() {
 }
 
 function Plans() {
-    const { plans, plansCopy } = useIntlayer("home");
+    const { limits, plansCopy, proOnly } = useIntlayer("home");
     return (
         <section className="bg-surface border-border scroll-mt-16 border-t" id="plans">
             <div className={`${CONTAINER} grid gap-10 py-20 md:py-28 lg:grid-cols-2 lg:gap-x-16`}>
                 <div>
                     <h2 className="text-title font-bold">{plansCopy.title}</h2>
                     <p className="text-lead text-muted mt-5 max-w-[30rem]">{plansCopy.lead}</p>
+                    <p className="text-muted mt-6 max-w-[30rem] text-sm">{plansCopy.footnote}</p>
                 </div>
                 <div>
                     <table className="w-full border-collapse text-left">
@@ -265,22 +217,31 @@ function Plans() {
                             </tr>
                         </thead>
                         <tbody>
-                            {plans.map((plan) => (
-                                <tr className="border-border border-b" key={plan.label.value}>
+                            {limits.map((limit) => (
+                                <tr className="border-border border-b" key={limit.label.value}>
                                     <th className="py-2.5 pr-3 font-normal sm:pr-4" scope="row">
-                                        {plan.label}
+                                        {limit.label}
                                     </th>
                                     <td className="text-muted py-2.5 pl-3 text-right font-mono text-sm tabular-nums">
-                                        {plan.free}
+                                        {limit.free}
                                     </td>
-                                    <td className="text-income py-2.5 pl-3 text-right font-mono text-sm tabular-nums">
-                                        {plan.pro}
+                                    <td className="py-2.5 pl-3 text-right font-mono text-sm font-medium tabular-nums">
+                                        {limit.pro}
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
-                    <p className="text-muted mt-6 max-w-[34rem] text-sm">{plansCopy.footnote}</p>
+                    <h3 className="text-micro border-foreground mt-12 border-b pb-2 font-mono uppercase">
+                        {plansCopy.proOnlyTitle}
+                    </h3>
+                    <ul className="grid sm:grid-cols-2 sm:gap-x-8">
+                        {proOnly.map((feature) => (
+                            <li className="border-border border-b py-2.5" key={feature.value}>
+                                {feature}
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             </div>
         </section>
@@ -297,10 +258,18 @@ function Questions() {
                 <h2 className="text-title font-bold">{faqTitle}</h2>
                 <div className="border-foreground border-t">
                     {faq.map((item) => (
-                        <div className="border-border border-b py-6" key={item.question.value}>
-                            <h3 className="text-lg font-bold">{item.question}</h3>
-                            <p className="text-muted mt-2 leading-relaxed">{item.answer}</p>
-                        </div>
+                        <details className="group border-border border-b" key={item.question.value}>
+                            <summary className="flex cursor-pointer list-none items-baseline justify-between gap-6 py-5 [&::-webkit-details-marker]:hidden">
+                                <h3 className="text-lg font-bold">{item.question}</h3>
+                                <span
+                                    aria-hidden="true"
+                                    className="text-muted font-mono text-lg transition-transform group-open:rotate-45"
+                                >
+                                    +
+                                </span>
+                            </summary>
+                            <p className="text-muted pb-6 leading-relaxed">{item.answer}</p>
+                        </details>
                     ))}
                 </div>
             </div>

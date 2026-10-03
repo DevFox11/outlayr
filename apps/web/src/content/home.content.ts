@@ -77,20 +77,6 @@ const home = {
             },
         ],
         extrasTitle: t({ en: "Also in the app.", es: "También en la app." }),
-        facts: [
-            {
-                label: t({ en: "Available", es: "Disponible" }),
-                value: t({ en: "iPhone · Android soon", es: "iPhone · Android pronto" }),
-            },
-            {
-                label: t({ en: "Languages", es: "Idiomas" }),
-                value: "English, Español",
-            },
-            {
-                label: t({ en: "Price", es: "Precio" }),
-                value: t({ en: "Free, Pro optional", es: "Gratis, Pro opcional" }),
-            },
-        ],
         faq: [
             {
                 answer: t({
@@ -155,8 +141,8 @@ const home = {
         faqTitle: t({ en: "Questions, answered.", es: "Preguntas y respuestas." }),
         hero: {
             lead: t({
-                en: "Outlayr is an expense tracker and budget app. Type a purchase as one sentence, say it, or scan the receipt. Subscriptions and paychecks log themselves on the day they land.",
-                es: "Outlayr es una app para controlar tus gastos y tu presupuesto. Escribe una compra en una oración, díctala o escanea el recibo. Las suscripciones y los sueldos se registran solos el día que llegan.",
+                en: "Outlayr is an expense tracker and budget app. Type a purchase as one sentence, say it, or scan the receipt.",
+                es: "Outlayr es una app para controlar tus gastos y tu presupuesto. Escribe una compra en una oración, díctala o escanea el recibo.",
             }),
             pauseVideo: t({ en: "Pause", es: "Pausar" }),
             playVideo: t({ en: "Play", es: "Reproducir" }),
@@ -168,17 +154,7 @@ const home = {
                 es: "Cómo se registra en Outlayr una compra de súper de $42.00 en Costco, desde el menú para agregar hasta el Registro.",
             }),
         },
-        meta: {
-            description: t({
-                en: "Outlayr is an expense tracker and budget app. Log a purchase in one sentence, by voice, or by scanning the receipt. Free on iPhone, Android soon.",
-                es: "Outlayr es una app para controlar tus gastos y tu presupuesto. Registra una compra en una oración, con tu voz o escaneando el recibo. Gratis en iPhone, pronto en Android.",
-            }),
-            title: t({
-                en: "Outlayr: Expense Tracker, Budget App & Receipt Scanner",
-                es: "Outlayr: control de gastos, presupuestos y escáner de recibos",
-            }),
-        },
-        plans: [
+        limits: [
             { free: "20", label: t({ en: "Captures every 30 days", es: "Capturas cada 30 días" }), pro: "500" },
             {
                 free: "2",
@@ -195,28 +171,18 @@ const home = {
                 label: t({ en: "Account currencies", es: "Monedas de cuentas" }),
                 pro: t({ en: "unlimited", es: "sin límite" }),
             },
-            {
-                free: t({ en: "off", es: "no" }),
-                label: t({ en: "Sync across devices", es: "Sincronizar dispositivos" }),
-                pro: t({ en: "on", es: "sí" }),
-            },
-            {
-                free: t({ en: "off", es: "no" }),
-                label: t({ en: "Receipt photo backup", es: "Respaldo de fotos" }),
-                pro: t({ en: "on", es: "sí" }),
-            },
-            {
-                free: t({ en: "off", es: "no" }),
-                label: t({ en: "AI matching on import", es: "Coincidencia con IA al importar" }),
-                pro: t({ en: "on", es: "sí" }),
-            },
-            {
-                free: t({ en: "off", es: "no" }),
-                label: t({ en: "Web merchant lookup", es: "Búsqueda web de comercios" }),
-                pro: t({ en: "on", es: "sí" }),
-            },
             { free: "1", label: t({ en: "App icons", es: "Íconos de la app" }), pro: "5" },
         ],
+        meta: {
+            description: t({
+                en: "Outlayr is an expense tracker and budget app. Log a purchase in one sentence, by voice, or by scanning the receipt. Free on iPhone, Android soon.",
+                es: "Outlayr es una app para controlar tus gastos y tu presupuesto. Registra una compra en una oración, con tu voz o escaneando el recibo. Gratis en iPhone, pronto en Android.",
+            }),
+            title: t({
+                en: "Outlayr: Expense Tracker, Budget App & Receipt Scanner",
+                es: "Outlayr: control de gastos, presupuestos y escáner de recibos",
+            }),
+        },
         plansCopy: {
             feature: t({ en: "Feature", es: "Función" }),
             footnote: t({
@@ -229,8 +195,15 @@ const home = {
                 es: "La app es gratis. Pro quita los límites y agrega la sincronización.",
             }),
             pro: "Pro",
+            proOnlyTitle: t({ en: "Only in Pro", es: "Solo en Pro" }),
             title: t({ en: "Free to start.", es: "Gratis para empezar." }),
         },
+        proOnly: [
+            t({ en: "Sync across devices", es: "Sincronizar dispositivos" }),
+            t({ en: "Receipt photo backup", es: "Respaldo de fotos" }),
+            t({ en: "AI matching on import", es: "Coincidencia con IA al importar" }),
+            t({ en: "Web merchant lookup", es: "Búsqueda web de comercios" }),
+        ],
         tour: [
             {
                 alt: t({
@@ -247,6 +220,7 @@ const home = {
                     { text: t({ en: "The same read, in plain words.", es: "Lo mismo, en palabras simples." }), y: 58 },
                 ],
                 src: "/screens/04.webp",
+                tab: t({ en: "Budgets", es: "Presupuestos" }),
                 title: t({ en: "Spot the overspend early.", es: "Descubre a tiempo si te vas a pasar." }),
             },
             {
@@ -279,6 +253,7 @@ const home = {
                     },
                 ],
                 src: "/screens/05.webp",
+                tab: t({ en: "Insights", es: "Estadísticas" }),
                 title: t({ en: "See what moved since last week.", es: "Mira qué cambió desde la semana pasada." }),
             },
             {
@@ -308,6 +283,7 @@ const home = {
                     { text: t({ en: "Move money between accounts.", es: "Mueve dinero entre cuentas." }), y: 78.6 },
                 ],
                 src: "/screens/06.webp",
+                tab: t({ en: "Accounts", es: "Cuentas" }),
                 title: t({ en: "Every account, every currency.", es: "Cada cuenta, cada moneda." }),
             },
             {
@@ -340,9 +316,11 @@ const home = {
                     },
                 ],
                 src: "/screens/08.webp",
+                tab: t({ en: "Goals", es: "Metas" }),
                 title: t({ en: "Goals with a date on them.", es: "Metas con fecha." }),
             },
         ],
+        tourLabel: t({ en: "What the app shows you", es: "Lo que te muestra la app" }),
     },
     key: "home",
 } satisfies Dictionary;
