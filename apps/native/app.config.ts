@@ -263,10 +263,7 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
                 icons: ALTERNATE_ICONS.map((name) => `./assets/${name}.icon`),
             },
         ],
-        "expo-alternate-app-icons",
         ["posthog-react-native/expo", { skipOnConflict: true }],
-        "./plugins/with-min-pod-deployment-target.ts",
-        "./plugins/with-extension-pods-root.ts",
     ],
     // Fingerprint, not appVersion: the custom config plugins and Apple targets
     // change native code without a version bump, and an update served to a
