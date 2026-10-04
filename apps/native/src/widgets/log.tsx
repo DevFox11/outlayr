@@ -11,6 +11,7 @@ import {
 import type { WidgetEnvironment } from "expo-widgets";
 import { createWidget } from "expo-widgets";
 
+import { PLACEHOLDERS } from "./placeholders";
 import type { LogWidgetProps } from "./props";
 
 /**
@@ -111,4 +112,4 @@ const LogWidget = (props: LogWidgetProps, environment: WidgetEnvironment) => {
     );
 };
 
-export default createWidget<LogWidgetProps>("Log", LogWidget);
+export default createWidget<LogWidgetProps>("Log", LogWidget, PLACEHOLDERS.Log);

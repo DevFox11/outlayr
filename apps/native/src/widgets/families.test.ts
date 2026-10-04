@@ -6,6 +6,7 @@ import { describe, expect, it } from "@jest/globals";
 interface Declaration {
     configured: boolean;
     families: string[];
+    initialLayout: string | undefined;
     name: string;
 }
 
@@ -38,6 +39,7 @@ function declarations(): Declaration[] {
             return {
                 configured: chunk.includes("configuration: {"),
                 families: [...families[1].matchAll(/"(\w+)"/g)].map((m) => m[1]),
+                initialLayout: chunk.match(/initialLayout: "([^"]+)",$/m)?.[1],
                 name: name[1],
             };
         });
@@ -71,6 +73,12 @@ describe("widget declarations", () => {
                 }
                 expect(source.includes(`"${family}"`)).toBeTruthy();
             }
+        }
+    });
+
+    it("embeds every layout so a tile has a placeholder before the app first runs", () => {
+        for (const widget of declarations()) {
+            expect(widget.initialLayout).toBe(`src/widgets/${widget.name.toLowerCase()}.tsx`);
         }
     });
 

@@ -14,6 +14,7 @@ const WIDGETS = [
         description: "Today's spending, and one tap to add an entry.",
         displayName: "Log an Expense",
         ios: {
+            initialLayout: "src/widgets/log.tsx",
             supportedFamilies: ["systemSmall", "accessoryCircular", "accessoryRectangular", "accessoryInline"],
         },
         name: "Log",
@@ -37,6 +38,7 @@ const WIDGETS = [
                 },
                 title: "Budget",
             },
+            initialLayout: "src/widgets/budget.tsx",
             supportedFamilies: [
                 "systemSmall",
                 "systemMedium",
@@ -77,6 +79,7 @@ const WIDGETS = [
                 },
                 title: "Recent Entries",
             },
+            initialLayout: "src/widgets/ledger.tsx",
             supportedFamilies: ["systemMedium", "systemLarge", "accessoryRectangular", "accessoryInline"],
         },
         name: "Ledger",
@@ -101,6 +104,7 @@ const WIDGETS = [
                 },
                 title: "Insights",
             },
+            initialLayout: "src/widgets/insights.tsx",
             supportedFamilies: ["systemSmall", "systemMedium"],
         },
         name: "Insights",

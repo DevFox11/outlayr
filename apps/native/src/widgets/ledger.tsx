@@ -12,6 +12,7 @@ import {
 import type { WidgetEnvironment } from "expo-widgets";
 import { createWidget } from "expo-widgets";
 
+import { PLACEHOLDERS } from "./placeholders";
 import type { LedgerConfiguration, LedgerEntryProps, LedgerWidgetProps } from "./props";
 
 /**
@@ -169,4 +170,4 @@ const LedgerWidget = (props: LedgerWidgetProps, environment: WidgetEnvironment<L
     );
 };
 
-export default createWidget<LedgerWidgetProps, LedgerConfiguration>("Ledger", LedgerWidget);
+export default createWidget<LedgerWidgetProps, LedgerConfiguration>("Ledger", LedgerWidget, PLACEHOLDERS.Ledger);

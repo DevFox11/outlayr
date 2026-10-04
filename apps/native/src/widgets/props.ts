@@ -24,6 +24,7 @@ import { translateNow } from "@/i18n/runtime";
 import { DEEP_LINKS } from "@/lib/deep-links";
 
 import { WIDGET_PALETTE } from "./palette";
+import { NO_BUDGET } from "./placeholders";
 
 /**
  * A widget renders in whatever appearance the home screen is in, which is not
@@ -45,7 +46,7 @@ export interface BudgetConfiguration {
     budget: BudgetSelection;
 }
 
-interface BudgetViewProps {
+export interface BudgetViewProps {
     /** How far through the period we are, in [0, 1] — the pace marker. */
     elapsedFraction: number;
     /**
@@ -146,7 +147,7 @@ export interface InsightsConfiguration {
     period: InsightsSelection;
 }
 
-interface InsightsViewProps {
+export interface InsightsViewProps {
     /** `ChartDataPoint` shape, oldest first — spend per bucket. */
     bars: { x: string; y: number }[];
     income: string;
@@ -369,21 +370,9 @@ function buildBudget(
     whole: Money
 ): BudgetWidgetProps {
     const empty: BudgetViewProps = {
-        elapsedFraction: 0,
-        endsAt: 0,
-        isOverall: true,
-        limit: "",
+        ...NO_BUDGET,
         name: translateNow("budgets.widget.none"),
-        over: false,
-        percent: "",
         periodLabel: translateNow("budgets.name.default").toUpperCase(),
-        present: false,
-        rangeLabel: "",
-        remaining: "",
-        remainingCaption: "",
-        spent: "",
-        spentFraction: 0,
-        url: DEEP_LINKS.budgets,
     };
 
     let overall = empty;

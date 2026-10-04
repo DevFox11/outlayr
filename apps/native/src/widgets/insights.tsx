@@ -12,6 +12,7 @@ import {
 import type { WidgetEnvironment } from "expo-widgets";
 import { createWidget } from "expo-widgets";
 
+import { PLACEHOLDERS } from "./placeholders";
 import type { InsightsConfiguration, InsightsWidgetProps } from "./props";
 
 /**
@@ -198,4 +199,8 @@ const InsightsWidget = (props: InsightsWidgetProps, environment: WidgetEnvironme
     );
 };
 
-export default createWidget<InsightsWidgetProps, InsightsConfiguration>("Insights", InsightsWidget);
+export default createWidget<InsightsWidgetProps, InsightsConfiguration>(
+    "Insights",
+    InsightsWidget,
+    PLACEHOLDERS.Insights
+);

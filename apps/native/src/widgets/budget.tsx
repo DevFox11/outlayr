@@ -15,6 +15,7 @@ import {
 import type { WidgetEnvironment } from "expo-widgets";
 import { createWidget } from "expo-widgets";
 
+import { PLACEHOLDERS } from "./placeholders";
 import type { BudgetConfiguration, BudgetWidgetProps } from "./props";
 
 /**
@@ -195,4 +196,4 @@ const BudgetWidget = (props: BudgetWidgetProps, environment: WidgetEnvironment<B
     );
 };
 
-export default createWidget<BudgetWidgetProps, BudgetConfiguration>("Budget", BudgetWidget);
+export default createWidget<BudgetWidgetProps, BudgetConfiguration>("Budget", BudgetWidget, PLACEHOLDERS.Budget);
