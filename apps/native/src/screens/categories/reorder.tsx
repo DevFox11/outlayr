@@ -51,10 +51,8 @@ export function CategoryReorder({ income }: { income: boolean }) {
                 {/* A non-empty `title` short-circuits the `header` slot natively, so every
 				    header here passes the eyebrow instead of a plain string. */}
                 <Section header={<Eyebrow colors={colors}>{t("categories.title")}</Eyebrow>} modifiers={[rowGround]}>
-                    <List.ForEach onMove={reorderParents}>
-                        {parents.map((parent) => (
-                            <ReorderRow category={parent} key={parent.id} tint={accent(parent)} />
-                        ))}
+                    <List.ForEach data={parents} keyExtractor={(parent) => parent.id} onMove={reorderParents}>
+                        {({ item: parent }) => <ReorderRow category={parent} tint={accent(parent)} />}
                     </List.ForEach>
                 </Section>
 
@@ -67,11 +65,11 @@ export function CategoryReorder({ income }: { income: boolean }) {
                             modifiers={[rowGround]}
                         >
                             <List.ForEach
+                                data={parent.children}
+                                keyExtractor={(child) => child.id}
                                 onMove={(source, destination) => reorderChildren(parent, source, destination)}
                             >
-                                {parent.children.map((child) => (
-                                    <ReorderRow category={child} indented key={child.id} tint={accent(parent)} />
-                                ))}
+                                {({ item: child }) => <ReorderRow category={child} indented tint={accent(parent)} />}
                             </List.ForEach>
                         </Section>
                     ))}

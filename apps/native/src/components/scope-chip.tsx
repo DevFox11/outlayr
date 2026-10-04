@@ -3,7 +3,6 @@ import type { MenuAction } from "@expo/ui/community/menu";
 import ArrowDown01Icon from "@hugeicons-pro/core-solid-rounded/ArrowDown01Icon";
 import Cancel01Icon from "@hugeicons-pro/core-solid-rounded/Cancel01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { useTranslation } from "@/i18n/context";
@@ -34,7 +33,6 @@ export function ScopeChip({
 }: ScopeChipProps) {
     const colors = useColors();
     const t = useTranslation();
-    const [labelWidth, setLabelWidth] = useState(0);
     const hasMenu = actions != null && actions.length > 0 && onAction != null;
 
     const label = (
@@ -52,32 +50,15 @@ export function ScopeChip({
             accessibilityLabel={accessibilityLabel}
             className="bg-surface-secondary shrink-0 flex-row items-center gap-2.25 rounded-full px-3 py-1.5"
         >
-            {/* On iOS `MenuView` is a `Host matchContents` around an `RNHostView
-			    matchContents`, and that intrinsic width arrives from the native side
-			    a frame late — the chip keeps a width fitted to nothing and truncates
-			    "26 Jul - 1 Aug" to "26 Ju...". So the label is measured out here by
-			    RN, off-layout and invisible, and the Host is handed the answer.
-			    The label cannot simply live outside the menu: a SwiftUI `Menu` whose
-			    label is an empty view has nothing to tap, and the menu stops opening. */}
             {hasMenu ? (
-                <>
-                    <View
-                        onLayout={(event) => setLabelWidth(event.nativeEvent.layout.width)}
-                        pointerEvents="none"
-                        style={{ left: 0, opacity: 0, position: "absolute", top: 0 }}
-                    >
-                        {label}
-                    </View>
-                    <MenuView
-                        actions={actions}
-                        onPressAction={({ nativeEvent }) => onAction(nativeEvent.event)}
-                        shouldOpenOnLongPress={false}
-                        style={labelWidth > 0 ? { width: labelWidth } : undefined}
-                        title={menuTitle}
-                    >
-                        {label}
-                    </MenuView>
-                </>
+                <MenuView
+                    actions={actions}
+                    onPressAction={({ nativeEvent }) => onAction(nativeEvent.event)}
+                    shouldOpenOnLongPress={false}
+                    title={menuTitle}
+                >
+                    {label}
+                </MenuView>
             ) : (
                 label
             )}

@@ -1,8 +1,6 @@
-import { background, listStyle } from "@expo/ui/swift-ui/modifiers";
+import { background, listRowBackground, listStyle, scrollContentBackground } from "@expo/ui/swift-ui/modifiers";
 
 import type { ThemeColors } from "@/theme/use-colors";
-
-import { listRowBackground, scrollContentBackground } from "./modifiers";
 
 /**
  * Every modifier a SwiftUI `List` needs to stand on the app's ground instead of

@@ -40,14 +40,13 @@ export function AccountReorder() {
                     header={<Eyebrow colors={colors}>{t("accounts.title")}</Eyebrow>}
                     modifiers={[groupedRows(colors)]}
                 >
-                    <List.ForEach onMove={reorder}>
-                        {rows.map((account) => (
+                    <List.ForEach data={rows} keyExtractor={(account) => account.id} onMove={reorder}>
+                        {({ item: account }) => (
                             <ReorderRow
                                 account={account}
-                                key={account.id}
                                 tint={account.imageColor ?? account.customColor ?? colors.foreground}
                             />
-                        ))}
+                        )}
                     </List.ForEach>
                 </Section>
             </List>
