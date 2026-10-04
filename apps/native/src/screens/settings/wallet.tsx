@@ -40,8 +40,8 @@ interface Step {
 /**
  * Built inline on iOS 26: the action goes straight into a blank automation,
  * and the trigger's Wallet transaction is the "Shortcut Input" its three
- * fields are read from. The action lives in the OutlayrIntents extension,
- * which only ever surfaces inside the action picker and under Library › Apps.
+ * fields are read from. The action only ever surfaces inside the action
+ * picker and under Library › Apps.
  */
 const MANUAL_STEPS: readonly Step[] = [
     { title: "settings.wallet.step1" },

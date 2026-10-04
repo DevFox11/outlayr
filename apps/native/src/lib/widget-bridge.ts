@@ -1,4 +1,3 @@
-import { ExtensionStorage } from "@bacons/apple-targets";
 import Constants from "expo-constants";
 import { Directory, File, Paths } from "expo-file-system";
 import { Platform } from "react-native";
@@ -12,6 +11,7 @@ import {
     releasePendingWrites as releaseQueue,
 } from "./pending-writes-core";
 import type { ClaimedWrites, QueueFiles } from "./pending-writes-core";
+import { sharedStore } from "./shared-store";
 
 /**
  * The App Group the app and the App Intents target meet in, declared once in
@@ -27,7 +27,7 @@ import type { ClaimedWrites, QueueFiles } from "./pending-writes-core";
 const APP_GROUP = Constants.expoConfig?.extra?.appGroup as string | undefined;
 
 /**
- * Where `targets/intents` used to append. Read once and retired: the key held
+ * Where the intents used to append. Read once and retired: the key held
  * the whole queue as one JSON string, so appending meant read-modify-write and
  * two intents running while the app was closed could overwrite each other. The
  * queue is a file now — see {@link claimPendingWrites}.
@@ -40,19 +40,9 @@ export const INTENT_SNAPSHOT_KEY = "intentSnapshot";
 /** Epoch ms string `SignalWalletRunIntent` writes on every Wallet automation run. */
 const WALLET_LAST_RUN_KEY = "walletLastRunAt";
 
-let storage: ExtensionStorage | null = null;
-
-function getStorage(): ExtensionStorage | null {
-    if (Platform.OS !== "ios" || !APP_GROUP) {
-        return null;
-    }
-    storage ??= new ExtensionStorage(APP_GROUP);
-    return storage;
-}
-
 /**
  * What `BudgetLeftoverIntent` and `SpendingSummaryIntent` report. Mirrors
- * `IntentSnapshot` in `targets/intents/SharedStore.swift`; the field names are
+ * `IntentSnapshot` in `app-intents/SharedStore.swift`; the field names are
  * the wire format and cannot be renamed on one side alone.
  *
  * A narrow projection of the widget props on purpose: widening it copies more of
@@ -94,17 +84,16 @@ export interface IntentSnapshot {
 }
 
 export function readWalletLastRun(): number | null {
-    const at = Number(getStorage()?.get(WALLET_LAST_RUN_KEY));
+    const at = Number(sharedStore?.get(WALLET_LAST_RUN_KEY));
     return at > 0 ? at : null;
 }
 
 export function publishIntentSnapshot(snapshot: IntentSnapshot): void {
-    const store = getStorage();
-    if (!store) {
+    if (!sharedStore) {
         return;
     }
     try {
-        store.set(INTENT_SNAPSHOT_KEY, JSON.stringify(snapshot));
+        sharedStore.set(INTENT_SNAPSHOT_KEY, JSON.stringify(snapshot));
     } catch (error) {
         console.warn("[outlayr] intent snapshot failed", error);
     }
@@ -186,16 +175,15 @@ const queueFiles: QueueFiles = {
 
 /** Moves anything still under the retired key into the file queue, once. */
 function adoptLegacyQueue(): void {
-    const store = getStorage();
-    if (!store) {
+    if (!sharedStore) {
         return;
     }
-    const raw = store.get(PENDING_WRITES_KEY);
+    const raw = sharedStore.get(PENDING_WRITES_KEY);
     if (!raw) {
         return;
     }
     adoptQueue(queueFiles, parseLegacyQueue(raw));
-    store.remove(PENDING_WRITES_KEY);
+    sharedStore.remove(PENDING_WRITES_KEY);
 }
 
 /**

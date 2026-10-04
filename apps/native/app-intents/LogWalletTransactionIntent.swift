@@ -103,7 +103,7 @@ struct LogWalletTransactionIntent: AppIntent {
     /// A Transaction automation fires when the card authorizes and again when
     /// the charge settles, so the same purchase arrives twice under two ids.
     /// Nothing here is time-based: how far apart two runs may be and still mean
-    /// one purchase is the app's call, not this extension's — see
+    /// one purchase is the JS ledger's call, not this intent's — see
     /// `WALLET_DEDUPE_WINDOW_MS`. The amount is carried in minor units because a
     /// `Double` renders differently either side of the wire.
     ///

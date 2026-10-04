@@ -1,4 +1,3 @@
-import { ExtensionStorage } from "@bacons/apple-targets";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setAlternateAppIcon, supportsAlternateIcons } from "expo-alternate-app-icons";
 import Constants from "expo-constants";
@@ -17,6 +16,7 @@ import { cancelLogoBackfill } from "./logo-backfill";
 import { QUEUE_DIRECTORY } from "./pending-writes-core";
 import { clearStoredPhotos } from "./photo-storage";
 import { PROVIDER_BINDING_KEY } from "./provider-revocation";
+import { sharedStore } from "./shared-store";
 import { INTENT_SNAPSHOT_KEY, PENDING_WRITES_KEY } from "./widget-bridge";
 
 const DATABASE_NAME = "outlayr.db";
@@ -92,9 +92,8 @@ function clearWidgetStorage(): void {
     if (Platform.OS !== "ios" || !APP_GROUP) {
         return;
     }
-    const storage = new ExtensionStorage(APP_GROUP);
-    storage.remove(INTENT_SNAPSHOT_KEY);
-    storage.remove(PENDING_WRITES_KEY);
+    sharedStore?.remove(INTENT_SNAPSHOT_KEY);
+    sharedStore?.remove(PENDING_WRITES_KEY);
     const container = Paths.appleSharedContainers[APP_GROUP];
     if (!container) {
         throw new Error("App Group container is unavailable");

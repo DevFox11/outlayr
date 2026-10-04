@@ -81,7 +81,7 @@ struct LogTransactionIntent: AppIntent {
         )
     }
 
-    /// Plain grouped decimal, not currency-formatted: this extension does not
+    /// Plain grouped decimal, not currency-formatted: an intent does not
     /// know the user's currency setting, so a guessed symbol would misreport it.
     private func formatted(_ value: Double) -> String {
         let formatter = NumberFormatter()

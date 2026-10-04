@@ -1,11 +1,5 @@
 import AppIntents
 
-/// App Intents are discovered from compiled metadata at build time, not
-/// registered at runtime — an intent that is not in a target Xcode compiled
-/// simply does not exist, with no error anywhere.
-@main
-struct OutlayrIntents: AppIntentsExtension {}
-
 /// Every phrase must interpolate `.applicationName` or it will not compile.
 struct OutlayrShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {

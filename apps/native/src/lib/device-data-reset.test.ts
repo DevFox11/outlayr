@@ -1,10 +1,6 @@
 import { describe, expect, it, jest, test } from "@jest/globals";
 
-jest.mock("@bacons/apple-targets", () => ({
-    ExtensionStorage: class {
-        remove = jest.fn();
-    },
-}));
+jest.mock("./shared-store", () => ({ sharedStore: { remove: jest.fn() } }));
 jest.mock("@react-native-async-storage/async-storage", () => ({ clear: jest.fn() }));
 jest.mock<Partial<typeof import("expo-alternate-app-icons")>>("expo-alternate-app-icons", () => ({
     setAlternateAppIcon: jest.fn<typeof import("expo-alternate-app-icons").setAlternateAppIcon>(),

@@ -1,12 +1,9 @@
 import Foundation
 import UserNotifications
 
-/// The App Group both the app and this extension can reach.
-///
-/// Kept in sync with `APP_GROUP` in `app.config.ts` by the target config, which
-/// mirrors `ios.entitlements` into this target's generated entitlements. If the
-/// two ever disagree the container resolves to nil, which is why `store` is
-/// failable rather than force-unwrapped.
+/// The App Group the app shares with its widgets. Must match `APP_GROUP` in
+/// `app.config.ts`; if the two ever disagree the container resolves to nil,
+/// which is why `store` is failable rather than force-unwrapped.
 enum SharedStore {
     static let appGroup = "group.com.tryoutlayr.app"
 
@@ -17,7 +14,7 @@ enum SharedStore {
     /// Mirrored by `WALLET_LAST_RUN_KEY` in `src/lib/widget-bridge.ts`.
     static let walletRunKey = "walletLastRunAt"
 
-    /// Where this extension leaves work for the app to commit, one JSON line per
+    /// Where an intent leaves work for the app to commit, one JSON line per
     /// write. Mirrored by `QUEUE_DIRECTORY` / `QUEUE_FILE` in
     /// `src/lib/pending-writes-core.ts`.
     static let queueDirectory = "pending-writes"
@@ -50,7 +47,7 @@ enum SharedStore {
         append(line, to: url)
     }
 
-    /// Posts the app's own "Logged …" push from the extension. Skipped, not
+    /// Posts the app's own "Logged …" push from an intent. Skipped, not
     /// thrown, when the app never got notification permission: the write is
     /// already queued and a failed run would make Shortcuts retry it.
     static func notify(_ body: String) async {
@@ -177,8 +174,8 @@ struct IntentSnapshot: Codable {
     let insights: Insights
     /// Ordered overall first, which is the fallback when no budget is named.
     ///
-    /// Optional so a snapshot written by an older build still decodes: the
-    /// extension can ship ahead of the app, and one missing key would fail the
-    /// whole `IntentSnapshot` decode.
+    /// Optional so a snapshot written by an older build still decodes: an
+    /// update can run an intent before the app rewrites it, and one missing key
+    /// would fail the whole `IntentSnapshot` decode.
     let budgets: [NamedBudget]?
 }

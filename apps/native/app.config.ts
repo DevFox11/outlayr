@@ -129,6 +129,9 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
         package: "com.tryoutlayr.app",
     },
     experiments: {
+        inlineModules: {
+            watchedDirectories: ["app-intents"],
+        },
         reactCompiler: true,
         typedRoutes: true,
     },
@@ -179,7 +182,6 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
                 widgets: WIDGETS,
             },
         ],
-        "@bacons/apple-targets",
         [
             "expo-quick-actions",
             {

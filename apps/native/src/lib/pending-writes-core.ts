@@ -5,7 +5,7 @@ import { z } from "zod";
  * cannot reach SQLite — the store lives in the app's own container and the whole
  * write path (category resolution, note fallback, recurrence projection) is
  * TypeScript — so it parks the request in the App Group and the app commits it
- * on next launch. See `targets/intents/LogTransactionIntent.swift` for the
+ * on next launch. See `app-intents/LogTransactionIntent.swift` for the
  * writer; the field names are the wire format and cannot be renamed on one side
  * alone.
  */
