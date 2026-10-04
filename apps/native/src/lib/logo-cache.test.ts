@@ -29,7 +29,7 @@ jest.mock("expo-file-system", () => {
         create() {
             existing.add(this.name);
         }
-        write() {}
+        writeSync() {}
     }
     return { Directory, File, Paths: { cache: "/cache" }, __existing: existing, __writtenAt: writtenAt };
 });

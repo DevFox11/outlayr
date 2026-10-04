@@ -1,4 +1,4 @@
-import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/native-tabs";
 
 import budgetsSelectedIcon from "@/assets/tab-icons/budgets-selected.png";
 import budgetsIcon from "@/assets/tab-icons/budgets.png";

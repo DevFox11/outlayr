@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 import { StyleSheet } from "react-native";
-import type { ViewStyle } from "react-native";
+import type { StyleProp, ViewStyle } from "react-native";
 
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
@@ -13,14 +13,14 @@ jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
 
 interface TreeNode {
     children?: (TreeNode | string)[] | null;
-    props?: { style?: unknown };
+    props?: { style?: StyleProp<ViewStyle> };
 }
 
 function strokedRects(node: TreeNode | string | null): ViewStyle[] {
     if (!node || typeof node === "string") {
         return [];
     }
-    const style = StyleSheet.flatten(node.props?.style) as ViewStyle | undefined;
+    const style = StyleSheet.flatten(node.props?.style);
     const nested = (node.children ?? []).flatMap(strokedRects);
     return style?.borderWidth && style?.borderRadius ? [style, ...nested] : nested;
 }

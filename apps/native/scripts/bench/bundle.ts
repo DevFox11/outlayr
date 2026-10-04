@@ -16,7 +16,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { gzipSync } from "node:zlib";
 
-import { decodedMappings, TraceMap } from "@jridgewell/trace-mapping";
+import { decodedMappings, FlattenMap } from "@jridgewell/trace-mapping";
+import type { TraceMap } from "@jridgewell/trace-mapping";
 
 import { readIosBundle } from "../export-ios-bundle";
 
@@ -109,7 +110,7 @@ function attribute(bundle: string, map: TraceMap): Record<string, number> {
 
 function exportBundle(): Report {
     return readIosBundle((bundle, map) => ({
-        byOwner: attribute(bundle, new TraceMap(map)),
+        byOwner: attribute(bundle, new FlattenMap(map)),
         gzipBytes: gzipSync(bundle).length,
         totalBytes: Buffer.byteLength(bundle),
     }));

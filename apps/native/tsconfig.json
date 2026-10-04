@@ -16,5 +16,6 @@
         "expo-env.d.ts",
         "uniwind-env.d.ts",
         ".intlayer/types/**/*.ts"
-    ]
+    ],
+    "exclude": ["node_modules", "ios", "android", "babel.config.js", "jest.config.js", "expo-env.d.ts"]
 }

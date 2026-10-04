@@ -180,7 +180,7 @@ const queueFiles: QueueFiles = {
         }
         const file = new File(directory, name);
         file.create({ overwrite: true });
-        file.write(text);
+        file.writeSync(text);
     },
 };
 

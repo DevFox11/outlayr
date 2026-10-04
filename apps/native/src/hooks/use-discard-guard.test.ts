@@ -5,18 +5,18 @@ import type { AlertButton } from "react-native";
 
 import { useDiscardGuard } from "./use-discard-guard";
 
-type Prevented = (options: { data: { action: { type: string } } }) => void;
+type Prevented = (options: { data: { action: { type: string } }; repeat: () => void }) => void;
 
-const mockDispatch = jest.fn();
 const mockBack = jest.fn();
+const mockDisablePrevention = jest.fn();
 const mockPreventRemove = jest.fn<(prevent: boolean, callback: Prevented) => void>();
 
 jest.mock("expo-router", () => ({
-    useNavigation: () => ({ dispatch: mockDispatch }),
+    usePreventRemove: (prevent: boolean, callback: Prevented) => {
+        mockPreventRemove(prevent, callback);
+        return mockDisablePrevention;
+    },
     useRouter: () => ({ back: mockBack }),
-}));
-jest.mock("expo-router/react-navigation", () => ({
-    usePreventRemove: (prevent: boolean, callback: Prevented) => mockPreventRemove(prevent, callback),
 }));
 jest.mock("@/i18n/context", () => ({ useTranslation: () => (key: string) => key }));
 
@@ -40,6 +40,7 @@ describe("useDiscardGuard", () => {
 
     it("asks before dropping an edit and leaves only on Discard", async () => {
         const alert = jest.spyOn(Alert, "alert").mockReturnValue(undefined);
+        const repeat = jest.fn();
         const { result } = await renderHook(() => useDiscardGuard());
 
         await act(async () => {
@@ -47,12 +48,15 @@ describe("useDiscardGuard", () => {
         });
         expect(lastGuard().prevent).toBe(true);
 
-        lastGuard().callback({ data: { action: ACTION } });
-        expect(mockDispatch).not.toHaveBeenCalled();
+        lastGuard().callback({ data: { action: ACTION }, repeat });
+        expect(repeat).not.toHaveBeenCalled();
 
         const buttons = alert.mock.calls[0]?.[2] as AlertButton[];
-        buttons.find((button) => button.style === "destructive")?.onPress?.();
-        expect(mockDispatch).toHaveBeenCalledWith(ACTION);
+        await act(async () => {
+            buttons.find((button) => button.style === "destructive")?.onPress?.();
+        });
+        expect(repeat).toHaveBeenCalledTimes(1);
+        expect(lastGuard().prevent).toBe(false);
     });
 
     it("does not ask when the screen leaves after a save", async () => {
@@ -62,11 +66,13 @@ describe("useDiscardGuard", () => {
             result.current.setDirty(true);
         });
 
-        result.current.leave();
-        lastGuard().callback({ data: { action: ACTION } });
+        await act(async () => {
+            result.current.leave();
+        });
 
+        expect(mockDisablePrevention).toHaveBeenCalledTimes(1);
         expect(mockBack).toHaveBeenCalledTimes(1);
+        expect(mockDisablePrevention.mock.invocationCallOrder[0]).toBeLessThan(mockBack.mock.invocationCallOrder[0]);
         expect(alert).not.toHaveBeenCalled();
-        expect(mockDispatch).toHaveBeenCalledWith(ACTION);
     });
 });

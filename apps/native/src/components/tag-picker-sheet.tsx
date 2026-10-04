@@ -158,7 +158,7 @@ export function TagPickerSheet({
                     keyboardShouldPersistTaps="handled"
                     keyExtractor={(tag: TagRow) => tag.id}
                     ListEmptyComponent={
-                        canCreate || pendingToOffer.length > 0 ? null : (
+                        canCreate || pendingToOffer.length > 0 ? undefined : (
                             <EmptyState body={t("transaction.tags.empty")} mark={<TagSlot />} tier="insetRow" />
                         )
                     }

@@ -1,5 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { render } from "@testing-library/react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import type { MainBudgetView } from "@/data/budgets";
 import { BUDGET_TYPE } from "@/domain/budget-math";
@@ -52,7 +53,8 @@ describe("budgetBurndownHero", () => {
                 dominant={null}
                 nowMs={NOW.getTime()}
                 onPress={jest.fn()}
-            />
+            />,
+            { wrapper: GestureHandlerRootView }
         );
 
         expect(queryByText("$620")).toBeTruthy();

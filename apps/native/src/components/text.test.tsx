@@ -1,13 +1,13 @@
 import { describe, expect, it } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 import { createRef } from "react";
-import type { Text as RNText } from "react-native";
+import type { TextInstance } from "react-native";
 
 import { FontScaleCapContext, Text } from "./text";
 
 describe("text", () => {
     it("lands ref on the underlying RNText child", async () => {
-        const ref = createRef<RNText>();
+        const ref = createRef<TextInstance>();
         await render(<Text ref={ref}>hello</Text>);
         expect(ref.current).toBeTruthy();
     });

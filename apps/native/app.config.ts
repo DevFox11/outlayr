@@ -180,7 +180,6 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
             },
         ],
         "@bacons/apple-targets",
-        "expo-core-spotlight",
         [
             "expo-quick-actions",
             {
@@ -266,7 +265,6 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
         ],
         "expo-alternate-app-icons",
         ["posthog-react-native/expo", { skipOnConflict: true }],
-        "./plugins/with-ui-scene.ts",
         "./plugins/with-min-pod-deployment-target.ts",
         "./plugins/with-extension-pods-root.ts",
     ],

@@ -43,7 +43,7 @@ export async function shareFile(
     }
     const file = new File(Paths.cache, fileName);
     file.create({ intermediates: true, overwrite: true });
-    file.write(data);
+    file.writeSync(data);
     await shareAsync(file.uri, { dialogTitle, mimeType });
 }
 

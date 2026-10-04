@@ -2,7 +2,7 @@ import { LegendList } from "@legendapp/list/react-native";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
-import type { NativeMethods, StyleProp, ViewStyle } from "react-native";
+import type { HostInstance, StyleProp, ViewInstance, ViewStyle } from "react-native";
 import Animated, {
     Easing,
     FadeIn,
@@ -101,7 +101,7 @@ export function CurrencyPickerList({
     const full = favourites.length >= FAVOURITE_CURRENCY_LIMIT;
 
     const listRef = useRef<LegendListRef>(null);
-    const wrapperRef = useRef<View>(null);
+    const wrapperRef = useRef<ViewInstance>(null);
     const [travel, setTravel] = useState<Travel | null>(null);
     const travelled = useSharedValue(0);
 
@@ -112,7 +112,7 @@ export function CurrencyPickerList({
     // Legend List keeps a ref to the container holding each rendered row, so the
     // row itself needs no ref of its own — nothing here costs anything per row.
     // It types those refs as `any`, and returns nothing for an unrendered index.
-    const containerAt = (index: number): NativeMethods | undefined => listRef.current?.getState().elementAtIndex(index);
+    const containerAt = (index: number): HostInstance | undefined => listRef.current?.getState().elementAtIndex(index);
 
     const lift = (code: CurrencyCode) => {
         const wrapper = wrapperRef.current;
@@ -158,7 +158,7 @@ export function CurrencyPickerList({
                 setTravel(null);
                 return;
             }
-            const container: NativeMethods | undefined = state.elementAtIndex(index);
+            const container: HostInstance | undefined = state.elementAtIndex(index);
             if (!container) {
                 setTravel(null);
                 return;

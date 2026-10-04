@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
-import type { StackHeaderItemSharedProps } from "expo-router";
 import { memo, useCallback, useLayoutEffect, useMemo, useRef } from "react";
+import type { ComponentProps } from "react";
 
 import { toolbarIcon } from "@/components/toolbar-icons";
 import type { ToolbarIconName } from "@/components/toolbar-icons";
@@ -34,7 +34,7 @@ export interface TransactionFormCtaAction {
     key: "delete" | "lookup" | "save";
     onPress: () => void;
     tintColor?: string;
-    variant?: StackHeaderItemSharedProps["variant"];
+    variant?: ComponentProps<typeof Stack.Toolbar.Button>["variant"];
 }
 
 export function transactionFormCtaActions({

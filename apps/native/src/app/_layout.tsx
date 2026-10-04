@@ -3,6 +3,7 @@ import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import { GeistMono_400Regular, GeistMono_500Medium, useFonts } from "@expo-google-fonts/geist-mono";
 import { InstrumentSerif_400Regular } from "@expo-google-fonts/instrument-serif";
 import { useConvexAuth } from "convex/react";
+import { setNotificationHandler } from "expo-notifications";
 import type { ErrorBoundaryProps } from "expo-router";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
@@ -47,6 +48,8 @@ import { useAccent } from "@/theme/use-accent";
 import { useApplyThemePreference } from "@/theme/use-theme-preference";
 
 preventAutoHideAsync();
+
+setNotificationHandler(null);
 
 export const unstable_settings = {
     anchor: "(tabs)",
@@ -300,9 +303,8 @@ function RootStack() {
                 <Stack.Screen name="auth/adopt" options={{ gestureEnabled: false, headerShown: false }} />
             </Stack.Protected>
 
-            {/* `StackRouter.getStateForRouteNamesChange` only filters `state.routes`
-			    against the new `routeNames` and re-seats on `routeNames[0]` solely
-			    when that filter leaves zero routes. Every root screen has to sit in
+            {/* A guard flip swaps every route whose guard now fails for a redirect
+			    to the first accessible screen. Every root screen has to sit in
 			    exactly one of these four groups — an aux screen declared outside all
 			    of them would survive a guard flip and strand the stack on it, with no
 			    tab bar and no way back. */}

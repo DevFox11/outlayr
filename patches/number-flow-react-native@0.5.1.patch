@@ -1,0 +1,42 @@
+diff --git a/lib/module/native/glyphMetricsShared.js b/lib/module/native/glyphMetricsShared.js
+--- a/lib/module/native/glyphMetricsShared.js
++++ b/lib/module/native/glyphMetricsShared.js
+@@ -15,7 +15,7 @@ export function buildCharSet(additionalChars) {
+  */
+ export const metricsCache = new Map();
+ export function cacheKey(style, additionalChars) {
+-  const variant = style.fontVariant?.join(",") ?? "";
++  const variant = [style.fontVariant ?? []].flat().join(",");
+   const weight = style.fontWeight ?? "";
+   const base = `${style.fontFamily}:${style.fontSize}:${variant}:${weight}`;
+   return additionalChars ? `${base}:${additionalChars}` : base;
+diff --git a/lib/typescript/native/glyphMetricsShared.d.ts b/lib/typescript/native/glyphMetricsShared.d.ts
+--- a/lib/typescript/native/glyphMetricsShared.d.ts
++++ b/lib/typescript/native/glyphMetricsShared.d.ts
+@@ -7,7 +7,7 @@ export declare const metricsCache: Map<string, import("../core/types").GlyphMetr
+ export declare function cacheKey(style: {
+     fontFamily?: string;
+     fontSize: number;
+-    fontVariant?: string[];
++    fontVariant?: string | readonly string[];
+     fontWeight?: string | number;
+ }, additionalChars?: string): string;
+ export declare const NO_DESCENDER: Set<string>;
+diff --git a/src/native/glyphMetricsShared.ts b/src/native/glyphMetricsShared.ts
+--- a/src/native/glyphMetricsShared.ts
++++ b/src/native/glyphMetricsShared.ts
+@@ -17,12 +17,12 @@ export function cacheKey(
+   style: {
+     fontFamily?: string;
+     fontSize: number;
+-    fontVariant?: string[];
++    fontVariant?: string | readonly string[];
+     fontWeight?: string | number;
+   },
+   additionalChars?: string,
+ ): string {
+-  const variant = style.fontVariant?.join(",") ?? "";
++  const variant = [style.fontVariant ?? []].flat().join(",");
+   const weight = style.fontWeight ?? "";
+   const base = `${style.fontFamily}:${style.fontSize}:${variant}:${weight}`;
+   return additionalChars ? `${base}:${additionalChars}` : base;

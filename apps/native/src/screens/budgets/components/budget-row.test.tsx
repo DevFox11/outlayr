@@ -1,5 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { render } from "@testing-library/react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import type { ExpenseContribution } from "@/data/budget-spent";
 import type { CategoryBudgetView } from "@/data/budgets";
@@ -61,7 +62,8 @@ async function renderRow(budget: CategoryBudgetView, contributions: readonly Exp
             nowMs={NOW.getTime()}
             onDelete={jest.fn()}
             onPress={jest.fn()}
-        />
+        />,
+        { wrapper: GestureHandlerRootView }
     );
 }
 

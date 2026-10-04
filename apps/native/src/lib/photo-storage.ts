@@ -54,7 +54,7 @@ export const photoFiles: PhotoFiles = {
     write(name, bytes) {
         const file = new File(photoDirectory(), name);
         file.create({ overwrite: true });
-        file.write(bytes);
+        file.writeSync(bytes);
     },
 };
 
@@ -111,7 +111,7 @@ export async function persistPickedPhoto(sourceUri: string): Promise<string> {
     if (encoded != null) {
         const target = new File(directory, `${newId()}.jpg`);
         target.create({ overwrite: true });
-        target.write(encoded);
+        target.writeSync(encoded);
         return target.uri;
     }
 
@@ -129,7 +129,7 @@ export async function persistPickedPhoto(sourceUri: string): Promise<string> {
 export async function persistLogoBytes(bytes: Uint8Array): Promise<string> {
     const temp = new File(Paths.cache, `${newId()}.img`);
     temp.create({ overwrite: true });
-    temp.write(bytes);
+    temp.writeSync(bytes);
     try {
         return await persistPickedPhoto(temp.uri);
     } finally {
@@ -151,7 +151,7 @@ export function writePhotosBase64(photos: Record<string, string>): void {
     for (const [name, data] of Object.entries(photos)) {
         const file = new File(directory, name);
         file.create({ overwrite: true });
-        file.write(data, { encoding: "base64" });
+        file.writeSync(data, { encoding: "base64" });
     }
 }
 

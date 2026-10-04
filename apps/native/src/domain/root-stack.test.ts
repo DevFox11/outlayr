@@ -2,7 +2,6 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "@jest/globals";
-import { StackRouter } from "expo-router/react-navigation";
 import {
     createSourceFile,
     forEachChild,
@@ -324,7 +323,7 @@ describe("guard partition written in app/_layout.tsx", () => {
             .filter((screen) => screen.group === null)
             .map(
                 (screen) =>
-                    `app/_layout.tsx:${screen.line} "${screen.name}" sits outside every <Stack.Protected> block. A guard flip filters the stack against the new routeNames and only re-seats when nothing survives, so this screen survives every flip and strands the stack on it — no tab bar, no way back. Move it inside the block for its group and list it in ROOT_STACK_SCREEN_NAMES.`
+                    `app/_layout.tsx:${screen.line} "${screen.name}" sits outside every <Stack.Protected> block, so no failed guard ever redirects away from it and it stays up across every mode change, signed out included. Move it inside the block for its group and list it in ROOT_STACK_SCREEN_NAMES.`
             );
         expect(stranded).toStrictEqual([]);
     });
@@ -386,81 +385,5 @@ describe("the layout parser only accepts a strict-equality guard", () => {
         expect(() => parseLayoutScreens(layout('route === "ledger"'))).toThrow(
             /does not carry a `guard=\{group === "<name>"\}` prop/
         );
-    });
-});
-
-interface TestRoute {
-    key: string;
-    name: string;
-}
-
-interface TestStackState {
-    index: number;
-    key: string;
-    preloadedRoutes: TestRoute[];
-    routeNames: string[];
-    routes: TestRoute[];
-    stale: false;
-    type: "stack";
-}
-
-function entryScreen(group: RootStackGroup): string {
-    return ROOT_STACK_SCREEN_NAMES[group][0];
-}
-
-function beforeStackFor(group: RootStackGroup): TestRoute[] {
-    const names = ROOT_STACK_SCREEN_NAMES[group];
-    const [entry] = names;
-    const pushed = names.includes("settings/account") ? "settings/account" : names.at(-1);
-    if (pushed === undefined || pushed === entry) {
-        return [{ key: `${entry}-a`, name: entry }];
-    }
-    return [
-        { key: `${entry}-a`, name: entry },
-        { key: `${pushed}-a`, name: pushed },
-    ];
-}
-
-const PAIRS: [RootStackGroup, RootStackGroup][] = GROUPS.flatMap((before) =>
-    GROUPS.filter((after) => after !== before).map((after): [RootStackGroup, RootStackGroup] => [before, after])
-);
-
-const REQUIRED_PAIRS: [RootStackGroup, RootStackGroup][] = [
-    ["ledger", "sign-in"],
-    ["ledger", "adopt"],
-    ["adopt", "ledger"],
-    ["sign-in", "ledger"],
-];
-
-describe("stack re-seating on every mode transition", () => {
-    it.each(PAIRS)("%s -> %s empties and re-seats on the entry screen", (before, after) => {
-        const router = StackRouter({});
-        const beforeRoutes = beforeStackFor(before);
-        const state: TestStackState = {
-            index: beforeRoutes.length - 1,
-            key: "stack-test",
-            preloadedRoutes: [],
-            routeNames: [...ROOT_STACK_SCREEN_NAMES[before]],
-            routes: beforeRoutes,
-            stale: false,
-            type: "stack",
-        };
-
-        const result = router.getStateForRouteNamesChange(state, {
-            routeGetIdList: {},
-            routeKeyChanges: [],
-            routeNames: [...ROOT_STACK_SCREEN_NAMES[after]],
-            routeParamList: {},
-        });
-
-        expect(result.routes).toHaveLength(1);
-        expect(result.routes[0].name).toBe(entryScreen(after));
-        expect(result.index).toBe(0);
-    });
-
-    it("covers the four spec-required transitions", () => {
-        for (const pair of REQUIRED_PAIRS) {
-            expect(PAIRS).toContainEqual(pair);
-        }
     });
 });

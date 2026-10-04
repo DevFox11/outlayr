@@ -1,5 +1,5 @@
 import { DatePicker, Host, HStack, Spacer } from "@expo/ui/swift-ui";
-import { datePickerStyle, labelsHidden } from "@expo/ui/swift-ui/modifiers";
+import { datePickerStyle, frame, labelsHidden } from "@expo/ui/swift-ui/modifiers";
 import { useMemo, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -131,7 +131,7 @@ export function GoalEditor({
                 {pickingDate ? (
                     <Animated.View className="border-border border-b py-2" entering={revealEntering()}>
                         <Host style={{ height: 40 }}>
-                            <HStack>
+                            <HStack modifiers={[frame({ maxHeight: Number.POSITIVE_INFINITY })]}>
                                 <DatePicker
                                     displayedComponents={["date"]}
                                     modifiers={[datePickerStyle("compact"), labelsHidden()]}

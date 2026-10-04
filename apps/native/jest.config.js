@@ -8,12 +8,10 @@ module.exports = {
         // the general `@/*` -> `src/*` rule, so every asset import resolves under
         // `src/assets` and 404s. Must precede that rule to win.
         "^@/assets/(.*)$": "<rootDir>/assets/$1",
-        // See jest/worklets-stub.js for why: react-native-worklets@0.10.1's
-        // NativeWorklets.native.ts crashes at import time under jest, before
-        // react-native-reanimated's own IS_JEST handling ever runs.
-        "^react-native-worklets$": "<rootDir>/jest/worklets-stub.js",
+        "^react-native-worklets$": "react-native-worklets/src/mock",
     },
     preset: "jest-expo",
+    resolver: "<rootDir>/jest/resolver.js",
     setupFiles: [
         "react-native-gesture-handler/jestSetup.js",
         "<rootDir>/jest/expo-observe-stub.js",

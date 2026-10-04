@@ -118,8 +118,7 @@ export function IdentityFlyUpLayer({
             if (resting !== null) {
                 restLaunchTop.set(resting);
             }
-        },
-        []
+        }
     );
     // The reaction only fires once the prepared value CHANGES, so the very first
     // reading has to be taken here or the latch would sit at its sentinel until the
@@ -234,10 +233,10 @@ function listen(navigation: DismissalNavigation, type: string, listener: (event:
  * this off the picker's own ScrollView or `Host` would report nothing.
  *
  * The unmount cleanup alone runs after the dismissal animation finishes, leaving
- * the enlarged hero frozen mid-screen. `transitionStart`/`beforeRemove` fire at
- * the front of it instead, but expo-router runs a forked native-stack and neither
- * name is contractual, so an unsupported one must neither throw nor strand the
- * screen; `setPickerOpen` is idempotent and the unmount cleanup is the backstop.
+ * the enlarged hero frozen mid-screen. `transitionStart` fires at the front of it
+ * instead, but expo-router runs a forked native-stack and the name is not
+ * contractual, so an unsupported one must neither throw nor strand the screen;
+ * `setPickerOpen` is idempotent and the unmount cleanup is the backstop.
  * `transitionStart` is read in BOTH directions: a drag the user cancels starts the
  * transition and puts the sheet back, which would otherwise park the tile on the
  * form under a sheet that never left.
@@ -248,19 +247,14 @@ export function IdentityFlyUpSheetHost({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         setPickerOpen(true);
-        const unsubscribes = [
-            listen(navigation, "transitionStart", (event) => {
-                const closing = event.data?.closing;
-                if (closing !== undefined) {
-                    setPickerOpen(!closing);
-                }
-            }),
-            listen(navigation, "beforeRemove", () => setPickerOpen(false)),
-        ];
-        return () => {
-            for (const unsubscribe of unsubscribes) {
-                unsubscribe();
+        const unsubscribe = listen(navigation, "transitionStart", (event) => {
+            const closing = event.data?.closing;
+            if (closing !== undefined) {
+                setPickerOpen(!closing);
             }
+        });
+        return () => {
+            unsubscribe();
             setPickerOpen(false);
         };
     }, [navigation, setPickerOpen]);

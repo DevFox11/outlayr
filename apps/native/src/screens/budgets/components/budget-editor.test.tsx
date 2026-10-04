@@ -39,6 +39,7 @@ jest.mock("@expo/ui/swift-ui", () => {
 });
 jest.mock("@expo/ui/swift-ui/modifiers", () => ({
     datePickerStyle: () => ({}),
+    frame: () => ({}),
     labelsHidden: () => ({}),
 }));
 

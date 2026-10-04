@@ -52,7 +52,11 @@ function add({ name, version, license, text, pod }: License): void {
 }
 
 function addPackages(map: string): void {
-    const { sources } = JSON.parse(map) as { sources: string[] };
+    const parsed = JSON.parse(map) as { sections?: { map: { sources: string[] } }[]; sources?: string[] };
+    const sources = parsed.sources ?? parsed.sections?.flatMap((section) => section.map.sources);
+    if (!sources) {
+        throw new Error("The bundle's source map lists no sources.");
+    }
     const roots = new Set(sources.map((source) => PACKAGE_ROOT.exec(source)?.[1]).filter((root) => root != null));
     for (const root of roots) {
         const dir = join(repoRoot, root);

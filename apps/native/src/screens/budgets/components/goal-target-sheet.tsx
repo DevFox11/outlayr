@@ -1,6 +1,6 @@
 import { BottomSheetModal, BottomSheetView } from "@expo/ui/community/bottom-sheet";
 import { DatePicker, Host, HStack, Spacer } from "@expo/ui/swift-ui";
-import { datePickerStyle, labelsHidden } from "@expo/ui/swift-ui/modifiers";
+import { datePickerStyle, frame, labelsHidden } from "@expo/ui/swift-ui/modifiers";
 import { useMemo, useRef, useState } from "react";
 import type { Ref } from "react";
 import { Pressable, View } from "react-native";
@@ -312,7 +312,7 @@ function GoalTargetBody({ target, onCommit }: { onCommit: GoalTargetSheetProps["
             ) : (
                 <Animated.View className="px-5 pt-2" entering={revealEntering()} key="date">
                     <Host style={{ height: 44 }}>
-                        <HStack>
+                        <HStack modifiers={[frame({ maxHeight: Number.POSITIVE_INFINITY })]}>
                             <DatePicker
                                 displayedComponents={["date"]}
                                 modifiers={[datePickerStyle("compact"), labelsHidden()]}

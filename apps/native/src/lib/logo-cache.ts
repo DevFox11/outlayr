@@ -100,7 +100,7 @@ export function writeCachedLogo(key: string, bytes: Uint8Array | null): void {
         const dir = directory();
         const target = new File(dir, bytes == null ? `${key}${MISS_MARKER}` : key);
         target.create({ overwrite: true });
-        target.write(bytes ?? new Uint8Array(0));
+        target.writeSync(bytes ?? new Uint8Array(0));
         // A logo found on a refreshed ask outranks the miss recorded before it;
         // the marker is read first, so left standing it would hide the file.
         if (bytes != null) {

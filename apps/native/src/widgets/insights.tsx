@@ -60,10 +60,8 @@ const InsightsWidget = (props: InsightsWidgetProps, environment: WidgetEnvironme
                         modifiers={[
                             // An empty slot keeps a hairline stub instead of vanishing, so the
                             // window reads as a fixed number of buckets with gaps.
-                            frame({
-                                height: peak > 0 ? Math.max(1, (bar.y / peak) * height) : 1,
-                                maxWidth: Number.POSITIVE_INFINITY,
-                            }),
+                            frame({ height: peak > 0 ? Math.max(1, (bar.y / peak) * height) : 1 }),
+                            frame({ maxWidth: Number.POSITIVE_INFINITY }),
                             foregroundStyle(bar.y > 0 ? palette.ink : palette.border),
                         ]}
                     />
