@@ -1,8 +1,9 @@
 import { use, useMemo, useState } from "react";
 import { View } from "react-native";
-import { GestureDetector } from "react-native-gesture-handler";
-import { createAnimatedComponent, runOnJS, useAnimatedProps, useReducedMotion } from "react-native-reanimated";
+import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
+import { createAnimatedComponent, useAnimatedProps, useReducedMotion } from "react-native-reanimated";
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from "react-native-svg";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { AmountsHiddenContext } from "@/components/amount-text";
 import { Text } from "@/components/text";
@@ -15,7 +16,6 @@ import { sparklineLabelKey } from "@/domain/sparkline-trend";
 import { useChartDraw } from "@/hooks/use-chart-draw";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
-import { panGesture } from "@/lib/gestures";
 import { CHART_SCRUB } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 
@@ -104,24 +104,21 @@ export function LogSparkline({ points, positive, range, byMonth, code, measure }
     // Reanimated an array of `Date`s, which it cannot serialize — the gesture
     // throws "Cannot copy value of type `Date`" on the first render.
     const count = points.length;
-    const pan = useMemo(
-        () =>
-            panGesture()
-                .onUpdate((event) => {
-                    "worklet";
-                    if (width <= 0 || count < 2) {
-                        return;
-                    }
-                    const step = width / (count - 1);
-                    const index = Math.min(count - 1, Math.max(0, Math.round(event.x / step)));
-                    runOnJS(setScrubIndex)(index);
-                })
-                .onFinalize(() => {
-                    "worklet";
-                    runOnJS(setScrubIndex)(null);
-                }),
-        [count, width]
-    );
+    const pan = usePanGesture({
+        onFinalize: () => {
+            "worklet";
+            scheduleOnRN(setScrubIndex, null);
+        },
+        onUpdate: (event) => {
+            "worklet";
+            if (width <= 0 || count < 2) {
+                return;
+            }
+            const step = width / (count - 1);
+            const index = Math.min(count - 1, Math.max(0, Math.round(event.x / step)));
+            scheduleOnRN(setScrubIndex, index);
+        },
+    });
 
     if (points.length < 2) {
         return null;

@@ -6,12 +6,12 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import Animated, {
     Easing,
-    runOnJS,
     useAnimatedStyle,
     useReducedMotion,
     useSharedValue,
     withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
 import { FirstRun } from "@/components/first-run";
@@ -60,7 +60,7 @@ function CurrencyGlyph({ symbol }: { symbol: string }) {
         spin.set(
             withTiming(90, { duration: 160, easing: Easing.in(Easing.ease) }, (finished) => {
                 if (finished) {
-                    runOnJS(commit)(symbol);
+                    scheduleOnRN(commit, symbol);
                 }
             })
         );

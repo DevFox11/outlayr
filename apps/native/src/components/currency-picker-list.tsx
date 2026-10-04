@@ -7,11 +7,11 @@ import Animated, {
     Easing,
     FadeIn,
     ReduceMotion,
-    runOnJS,
     useAnimatedStyle,
     useSharedValue,
     withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { currencyPickerRows } from "@/domain/currency-picker-rows";
 import type { CurrencyCode, CurrencyPickerRow } from "@/domain/currency-picker-rows";
@@ -166,7 +166,7 @@ export function CurrencyPickerList({
             container.measureInWindow((_left, top) => {
                 travelled.value = withTiming(top - travel.wrapperTop - travel.top, TRAVEL, (finished) => {
                     if (finished) {
-                        runOnJS(setTravel)(null);
+                        scheduleOnRN(setTravel, null);
                     }
                 });
             });

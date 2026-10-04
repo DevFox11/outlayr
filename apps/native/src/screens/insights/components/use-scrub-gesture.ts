@@ -1,14 +1,13 @@
+import { usePanGesture } from "react-native-gesture-handler";
 import type { SharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-
-import { panGesture } from "@/lib/gestures";
 
 /**
  * The scrub both insights charts use: report a bucket while the finger moves,
  * clear on lift, and commit whatever it landed on. `report` is the worklet that
  * turns an x into a bucket index, which is all the two charts differ by.
  */
-export function scrubGesture({
+export function useScrubGesture({
     commit,
     onScrub,
     report,
@@ -21,18 +20,13 @@ export function scrubGesture({
     reported: SharedValue<number>;
     setScrubIndex: (index: number | null) => void;
 }) {
-    return panGesture()
-        .minDistance(0)
-        .shouldCancelWhenOutside(false)
-        .onBegin((event) => {
+    return usePanGesture({
+        minDistance: 0,
+        onBegin: (event) => {
             "worklet";
             report(event.x);
-        })
-        .onChange((event) => {
-            "worklet";
-            report(event.x);
-        })
-        .onFinalize(() => {
+        },
+        onFinalize: () => {
             "worklet";
             const landed = reported.get();
             reported.set(-1);
@@ -41,5 +35,11 @@ export function scrubGesture({
             if (landed >= 0) {
                 scheduleOnRN(commit, landed);
             }
-        });
+        },
+        onUpdate: (event) => {
+            "worklet";
+            report(event.x);
+        },
+        shouldCancelWhenOutside: false,
+    });
 }

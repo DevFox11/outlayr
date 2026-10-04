@@ -7,7 +7,7 @@ import {
 } from "@shopify/react-native-skia";
 import { useMemo, useState } from "react";
 import { View } from "react-native";
-import { GestureDetector } from "react-native-gesture-handler";
+import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { useDerivedValue, useReducedMotion, useSharedValue } from "react-native-reanimated";
 import type { SharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
@@ -17,7 +17,6 @@ import type { Burndown } from "@/domain/budget-burndown";
 import { useChartDraw, useChartPath } from "@/hooks/use-chart-draw";
 import { useTranslation } from "@/i18n/context";
 import { hatchPathD } from "@/lib/chart-paths";
-import { panGesture } from "@/lib/gestures";
 import { CHART_DASH, CHART_SCRUB } from "@/theme/chart";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
@@ -220,7 +219,7 @@ interface PanGestureParams {
     setScrubDay: (day: number | null) => void;
 }
 
-function makePanGesture({ activeDay, interactive, lastDay, onScrub, plot, scrubX, setScrubDay }: PanGestureParams) {
+function useScrubPan({ activeDay, interactive, lastDay, onScrub, plot, scrubX, setScrubDay }: PanGestureParams) {
     const { plotLeft, plotRight, span } = plot;
 
     const report = (x: number) => {
@@ -240,19 +239,14 @@ function makePanGesture({ activeDay, interactive, lastDay, onScrub, plot, scrubX
         }
     };
 
-    return panGesture()
-        .enabled(interactive)
-        .minDistance(0)
-        .shouldCancelWhenOutside(false)
-        .onBegin((event) => {
+    return usePanGesture({
+        enabled: interactive,
+        minDistance: 0,
+        onBegin: (event) => {
             "worklet";
             report(event.x);
-        })
-        .onChange((event) => {
-            "worklet";
-            report(event.x);
-        })
-        .onFinalize(() => {
+        },
+        onFinalize: () => {
             "worklet";
             scrubX.set(-1);
             activeDay.set(-1);
@@ -260,7 +254,13 @@ function makePanGesture({ activeDay, interactive, lastDay, onScrub, plot, scrubX
             if (onScrub) {
                 scheduleOnRN(onScrub, null);
             }
-        });
+        },
+        onUpdate: (event) => {
+            "worklet";
+            report(event.x);
+        },
+        shouldCancelWhenOutside: false,
+    });
 }
 
 export function BudgetBurndownChart({
@@ -314,19 +314,15 @@ export function BudgetBurndownChart({
         return `M ${x} ${PAD.top - over} L ${x} ${height - PAD.bottom + over}`;
     }, [plot, marker, height]);
 
-    const pan = useMemo(
-        () =>
-            makePanGesture({
-                activeDay,
-                interactive,
-                lastDay: burndown.points.length,
-                onScrub,
-                plot,
-                scrubX,
-                setScrubDay,
-            }),
-        [plot, burndown.points.length, onScrub, interactive, scrubX, activeDay]
-    );
+    const pan = useScrubPan({
+        activeDay,
+        interactive,
+        lastDay: burndown.points.length,
+        onScrub,
+        plot,
+        scrubX,
+        setScrubDay,
+    });
 
     /**
      * A share of the limit rather than an amount: the chart is handed no currency

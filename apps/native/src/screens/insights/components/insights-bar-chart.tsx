@@ -15,7 +15,7 @@ import { useLanguage } from "@/i18n/context";
 import { CHART_BAR, CHART_DASH, CHART_SCRUB, compactMagnitude, dashArray } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 
-import { scrubGesture } from "./scrub-gesture";
+import { useScrubGesture } from "./use-scrub-gesture";
 import { showXLabel } from "./x-label";
 
 const BAR_AREA = 150;
@@ -115,29 +115,25 @@ export function InsightsBarChart({
     const barWidth = count > 0 ? Math.max(0, (width - gap * (count - 1)) / count) : 0;
     const pitch = barWidth + gap;
 
-    const pan = useMemo(() => {
-        const step = pitch;
+    const commit = (index: number) => {
+        onCommit(selectedIndex === index ? null : index);
+    };
 
-        const commit = (index: number) => {
-            onCommit(selectedIndex === index ? null : index);
-        };
+    const report = (x: number) => {
+        "worklet";
+        if (pitch <= 0) {
+            return;
+        }
+        const raw = Math.min(count - 1, Math.floor(x / pitch));
+        const index = Math.min(lastLive, Math.max(0, raw));
+        if (index !== reported.get()) {
+            reported.set(index);
+            scheduleOnRN(setScrubIndex, index);
+            scheduleOnRN(onScrub, index);
+        }
+    };
 
-        const report = (x: number) => {
-            "worklet";
-            if (step <= 0) {
-                return;
-            }
-            const raw = Math.min(count - 1, Math.floor(x / step));
-            const index = Math.min(lastLive, Math.max(0, raw));
-            if (index !== reported.get()) {
-                reported.set(index);
-                scheduleOnRN(setScrubIndex, index);
-                scheduleOnRN(onScrub, index);
-            }
-        };
-
-        return scrubGesture({ commit, onScrub, report, reported, setScrubIndex });
-    }, [count, pitch, lastLive, onScrub, onCommit, selectedIndex, reported]);
+    const pan = useScrubGesture({ commit, onScrub, report, reported, setScrubIndex });
 
     const active = scrubIndex ?? selectedIndex;
     // Built through `withCurrencySymbol` rather than concatenated: a Spanish

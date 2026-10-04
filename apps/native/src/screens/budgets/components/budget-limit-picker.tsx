@@ -10,7 +10,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useWindowDimensions, View } from "react-native";
 import type { LayoutChangeEvent } from "react-native";
-import { GestureDetector } from "react-native-gesture-handler";
+import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
@@ -28,7 +28,6 @@ import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 import { hatchPathD, weekRulesD } from "@/lib/chart-paths";
-import { panGesture } from "@/lib/gestures";
 import { useHaptics } from "@/lib/use-haptics";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
@@ -166,39 +165,38 @@ export function BudgetLimitPicker({
         [cumulative, sparse, haptics, lastCrossing, onLimit]
     );
 
-    const pan = useMemo(() => {
-        const report = (y: number) => {
-            "worklet";
-            const raw = ((PLOT_TOP + PLOT_HEIGHT - y) / PLOT_HEIGHT) * axisTop;
-            // Inlined: module-scope worklets break this file's Babel transform.
-            const stepped = Math.round(raw / LIMIT_STEP) * LIMIT_STEP;
-            const next = Math.min(maxLimit, Math.max(LIMIT_STEP, stepped));
-            limitY.set(PLOT_TOP + (1 - next / axisTop) * PLOT_HEIGHT);
-            // Only cross to JS when the snapped amount changes, so a full drag costs
-            // one call per $25 rather than one per frame.
-            if (next !== snapped.get()) {
-                snapped.set(next);
-                scheduleOnRN(applyLimit, next);
-            }
-        };
+    const report = (y: number) => {
+        "worklet";
+        const raw = ((PLOT_TOP + PLOT_HEIGHT - y) / PLOT_HEIGHT) * axisTop;
+        // Inlined: module-scope worklets break this file's Babel transform.
+        const stepped = Math.round(raw / LIMIT_STEP) * LIMIT_STEP;
+        const next = Math.min(maxLimit, Math.max(LIMIT_STEP, stepped));
+        limitY.set(PLOT_TOP + (1 - next / axisTop) * PLOT_HEIGHT);
+        // Only cross to JS when the snapped amount changes, so a full drag costs
+        // one call per $25 rather than one per frame.
+        if (next !== snapped.get()) {
+            snapped.set(next);
+            scheduleOnRN(applyLimit, next);
+        }
+    };
 
-        return panGesture()
-            .minDistance(0)
-            .shouldCancelWhenOutside(false)
-            .onBegin((event) => {
-                "worklet";
-                dragging.set(true);
-                report(event.y);
-            })
-            .onChange((event) => {
-                "worklet";
-                report(event.y);
-            })
-            .onFinalize(() => {
-                "worklet";
-                dragging.set(false);
-            });
-    }, [axisTop, maxLimit, applyLimit, limitY, snapped, dragging]);
+    const pan = usePanGesture({
+        minDistance: 0,
+        onBegin: (event) => {
+            "worklet";
+            dragging.set(true);
+            report(event.y);
+        },
+        onFinalize: () => {
+            "worklet";
+            dragging.set(false);
+        },
+        onUpdate: (event) => {
+            "worklet";
+            report(event.y);
+        },
+        shouldCancelWhenOutside: false,
+    });
 
     const geometry = useMemo(() => {
         const plotLeft = PAD.left;

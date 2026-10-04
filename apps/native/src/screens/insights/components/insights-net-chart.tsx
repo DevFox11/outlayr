@@ -17,7 +17,7 @@ import { CHART_SCRUB } from "@/theme/chart";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
-import { scrubGesture } from "./scrub-gesture";
+import { useScrubGesture } from "./use-scrub-gesture";
 import { showXLabel } from "./x-label";
 
 const HEIGHT = 150;
@@ -131,26 +131,24 @@ export function InsightsNetChart({
 
     const count = live.length;
     const { step } = plot;
-    const pan = useMemo(() => {
-        const commit = (index: number) => {
-            onCommit(selectedIndex === index ? null : index);
-        };
+    const commit = (index: number) => {
+        onCommit(selectedIndex === index ? null : index);
+    };
 
-        const report = (x: number) => {
-            "worklet";
-            if (step <= 0) {
-                return;
-            }
-            const index = Math.min(count - 1, Math.max(0, Math.round(x / step)));
-            if (index !== reported.get()) {
-                reported.set(index);
-                scheduleOnRN(setScrubIndex, index);
-                scheduleOnRN(onScrub, index);
-            }
-        };
+    const report = (x: number) => {
+        "worklet";
+        if (step <= 0) {
+            return;
+        }
+        const index = Math.min(count - 1, Math.max(0, Math.round(x / step)));
+        if (index !== reported.get()) {
+            reported.set(index);
+            scheduleOnRN(setScrubIndex, index);
+            scheduleOnRN(onScrub, index);
+        }
+    };
 
-        return scrubGesture({ commit, onScrub, report, reported, setScrubIndex });
-    }, [count, step, onScrub, onCommit, selectedIndex, reported]);
+    const pan = useScrubGesture({ commit, onScrub, report, reported, setScrubIndex });
 
     const onLayout = (event: LayoutChangeEvent) => {
         setWidth(event.nativeEvent.layout.width);

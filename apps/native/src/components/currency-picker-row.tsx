@@ -12,7 +12,6 @@ import type { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSw
 import Animated, {
     Easing,
     ReduceMotion,
-    runOnJS,
     useAnimatedReaction,
     useAnimatedStyle,
     useSharedValue,
@@ -20,6 +19,7 @@ import Animated, {
     ZoomIn,
 } from "react-native-reanimated";
 import type { SharedValue } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import type { CurrencyCode } from "@/domain/currency-picker-rows";
 import { FAVOURITE_CURRENCY_LIMIT } from "@/domain/favourite-currencies";
@@ -112,7 +112,7 @@ function SwipeAction({
         (next) => {
             if (next !== armed.get()) {
                 armed.set(next);
-                runOnJS(onArm)(next);
+                scheduleOnRN(onArm, next);
             }
         }
     );
