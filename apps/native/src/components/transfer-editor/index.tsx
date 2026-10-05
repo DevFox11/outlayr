@@ -369,12 +369,13 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, 
         value: draft.customRatePadText,
     } as const;
 
+    const chosen = (change: () => void) => () => {
+        touch();
+        change();
+        enter("amount", false);
+    };
+
     const rateReferences = () => {
-        const chosen = (change: () => void) => () => {
-            touch();
-            change();
-            enter("amount", false);
-        };
         const providers = draft.rateOptions.flatMap((type) => {
             const figure = type === "eur_reference" ? null : formatRate(draft, draft.marketRates[type], language);
             return figure === null
@@ -404,6 +405,8 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, 
             },
         ];
     };
+
+    const toAmount = () => enter("amount", false);
 
     const renderStage = () => {
         if (step === "amount" || step === "arrives") {
@@ -604,7 +607,6 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, 
             to: t("transfers.field.to"),
             when: t("transfers.field.date"),
         } as const;
-        const toAmount = () => enter("amount", false);
         const stageFooter = (): StageFooter => {
             if (step === "rateType") {
                 return { label: t("common.done"), onPress: toAmount, tone: "primary" };

@@ -1,9 +1,9 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { descriptorKey, knowledgeKeys } from "./merchantKey";
 
 describe(descriptorKey, () => {
-    test.each([
+    it.each([
         ["AIRBNB * HMASFW2JP2", "airbnb"],
         ["AIRBNB * ZX81KQ7", "airbnb"],
         ["NYX*VenetisABEET", "venetis"],
@@ -22,7 +22,7 @@ describe(descriptorKey, () => {
 });
 
 describe(knowledgeKeys, () => {
-    test("files one answer under the raw name, the decoded descriptor and the merchant's own name", () => {
+    it("files one answer under the raw name, the decoded descriptor and the merchant's own name", () => {
         expect(knowledgeKeys("NYX*VenetisABEET", "EUR", "Venetis Bakery")).toStrictEqual([
             "nyx venetisabeet|eur",
             "venetis|eur",
@@ -30,7 +30,7 @@ describe(knowledgeKeys, () => {
         ]);
     });
 
-    test("drops duplicates and keys too short to mean anything", () => {
+    it("drops duplicates and keys too short to mean anything", () => {
         expect(knowledgeKeys("Airbnb", undefined, "Airbnb")).toStrictEqual(["airbnb"]);
         expect(knowledgeKeys("AB", undefined)).toStrictEqual([]);
     });

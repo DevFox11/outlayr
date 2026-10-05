@@ -17,7 +17,7 @@ export function AccountRow() {
 }
 
 function SessionRow({ client }: { client: AuthClient }) {
-    // oxlint-disable-next-line react/react-compiler -- `authClient` is a module singleton bound once at load; the `client` prop exists only so TypeScript narrows away the `null` its factory can return, so the hook is in fact the same function on every render.
+    // oxlint-disable-next-line react/hooks -- `authClient` is a module singleton bound once at load; the `client` prop exists only so TypeScript narrows away the `null` its factory can return, so the hook is in fact the same function on every render.
     const { data: session, isPending } = client.useSession();
     const { accountId } = useAuthSession();
 

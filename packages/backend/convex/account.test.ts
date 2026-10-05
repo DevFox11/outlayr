@@ -4,7 +4,7 @@ import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
 import type { TestConvex } from "convex-test";
 import type { FunctionArgs } from "convex/server";
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { api } from "./_generated/api";
 import { purgeUserBatch } from "./account";
@@ -83,7 +83,7 @@ async function countRows(t: TestClient, userId: string): Promise<number> {
 }
 
 describe("purging an account", () => {
-    test("removes the caller's ledger and reports done", async () => {
+    it("removes the caller's ledger and reports done", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await authenticatedAs(t, owner).mutation(api.sync.push, {
@@ -97,7 +97,7 @@ describe("purging an account", () => {
         await expect(countRows(t, owner.userId)).resolves.toBe(0);
     });
 
-    test("leaves another account's ledger untouched", async () => {
+    it("leaves another account's ledger untouched", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         const stranger = await seedProUser(t);
@@ -116,7 +116,7 @@ describe("purging an account", () => {
         await expect(countRows(t, stranger.userId)).resolves.toBe(1);
     });
 
-    test("drops the seq counter only once the rows are gone", async () => {
+    it("drops the seq counter only once the rows are gone", async () => {
         // Removing it while rows remain would restart numbering under records that
         // already carry higher seqs, and a peer would then never see them again.
         const t = harness();
@@ -146,7 +146,7 @@ describe("purging an account", () => {
         expect(stateAtEnd).toBeNull();
     });
 
-    test("frees the account's photos and forgets what they weighed", async () => {
+    it("frees the account's photos and forgets what they weighed", async () => {
         // Driven through a real confirmed upload rather than a hand-written row, so
         // the mapping, the accounting and the stored bytes all exist the way they
         // would in production. The Convex-storage path is the testable one: the R2
@@ -170,7 +170,7 @@ describe("purging an account", () => {
         expect(leftovers.objects).toStrictEqual([]);
     });
 
-    test("is safe to run again on an account already purged", async () => {
+    it("is safe to run again on an account already purged", async () => {
         // A pass that dies halfway is retried rather than resumed, so a second run
         // over nothing has to be a no-op instead of an error.
         const t = harness();
@@ -181,7 +181,7 @@ describe("purging an account", () => {
         await expect(purgeAll(t, owner.userId)).resolves.toBe(1);
     });
 
-    test("finishes on a deployment without R2 when a reserved photo never confirmed", async () => {
+    it("finishes on a deployment without R2 when a reserved photo never confirmed", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await t.run(async (ctx) => {

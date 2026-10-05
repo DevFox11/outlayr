@@ -275,15 +275,15 @@ export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
      * args. The compiler cannot see that ordering, so it is stated here.
      */
     if (state.fileKey !== args.fileKey) {
-        // oxlint-disable-next-line react/react-compiler -- see above: deferring this reset to an effect hangs the import
+        // oxlint-disable-next-line react/refs -- see above: deferring this reset to an effect hangs the import
         generationRef.current += 1;
-        // oxlint-disable-next-line react/react-compiler -- see above
+        // oxlint-disable-next-line react/refs -- see above
         runningRef.current = false;
         dispatch({ fileKey: args.fileKey, type: "fileChanged" });
     }
 
     const argsRef = useRef(args);
-    // oxlint-disable-next-line react/react-compiler -- see above: a commit-lagged mirror resolves the new file against the previous file's args
+    // oxlint-disable-next-line react/refs -- see above: a commit-lagged mirror resolves the new file against the previous file's args
     argsRef.current = args;
 
     const resolveImport = useCallback(async (): Promise<Settlement> => {

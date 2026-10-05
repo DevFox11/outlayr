@@ -3,9 +3,9 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
+        "build": "vp build",
         "check-types": "content-collections build && intlayer build && tsc --noEmit",
-        "dev": "vite dev",
+        "dev": "vp dev",
         "test": "vp test run",
         "start": "node .output/server/index.mjs"
     },
@@ -36,8 +36,9 @@
         "rehype-slug": "^6.0.0",
         "remark-gfm": "^4.0.1",
         "typescript": "catalog:",
-        "vite": "8.1.2",
+        "vite": "catalog:",
         "vite-intlayer": "catalog:",
+        "vite-plus": "catalog:",
         "zod": "catalog:"
     }
 }

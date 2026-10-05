@@ -1,4 +1,12 @@
+const path = require("node:path");
+
 const preset = require("jest-expo/jest-preset");
+
+// jest-expo mocks whichever expo-modules-core pnpm hoists, and with two copies in the graph that
+// can be one the app never loads. Pin both to the copy the app's `expo` resolves.
+const expoModulesCore = path.dirname(
+    require.resolve("expo-modules-core/package.json", { paths: [path.dirname(require.resolve("expo/package.json"))] })
+);
 
 /** @type {import("jest").Config} */
 module.exports = {
@@ -9,6 +17,8 @@ module.exports = {
         // `src/assets` and 404s. Must precede that rule to win.
         "^@/assets/(.*)$": "<rootDir>/assets/$1",
         "^react-native-worklets$": "react-native-worklets/src/mock",
+        "^expo-modules-core$": expoModulesCore,
+        "^expo-modules-core/(.*)$": `${expoModulesCore}/$1`,
     },
     preset: "jest-expo",
     resolver: "<rootDir>/jest/resolver.js",

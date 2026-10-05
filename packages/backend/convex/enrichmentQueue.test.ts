@@ -5,7 +5,7 @@ import workpoolTest from "@convex-dev/workpool/test";
 import { MockLanguageModelV3 } from "ai/test";
 import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
@@ -65,7 +65,7 @@ function queuedRow(overrides: Partial<Doc<"enrichmentJobs">>): Doc<"enrichmentJo
 }
 
 describe("enqueue", () => {
-    test("keeps one queued job per transaction, the latest ask replacing an earlier one", async () => {
+    it("keeps one queued job per transaction, the latest ask replacing an earlier one", async () => {
         const t = setup();
         const asUser = authenticatedAs(t, await seedProUser(t));
 
@@ -77,7 +77,7 @@ describe("enqueue", () => {
         expect(jobs[0]).toMatchObject({ grounded: true, name: "AIRBNB * HMASFW2JP2", status: "queued" });
     });
 
-    test("keeps a free account's job off the web", async () => {
+    it("keeps a free account's job off the web", async () => {
         const t = setup();
         const asUser = authenticatedAs(t, await seedAuthUser(t));
 
@@ -87,7 +87,7 @@ describe("enqueue", () => {
         expect(job?.grounded).toBeFalsy();
     });
 
-    test("refuses a caller with no session", async () => {
+    it("refuses a caller with no session", async () => {
         const t = setup();
 
         await expect(t.mutation(api.enrichmentQueue.enqueue, ENQUEUE_ARGS)).rejects.toThrow("Unauthenticated");
@@ -95,7 +95,7 @@ describe("enqueue", () => {
 });
 
 describe(resolveJob, () => {
-    test("answers from published knowledge without asking a model", async () => {
+    it("answers from published knowledge without asking a model", async () => {
         const t = setup();
         await t.run((ctx) =>
             ctx.db.insert("merchantKnowledge", {
@@ -126,7 +126,7 @@ describe(resolveJob, () => {
         });
     });
 
-    test("keeps a row off the web when its owner withdrew consent, and still names the merchant", async () => {
+    it("keeps a row off the web when its owner withdrew consent, and still names the merchant", async () => {
         const t = setup();
         const fast = fastModel({
             brand: "Care4Bag",
@@ -144,7 +144,7 @@ describe(resolveJob, () => {
 });
 
 describe("shared answers", () => {
-    test("a model answer is kept under the merchant's aliases, so another descriptor for it hits", async () => {
+    it("a model answer is kept under the merchant's aliases, so another descriptor for it hits", async () => {
         const t = setup();
         const fast = fastModel({
             brand: "Airbnb",
@@ -164,7 +164,7 @@ describe("shared answers", () => {
         expect(later).toMatchObject({ domain: "airbnb.com", merchantName: "Airbnb", source: "model" });
     });
 
-    test("keeps an answer filed under a category of the owner's own off the shared table", async () => {
+    it("keeps an answer filed under a category of the owner's own off the shared table", async () => {
         const t = setup();
         const fast = fastModel({
             brand: "Care4Bag",
@@ -184,7 +184,7 @@ describe("shared answers", () => {
 });
 
 describe("results and ack", () => {
-    test("hand back only the caller's answered jobs, and forget the acknowledged ones", async () => {
+    it("hand back only the caller's answered jobs, and forget the acknowledged ones", async () => {
         const t = setup();
         const owner = await seedAuthUser(t);
         const other = await seedAuthUser(t);

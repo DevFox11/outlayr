@@ -99,7 +99,7 @@ export function CategoryPickerSheet({
         seededFor.current = selectedId;
         const holder = expandedForSelectedCategory(categories, selectedId);
         if (holder.size > 0) {
-            // oxlint-disable-next-line react/react-compiler -- a one-time seed, not derived state: after this the set is the user's to collapse, so deriving the selected branch's ancestors on every render would make those rows refuse to close.
+            // oxlint-disable-next-line react/set-state-in-effect -- a one-time seed, not derived state: after this the set is the user's to collapse, so deriving the selected branch's ancestors on every render would make those rows refuse to close.
             setExpanded((prev) => new Set([...prev, ...holder]));
         }
     }, [categories, selectedId]);

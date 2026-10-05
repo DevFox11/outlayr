@@ -6,7 +6,7 @@ import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { MockTranscriptionModelV4 } from "ai/test";
 import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { api, components } from "./_generated/api";
 import { captureLimiter, FREE_CAPTURE_CONFIG } from "./lib/captures";
@@ -73,7 +73,7 @@ const MODEL_ANSWER = {
 };
 
 describe("voice entry args validation", () => {
-    test("carries exactly the privacy-boundary fields — clip, names, currency, language, today, thread", () => {
+    it("carries exactly the privacy-boundary fields — clip, names, currency, language, today, thread", () => {
         expect(Object.keys(voiceEntryArgs).sort()).toStrictEqual(
             ["accounts", "audio", "categoryTree", "currency", "language", "threadId", "today"].sort()
         );
@@ -81,7 +81,7 @@ describe("voice entry args validation", () => {
 });
 
 describe("namesWithinBudget", () => {
-    test("bounds each name's length, a branch's children, and the total, not just the counts the args allow", () => {
+    it("bounds each name's length, a branch's children, and the total, not just the counts the args allow", () => {
         expect(namesWithinBudget(BASE_ARGS.categoryTree, BASE_ARGS.accounts)).toBeTruthy();
         expect(namesWithinBudget([{ children: [], name: "x".repeat(81) }], [])).toBeFalsy();
         expect(namesWithinBudget([], ["y".repeat(81)])).toBeFalsy();
@@ -93,7 +93,7 @@ describe("namesWithinBudget", () => {
 });
 
 describe("buildPrompt", () => {
-    test("asks for one tool call per turn and frames corrections against the last draft", () => {
+    it("asks for one tool call per turn and frames corrections against the last draft", () => {
         const prompt = buildPrompt(BASE_ARGS);
         expect(prompt).toContain(`calling ${PROPOSE_DRAFT_TOOL} exactly once`);
         expect(prompt).toContain("correction");
@@ -104,7 +104,7 @@ describe("buildPrompt", () => {
 });
 
 describe("normalizeDraft", () => {
-    test("keeps a well-formed answer whole, including the spoken account and yesterday's date", () => {
+    it("keeps a well-formed answer whole, including the spoken account and yesterday's date", () => {
         expect(normalizeDraft(MODEL_ANSWER, BASE_ARGS)).toStrictEqual({
             accountName: "Amex",
             amount: 12.5,
@@ -120,7 +120,7 @@ describe("normalizeDraft", () => {
         });
     });
 
-    test("a domain is kept as a bare host; a url is trimmed to one; junk is dropped; a transfer has none", () => {
+    it("a domain is kept as a bare host; a url is trimmed to one; junk is dropped; a transfer has none", () => {
         const at = (domain: string | null) => normalizeDraft({ ...MODEL_ANSWER, domain }, BASE_ARGS);
         expect(at("https://www.Carrefour.es/shop")).toMatchObject({ domain: "carrefour.es" });
         expect(at("mercadona")).toMatchObject({ domain: null });
@@ -129,7 +129,7 @@ describe("normalizeDraft", () => {
         expect(normalizeDraft(moved, BASE_ARGS)).not.toHaveProperty("domain");
     });
 
-    test("a spoken cadence is kept, its count rounded and clamped; a transfer never repeats", () => {
+    it("a spoken cadence is kept, its count rounded and clamped; a transfer never repeats", () => {
         const twoWeeks = { every: 2, unit: "week" as const };
         expect(normalizeDraft({ ...MODEL_ANSWER, recurrence: twoWeeks }, BASE_ARGS)).toMatchObject({
             recurrence: twoWeeks,
@@ -141,7 +141,7 @@ describe("normalizeDraft", () => {
         expect(normalizeDraft(moved, BASE_ARGS)).not.toHaveProperty("recurrence");
     });
 
-    test("a transfer carries both account names and nothing a ledger row would need", () => {
+    it("a transfer carries both account names and nothing a ledger row would need", () => {
         const answer = {
             ...MODEL_ANSWER,
             accountName: "checking",
@@ -162,14 +162,14 @@ describe("normalizeDraft", () => {
         });
     });
 
-    test("income is the kind, not a flag the model can leave unset", () => {
+    it("income is the kind, not a flag the model can leave unset", () => {
         expect(normalizeDraft({ ...MODEL_ANSWER, kind: "income" }, BASE_ARGS)).toMatchObject({
             income: true,
             kind: "entry",
         });
     });
 
-    test("drops a category the ledger does not have, keeps an unknown account as spoken, and case-folds the known", () => {
+    it("drops a category the ledger does not have, keeps an unknown account as spoken, and case-folds the known", () => {
         const answer = { ...MODEL_ANSWER, accountName: "Visa", categoryName: "groceries" };
         expect(normalizeDraft(answer, BASE_ARGS)).toMatchObject({ accountName: "Visa", categoryName: "Groceries" });
         expect(normalizeDraft({ ...MODEL_ANSWER, accountName: "amex" }, BASE_ARGS)).toMatchObject({
@@ -180,7 +180,7 @@ describe("normalizeDraft", () => {
         });
     });
 
-    test("a date outside the window, not a date, or a day the calendar lacks becomes today", () => {
+    it("a date outside the window, not a date, or a day the calendar lacks becomes today", () => {
         expect(normalizeDraft({ ...MODEL_ANSWER, date: "2020-01-01" }, BASE_ARGS)?.date).toBe("2026-09-03");
         expect(normalizeDraft({ ...MODEL_ANSWER, date: "2026-02-31" }, BASE_ARGS)?.date).toBe("2026-09-03");
         expect(normalizeDraft({ ...MODEL_ANSWER, date: "2026-08-31" }, BASE_ARGS)?.date).toBe("2026-08-31");
@@ -188,13 +188,13 @@ describe("normalizeDraft", () => {
         expect(normalizeDraft({ ...MODEL_ANSWER, date: "tomorrow" }, BASE_ARGS)?.date).toBe("2026-09-03");
     });
 
-    test("the ledger's own currency reads as null; another code is kept upper-cased; junk is dropped", () => {
+    it("the ledger's own currency reads as null; another code is kept upper-cased; junk is dropped", () => {
         expect(normalizeDraft({ ...MODEL_ANSWER, currency: "usd" }, BASE_ARGS)?.currency).toBeNull();
         expect(normalizeDraft({ ...MODEL_ANSWER, currency: "eur" }, BASE_ARGS)?.currency).toBe("EUR");
         expect(normalizeDraft({ ...MODEL_ANSWER, currency: "dollars" }, BASE_ARGS)?.currency).toBeNull();
     });
 
-    test("no amount, found:false, or an amount past the ledger's ceiling is null — the tool's word for unclear", () => {
+    it("no amount, found:false, or an amount past the ledger's ceiling is null — the tool's word for unclear", () => {
         expect(normalizeDraft({ ...MODEL_ANSWER, amount: null }, BASE_ARGS)).toBeNull();
         expect(normalizeDraft({ ...MODEL_ANSWER, found: false }, BASE_ARGS)).toBeNull();
         expect(normalizeDraft({ ...MODEL_ANSWER, amount: -3 }, BASE_ARGS)).toBeNull();
@@ -204,7 +204,7 @@ describe("normalizeDraft", () => {
 });
 
 describe("transcribeClip", () => {
-    test("hands back the trimmed transcript, and empty for silence", async () => {
+    it("hands back the trimmed transcript, and empty for silence", async () => {
         await expect(transcribeClip(mockTranscriber("  hello  "), CLIP, "en-US")).resolves.toStrictEqual({
             text: "hello",
         });
@@ -213,7 +213,7 @@ describe("transcribeClip", () => {
         });
     });
 
-    test("passes the language to the provider and asks for number formatting", async () => {
+    it("passes the language to the provider and asks for number formatting", async () => {
         const seen: unknown[] = [];
         const model = new MockTranscriptionModelV4({
             doGenerate: async (options) => {
@@ -252,7 +252,7 @@ describe("voice thread + speak guard ladder", () => {
         return t;
     }
 
-    test("a signed-out caller gets no thread and an unauthenticated speak", async () => {
+    it("a signed-out caller gets no thread and an unauthenticated speak", async () => {
         const t = harness();
         await expect(t.mutation(api.voiceEntry.startThread, {})).resolves.toStrictEqual({
             status: "unauthenticated",
@@ -265,7 +265,7 @@ describe("voice thread + speak guard ladder", () => {
         });
     });
 
-    test("returns notConfigured when XAI_API_KEY is unset, never throws", async () => {
+    it("returns notConfigured when XAI_API_KEY is unset, never throws", async () => {
         vi.stubEnv("XAI_API_KEY", "");
         const t = harness();
         const identity = await seedAuthUser(t);
@@ -274,7 +274,7 @@ describe("voice thread + speak guard ladder", () => {
         });
     });
 
-    test("returns invalid for an empty clip, an oversized clip, a malformed today, or a thread that is not the caller's", async () => {
+    it("returns invalid for an empty clip, an oversized clip, a malformed today, or a thread that is not the caller's", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = harness();
         const identity = await seedAuthUser(t);
@@ -300,7 +300,7 @@ describe("voice thread + speak guard ladder", () => {
         await expect(stranger.action(api.voiceEntry.speak, own)).resolves.toMatchObject({ status: "invalid" });
     });
 
-    test("another person's thread reads as empty, and only its owner can end it", async () => {
+    it("another person's thread reads as empty, and only its owner can end it", async () => {
         const t = harness();
         const owner = authenticatedAs(t, await seedAuthUser(t));
         const stranger = authenticatedAs(t, await seedAuthUser(t, { email: "other@example.com" }));
@@ -323,7 +323,7 @@ describe("voice thread + speak guard ladder", () => {
         await expect(metadata()).resolves.toBeNull();
     });
 
-    test("a thread the screen never ended expires on its own, and the same subject from another issuer is a stranger", async () => {
+    it("a thread the screen never ended expires on its own, and the same subject from another issuer is a stranger", async () => {
         const t = harness();
         const identity = await seedAuthUser(t);
         const owner = authenticatedAs(t, identity);
@@ -346,7 +346,7 @@ describe("voice thread + speak guard ladder", () => {
         ).resolves.toBeNull();
     });
 
-    test("a thread spoken into keeps living: the sweep moves out past the last turn, then deletes", async () => {
+    it("a thread spoken into keeps living: the sweep moves out past the last turn, then deletes", async () => {
         const t = harness();
         const owner = authenticatedAs(t, await seedAuthUser(t));
         vi.useFakeTimers();
@@ -366,7 +366,7 @@ describe("voice thread + speak guard ladder", () => {
         await expect(metadata()).resolves.toBeNull();
     });
 
-    test("opening threads is metered too: an exhausted bucket answers rateLimited and creates nothing", async () => {
+    it("opening threads is metered too: an exhausted bucket answers rateLimited and creates nothing", async () => {
         const t = harness();
         const identity = await seedAuthUser(t);
         const asUser = authenticatedAs(t, identity);
@@ -387,7 +387,7 @@ describe("voice thread + speak guard ladder", () => {
         });
     });
 
-    test("returns notEntitled once a free user's capture pool is spent", async () => {
+    it("returns notEntitled once a free user's capture pool is spent", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = harness();
         const identity = await seedAuthUser(t);
@@ -411,7 +411,7 @@ describe("voice thread + speak guard ladder", () => {
         });
     });
 
-    test("returns rateLimited once the per-user bucket is exhausted", async () => {
+    it("returns rateLimited once the per-user bucket is exhausted", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = harness();
         const identity = await seedAuthUser(t);

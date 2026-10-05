@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { internal } from "./_generated/api";
 import schema from "./schema";
@@ -45,7 +45,7 @@ afterEach(() => {
 });
 
 describe("cotizave.fetchRates", () => {
-    test("stores three VES rows from reference/eur_reference/binance mids", async () => {
+    it("stores three VES rows from reference/eur_reference/binance mids", async () => {
         vi.useFakeTimers({ toFake: ["Date"] });
         vi.setSystemTime(new Date("2026-07-03T18:22:36Z"));
         const t = convexTest(schema, modules);
@@ -76,7 +76,7 @@ describe("cotizave.fetchRates", () => {
         });
     });
 
-    test("cotizave reference overrides an existing frankfurter VES official row", async () => {
+    it("cotizave reference overrides an existing frankfurter VES official row", async () => {
         vi.useFakeTimers({ toFake: ["Date"] });
         vi.setSystemTime(new Date("2026-07-03T18:00:00Z"));
         const t = convexTest(schema, modules);
@@ -105,7 +105,7 @@ describe("cotizave.fetchRates", () => {
         expect(official).toMatchObject({ rate: 652.9726, source: "cotizave" });
     });
 
-    test("upserts valid markets and leaves an invalid market's prior row intact", async () => {
+    it("upserts valid markets and leaves an invalid market's prior row intact", async () => {
         vi.useFakeTimers({ toFake: ["Date"] });
         vi.setSystemTime(new Date("2026-07-03T18:00:00Z"));
         const t = convexTest(schema, modules);
@@ -141,7 +141,7 @@ describe("cotizave.fetchRates", () => {
         });
     });
 
-    test("writes nothing and logs an error for a fully malformed response", async () => {
+    it("writes nothing and logs an error for a fully malformed response", async () => {
         const t = convexTest(schema, modules);
         await t.run((ctx) =>
             ctx.db.insert("exchangeRates", {
@@ -166,7 +166,7 @@ describe("cotizave.fetchRates", () => {
         expect(errorSpy).toHaveBeenCalledWith("Cotizave response did not match the expected USD-based VES contract");
     });
 
-    test("writes nothing and logs an error when no target market is present", async () => {
+    it("writes nothing and logs an error when no target market is present", async () => {
         const t = convexTest(schema, modules);
         const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {
             // silence expected error log
@@ -187,7 +187,7 @@ describe("cotizave.fetchRates", () => {
         expect(errorSpy).toHaveBeenCalledWith("Cotizave response contained no valid target markets");
     });
 
-    test("writes nothing and keeps prior rows when the response currency is not VES", async () => {
+    it("writes nothing and keeps prior rows when the response currency is not VES", async () => {
         const t = convexTest(schema, modules);
         await t.run((ctx) =>
             ctx.db.insert("exchangeRates", {
@@ -213,7 +213,7 @@ describe("cotizave.fetchRates", () => {
         expect(errorSpy).toHaveBeenCalledWith("Cotizave response did not match the expected USD-based VES contract");
     });
 
-    test("writes nothing and keeps prior rows when the response base is not USD", async () => {
+    it("writes nothing and keeps prior rows when the response base is not USD", async () => {
         const t = convexTest(schema, modules);
         await t.run((ctx) =>
             ctx.db.insert("exchangeRates", {
@@ -239,7 +239,7 @@ describe("cotizave.fetchRates", () => {
         expect(errorSpy).toHaveBeenCalledWith("Cotizave response did not match the expected USD-based VES contract");
     });
 
-    test("throws a descriptive error when COTIZAVE_API_KEY is missing", async () => {
+    it("throws a descriptive error when COTIZAVE_API_KEY is missing", async () => {
         vi.stubEnv("COTIZAVE_API_KEY", "");
         const t = convexTest(schema, modules);
         const fetchMock = stubFetch(liveRatesPayload());
@@ -251,7 +251,7 @@ describe("cotizave.fetchRates", () => {
         expect(rows).toHaveLength(0);
     });
 
-    test("authenticates with the X-API-Key header", async () => {
+    it("authenticates with the X-API-Key header", async () => {
         const t = convexTest(schema, modules);
         const fetchMock = stubFetch(liveRatesPayload());
 
@@ -267,7 +267,7 @@ describe("cotizave.fetchRates", () => {
         expect(init?.headers).toMatchObject({ "X-API-Key": "test-cotizave-key" });
     });
 
-    test("pins the row date to the UTC fetch day, ignoring local offset", async () => {
+    it("pins the row date to the UTC fetch day, ignoring local offset", async () => {
         vi.useFakeTimers({ toFake: ["Date"] });
         // 2026-01-01 20:00 at UTC-5 is 2026-01-02 01:00 UTC.
         vi.setSystemTime(new Date("2026-01-01T20:00:00-05:00"));

@@ -3,7 +3,7 @@
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { api } from "./_generated/api";
 import { perUserBurst } from "./lib/limits";
@@ -21,11 +21,11 @@ function harness() {
 }
 
 describe("limits.mine", () => {
-    test("is null for a signed-out caller", async () => {
+    it("is null for a signed-out caller", async () => {
         await expect(harness().query(api.limits.mine, {})).resolves.toBeNull();
     });
 
-    test("a free account reads the free pool and bursts, and what it spent", async () => {
+    it("a free account reads the free pool and bursts, and what it spent", async () => {
         const t = harness();
         const asUser = authenticatedAs(t, await seedAuthUser(t));
         const key = await asUser.run(async (ctx) => (await ctx.auth.getUserIdentity())?.tokenIdentifier);
@@ -43,7 +43,7 @@ describe("limits.mine", () => {
         });
     });
 
-    test("a Pro account reads the wider bursts", async () => {
+    it("a Pro account reads the wider bursts", async () => {
         const t = harness();
         const identity = await seedAuthUser(t);
         await grantPro(t, identity);

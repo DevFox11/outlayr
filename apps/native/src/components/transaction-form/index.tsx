@@ -1388,7 +1388,7 @@ export function TransactionForm({
         pickerOpen,
     });
     useEffect(() => {
-        // oxlint-disable-next-line react/react-compiler -- `categories` and `allTags` come from data hooks, and the compiler treats anything holding them as owned by those hooks. Writing a ref inside an effect is exactly where a ref is meant to be written; the alias is what it cannot follow.
+        // oxlint-disable-next-line react/immutability -- `categories` and `allTags` come from data hooks, and the compiler treats anything holding them as owned by those hooks. Writing a ref inside an effect is exactly where a ref is meant to be written; the alias is what it cannot follow.
         latest.current = {
             allTags,
             categories: categoriesForNamespace,

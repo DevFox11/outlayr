@@ -152,7 +152,7 @@ function useRippledCharges(charges: readonly ScheduledCharge[], ready: RefObject
 
         const clamped = charges.some((charge) => charge.clamped);
         if (!ready.current) {
-            // oxlint-disable-next-line react/react-compiler -- the ripple is a timed sequence over the previous list; before it is armed the new dates have to land in one step instead, which is this branch.
+            // oxlint-disable-next-line react/set-state-in-effect -- the ripple is a timed sequence over the previous list; before it is armed the new dates have to land in one step instead, which is this branch.
             setShown(charges);
             setSwapping([]);
             setNoteVisible(clamped);

@@ -5,7 +5,7 @@ import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { MockLanguageModelV3 } from "ai/test";
 import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { api } from "./_generated/api";
 import { classify, csvImportArgs, GROUNDED_IMPORT_MAX, rateLimiter, scheduleImportGrounded } from "./csvImport";
@@ -62,7 +62,7 @@ const BASE_ARGS = {
 };
 
 describe("csv import args validation", () => {
-    test("carries exactly the privacy-boundary fields — labels, tree, consent, region", () => {
+    it("carries exactly the privacy-boundary fields — labels, tree, consent, region", () => {
         expect(Object.keys(csvImportArgs).sort()).toStrictEqual(
             ["categoryTree", "groundedLookup", "labels", "regionCode"].sort()
         );
@@ -70,7 +70,7 @@ describe("csv import args validation", () => {
 });
 
 describe("csvImport guard ladder", () => {
-    test("returns unauthenticated for a signed-out caller", async () => {
+    it("returns unauthenticated for a signed-out caller", async () => {
         const t = convexTest(schema, modules);
 
         await expect(t.action(api.csvImport.csvImport, BASE_ARGS)).resolves.toStrictEqual({
@@ -79,7 +79,7 @@ describe("csvImport guard ladder", () => {
         });
     });
 
-    test("returns notConfigured when XAI_API_KEY is unset, never throws", async () => {
+    it("returns notConfigured when XAI_API_KEY is unset, never throws", async () => {
         vi.stubEnv("XAI_API_KEY", "");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
@@ -90,7 +90,7 @@ describe("csvImport guard ladder", () => {
         });
     });
 
-    test("returns invalid when there are no labels to classify", async () => {
+    it("returns invalid when there are no labels to classify", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
@@ -103,7 +103,7 @@ describe("csvImport guard ladder", () => {
         ).resolves.toStrictEqual({ status: "invalid", suggestions: null });
     });
 
-    test("returns invalid when labels exceed the 200-label cap", async () => {
+    it("returns invalid when labels exceed the 200-label cap", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
@@ -116,7 +116,7 @@ describe("csvImport guard ladder", () => {
         ).resolves.toStrictEqual({ status: "invalid", suggestions: null });
     });
 
-    test("returns notEntitled for a free user before either bucket is spent", async () => {
+    it("returns notEntitled for a free user before either bucket is spent", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
@@ -131,7 +131,7 @@ describe("csvImport guard ladder", () => {
         expect(limitSpy).not.toHaveBeenCalled();
     });
 
-    test("returns rateLimited and never throws once the per-user bucket is exhausted", async () => {
+    it("returns rateLimited and never throws once the per-user bucket is exhausted", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
@@ -158,7 +158,7 @@ describe("csvImport guard ladder", () => {
         });
     });
 
-    test("returns rateLimited and never throws once the global window is exhausted", async () => {
+    it("returns rateLimited and never throws once the global window is exhausted", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         revenuecatTest.register(t);
@@ -178,7 +178,7 @@ describe("csvImport guard ladder", () => {
         expect(limitSpy).toHaveBeenCalledWith(expect.anything(), "csvImportGlobal");
     });
 
-    test("a revoked session skips the grounded tier and never rejects the action", async () => {
+    it("a revoked session skips the grounded tier and never rejects the action", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
@@ -224,19 +224,19 @@ describe("csvImport guard ladder", () => {
 });
 
 describe(perUserBurst, () => {
-    test("defaults to a ten-import burst when CSV_IMPORT_CAPACITY is unset", () => {
+    it("defaults to a ten-import burst when CSV_IMPORT_CAPACITY is unset", () => {
         vi.stubEnv("CSV_IMPORT_CAPACITY", undefined);
 
         expect(perUserBurst("csvImport", true).capacity).toBe(10);
     });
 
-    test("honours a positive integer CSV_IMPORT_CAPACITY", () => {
+    it("honours a positive integer CSV_IMPORT_CAPACITY", () => {
         vi.stubEnv("CSV_IMPORT_CAPACITY", "25");
 
         expect(perUserBurst("csvImport", true).capacity).toBe(25);
     });
 
-    test.each(["", "nonsense", "0", "-3", "2.5", "Infinity"])(
+    it.each(["", "nonsense", "0", "-3", "2.5", "Infinity"])(
         "falls back to the default burst for the unusable value %j",
         (value) => {
             vi.stubEnv("CSV_IMPORT_CAPACITY", value);
@@ -245,7 +245,7 @@ describe(perUserBurst, () => {
         }
     );
 
-    test("leaves the refill rate alone, so only the burst is tunable", () => {
+    it("leaves the refill rate alone, so only the burst is tunable", () => {
         vi.stubEnv("CSV_IMPORT_CAPACITY", "25");
 
         expect(perUserBurst("csvImport", true)).toStrictEqual({
@@ -256,7 +256,7 @@ describe(perUserBurst, () => {
         });
     });
 
-    test("reaches the per-user limit on every call, not once at module load", async () => {
+    it("reaches the per-user limit on every call, not once at module load", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         vi.stubEnv("CSV_IMPORT_CAPACITY", "25");
         const t = convexTest(schema, modules);
@@ -293,7 +293,7 @@ function asIdentity(t: ReturnType<typeof convexTest>, identity: Awaited<ReturnTy
 }
 
 describe(scheduleImportGrounded, () => {
-    test("schedules one grounded run per label, deduped by merchant key", async () => {
+    it("schedules one grounded run per label, deduped by merchant key", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -330,7 +330,7 @@ describe(scheduleImportGrounded, () => {
         });
     });
 
-    test("caps one import's grounded attempts at GROUNDED_IMPORT_MAX", async () => {
+    it("caps one import's grounded attempts at GROUNDED_IMPORT_MAX", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -351,7 +351,7 @@ describe(scheduleImportGrounded, () => {
         await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(GROUNDED_IMPORT_MAX);
     });
 
-    test("schedules nothing when the client consent flag is false", async () => {
+    it("schedules nothing when the client consent flag is false", async () => {
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -366,7 +366,7 @@ describe(scheduleImportGrounded, () => {
         await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(0);
     });
 
-    test("schedules nothing when the synced appMeta consent row is false", async () => {
+    it("schedules nothing when the synced appMeta consent row is false", async () => {
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
         await t.run((ctx) =>
@@ -391,7 +391,7 @@ describe(scheduleImportGrounded, () => {
         await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(0);
     });
 
-    test("returns 0 instead of throwing when the session no longer resolves to a user", async () => {
+    it("returns 0 instead of throwing when the session no longer resolves to a user", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -415,7 +415,7 @@ describe(scheduleImportGrounded, () => {
 });
 
 describe("merchantKnowledge tier", () => {
-    test("answers a known label from merchantKnowledge with its stored domain, without the model", async () => {
+    it("answers a known label from merchantKnowledge with its stored domain, without the model", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
@@ -453,7 +453,7 @@ describe("merchantKnowledge tier", () => {
         await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(0);
     });
 
-    test("an unknown label schedules a grounded lookup even when the model tier fails", async () => {
+    it("an unknown label schedules a grounded lookup even when the model tier fails", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         vi.stubGlobal(
             "fetch",
@@ -484,7 +484,7 @@ describe("merchantKnowledge tier", () => {
         expect((runs[0].args[0] as Record<string, unknown>).key).toBe("corpoelec");
     });
 
-    test("keeps knowledge-tier suggestions when the model tier fails on a mixed batch", async () => {
+    it("keeps knowledge-tier suggestions when the model tier fails on a mixed batch", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         vi.stubGlobal(
             "fetch",
@@ -534,7 +534,7 @@ describe("merchantKnowledge tier", () => {
 });
 
 describe(classify, () => {
-    test("returns ok with a suggestion for every label naming an existing category", async () => {
+    it("returns ok with a suggestion for every label naming an existing category", async () => {
         const model = mockModel(
             JSON.stringify({
                 mapping: [
@@ -558,7 +558,7 @@ describe(classify, () => {
         });
     });
 
-    test("drops only the label naming a category the user does not have, the rest still apply", async () => {
+    it("drops only the label naming a category the user does not have, the rest still apply", async () => {
         const model = mockModel(
             JSON.stringify({
                 mapping: [
@@ -579,7 +579,7 @@ describe(classify, () => {
         });
     });
 
-    test("returns invalidResponse with an empty label array for schema-invalid JSON", async () => {
+    it("returns invalidResponse with an empty label array for schema-invalid JSON", async () => {
         const model = mockModel("this is not json at all");
 
         await expect(
@@ -593,7 +593,7 @@ describe(classify, () => {
         });
     });
 
-    test("returns providerError, never throws, when the model rejects", async () => {
+    it("returns providerError, never throws, when the model rejects", async () => {
         const model = rejectingModel(new Error("network down"));
 
         await expect(

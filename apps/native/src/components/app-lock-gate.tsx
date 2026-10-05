@@ -39,7 +39,7 @@ export function AppLockGate({ children }: { children: ReactNode }) {
         const turnedOn = enabled && !armed.current;
         armed.current = enabled;
         if (!enabled) {
-            // oxlint-disable-next-line react/react-compiler -- discards the result of a biometric check that may still be in flight; the three values are answers from the device, not functions of `enabled`.
+            // oxlint-disable-next-line react/set-state-in-effect -- discards the result of a biometric check that may still be in flight; the three values are answers from the device, not functions of `enabled`.
             setEnforceable(null);
             setUnlocked(false);
             setFailure(null);

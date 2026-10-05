@@ -3,7 +3,7 @@
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import schema from "../schema";
 import { authenticatedAs, grantPro, seedAuthUser } from "../test.helpers";
@@ -36,7 +36,7 @@ function spend(t: ReturnType<typeof harness>, name: "capturesFree" | "capturesPr
 const admit = async () => ({ ok: true });
 
 describe(admitCapture, () => {
-    test("a free user gets the whole pool, then notEntitled", async () => {
+    it("a free user gets the whole pool, then notEntitled", async () => {
         const t = harness();
         const identity = await caller(t, await seedAuthUser(t));
         await spend(t, "capturesFree", identity.tokenIdentifier, FREE_CAPTURE_CONFIG.rate - 1);
@@ -45,7 +45,7 @@ describe(admitCapture, () => {
         await expect(t.run((ctx) => admitCapture(ctx, identity, admit))).resolves.toBe("notEntitled");
     });
 
-    test("a Pro user is not metered by the free pool, and its ceiling reads as quotaExceeded", async () => {
+    it("a Pro user is not metered by the free pool, and its ceiling reads as quotaExceeded", async () => {
         const t = harness();
         const seeded = await seedAuthUser(t);
         await grantPro(t, seeded);
@@ -57,7 +57,7 @@ describe(admitCapture, () => {
         await expect(t.run((ctx) => admitCapture(ctx, identity, admit))).resolves.toBe("quotaExceeded");
     });
 
-    test("pools are per user", async () => {
+    it("pools are per user", async () => {
         const t = harness();
         const first = await caller(t, await seedAuthUser(t));
         const second = await caller(t, await seedAuthUser(t));

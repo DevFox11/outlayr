@@ -1,6 +1,5 @@
 import { fileURLToPath } from "node:url";
 
-import type { OxlintOverride } from "oxlint";
 import ultraciteFmt from "ultracite/oxfmt";
 import antiSlop from "ultracite/oxlint/anti-slop";
 import core from "ultracite/oxlint/core";
@@ -9,6 +8,7 @@ import react from "ultracite/oxlint/react";
 import tanstack from "ultracite/oxlint/tanstack";
 import vitest from "ultracite/oxlint/vitest";
 import { defineConfig } from "vite-plus";
+import type { OxlintOverride } from "vite-plus/lint";
 
 // Paths ultracite's shared ignore list does not know about. Reasoning for the
 // non-obvious ones: `drizzle` and `uniwind-types.d.ts` are generated, `ios` /
@@ -107,6 +107,30 @@ const JEST_ONLY_OPT_OUT = ["no-untyped-mock-factory", "prefer-ending-with-an-exp
 // run that re-enabled it. `require-mock-type-parameters` is vitest's spelling of
 // `no-untyped-mock-factory` and is off for the same reason as its jest twin.
 const VITEST_ONLY_OPT_OUT = ["prefer-describe-function-title", "require-mock-type-parameters"];
+// oxlint 1.79 split `react/react-compiler` into these. Like the rule they
+// replace, they stay `warn`: a new finding is visible without failing the build.
+const REACT_COMPILER_RULES = [
+    "capitalized-calls",
+    "error-boundaries",
+    "exhaustive-effect-dependencies",
+    "globals",
+    "hooks",
+    "immutability",
+    "incompatible-library",
+    "invariant",
+    "memo-dependencies",
+    "no-deriving-state-in-effects",
+    "preserve-manual-memoization",
+    "purity",
+    "refs",
+    "set-state-in-effect",
+    "set-state-in-render",
+    "static-components",
+    "syntax",
+    "unsupported-syntax",
+    "use-memo",
+    "void-use-memo",
+];
 
 // The jest and vitest presets both claim `**/*.{test,spec}.*`, so extending both
 // reports every assertion twice. This repo splits cleanly — apps/native runs
@@ -235,14 +259,15 @@ export default defineConfig({
                     "import/first": "off",
                     "import/no-named-as-default-member": "off",
                     // The compiler never sees these files: it runs as a Babel pass
-                    // over the app bundle, and a suite is not bundled. All 8 reports
+                    // over the app bundle, and a suite is not bundled. All 9 reports
                     // were one shape — a probe whose render body *is* the assertion.
                     // Counting renders to prove a context does not wake an unrelated
                     // subscriber, or capturing a hook's return so the test can read
                     // it, means writing to something outside the component during
-                    // render, which is what the rule exists to find in shipped code.
-                    // It stays on everywhere else in `src/`.
-                    "react/react-compiler": "off",
+                    // render, which is what the rules exist to find in shipped code.
+                    // They stay on everywhere else in `src/`.
+                    "react/globals": "off",
+                    "react/immutability": "off",
                     "react/state-in-constructor": "off",
                     "typescript/class-literal-property-style": "off",
                     "typescript/no-explicit-any": "off",
@@ -449,6 +474,7 @@ export default defineConfig({
             // follow-up so the migration is not also a rewrite.
             "promise/prefer-await-to-callbacks": "off",
             "promise/prefer-await-to-then": "off",
+            ...Object.fromEntries(REACT_COMPILER_RULES.map((rule) => [`react/${rule}`, "warn"])),
             "react/exhaustive-deps": "warn",
             "react/function-component-definition": "off",
             // Two deliberate shapes, 15 sites: `const [seed] = useState(() => …)`
@@ -461,10 +487,13 @@ export default defineConfig({
             // handlers named for what they do (`onPress={openSheet}`) rather than
             // `handleX`; `.reduce` is how the aggregates in domain/ are written.
             "react/jsx-handler-names": "off",
-            // Real signal, but a refactor backlog rather than a gate: Biome never
-            // ran the compiler rules, so every finding here is pre-existing.
-            "react/react-compiler": "warn",
+            // Restates every reasoned `react/exhaustive-deps` disable as "the compiler
+            // skips this component", which the disable already accepts.
+            "react/rule-suppression": "off",
             "react/style-prop-object": "off",
+            // Syntax the compiler cannot lower yet (`try`/`finally`, `??=`): it skips
+            // the component, and the code is correct as written.
+            "react/todo": "off",
             // Every site is a callback satisfying a Promise-returning contract
             // (`photos: async () => clearStoredPhotos()`, a Convex `handler`).
             // Dropping `async` turns a synchronous throw into a thrown error where

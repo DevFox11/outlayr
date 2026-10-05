@@ -5,7 +5,7 @@ import { tool } from "ai";
 import { MockLanguageModelV3 } from "ai/test";
 import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { z } from "zod";
 
 import { GROUNDED_REQUEST_TIMEOUT_MS, rateLimiter } from "./enrichment";
@@ -70,7 +70,7 @@ const CONFIDENT_PAYLOAD = {
 };
 
 describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", () => {
-    test("the single call carries the injected web_search tool set", async () => {
+    it("the single call carries the injected web_search tool set", async () => {
         const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD));
 
         await runGroundedLookupCall({ grounding, groundingTools: { web_search: fakeWebSearchTool } }, BASE_ARGS);
@@ -78,7 +78,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
         expect(grounding.doGenerateCalls[0]?.tools).toStrictEqual([expect.objectContaining({ name: "web_search" })]);
     });
 
-    test("parses a clean JSON response with no fence or prose", async () => {
+    it("parses a clean JSON response with no fence or prose", async () => {
         const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
             sourceUrl: "https://farmatodo.com/about",
         });
@@ -96,7 +96,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
         });
     });
 
-    test("parses JSON wrapped in a ```json fence", async () => {
+    it("parses JSON wrapped in a ```json fence", async () => {
         const text = [
             "Here is what I found after searching:",
             "```json",
@@ -118,7 +118,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
         });
     });
 
-    test("parses JSON wrapped in surrounding prose with no fence at all", async () => {
+    it("parses JSON wrapped in surrounding prose with no fence at all", async () => {
         const text = `Based on my search, this is a pharmacy chain. ${JSON.stringify(CONFIDENT_PAYLOAD)} I am confident in this answer.`;
         const grounding = mockTextModel(text, {
             sourceUrl: "https://farmatodo.com/about",
@@ -135,7 +135,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
         });
     });
 
-    test("degrades to an all-null candidate on unparseable output, without throwing", async () => {
+    it("degrades to an all-null candidate on unparseable output, without throwing", async () => {
         const grounding = mockTextModel("I was unable to confirm any details about this merchant.");
 
         const outcome = await runGroundedLookupCall(
@@ -151,7 +151,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
         });
     });
 
-    test("neither retries after a thrown provider error (maxRetries: 0)", async () => {
+    it("neither retries after a thrown provider error (maxRetries: 0)", async () => {
         let calls = 0;
         const throwing = new MockLanguageModelV3({
             doGenerate: async () => {
@@ -173,7 +173,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
         expect(calls).toBe(1);
     });
 
-    test("permits up to 4 tool-calling rounds before stopping (isStepCount(4))", async () => {
+    it("permits up to 4 tool-calling rounds before stopping (isStepCount(4))", async () => {
         // A CLIENT-executed tool (not `providerExecuted`) is used here purely to
         // force the SDK's step loop to continue — proving the configured cap is
         // 4, not the SDK default of 1. Production's real `web_search` tool is
@@ -205,7 +205,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
         expect(grounding.doGenerateCalls).toHaveLength(4);
     });
 
-    test("a confident, corroborated result reports usage and sources from the one call", async () => {
+    it("a confident, corroborated result reports usage and sources from the one call", async () => {
         const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
             input: 5489,
             output: 85,
@@ -228,7 +228,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
         expect(outcome.outputTokens).toBe(85);
     });
 
-    test("threads a region code into the prompt", async () => {
+    it("threads a region code into the prompt", async () => {
         const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
             sourceUrl: "https://farmatodo.com/about",
         });
@@ -242,7 +242,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
         expect(sent).toContain("VE");
     });
 
-    test("threads the purchase currency and the descriptor hint into the prompt", async () => {
+    it("threads the purchase currency and the descriptor hint into the prompt", async () => {
         const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
             sourceUrl: "https://farmatodo.com/about",
         });
@@ -257,7 +257,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
         expect(sent).toContain("card-terminal or bank-statement descriptor");
     });
 
-    test("licenses a global fallback when no business operates in the region", async () => {
+    it("licenses a global fallback when no business operates in the region", async () => {
         const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
             sourceUrl: "https://farmatodo.com/about",
         });
@@ -271,7 +271,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
         expect(sent).toContain("fall back to the best globally known match");
     });
 
-    test("drops a non-url source rather than widening the candidate's source shape", async () => {
+    it("drops a non-url source rather than widening the candidate's source shape", async () => {
         const grounding = new MockLanguageModelV3({
             doGenerate: async () => ({
                 content: [
@@ -300,7 +300,7 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
 });
 
 describe("runGroundedLookup guards (ADR-11 order)", () => {
-    test("performs no model work when groundedPerKey is already exhausted for this key", async () => {
+    it("performs no model work when groundedPerKey is already exhausted for this key", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -317,7 +317,7 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
         expect(grounding.doGenerateCalls).toHaveLength(0);
     });
 
-    test("performs no model work when groundedBudgetMicros is exhausted (T7)", async () => {
+    it("performs no model work when groundedBudgetMicros is exhausted (T7)", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -339,7 +339,7 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
         limitSpy.mockRestore();
     });
 
-    test("a confident result writes merchantKnowledge and records spend as published", async () => {
+    it("a confident result writes merchantKnowledge and records spend as published", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -373,7 +373,7 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
         expect(spend[0]).toMatchObject({ published: true });
     });
 
-    test("a thrown model call records spend as unpublished instead of dying uncaught", async () => {
+    it("a thrown model call records spend as unpublished instead of dying uncaught", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -413,7 +413,7 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
         warnSpy.mockRestore();
     });
 
-    test("an uncorroborated result records spend but writes nothing to merchantKnowledge", async () => {
+    it("an uncorroborated result records spend but writes nothing to merchantKnowledge", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -442,7 +442,7 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
 });
 
 describe("runGroundedLookupCall domain guard (model-hallucinated denylisted domain)", () => {
-    test.each([
+    it.each([
         ["img.logo.dev", "https://img.logo.dev/about"],
         ["itunes.apple.com", "https://itunes.apple.com/about"],
         ["is1-ssl.mzstatic.com", "https://is1-ssl.mzstatic.com/about"],
@@ -457,7 +457,7 @@ describe("runGroundedLookupCall domain guard (model-hallucinated denylisted doma
         expect(outcome.candidate.domain).toBeNull();
     });
 
-    test("keeps an ordinary corroborated domain untouched", async () => {
+    it("keeps an ordinary corroborated domain untouched", async () => {
         const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
             sourceUrl: "https://farmatodo.com/about",
         });
@@ -479,7 +479,7 @@ describe("runGroundedLookupCall for a queued row", () => {
         name: "CARE4BAG AE",
     };
 
-    test("answers in the owner's category and publishes only the canonical one", async () => {
+    it("answers in the owner's category and publishes only the canonical one", async () => {
         const grounding = mockTextModel(
             JSON.stringify({
                 canonicalCategory: "Travel",
@@ -509,7 +509,7 @@ describe("runGroundedLookupCall for a queued row", () => {
         expect(JSON.stringify(grounding.doGenerateCalls[0]?.prompt)).toContain("Trips");
     });
 
-    test("keeps a guessed domain off the answer", async () => {
+    it("keeps a guessed domain off the answer", async () => {
         const grounding = mockTextModel(
             JSON.stringify({
                 canonicalCategory: "Travel",
@@ -531,13 +531,13 @@ describe("runGroundedLookupCall for a queued row", () => {
 });
 
 describe("grounded abort budget", () => {
-    test("stays generous: a live grounded search measures ~3.75s+, and the old 3.5s budget aborted nearly every scheduled run", () => {
+    it("stays generous: a live grounded search measures ~3.75s+, and the old 3.5s budget aborted nearly every scheduled run", () => {
         expect(GROUNDED_REQUEST_TIMEOUT_MS).toBeGreaterThanOrEqual(10_000);
     });
 });
 
 describe("budgetConfig integration", () => {
-    test("groundedBudgetMicros is checked with the live-configured ceiling, not a static registration", () => {
+    it("groundedBudgetMicros is checked with the live-configured ceiling, not a static registration", () => {
         vi.stubEnv("GROUNDED_BUDGET_MICROS", "0");
         expect(budgetConfig().rate).toBe(0);
         vi.unstubAllEnvs();

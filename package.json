@@ -14,7 +14,7 @@
         "dev:server": "vp run --filter @outlayr/backend dev",
         "dev:setup": "vp run --filter @outlayr/backend dev:setup",
         "fix": "vp check --fix",
-        "prepare": "[ -n \"$CI$EAS_BUILD\" ] || vp config --no-agent --no-editor",
+        "prepare": "[ -n \"$CI$EAS_BUILD\" ] || vp config --no-agent",
         "test": "vp run -r --cache test",
         "update:preview": "cd apps/native && EAS_BUILD_PROFILE=preview eas update --branch preview",
         "update:production": "cd apps/native && EAS_BUILD_PROFILE=production eas update --branch production"
@@ -23,12 +23,10 @@
         "@outlayr/config": "workspace:*",
         "@posthog/cli": "^0.18.9",
         "@types/node": "^26.1.2",
-        "oxfmt": "^0.63.0",
-        "oxlint": "^1.78.0",
         "oxlint-tailwindcss": "^1.9.0",
         "typescript": "catalog:",
-        "ultracite": "7.10.4",
-        "vite-plus": "^0.2.9"
+        "ultracite": "7.12.2",
+        "vite-plus": "catalog:"
     },
     "packageManager": "pnpm@11.20.0"
 }

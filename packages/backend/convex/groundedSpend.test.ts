@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
 import { convexTest } from "convex-test";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { internal } from "./_generated/api";
 import schema from "./schema";
@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 describe("groundedSpend", () => {
-    test("record persists a row that monthlyTotal can sum", async () => {
+    it("record persists a row that monthlyTotal can sum", async () => {
         const t = convexTest(schema, modules);
         const now = Date.UTC(2026, 6, 15);
 
@@ -34,7 +34,7 @@ describe("groundedSpend", () => {
         expect(result.totalMicros).toBe(6500);
     });
 
-    test("monthlyTotal sums only rows within the same calendar month", async () => {
+    it("monthlyTotal sums only rows within the same calendar month", async () => {
         const t = convexTest(schema, modules);
         const lastMonth = Date.UTC(2026, 5, 20);
         const thisMonth = Date.UTC(2026, 6, 3);
@@ -66,7 +66,7 @@ describe("groundedSpend", () => {
         expect(result.totalMicros).toBe(4000);
     });
 
-    test("monthlyTotal reports the $25 ceiling constant by default", async () => {
+    it("monthlyTotal reports the $25 ceiling constant by default", async () => {
         const t = convexTest(schema, modules);
 
         const result = await t.query(internal.groundedSpend.monthlyTotal, {
@@ -76,7 +76,7 @@ describe("groundedSpend", () => {
         expect(result.ceilingMicros).toBe(200_000_000);
     });
 
-    test("monthlyTotal reflects a live env-var ceiling override", async () => {
+    it("monthlyTotal reflects a live env-var ceiling override", async () => {
         vi.stubEnv("GROUNDED_BUDGET_MICROS", "1000");
         const t = convexTest(schema, modules);
 

@@ -15,8 +15,8 @@
     "scripts": {
         "check-types": "tsc --noEmit",
         "generate:catalog": "node scripts/generate-catalog.mjs",
-        "test": "vitest run",
-        "test:watch": "vitest"
+        "test": "vp test run",
+        "test:watch": "vp test"
     },
     "dependencies": {
         "dinero.js": "^2.0.2"
@@ -27,7 +27,6 @@
         "cldr-core": "45.0.0",
         "cldr-numbers-modern": "45.0.0",
         "typescript": "^6",
-        "vite": "8.1.2",
-        "vitest": "^4.1.9"
+        "vite": "catalog:"
     }
 }

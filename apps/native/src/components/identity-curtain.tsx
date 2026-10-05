@@ -53,24 +53,25 @@ export const CURTAIN_LAYER_SIZE = [
     { x: "100%", y: CURTAIN_HEIGHT },
 ] as const;
 
+const bloom = (color: string, left: string) =>
+    ({
+        colorStops: [
+            { color, positions: ["0%"] },
+            { color: withAlpha(color, MID_ALPHA[1]), positions: ["45%"] },
+            { color: withAlpha(color, 0), positions: ["100%"] },
+        ],
+        position: { left, top: 0 },
+        // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- the key is uniwind's radial-gradient option name
+        shape: "ellipse",
+        size: { x: "70%", y: CURTAIN_HEIGHT },
+        type: "radial-gradient",
+    }) as const;
+
 export function curtainGradient(hues: string[] | null, isDark: boolean) {
     if (hues == null || hues.length === 0) {
         return;
     }
     const [c0, c1, c2] = meshHues(hues.map((hue) => curtainShade(hue, isDark)));
-    const bloom = (color: string, left: string) =>
-        ({
-            colorStops: [
-                { color, positions: ["0%"] },
-                { color: withAlpha(color, MID_ALPHA[1]), positions: ["45%"] },
-                { color: withAlpha(color, 0), positions: ["100%"] },
-            ],
-            position: { left, top: 0 },
-            // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- the key is uniwind's radial-gradient option name
-            shape: "ellipse",
-            size: { x: "70%", y: CURTAIN_HEIGHT },
-            type: "radial-gradient",
-        }) as const;
     return [bloom(c0, "12%"), bloom(c1, "50%"), bloom(c2, "88%")];
 }
 

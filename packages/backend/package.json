@@ -8,7 +8,7 @@
         "check-types": "tsc --noEmit -p convex",
         "dev": "convex dev",
         "dev:setup": "convex dev --configure --until-success",
-        "test": "vitest run"
+        "test": "vp test run"
     },
     "dependencies": {
         "@ai-sdk/xai": "^5.0.4",
@@ -34,7 +34,6 @@
         "convex-test": "^0.0.54",
         "react": "19.2.3",
         "typescript": "catalog:",
-        "vite": "8.1.2",
-        "vitest": "^4.1.10"
+        "vite": "catalog:"
     }
 }

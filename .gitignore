@@ -34,6 +34,7 @@ lerna-debug.log*
 # Testing
 coverage
 .nyc_output
+.vitest/
 
 # Argent (simulator QA artifacts: screen recordings, flows)
 .argent

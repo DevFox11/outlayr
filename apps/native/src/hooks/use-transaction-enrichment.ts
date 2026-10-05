@@ -653,7 +653,7 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 
     useEffect(() => {
         if (!enabled) {
-            // oxlint-disable-next-line react/react-compiler -- teardown is a cancellation, not a derivation: it clears three timers and abandons the in-flight requests, and `pending` reports whether one is outstanding. There is nothing to compute this from during render.
+            // oxlint-disable-next-line react/set-state-in-effect -- teardown is a cancellation, not a derivation: it clears three timers and abandons the in-flight requests, and `pending` reports whether one is outstanding. There is nothing to compute this from during render.
             teardown();
         }
     }, [enabled, teardown]);

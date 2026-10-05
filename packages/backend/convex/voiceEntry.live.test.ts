@@ -21,7 +21,7 @@ import { readFile } from "node:fs/promises";
 import agentTest from "@convex-dev/agent/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { api } from "./_generated/api";
 import schema from "./schema";
@@ -55,7 +55,7 @@ function draftAt(turns: Turn[], order: number): ProposedDraft | null {
 }
 
 describe.skipIf(!live)("voice thread, live", () => {
-    test("a clip becomes a draft, and the next sentence corrects it in place", async () => {
+    it("a clip becomes a draft, and the next sentence corrects it in place", async () => {
         const t = convexTest(schema, modules);
         agentTest.register(t);
         rateLimiterTest.register(t);

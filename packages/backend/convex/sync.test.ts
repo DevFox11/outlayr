@@ -5,7 +5,7 @@ import { convexTest } from "convex-test";
 import type { TestConvex } from "convex-test";
 import type { FunctionArgs } from "convex/server";
 import { ConvexError } from "convex/values";
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { api } from "./_generated/api";
 import { DELETION_JOBS_PER_USER } from "./accountDeletion";
@@ -127,7 +127,7 @@ async function omitStoredTransactionAccountId(t: TestClient): Promise<void> {
 }
 
 describe("push authorization", () => {
-    test("refuses a caller with no session", async () => {
+    it("refuses a caller with no session", async () => {
         const t = harness();
 
         await expect(
@@ -138,7 +138,7 @@ describe("push authorization", () => {
         ).rejects.toThrow(ConvexError);
     });
 
-    test("stores the row under the caller's own id, never an argument", async () => {
+    it("stores the row under the caller's own id, never an argument", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
@@ -149,7 +149,7 @@ describe("push authorization", () => {
         expect(stored[0].userId).toBe(owner.userId);
     });
 
-    test("keeps two accounts' ledgers apart", async () => {
+    it("keeps two accounts' ledgers apart", async () => {
         const t = harness();
         const first = await seedProUser(t);
         const second = await seedProUser(t);
@@ -162,7 +162,7 @@ describe("push authorization", () => {
         expect(page.rows[0].updatedAt).toBe(100);
     });
 
-    test("refuses a push once the purge has started, and allows one before it", async () => {
+    it("refuses a push once the purge has started, and allows one before it", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         const { resumeSecret } = await authenticatedAs(t, owner).mutation(api.accountDeletion.prepare, {});
@@ -181,7 +181,7 @@ describe("push authorization", () => {
         await expect(t.run((ctx) => ctx.db.query("transactions").collect())).resolves.toHaveLength(0);
     });
 
-    test("refuses a batch larger than the per-transaction budget", async () => {
+    it("refuses a batch larger than the per-transaction budget", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         const rows = Array.from({ length: PUSH_BATCH_LIMIT + 1 }, (_, i) => transactionRow(`t${i}`, 100));
@@ -191,7 +191,7 @@ describe("push authorization", () => {
 });
 
 describe("push table coverage", () => {
-    test("accepts and round-trips a row from every table the outbox drains", async () => {
+    it("accepts and round-trips a row from every table the outbox drains", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         const rows: PushRows = [
@@ -248,7 +248,7 @@ describe("push table coverage", () => {
         expect(tag?.fields).toMatchObject({ name: "festival", sortOrder: 0 });
     });
 
-    test("round-trips an account and a transaction that names it", async () => {
+    it("round-trips an account and a transaction that names it", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
@@ -277,7 +277,7 @@ describe("push table coverage", () => {
         expect(transaction?.fields.accountId).toBe("acct-1");
     });
 
-    test("round-trips resolved and pending custom transaction rate triples", async () => {
+    it("round-trips resolved and pending custom transaction rate triples", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
@@ -302,7 +302,7 @@ describe("push table coverage", () => {
         });
     });
 
-    test("serves a stored transaction that predates accountId as null", async () => {
+    it("serves a stored transaction that predates accountId as null", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
@@ -324,7 +324,7 @@ describe("push table coverage", () => {
         expect(page.rows[0].fields.accountId).toBeNull();
     });
 
-    test("an accounts tombstone beats a live edit like any other table", async () => {
+    it("an accounts tombstone beats a live edit like any other table", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
@@ -352,7 +352,7 @@ describe("push table coverage", () => {
         expect(account?.deletedAt).toBe(50);
     });
 
-    test("a tags tombstone beats a live edit like any other table", async () => {
+    it("a tags tombstone beats a live edit like any other table", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         const live: PushRows = [
@@ -384,7 +384,7 @@ describe("push table coverage", () => {
 });
 
 describe("push sequencing", () => {
-    test("stamps each accepted row with the next seq and bumps the counter once", async () => {
+    it("stamps each accepted row with the next seq and bumps the counter once", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
@@ -400,7 +400,7 @@ describe("push sequencing", () => {
         expect(states[0].nextSeq).toBe(4);
     });
 
-    test("continues the sequence across batches", async () => {
+    it("continues the sequence across batches", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
@@ -411,7 +411,7 @@ describe("push sequencing", () => {
         expect(page.rows.map((row) => row.seq)).toStrictEqual([1, 2]);
     });
 
-    test("leaves the counter alone when a whole batch is a no-op", async () => {
+    it("leaves the counter alone when a whole batch is a no-op", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
@@ -421,7 +421,7 @@ describe("push sequencing", () => {
         expect(replay).toStrictEqual({ accepted: 0, nextSeq: 2, skipped: 1 });
     });
 
-    test("upserts by localId rather than inserting a second copy", async () => {
+    it("upserts by localId rather than inserting a second copy", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
@@ -433,7 +433,7 @@ describe("push sequencing", () => {
         expect(stored[0].note).toBe("tea");
     });
 
-    test("keys appMeta on the meta key, not on a row id", async () => {
+    it("keys appMeta on the meta key, not on a row id", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
@@ -463,7 +463,7 @@ describe("push sequencing", () => {
 });
 
 describe("push conflict resolution", () => {
-    test("R1 — a tombstone beats a strictly newer edit", async () => {
+    it("R1 — a tombstone beats a strictly newer edit", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
@@ -478,7 +478,7 @@ describe("push conflict resolution", () => {
         expect(stored[0].note).not.toBe("resurrected");
     });
 
-    test("R1 — a tombstone lands on top of a newer live row", async () => {
+    it("R1 — a tombstone lands on top of a newer live row", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
@@ -489,7 +489,7 @@ describe("push conflict resolution", () => {
         expect(stored[0].deletedAt).toBe(100);
     });
 
-    test("R2 — the greater updatedAt takes the whole row", async () => {
+    it("R2 — the greater updatedAt takes the whole row", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
@@ -503,7 +503,7 @@ describe("push conflict resolution", () => {
         expect(stored[0].note).toBe("newer");
     });
 
-    test("R2 — an exact tie breaks on the greater deviceId, both ways round", async () => {
+    it("R2 — an exact tie breaks on the greater deviceId, both ways round", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
@@ -518,7 +518,7 @@ describe("push conflict resolution", () => {
         expect(stored[0].note).toBe("from-b");
     });
 
-    test("preserves pending custom policy against an equal-timestamp old-client official backfill", async () => {
+    it("preserves pending custom policy against an equal-timestamp old-client official backfill", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
@@ -538,7 +538,7 @@ describe("push conflict resolution", () => {
         expect(stored).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
     });
 
-    test("preserves pending custom policy when the equal-timestamp official backfill arrived first", async () => {
+    it("preserves pending custom policy when the equal-timestamp official backfill arrived first", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_B, [
@@ -558,7 +558,7 @@ describe("push conflict resolution", () => {
         expect(stored).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
     });
 
-    test("treats omitted legacy nullable fields as null when pending custom arrives first", async () => {
+    it("treats omitted legacy nullable fields as null when pending custom arrives first", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
@@ -585,7 +585,7 @@ describe("push conflict resolution", () => {
         expect(stored).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
     });
 
-    test("treats omitted legacy nullable fields as null when official arrives first", async () => {
+    it("treats omitted legacy nullable fields as null when official arrives first", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_B, [
@@ -612,7 +612,7 @@ describe("push conflict resolution", () => {
         expect(stored).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
     });
 
-    test("treats a legacy omitted stored accountId as null when pending custom arrives first", async () => {
+    it("treats a legacy omitted stored accountId as null when pending custom arrives first", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
@@ -633,7 +633,7 @@ describe("push conflict resolution", () => {
         expect(stored).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
     });
 
-    test("treats a legacy omitted stored accountId as null when official arrives first", async () => {
+    it("treats a legacy omitted stored accountId as null when official arrives first", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_B, [
@@ -654,7 +654,7 @@ describe("push conflict resolution", () => {
         expect(stored).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
     });
 
-    test("re-emits pending custom after the losing device passed its original sequence", async () => {
+    it("re-emits pending custom after the losing device passed its original sequence", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
@@ -680,7 +680,7 @@ describe("push conflict resolution", () => {
         expect(correction.cursor).toBeGreaterThan(consumed.cursor);
     });
 
-    test("coalesces duplicate losing backfills into one correction emission", async () => {
+    it("coalesces duplicate losing backfills into one correction emission", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
@@ -701,7 +701,7 @@ describe("push conflict resolution", () => {
         await expect(pullAs(t, owner, correction.cursor)).resolves.toMatchObject({ rows: [] });
     });
 
-    test("re-emits one correction for an identical losing backfill in a later push", async () => {
+    it("re-emits one correction for an identical losing backfill in a later push", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
@@ -727,7 +727,7 @@ describe("push conflict resolution", () => {
         await expect(pullAs(t, owner, secondCorrection.cursor)).resolves.toMatchObject({ rows: [] });
     });
 
-    test("keeps normal deviceId tie-breaking when an equal-timestamp official edit changes a business field", async () => {
+    it("keeps normal deviceId tie-breaking when an equal-timestamp official edit changes a business field", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
@@ -753,7 +753,7 @@ describe("push conflict resolution", () => {
         expect(stored).toMatchObject({ exchangeRateType: "official", note: "intentional policy edit" });
     });
 
-    test("accepts a genuinely newer user edit from pending custom to official", async () => {
+    it("accepts a genuinely newer user edit from pending custom to official", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
@@ -775,13 +775,13 @@ describe("push conflict resolution", () => {
 });
 
 describe("pullSince", () => {
-    test("refuses a caller with no session", async () => {
+    it("refuses a caller with no session", async () => {
         const t = harness();
 
         await expect(t.query(api.sync.pullSince, { cursor: 0 })).rejects.toThrow(ConvexError);
     });
 
-    test("merge-sorts six streams into one seq-ordered log", async () => {
+    it("merge-sorts six streams into one seq-ordered log", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
@@ -821,7 +821,7 @@ describe("pullSince", () => {
         expect(page.hasMore).toBeFalsy();
     });
 
-    test("serves only what is strictly after the cursor", async () => {
+    it("serves only what is strictly after the cursor", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
@@ -835,7 +835,7 @@ describe("pullSince", () => {
         expect(page.rows.map((row) => row.localId)).toStrictEqual(["t3"]);
     });
 
-    test("pages a log longer than the limit without dropping a row", async () => {
+    it("pages a log longer than the limit without dropping a row", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(
@@ -859,7 +859,7 @@ describe("pullSince", () => {
         expect(seen).toStrictEqual(["t0", "t1", "t2", "t3", "t4", "t5", "t6"]);
     });
 
-    test("carries the full field payload, tombstone included", async () => {
+    it("carries the full field payload, tombstone included", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
@@ -877,7 +877,7 @@ describe("pullSince", () => {
         expect(page.rows[0].fields.amount).toBe(9.99);
     });
 
-    test("serves appMeta under the key it was pushed with", async () => {
+    it("serves appMeta under the key it was pushed with", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [
@@ -897,7 +897,7 @@ describe("pullSince", () => {
         expect(page.rows[0].fields.value).toBe("1");
     });
 
-    test("leaves the cursor where it was when nothing is new", async () => {
+    it("leaves the cursor where it was when nothing is new", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100)]);
@@ -911,14 +911,14 @@ describe("pullSince", () => {
 });
 
 describe("currentSeq", () => {
-    test("is zero for an account that has never pushed", async () => {
+    it("is zero for an account that has never pushed", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
         await expect(authenticatedAs(t, owner).query(api.sync.currentSeq, {})).resolves.toBe(0);
     });
 
-    test("moves when any device pushes", async () => {
+    it("moves when any device pushes", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100)]);
@@ -926,7 +926,7 @@ describe("currentSeq", () => {
         await expect(authenticatedAs(t, owner).query(api.sync.currentSeq, {})).resolves.toBe(2);
     });
 
-    test("refuses a caller with no session", async () => {
+    it("refuses a caller with no session", async () => {
         const t = harness();
 
         await expect(t.query(api.sync.currentSeq, {})).rejects.toThrow(ConvexError);
@@ -934,7 +934,7 @@ describe("currentSeq", () => {
 });
 
 describe("the Pro gate", () => {
-    test("refuses a push from an account without Pro, and writes nothing", async () => {
+    it("refuses a push from an account without Pro, and writes nothing", async () => {
         const t = harness();
         const free = await seedAuthUser(t);
 
@@ -946,14 +946,14 @@ describe("the Pro gate", () => {
         expect(rows).toStrictEqual([]);
     });
 
-    test("refuses a pull from an account without Pro", async () => {
+    it("refuses a pull from an account without Pro", async () => {
         const t = harness();
         const free = await seedAuthUser(t);
 
         await expect(authenticatedAs(t, free).query(api.sync.pullSince, { cursor: 0 })).rejects.toThrow("Pro");
     });
 
-    test("lets the same account through the moment the entitlement lands", async () => {
+    it("lets the same account through the moment the entitlement lands", async () => {
         const t = harness();
         const owner = await seedAuthUser(t);
         await expect(
@@ -987,7 +987,7 @@ describe("push during account deletion", () => {
         );
     }
 
-    test("refuses a push once a job has moved past prepared", async () => {
+    it("refuses a push once a job has moved past prepared", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await seedJob(t, owner.userId, "providersRevoked", 0);
@@ -997,7 +997,7 @@ describe("push during account deletion", () => {
         ).rejects.toThrow("being deleted");
     });
 
-    test("still accepts a push while the owner has only asked", async () => {
+    it("still accepts a push while the owner has only asked", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         await seedJob(t, owner.userId, "prepared", 0);
@@ -1011,7 +1011,7 @@ describe("push during account deletion", () => {
     // The guard used to read a page of jobs, so a client could bury the one that
     // refuses the push under a page of harmless prepared ones and re-create rows
     // for a user id the purge is about to null.
-    test("cannot be walked past by burying the purging job under a page of prepared ones", async () => {
+    it("cannot be walked past by burying the purging job under a page of prepared ones", async () => {
         const t = harness();
         const owner = await seedProUser(t);
         for (let n = 0; n < DELETION_JOBS_PER_USER; n += 1) {

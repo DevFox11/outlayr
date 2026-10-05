@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { internal } from "./_generated/api";
 import schema from "./schema";
@@ -28,7 +28,7 @@ afterEach(() => {
 });
 
 describe("openexchangerates.fetchRates", () => {
-    test("stores each quote as an official row on the day it was published", async () => {
+    it("stores each quote as an official row on the day it was published", async () => {
         vi.stubEnv("OXR_APP_ID", "app-id");
         const t = convexTest(schema, modules);
         const fetchMock = stubFetch({
@@ -50,7 +50,7 @@ describe("openexchangerates.fetchRates", () => {
         });
     });
 
-    test("writes nothing when the request fails", async () => {
+    it("writes nothing when the request fails", async () => {
         vi.stubEnv("OXR_APP_ID", "app-id");
         vi.spyOn(console, "error").mockReturnValue(undefined);
         const t = convexTest(schema, modules);
@@ -61,7 +61,7 @@ describe("openexchangerates.fetchRates", () => {
         await expect(t.run((ctx) => ctx.db.query("exchangeRates").collect())).resolves.toHaveLength(0);
     });
 
-    test("writes nothing for a payload quoted against another base", async () => {
+    it("writes nothing for a payload quoted against another base", async () => {
         vi.stubEnv("OXR_APP_ID", "app-id");
         vi.spyOn(console, "error").mockReturnValue(undefined);
         const t = convexTest(schema, modules);
@@ -72,7 +72,7 @@ describe("openexchangerates.fetchRates", () => {
         await expect(t.run((ctx) => ctx.db.query("exchangeRates").collect())).resolves.toHaveLength(0);
     });
 
-    test("throws a descriptive error when OXR_APP_ID is missing", async () => {
+    it("throws a descriptive error when OXR_APP_ID is missing", async () => {
         vi.stubEnv("OXR_APP_ID", "");
         const t = convexTest(schema, modules);
 

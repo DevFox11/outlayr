@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import { grantAppleCredential } from "./providerLifecycle";
 
@@ -33,7 +33,7 @@ function dependencies() {
 }
 
 describe("apple-capture-exchange-storage", () => {
-    test("stores only server-exchanged provider material and expiry after both subject checks", async () => {
+    it("stores only server-exchanged provider material and expiry after both subject checks", async () => {
         vi.useFakeTimers();
         vi.setSystemTime(now);
         const deps = dependencies();
@@ -51,7 +51,7 @@ describe("apple-capture-exchange-storage", () => {
         vi.useRealTimers();
     });
 
-    test("rejects a linked-subject mismatch and never exchanges or persists", async () => {
+    it("rejects a linked-subject mismatch and never exchanges or persists", async () => {
         const deps = dependencies();
         deps.findAppleAccount.mockResolvedValue({ accountId: "other-subject", id: "account-id" });
 
@@ -61,7 +61,7 @@ describe("apple-capture-exchange-storage", () => {
         expect(deps.persist).not.toHaveBeenCalled();
     });
 
-    test("best-effort revokes exchanged material when persistence fails", async () => {
+    it("best-effort revokes exchanged material when persistence fails", async () => {
         const deps = dependencies();
         deps.persist.mockRejectedValue(new Error("storage unavailable"));
 

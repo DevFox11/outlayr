@@ -20,7 +20,7 @@
 import { createXai } from "@ai-sdk/xai";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { convexTest } from "convex-test";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import { api } from "./_generated/api";
 import { classify } from "./csvImport";
@@ -46,7 +46,7 @@ const CATEGORY_TREE = [
 const OFFERED = new Set(CATEGORY_TREE.flatMap((branch) => [branch.name, ...branch.children]));
 
 describe.skipIf(!enabled)("csvImport against the live model", () => {
-    test("classify maps unfamiliar merchants into categories the caller offered", async () => {
+    it("classify maps unfamiliar merchants into categories the caller offered", async () => {
         const xai = createXai({ apiKey });
 
         const result = await classify(xai(MODEL_ID), {
@@ -65,7 +65,7 @@ describe.skipIf(!enabled)("csvImport against the live model", () => {
         }
     }, 30_000);
 
-    test("the action returns ok end to end for an authenticated caller", async () => {
+    it("the action returns ok end to end for an authenticated caller", async () => {
         vi.stubEnv("XAI_API_KEY", apiKey);
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);

@@ -3,7 +3,7 @@
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { api } from "./_generated/api";
 import { captureLimiter, FREE_CAPTURE_CONFIG } from "./lib/captures";
@@ -76,7 +76,7 @@ const MODEL_ANSWER: ModelOutput = {
 };
 
 describe("receipt scan args validation", () => {
-    test("carries exactly the privacy-boundary fields — photo, names, currency, language, region, today", () => {
+    it("carries exactly the privacy-boundary fields — photo, names, currency, language, region, today", () => {
         expect(Object.keys(receiptScanArgs).sort()).toStrictEqual(
             ["accounts", "categoryTree", "currency", "image", "language", "regionCode", "today"].sort()
         );
@@ -84,7 +84,7 @@ describe("receipt scan args validation", () => {
 });
 
 describe("normalizeDraft", () => {
-    test("resolves names in the ledger's spelling, uppercases the currency, and strips the domain to a hostname", () => {
+    it("resolves names in the ledger's spelling, uppercases the currency, and strips the domain to a hostname", () => {
         expect(normalizeDraft(MODEL_ANSWER, CONTEXT)).toStrictEqual({
             accountName: "Visa",
             categoryName: "Groceries",
@@ -107,14 +107,14 @@ describe("normalizeDraft", () => {
         });
     });
 
-    test("is null when nothing was found or the total is missing, zero or absurd", () => {
+    it("is null when nothing was found or the total is missing, zero or absurd", () => {
         expect(normalizeDraft({ ...MODEL_ANSWER, found: false }, CONTEXT)).toBeNull();
         expect(normalizeDraft({ ...MODEL_ANSWER, total: null }, CONTEXT)).toBeNull();
         expect(normalizeDraft({ ...MODEL_ANSWER, total: 0 }, CONTEXT)).toBeNull();
         expect(normalizeDraft({ ...MODEL_ANSWER, total: 1e14 }, CONTEXT)).toBeNull();
     });
 
-    test("the ledger's own currency becomes null, and a code the rate table does not know is dropped", () => {
+    it("the ledger's own currency becomes null, and a code the rate table does not know is dropped", () => {
         expect(normalizeDraft({ ...MODEL_ANSWER, currency: "usd" }, CONTEXT)?.currency).toBeNull();
         expect(normalizeDraft({ ...MODEL_ANSWER, currency: "euros" }, CONTEXT)?.currency).toBeNull();
         expect(normalizeDraft({ ...MODEL_ANSWER, currency: "mxn" }, CONTEXT)?.currency).toBe("MXN");
@@ -125,7 +125,7 @@ describe("normalizeDraft", () => {
         expect(normalizeDraft({ ...MODEL_ANSWER, currencyPrinted: false }, CONTEXT)?.currencySource).toBe("inferred");
     });
 
-    test("a date outside the window, in the future — even tomorrow — or not on the calendar becomes today", () => {
+    it("a date outside the window, in the future — even tomorrow — or not on the calendar becomes today", () => {
         expect(normalizeDraft({ ...MODEL_ANSWER, date: "2020-01-01" }, CONTEXT)?.date).toBe("2026-09-05");
         expect(normalizeDraft({ ...MODEL_ANSWER, date: "2026-09-07" }, CONTEXT)?.date).toBe("2026-09-05");
         expect(normalizeDraft({ ...MODEL_ANSWER, date: "2026-09-06" }, CONTEXT)?.date).toBe("2026-09-05");
@@ -134,17 +134,17 @@ describe("normalizeDraft", () => {
         expect(normalizeDraft({ ...MODEL_ANSWER, date: "2024-09-05" }, CONTEXT)?.date).toBe("2024-09-05");
     });
 
-    test("names the ledger did not offer become null rather than guesses", () => {
+    it("names the ledger did not offer become null rather than guesses", () => {
         const draft = normalizeDraft({ ...MODEL_ANSWER, accountName: "Amex", categoryName: "Snacks" }, CONTEXT);
         expect(draft?.accountName).toBeNull();
         expect(draft?.categoryName).toBeNull();
     });
 
-    test("a refund slip is income", () => {
+    it("a refund slip is income", () => {
         expect(normalizeDraft({ ...MODEL_ANSWER, kind: "refund" }, CONTEXT)?.income).toBeTruthy();
     });
 
-    test("negative or non-finite printed lines become null", () => {
+    it("negative or non-finite printed lines become null", () => {
         const draft = normalizeDraft({ ...MODEL_ANSWER, subtotal: -1, tax: Number.NaN, tip: 2 }, CONTEXT);
         expect(draft?.subtotal).toBeNull();
         expect(draft?.tax).toBeNull();
@@ -153,7 +153,7 @@ describe("normalizeDraft", () => {
 });
 
 describe("normalizeItems", () => {
-    test("caps a long receipt at MAX_ITEMS", () => {
+    it("caps a long receipt at MAX_ITEMS", () => {
         const items = Array.from({ length: MAX_ITEMS + 5 }, (_, index) => ({
             name: `Item ${index}`,
             price: 1,
@@ -162,7 +162,7 @@ describe("normalizeItems", () => {
         expect(normalizeItems(items)).toHaveLength(MAX_ITEMS);
     });
 
-    test("drops a leading quantity from the name only when it is the quantity the model reported", () => {
+    it("drops a leading quantity from the name only when it is the quantity the model reported", () => {
         const names = normalizeItems([
             { name: "2 LECHE ENTERA 1L", price: 1.9, quantity: 2 },
             { name: "3x Yogur natural", price: 1.8, quantity: 3 },
@@ -183,20 +183,20 @@ describe("normalizeItems", () => {
         ]);
     });
 
-    test("a nonsense quantity is one; a fractional one keeps three decimals", () => {
+    it("a nonsense quantity is one; a fractional one keeps three decimals", () => {
         expect(normalizeItems([{ name: "Kg", price: 3, quantity: 0 }])[0]?.quantity).toBe(1);
         expect(normalizeItems([{ name: "Kg", price: 3, quantity: 1.23456 }])[0]?.quantity).toBe(1.235);
     });
 });
 
 describe("looksLikeJpeg and namesWithinBudget", () => {
-    test("accepts a JPEG header and refuses anything else", () => {
+    it("accepts a JPEG header and refuses anything else", () => {
         expect(looksLikeJpeg(JPEG)).toBeTruthy();
         expect(looksLikeJpeg(new Uint8Array([0x89, 0x50, 0x4e, 0x47]).buffer)).toBeFalsy();
         expect(looksLikeJpeg(new Uint8Array([0xff]).buffer)).toBeFalsy();
     });
 
-    test("refuses a name past 80 characters or more than 400 names", () => {
+    it("refuses a name past 80 characters or more than 400 names", () => {
         expect(namesWithinBudget(BASE_ARGS.categoryTree, BASE_ARGS.accounts)).toBeTruthy();
         expect(namesWithinBudget([{ children: [], name: "x".repeat(81) }], [])).toBeFalsy();
         expect(
@@ -209,7 +209,7 @@ describe("looksLikeJpeg and namesWithinBudget", () => {
 });
 
 describe("LANGUAGE_PATTERN", () => {
-    test("accepts a device locale with script, region and extension subtags, and refuses junk", () => {
+    it("accepts a device locale with script, region and extension subtags, and refuses junk", () => {
         expect(LANGUAGE_PATTERN.test("es-ES")).toBeTruthy();
         expect(LANGUAGE_PATTERN.test("sr-Latn-RS-u-ca-gregory")).toBeTruthy();
         expect(LANGUAGE_PATTERN.test("zh-Hant-TW-u-ca-chinese-nu-hanidec")).toBeTruthy();
@@ -219,7 +219,7 @@ describe("LANGUAGE_PATTERN", () => {
 });
 
 describe("buildPrompt", () => {
-    test("names the ledger currency, today, the region and every category and account", () => {
+    it("names the ledger currency, today, the region and every category and account", () => {
         const prompt = buildPrompt({ ...CONTEXT, language: "es-ES", regionCode: "ES" });
         expect(prompt).toContain("Today is 2026-09-05");
         expect(prompt).toContain("The ledger's currency is USD");
@@ -231,7 +231,7 @@ describe("buildPrompt", () => {
 });
 
 describe("scan guard ladder", () => {
-    test("returns unauthenticated for a signed-out caller", async () => {
+    it("returns unauthenticated for a signed-out caller", async () => {
         const t = convexTest(schema, modules);
 
         await expect(t.action(api.receiptScan.scan, BASE_ARGS)).resolves.toStrictEqual({
@@ -240,7 +240,7 @@ describe("scan guard ladder", () => {
         });
     });
 
-    test("returns notConfigured when XAI_API_KEY is unset, never throws", async () => {
+    it("returns notConfigured when XAI_API_KEY is unset, never throws", async () => {
         vi.stubEnv("XAI_API_KEY", "");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
@@ -251,7 +251,7 @@ describe("scan guard ladder", () => {
         });
     });
 
-    test("returns invalid for an oversized, empty or non-JPEG image and for a malformed date, currency or region", async () => {
+    it("returns invalid for an oversized, empty or non-JPEG image and for a malformed date, currency or region", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         const asUser = authenticatedAs(t, await seedAuthUser(t));
@@ -280,7 +280,7 @@ describe("scan guard ladder", () => {
         );
     });
 
-    test("a global reject spends none of the caller's captures", async () => {
+    it("a global reject spends none of the caller's captures", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
@@ -307,7 +307,7 @@ describe("scan guard ladder", () => {
         ).resolves.toMatchObject({ ok: true });
     });
 
-    test("returns notEntitled once a free user's capture pool is spent, before any model call", async () => {
+    it("returns notEntitled once a free user's capture pool is spent, before any model call", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
@@ -333,7 +333,7 @@ describe("scan guard ladder", () => {
         });
     });
 
-    test("returns rateLimited once the per-user bucket is exhausted, before any model call", async () => {
+    it("returns rateLimited once the per-user bucket is exhausted, before any model call", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);

@@ -26,12 +26,13 @@ export const MAX_NAME_LENGTH = 80;
 const MAX_TOTAL_NAMES = 400;
 const DAY_MS = 86_400_000;
 
+const short = (name: string) => name.length <= MAX_NAME_LENGTH;
+
 /** True when the names the client sent fit the prompt's budget. */
 export function namesWithinBudget(tree: readonly CategoryBranch[], accounts: readonly string[]): boolean {
     if (tree.length > MAX_CATEGORY_NAMES || accounts.length > MAX_ACCOUNT_NAMES) {
         return false;
     }
-    const short = (name: string) => name.length <= MAX_NAME_LENGTH;
     let total = accounts.length;
     for (const branch of tree) {
         if (!short(branch.name) || branch.children.length > MAX_CHILDREN_PER_BRANCH || !branch.children.every(short)) {

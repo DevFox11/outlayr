@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import type { TestConvex } from "convex-test";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { api, internal } from "./_generated/api";
 import { nextPruneStep, RATES_WINDOW_DAYS } from "./exchangeRates";
@@ -41,7 +41,7 @@ function readKey(t: TestClient, quote: string, rateType: MarketRateType, date: s
 }
 
 describe("upsertRates", () => {
-    test("re-running the same key patches the row in place, never duplicates", async () => {
+    it("re-running the same key patches the row in place, never duplicates", async () => {
         const t = convexTest(schema, modules);
         await t.mutation(internal.exchangeRates.upsertRates, {
             date: "2026-03-13",
@@ -65,7 +65,7 @@ describe("upsertRates", () => {
         });
     });
 
-    test("open exchange rates never overwrites a same-key cotizave row", async () => {
+    it("open exchange rates never overwrites a same-key cotizave row", async () => {
         const t = convexTest(schema, modules);
         await seed(t, {
             date: "2026-03-13",
@@ -92,7 +92,7 @@ describe("upsertRates", () => {
         });
     });
 
-    test("cotizave overwrites a same-key frankfurter row", async () => {
+    it("cotizave overwrites a same-key frankfurter row", async () => {
         const t = convexTest(schema, modules);
         await t.mutation(internal.exchangeRates.upsertRates, {
             date: "2026-03-13",
@@ -117,7 +117,7 @@ describe("upsertRates", () => {
         });
     });
 
-    test("drops non-positive and non-finite rates, upserts the valid subset", async () => {
+    it("drops non-positive and non-finite rates, upserts the valid subset", async () => {
         const t = convexTest(schema, modules);
         await t.mutation(internal.exchangeRates.upsertRates, {
             date: "2026-03-13",
@@ -178,7 +178,7 @@ async function seedPreWindowBacklog(t: TestClient, quote: string): Promise<void>
 }
 
 describe("pruneStale", () => {
-    test("keeps one pre-window row per month and every in-window row", async () => {
+    it("keeps one pre-window row per month and every in-window row", async () => {
         // 100 and 120 days back are both in March 2026, so only the newer survives;
         // 200 days back is December 2025 and keeps its own anchor. A single anchor
         // per pair would drop December entirely and leave anything older than the
@@ -198,7 +198,7 @@ describe("pruneStale", () => {
         );
     });
 
-    test("collapses several rows in one month down to that month's newest", async () => {
+    it("collapses several rows in one month down to that month's newest", async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
         const t = convexTest(schema, modules);
@@ -211,7 +211,7 @@ describe("pruneStale", () => {
         await expect(allRateDates(t, "VES")).resolves.toStrictEqual(["2026-01-29"]);
     });
 
-    test("keeps the monthly anchors of non-catalog pairs too", async () => {
+    it("keeps the monthly anchors of non-catalog pairs too", async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
         const t = convexTest(schema, modules);
@@ -223,7 +223,7 @@ describe("pruneStale", () => {
         await expect(allRateDates(t, "XXX")).resolves.toStrictEqual([daysAgoDate(200), daysAgoDate(100)].sort());
     });
 
-    test("completes across self-scheduled batches when stale rows exceed one batch", async () => {
+    it("completes across self-scheduled batches when stale rows exceed one batch", async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
         const t = convexTest(schema, modules);
@@ -239,7 +239,7 @@ describe("pruneStale", () => {
         expect(survivors.length).toBeLessThan(12);
     });
 
-    test("a pass started before a clock advance keeps pruning against its original boundary", async () => {
+    it("a pass started before a clock advance keeps pruning against its original boundary", async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
         const t = convexTest(schema, modules);
@@ -271,7 +271,7 @@ describe("pruneStale", () => {
         );
     });
 
-    test("a second pass after a completed prune deletes nothing", async () => {
+    it("a second pass after a completed prune deletes nothing", async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
         const t = convexTest(schema, modules);
@@ -288,7 +288,7 @@ describe("pruneStale", () => {
         await expect(allRateDates(t, "VES")).resolves.toStrictEqual(survivors);
     });
 
-    test("spaces the next batch out instead of dispatching it immediately", async () => {
+    it("spaces the next batch out instead of dispatching it immediately", async () => {
         // The regression: `runAfter(0)` sprinted a whole backlog in one second and
         // blew the deployment's write budget. Asserted on the schedule rather than
         // on `nextPruneStep` alone, so a handler that ignores the delay is caught.
@@ -304,7 +304,7 @@ describe("pruneStale", () => {
         expect(pending[0]?.scheduledTime).toBeGreaterThan(Date.now());
     });
 
-    test("pullRates floors a caller's instant so the window read stays bounded", async () => {
+    it("pullRates floors a caller's instant so the window read stays bounded", async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
         const t = convexTest(schema, modules);
@@ -314,7 +314,7 @@ describe("pruneStale", () => {
         expect(epoch.windowStart).toBe(daysAgoDate(3 * RATES_WINDOW_DAYS));
     });
 
-    test("pullRates slices on the caller's instant, not the server's clock", async () => {
+    it("pullRates slices on the caller's instant, not the server's clock", async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
         const t = convexTest(schema, modules);
@@ -330,7 +330,7 @@ describe("pruneStale", () => {
         expect(ahead.windowStart.localeCompare(daysAgoDate(10))).toBeGreaterThan(0);
     });
 
-    test("pullRates still serves the anchor after GC", async () => {
+    it("pullRates still serves the anchor after GC", async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
         const t = convexTest(schema, modules);
@@ -353,7 +353,7 @@ describe("pruneStale", () => {
 });
 
 describe("pullRecentRates", () => {
-    test("serves the catalog rows from the caller's previous UTC day onward", async () => {
+    it("serves the catalog rows from the caller's previous UTC day onward", async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
         const t = convexTest(schema, modules);
@@ -374,35 +374,35 @@ describe("pullRecentRates", () => {
 describe(nextPruneStep, () => {
     const midPass = { cursor: "page-3", retries: 0 };
 
-    test("carries a drained batch on to the next page", () => {
+    it("carries a drained batch on to the next page", () => {
         expect(nextPruneStep({ cursor: "page-4", failed: false, isDone: false }, midPass)).toMatchObject({
             cursor: "page-4",
             retries: 0,
         });
     });
 
-    test("waits between successful batches rather than dispatching back to back", () => {
+    it("waits between successful batches rather than dispatching back to back", () => {
         const step = nextPruneStep({ cursor: "page-4", failed: false, isDone: false }, midPass);
         expect(step?.delayMs).toBeGreaterThan(0);
     });
 
-    test("ends the pass once the last page is drained", () => {
+    it("ends the pass once the last page is drained", () => {
         expect(nextPruneStep({ cursor: "page-4", failed: false, isDone: true }, midPass)).toBeNull();
     });
 
-    test("a failed batch keeps the pass alive at the same cursor", () => {
+    it("a failed batch keeps the pass alive at the same cursor", () => {
         // The bug this replaces: the failure took the reschedule down with it, so a
         // backlog large enough to trip the write limit never drained at all.
         expect(nextPruneStep({ failed: true }, midPass)).toMatchObject({ cursor: "page-3", retries: 1 });
     });
 
-    test("backs off further on each consecutive failure", () => {
+    it("backs off further on each consecutive failure", () => {
         const first = nextPruneStep({ failed: true }, midPass);
         const second = nextPruneStep({ failed: true }, { cursor: "page-3", retries: first?.retries ?? 0 });
         expect(second?.delayMs).toBeGreaterThan(first?.delayMs ?? 0);
     });
 
-    test("gives up on a batch that keeps failing, leaving the rest to the daily cron", () => {
+    it("gives up on a batch that keeps failing, leaving the rest to the daily cron", () => {
         let step = nextPruneStep({ failed: true }, midPass);
         for (let attempt = 0; attempt < 20 && step; attempt += 1) {
             step = nextPruneStep({ failed: true }, { cursor: step.cursor, retries: step.retries });
@@ -410,7 +410,7 @@ describe(nextPruneStep, () => {
         expect(step).toBeNull();
     });
 
-    test("a success clears the retries a stuck batch accrued", () => {
+    it("a success clears the retries a stuck batch accrued", () => {
         expect(
             nextPruneStep({ cursor: "page-4", failed: false, isDone: false }, { cursor: "page-3", retries: 3 })
         ).toMatchObject({ retries: 0 });

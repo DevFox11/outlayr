@@ -165,10 +165,10 @@ export function FloatingAddButton() {
         { icon: ScanIcon, key: "scan", label: t("log.add.scan"), onPress: () => go("/transactions/scan") },
         { icon: FileImportIcon, key: "import", label: t("log.add.import"), onPress: presentImport },
     ];
-    // oxlint-disable-next-line react/react-compiler -- same shape as the disable below: `go` reads its latch when the action is pressed, never during render, and the rule follows the function value into the array rather than the ref itself
+    // oxlint-disable-next-line react/refs -- same shape as the disable below: `go` reads its latch when the action is pressed, never during render, and the rule follows the function value into the array rather than the ref itself
     const { kept, lines } = fitDial(ranked.length, room, fontScale);
     // The dial reads top to bottom, so the least-reached-for action sits furthest from the thumb.
-    // oxlint-disable-next-line react/react-compiler -- `presentImport` reads the sheet's ref when it is pressed, never during render; the rule tracks the function value into any array it lands in, and the alternative is not putting the import in the list at all
+    // oxlint-disable-next-line react/refs -- `presentImport` reads the sheet's ref when it is pressed, never during render; the rule tracks the function value into any array it lands in, and the alternative is not putting the import in the list at all
     const actions = ranked.slice(0, kept).reverse();
 
     const toggleDial = useCallback(

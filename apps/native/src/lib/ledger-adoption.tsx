@@ -77,7 +77,7 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
         // ledger has been reconciled, turning an automatic adoption into a
         // merge. The hold is bounded by the requests themselves.
         if (accountId != null && !settled && entitlementPending) {
-            // oxlint-disable-next-line react/react-compiler -- as below: one arm of the same async state machine.
+            // oxlint-disable-next-line react/set-state-in-effect -- as below: one arm of the same async state machine.
             setStatus("resolving");
             return;
         }
@@ -88,7 +88,7 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
         // the existing `defer` path: refused pull, one retry scheduled, no
         // marker written, so the work stays due for the next launch.
         if (accountId == null || settled || confirmedFree) {
-            // oxlint-disable-next-line react/react-compiler -- one arm of an async state machine whose other arms settle from awaits; splitting this one out to a derivation would leave the status written from two places.
+            // oxlint-disable-next-line react/set-state-in-effect -- one arm of an async state machine whose other arms settle from awaits; splitting this one out to a derivation would leave the status written from two places.
             setStatus("settled");
             return;
         }

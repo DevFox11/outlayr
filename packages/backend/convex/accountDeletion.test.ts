@@ -7,7 +7,7 @@ import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
 import type { TestConvex } from "convex-test";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { api, components, internal } from "./_generated/api";
 import { consumeGoogleLocalReceipt, DELETION_JOBS_PER_USER } from "./accountDeletion";
@@ -43,11 +43,11 @@ const job: DeletionJob = {
 };
 
 describe("resumable account deletion", () => {
-    test("hashes the raw secret", async () => {
+    it("hashes the raw secret", async () => {
         await expect(sha256Hex(secret)).resolves.not.toBe(secret);
     });
 
-    test("rejects a Google local receipt bound to another deletion job", async () => {
+    it("rejects a Google local receipt bound to another deletion job", async () => {
         const receipt = "receipt-for-job-a";
         const jobA: DeletionJob = {
             ...job,
@@ -67,7 +67,7 @@ describe("resumable account deletion", () => {
         });
     });
 
-    test("accepts one replay of the same Google local receipt without claiming provider attestation", async () => {
+    it("accepts one replay of the same Google local receipt without claiming provider attestation", async () => {
         const receipt = "receipt-for-job";
         const prepared: DeletionJob = {
             ...job,
@@ -107,7 +107,7 @@ async function purgedJob() {
 describe("preparing a deletion", () => {
     // The cap is what makes `sync.refuseWhileDeleting`'s full read of a user's
     // jobs cheap, and what stops a client burying the job that refuses a push.
-    test("refuses a new request once the account is holding the cap", async () => {
+    it("refuses a new request once the account is holding the cap", async () => {
         const t = convexTest(schema, modules);
         revenuecatTest.register(t);
         const owner = await seedAuthUser(t);
@@ -137,19 +137,19 @@ describe("sweeping abandoned jobs", () => {
         return await t.run(async (ctx) => (await ctx.db.query("accountDeletionJobs").collect()).length);
     }
 
-    test("reclaims one abandoned after a Google local receipt, which revoked nothing upstream", async () => {
+    it("reclaims one abandoned after a Google local receipt, which revoked nothing upstream", async () => {
         await expect(sweepWith("providersRevoked", "googleLocalReceipt")).resolves.toBe(0);
     });
 
-    test("keeps one that already revoked the user's Apple credential", async () => {
+    it("keeps one that already revoked the user's Apple credential", async () => {
         await expect(sweepWith("providersRevoked", "appleServerRevoked")).resolves.toBe(1);
     });
 
-    test("still reclaims an expired prepared job", async () => {
+    it("still reclaims an expired prepared job", async () => {
         await expect(sweepWith("prepared", null)).resolves.toBe(0);
     });
 
-    test("leaves a mid-purge job alone", async () => {
+    it("leaves a mid-purge job alone", async () => {
         await expect(sweepWith("purged", null)).resolves.toBe(1);
     });
 });
@@ -159,7 +159,7 @@ describe("billing erasure", () => {
         vi.unstubAllGlobals();
     });
 
-    test("erases upstream first, then the mirror, and only then lets auth deletion proceed", async () => {
+    it("erases upstream first, then the mirror, and only then lets auth deletion proceed", async () => {
         const fetchMock = stubUpstream(200);
         const { owner, resumeSecret, t } = await purgedJob();
         await expect(t.mutation(api.accountDeletion.advance, { resumeSecret })).rejects.toThrow("Billing erasure");
@@ -186,7 +186,7 @@ describe("billing erasure", () => {
         });
     });
 
-    test("keeps the job at purged, mirror intact, when the upstream erase fails", async () => {
+    it("keeps the job at purged, mirror intact, when the upstream erase fails", async () => {
         stubUpstream(500);
         const { owner, resumeSecret, t } = await purgedJob();
 
@@ -196,7 +196,7 @@ describe("billing erasure", () => {
         await expect(t.run((ctx) => isPro(ctx, owner.userId))).resolves.toBeTruthy();
     });
 
-    test("keeps the job at purged when PostHog reports a person it could not delete", async () => {
+    it("keeps the job at purged when PostHog reports a person it could not delete", async () => {
         stubUpstream(202, [{ person_uuid: "person" }]);
         const { resumeSecret, t } = await purgedJob();
 
@@ -225,7 +225,7 @@ describe("an abandoned deletion past its TTL", () => {
         vi.unstubAllGlobals();
     });
 
-    test("still finishes, because the ledger is already gone", async () => {
+    it("still finishes, because the ledger is already gone", async () => {
         stubUpstream(200);
         const { owner, resumeSecret, t } = await purgedJob();
         // A big ledger takes 200 rows per `advance`, so the user can lose
@@ -246,7 +246,7 @@ describe("an abandoned deletion past its TTL", () => {
         await expect(authRows(t, "user", owner.userId)).resolves.toHaveLength(0);
     });
 
-    test("still refuses to START destroying without fresh reauthentication", async () => {
+    it("still refuses to START destroying without fresh reauthentication", async () => {
         const t = convexTest(schema, modules);
         revenuecatTest.register(t);
         const owner = await seedAuthUser(t);
@@ -301,7 +301,7 @@ describe("auth deletion", () => {
         vi.unstubAllGlobals();
     });
 
-    test("erases the user, its sessions and its OAuth links, then reports complete", async () => {
+    it("erases the user, its sessions and its OAuth links, then reports complete", async () => {
         stubUpstream(200);
         const { owner, resumeSecret, t } = await purgedJob();
         await linkAppleAccount(t, owner.userId);
@@ -322,7 +322,7 @@ describe("auth deletion", () => {
         });
     });
 
-    test("leaves no suggestion requests, usage counters or voice threads behind", async () => {
+    it("leaves no suggestion requests, usage counters or voice threads behind", async () => {
         stubUpstream(200);
         const t = convexTest(schema, modules);
         agentTest.register(t);

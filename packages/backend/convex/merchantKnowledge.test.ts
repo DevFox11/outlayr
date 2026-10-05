@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { internal } from "./_generated/api";
 import { MODEL_TTL_MS } from "./lib/merchantTrust";
@@ -16,7 +16,7 @@ const modules = import.meta.glob("./**/*.ts");
 const SOURCE_PATH = fileURLToPath(new URL("merchantKnowledge.ts", import.meta.url));
 
 describe("merchantKnowledge visibility (T5)", () => {
-    test("exports no public query or mutation", () => {
+    it("exports no public query or mutation", () => {
         const exported = Object.entries(merchantKnowledge);
         expect(exported.length).toBeGreaterThan(0);
         for (const [name, fn] of exported) {
@@ -31,12 +31,12 @@ describe("merchantKnowledge visibility (T5)", () => {
         }
     });
 
-    test("no exported handler calls .collect() on merchantKnowledge", () => {
+    it("no exported handler calls .collect() on merchantKnowledge", () => {
         const source = readFileSync(SOURCE_PATH, "utf-8");
         expect(source).not.toMatch(/\.collect\(/);
     });
 
-    test("only registers query/mutation functions through internalQuery/internalMutation", () => {
+    it("only registers query/mutation functions through internalQuery/internalMutation", () => {
         const source = readFileSync(SOURCE_PATH, "utf-8");
         expect(source).not.toMatch(/\bimport\s*\{[^}]*\bquery\b[^}]*\}\s*from\s*"\.\/_generated\/server"/);
         expect(source).not.toMatch(/\bimport\s*\{[^}]*\bmutation\b[^}]*\}\s*from\s*"\.\/_generated\/server"/);
@@ -44,7 +44,7 @@ describe("merchantKnowledge visibility (T5)", () => {
 });
 
 describe("lookup returns the stored metadata verbatim", () => {
-    test("a stored row round-trips through lookup with no image fields", async () => {
+    it("a stored row round-trips through lookup with no image fields", async () => {
         const t = convexTest(schema, modules);
         await t.run((ctx) =>
             ctx.db.insert("merchantKnowledge", {
@@ -81,7 +81,7 @@ describe("time-bounded knowledge", () => {
         tags: ["luggage"],
     };
 
-    test("answers from the first key with a live row, and not from an expired one", async () => {
+    it("answers from the first key with a live row, and not from an expired one", async () => {
         const t = convexTest(schema, modules);
         const now = Date.UTC(2026, 8, 19);
         await t.mutation(internal.merchantKnowledge.record, {
@@ -99,7 +99,7 @@ describe("time-bounded knowledge", () => {
         ).resolves.toBeNull();
     });
 
-    test("keeps a fresh web-verified answer over a later model one, and lets the web replace the model", async () => {
+    it("keeps a fresh web-verified answer over a later model one, and lets the web replace the model", async () => {
         const t = convexTest(schema, modules);
         const now = Date.UTC(2026, 8, 19);
         await t.mutation(internal.merchantKnowledge.record, {

@@ -54,7 +54,7 @@ function openLedger() {
 function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
     const t = useTranslation();
     const { retry: reopenLocalData } = useLocalData();
-    // oxlint-disable-next-line react/react-compiler -- `authClient` is a module singleton bound once at load; the `client` prop exists only so TypeScript narrows away the `null` its factory can return, so the hook is in fact the same function on every render.
+    // oxlint-disable-next-line react/hooks -- `authClient` is a module singleton bound once at load; the `client` prop exists only so TypeScript narrows away the `null` its factory can return, so the hook is in fact the same function on every render.
     const { data: session, isPending: restoring } = client.useSession();
     const { accountId } = useAuthSession();
     const [busy, setBusy] = useState<"deleteAll" | "deleteCloud" | "signOut" | null>(null);

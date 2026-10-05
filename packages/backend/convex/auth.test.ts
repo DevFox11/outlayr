@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
 import { convexTest } from "convex-test";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { createAuth } from "./auth";
 import schema from "./schema";
@@ -32,7 +32,7 @@ describe("auth base url", () => {
     // deployed function. `SITE_URL` only exists once there is a web client, so
     // falling back to it is what keeps a native-only deployment from minting
     // OAuth redirects against localhost.
-    test("falls back to the deployment site url when SITE_URL is unset", async () => {
+    it("falls back to the deployment site url when SITE_URL is unset", async () => {
         const baseURL = await baseUrlWith({
             CONVEX_SITE_URL: "https://example-deployment.convex.site",
             SITE_URL: "",
@@ -41,7 +41,7 @@ describe("auth base url", () => {
         expect(baseURL).toBe("https://example-deployment.convex.site");
     });
 
-    test("prefers an explicit SITE_URL over the deployment site url", async () => {
+    it("prefers an explicit SITE_URL over the deployment site url", async () => {
         const baseURL = await baseUrlWith({
             CONVEX_SITE_URL: "https://example-deployment.convex.site",
             SITE_URL: "https://app.tryoutlayr.com",
@@ -58,7 +58,7 @@ describe("auth", () => {
     //
     // The instance cannot cross the `t.run` boundary — it carries a `$ERROR_CODES`
     // field and Convex reserves the `$` prefix — so assert on a scalar.
-    test("builds without any social provider credentials", async () => {
+    it("builds without any social provider credentials", async () => {
         const t = convexTest(schema, modules);
 
         const handlerType = await t.run(async (ctx) => typeof createAuth(ctx).handler);
@@ -68,7 +68,7 @@ describe("auth", () => {
 
     // The four APPLE_* variables are read at module scope, so the module has to be
     // re-imported after they are stubbed.
-    test("enables the Apple provider once its credentials are configured", async () => {
+    it("enables the Apple provider once its credentials are configured", async () => {
         vi.stubEnv("APPLE_CLIENT_ID", "com.tryoutlayr.app");
         vi.stubEnv("APPLE_TEAM_ID", "TEAM123456");
         vi.stubEnv("APPLE_KEY_ID", "KEY1234567");
@@ -89,7 +89,7 @@ describe("auth", () => {
         expect(apple?.clientId).toBe("com.tryoutlayr.app");
     });
 
-    test("disables Better Auth public deletion while the resumable job owns deletion", async () => {
+    it("disables Better Auth public deletion while the resumable job owns deletion", async () => {
         const t = convexTest(schema, modules);
 
         const enabled = await t.run(async (ctx) => createAuth(ctx).options.user?.deleteUser?.enabled);

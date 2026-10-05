@@ -4,7 +4,7 @@ import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { MockLanguageModelV4 } from "ai/test";
 import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { api } from "./_generated/api";
 import {
@@ -75,7 +75,7 @@ const BASE_ARGS = {
 };
 
 describe("suggest args validation", () => {
-    test("carries exactly the eight privacy-boundary fields", () => {
+    it("carries exactly the eight privacy-boundary fields", () => {
         // Amounts, dates, accounts, balances, and identity must never leave the
         // device — this is a threat-matrix assertion, not a shape convenience.
         // `currency` is a code, never a figure.
@@ -96,13 +96,13 @@ describe("suggest args validation", () => {
 });
 
 describe("suggest guard ladder", () => {
-    test("returns EMPTY for a signed-out caller", async () => {
+    it("returns EMPTY for a signed-out caller", async () => {
         const t = convexTest(schema, modules);
 
         await expect(t.action(api.enrichment.suggest, BASE_ARGS)).resolves.toStrictEqual(EMPTY);
     });
 
-    test("returns EMPTY when XAI_API_KEY is unset", async () => {
+    it("returns EMPTY when XAI_API_KEY is unset", async () => {
         vi.stubEnv("XAI_API_KEY", "");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
@@ -112,7 +112,7 @@ describe("suggest guard ladder", () => {
         );
     });
 
-    test("returns EMPTY for a name shorter than 3 trimmed characters", async () => {
+    it("returns EMPTY for a name shorter than 3 trimmed characters", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
@@ -125,7 +125,7 @@ describe("suggest guard ladder", () => {
         ).resolves.toStrictEqual(EMPTY);
     });
 
-    test("returns EMPTY for a name longer than 64 trimmed characters", async () => {
+    it("returns EMPTY for a name longer than 64 trimmed characters", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
@@ -138,7 +138,7 @@ describe("suggest guard ladder", () => {
         ).resolves.toStrictEqual(EMPTY);
     });
 
-    test("returns EMPTY and never throws once the per-user bucket is exhausted", async () => {
+    it("returns EMPTY and never throws once the per-user bucket is exhausted", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
@@ -160,7 +160,7 @@ describe("suggest guard ladder", () => {
         await expect(asUser.action(api.enrichment.suggest, BASE_ARGS)).resolves.toStrictEqual(EMPTY);
     });
 
-    test("returns EMPTY and never throws once the global window is exhausted", async () => {
+    it("returns EMPTY and never throws once the global window is exhausted", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
@@ -183,7 +183,7 @@ describe("suggest guard ladder", () => {
         expect(limitSpy).toHaveBeenCalledWith(expect.anything(), "enrichmentGlobal");
     });
 
-    test("a background lookup draws its own bucket, not the form's", async () => {
+    it("a background lookup draws its own bucket, not the form's", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
@@ -212,7 +212,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
         );
     }
 
-    test("a currency-scoped request reads its own partition, never the bare one", async () => {
+    it("a currency-scoped request reads its own partition, never the bare one", async () => {
         vi.stubEnv("XAI_API_KEY", "");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
@@ -248,7 +248,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
         ).resolves.toMatchObject({ domain: "sushiway.fr" });
     });
 
-    test("a new descriptor for a known merchant is answered from the cache, with no model configured", async () => {
+    it("a new descriptor for a known merchant is answered from the cache, with no model configured", async () => {
         vi.stubEnv("XAI_API_KEY", "");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
@@ -275,7 +275,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
         ).resolves.toMatchObject({ domain: "airbnb.com", merchantName: "Airbnb" });
     });
 
-    test("a cache hit serves category, tags and domain without consuming either rate-limit bucket", async () => {
+    it("a cache hit serves category, tags and domain without consuming either rate-limit bucket", async () => {
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
         await seedKnowledge(t, "Farmatodo");
@@ -296,7 +296,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
         expect(limitSpy).not.toHaveBeenCalled();
     });
 
-    test("case, diacritic and whitespace variants collide to the same cached key", async () => {
+    it("case, diacritic and whitespace variants collide to the same cached key", async () => {
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
         await seedKnowledge(t, "Farmatodo");
@@ -310,7 +310,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
         ).resolves.toMatchObject({ categoryName: "Healthcare" });
     });
 
-    test("a knowledgeOnly hit serves the cached row exactly like an ordinary hit", async () => {
+    it("a knowledgeOnly hit serves the cached row exactly like an ordinary hit", async () => {
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
         await seedKnowledge(t, "Farmatodo");
@@ -328,7 +328,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
         });
     });
 
-    test("a knowledgeOnly miss returns EMPTY without consuming a rate limit or the model", async () => {
+    it("a knowledgeOnly miss returns EMPTY without consuming a rate limit or the model", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
@@ -344,7 +344,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
         expect(limitSpy).not.toHaveBeenCalled();
     });
 
-    test("a cache miss falls through to the existing guard ladder unchanged", async () => {
+    it("a cache miss falls through to the existing guard ladder unchanged", async () => {
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -358,11 +358,11 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
 });
 
 describe("latency/retry regression guard (task 3.13)", () => {
-    test("REQUEST_TIMEOUT_MS stays at 8000ms, inside the client's 9s wait", () => {
+    it("REQUEST_TIMEOUT_MS stays at 8000ms, inside the client's 9s wait", () => {
         expect(REQUEST_TIMEOUT_MS).toBe(8000);
     });
 
-    test("runSuggest never retries a thrown provider error (maxRetries: 0)", async () => {
+    it("runSuggest never retries a thrown provider error (maxRetries: 0)", async () => {
         let calls = 0;
         const throwing = new MockLanguageModelV4({
             doGenerate: async () => {
@@ -377,19 +377,19 @@ describe("latency/retry regression guard (task 3.13)", () => {
 });
 
 describe(needsGroundedLookup, () => {
-    test("a confident category with no domain still needs one", () => {
+    it("a confident category with no domain still needs one", () => {
         expect(needsGroundedLookup({ categoryName: "Groceries", domain: null })).toBeTruthy();
     });
 
-    test("a missing category needs one", () => {
+    it("a missing category needs one", () => {
         expect(needsGroundedLookup({ categoryName: null, domain: "gama.com" })).toBeTruthy();
     });
 
-    test("both missing needs one", () => {
+    it("both missing needs one", () => {
         expect(needsGroundedLookup({ categoryName: null, domain: null })).toBeTruthy();
     });
 
-    test("a complete answer needs none", () => {
+    it("a complete answer needs none", () => {
         expect(needsGroundedLookup({ categoryName: "Groceries", domain: "gama.com" })).toBeFalsy();
     });
 });
@@ -415,7 +415,7 @@ describe(maybeScheduleGrounded, () => {
         });
     }
 
-    test("does not schedule when the client arg is false", async () => {
+    it("does not schedule when the client arg is false", async () => {
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -430,7 +430,7 @@ describe(maybeScheduleGrounded, () => {
         await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(0);
     });
 
-    test("does not schedule when the synced appMeta row is false despite a true arg", async () => {
+    it("does not schedule when the synced appMeta row is false despite a true arg", async () => {
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
         await t.run((ctx) =>
@@ -455,7 +455,7 @@ describe(maybeScheduleGrounded, () => {
         await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(0);
     });
 
-    test("schedules when the arg is true and no appMeta row exists", async () => {
+    it("schedules when the arg is true and no appMeta row exists", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -496,7 +496,7 @@ describe(maybeScheduleGrounded, () => {
         return { perUser, reported, runs };
     }
 
-    test("reports a lookup for this merchant that is still running, without scheduling another", async () => {
+    it("reports a lookup for this merchant that is still running, without scheduling another", async () => {
         const { perUser, reported, runs } = await afterLookupStarted(5000);
 
         expect(reported).toBeTruthy();
@@ -504,7 +504,7 @@ describe(maybeScheduleGrounded, () => {
         expect(perUser.ok).toBeTruthy();
     });
 
-    test("reports nothing, and spends nothing, once today's lookup for this merchant has finished", async () => {
+    it("reports nothing, and spends nothing, once today's lookup for this merchant has finished", async () => {
         const { perUser, reported, runs } = await afterLookupStarted(GROUNDED_REQUEST_TIMEOUT_MS + 1000);
 
         expect(reported).toBeFalsy();
@@ -512,7 +512,7 @@ describe(maybeScheduleGrounded, () => {
         expect(perUser.ok).toBeTruthy();
     });
 
-    test("the scheduled args never carry categoryTree (ADR-7)", async () => {
+    it("the scheduled args never carry categoryTree (ADR-7)", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -538,7 +538,7 @@ describe(maybeScheduleGrounded, () => {
         });
     });
 
-    test("returns false instead of throwing when the session no longer resolves to a user", async () => {
+    it("returns false instead of throwing when the session no longer resolves to a user", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -561,7 +561,7 @@ describe(maybeScheduleGrounded, () => {
         await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(0);
     });
 
-    test("the scheduled args thread a region code through to groundedLookup.run", async () => {
+    it("the scheduled args thread a region code through to groundedLookup.run", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -583,7 +583,7 @@ describe(maybeScheduleGrounded, () => {
 });
 
 describe("runSuggest sanitisation", () => {
-    test("trims category name, tags and domain from well-formed model output", async () => {
+    it("trims category name, tags and domain from well-formed model output", async () => {
         const model = mockModel({
             brand: "  Netflix  ",
             categoryName: "  Streaming  ",
@@ -605,7 +605,7 @@ describe("runSuggest sanitisation", () => {
         });
     });
 
-    test("drops empty tags and caps the rest at 3 entries of 24 characters", async () => {
+    it("drops empty tags and caps the rest at 3 entries of 24 characters", async () => {
         const model = mockModel({
             categoryName: null,
             domain: null,
@@ -621,7 +621,7 @@ describe("runSuggest sanitisation", () => {
         expect(result.tags).toStrictEqual(["a".repeat(24), "second", "third"]);
     });
 
-    test("drops a domain the model itself rates low, so the grounded tier is asked instead", async () => {
+    it("drops a domain the model itself rates low, so the grounded tier is asked instead", async () => {
         const model = mockModel({
             categoryName: "Dining Out",
             domain: "sushiway.com",
@@ -636,7 +636,7 @@ describe("runSuggest sanitisation", () => {
         });
     });
 
-    test("drops a domain the model did not rate at all", async () => {
+    it("drops a domain the model did not rate at all", async () => {
         const model = mockModel({
             categoryName: "Groceries",
             domain: "intermarche.com",
@@ -650,7 +650,7 @@ describe("runSuggest sanitisation", () => {
         });
     });
 
-    test("drops a domain rated medium, so the grounded tier is asked instead", async () => {
+    it("drops a domain rated medium, so the grounded tier is asked instead", async () => {
         const model = mockModel({
             categoryName: "Dining Out",
             domain: "bucasangiovanni.com",
@@ -665,7 +665,7 @@ describe("runSuggest sanitisation", () => {
         });
     });
 
-    test("rejects a domain that is not a bare host.tld shape", async () => {
+    it("rejects a domain that is not a bare host.tld shape", async () => {
         const model = mockModel({
             categoryName: null,
             domain: "https://netflix.com/watch",
@@ -676,7 +676,7 @@ describe("runSuggest sanitisation", () => {
         await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toMatchObject({ domain: null });
     });
 
-    test("case-folds an otherwise valid domain instead of rejecting it", async () => {
+    it("case-folds an otherwise valid domain instead of rejecting it", async () => {
         const model = mockModel({
             categoryName: null,
             domain: "NETFLIX.COM",
@@ -690,7 +690,7 @@ describe("runSuggest sanitisation", () => {
         });
     });
 
-    test("rejects a domain longer than 253 characters", async () => {
+    it("rejects a domain longer than 253 characters", async () => {
         const longDomain = `${"a".repeat(251)}.co`;
         expect(longDomain.length).toBeGreaterThan(253);
         const model = mockModel({
@@ -703,7 +703,7 @@ describe("runSuggest sanitisation", () => {
         await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toMatchObject({ domain: null });
     });
 
-    test("nulls out an empty category name", async () => {
+    it("nulls out an empty category name", async () => {
         const model = mockModel({
             categoryName: "   ",
             domain: null,
@@ -716,7 +716,7 @@ describe("runSuggest sanitisation", () => {
         });
     });
 
-    test("nulls out a category name longer than 40 characters", async () => {
+    it("nulls out a category name longer than 40 characters", async () => {
         const model = mockModel({
             categoryName: "a".repeat(41),
             domain: null,
@@ -729,7 +729,7 @@ describe("runSuggest sanitisation", () => {
         });
     });
 
-    test("recomputes isNewCategory as true when the model discards it but the name is unknown", async () => {
+    it("recomputes isNewCategory as true when the model discards it but the name is unknown", async () => {
         const model = mockModel({
             categoryName: "Pets",
             domain: null,
@@ -748,7 +748,7 @@ describe("runSuggest sanitisation", () => {
         ).resolves.toMatchObject({ categoryName: "Pets", isNewCategory: true });
     });
 
-    test("recomputes isNewCategory as false when the model claims new but the name is already known", async () => {
+    it("recomputes isNewCategory as false when the model claims new but the name is already known", async () => {
         const model = mockModel({
             categoryName: "Entertainment",
             domain: null,
@@ -770,7 +770,7 @@ describe("runSuggest sanitisation", () => {
         });
     });
 
-    test("caps the category tree at 60 branches for the isNewCategory check", async () => {
+    it("caps the category tree at 60 branches for the isNewCategory check", async () => {
         const categoryTree = Array.from({ length: 61 }, (_, i) => ({
             children: [],
             name: `Cat${i}`,
@@ -792,7 +792,7 @@ describe("runSuggest sanitisation", () => {
         });
     });
 
-    test("keeps a parent the user actually has, for a category being created", async () => {
+    it("keeps a parent the user actually has, for a category being created", async () => {
         const model = mockModel({
             categoryName: "Streaming",
             domain: null,
@@ -810,7 +810,7 @@ describe("runSuggest sanitisation", () => {
         });
     });
 
-    test("drops a parent the user does not have", async () => {
+    it("drops a parent the user does not have", async () => {
         // The model cannot know this ledger's shape, so an invented parent is not
         // taken on trust.
         const model = mockModel({
@@ -827,7 +827,7 @@ describe("runSuggest sanitisation", () => {
         });
     });
 
-    test("drops a parent when the category already exists", async () => {
+    it("drops a parent when the category already exists", async () => {
         const model = mockModel({
             categoryName: "Entertainment",
             domain: null,
@@ -843,7 +843,7 @@ describe("runSuggest sanitisation", () => {
         });
     });
 
-    test("rejects an emoji field that is really a sentence", async () => {
+    it("rejects an emoji field that is really a sentence", async () => {
         const model = mockModel({
             categoryName: "Streaming",
             domain: null,
@@ -860,7 +860,7 @@ describe("runSuggest sanitisation", () => {
 });
 
 describe("runSuggest regionCode", () => {
-    test("threads a region code into the model prompt", async () => {
+    it("threads a region code into the model prompt", async () => {
         const model = mockModel({
             categoryName: null,
             domain: null,
@@ -878,7 +878,7 @@ describe("runSuggest regionCode", () => {
         expect(sent).toContain("VE");
     });
 
-    test("licenses a global fallback when no business operates in the region", async () => {
+    it("licenses a global fallback when no business operates in the region", async () => {
         const model = mockModel({
             categoryName: null,
             domain: null,
@@ -896,7 +896,7 @@ describe("runSuggest regionCode", () => {
         expect(sent).toContain("fall back to the best globally known match");
     });
 
-    test("threads the purchase currency into the prompt", async () => {
+    it("threads the purchase currency into the prompt", async () => {
         const model = mockModel({
             categoryName: null,
             domain: null,
@@ -910,7 +910,7 @@ describe("runSuggest regionCode", () => {
         expect(sent).toContain("charged in EUR");
     });
 
-    test("asks for a best-guess domain and a confidence, and says what the name looks like", async () => {
+    it("asks for a best-guess domain and a confidence, and says what the name looks like", async () => {
         const model = mockModel({
             categoryName: null,
             domain: null,
@@ -931,7 +931,7 @@ describe("runSuggest regionCode", () => {
         expect(sent).not.toContain("only if you are confident");
     });
 
-    test("omits any region line from the prompt when regionCode is absent", async () => {
+    it("omits any region line from the prompt when regionCode is absent", async () => {
         const model = mockModel({
             categoryName: null,
             domain: null,
@@ -947,33 +947,33 @@ describe("runSuggest regionCode", () => {
 });
 
 describe(sanitizeDomain, () => {
-    test("strips a leading www. so logo.dev's apex-only lookup still matches", () => {
+    it("strips a leading www. so logo.dev's apex-only lookup still matches", () => {
         expect(sanitizeDomain("www.unicasa.com.ve")).toBe("unicasa.com.ve");
     });
 
-    test("leaves an already-apex domain unchanged", () => {
+    it("leaves an already-apex domain unchanged", () => {
         expect(sanitizeDomain("unicasa.com.ve")).toBe("unicasa.com.ve");
     });
 
-    test("does not strip a host that merely starts with the letters www", () => {
+    it("does not strip a host that merely starts with the letters www", () => {
         expect(sanitizeDomain("wwwfoo.com")).toBe("wwwfoo.com");
     });
 
-    test("rejects www. alone, since nothing remains after stripping", () => {
+    it("rejects www. alone, since nothing remains after stripping", () => {
         expect(sanitizeDomain("www.")).toBeNull();
     });
 
-    test("case-folds before stripping, so WWW.NETFLIX.COM also loses its prefix", () => {
+    it("case-folds before stripping, so WWW.NETFLIX.COM also loses its prefix", () => {
         expect(sanitizeDomain("WWW.NETFLIX.COM")).toBe("netflix.com");
     });
 });
 
 describe(sanitizeCurrencyCode, () => {
-    test("uppercases a valid lowercase code", () => {
+    it("uppercases a valid lowercase code", () => {
         expect(sanitizeCurrencyCode("eur")).toBe("EUR");
     });
 
-    test("rejects anything that is not a currency the app can pick", () => {
+    it("rejects anything that is not a currency the app can pick", () => {
         expect(sanitizeCurrencyCode("EURO")).toBeUndefined();
         expect(sanitizeCurrencyCode("E1R")).toBeUndefined();
         expect(sanitizeCurrencyCode("AAA")).toBeUndefined();
@@ -983,31 +983,31 @@ describe(sanitizeCurrencyCode, () => {
 });
 
 describe(sanitizeRegionCode, () => {
-    test("uppercases a valid lowercase code", () => {
+    it("uppercases a valid lowercase code", () => {
         expect(sanitizeRegionCode("ve")).toBe("VE");
     });
 
-    test("leaves an already-uppercase code unchanged", () => {
+    it("leaves an already-uppercase code unchanged", () => {
         expect(sanitizeRegionCode("VE")).toBe("VE");
     });
 
-    test("rejects a three-letter code", () => {
+    it("rejects a three-letter code", () => {
         expect(sanitizeRegionCode("VEN")).toBeUndefined();
     });
 
-    test("rejects a code containing a digit", () => {
+    it("rejects a code containing a digit", () => {
         expect(sanitizeRegionCode("1E")).toBeUndefined();
     });
 
-    test("rejects an empty string", () => {
+    it("rejects an empty string", () => {
         expect(sanitizeRegionCode("")).toBeUndefined();
     });
 
-    test("rejects a 400-character string", () => {
+    it("rejects a 400-character string", () => {
         expect(sanitizeRegionCode("a".repeat(400))).toBeUndefined();
     });
 
-    test("passes undefined through unchanged", () => {
+    it("passes undefined through unchanged", () => {
         expect(sanitizeRegionCode(undefined)).toBeUndefined();
     });
 });

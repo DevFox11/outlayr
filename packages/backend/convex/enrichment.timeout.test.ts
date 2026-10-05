@@ -4,7 +4,7 @@ import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { MockLanguageModelV4 } from "ai/test";
 import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { api } from "./_generated/api";
 import { EMPTY } from "./enrichment";
@@ -50,7 +50,7 @@ beforeEach(() => {
 });
 
 describe("an inline call that timed out", () => {
-    test("still schedules the grounded lookup it never reached", async () => {
+    it("still schedules the grounded lookup it never reached", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -62,7 +62,7 @@ describe("an inline call that timed out", () => {
         await expect(scheduledGroundedRuns(t)).resolves.toHaveLength(1);
     });
 
-    test("reports no grounding when the client withheld consent", async () => {
+    it("reports no grounding when the client withheld consent", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);

@@ -3,7 +3,7 @@
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, it, test, vi } from "vite-plus/test";
 
 import { api } from "./_generated/api";
 import { isPro } from "./revenuecat";
@@ -37,7 +37,7 @@ function initialPurchase(appUserId: string) {
 }
 
 describe("webhook route", () => {
-    test("rejects a delivery without the shared secret and mirrors nothing", async () => {
+    it("rejects a delivery without the shared secret and mirrors nothing", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -53,7 +53,7 @@ describe("webhook route", () => {
         await expect(t.run((ctx) => isPro(ctx, identity.userId))).resolves.toBeFalsy();
     });
 
-    test("an authorised INITIAL_PURCHASE makes the user Pro", async () => {
+    it("an authorised INITIAL_PURCHASE makes the user Pro", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -77,7 +77,7 @@ describe("syncFromStore", () => {
         vi.unstubAllGlobals();
     });
 
-    test("mirrors the store's answer so a fresh purchase does not wait for the webhook", async () => {
+    it("mirrors the store's answer so a fresh purchase does not wait for the webhook", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -104,7 +104,7 @@ describe("syncFromStore", () => {
         await expect(t.run((ctx) => isPro(ctx, identity.userId))).resolves.toBeTruthy();
     });
 
-    test("mirrors a subscriber carrying RevenueCat's reserved $ attributes", async () => {
+    it("mirrors a subscriber carrying RevenueCat's reserved $ attributes", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -131,7 +131,7 @@ describe("syncFromStore", () => {
         await expect(authenticatedAs(t, identity).action(api.revenuecat.syncFromStore, {})).resolves.toBeTruthy();
     });
 
-    test("mirrors nothing when the store call fails, and stays false", async () => {
+    it("mirrors nothing when the store call fails, and stays false", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -145,7 +145,7 @@ describe("syncFromStore", () => {
         await expect(t.run((ctx) => isPro(ctx, identity.userId))).resolves.toBeFalsy();
     });
 
-    test("a token whose session is gone mirrors nothing, even with a valid subject", async () => {
+    it("a token whose session is gone mirrors nothing, even with a valid subject", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -158,7 +158,7 @@ describe("syncFromStore", () => {
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    test("an unauthenticated caller mirrors nothing", async () => {
+    it("an unauthenticated caller mirrors nothing", async () => {
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
