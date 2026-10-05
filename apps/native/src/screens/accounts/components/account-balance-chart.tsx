@@ -5,6 +5,7 @@ import { useReducedMotion } from "react-native-reanimated";
 
 import { MonoLabel } from "@/components/mono-label";
 import { useSettingBool } from "@/contexts/display-settings-context";
+import { useNow } from "@/data/use-now";
 import { accountBalanceSeries } from "@/domain/account-balance-series";
 import { formatSignedAmount } from "@/domain/account-display";
 import type { CurrencyCell } from "@/domain/currency-totals";
@@ -47,8 +48,9 @@ function balanceDomain(values: readonly number[]): [number, number] {
     return [boundedMinimum - padding, boundedMaximum + padding];
 }
 
-// oxlint-disable-next-line react/no-object-type-as-default-prop -- a hoisted default would freeze "now" at module load and the chart would stop advancing
-export function AccountBalanceChart({ account, cells, now = new Date(), rates, showCents }: AccountBalanceChartProps) {
+export function AccountBalanceChart({ account, cells, now, rates, showCents }: AccountBalanceChartProps) {
+    const clock = useNow();
+    const at = useMemo(() => now ?? new Date(clock), [now, clock]);
     const colors = useColors();
     const t = useTranslation();
     const { language } = useLanguage();
@@ -56,12 +58,12 @@ export function AccountBalanceChart({ account, cells, now = new Date(), rates, s
     const animated = useSettingBool("animatedCharts") && !reduceMotion;
     const data = useMemo(
         () =>
-            accountBalanceSeries(account, cells, rates, now).map(({ date, exact, value }) => ({
+            accountBalanceSeries(account, cells, rates, at).map(({ date, exact, value }) => ({
                 date,
                 exact: exact ? 1 : 0,
                 value,
             })),
-        [account, cells, now, rates]
+        [account, cells, at, rates]
     );
     const domain = useMemo(() => balanceDomain(data.map((point) => point.value)), [data]);
     const latest = data.at(-1) ?? { date: "", exact: 1, value: 0 };

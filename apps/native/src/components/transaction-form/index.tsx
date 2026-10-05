@@ -1343,6 +1343,30 @@ export function TransactionForm({
         [db]
     );
 
+    const logoRequestRef = useRef(0);
+    /**
+     * What the well held at the last commit, read at write time rather than
+     * closed over — the seeding effect can fill it while a request is out.
+     * Mirrored in an effect, not during render, which is a side effect the
+     * compiler cannot follow.
+     */
+    const latest = useRef({
+        allTags,
+        categories: categoriesForNamespace,
+        hasIdentity: false,
+        identitySource,
+        pickerOpen,
+    });
+    useEffect(() => {
+        latest.current = {
+            allTags,
+            categories: categoriesForNamespace,
+            hasIdentity: Boolean(identity.emoji || identity.icon || identity.photoUri),
+            identitySource,
+            pickerOpen,
+        };
+    });
+
     const resolveLocal = useCallback((suggestion: EnrichmentSuggestion): EnrichmentSuggestion => {
         let { categoryId, pendingCategory: suggestedCategory } = suggestion;
         if (categoryId == null && suggestedCategory != null) {
@@ -1372,31 +1396,6 @@ export function TransactionForm({
             tagIds: resolvedTagIds,
         };
     }, []);
-
-    const logoRequestRef = useRef(0);
-    /**
-     * What the well held at the last commit, read at write time rather than
-     * closed over — the seeding effect can fill it while a request is out.
-     * Mirrored in an effect, not during render, which is a side effect the
-     * compiler cannot follow.
-     */
-    const latest = useRef({
-        allTags,
-        categories: categoriesForNamespace,
-        hasIdentity: false,
-        identitySource,
-        pickerOpen,
-    });
-    useEffect(() => {
-        // oxlint-disable-next-line react/immutability -- `categories` and `allTags` come from data hooks, and the compiler treats anything holding them as owned by those hooks. Writing a ref inside an effect is exactly where a ref is meant to be written; the alias is what it cannot follow.
-        latest.current = {
-            allTags,
-            categories: categoriesForNamespace,
-            hasIdentity: Boolean(identity.emoji || identity.icon || identity.photoUri),
-            identitySource,
-            pickerOpen,
-        };
-    });
 
     /**
      * The user asked for this merchant to be looked up, on this row, and has

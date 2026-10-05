@@ -9,8 +9,8 @@ const mockCookie = { current: "" };
 jest.mock<Partial<typeof import("@/lib/auth-client")>>("@/lib/auth-client", () => ({
     authClient: {
         getCookie: () => mockCookie.current,
-        useSession: () => ({ data: null, isPending: true }),
     } as never,
+    useAuthClientSession: (() => ({ data: null, isPending: true })) as never,
 }));
 
 function Gate() {

@@ -15,8 +15,8 @@ describe("local shell readiness", () => {
         ).toBe(false);
     });
 
-    it.each(["opening", "migrating", "seeding"] as const)("holds while the database is %s", (data) => {
-        expect(localShellReady({ data, fontsLoaded: true })).toBe(false);
+    it("holds while the database is opening", () => {
+        expect(localShellReady({ data: "opening", fontsLoaded: true })).toBe(false);
     });
 
     it("holds on a database that failed to open", () => {

@@ -7,6 +7,7 @@ import ScanIcon from "@hugeicons-pro/core-stroke-rounded/ScanIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import type { IconSvgElement } from "@hugeicons/react-native";
 import { router, useFocusEffect } from "expo-router";
+import type { Href } from "expo-router";
 import { Fab, useGlassMaterial } from "panelui-native";
 import { useCallback, useRef, useState } from "react";
 import { useWindowDimensions } from "react-native";
@@ -88,13 +89,21 @@ function fitDial(actionCount: number, room: number, fontScale: number): DialFit 
 }
 
 interface AddAction {
+    href: Href | null;
     icon: IconSvgElement;
     key: string;
     label: string;
-    onPress: () => void;
 }
 
-function DialAction({ action, lines }: { action: AddAction; lines: LabelLines }) {
+function DialAction({
+    action,
+    lines,
+    onSelect,
+}: {
+    action: AddAction;
+    lines: LabelLines;
+    onSelect: (action: AddAction) => void;
+}) {
     // SAFETY: `--foreground` is declared in global.css for both schemes.
     const foreground = useCSSVariable("--foreground") as string;
 
@@ -103,7 +112,7 @@ function DialAction({ action, lines }: { action: AddAction; lines: LabelLines })
             icon={<HugeiconsIcon color={foreground} icon={action.icon} size={ACTION_ICON_SIZE} strokeWidth={1.8} />}
             label={action.label}
             labelClassName={labelClassName(lines)}
-            onPress={action.onPress}
+            onPress={() => onSelect(action)}
         />
     );
 }
@@ -117,13 +126,6 @@ export function FloatingAddButton() {
     const haptics = useHaptics();
 
     const navigating = useRef(false);
-    const go = useCallback((href: Parameters<typeof router.push>[0]) => {
-        if (navigating.current) {
-            return;
-        }
-        navigating.current = true;
-        router.push(href);
-    }, []);
 
     useFocusEffect(
         useCallback(() => {
@@ -135,9 +137,17 @@ export function FloatingAddButton() {
     );
     const { fontScale, height: windowHeight } = useWindowDimensions();
     const importSheetRef = useRef<ImportSheetHandle>(null);
-    const presentImport = useCallback(() => {
-        importDraftStore.setStep(importDraftStore.getResumeStep());
-        importSheetRef.current?.present();
+    const select = useCallback(({ href }: AddAction) => {
+        if (href === null) {
+            importDraftStore.setStep(importDraftStore.getResumeStep());
+            importSheetRef.current?.present();
+            return;
+        }
+        if (navigating.current) {
+            return;
+        }
+        navigating.current = true;
+        router.push(href);
     }, []);
     const canTransfer = useAccounts(useDatabase()).length >= 2;
 
@@ -146,29 +156,27 @@ export function FloatingAddButton() {
     // moving money, speaking, scanning, and a CSV import last.
     const ranked: AddAction[] = [
         {
+            href: "/transactions/create",
             icon: ReceiptDollarIcon,
             key: "transaction",
             label: t("log.add.transaction"),
-            onPress: () => go("/transactions/create"),
         },
         ...(canTransfer
             ? [
                   {
+                      href: "/transactions/transfers/create" as const,
                       icon: ArrowDataTransferHorizontalIcon,
                       key: "transfer",
                       label: t("log.add.transfer"),
-                      onPress: () => go("/transactions/transfers/create"),
                   },
               ]
             : []),
-        { icon: Mic01Icon, key: "voice", label: t("log.add.voice"), onPress: () => go("/transactions/voice") },
-        { icon: ScanIcon, key: "scan", label: t("log.add.scan"), onPress: () => go("/transactions/scan") },
-        { icon: FileImportIcon, key: "import", label: t("log.add.import"), onPress: presentImport },
+        { href: "/transactions/voice", icon: Mic01Icon, key: "voice", label: t("log.add.voice") },
+        { href: "/transactions/scan", icon: ScanIcon, key: "scan", label: t("log.add.scan") },
+        { href: null, icon: FileImportIcon, key: "import", label: t("log.add.import") },
     ];
-    // oxlint-disable-next-line react/refs -- same shape as the disable below: `go` reads its latch when the action is pressed, never during render, and the rule follows the function value into the array rather than the ref itself
     const { kept, lines } = fitDial(ranked.length, room, fontScale);
     // The dial reads top to bottom, so the least-reached-for action sits furthest from the thumb.
-    // oxlint-disable-next-line react/refs -- `presentImport` reads the sheet's ref when it is pressed, never during render; the rule tracks the function value into any array it lands in, and the alternative is not putting the import in the list at all
     const actions = ranked.slice(0, kept).reverse();
 
     const toggleDial = useCallback(
@@ -203,7 +211,7 @@ export function FloatingAddButton() {
                     style={{ bottom: insets.bottom + DIAL_BOTTOM_INSET, right: DIAL_EDGE_INSET }}
                 >
                     {actions.map((action) => (
-                        <DialAction action={action} key={action.key} lines={lines} />
+                        <DialAction action={action} key={action.key} lines={lines} onSelect={select} />
                     ))}
                 </Fab.Group>
             </ScopedVariables>

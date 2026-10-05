@@ -6,7 +6,7 @@ import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
 import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Button, InputGroup } from "panelui-native";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import type { ReactNode, Ref } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
@@ -91,18 +91,14 @@ export function CategoryPickerSheet({
 
     const setRefs = useMergedRef(sheetRef, ref);
 
-    const seededFor = useRef<string | null | undefined>(undefined);
-    useEffect(() => {
-        if (categories.length === 0 || seededFor.current === selectedId) {
-            return;
-        }
-        seededFor.current = selectedId;
+    const [seededFor, setSeededFor] = useState<string | null | undefined>(undefined);
+    if (categories.length > 0 && seededFor !== selectedId) {
+        setSeededFor(selectedId);
         const holder = expandedForSelectedCategory(categories, selectedId);
         if (holder.size > 0) {
-            // oxlint-disable-next-line react/set-state-in-effect -- a one-time seed, not derived state: after this the set is the user's to collapse, so deriving the selected branch's ancestors on every render would make those rows refuse to close.
             setExpanded((prev) => new Set([...prev, ...holder]));
         }
-    }, [categories, selectedId]);
+    }
 
     const toggle = useCallback((id: string) => {
         setExpanded((prev) => {

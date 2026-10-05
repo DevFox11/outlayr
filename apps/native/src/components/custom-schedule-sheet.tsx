@@ -6,7 +6,6 @@ import { HugeiconsIcon } from "@hugeicons/react-native";
 import { NumberFlow } from "number-flow-react-native";
 import { BottomSheet, Button, cn, Tabs } from "panelui-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { RefObject } from "react";
 import { Pressable, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, useAnimatedStyle, withTiming } from "react-native-reanimated";
 
@@ -127,7 +126,7 @@ function chargeKey(charges: readonly ScheduledCharge[]): string {
  * lands at the midpoint of its own fade — no frame ever shows a date the sheet
  * is not about to keep.
  */
-function useRippledCharges(charges: readonly ScheduledCharge[], ready: RefObject<boolean>) {
+function useRippledCharges(charges: readonly ScheduledCharge[], ready: boolean) {
     const [shown, setShown] = useState<readonly ScheduledCharge[]>(charges);
     const [swapping, setSwapping] = useState<readonly boolean[]>([]);
     /*
@@ -141,8 +140,24 @@ function useRippledCharges(charges: readonly ScheduledCharge[], ready: RefObject
     const next = chargeKey(charges);
     const current = chargeKey(shown);
 
+    if (!ready && next !== current) {
+        setShown(charges);
+        setSwapping([]);
+        setNoteVisible(charges.some((charge) => charge.clamped));
+    }
+
     useEffect(() => {
-        if (next === current) {
+        if (ready) {
+            return;
+        }
+        for (const timer of timers.current) {
+            clearTimeout(timer);
+        }
+        timers.current = [];
+    }, [ready]);
+
+    useEffect(() => {
+        if (!ready || next === current) {
             return;
         }
         for (const timer of timers.current) {
@@ -151,14 +166,6 @@ function useRippledCharges(charges: readonly ScheduledCharge[], ready: RefObject
         timers.current = [];
 
         const clamped = charges.some((charge) => charge.clamped);
-        if (!ready.current) {
-            // oxlint-disable-next-line react/set-state-in-effect -- the ripple is a timed sequence over the previous list; before it is armed the new dates have to land in one step instead, which is this branch.
-            setShown(charges);
-            setSwapping([]);
-            setNoteVisible(clamped);
-            return;
-        }
-
         for (const index of charges.keys()) {
             timers.current.push(
                 setTimeout(() => {
@@ -226,20 +233,14 @@ export function CustomScheduleSheet({
      * motion underneath the platform's own presentation. Armed a tick after the
      * sheet is up, so the first ripple the user sees is one they asked for.
      */
-    const rippleReady = useRef(false);
+    const [rippleReady, setRippleReady] = useState(false);
 
-    /*
-     * Declared above `useRippledCharges` so the disarm lands before that hook's
-     * own effect reads the ref — effects run in call order, and arming is what
-     * decides whether the re-seeded dates ripple.
-     */
     useEffect(() => {
-        rippleReady.current = false;
         if (!open) {
             return;
         }
         const armed = setTimeout(() => {
-            rippleReady.current = true;
+            setRippleReady(true);
         }, 0);
         return () => clearTimeout(armed);
     }, [open]);
@@ -253,6 +254,7 @@ export function CustomScheduleSheet({
      */
     if (open !== wasOpen) {
         setWasOpen(open);
+        setRippleReady(false);
         if (open) {
             const next = normalizeSchedule(recurringType, recurringCoefficient);
             setType(next.type);

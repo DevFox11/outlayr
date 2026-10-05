@@ -34,21 +34,21 @@ export function AppLockGate({ children }: { children: ReactNode }) {
 
     // Seeded from the mount-time setting, so a launch with the lock already on is
     // never mistaken for the user having just turned it on.
-    const armed = useRef(enabled);
-    useEffect(() => {
-        const turnedOn = enabled && !armed.current;
-        armed.current = enabled;
-        if (!enabled) {
-            // oxlint-disable-next-line react/set-state-in-effect -- discards the result of a biometric check that may still be in flight; the three values are answers from the device, not functions of `enabled`.
-            setEnforceable(null);
-            setUnlocked(false);
-            setFailure(null);
-            return;
-        }
+    const [armed, setArmed] = useState(enabled);
+    if (enabled !== armed) {
+        setArmed(enabled);
         // The Settings toggle only flips on behind a passed check; prompting again
         // here would be two prompts for one action.
-        if (turnedOn) {
-            setUnlocked(true);
+        setUnlocked(enabled);
+        if (!enabled) {
+            setEnforceable(null);
+            setFailure(null);
+        }
+    }
+
+    useEffect(() => {
+        if (!enabled) {
+            return;
         }
         let cancelled = false;
         lockIsEnforceable().then((ok) => {

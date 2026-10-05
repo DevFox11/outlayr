@@ -211,6 +211,34 @@ describe("stage: the progress the resolve step can actually show", () => {
 
         expect(result.current.stage).toBe("idle");
     });
+
+    it("runs a new file while the previous file's ask is still out, and drops the stale answer", async () => {
+        const { fn, calls } = deferredTransport();
+        const { result, rerender } = await renderHook((args: UseCsvImportArgs) => useCsvImport(args), {
+            initialProps: baseArgs({ labels: [UNKNOWN], transport: fn }),
+        });
+
+        await act(async () => {
+            result.current.run();
+        });
+        await act(async () => {
+            rerender(baseArgs({ fileKey: "other.csv:99", labels: [OTHER_UNKNOWN], transport: fn }));
+        });
+        await act(async () => {
+            result.current.run();
+        });
+        expect(fn).toHaveBeenCalledTimes(2);
+
+        await act(async () => {
+            calls[0].settle({ status: "ok", suggestions: [] });
+        });
+        expect(result.current.stage).toBe("asking");
+
+        await act(async () => {
+            calls[1].settle({ status: "ok", suggestions: [] });
+        });
+        expect(result.current.stage).toBe("settled");
+    });
 });
 
 describe("server-side learning for merchants the map cannot fully answer", () => {

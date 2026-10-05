@@ -150,13 +150,15 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
     // An error surface beats an indefinite splash, but it is written in the
     // owner's language, so it still waits on the catalog.
     const failed = fontsLoaded && status === "error";
+    if (failed && !splashHidden) {
+        setSplashHidden(true);
+    }
 
     useEffect(() => {
         if (failed) {
-            // oxlint-disable-next-line react/set-state-in-effect -- `hideSplash` calls the native splash API and records that it did; the flag exists because that call is not repeatable, so it cannot be derived.
-            hideSplash();
+            hideAsync();
         }
-    }, [failed, hideSplash]);
+    }, [failed]);
 
     const base = isDark ? DarkTheme : DefaultTheme;
 
@@ -192,10 +194,10 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
         );
     }
 
-    // Latched on the splash, because `retry()` walks the status back through
-    // opening → migrating → seeding: blanking on those once the splash is gone
-    // would empty the screen for the length of the attempt, and permanently if
-    // the migration never answers on a locked or corrupt file.
+    // Latched on the splash, because `retry()` walks the status back to
+    // `opening`: blanking on it once the splash is gone would empty the screen
+    // for the length of the attempt, and permanently if the migration never
+    // answers on a locked or corrupt file.
     if (!splashHidden) {
         return null;
     }

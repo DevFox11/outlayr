@@ -644,21 +644,23 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         }
     }, [clearTimers, run, runGroundedFollowUp]);
 
-    const teardown = useCallback(() => {
+    const cancel = useCallback(() => {
         clearTimers();
         requestIdRef.current += 1;
         inFlightRef.current.clear();
-        setPending(false);
     }, [clearTimers]);
+
+    if (!enabled && pending) {
+        setPending(false);
+    }
 
     useEffect(() => {
         if (!enabled) {
-            // oxlint-disable-next-line react/set-state-in-effect -- teardown is a cancellation, not a derivation: it clears three timers and abandons the in-flight requests, and `pending` reports whether one is outstanding. There is nothing to compute this from during render.
-            teardown();
+            cancel();
         }
-    }, [enabled, teardown]);
+    }, [enabled, cancel]);
 
-    useEffect(() => () => teardown(), [teardown]);
+    useEffect(() => () => cancel(), [cancel]);
 
     /**
      * The currency is a locator the lookup was made with, so changing it after

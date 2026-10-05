@@ -423,9 +423,11 @@ export const SUGGESTED_CATEGORY_PRESETS: SuggestedCategoryPresets = {
 } as const;
 
 /** Ports the `SuggestedCategoriesView` filter. */
-export async function suggestedCategoriesNotAdded(db: Database, income: boolean): Promise<SuggestedCategoryPreset[]> {
+export function presetsNotAdded(
+    income: boolean,
+    existing: readonly Pick<Category, "icon" | "name">[]
+): SuggestedCategoryPreset[] {
     const pool = income ? SUGGESTED_CATEGORY_PRESETS.income : SUGGESTED_CATEGORY_PRESETS.expense;
-    const existing = await namespaceSiblings(db, income);
     const usedNames = new Set(
         existing
             .map((row) => row.name)
@@ -436,6 +438,10 @@ export async function suggestedCategoriesNotAdded(db: Database, income: boolean)
         existing.map((row) => row.icon).filter((icon): icon is string => icon != null && icon !== "")
     );
     return pool.filter((preset) => !(usedNames.has(capitalizeCategoryName(preset.name)) || usedIcons.has(preset.icon)));
+}
+
+export async function suggestedCategoriesNotAdded(db: Database, income: boolean): Promise<SuggestedCategoryPreset[]> {
+    return presetsNotAdded(income, await namespaceSiblings(db, income));
 }
 
 export const categoriesRepo = {

@@ -4,21 +4,18 @@ import { LinkRow } from "@/components/list/list-row";
 import { accountRowValue } from "@/domain/account";
 import type { AccountState } from "@/domain/account";
 import { useTranslation } from "@/i18n/context";
-import { authClient } from "@/lib/auth-client";
+import { authClient, useAuthClientSession } from "@/lib/auth-client";
 import { useAuthSession } from "@/lib/auth-session";
-
-type AuthClient = NonNullable<typeof authClient>;
 
 export function AccountRow() {
     if (authClient === null) {
         return <Row state={{ kind: "signed-out" }} />;
     }
-    return <SessionRow client={authClient} />;
+    return <SessionRow />;
 }
 
-function SessionRow({ client }: { client: AuthClient }) {
-    // oxlint-disable-next-line react/hooks -- `authClient` is a module singleton bound once at load; the `client` prop exists only so TypeScript narrows away the `null` its factory can return, so the hook is in fact the same function on every render.
-    const { data: session, isPending } = client.useSession();
+function SessionRow() {
+    const { data: session, isPending } = useAuthClientSession();
     const { accountId } = useAuthSession();
 
     if (session && accountId !== null) {

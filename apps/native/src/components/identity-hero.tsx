@@ -3,7 +3,7 @@ import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Image } from "expo-image";
 import { SymbolView } from "expo-symbols";
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useEffectEvent, useId, useRef } from "react";
 import { Pressable, View } from "react-native";
 import Animated, {
     useAnimatedStyle,
@@ -159,9 +159,9 @@ export function IdentityHero({
     // indistinguishable from a pick. A pick can only land while the picker is up.
     //
     // `isEmpty` and `pickerOpen` are deliberately read as the state at the moment the
-    // identity changed; listing them would re-fire the pop when the picker merely
-    // opens or closes over an unchanged tile.
-    useEffect(() => {
+    // identity changed; re-running on them would re-fire the pop when the picker
+    // merely opens or closes over an unchanged tile.
+    const onIdentityChange = useEffectEvent((_identity: string) => {
         const becameEmpty = isEmpty && !wasEmpty.current;
         wasEmpty.current = isEmpty;
         if (becameEmpty) {
@@ -176,7 +176,9 @@ export function IdentityHero({
         popScale.set(withSequence(withSpring(POP_SCALE, PRESS_SPRING), withSpring(1, PRESS_SPRING)));
         contentOpacity.set(0);
         contentOpacity.set(withTiming(1, { duration: POP_FADE_MS }));
-        // oxlint-disable-next-line react/exhaustive-deps -- keyed on the identity string alone, see above
+    });
+    useEffect(() => {
+        onIdentityChange(identity);
     }, [identity]);
 
     // A hard swap, not a crossfade: a single threshold read by both heroes means

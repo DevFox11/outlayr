@@ -15,7 +15,7 @@ import type { Database } from "@/db/client";
 import { accountLabel, signInFailureMessage } from "@/domain/account";
 import { useTranslation } from "@/i18n/context";
 import { runAccountLifecycle } from "@/lib/account-lifecycle";
-import { authClient } from "@/lib/auth-client";
+import { authClient, useAuthClientSession } from "@/lib/auth-client";
 import { useAuthSession } from "@/lib/auth-session";
 import { cloudAction, cloudMutation, convex } from "@/lib/convex";
 import { deletionResumeSecretKey, resumePersistedCloudDeletion, resumeProviderRevocation } from "@/lib/deletion-resume";
@@ -54,8 +54,7 @@ function openLedger() {
 function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
     const t = useTranslation();
     const { retry: reopenLocalData } = useLocalData();
-    // oxlint-disable-next-line react/hooks -- `authClient` is a module singleton bound once at load; the `client` prop exists only so TypeScript narrows away the `null` its factory can return, so the hook is in fact the same function on every render.
-    const { data: session, isPending: restoring } = client.useSession();
+    const { data: session, isPending: restoring } = useAuthClientSession();
     const { accountId } = useAuthSession();
     const [busy, setBusy] = useState<"deleteAll" | "deleteCloud" | "signOut" | null>(null);
     const [error, setError] = useState<string | null>(null);

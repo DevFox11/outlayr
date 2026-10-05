@@ -32,7 +32,7 @@ import {
 import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Stack, useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { PlatformColor, View } from "react-native";
 
 import { CategoryIconTile } from "@/components/category-icon-tile";
@@ -46,7 +46,7 @@ import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useCategoriesByNamespace, useCategoryTotals } from "@/data/categories";
-import { categoriesRepo, suggestedCategoriesNotAdded } from "@/data/categories-core";
+import { categoriesRepo, presetsNotAdded } from "@/data/categories-core";
 import type { Category, CategoryWithChildren, SuggestedCategoryPreset } from "@/data/categories-core";
 import { setBoolSetting } from "@/data/settings-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
@@ -164,29 +164,14 @@ export function Categories({ income }: { income: boolean }) {
     const totals = useCategoryTotals(db);
     const rowGround = groupedRows(colors);
 
-    // The effect below keys off a primitive signature string, not the
-    // fresh-every-render `parents` array, so it only re-runs when the data changes.
-    const [suggestions, setSuggestions] = useState<SuggestedCategoryPreset[]>([]);
-    const signature = useMemo(
+    const suggestions = useMemo(
         () =>
-            parents
-                .flatMap((parent) => [parent, ...parent.children])
-                .map((category) => `${category.id}:${category.name}:${category.icon}`)
-                .join("|"),
-        [parents]
+            presetsNotAdded(
+                income,
+                namespace.flatMap((parent) => [parent, ...parent.children])
+            ),
+        [income, namespace]
     );
-    // oxlint-disable-next-line react/exhaustive-deps -- `signature` is the intentional recompute trigger (it changes with the live tree); the effect body reads only db/income.
-    useEffect(() => {
-        let active = true;
-        suggestedCategoriesNotAdded(db, income).then((rows) => {
-            if (active) {
-                setSuggestions(rows);
-            }
-        });
-        return () => {
-            active = false;
-        };
-    }, [db, income, signature]);
 
     const goToNewChild = (parent: CategoryWithChildren) => {
         router.push({
@@ -537,6 +522,10 @@ function CategoryRow({
     );
 }
 
+function plusGlyph({ color, size }: { color: string; size: number }) {
+    return <HugeiconsIcon color={color} icon={PlusSignIcon} size={size} strokeWidth={2.4} />;
+}
+
 /**
  * Owns the group's closing rule, so every boundary has a single owner: a
  * hide-bottom and a show-top request landing on the same hairline resolve inside
@@ -565,16 +554,7 @@ function GhostAddRow({ tint, closesTree, onPress }: { tint: string; closesTree: 
             >
                 <RNHostView matchContents>
                     <View style={{ height: CHILD_TILE, width: CHILD_TILE }}>
-                        <CategoryIconTile
-                            color={tint}
-                            future
-                            // oxlint-disable-next-line react/no-unstable-nested-components -- `glyph` is a render prop the tile calls with its own colour and size, not a component type
-                            glyph={({ color, size }) => (
-                                <HugeiconsIcon color={color} icon={PlusSignIcon} size={size} strokeWidth={2.4} />
-                            )}
-                            icon={null}
-                            size={CHILD_TILE}
-                        />
+                        <CategoryIconTile color={tint} future glyph={plusGlyph} icon={null} size={CHILD_TILE} />
                     </View>
                 </RNHostView>
                 <SwiftText modifiers={[SUBHEADLINE_MEDIUM, lineLimit(1), foregroundStyle(tint)]}>

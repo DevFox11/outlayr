@@ -123,6 +123,7 @@ const REACT_COMPILER_RULES = [
     "preserve-manual-memoization",
     "purity",
     "refs",
+    "rule-suppression",
     "set-state-in-effect",
     "set-state-in-render",
     "static-components",
@@ -487,9 +488,6 @@ export default defineConfig({
             // handlers named for what they do (`onPress={openSheet}`) rather than
             // `handleX`; `.reduce` is how the aggregates in domain/ are written.
             "react/jsx-handler-names": "off",
-            // Restates every reasoned `react/exhaustive-deps` disable as "the compiler
-            // skips this component", which the disable already accepts.
-            "react/rule-suppression": "off",
             "react/style-prop-object": "off",
             // Syntax the compiler cannot lower yet (`try`/`finally`, `??=`): it skips
             // the component, and the code is correct as written.

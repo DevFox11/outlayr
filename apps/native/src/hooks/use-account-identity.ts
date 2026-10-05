@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef } from "react";
 
 import { resolveInstitutionDomain } from "@/domain/institution-map";
 import type { EnrichmentFn } from "@/lib/convex";
@@ -151,12 +151,14 @@ export function useAccountIdentity(args: UseAccountIdentityArgs): UseAccountIden
     );
 
     const { initialName } = args;
-    useEffect(() => {
+    // Once, for the name the editor opened with; later names arrive by typing.
+    const enrichInitialName = useEffectEvent(() => {
         if (enabled && initialName != null && initialName.trim().length > 0) {
             onNameChange(initialName);
         }
-        // Once, for the name the editor opened with; later names arrive by typing.
-        // oxlint-disable-next-line react/exhaustive-deps -- deliberately mount-only
+    });
+    useEffect(() => {
+        enrichInitialName();
     }, []);
 
     // The enrichment teardown cancels its own timers and requests, but not an

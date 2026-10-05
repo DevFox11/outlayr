@@ -81,11 +81,6 @@ function settleWith(
 
 type Settlement = ReturnType<typeof settleWith>;
 
-interface PartialResolution {
-    fromModel: ReadonlySet<string>;
-    links: ReadonlyMap<string, string>;
-}
-
 const TIMED_OUT = Symbol("csv-import-timeout");
 
 const NO_LINKS: ReadonlyMap<string, string> = new Map();
@@ -93,6 +88,7 @@ const NO_FROM_MODEL: ReadonlySet<string> = new Set();
 
 interface CsvImportState {
     fileKey: string | null;
+    generation: number;
     fromModel: ReadonlySet<string>;
     links: ReadonlyMap<string, string>;
     outcome: ResolutionOutcome | null;
@@ -102,16 +98,18 @@ interface CsvImportState {
     tier2Sent: number;
 }
 
-type CsvImportAction =
-    | { type: "fileChanged"; fileKey: string | null }
+type RunAction =
     | { type: "started" }
     | { type: "matched"; tier1Matched: number }
     | { type: "asking"; tier2Sent: number }
     | { type: "settled"; settlement: Settlement };
 
-function idleState(fileKey: string | null): CsvImportState {
+type CsvImportAction = { type: "fileChanged"; fileKey: string | null } | (RunAction & { generation: number });
+
+function idleState(fileKey: string | null, generation = 0): CsvImportState {
     return {
         fileKey,
+        generation,
         fromModel: NO_FROM_MODEL,
         links: NO_LINKS,
         outcome: null,
@@ -123,10 +121,13 @@ function idleState(fileKey: string | null): CsvImportState {
 }
 
 function reduce(state: CsvImportState, action: CsvImportAction): CsvImportState {
+    if (action.type === "fileChanged") {
+        return idleState(action.fileKey, state.generation + 1);
+    }
+    if (action.generation !== state.generation) {
+        return state;
+    }
     switch (action.type) {
-        case "fileChanged": {
-            return idleState(action.fileKey);
-        }
         case "started": {
             return {
                 ...state,
@@ -255,161 +256,112 @@ function linkSuggestions(
     }
 }
 
+async function resolveImport(
+    args: UseCsvImportArgs,
+    send: (action: RunAction) => void,
+    resolvedLinks: Map<string, string>,
+    fromModelSet: Set<string>
+): Promise<Settlement> {
+    const allLabels = args.labels;
+
+    const { domainless, unresolved } = linkKnownMerchants(allLabels, args.categoryIdByKey, resolvedLinks);
+    send({
+        tier1Matched: allLabels.length - unresolved.length,
+        type: "matched",
+    });
+
+    const stillUnresolved = linkCachedLabels(unresolved, args.categoryIdByKey, resolvedLinks, fromModelSet);
+    const rawByScrubbed = groupByScrubbedLabel(stillUnresolved);
+
+    const domainUnknown = domainless.filter((label) => {
+        const cached = cachedLabelEnrichment(label);
+        return !(cached.hit && cached.value?.domain != null);
+    });
+
+    const payload = buildClassificationPayload({
+        categoryTree: args.categoryTree,
+        draft: args.draft,
+        parsed: args.parsed,
+        unresolvedLabels: [...stillUnresolved, ...domainUnknown],
+    });
+
+    if (payload == null) {
+        return settleWith(resolvedLinks, fromModelSet, "applied", null);
+    }
+
+    if (!args.aiEnrichment) {
+        return settleWith(resolvedLinks, fromModelSet, "declined", null);
+    }
+
+    if (args.chars > AI_TIER_MAX_CHARS || args.parsed.rows.length > AI_TIER_MAX_ROWS) {
+        return settleWith(resolvedLinks, fromModelSet, "unavailable", "overCap");
+    }
+
+    const call = args.transport === undefined ? csvImportTransport() : args.transport;
+    if (call == null) {
+        return settleWith(resolvedLinks, fromModelSet, "unavailable", "notConfigured");
+    }
+
+    send({ tier2Sent: payload.labels.length, type: "asking" });
+    const settled = await askModel(call, {
+        ...payload,
+        groundedLookup: args.groundedLookup,
+        regionCode: args.regionCode,
+    });
+
+    if (settled.kind !== "result") {
+        return settleWith(
+            resolvedLinks,
+            fromModelSet,
+            "unavailable",
+            settled.kind === "timeout" ? "timeout" : "offline"
+        );
+    }
+
+    if (settled.result.status !== "ok") {
+        return settleWith(resolvedLinks, fromModelSet, "unavailable", REASON_BY_STATUS[settled.result.status]);
+    }
+
+    linkSuggestions(settled.result.suggestions ?? [], args.categoryIdByKey, rawByScrubbed, resolvedLinks, fromModelSet);
+
+    return settleWith(resolvedLinks, fromModelSet, "applied", null);
+}
+
+async function execute(args: UseCsvImportArgs, send: (action: RunAction) => void): Promise<void> {
+    send({ type: "started" });
+    const links = new Map<string, string>();
+    const fromModel = new Set<string>();
+    let settlement: Settlement;
+    try {
+        settlement = await resolveImport(args, send, links, fromModel);
+    } catch {
+        settlement = settleWith(links, fromModel, "unavailable", "providerError");
+    }
+    send({ settlement, type: "settled" });
+}
+
 export function useCsvImport(args: UseCsvImportArgs): UseCsvImportResult {
     const [state, dispatch] = useReducer(reduce, args.fileKey, idleState);
+    const runningFor = useRef<number | null>(null);
 
-    const runningRef = useRef(false);
-    // Bumped on every file change so a stale in-flight execute() for the
-    // previous file can't clobber state after the user picked a new one.
-    const generationRef = useRef(0);
-    const partialRef = useRef<PartialResolution | null>(null);
-
-    /*
-     * These three writes have to land in the render that sees the new file, not
-     * in an effect. `run()` is called from an effect in `ResolveStep`, a
-     * descendant — and a child's effects run before its parent's. Deferring the
-     * reset means that call reads `runningRef` still true from the previous
-     * file's in-flight resolution, returns early, and the import sits at idle
-     * with nothing left to re-trigger it. `argsRef` is the same story one step
-     * on: `resolveImport` would label the new file's rows from the old file's
-     * args. The compiler cannot see that ordering, so it is stated here.
-     */
     if (state.fileKey !== args.fileKey) {
-        // oxlint-disable-next-line react/refs -- see above: deferring this reset to an effect hangs the import
-        generationRef.current += 1;
-        // oxlint-disable-next-line react/refs -- see above
-        runningRef.current = false;
         dispatch({ fileKey: args.fileKey, type: "fileChanged" });
     }
 
-    const argsRef = useRef(args);
-    // oxlint-disable-next-line react/refs -- see above: a commit-lagged mirror resolves the new file against the previous file's args
-    argsRef.current = args;
-
-    const resolveImport = useCallback(async (): Promise<Settlement> => {
-        const allLabels = argsRef.current.labels;
-        const resolvedLinks = new Map<string, string>();
-        const fromModelSet = new Set<string>();
-        partialRef.current = { fromModel: fromModelSet, links: resolvedLinks };
-
-        const { domainless, unresolved } = linkKnownMerchants(
-            allLabels,
-            argsRef.current.categoryIdByKey,
-            resolvedLinks
-        );
-        dispatch({
-            tier1Matched: allLabels.length - unresolved.length,
-            type: "matched",
-        });
-
-        const stillUnresolved = linkCachedLabels(
-            unresolved,
-            argsRef.current.categoryIdByKey,
-            resolvedLinks,
-            fromModelSet
-        );
-        const rawByScrubbed = groupByScrubbedLabel(stillUnresolved);
-
-        const domainUnknown = domainless.filter((label) => {
-            const cached = cachedLabelEnrichment(label);
-            return !(cached.hit && cached.value?.domain != null);
-        });
-
-        const payload = buildClassificationPayload({
-            categoryTree: argsRef.current.categoryTree,
-            draft: argsRef.current.draft,
-            parsed: argsRef.current.parsed,
-            unresolvedLabels: [...stillUnresolved, ...domainUnknown],
-        });
-
-        if (payload == null) {
-            return settleWith(resolvedLinks, fromModelSet, "applied", null);
-        }
-
-        if (!argsRef.current.aiEnrichment) {
-            return settleWith(resolvedLinks, fromModelSet, "declined", null);
-        }
-
-        if (argsRef.current.chars > AI_TIER_MAX_CHARS || argsRef.current.parsed.rows.length > AI_TIER_MAX_ROWS) {
-            return settleWith(resolvedLinks, fromModelSet, "unavailable", "overCap");
-        }
-
-        const call = argsRef.current.transport === undefined ? csvImportTransport() : argsRef.current.transport;
-        if (call == null) {
-            return settleWith(resolvedLinks, fromModelSet, "unavailable", "notConfigured");
-        }
-
-        dispatch({ tier2Sent: payload.labels.length, type: "asking" });
-        const settled = await askModel(call, {
-            ...payload,
-            groundedLookup: argsRef.current.groundedLookup,
-            regionCode: argsRef.current.regionCode,
-        });
-
-        if (settled.kind !== "result") {
-            return settleWith(
-                resolvedLinks,
-                fromModelSet,
-                "unavailable",
-                settled.kind === "timeout" ? "timeout" : "offline"
-            );
-        }
-
-        if (settled.result.status !== "ok") {
-            return settleWith(resolvedLinks, fromModelSet, "unavailable", REASON_BY_STATUS[settled.result.status]);
-        }
-
-        linkSuggestions(
-            settled.result.suggestions ?? [],
-            argsRef.current.categoryIdByKey,
-            rawByScrubbed,
-            resolvedLinks,
-            fromModelSet
-        );
-
-        return settleWith(resolvedLinks, fromModelSet, "applied", null);
-    }, []);
-
-    const execute = useCallback(async () => {
-        const generation = generationRef.current;
-        dispatch({ type: "started" });
-        partialRef.current = null;
-
-        let settlement: Settlement;
-        try {
-            settlement = await resolveImport();
-        } catch {
-            // TS narrows `partialRef.current` to `null` here because it can't see
-            // `resolveImport` reassigning it before throwing — assert the real type.
-            // SAFETY: stated in the comment above — `resolveImport` assigns it before
-            // throwing, which TS cannot see across the boundary.
-            const partial = partialRef.current as PartialResolution | null;
-            settlement = settleWith(
-                partial?.links ?? NO_LINKS,
-                partial?.fromModel ?? NO_FROM_MODEL,
-                "unavailable",
-                "providerError"
-            );
-        }
-
-        if (generationRef.current === generation) {
-            dispatch({ settlement, type: "settled" });
-        }
-    }, [resolveImport]);
-
+    const { generation } = state;
     const run = useCallback(() => {
-        if (runningRef.current) {
+        if (runningFor.current === generation) {
             return;
         }
-        const generation = generationRef.current;
-        runningRef.current = true;
+        runningFor.current = generation;
+        const send = (action: RunAction) => dispatch({ ...action, generation });
         // oxlint-disable-next-line no-void -- execute() settles its own failure into the reducer, and `run` is a synchronous press handler with nothing to await
-        void execute().finally(() => {
-            if (generationRef.current === generation) {
-                runningRef.current = false;
+        void execute(args, send).finally(() => {
+            if (runningFor.current === generation) {
+                runningFor.current = null;
             }
         });
-    }, [execute]);
+    }, [args, generation]);
 
     return {
         fromModel: state.fromModel,

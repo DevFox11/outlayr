@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { AUTH_RESTORE_BUDGET_MS, authGate } from "@/domain/auth-gate";
 import type { AuthGate } from "@/domain/auth-gate";
-import { authClient } from "@/lib/auth-client";
+import { authClient, useAuthClientSession } from "@/lib/auth-client";
 
 type AuthClient = NonNullable<typeof authClient>;
 
@@ -46,8 +46,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
 }
 
 function LiveSession({ client, children }: { client: AuthClient; children: ReactNode }) {
-    // oxlint-disable-next-line react/hooks -- `authClient` is a module singleton bound once at load; the `client` prop exists only so TypeScript narrows away the `null` its factory can return, so the hook is in fact the same function on every render.
-    const { data: session, isPending } = client.useSession();
+    const { data: session, isPending } = useAuthClientSession();
     const [provisional, setProvisional] = useState(false);
     const [restoreExpired, setRestoreExpired] = useState(false);
 

@@ -1,6 +1,6 @@
 import { migrate } from "drizzle-orm/expo-sqlite/migrator";
 import type { ReactNode } from "react";
-import { createContext, use, useEffect, useMemo, useState } from "react";
+import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { bootstrapLocalData } from "@/data/bootstrap";
 import { settleLegacyOnboarding } from "@/data/onboarding-core";
@@ -9,7 +9,7 @@ import type { Database } from "@/db/client";
 
 import migrationsBundle from "../../drizzle/migrations";
 
-export type LocalDataStatus = "opening" | "migrating" | "seeding" | "ready" | "error";
+export type LocalDataStatus = "opening" | "ready" | "error";
 
 export interface LocalDataContextValue {
     db: Database | null;
@@ -20,6 +20,14 @@ export interface LocalDataContextValue {
 }
 
 const LocalDataContext = createContext<LocalDataContextValue | null>(null);
+
+interface LocalDataState {
+    db: Database | null;
+    error: Error | null;
+    status: LocalDataStatus;
+}
+
+const OPENING: LocalDataState = { db: null, error: null, status: "opening" };
 
 export function useLocalData(): LocalDataContextValue {
     const value = use(LocalDataContext);
@@ -46,81 +54,63 @@ export function useDatabase(): Database {
  * `ready` means open AND migrated AND seeded — the root layout holds the splash
  * on it, so no screen ever observes a half-built database.
  */
+async function openLocalData(cancelled: () => boolean): Promise<LocalDataState | null> {
+    try {
+        const database = openDatabase();
+        if (cancelled()) {
+            return null;
+        }
+        await migrate(database, migrationsBundle);
+        if (cancelled()) {
+            return null;
+        }
+        await bootstrapLocalData(database);
+        if (cancelled()) {
+            return null;
+        }
+        // Ahead of `ready`, so the onboarding guard's first evaluation already
+        // reads post-backfill appMeta — no third "unknown" gate state.
+        await settleLegacyOnboarding(database);
+        return { db: database, error: null, status: "ready" };
+    } catch (caught) {
+        return { db: null, error: caught instanceof Error ? caught : new Error(String(caught)), status: "error" };
+    }
+}
+
 export function LocalDataProvider({ children }: { children: ReactNode }) {
-    const [state, setState] = useState<{
-        attempt: number;
-        db: Database | null;
-        error: Error | null;
-        status: LocalDataStatus;
-    }>({
-        attempt: 0,
-        db: null,
-        error: null,
-        status: "opening",
-    });
-    const { attempt, db, error, status } = state;
+    const [state, setState] = useState<LocalDataState>(OPENING);
+    const { db, error, status } = state;
+    const currentRun = useRef(0);
 
-    // oxlint-disable-next-line react/exhaustive-deps -- `attempt` is the intentional re-run trigger — bumping it is what re-runs open → migrate → seed after a failure; the effect body never reads it.
-    useEffect(() => {
-        let cancelled = false;
-
-        (async () => {
-            try {
-                setState((current) => ({ ...current, error: null, status: "opening" }));
-                const database = openDatabase();
-                if (cancelled) {
-                    return;
-                }
-                setState((current) => ({ ...current, status: "migrating" }));
-                await migrate(database, migrationsBundle);
-                if (cancelled) {
-                    return;
-                }
-                setState((current) => ({ ...current, status: "seeding" }));
-                await bootstrapLocalData(database);
-                if (cancelled) {
-                    return;
-                }
-                // Ahead of `setDb`/`ready`, so the onboarding guard's first evaluation
-                // already reads post-backfill appMeta — no third "unknown" gate state.
-                await settleLegacyOnboarding(database);
-                if (cancelled) {
-                    return;
-                }
-                setState((current) => ({ ...current, db: database, status: "ready" }));
-            } catch (caught) {
-                if (cancelled) {
-                    return;
-                }
-                setState((current) => ({
-                    ...current,
-                    error: caught instanceof Error ? caught : new Error(String(caught)),
-                    status: "error",
-                }));
+    const open = useCallback(() => {
+        currentRun.current += 1;
+        const run = currentRun.current;
+        const cancelled = () => run !== currentRun.current;
+        openLocalData(cancelled).then((opened) => {
+            if (opened !== null && !cancelled()) {
+                setState(opened);
             }
-        })();
+        });
+    }, []);
 
+    useEffect(() => {
+        open();
         return () => {
-            cancelled = true;
+            currentRun.current += 1;
         };
-    }, [attempt]);
+    }, [open]);
 
     const value = useMemo<LocalDataContextValue>(
         () => ({
             db,
             error,
             retry: () => {
-                setState((previous) => ({
-                    ...previous,
-                    attempt: previous.attempt + 1,
-                    db: null,
-                    error: null,
-                    status: "opening",
-                }));
+                setState(OPENING);
+                open();
             },
             status,
         }),
-        [db, status, error]
+        [db, status, error, open]
     );
 
     return <LocalDataContext.Provider value={value}>{children}</LocalDataContext.Provider>;

@@ -59,12 +59,12 @@ const mockUseSession = jest.fn();
 const mockClient = {
     deleteUser: jest.fn(),
     signOut: jest.fn(),
-    useSession: mockUseSession,
 };
 jest.mock("@/lib/auth-client", () => ({
     get authClient() {
         return mockClient;
     },
+    useAuthClientSession: () => mockUseSession(),
 }));
 
 jest.mock("@/lib/auth-session", () => ({

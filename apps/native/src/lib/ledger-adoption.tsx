@@ -37,6 +37,16 @@ export function useLedgerAdoption(): LedgerAdoption {
     return use(LedgerAdoptionContext);
 }
 
+function shownStatus(holding: boolean, skipping: boolean, reconciled: AdoptionStatus): AdoptionStatus {
+    if (holding) {
+        return "resolving";
+    }
+    if (skipping) {
+        return "settled";
+    }
+    return reconciled;
+}
+
 /**
  * Reconciles what this device holds with what the account holds, once per
  * account. Must sit below the splash gate — it reads the database.
@@ -56,14 +66,34 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
     );
     const settled = accountId != null && (rows[0]?.value ?? null) === accountId;
 
-    // Lazily, so the frame before the effect below runs is not a cover over an
-    // app that had nothing to reconcile in the first place.
-    const [status, setStatus] = useState<AdoptionStatus>(() =>
-        accountId == null || settled ? "settled" : "resolving"
-    );
+    const [reconciled, setReconciled] = useState<AdoptionStatus>("resolving");
     const [failed, setFailed] = useState(false);
     const confirmedFree = useProLocked();
     const entitlementPending = useProPending();
+    // Held rather than settled while the entitlement is still being
+    // established: settling hands the local ledger to `RootStack`, and a
+    // Pro customer on a new device could edit it before the account's
+    // ledger has been reconciled, turning an automatic adoption into a
+    // merge. The hold is bounded by the requests themselves.
+    const holding = accountId != null && !settled && entitlementPending;
+    // Skipped only for a CONFIRMED Free customer, who has no account ledger
+    // to reconcile against. Every other answer — Pro, unmirrored Pro, or a
+    // store lookup that failed — reconciles, because settling would claim a
+    // check that never ran. When the account cannot be read, that reaches
+    // the existing `defer` path: refused pull, one retry scheduled, no
+    // marker written, so the work stays due for the next launch.
+    const skipping = !holding && (accountId == null || settled || confirmedFree);
+    const reconcilingFor = holding || skipping ? null : accountId;
+    const status = shownStatus(holding, skipping, reconciled);
+
+    const [startedFor, setStartedFor] = useState<string | null>(null);
+    if (reconcilingFor !== startedFor) {
+        setStartedFor(reconcilingFor);
+        if (reconcilingFor !== null) {
+            setReconciled("resolving");
+            setFailed(false);
+        }
+    }
     const retryByAccount = useRef<{
         accountId: string;
         inFlight: Promise<AdoptionStatus> | null;
@@ -71,39 +101,20 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
     } | null>(null);
 
     useEffect(() => {
-        // Held rather than settled while the entitlement is still being
-        // established: settling hands the local ledger to `RootStack`, and a
-        // Pro customer on a new device could edit it before the account's
-        // ledger has been reconciled, turning an automatic adoption into a
-        // merge. The hold is bounded by the requests themselves.
-        if (accountId != null && !settled && entitlementPending) {
-            // oxlint-disable-next-line react/set-state-in-effect -- as below: one arm of the same async state machine.
-            setStatus("resolving");
+        if (reconcilingFor === null) {
             return;
         }
-        // Skipped only for a CONFIRMED Free customer, who has no account ledger
-        // to reconcile against. Every other answer — Pro, unmirrored Pro, or a
-        // store lookup that failed — reconciles, because settling would claim a
-        // check that never ran. When the account cannot be read, that reaches
-        // the existing `defer` path: refused pull, one retry scheduled, no
-        // marker written, so the work stays due for the next launch.
-        if (accountId == null || settled || confirmedFree) {
-            // oxlint-disable-next-line react/set-state-in-effect -- one arm of an async state machine whose other arms settle from awaits; splitting this one out to a derivation would leave the status written from two places.
-            setStatus("settled");
-            return;
-        }
+        const account = reconcilingFor;
         let cancelled = false;
-        if (retryByAccount.current?.accountId !== accountId) {
-            retryByAccount.current = { accountId, inFlight: null, retry: createSingleAdoptionRetry() };
+        if (retryByAccount.current?.accountId !== account) {
+            retryByAccount.current = { accountId: account, inFlight: null, retry: createSingleAdoptionRetry() };
         }
         const slot = retryByAccount.current;
         const { retry } = slot;
-        setStatus("resolving");
-        setFailed(false);
 
         const runReconcile = async (): Promise<AdoptionStatus> => {
             try {
-                await prepareAccountAdoption(db, accountId);
+                await prepareAccountAdoption(db, account);
                 const engine = adoptionEngine(db);
                 const remote = engine ? await engine.accountLedger() : "unknown";
                 const plan = adoptionPlan(await localLedgerState(db), remote);
@@ -116,7 +127,7 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
                 }
                 const actions = adoptionActions(plan);
                 if (actions) {
-                    await completeAdoption(db, engine, actions, accountId);
+                    await completeAdoption(db, engine, actions, account);
                 }
                 return "settled";
             } catch (error: unknown) {
@@ -132,7 +143,7 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
             });
             const outcome = await slot.inFlight;
             if (!cancelled) {
-                setStatus(outcome);
+                setReconciled(outcome);
             }
         };
 
@@ -147,24 +158,24 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
             cancelled = true;
             subscription.remove();
         };
-    }, [db, accountId, settled, confirmedFree, entitlementPending]);
+    }, [db, reconcilingFor]);
 
     const choose = useCallback(
         (choice: AdoptionChoice) => {
             if (accountId == null) {
                 return;
             }
-            setStatus("working");
+            setReconciled("working");
             setFailed(false);
             const adopt = async () => {
                 await completeAdoption(db, adoptionEngine(db), choiceActions(choice), accountId);
-                setStatus("settled");
+                setReconciled("settled");
             };
 
             adopt().catch((cause: unknown) => {
                 console.warn("[outlayr] ledger adoption failed", cause);
                 setFailed(true);
-                setStatus("ask");
+                setReconciled("ask");
             });
         },
         [db, accountId]

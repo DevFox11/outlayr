@@ -8,6 +8,7 @@ import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import { spendingCalendarStart } from "@/data/spending-calendar";
+import { useNow } from "@/data/use-now";
 import { addDays, formatChargeDate, monthAbbrevTitle, startOfDay, weekdayInitial } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
 import type { SpendingCalendarEntry } from "@/domain/spending-calendar";
@@ -95,22 +96,17 @@ function accessibilityColumns(days: readonly CalendarDay[], weekStartDay: number
     return columns;
 }
 
-export function SpendingCalendar({
-    entries,
-    currency,
-    firstWeekday,
-    showCents,
-    // oxlint-disable-next-line react/no-object-type-as-default-prop -- a hoisted default would freeze "now" at module load and the calendar would stop advancing
-    now = new Date(),
-}: SpendingCalendarProps) {
+export function SpendingCalendar({ entries, currency, firstWeekday, showCents, now }: SpendingCalendarProps) {
     const colors = useColors();
     const t = useTranslation();
     const { language } = useLanguage();
     const reduceMotion = useReducedMotion();
     const animated = useSettingBool("animatedCharts") && !reduceMotion;
     const weekStartDay = firstWeekday - 1;
-    const end = startOfDay(now);
-    const start = spendingCalendarStart(now);
+    const clock = useNow();
+    const at = useMemo(() => now ?? new Date(clock), [now, clock]);
+    const end = startOfDay(at);
+    const start = spendingCalendarStart(at);
 
     const chartEntries = useMemo(
         () => entries.map((entry) => ({ count: entry.value, date: dateFromKey(entry.date) })),
@@ -134,7 +130,7 @@ export function SpendingCalendar({
     const dayLabel = (date: Date, value: number, exact = true): string =>
         t(exact ? "insights.calendar.day" : "insights.calendar.dayApproximate", {
             amount: formatAmount(value, currency, showCents, language),
-            date: formatChargeDate(date, now, language),
+            date: formatChargeDate(date, at, language),
         });
     const tooltipLabel = (cell: HeatmapCell): string => {
         if (!cell.date) {
