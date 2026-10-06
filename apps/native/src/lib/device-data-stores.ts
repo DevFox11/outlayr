@@ -17,7 +17,7 @@ import { QUEUE_DIRECTORY } from "./pending-writes-core";
 import { clearStoredPhotos } from "./photo-storage";
 import { PROVIDER_BINDING_KEY } from "./provider-revocation";
 import { sharedStore } from "./shared-store";
-import { INTENT_SNAPSHOT_KEY, PENDING_WRITES_KEY } from "./widget-bridge";
+import { INTENT_SNAPSHOT_KEY, PENDING_WRITES_KEY, PUSHED_PURCHASES_KEY } from "./widget-bridge";
 
 const DATABASE_NAME = "outlayr.db";
 const DELETION_SECRET_KEY = "outlayr.account-deletion-resume";
@@ -94,6 +94,7 @@ function clearWidgetStorage(): void {
     }
     sharedStore?.remove(INTENT_SNAPSHOT_KEY);
     sharedStore?.remove(PENDING_WRITES_KEY);
+    sharedStore?.remove(PUSHED_PURCHASES_KEY);
     const container = Paths.appleSharedContainers[APP_GROUP];
     if (!container) {
         throw new Error("App Group container is unavailable");

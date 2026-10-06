@@ -50,6 +50,7 @@ struct LogNotificationIntent: AppIntent {
             throw $body.needsValueError("What did the notification say?")
         }
 
+        let purchase = Self.dedupeKey(text: text, side: side)
         SharedStore.enqueue(
             PendingWrite(
                 id: UUID().uuidString,
@@ -63,13 +64,16 @@ struct LogNotificationIntent: AppIntent {
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                     .nilIfEmpty,
                 currency: nil,
-                dedupeKey: Self.dedupeKey(text: text, side: side),
+                dedupeKey: purchase,
                 text: text
             )
         )
 
         let source = notificationTitle?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty ?? "a notification"
-        await SharedStore.notify("Noted a purchase from \(source). Open Outlayr to review it.")
+        await SharedStore.notify(
+            "Noted a purchase from \(source). Open Outlayr to review it.",
+            purchase: purchase
+        )
         return .result(dialog: IntentDialog("Noted."))
     }
 

@@ -27,6 +27,7 @@ jest.mock<Partial<typeof import("./photo-storage")>>("./photo-storage", () => ({
 jest.mock<Partial<typeof import("./widget-bridge")>>("./widget-bridge", () => ({
     INTENT_SNAPSHOT_KEY: "intentSnapshot",
     PENDING_WRITES_KEY: "pendingWrites",
+    PUSHED_PURCHASES_KEY: "pushedPurchases",
 }));
 
 import { deleteItemAsync, getItemAsync, setItemAsync } from "expo-secure-store";

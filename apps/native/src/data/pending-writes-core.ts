@@ -20,7 +20,8 @@ import { transactionsRepo } from "./transactions-core";
  * A Transaction automation fires when the card authorizes and can fire again
  * when the charge settles; the two runs describe one purchase but arrive as two
  * intents. Ten minutes covers the pair when settlement is immediate, a Shortcuts
- * retry, and a drain replayed after a force-quit.
+ * retry, and a drain replayed after a force-quit. `PushLedger` in
+ * `app-intents/SharedStore.swift` copies it to push once per purchase.
  *
  * It deliberately does not stretch to a next-day settlement. Widening it to
  * cover that would also collapse a second, real purchase at the same merchant

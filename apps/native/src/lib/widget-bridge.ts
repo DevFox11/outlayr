@@ -37,6 +37,8 @@ export const PENDING_WRITES_KEY = "pendingWrites";
 /** The key the read-only intents decode; see {@link publishIntentSnapshot}. */
 export const INTENT_SNAPSHOT_KEY = "intentSnapshot";
 
+export const PUSHED_PURCHASES_KEY = "pushedPurchases";
+
 /** Epoch ms string `SignalWalletRunIntent` writes on every Wallet automation run. */
 const WALLET_LAST_RUN_KEY = "walletLastRunAt";
 

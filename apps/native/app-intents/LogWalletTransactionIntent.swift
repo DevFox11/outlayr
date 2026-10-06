@@ -64,6 +64,13 @@ struct LogWalletTransactionIntent: AppIntent {
         }
 
         let name = merchant.trimmingCharacters(in: .whitespacesAndNewlines)
+        let purchase = Self.dedupeKey(
+            transactionId: transactionId,
+            merchant: name,
+            amount: value,
+            side: side,
+            card: card
+        )
         SharedStore.enqueue(
             PendingWrite(
                 id: UUID().uuidString,
@@ -82,19 +89,13 @@ struct LogWalletTransactionIntent: AppIntent {
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                     .uppercased()
                     .nilIfEmpty,
-                dedupeKey: Self.dedupeKey(
-                    transactionId: transactionId,
-                    merchant: name,
-                    amount: value,
-                    side: side,
-                    card: card
-                ),
+                dedupeKey: purchase,
                 text: nil
             )
         )
 
         let summary = name.isEmpty ? "Logged \(amount)" : "Logged \(amount) at \(name)"
-        await SharedStore.notify(summary)
+        await SharedStore.notify(summary, purchase: purchase)
         return .result(dialog: IntentDialog("\(summary)."))
     }
 
@@ -102,10 +103,10 @@ struct LogWalletTransactionIntent: AppIntent {
     ///
     /// A Transaction automation fires when the card authorizes and again when
     /// the charge settles, so the same purchase arrives twice under two ids.
-    /// Nothing here is time-based: how far apart two runs may be and still mean
-    /// one purchase is the JS ledger's call, not this intent's — see
-    /// `WALLET_DEDUPE_WINDOW_MS`. The amount is carried in minor units because a
-    /// `Double` renders differently either side of the wire.
+    /// The key carries no time: how far apart two runs may be and still mean one
+    /// purchase is the JS ledger's call — see `WALLET_DEDUPE_WINDOW_MS`, which
+    /// `PushLedger` copies. The amount is carried in minor units because
+    /// a `Double` renders differently either side of the wire.
     ///
     /// The card is part of the key: the same merchant and amount on two cards
     /// within the window are two purchases, not one settling.

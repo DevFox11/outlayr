@@ -35,7 +35,7 @@ export interface PendingWrite {
      * settles, and those are two separate intent runs describing one purchase.
      *
      * Carries no timestamp on purpose: how far apart two runs may be and still
-     * mean the same purchase is a policy the app owns, not the extension — see
+     * mean the same purchase is a policy the app owns — see
      * `WALLET_DEDUPE_WINDOW_MS` in `src/data/pending-writes-core.ts`.
      */
     dedupeKey?: string | null;

@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import UserNotifications
 
@@ -13,6 +14,9 @@ enum SharedStore {
     /// Epoch milliseconds, as a string, of the last `SignalWalletRunIntent` run.
     /// Mirrored by `WALLET_LAST_RUN_KEY` in `src/lib/widget-bridge.ts`.
     static let walletRunKey = "walletLastRunAt"
+
+    /// Mirrored by `PUSHED_PURCHASES_KEY` in `src/lib/widget-bridge.ts`.
+    static let pushedPurchasesKey = "pushedPurchases"
 
     /// Where an intent leaves work for the app to commit, one JSON line per
     /// write. Mirrored by `QUEUE_DIRECTORY` / `QUEUE_FILE` in
@@ -47,18 +51,24 @@ enum SharedStore {
         append(line, to: url)
     }
 
-    /// Posts the app's own "Logged …" push from an intent. Skipped, not
+    /// Posts the app's own push from an intent, once per purchase key within
+    /// `WALLET_DEDUPE_WINDOW_MS` (copied in `PushLedger`). Skipped, not
     /// thrown, when the app never got notification permission: the write is
     /// already queued and a failed run would make Shortcuts retry it.
-    static func notify(_ body: String) async {
+    static func notify(_ body: String, purchase key: String) async {
         let center = UNUserNotificationCenter.current()
-        guard await center.notificationSettings().authorizationStatus == .authorized else { return }
+        guard await center.notificationSettings().authorizationStatus == .authorized,
+              await PushLedger.shared.claim(key) else { return }
         let content = UNMutableNotificationContent()
         content.body = body
         content.threadIdentifier = "automation"
-        try? await center.add(
-            UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-        )
+        do {
+            try await center.add(
+                UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+            )
+        } catch {
+            await PushLedger.shared.release(key)
+        }
     }
 
     private static func queueURL() -> URL? {
@@ -97,6 +107,38 @@ enum SharedStore {
                 written += count
             }
         }
+    }
+}
+
+private actor PushLedger {
+    static let shared = PushLedger()
+
+    private let defaults = SharedStore.store
+    private let defaultsKey = SharedStore.pushedPurchasesKey
+    private let window: TimeInterval = 10 * 60
+
+    func claim(_ key: String) -> Bool {
+        var pushed = recent()
+        let id = Self.digest(key)
+        guard pushed[id] == nil else { return false }
+        pushed[id] = Date()
+        defaults?.set(pushed, forKey: defaultsKey)
+        return true
+    }
+
+    func release(_ key: String) {
+        var pushed = recent()
+        pushed[Self.digest(key)] = nil
+        defaults?.set(pushed, forKey: defaultsKey)
+    }
+
+    private func recent() -> [String: Date] {
+        (defaults?.dictionary(forKey: defaultsKey) as? [String: Date] ?? [:])
+            .filter { abs($0.value.timeIntervalSinceNow) <= window }
+    }
+
+    private static func digest(_ key: String) -> String {
+        SHA256.hash(data: Data(key.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 }
 
