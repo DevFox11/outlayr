@@ -3,13 +3,14 @@ import { Linking } from "react-native";
 /**
  * The iCloud link to the shared "Outlayr - Apple Pay" shortcut: the Wallet
  * trigger, Signal a Wallet Run, and Log a Wallet Transaction fed from the
- * trigger, with Currency Code read off the Amount, never Shortcut Input. The
- * trigger inside it is an iOS 27 feature, so the screen only offers the link there.
+ * trigger, with Currency Code read off the Amount, never Shortcut Input. Card is
+ * the raw Card or Pass: its Name property reads "Payment Method" for every card.
+ * The trigger inside it is an iOS 27 feature, so the screen only offers the link there.
  *
  * Re-share and update this whenever `LogWalletTransactionIntent`'s parameters
  * change: a shortcut is a snapshot of the action, not a reference to it.
  */
-export const WALLET_SHORTCUT_URL: string | null = "https://www.icloud.com/shortcuts/2b20fb4c22fb4c0e91e79ad4be8c3f01";
+export const WALLET_SHORTCUT_URL: string | null = "https://www.icloud.com/shortcuts/3311d702ff234334b4951de64882f374";
 
 /**
  * Undocumented but stable since iOS 17: lands on the Automations tab, which is
