@@ -19,8 +19,8 @@ import { transactionsRepo } from "./transactions-core";
  *
  * A Transaction automation fires when the card authorizes and can fire again
  * when the charge settles; the two runs describe one purchase but arrive as two
- * intents. Ten minutes covers the pair when settlement is immediate, a Shortcuts
- * retry, and a drain replayed after a force-quit. `PushLedger` in
+ * intents. Ten minutes covers the pair when settlement is immediate and a
+ * Shortcuts retry. `PushLedger` in
  * `app-intents/SharedStore.swift` copies it to push once per purchase.
  *
  * It deliberately does not stretch to a next-day settlement. Widening it to
@@ -131,6 +131,7 @@ const LEDGER_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface LedgerEntry {
     at: number;
+    date?: number;
     /** The enqueue this row came from. */
     id: string;
     /** The purchase it came from, when the intent could name one. */
@@ -142,6 +143,7 @@ const ledgerSchema = z.array(
     z
         .object({
             at: z.number().finite(),
+            date: z.number().finite().optional(),
             id: z.string(),
             key: z.string().nullable(),
             txId: z.string(),
@@ -187,7 +189,7 @@ function remember(ledger: LedgerEntry[], entry: LedgerEntry, at: number): Ledger
  * drain. The purchase key is windowed because two runs naming one purchase are
  * two separate intents, and far enough apart they stop being one.
  */
-function alreadyApplied(ledger: LedgerEntry[], job: PendingWrite, at: number): LedgerEntry | null {
+function alreadyApplied(ledger: LedgerEntry[], job: PendingWrite): LedgerEntry | null {
     const replayed = ledger.find((entry) => entry.id === job.id);
     if (replayed) {
         return replayed;
@@ -196,7 +198,11 @@ function alreadyApplied(ledger: LedgerEntry[], job: PendingWrite, at: number): L
     if (!key) {
         return null;
     }
-    return ledger.find((entry) => entry.key === key && at - entry.at <= WALLET_DEDUPE_WINDOW_MS) ?? null;
+    return (
+        ledger.find(
+            (entry) => entry.key === key && Math.abs(job.date - (entry.date ?? entry.at)) <= WALLET_DEDUPE_WINDOW_MS
+        ) ?? null
+    );
 }
 
 /**
@@ -236,7 +242,7 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
         if (!job) {
             continue;
         }
-        const seen = alreadyApplied(ledger, job, at);
+        const seen = alreadyApplied(ledger, job);
         if (seen && (await stillOnLedger(db, seen.txId))) {
             continue;
         }
@@ -263,7 +269,7 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
                 income: job.income,
                 note: job.note,
             });
-            ledger = remember(ledger, { at, id: job.id, key: job.dedupeKey?.trim() || null, txId }, at);
+            ledger = remember(ledger, { at, date: job.date, id: job.id, key: job.dedupeKey?.trim() || null, txId }, at);
             await setMeta(db, META_KEYS.pendingWriteLedger, JSON.stringify(ledger));
             if (fromAutomation(job)) {
                 const entry: LastWalletEntry = { at, txId };

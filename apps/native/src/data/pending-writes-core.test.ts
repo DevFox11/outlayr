@@ -136,9 +136,13 @@ describe("applyPendingWrites", () => {
 
     it("collapses the authorize and settle runs of one purchase", async () => {
         await applyPendingWrites(db, [walletWrite("auth")], NOW);
-        const settled = new Date(NOW.getTime() + WALLET_DEDUPE_WINDOW_MS - 1);
+        const settled = NOW.getTime() + WALLET_DEDUPE_WINDOW_MS - 1;
 
-        const applied = await applyPendingWrites(db, [walletWrite("settle")], settled);
+        const applied = await applyPendingWrites(
+            db,
+            [walletWrite("settle", { date: settled })],
+            new Date(settled + WALLET_DEDUPE_WINDOW_MS * 30)
+        );
 
         expect(applied).toBe(0);
         await expect(liveRows(db)).resolves.toHaveLength(1);
@@ -146,11 +150,24 @@ describe("applyPendingWrites", () => {
 
     it("keeps the same purchase made again past the window", async () => {
         await applyPendingWrites(db, [walletWrite("morning")], NOW);
-        const later = new Date(NOW.getTime() + WALLET_DEDUPE_WINDOW_MS + 1);
+        const later = NOW.getTime() + WALLET_DEDUPE_WINDOW_MS + 1;
 
-        const applied = await applyPendingWrites(db, [walletWrite("noon")], later);
+        const applied = await applyPendingWrites(db, [walletWrite("noon", { date: later })], new Date(later));
 
         expect(applied).toBe(1);
+        await expect(liveRows(db)).resolves.toHaveLength(2);
+    });
+
+    it("keeps two purchases far apart that were queued while the app was closed", async () => {
+        const evening = NOW.getTime() + WALLET_DEDUPE_WINDOW_MS * 50;
+
+        const applied = await applyPendingWrites(
+            db,
+            [walletWrite("morning"), walletWrite("evening", { date: evening })],
+            new Date(evening + 1)
+        );
+
+        expect(applied).toBe(2);
         await expect(liveRows(db)).resolves.toHaveLength(2);
     });
 
