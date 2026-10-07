@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { defaultLocale, getIntlayer, locales } from "intlayer";
 
 import { LANGUAGES, pageUrl } from "@/lib/i18n";
-import { LEGAL_DAYS } from "@/lib/site";
+import { LEGAL_DAYS, RIVALS_CHECKED } from "@/lib/site";
 
 function pages(): [path: string, updated: Date | null][] {
     const { compare, guides } = getIntlayer("answers");
@@ -12,9 +12,9 @@ function pages(): [path: string, updated: Date | null][] {
         ["/terms", LEGAL_DAYS.terms],
         ["/privacy", LEGAL_DAYS.privacy],
         ["/guides", null],
-        ["/compare", null],
+        ["/compare", RIVALS_CHECKED],
         ...Object.keys(guides).map((slug): [string, null] => [`/guides/${slug}`, null]),
-        ...Object.keys(compare).map((slug): [string, null] => [`/compare/${slug}`, null]),
+        ...Object.keys(compare).map((slug): [string, Date] => [`/compare/${slug}`, RIVALS_CHECKED]),
     ];
 }
 

@@ -1,13 +1,14 @@
 import { createFileRoute, notFound, rootRouteId } from "@tanstack/react-router";
 import { getIntlayer } from "intlayer";
-import { useIntlayer } from "react-intlayer";
+import { useIntlayer, useLocale } from "react-intlayer";
 
 import { HubTrail } from "@/components/hub-trail";
 import { AppStoreBadge } from "@/components/store-badges";
 import { hasKey } from "@/lib/has-key";
-import { localeFromParam } from "@/lib/i18n";
+import { LANGUAGES, localeFromParam } from "@/lib/i18n";
 import { CONTAINER } from "@/lib/layout";
-import { answerTrail, ldJson, pageMeta } from "@/lib/seo";
+import { answerTrail, faqPage, ldJson, pageMeta } from "@/lib/seo";
+import { RIVALS_CHECKED, longDate } from "@/lib/site";
 
 export const Route = createFileRoute("/{-$locale}/compare/$slug")({
     component: Compare,
@@ -25,7 +26,10 @@ export const Route = createFileRoute("/{-$locale}/compare/$slug")({
         const rival = getIntlayer("answers", locale).compare[loaderData];
         return {
             meta: pageMeta(rival.meta.title, rival.lead),
-            scripts: [ldJson(answerTrail(locale, "compare", loaderData, rival.title))],
+            scripts: [
+                ldJson(faqPage(rival.faq, LANGUAGES[locale].lang)),
+                ldJson(answerTrail(locale, "compare", loaderData, rival.title)),
+            ],
         };
     },
 });
@@ -33,6 +37,7 @@ export const Route = createFileRoute("/{-$locale}/compare/$slug")({
 function Compare() {
     const slug = Route.useLoaderData();
     const { compare, labels } = useIntlayer("answers");
+    const { locale } = useLocale();
     const page = compare[slug];
     const sides = [
         { items: page.fit.outlayr, name: "Outlayr" },
@@ -73,7 +78,11 @@ function Compare() {
                 </tbody>
             </table>
             <p className="text-muted mt-4 text-sm">
-                {labels.source({ name: page.rival.value, site: page.site.value })}
+                {labels.source({ name: page.rival.value })}{" "}
+                <a className="hover:text-foreground underline underline-offset-4" href={page.source.value}>
+                    {page.site}
+                </a>
+                {labels.checked({ date: longDate(RIVALS_CHECKED, LANGUAGES[locale].date) })}
             </p>
             <section className="mt-20">
                 <h2 className="text-title font-bold">{labels.fit}</h2>
@@ -90,6 +99,17 @@ function Compare() {
                                     </li>
                                 ))}
                             </ul>
+                        </div>
+                    ))}
+                </div>
+            </section>
+            <section className="mt-20">
+                <h2 className="text-title font-bold">{labels.questions}</h2>
+                <div className="border-foreground mt-8 max-w-[40rem] border-t">
+                    {page.faq.map((item) => (
+                        <div className="border-border border-b py-6" key={item.question.value}>
+                            <h3 className="text-lg font-bold">{item.question}</h3>
+                            <p className="text-muted mt-2 leading-relaxed">{item.answer}</p>
                         </div>
                     ))}
                 </div>

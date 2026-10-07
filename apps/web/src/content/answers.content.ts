@@ -50,6 +50,14 @@ const LABELS = {
     price: t({ en: "Price", es: "Precio" }),
 };
 
+const COST_FAQ = {
+    answer: t({
+        en: "The tracker is free, with budgets, goals, subscriptions, and widgets. The free plan includes 20 voice or receipt captures every 30 days, 2 accounts, 2 category budgets, and accounts in one currency. Outlayr Pro raises those limits and adds sync. It is billed monthly or yearly, or bought once, at prices set per country in the App Store.",
+        es: "El control de gastos es gratis, con presupuestos, metas, suscripciones y widgets. El plan gratis incluye 20 capturas de voz o de recibos cada 30 días, 2 cuentas, 2 presupuestos por categoría y cuentas en una moneda. Outlayr Pro sube esos límites y agrega la sincronización. Se paga al mes, al año o en un solo pago, con precios por país en el App Store.",
+    }),
+    question: t({ en: "How much does Outlayr cost?", es: "¿Cuánto cuesta Outlayr?" }),
+};
+
 const START_FREE = t({ en: "Want to start free", es: "Quieres empezar gratis" });
 const SAY_OR_SCAN = t({
     en: "Would rather say or scan a purchase than fill in a form",
@@ -65,6 +73,29 @@ const answers = {
     content: {
         compare: {
             copilot: {
+                faq: [
+                    {
+                        answer: t({
+                            en: "It is if you want to start free, live outside the United States, or would rather say or scan a purchase than type it. Copilot fits better if you want linked accounts to sync on their own, or use it on a Mac or an iPad.",
+                            es: "Sí, si quieres empezar gratis, vives fuera de Estados Unidos o prefieres dictar o escanear una compra en vez de escribirla. Copilot te conviene más si quieres que tus cuentas vinculadas se sincronicen solas, o si lo usas en una Mac o un iPad.",
+                        }),
+                        question: t({
+                            en: "Is Outlayr a good Copilot alternative?",
+                            es: "¿Outlayr es una buena alternativa a Copilot?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Yes, 165 of them, converted to your main currency at the rate from the day of each purchase. Copilot supports US dollars only.",
+                            es: "Sí, 165, convertidas a tu moneda principal con la tasa del día de cada compra. Copilot solo admite dólares estadounidenses.",
+                        }),
+                        question: t({
+                            en: "Does Outlayr support currencies other than US dollars?",
+                            es: "¿Outlayr admite monedas además del dólar estadounidense?",
+                        }),
+                    },
+                    COST_FAQ,
+                ],
                 fit: {
                     outlayr: [
                         START_FREE,
@@ -86,8 +117,8 @@ const answers = {
                 }),
                 meta: {
                     title: t({
-                        en: "Outlayr vs Copilot Money: Price, Currencies, Platforms",
-                        es: "Outlayr vs Copilot Money: precio, monedas y plataformas",
+                        en: "Copilot Money Alternative: Outlayr vs Copilot (Price, Currencies)",
+                        es: "Alternativa a Copilot Money: Outlayr vs Copilot (precio y monedas)",
                     }),
                 },
                 rival: "Copilot",
@@ -96,8 +127,8 @@ const answers = {
                         label: LABELS.price,
                         outlayr: OUTLAYR.price,
                         rival: t({
-                            en: "$13 a month or $95 a year, after a free trial",
-                            es: "$13 al mes o $95 al año, después de una prueba gratis",
+                            en: "$13 a month or $95 a year, after a 1-month free trial",
+                            es: "$13 al mes o $95 al año, después de una prueba gratis de 1 mes",
                         }),
                     },
                     {
@@ -117,10 +148,34 @@ const answers = {
                     },
                 ],
                 site: "copilot.money",
+                source: "https://www.copilot.money/faq",
                 summary: t(RIVALS.copilot),
-                title: t({ en: "Outlayr and Copilot, side by side.", es: "Outlayr y Copilot, lado a lado." }),
+                title: t({ en: "Outlayr as a Copilot alternative.", es: "Outlayr como alternativa a Copilot." }),
             },
             monarch: {
+                faq: [
+                    {
+                        answer: t({
+                            en: "It is if you want to start free, live outside the United States and Canada, or spend in more than one currency. Monarch fits better if you want linked accounts to sync on their own, or track investments next to spending.",
+                            es: "Sí, si quieres empezar gratis, vives fuera de Estados Unidos y Canadá o gastas en más de una moneda. Monarch te conviene más si quieres que tus cuentas vinculadas se sincronicen solas, o seguir tus inversiones junto con tus gastos.",
+                        }),
+                        question: t({
+                            en: "Is Outlayr a good Monarch alternative?",
+                            es: "¿Outlayr es una buena alternativa a Monarch?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Yes. Outlayr is offered in all 175 App Store countries and regions, in English and Spanish. Monarch is available in the United States and Canada.",
+                            es: "Sí. Outlayr se ofrece en los 175 países y regiones del App Store, en inglés y en español. Monarch está disponible en Estados Unidos y Canadá.",
+                        }),
+                        question: t({
+                            en: "Is Outlayr available outside the United States and Canada?",
+                            es: "¿Outlayr está disponible fuera de Estados Unidos y Canadá?",
+                        }),
+                    },
+                    COST_FAQ,
+                ],
                 fit: {
                     outlayr: [
                         START_FREE,
@@ -145,8 +200,8 @@ const answers = {
                 }),
                 meta: {
                     title: t({
-                        en: "Outlayr vs Monarch Money: Price, Currencies, Platforms",
-                        es: "Outlayr vs Monarch Money: precio, monedas y plataformas",
+                        en: "Monarch Money Alternative: Outlayr vs Monarch (Price, Platforms)",
+                        es: "Alternativa a Monarch Money: Outlayr vs Monarch (precio y plataformas)",
                     }),
                 },
                 rival: "Monarch",
@@ -155,8 +210,8 @@ const answers = {
                         label: LABELS.price,
                         outlayr: OUTLAYR.price,
                         rival: t({
-                            en: "$14.99 a month or $99.99 a year, after a 7-day trial",
-                            es: "$14.99 al mes o $99.99 al año, después de una prueba de 7 días",
+                            en: "$14.99 a month or $99.99 a year, after a 7-day trial. Plus is $199.99 a year",
+                            es: "$14.99 al mes o $99.99 al año, después de una prueba de 7 días. Plus cuesta $199.99 al año",
                         }),
                     },
                     {
@@ -175,14 +230,38 @@ const answers = {
                     {
                         label: LABELS.platforms,
                         outlayr: OUTLAYR.platforms,
-                        rival: t({ en: "iPhone, Android, web", es: "iPhone, Android, web" }),
+                        rival: t({ en: "iPhone, iPad, Android, web", es: "iPhone, iPad, Android, web" }),
                     },
                 ],
                 site: "monarch.com",
+                source: "https://www.monarch.com/pricing",
                 summary: t(RIVALS.monarch),
-                title: t({ en: "Outlayr and Monarch, side by side.", es: "Outlayr y Monarch, lado a lado." }),
+                title: t({ en: "Outlayr as a Monarch alternative.", es: "Outlayr como alternativa a Monarch." }),
             },
             ynab: {
+                faq: [
+                    {
+                        answer: t({
+                            en: "It is if you want to start free, spend in more than one currency, or would rather say or scan a purchase than type it. YNAB fits better if you want your bank to import transactions, or follow its give every dollar a job method.",
+                            es: "Sí, si quieres empezar gratis, gastas en más de una moneda o prefieres dictar o escanear una compra en vez de escribirla. YNAB te conviene más si quieres que tu banco importe los movimientos, o si sigues su método de darle un trabajo a cada dólar.",
+                        }),
+                        question: t({
+                            en: "Is Outlayr a good YNAB alternative?",
+                            es: "¿Outlayr es una buena alternativa a YNAB?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Yes. You can log a purchase in any of 165 currencies, and totals convert at the rate from the day of each purchase. Each account keeps its own currency: the free plan holds accounts in one, Pro in any number. YNAB lets you pick one currency per spending plan.",
+                            es: "Sí. Puedes registrar una compra en cualquiera de 165 monedas, y los totales se convierten con la tasa del día de cada compra. Cada cuenta tiene su propia moneda: el plan gratis permite cuentas en una, Pro en las que quieras. YNAB te deja elegir una moneda por plan de gastos.",
+                        }),
+                        question: t({
+                            en: "Can Outlayr track more than one currency?",
+                            es: "¿Outlayr puede llevar más de una moneda?",
+                        }),
+                    },
+                    COST_FAQ,
+                ],
                 fit: {
                     outlayr: [START_FREE, SEVERAL_CURRENCIES, SAY_OR_SCAN],
                     rival: [
@@ -203,8 +282,8 @@ const answers = {
                 }),
                 meta: {
                     title: t({
-                        en: "Outlayr vs YNAB: Price, Currencies, Platforms",
-                        es: "Outlayr vs YNAB: precio, monedas y plataformas",
+                        en: "YNAB Alternative: Outlayr vs YNAB (Price, Currencies, Platforms)",
+                        es: "Alternativa a YNAB: Outlayr vs YNAB (precio, monedas y plataformas)",
                     }),
                 },
                 rival: "YNAB",
@@ -245,8 +324,9 @@ const answers = {
                     },
                 ],
                 site: "ynab.com",
+                source: "https://www.ynab.com/pricing",
                 summary: t(RIVALS.ynab),
-                title: t({ en: "Outlayr and YNAB, side by side.", es: "Outlayr y YNAB, lado a lado." }),
+                title: t({ en: "Outlayr as a YNAB alternative.", es: "Outlayr como alternativa a YNAB." }),
             },
         },
         guides: {
@@ -765,12 +845,8 @@ const answers = {
             fit: t({ en: "Which one fits", es: "Cuál te conviene" }),
             fitHeading: insert(t({ en: "{{name}}, if you", es: "{{name}}, si" })),
             questions: t({ en: "Questions", es: "Preguntas" }),
-            source: insert(
-                t({
-                    en: "{{name}} details from {{site}}, checked 3 October 2026.",
-                    es: "Datos de {{name}} tomados de {{site}}, revisados el 3 de octubre de 2026.",
-                })
-            ),
+            checked: insert(t({ en: ", checked {{date}}.", es: ", revisados el {{date}}." })),
+            source: insert(t({ en: "{{name}} details from", es: "Datos de {{name}} tomados de" })),
             steps: t({ en: "How it works", es: "Cómo funciona" }),
         },
     },
