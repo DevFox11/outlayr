@@ -6,10 +6,12 @@ import type answers from "./answers.content";
 const site = {
     content: {
         answerLinks: {
-            compare: { copilot: "Copilot", monarch: "Monarch", ynab: "YNAB" } satisfies Record<
-                keyof typeof answers.content.compare,
-                string
-            >,
+            compare: {
+                copilot: "Copilot",
+                monarch: "Monarch",
+                "rocket-money": "Rocket Money",
+                ynab: "YNAB",
+            } satisfies Record<keyof typeof answers.content.compare, string>,
             guides: {
                 "apple-pay-expense-tracker": t({ en: "Apple Pay", es: "Apple Pay" }),
                 "multi-currency-expense-tracker": t({ en: "Multi-currency", es: "Varias monedas" }),

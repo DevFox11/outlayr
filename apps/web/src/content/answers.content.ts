@@ -13,6 +13,10 @@ const RIVALS = {
         en: "Copilot is a paid money app for Apple devices and the web that syncs linked accounts.",
         es: "Copilot es una app de finanzas de pago para dispositivos Apple y la web que sincroniza cuentas vinculadas.",
     },
+    rocketMoney: {
+        en: "Rocket Money is a subscription and budget app for the United States that syncs linked accounts and cancels subscriptions as a Premium feature.",
+        es: "Rocket Money es una app de suscripciones y presupuesto para Estados Unidos que sincroniza cuentas vinculadas y cancela suscripciones como función Premium.",
+    },
     monarch: {
         en: "Monarch is a paid money dashboard that syncs linked accounts in the United States and Canada.",
         es: "Monarch es un panel de finanzas de pago que sincroniza cuentas vinculadas en Estados Unidos y Canadá.",
@@ -42,12 +46,14 @@ const OUTLAYR = {
 };
 
 const LABELS = {
+    availability: t({ en: "Available in", es: "Disponible en" }),
     budgets: t({ en: "Budgets", es: "Presupuestos" }),
     currencies: t({ en: "Currencies", es: "Monedas" }),
     entries: t({ en: "Adding entries", es: "Cómo registras" }),
     focus: t({ en: "Tracks", es: "Sigue" }),
     platforms: t({ en: "Runs on", es: "Funciona en" }),
     price: t({ en: "Price", es: "Precio" }),
+    subscriptions: t({ en: "Subscriptions", es: "Suscripciones" }),
 };
 
 const COST_FAQ = {
@@ -63,6 +69,7 @@ const SAY_OR_SCAN = t({
     en: "Would rather say or scan a purchase than fill in a form",
     es: "Prefieres dictar o escanear una compra en vez de llenar un formulario",
 });
+const OUTSIDE_US = t({ en: "Live outside the United States", es: "Vives fuera de Estados Unidos" });
 const SEVERAL_CURRENCIES = t({ en: "Spend in more than one currency", es: "Gastas en más de una moneda" });
 const SYNC_ACCOUNTS = t({
     en: "Want linked accounts to sync on their own",
@@ -97,11 +104,7 @@ const answers = {
                     COST_FAQ,
                 ],
                 fit: {
-                    outlayr: [
-                        START_FREE,
-                        t({ en: "Live outside the United States", es: "Vives fuera de Estados Unidos" }),
-                        SAY_OR_SCAN,
-                    ],
+                    outlayr: [START_FREE, OUTSIDE_US, SAY_OR_SCAN],
                     rival: [
                         SYNC_ACCOUNTS,
                         t({
@@ -237,6 +240,118 @@ const answers = {
                 source: "https://www.monarch.com/pricing",
                 summary: t(RIVALS.monarch),
                 title: t({ en: "Outlayr as a Monarch alternative.", es: "Outlayr como alternativa a Monarch." }),
+            },
+            "rocket-money": {
+                faq: [
+                    {
+                        answer: t({
+                            en: "It is if you want to start free, live outside the United States, or spend in more than one currency. Rocket Money fits better if you want linked accounts to sync on their own, or want its team to cancel subscriptions for you.",
+                            es: "Sí, si quieres empezar gratis, vives fuera de Estados Unidos o gastas en más de una moneda. Rocket Money te conviene más si quieres que tus cuentas vinculadas se sincronicen solas, o que su equipo cancele suscripciones por ti.",
+                        }),
+                        question: t({
+                            en: "Is Outlayr a good Rocket Money alternative?",
+                            es: "¿Outlayr es una buena alternativa a Rocket Money?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "No. Outlayr shows what each subscription costs and when it charges next, and can remind you before the charge, so you cancel with the service yourself. At Rocket Money, cancellation by its team is a Premium feature.",
+                            es: "No. Outlayr te muestra cuánto cuesta cada suscripción y cuándo vuelve a cobrar, y puede avisarte antes del cobro, para que la canceles tú con el servicio. En Rocket Money, la cancelación por su equipo es una función Premium.",
+                        }),
+                        question: t({
+                            en: "Does Outlayr cancel subscriptions like Rocket Money?",
+                            es: "¿Outlayr cancela suscripciones como Rocket Money?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Yes. Outlayr is offered in all 175 App Store countries and regions, with 165 currencies, in English and Spanish. Rocket Money is available in the United States, with U.S. banks.",
+                            es: "Sí. Outlayr se ofrece en los 175 países y regiones del App Store, con 165 monedas, en inglés y en español. Rocket Money está disponible en Estados Unidos, con bancos de EE. UU.",
+                        }),
+                        question: t({
+                            en: "Does Outlayr work outside the United States?",
+                            es: "¿Outlayr funciona fuera de Estados Unidos?",
+                        }),
+                    },
+                    COST_FAQ,
+                ],
+                fit: {
+                    outlayr: [START_FREE, OUTSIDE_US, SEVERAL_CURRENCIES],
+                    rival: [
+                        SYNC_ACCOUNTS,
+                        t({
+                            en: "Want someone to cancel subscriptions for you",
+                            es: "Quieres que alguien cancele tus suscripciones por ti",
+                        }),
+                        t({ en: "Want help negotiating your bills", es: "Quieres ayuda para negociar tus facturas" }),
+                    ],
+                },
+                lead: t({
+                    en: `${OUTLAYR_LEAD.en} ${RIVALS.rocketMoney.en}`,
+                    es: `${OUTLAYR_LEAD.es} ${RIVALS.rocketMoney.es}`,
+                }),
+                meta: {
+                    title: t({
+                        en: "Rocket Money Alternative: Outlayr vs Rocket Money",
+                        es: "Alternativa a Rocket Money: Outlayr vs Rocket Money",
+                    }),
+                },
+                rival: "Rocket Money",
+                rows: [
+                    {
+                        label: LABELS.price,
+                        outlayr: OUTLAYR.price,
+                        rival: t({
+                            en: "Free plan. Premium is pay what you want, typically $7 to $14 a month. Premium+ is $15 a month",
+                            es: "Plan gratis. Premium es paga lo que quieras, normalmente de $7 a $14 al mes. Premium+ cuesta $15 al mes",
+                        }),
+                    },
+                    {
+                        label: LABELS.entries,
+                        outlayr: OUTLAYR.entries,
+                        rival: t({
+                            en: "Synced from linked accounts. Manual transactions are a Premium feature",
+                            es: "Sincronizados desde cuentas vinculadas. Los movimientos a mano son una función Premium",
+                        }),
+                    },
+                    {
+                        label: LABELS.subscriptions,
+                        outlayr: t({
+                            en: "Log themselves on their day, with a monthly cost and a reminder before each charge",
+                            es: "Se registran solas en su día, con un costo mensual y un aviso antes de cada cobro",
+                        }),
+                        rival: t({
+                            en: "Found in linked accounts. Cancellation by its team is a Premium feature",
+                            es: "Las encuentra en tus cuentas vinculadas. La cancelación por su equipo es una función Premium",
+                        }),
+                    },
+                    {
+                        label: LABELS.availability,
+                        outlayr: t({
+                            en: "175 App Store countries and regions, 165 currencies",
+                            es: "175 países y regiones del App Store, 165 monedas",
+                        }),
+                        rival: t({
+                            en: "The United States, with U.S. banks",
+                            es: "Estados Unidos, con bancos de EE. UU.",
+                        }),
+                    },
+                    {
+                        label: LABELS.platforms,
+                        outlayr: OUTLAYR.platforms,
+                        rival: t({
+                            en: "iPhone, Android. Web is a Premium feature",
+                            es: "iPhone, Android. La web es una función Premium",
+                        }),
+                    },
+                ],
+                site: "rocketmoney.com",
+                source: "https://www.rocketmoney.com/learn/personal-finance/how-much-does-rocket-money-cost",
+                summary: t(RIVALS.rocketMoney),
+                title: t({
+                    en: "Outlayr as a Rocket Money alternative.",
+                    es: "Outlayr como alternativa a Rocket Money.",
+                }),
             },
             ynab: {
                 faq: [
