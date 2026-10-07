@@ -1,5 +1,5 @@
 import type { EntryRateType } from "@outlayr/money/rates";
-import { and, asc, desc, eq, gt, gte, isNotNull, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, sql } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { transactions, transfers } from "@/db/schema";
@@ -16,7 +16,7 @@ import { isTransactionRateNeeded } from "@/domain/transaction-entry-rate";
 
 import { getMeta, META_KEYS } from "./app-meta-core";
 import type { SpendDb } from "./budget-spent";
-import { cardFeeFor, cardFeeValues } from "./card-fees-core";
+import { cardFeeFor, cardFeeValues, suggestedCardFee } from "./card-fees-core";
 import type { CardFeeInput } from "./card-fees-core";
 import { getCategoryById } from "./categories-core";
 import { ERASED_DATE } from "./erase-core";
@@ -571,6 +571,48 @@ export const transactionsRepo = {
                 })
                 .where(eq(transactions.id, id));
         });
+    },
+
+    async attachAccount(
+        db: Database,
+        id: string,
+        account: { currency: string; id: string; initialBalanceDate: Date },
+        now: Date = new Date()
+    ): Promise<boolean> {
+        let settled = true;
+        await withTransaction(db, async () => {
+            const previous = getTransactionById(db, id);
+            if (previous?.deletedAt != null) {
+                settled = false;
+                return;
+            }
+            if (
+                previous == null ||
+                previous.accountId != null ||
+                previous.date.getTime() < account.initialBalanceDate.getTime()
+            ) {
+                return;
+            }
+            const typed = cardFeeFor(db, id);
+            const fee =
+                previous.income || typed !== null
+                    ? null
+                    : suggestedCardFee(db, {
+                          account,
+                          categoryId: previous.categoryId,
+                          currency: previous.currency,
+                          merchant: previous.note,
+                      });
+            await refreshLogoCandidate(db, id, now.getTime());
+            await db
+                .update(transactions)
+                .set({ accountId: account.id, updatedAt: now })
+                .where(inArray(transactions.id, typed === null ? [id] : [id, typed.id]));
+            if (fee !== null) {
+                await writeFee(db, id, await cardFeeValues(db, id, { ...previous, accountId: account.id }, fee), now);
+            }
+        });
+        return settled;
     },
 
     async update(

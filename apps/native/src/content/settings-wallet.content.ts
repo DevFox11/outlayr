@@ -23,6 +23,10 @@ const settingsWallet = {
             en: "Cards",
             es: "Tarjetas",
         }),
+        "settings.wallet.chooseAccount": t({
+            en: "Choose an account",
+            es: "Elige una cuenta",
+        }),
         "settings.wallet.get": t({
             en: "Get the shortcut",
             es: "Obtener el atajo",
@@ -130,6 +134,14 @@ const settingsWallet = {
         "settings.wallet.open": t({
             en: "Open Shortcuts",
             es: "Abrir Atajos",
+        }),
+        "settings.wallet.pushNewPlace": t({
+            en: "New place, tap to pick a category.",
+            es: "Lugar nuevo, toca para elegir una categoría.",
+        }),
+        "settings.wallet.pushWhichAccount": t({
+            en: "Which account is {card}? Tap to pick.",
+            es: "¿Qué cuenta es {card}? Toca para elegirla.",
         }),
         "settings.wallet.ranAt": t({
             en: "The automation ran {when}",

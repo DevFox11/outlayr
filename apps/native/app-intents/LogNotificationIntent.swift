@@ -71,7 +71,7 @@ struct LogNotificationIntent: AppIntent {
 
         let source = notificationTitle?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty ?? "a notification"
         await SharedStore.notify(
-            "Noted a purchase from \(source). Open Outlayr to review it.",
+            body: "Noted a purchase from \(source). Open Outlayr to review it.",
             purchase: purchase
         )
         return .result(dialog: IntentDialog("Noted."))

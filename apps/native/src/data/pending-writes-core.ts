@@ -1,8 +1,8 @@
-import { and, desc, eq, isNull, like } from "drizzle-orm";
+import { and, desc, eq, isNull, like, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Database } from "@/db/client";
-import { accounts, categories, transactions } from "@/db/schema";
+import { categories, transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { detectCurrency } from "@/domain/detect-currency";
 import type { CardAccountCandidate } from "@/domain/match-card-account";
@@ -10,6 +10,7 @@ import { matchCardAccount } from "@/domain/match-card-account";
 import { parseNotification } from "@/domain/parse-notification";
 import type { ClaimedWrites, PendingWrite } from "@/lib/pending-writes-core";
 
+import { accountsRepo, getAccountById } from "./accounts-core";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { suggestedCardFee } from "./card-fees-core";
 import { transactionsRepo } from "./transactions-core";
@@ -31,6 +32,8 @@ import { transactionsRepo } from "./transactions-core";
  * see `LogWalletTransactionIntent`.
  */
 export const WALLET_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
+
+export const filedNote = sql<string>`lower(${transactions.note})`;
 
 /** What `META_KEYS.lastWalletEntry` holds. */
 export interface LastWalletEntry {
@@ -58,6 +61,7 @@ const walletCardSchema = z.object({
     accountId: z.string().nullable().optional(),
     lastAt: z.number().finite(),
     text: z.string(),
+    waiting: z.array(z.string()).optional(),
 });
 
 export type WalletCard = z.infer<typeof walletCardSchema>;
@@ -91,18 +95,75 @@ export function cardAccountId(
     return matchCardAccount(text, candidates);
 }
 
-export async function pickCardAccount(db: Database, text: string, accountId: string | null): Promise<void> {
+async function updateWalletCards(db: Database, change: (cards: WalletCard[]) => WalletCard[]): Promise<void> {
     const cards = parseWalletCards(await getMeta(db, META_KEYS.walletCards));
-    const next = cards.map((card) => (card.text === text ? { ...card, accountId } : card));
-    await setMeta(db, META_KEYS.walletCards, JSON.stringify(next));
+    await setMeta(db, META_KEYS.walletCards, JSON.stringify(change(cards)));
 }
 
-async function rememberCard(db: Database, text: string, at: number): Promise<void> {
+export function cardStatus<Account extends CardAccountCandidate>(
+    text: string,
+    cards: readonly WalletCard[],
+    live: readonly Account[]
+) {
+    const id = cardAccountId(text, cards, live);
+    const account = live.find((row) => row.id === id);
+    const asks = live.length > 0 && !account && cards.find((card) => card.text === text)?.accountId !== null;
+    return { account, asks };
+}
+
+export async function cardStillAsks(db: Database, text: string): Promise<boolean> {
+    const live = await accountsRepo.listActive(db);
+    return cardStatus(text, parseWalletCards(await getMeta(db, META_KEYS.walletCards)), live).asks;
+}
+
+export async function pickCardAccount(db: Database, text: string, accountId: string | null): Promise<void> {
+    if (accountId !== null && getAccountById(db, accountId) === null) {
+        return;
+    }
+    await withTransaction(db, () =>
+        updateWalletCards(db, (cards) => cards.map((card) => (card.text === text ? { ...card, accountId } : card)))
+    );
+    await fileWaitingPurchases(db);
+}
+
+export async function fileWaitingPurchases(db: Database): Promise<void> {
     const cards = parseWalletCards(await getMeta(db, META_KEYS.walletCards));
-    const next = cards.some((card) => card.text === text)
-        ? cards.map((card) => (card.text === text ? { ...card, lastAt: Math.max(card.lastAt, at) } : card))
-        : [...cards, { lastAt: at, text }];
-    await setMeta(db, META_KEYS.walletCards, JSON.stringify(next));
+    const waitingCards = cards.filter((card) => (card.waiting?.length ?? 0) > 0);
+    if (waitingCards.length === 0) {
+        return;
+    }
+    const live = await accountsRepo.listActive(db);
+    const attempts = waitingCards.flatMap((card) => {
+        const { account } = cardStatus(card.text, cards, live);
+        return account
+            ? (card.waiting ?? []).map(async (txId) =>
+                  (await transactionsRepo.attachAccount(db, txId, account)) ? txId : null
+              )
+            : [];
+    });
+    const settled = await Promise.allSettled(attempts);
+    const done = new Set(
+        settled.flatMap((result) => (result.status === "fulfilled" && result.value !== null ? [result.value] : []))
+    );
+    if (done.size === 0) {
+        return;
+    }
+    await withTransaction(db, () =>
+        updateWalletCards(db, (next) =>
+            next.map((card) => (card.waiting ? { ...card, waiting: card.waiting.filter((id) => !done.has(id)) } : card))
+        )
+    );
+}
+
+async function rememberCard(db: Database, text: string, at: number, unattached: string | null): Promise<void> {
+    await updateWalletCards(db, (cards) => {
+        const known = cards.find((card) => card.text === text);
+        const seen: WalletCard = known ? { ...known, lastAt: Math.max(known.lastAt, at) } : { lastAt: at, text };
+        if (unattached !== null) {
+            seen.waiting = [...(seen.waiting ?? []), unattached];
+        }
+        return known ? cards.map((card) => (card === known ? seen : card)) : [...cards, seen];
+    });
 }
 
 /**
@@ -219,6 +280,12 @@ async function stillOnLedger(db: Database, txId: string): Promise<boolean> {
     return rows[0] != null;
 }
 
+export async function pendingWriteTxId(db: Database, id: string): Promise<string | null> {
+    const ledger = await readLedger(db);
+    const entry = ledger.find((kept) => kept.id === id);
+    return entry && (await stillOnLedger(db, entry.txId)) ? entry.txId : null;
+}
+
 /**
  * Commits every transaction an App Intent accepted while the app was not
  * running, and answers how many landed. Goes through the same
@@ -244,6 +311,10 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
         }
         const seen = alreadyApplied(ledger, job);
         if (seen && (await stillOnLedger(db, seen.txId))) {
+            if (seen.id !== job.id) {
+                ledger = remember(ledger, { at, date: job.date, id: job.id, key: null, txId: seen.txId }, at);
+                await setMeta(db, META_KEYS.pendingWriteLedger, JSON.stringify(ledger));
+            }
             continue;
         }
         const categoryId = await resolveCategory(db, job);
@@ -252,10 +323,10 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
             console.warn("[outlayr] dropped a queued entry with no category");
             continue;
         }
-        const account = await resolveAccount(db, job);
-        const currency = resolveWriteCurrency(job, account);
-        // oxlint-disable-next-line no-loop-func -- awaited in place, so nothing outlives the iteration whose `job`, `categoryId` and `account` it reads
+        // oxlint-disable-next-line no-loop-func -- awaited in place, so nothing outlives the iteration whose `job` and `categoryId` it reads
         await withTransaction(db, async () => {
+            const { account, asks } = await resolveAccount(db, job);
+            const currency = resolveWriteCurrency(job, account);
             const txId = await transactionsRepo.create(db, {
                 accountId: account?.id ?? null,
                 amount: job.amount,
@@ -277,7 +348,7 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
             }
             const card = job.card?.trim();
             if (card) {
-                await rememberCard(db, card, job.date);
+                await rememberCard(db, card, job.date, asks && currency ? txId : null);
             }
         });
         applied += 1;
@@ -293,21 +364,20 @@ interface MatchedAccount {
 }
 
 /**
- * The account a Wallet card maps to: the one the user picked for that card in
- * Settings, else a confident name match, else null — see `cardAccountId`.
+ * The account a Wallet card maps to (its pick, else a confident name match, else
+ * null — see `cardAccountId`) and whether the card asks for one — see `cardStatus`.
  */
-async function resolveAccount(db: Database, job: PendingWrite): Promise<MatchedAccount | null> {
+async function resolveAccount(
+    db: Database,
+    job: PendingWrite
+): Promise<{ account: MatchedAccount | null; asks: boolean }> {
     const card = job.card?.trim();
     if (!card) {
-        return null;
+        return { account: null, asks: false };
     }
-    const rows = await db
-        .select({ currency: accounts.currency, id: accounts.id, name: accounts.name })
-        .from(accounts)
-        .where(isNull(accounts.deletedAt));
-    const id = cardAccountId(card, parseWalletCards(await getMeta(db, META_KEYS.walletCards)), rows);
-    const matched = rows.find((row) => row.id === id);
-    return matched ? { currency: matched.currency, id: matched.id } : null;
+    const rows = await accountsRepo.listActive(db);
+    const { account, asks } = cardStatus(card, parseWalletCards(await getMeta(db, META_KEYS.walletCards)), rows);
+    return { account: account ? { currency: account.currency, id: account.id } : null, asks };
 }
 
 /**
@@ -359,7 +429,11 @@ async function resolveCategory(db: Database, job: PendingWrite): Promise<string 
             .select({ categoryId: transactions.categoryId })
             .from(transactions)
             .where(
-                and(like(transactions.note, note), eq(transactions.income, job.income), isNull(transactions.deletedAt))
+                and(
+                    eq(filedNote, sql`lower(${note})`),
+                    eq(transactions.income, job.income),
+                    isNull(transactions.deletedAt)
+                )
             )
             .orderBy(desc(transactions.date))
             .limit(1);

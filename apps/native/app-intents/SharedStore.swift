@@ -18,6 +18,8 @@ enum SharedStore {
     /// Mirrored by `PUSHED_PURCHASES_KEY` in `src/lib/widget-bridge.ts`.
     static let pushedPurchasesKey = "pushedPurchases"
 
+    static let walletPushKey = "walletPush"
+
     /// Where an intent leaves work for the app to commit, one JSON line per
     /// write. Mirrored by `QUEUE_DIRECTORY` / `QUEUE_FILE` in
     /// `src/lib/pending-writes-core.ts`.
@@ -31,11 +33,19 @@ enum SharedStore {
     /// The app writes this on every data change and on backgrounding, so nil
     /// means the app has not run since install rather than that the data is late.
     static func snapshot() -> IntentSnapshot? {
-        guard let raw = store?.string(forKey: snapshotKey),
+        decode(IntentSnapshot.self, forKey: snapshotKey)
+    }
+
+    static func walletPush() -> WalletPushSnapshot? {
+        decode(WalletPushSnapshot.self, forKey: walletPushKey)
+    }
+
+    private static func decode<Value: Decodable>(_ type: Value.Type, forKey key: String) -> Value? {
+        guard let raw = store?.string(forKey: key),
               let data = raw.data(using: .utf8) else {
             return nil
         }
-        return try? JSONDecoder().decode(IntentSnapshot.self, from: data)
+        return try? JSONDecoder().decode(type, from: data)
     }
 
     /// Appends one line to a file rather than rewriting a queue held in a single
@@ -55,12 +65,19 @@ enum SharedStore {
     /// `WALLET_DEDUPE_WINDOW_MS` (copied in `PushLedger`). Skipped, not
     /// thrown, when the app never got notification permission: the write is
     /// already queued and a failed run would make Shortcuts retry it.
-    static func notify(_ body: String, purchase key: String) async {
+    static func notify(
+        title: String = "",
+        body: String,
+        userInfo: [AnyHashable: Any] = [:],
+        purchase key: String
+    ) async {
         let center = UNUserNotificationCenter.current()
         guard await center.notificationSettings().authorizationStatus == .authorized,
               await PushLedger.shared.claim(key) else { return }
         let content = UNMutableNotificationContent()
+        content.title = title
         content.body = body
+        content.userInfo = userInfo
         content.threadIdentifier = "automation"
         do {
             try await center.add(
@@ -173,6 +190,22 @@ struct PendingWrite: Codable {
     /// The raw notification text a `LogNotificationIntent` run carried; the app
     /// parses the amount and merchant out of it. Nil for every other intent.
     let text: String?
+}
+
+struct WalletPushSnapshot: Codable {
+    struct Card: Codable {
+        let label: String?
+        let pick: Bool
+    }
+
+    struct Places: Codable {
+        let expense: [String: String]
+        let income: [String: String]
+    }
+
+    let cards: [String: Card]
+    let newPlace: String
+    let places: Places
 }
 
 /// A projection of `WidgetProps` in `src/widgets/props.ts`: every figure arrives

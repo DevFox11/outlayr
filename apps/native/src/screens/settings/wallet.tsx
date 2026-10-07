@@ -20,7 +20,7 @@ import { useGlobalCurrency } from "@/data/app-meta";
 import { META_KEYS, setMeta } from "@/data/app-meta-core";
 import { useLiveQuery, useLiveValue } from "@/data/live-query";
 import type { LastWalletEntry } from "@/data/pending-writes-core";
-import { cardAccountId, parseLastWalletEntry, parseWalletCards, pickCardAccount } from "@/data/pending-writes-core";
+import { cardStatus, parseLastWalletEntry, parseWalletCards, pickCardAccount } from "@/data/pending-writes-core";
 import type { Database } from "@/db/client";
 import { appMeta, transactions } from "@/db/schema";
 import { formatChargeDate, formatSentenceDate, formatTime } from "@/domain/dates";
@@ -272,6 +272,7 @@ function ProofBlock({ title, detail }: { detail: string; title: string }) {
 }
 
 const NO_ACCOUNT = "";
+const UNPICKED = "unpicked";
 
 function CardsSection({ db }: { db: Database }) {
     const t = useTranslation();
@@ -294,19 +295,29 @@ function CardsSection({ db }: { db: Database }) {
                 <Text className="text-muted text-body py-3.5">{t("settings.wallet.noCards")}</Text>
             ) : (
                 cards.map((card) => {
-                    const accountId = cardAccountId(card.text, cards, accounts) ?? NO_ACCOUNT;
+                    const { account, asks: unpicked } = cardStatus(card.text, cards, accounts);
+                    const accountId = account?.id ?? (unpicked ? UNPICKED : NO_ACCOUNT);
                     return (
                         <PickerRow
-                            attention={accountId === NO_ACCOUNT}
+                            attention={!account}
                             detail={t("settings.wallet.lastTap", {
                                 when: formatSentenceDate(new Date(card.lastAt), language),
                             })}
                             icon="CreditCard"
                             key={card.text}
                             onChange={(next) => {
-                                pickCardAccount(db, card.text, next || null);
+                                if (next === UNPICKED) {
+                                    return;
+                                }
+                                pickCardAccount(db, card.text, next || null).catch((error) => {
+                                    console.warn("[outlayr] card pick failed", error);
+                                });
                             }}
-                            options={options}
+                            options={
+                                unpicked
+                                    ? [{ label: t("settings.wallet.chooseAccount"), value: UNPICKED }, ...options]
+                                    : options
+                            }
                             title={card.text}
                             value={accountId}
                         />

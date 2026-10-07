@@ -39,6 +39,8 @@ export const INTENT_SNAPSHOT_KEY = "intentSnapshot";
 
 export const PUSHED_PURCHASES_KEY = "pushedPurchases";
 
+export const WALLET_PUSH_KEY = "walletPush";
+
 /** Epoch ms string `SignalWalletRunIntent` writes on every Wallet automation run. */
 const WALLET_LAST_RUN_KEY = "walletLastRunAt";
 
@@ -83,6 +85,23 @@ export interface IntentSnapshot {
         spent: string;
         income: string;
     };
+}
+
+export interface WalletPushSnapshot {
+    cards: Record<string, { label: string | null; pick: boolean }>;
+    newPlace: string;
+    places: { expense: Record<string, string>; income: Record<string, string> };
+}
+
+export function publishWalletPush(snapshot: WalletPushSnapshot): void {
+    if (!sharedStore) {
+        return;
+    }
+    try {
+        sharedStore.set(WALLET_PUSH_KEY, JSON.stringify(snapshot));
+    } catch (error) {
+        console.warn("[outlayr] wallet push snapshot failed", error);
+    }
 }
 
 export function readWalletLastRun(): number | null {

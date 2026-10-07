@@ -1,0 +1,58 @@
+import { and, eq, isNull, ne, sql } from "drizzle-orm";
+
+import type { Database } from "@/db/client";
+import { categories, transactions } from "@/db/schema";
+import { translateNow } from "@/i18n/runtime";
+import type { WalletPushSnapshot } from "@/lib/widget-bridge";
+
+import { accountsRepo } from "./accounts-core";
+import { getMeta, META_KEYS } from "./app-meta-core";
+import { cardStatus, filedNote, parseWalletCards } from "./pending-writes-core";
+
+export async function buildWalletPush(db: Database): Promise<WalletPushSnapshot> {
+    const live = await accountsRepo.listActive(db);
+    const walletCards = parseWalletCards(await getMeta(db, META_KEYS.walletCards));
+    const filed = await db
+        .select({
+            category: categories.name,
+            income: transactions.income,
+            latest: sql<number>`max(${transactions.date})`,
+            note: filedNote,
+        })
+        .from(transactions)
+        .leftJoin(categories, eq(categories.id, transactions.categoryId))
+        .where(and(isNull(transactions.deletedAt), ne(transactions.note, "")))
+        .groupBy(filedNote, transactions.income);
+
+    const cards: WalletPushSnapshot["cards"] = {};
+    for (const card of walletCards) {
+        const { account, asks } = cardStatus(card.text, walletCards, live);
+        if (account) {
+            cards[card.text] = { label: account.name, pick: false };
+        } else if (asks) {
+            cards[card.text] = {
+                label: translateNow("settings.wallet.pushWhichAccount", { card: card.text }),
+                pick: true,
+            };
+        } else {
+            cards[card.text] = { label: null, pick: false };
+        }
+    }
+
+    const newest = new Map<string, (typeof filed)[number]>();
+    for (const row of filed) {
+        const key = `${row.income}:${row.note.normalize("NFC")}`;
+        const kept = newest.get(key);
+        if (!kept || row.latest > kept.latest) {
+            newest.set(key, row);
+        }
+    }
+    const places: WalletPushSnapshot["places"] = { expense: {}, income: {} };
+    for (const row of newest.values()) {
+        if (row.category) {
+            places[row.income ? "income" : "expense"][row.note.normalize("NFC")] = row.category;
+        }
+    }
+
+    return { cards, newPlace: translateNow("settings.wallet.pushNewPlace"), places };
+}

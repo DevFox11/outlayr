@@ -1,7 +1,8 @@
 import { Platform } from "react-native";
 
-import type { SpendDb } from "@/data/budget-spent";
-import { publishIntentSnapshot } from "@/lib/widget-bridge";
+import { buildWalletPush } from "@/data/wallet-push";
+import type { Database } from "@/db/client";
+import { publishIntentSnapshot, publishWalletPush } from "@/lib/widget-bridge";
 
 import BudgetWidget from "./budget";
 import InsightsWidget from "./insights";
@@ -24,7 +25,7 @@ import { buildWidgetProps } from "./props";
  * Failures are swallowed: a widget that did not refresh is a stale tile, while a
  * throw here would take down whatever app-side action triggered it.
  */
-export async function publishWidgets(db: SpendDb): Promise<void> {
+export async function publishWidgets(db: Database): Promise<void> {
     if (Platform.OS !== "ios") {
         return;
     }
@@ -75,5 +76,10 @@ export async function publishWidgets(db: SpendDb): Promise<void> {
         });
     } catch (error) {
         console.warn("[outlayr] widget publish failed", error);
+    }
+    try {
+        publishWalletPush(await buildWalletPush(db));
+    } catch (error) {
+        console.warn("[outlayr] wallet push build failed", error);
     }
 }

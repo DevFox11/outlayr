@@ -44,6 +44,7 @@ import { useAnalyticsConsent } from "@/lib/posthog-consent";
 import { usePostHogIdentity } from "@/lib/posthog-identity";
 import { identityPickerDetent } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
+import { useWalletPushTaps } from "@/lib/use-wallet-push-taps";
 import { useAccent } from "@/theme/use-accent";
 import { useApplyThemePreference } from "@/theme/use-theme-preference";
 
@@ -276,6 +277,7 @@ function RootStack() {
         onboarded,
         reconciled: adoption === "settled",
     });
+    useWalletPushTaps(db, group === "ledger");
 
     return (
         <Stack>

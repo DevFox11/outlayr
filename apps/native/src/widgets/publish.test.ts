@@ -15,7 +15,8 @@ jest.mock("./budget", () => ({ __esModule: true, default: { updateTimeline: jest
 jest.mock("./insights", () => ({ __esModule: true, default: { updateSnapshot: jest.fn() } }));
 jest.mock("./ledger", () => ({ __esModule: true, default: { updateSnapshot: jest.fn() } }));
 jest.mock("./log", () => ({ __esModule: true, default: { updateSnapshot: jest.fn() } }));
-jest.mock("@/lib/widget-bridge", () => ({ publishIntentSnapshot: jest.fn() }));
+jest.mock("@/lib/widget-bridge", () => ({ publishIntentSnapshot: jest.fn(), publishWalletPush: jest.fn() }));
+jest.mock("@/data/wallet-push", () => ({ buildWalletPush: () => Promise.resolve({}) }));
 
 // `__esModule` on the factories, or babel's interop wraps the whole factory as `default`.
 const widget = <Module extends { default: unknown }>(path: string): Module["default"] =>

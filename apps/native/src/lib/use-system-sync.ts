@@ -10,7 +10,7 @@ import {
     stampLedgerCurrency,
 } from "@/data/canonicalize-backfill";
 import { settlePendingFees } from "@/data/card-fees-core";
-import { drainPendingWrites } from "@/data/pending-writes-core";
+import { drainPendingWrites, fileWaitingPurchases } from "@/data/pending-writes-core";
 import { applyRecentRates, pullRatesIfDue } from "@/data/rates";
 import type { RateWireRow } from "@/data/rates";
 import type { Database } from "@/db/client";
@@ -58,6 +58,10 @@ export function useSystemSync(db: Database | null): void {
                 .catch((error) => {
                     console.warn("[outlayr] pending writes failed to apply", error);
                     publish.schedule();
+                })
+                .then(() => fileWaitingPurchases(db))
+                .catch((error) => {
+                    console.warn("[outlayr] waiting purchases failed to file", error);
                 })
                 .then(() => backfillLogos(db))
                 .catch((error) => {

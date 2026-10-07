@@ -64,6 +64,9 @@ struct LogWalletTransactionIntent: AppIntent {
         }
 
         let name = merchant.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cardText = card?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .nilIfEmpty
         let purchase = Self.dedupeKey(
             transactionId: transactionId,
             merchant: name,
@@ -71,32 +74,58 @@ struct LogWalletTransactionIntent: AppIntent {
             side: side,
             card: card
         )
-        SharedStore.enqueue(
-            PendingWrite(
-                id: UUID().uuidString,
-                amount: value,
-                income: side == .income,
-                note: name,
-                // No category: the app infers one from what this merchant was
-                // filed under last time.
-                category: nil,
-                date: Date().timeIntervalSince1970 * 1000,
-                amountText: amount,
-                card: card?
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                    .nilIfEmpty,
-                currency: currency?
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                    .uppercased()
-                    .nilIfEmpty,
-                dedupeKey: purchase,
-                text: nil
-            )
+        let write = PendingWrite(
+            id: UUID().uuidString,
+            amount: value,
+            income: side == .income,
+            note: name,
+            // No category: the app infers one from what this merchant was
+            // filed under last time.
+            category: nil,
+            date: Date().timeIntervalSince1970 * 1000,
+            amountText: amount,
+            card: cardText,
+            currency: currency?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .uppercased()
+                .nilIfEmpty,
+            dedupeKey: purchase,
+            text: nil
         )
+        SharedStore.enqueue(write)
 
+        let push = Self.push(
+            amount: amount.trimmingCharacters(in: .whitespacesAndNewlines),
+            merchant: name,
+            card: cardText,
+            side: side,
+            snapshot: SharedStore.walletPush()
+        )
+        var userInfo: [AnyHashable: Any] = ["walletWrite": write.id, "pickCard": push.pickCard]
+        if let cardText {
+            userInfo["card"] = cardText
+        }
+        await SharedStore.notify(title: push.title, body: push.body, userInfo: userInfo, purchase: purchase)
         let summary = name.isEmpty ? "Logged \(amount)" : "Logged \(amount) at \(name)"
-        await SharedStore.notify(summary, purchase: purchase)
         return .result(dialog: IntentDialog("\(summary)."))
+    }
+
+    static func push(
+        amount: String,
+        merchant: String,
+        card: String?,
+        side: LedgerSide,
+        snapshot: WalletPushSnapshot?
+    ) -> (title: String, body: String, pickCard: Bool) {
+        let title = merchant.isEmpty ? amount : "\(amount) · \(merchant)"
+        let line = card.flatMap { snapshot?.cards[$0] }
+        let cardLabel = line.map(\.label) ?? card
+        let pickCard = line?.pick ?? false
+        let places = side == .income ? snapshot?.places.income : snapshot?.places.expense
+        let key = merchant.unicodeScalars.map { $0.isASCII ? Character($0).lowercased() : String($0) }.joined()
+        let category = merchant.isEmpty ? nil : places?[key]
+        let newPlace = merchant.isEmpty || category != nil || pickCard ? nil : snapshot?.newPlace
+        return (title, [category, cardLabel, newPlace].compactMap { $0 }.joined(separator: " · "), pickCard)
     }
 
     /// What makes two runs of this intent one purchase.

@@ -6,10 +6,14 @@ import { accounts, categories, transactions } from "@/db/schema";
 import { migratedDatabase, transactionalDatabase } from "@/db/test-database";
 import type { PendingWrite } from "@/lib/pending-writes-core";
 
+import { getMeta, META_KEYS } from "./app-meta-core";
 import { cardFeeFor } from "./card-fees-core";
 import {
     applyPendingWrites,
     drainPendingWrites,
+    fileWaitingPurchases,
+    parseWalletCards,
+    pendingWriteTxId,
     pickCardAccount,
     WALLET_DEDUPE_WINDOW_MS,
 } from "./pending-writes-core";
@@ -265,14 +269,145 @@ describe("applyPendingWrites", () => {
         expect(row?.accountId).toBeNull();
     });
 
-    it("files a card under the account picked for it once it has been seen", async () => {
+    it("files a card's waiting and later purchases under the account picked for it", async () => {
         await seedAccounts(db);
-        await applyPendingWrites(db, [walletWrite("a", { card: "Binance Card", dedupeKey: null })], NOW);
+        await applyPendingWrites(
+            db,
+            [walletWrite("a", { card: "Binance Card", currency: "USD", dedupeKey: null })],
+            NOW
+        );
         await pickCardAccount(db, "Binance Card", "acc-n26");
         await applyPendingWrites(db, [walletWrite("b", { card: "Binance Card", dedupeKey: null })], NOW);
 
         const rows = await db.select({ accountId: transactions.accountId }).from(transactions);
-        expect(rows.map((row) => String(row.accountId)).toSorted()).toStrictEqual(["acc-n26", "null"]);
+        expect(rows.map((row) => String(row.accountId))).toStrictEqual(["acc-n26", "acc-n26"]);
+    });
+
+    it("keeps the account given by hand to a purchase that waited on its card", async () => {
+        await seedAccounts(db);
+        await applyPendingWrites(
+            db,
+            [walletWrite("a", { card: "Binance Card", currency: "USD", dedupeKey: null })],
+            NOW
+        );
+        await db.update(transactions).set({ accountId: "acc-chase" });
+        await pickCardAccount(db, "Binance Card", "acc-n26");
+
+        const [row] = await db.select({ accountId: transactions.accountId }).from(transactions);
+        expect(row?.accountId).toBe("acc-chase");
+    });
+
+    it("keeps a card's waiting purchases through a No account or gone-account pick", async () => {
+        await seedAccounts(db);
+        await applyPendingWrites(
+            db,
+            [walletWrite("a", { card: "Binance Card", currency: "USD", dedupeKey: null })],
+            NOW
+        );
+        await pickCardAccount(db, "Binance Card", "acc-deleted");
+        await pickCardAccount(db, "Binance Card", null);
+        await pickCardAccount(db, "Binance Card", "acc-n26");
+
+        const [row] = await db.select({ accountId: transactions.accountId }).from(transactions);
+        expect(row?.accountId).toBe("acc-n26");
+    });
+
+    it("files a card's waiting purchases once the card matches an account by name", async () => {
+        await seedAccounts(db);
+        await applyPendingWrites(
+            db,
+            [walletWrite("a", { card: "Binance Card", currency: "USD", dedupeKey: null })],
+            NOW
+        );
+        await db.insert(accounts).values({
+            currency: "USD",
+            dateCreated: NOW,
+            id: "acc-binance",
+            initialBalanceDate: NOW,
+            name: "Binance",
+            updatedAt: NOW,
+        });
+        await fileWaitingPurchases(db);
+
+        const [row] = await db.select({ accountId: transactions.accountId }).from(transactions);
+        expect(row?.accountId).toBe("acc-binance");
+    });
+
+    it("leaves a waiting purchase that predates the account's opening balance", async () => {
+        await seedAccounts(db);
+        await applyPendingWrites(
+            db,
+            [walletWrite("a", { card: "Binance Card", currency: "USD", dedupeKey: null })],
+            NOW
+        );
+        await db.insert(accounts).values({
+            currency: "USD",
+            dateCreated: NOW,
+            id: "acc-binance",
+            initialBalanceDate: new Date(NOW.getTime() + 60 * 60 * 1000),
+            name: "Binance",
+            updatedAt: NOW,
+        });
+        await fileWaitingPurchases(db);
+
+        const [row] = await db.select({ accountId: transactions.accountId }).from(transactions);
+        expect(row?.accountId).toBeNull();
+    });
+
+    it("files a waiting purchase restored after its card got the account", async () => {
+        await seedAccounts(db);
+        await applyPendingWrites(
+            db,
+            [walletWrite("a", { card: "Binance Card", currency: "USD", dedupeKey: null })],
+            NOW
+        );
+        const [queued] = await db.select({ id: transactions.id }).from(transactions);
+        await transactionsRepo.remove(db, queued?.id ?? "");
+        await pickCardAccount(db, "Binance Card", "acc-n26");
+        await transactionsRepo.restore(db, queued?.id ?? "");
+        await fileWaitingPurchases(db);
+
+        const [row] = await db.select({ accountId: transactions.accountId }).from(transactions);
+        expect(row?.accountId).toBe("acc-n26");
+    });
+
+    it("queues nothing on a card while the ledger has no accounts", async () => {
+        await applyPendingWrites(db, [walletWrite("a", { card: "Visa", currency: "USD", dedupeKey: null })], NOW);
+
+        const cards = parseWalletCards(await getMeta(db, META_KEYS.walletCards));
+        expect(cards.map((card) => card.waiting)).toStrictEqual([undefined]);
+    });
+
+    it("does not stretch the dedupe window from a skipped duplicate", async () => {
+        const minute = 60 * 1000;
+        await applyPendingWrites(
+            db,
+            [
+                walletWrite("a"),
+                walletWrite("b", { date: NOW.getTime() + 9 * minute }),
+                walletWrite("c", { date: NOW.getTime() + 18 * minute }),
+            ],
+            NOW
+        );
+
+        await expect(db.select().from(transactions)).resolves.toHaveLength(2);
+    });
+
+    it("points a skipped duplicate's enqueue at the row its purchase landed in", async () => {
+        await applyPendingWrites(db, [walletWrite("a"), walletWrite("b")], NOW);
+
+        const rows = await db.select({ id: transactions.id }).from(transactions);
+        expect(rows).toHaveLength(1);
+        await expect(pendingWriteTxId(db, "b")).resolves.toBe(rows[0]?.id);
+    });
+
+    it("leaves a purchase whose currency was a guess off its card's waiting list", async () => {
+        await seedAccounts(db);
+        await applyPendingWrites(db, [walletWrite("a", { card: "Binance Card", dedupeKey: null })], NOW);
+        await pickCardAccount(db, "Binance Card", "acc-n26");
+
+        const [row] = await db.select({ accountId: transactions.accountId }).from(transactions);
+        expect(row?.accountId).toBeNull();
     });
 
     it("leaves a card unattached when No account was picked over its name match", async () => {
@@ -401,4 +536,64 @@ test("adds the card's usual fee to a foreign Wallet charge, inside the queue's o
 
     const [charge] = await db.select().from(transactions).where(eq(transactions.note, "Blue Bottle"));
     expect(cardFeeFor(db, charge?.id ?? "")).toMatchObject({ currency: "EUR", feeRate: 0.035 });
+});
+
+test("adds the card's usual fee when a foreign charge that waited on its card gets the account", async () => {
+    const db = transactionalDatabase();
+    await seedCategories(db);
+    await seedAccounts(db);
+    await transactionsRepo.create(db, {
+        accountId: "acc-n26",
+        amount: 10,
+        categoryId: "cat-expense",
+        currency: "USD",
+        date: new Date("2026-03-01T09:00:00Z"),
+        details: null,
+        fee: { amount: null, categoryId: "cat-expense", currency: "EUR", note: "Fee · Grok", rate: 0.035 },
+        income: false,
+        note: "Grok",
+    });
+    await applyPendingWrites(db, [walletWrite("a", { amountText: "$6.40", card: "Work card", currency: "USD" })], NOW);
+
+    await pickCardAccount(db, "Work card", "acc-n26");
+
+    const [charge] = await db.select().from(transactions).where(eq(transactions.note, "Blue Bottle"));
+    expect(charge?.accountId).toBe("acc-n26");
+    expect(cardFeeFor(db, charge?.id ?? "")).toMatchObject({ accountId: "acc-n26", currency: "EUR", feeRate: 0.035 });
+});
+
+test("keeps a fee typed on a waiting charge when its card gets the account", async () => {
+    const db = transactionalDatabase();
+    await seedCategories(db);
+    await seedAccounts(db);
+    await transactionsRepo.create(db, {
+        accountId: "acc-n26",
+        amount: 10,
+        categoryId: "cat-expense",
+        currency: "USD",
+        date: new Date("2026-03-01T09:00:00Z"),
+        details: null,
+        fee: { amount: null, categoryId: "cat-expense", currency: "EUR", note: "Fee · Grok", rate: 0.035 },
+        income: false,
+        note: "Grok",
+    });
+    await applyPendingWrites(db, [walletWrite("a", { amountText: "$6.40", card: "Work card", currency: "USD" })], NOW);
+    const [charge] = await db.select().from(transactions).where(eq(transactions.note, "Blue Bottle"));
+    await db.insert(transactions).values({
+        amount: 1.5,
+        categoryId: "cat-expense",
+        currency: "USD",
+        date: NOW,
+        day: charge?.day ?? NOW,
+        feeForId: charge?.id ?? "",
+        id: "typed-fee",
+        income: false,
+        month: charge?.month ?? NOW,
+        note: "Fee · Blue Bottle",
+        updatedAt: NOW,
+    });
+
+    await pickCardAccount(db, "Work card", "acc-n26");
+
+    expect(cardFeeFor(db, charge?.id ?? "")).toMatchObject({ accountId: "acc-n26", amount: 1.5, id: "typed-fee" });
 });
