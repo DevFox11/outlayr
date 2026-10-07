@@ -561,6 +561,119 @@ const answers = {
                     es: "Registra tus compras con Apple Pay al pagar.",
                 }),
             },
+            "mint-alternative": {
+                facts: [
+                    {
+                        label: t({ en: "Import", es: "Importa" }),
+                        text: t({
+                            en: "Your Mint CSV, with its date, description, amount, type, and category columns matched for you",
+                            es: "Tu CSV de Mint, con las columnas de fecha, descripción, monto, tipo y categoría asignadas solas",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Categories", es: "Categorías" }),
+                        text: t({
+                            en: "Mint's category names are matched to yours by AI matching",
+                            es: "Los nombres de categoría de Mint se asignan a los tuyos con la asignación con IA",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Duplicates", es: "Duplicados" }),
+                        text: t({
+                            en: "Rows that look already imported are flagged before you save",
+                            es: "Las filas que parecen ya importadas se marcan antes de guardar",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Budgets", es: "Presupuestos" }),
+                        text: OUTLAYR.budgets,
+                    },
+                    {
+                        label: t({ en: "After", es: "Después" }),
+                        text: t({
+                            en: "Log new purchases by sentence, voice, or receipt",
+                            es: "Registra compras nuevas con una oración, con tu voz o con un recibo",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Needs", es: "Requiere" }),
+                        text: t({
+                            en: "Outlayr Pro and an account. Up to 5,000 rows a file",
+                            es: "Outlayr Pro y una cuenta. Hasta 5,000 filas por archivo",
+                        }),
+                    },
+                ],
+                faq: [
+                    {
+                        answer: t({
+                            en: "Intuit says Mint has been reimagined on Credit Karma. If you want a budget app instead, Outlayr imports the CSV you exported from Mint.",
+                            es: "Intuit dice que Mint ahora vive en Credit Karma. Si prefieres una app de presupuesto, Outlayr importa el CSV que exportaste de Mint.",
+                        }),
+                        question: t({ en: "What replaced Mint?", es: "¿Qué reemplazó a Mint?" }),
+                    },
+                    {
+                        answer: t({
+                            en: "Yes, with Outlayr Pro, if you exported a CSV from Mint. Outlayr reads its date, description, amount, type, and category columns, matches Mint's category names to yours with AI, and flags rows that look already imported before you save. A file can hold up to 5,000 rows, so split a longer export by year.",
+                            es: "Sí, con Outlayr Pro, si exportaste un CSV de Mint. Outlayr lee sus columnas de fecha, descripción, monto, tipo y categoría, asigna los nombres de categoría de Mint a los tuyos con IA y marca las filas que parecen ya importadas antes de guardar. Un archivo puede tener hasta 5,000 filas, así que divide una exportación más larga por año.",
+                        }),
+                        question: t({
+                            en: "Can I import my Mint data into Outlayr?",
+                            es: "¿Puedo importar mis datos de Mint a Outlayr?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Logging, budgets, goals, and subscriptions are free. Importing a Mint file needs Outlayr Pro, because Mint's category names are matched to yours with AI. Pro is billed monthly or yearly, or bought once.",
+                            es: "Registrar, los presupuestos, las metas y las suscripciones son gratis. Importar un archivo de Mint requiere Outlayr Pro, porque los nombres de categoría de Mint se asignan a los tuyos con IA. Pro se paga al mes, al año o en un solo pago.",
+                        }),
+                        question: t({
+                            en: "Is Outlayr free like Mint was?",
+                            es: "¿Outlayr es gratis como lo era Mint?",
+                        }),
+                    },
+                ],
+                lead: t({
+                    en: "Mint has been reimagined on Credit Karma, in Intuit's words. Outlayr imports the CSV you exported from Mint, then keeps your budgets and spending going on iPhone.",
+                    es: "Mint ahora vive en Credit Karma, según Intuit. Outlayr importa el CSV que exportaste de Mint y sigue con tus presupuestos y tus gastos en iPhone.",
+                }),
+                meta: {
+                    title: t({
+                        en: "Mint Alternative: Import Your Mint CSV · Outlayr",
+                        es: "Alternativa a Mint: importa tu CSV de Mint · Outlayr",
+                    }),
+                },
+                plateAlt: t({
+                    en: "Outlayr Log with a $42.00 Costco purchase at the top and the entries from earlier days below.",
+                    es: "Registro de Outlayr con una compra de $42.00 en Costco arriba y los registros de días anteriores abajo.",
+                }),
+                steps: [
+                    {
+                        text: t({
+                            en: "Save the CSV you exported from Mint to Files or iCloud Drive on your iPhone. Split it by year if it has more than 5,000 rows.",
+                            es: "Guarda el CSV que exportaste de Mint en Archivos o iCloud Drive en tu iPhone. Divídelo por año si tiene más de 5,000 filas.",
+                        }),
+                        title: t({ en: "Find your Mint CSV", es: "Busca tu CSV de Mint" }),
+                    },
+                    {
+                        text: t({
+                            en: "In Settings, tap Import data, then CSV file, and pick the file.",
+                            es: "En Configuración, toca Importar datos, luego Archivo CSV, y elige el archivo.",
+                        }),
+                        title: t({ en: "Import it", es: "Impórtalo" }),
+                    },
+                    {
+                        text: t({
+                            en: "Check the rows, leave out any marked as already imported, and tap Import.",
+                            es: "Revisa las filas, deja fuera las que aparecen como ya importadas y toca Importar.",
+                        }),
+                        title: t({ en: "Review and save", es: "Revisa y guarda" }),
+                    },
+                ],
+                title: t({
+                    en: "A Mint alternative that takes your Mint CSV.",
+                    es: "Una alternativa a Mint que importa tu CSV de Mint.",
+                }),
+            },
             "multi-currency-expense-tracker": {
                 facts: [
                     {

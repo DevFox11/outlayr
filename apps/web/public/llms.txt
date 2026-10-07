@@ -41,6 +41,7 @@
 - [All guides](https://tryoutlayr.com/guides): every guide in one list
 - [Multi-currency expense tracking](https://tryoutlayr.com/guides/multi-currency-expense-tracker): 165 currencies, the rate from the day of each purchase, and accounts that each keep their own currency
 - [Apple Pay logging](https://tryoutlayr.com/guides/apple-pay-expense-tracker): how a Shortcuts automation logs each Apple Pay purchase on iPhone
+- [Mint alternative](https://tryoutlayr.com/guides/mint-alternative): importing a Mint CSV export into Outlayr, how its categories are matched to yours with AI, and why it needs Pro
 - [Receipt scanner](https://tryoutlayr.com/guides/receipt-scanner): what a scan reads, the free and Pro capture limits, and what it needs
 - [Subscription tracker](https://tryoutlayr.com/guides/subscription-tracker): recurring charges that log themselves, an Upcoming list with what your subscriptions and bills cost per month, and reminders before each charge. Outlayr does not cancel subscriptions for you
 
