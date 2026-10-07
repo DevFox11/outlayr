@@ -589,6 +589,148 @@ const answers = {
                 ],
                 title: t({ en: "Scan a receipt into an expense.", es: "Convierte un recibo en un gasto." }),
             },
+            "subscription-tracker": {
+                facts: [
+                    {
+                        label: t({ en: "Repeats", es: "Se repite" }),
+                        text: t({
+                            en: "Daily, weekly, monthly, yearly, or a custom schedule",
+                            es: "Diario, semanal, mensual, anual o un calendario personalizado",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Logged", es: "Registra" }),
+                        text: t({
+                            en: "Each charge lands on the Log on its day, in its account and category",
+                            es: "Cada cobro llega al Registro en su día, en su cuenta y su categoría",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Per month", es: "Al mes" }),
+                        text: t({
+                            en: "What your subscriptions and bills cost, with yearly plans spread across the months",
+                            es: "Lo que cuestan tus suscripciones y pagos fijos, con los planes anuales repartidos entre los meses",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Reminders", es: "Avisos" }),
+                        text: t({
+                            en: "On the day, or 1, 2, 3, or 7 days before each charge",
+                            es: "El mismo día, o 1, 2, 3 o 7 días antes de cada cobro",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Bills and pay", es: "Pagos y sueldo" }),
+                        text: t({
+                            en: "Rent, utilities, and paychecks repeat the same way",
+                            es: "La renta, los servicios y el sueldo se repiten igual",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Currencies", es: "Monedas" }),
+                        text: t({
+                            en: "Each subscription in the currency it bills in",
+                            es: "Cada suscripción en la moneda en que te cobra",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Free plan", es: "Plan gratis" }),
+                        text: t({
+                            en: "Subscriptions, reminders, and Upcoming are free",
+                            es: "Las suscripciones, los avisos y Próximos son gratis",
+                        }),
+                    },
+                ],
+                faq: [
+                    {
+                        answer: t({
+                            en: "Yes. Add a subscription once with how often it repeats, and Outlayr logs each charge on its day. Upcoming lists the next charges and what they cost per month.",
+                            es: "Sí. Agrega una suscripción una vez con la frecuencia con que se repite, y Outlayr registra cada cobro en su día. Próximos muestra los próximos cobros y cuánto cuestan al mes.",
+                        }),
+                        question: t({
+                            en: "Can Outlayr track my subscriptions?",
+                            es: "¿Outlayr puede controlar mis suscripciones?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "No. Outlayr shows what each subscription costs and when it charges next, and can remind you before the charge, so you can cancel with the service in time.",
+                            es: "No. Outlayr te muestra cuánto cuesta cada suscripción y cuándo vuelve a cobrar, y puede avisarte antes del cobro, para que la canceles a tiempo con el servicio.",
+                        }),
+                        question: t({
+                            en: "Does Outlayr cancel subscriptions for me?",
+                            es: "¿Outlayr cancela suscripciones por mí?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Each subscription chooses its own reminder: on the day, or 1, 2, 3, or 7 days before. One switch in Settings, under Notifications, silences all of them.",
+                            es: "Cada suscripción elige su aviso: el mismo día, o 1, 2, 3 o 7 días antes. Un interruptor en Configuración, en Notificaciones, los silencia todos.",
+                        }),
+                        question: t({
+                            en: "When does Outlayr remind me about a charge?",
+                            es: "¿Cuándo me avisa Outlayr de un cobro?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Yes. Anything that repeats works the same way: rent, utilities, phone plans, and paychecks log themselves on their day, with the same reminders.",
+                            es: "Sí. Todo lo que se repite funciona igual: la renta, los servicios, el plan del celular y el sueldo se registran solos en su día, con los mismos avisos.",
+                        }),
+                        question: t({
+                            en: "Can it track bills and paychecks too?",
+                            es: "¿También sirve para pagos fijos y el sueldo?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Yes. Recurring entries, reminders, and Upcoming are part of the free plan.",
+                            es: "Sí. Los registros recurrentes, los avisos y Próximos son parte del plan gratis.",
+                        }),
+                        question: t({
+                            en: "Is the subscription tracker free?",
+                            es: "¿El control de suscripciones es gratis?",
+                        }),
+                    },
+                ],
+                lead: t({
+                    en: "Outlayr logs each subscription on the day it charges, adds up what your subscriptions and bills cost per month, and can remind you before the next charge.",
+                    es: "Outlayr registra cada suscripción el día que te cobra, suma cuánto te cuestan al mes tus suscripciones y pagos fijos, y puede avisarte antes del siguiente cobro.",
+                }),
+                meta: {
+                    title: t({
+                        en: "Subscription Tracker: Monthly Cost and Reminders · Outlayr",
+                        es: "Control de suscripciones: costo mensual y avisos · Outlayr",
+                    }),
+                },
+                steps: [
+                    {
+                        text: t({
+                            en: "Type, say, or scan the first charge, then tap repeat and pick monthly, yearly, or a custom schedule.",
+                            es: "Escribe, dicta o escanea el primer cobro, luego toca repetir y elige mensual, anual o un calendario personalizado.",
+                        }),
+                        title: t({ en: "Log it once", es: "Regístrala una vez" }),
+                    },
+                    {
+                        text: t({
+                            en: "Under Remind Me, pick the day of the charge or up to a week before.",
+                            es: "En Recordarme, elige el día del cobro o hasta una semana antes.",
+                        }),
+                        title: t({ en: "Choose a reminder", es: "Elige un aviso" }),
+                    },
+                    {
+                        text: t({
+                            en: "Upcoming, at the top of the Log and under Upcoming entries in Settings, lists the next charges and what they cost per month.",
+                            es: "Próximos, arriba del Registro y en Próximos registros dentro de Configuración, muestra los próximos cobros y cuánto cuestan al mes.",
+                        }),
+                        title: t({ en: "Read the monthly cost", es: "Mira el costo mensual" }),
+                    },
+                ],
+                title: t({
+                    en: "Track every subscription and what it costs a month.",
+                    es: "Controla tus suscripciones y lo que te cuestan al mes.",
+                }),
+            },
         },
         hubs: {
             compare: {

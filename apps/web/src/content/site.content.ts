@@ -14,6 +14,7 @@ const site = {
                 "apple-pay-expense-tracker": t({ en: "Apple Pay", es: "Apple Pay" }),
                 "multi-currency-expense-tracker": t({ en: "Multi-currency", es: "Varias monedas" }),
                 "receipt-scanner": t({ en: "Receipt scanner", es: "Escáner de recibos" }),
+                "subscription-tracker": t({ en: "Subscriptions", es: "Suscripciones" }),
             } satisfies Record<keyof typeof answers.content.guides, ReturnType<typeof t<string>>>,
         },
         badges: {

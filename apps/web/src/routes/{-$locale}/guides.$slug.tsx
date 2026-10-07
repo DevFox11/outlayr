@@ -13,10 +13,11 @@ import { answerTrail, faqPage, ldJson, pageMeta } from "@/lib/seo";
 
 type GuideSlug = keyof ReturnType<typeof getIntlayer<"answers">>["guides"];
 
-const SCREENS = {
+const PLATES = {
     "apple-pay-expense-tracker": "/screens/log-an-expense.webp",
     "multi-currency-expense-tracker": "/screens/06.webp",
-    "receipt-scanner": null,
+    "receipt-scanner": "scan",
+    "subscription-tracker": null,
 } as const satisfies Record<GuideSlug, string | null>;
 
 const SCAN_SAVED_FRAME = 5;
@@ -45,11 +46,25 @@ export const Route = createFileRoute("/{-$locale}/guides/$slug")({
     },
 });
 
+function GuidePlate({ alt, plate }: { alt: string; plate: string }) {
+    if (plate !== "scan") {
+        return <Screen alt={alt} eager src={plate} />;
+    }
+    return (
+        <figure className="border-foreground w-full max-w-[22rem] border-t">
+            <figcaption className="sr-only">{alt}</figcaption>
+            <div aria-hidden="true">
+                <ScanPanel frame={SCAN_SAVED_FRAME} />
+            </div>
+        </figure>
+    );
+}
+
 function Guide() {
     const slug = Route.useLoaderData();
     const { guides, labels } = useIntlayer("answers");
     const guide = guides[slug];
-    const screen = SCREENS[slug];
+    const plate = PLATES[slug];
     return (
         <main className={`${CONTAINER} pt-10 pb-24 md:pt-16`}>
             <section className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-center lg:gap-24">
@@ -61,16 +76,7 @@ function Guide() {
                         <AppStoreBadge placement="answer" />
                     </div>
                 </div>
-                {screen === null ? (
-                    <figure className="border-foreground w-full max-w-[22rem] border-t">
-                        <figcaption className="sr-only">{guide.plateAlt}</figcaption>
-                        <div aria-hidden="true">
-                            <ScanPanel frame={SCAN_SAVED_FRAME} />
-                        </div>
-                    </figure>
-                ) : (
-                    <Screen alt={guide.plateAlt.value} eager src={screen} />
-                )}
+                {plate !== null && "plateAlt" in guide ? <GuidePlate alt={guide.plateAlt.value} plate={plate} /> : null}
             </section>
             <dl className="border-foreground mt-16 grid border-t lg:grid-cols-2 lg:gap-x-16">
                 {guide.facts.map((fact) => (
