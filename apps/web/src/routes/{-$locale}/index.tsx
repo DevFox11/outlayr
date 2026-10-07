@@ -26,7 +26,7 @@ function appGraph(locale: Locale) {
         applicationCategory: "FinanceApplication",
         description: meta.description,
         downloadUrl: APP_STORE_URL,
-        featureList: extras.map((extra) => extra.label),
+        featureList: extras.map((extra) => `${extra.label}: ${extra.text}`),
         image: `${SITE_URL}${LANGUAGES[locale].image}`,
         inLanguage: Object.values(LANGUAGES).map((language) => language.lang),
         name: "Outlayr",

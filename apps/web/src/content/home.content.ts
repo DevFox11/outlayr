@@ -82,8 +82,8 @@ const home = {
         faq: [
             {
                 answer: t({
-                    en: "Outlayr is an expense tracker and budget app. You log a purchase by typing one sentence, saying it, or scanning the receipt. Budgets, savings goals, subscriptions, and insights update as you log, in any of 165 currencies, in English or Spanish.",
-                    es: "Outlayr es una app para controlar tus gastos y tu presupuesto. Registras una compra escribiendo una oración, dictándola o escaneando el recibo. Los presupuestos, las metas de ahorro, las suscripciones y las estadísticas se actualizan a medida que registras, en cualquiera de 165 monedas, en inglés o en español.",
+                    en: "Outlayr is an expense tracker and budget app for iPhone, made by danestves LLC. You log a purchase by typing one sentence, saying it, or scanning the receipt. Budgets, savings goals, subscriptions, and insights update as you log, in any of 165 currencies, in English or Spanish.",
+                    es: "Outlayr es una app para controlar tus gastos y tu presupuesto en iPhone, hecha por danestves LLC. Registras una compra escribiendo una oración, dictándola o escaneando el recibo. Los presupuestos, las metas de ahorro, las suscripciones y las estadísticas se actualizan a medida que registras, en cualquiera de 165 monedas, en inglés o en español.",
                 }),
                 question: t({ en: "What is Outlayr?", es: "¿Qué es Outlayr?" }),
             },
@@ -93,6 +93,26 @@ const home = {
                     es: "Sí. Registrar gastos es gratis, igual que los presupuestos, las metas, las estadísticas, las suscripciones y los widgets. El plan gratis incluye 20 capturas de voz o de recibos cada 30 días, 2 cuentas y 2 presupuestos por categoría. Outlayr Pro sube esos límites y agrega la sincronización entre dispositivos y el respaldo de las fotos de tus recibos.",
                 }),
                 question: t({ en: "Is Outlayr free?", es: "¿Outlayr es gratis?" }),
+            },
+            {
+                answer: t({
+                    en: "Yes. Outlayr Pro is billed monthly or yearly, or bought once, at prices set per country in the App Store. There are no ads on any plan.",
+                    es: "Sí. Outlayr Pro se paga al mes, al año o en un solo pago, con precios por país en el App Store. No hay anuncios en ningún plan.",
+                }),
+                question: t({
+                    en: "Can I buy Outlayr Pro once instead of subscribing?",
+                    es: "¿Puedo comprar Outlayr Pro en un solo pago en vez de suscribirme?",
+                }),
+            },
+            {
+                answer: t({
+                    en: "Yes. Subscriptions, bills, and paychecks log themselves on their day. Upcoming lists the next charges and what your subscriptions and bills cost per month, and a reminder can come before each charge.",
+                    es: "Sí. Las suscripciones, los pagos fijos y el sueldo se registran solos en su día. Próximos muestra los próximos cobros y cuánto te cuestan al mes tus suscripciones y pagos fijos, y puede llegarte un aviso antes de cada cobro.",
+                }),
+                question: t({
+                    en: "Does Outlayr track subscriptions and bills?",
+                    es: "¿Outlayr lleva las suscripciones y los pagos fijos?",
+                }),
             },
             {
                 answer: t({
@@ -124,8 +144,8 @@ const home = {
             },
             {
                 answer: t({
-                    en: "Yes. Export a CSV from your bank or another app and import it. Duplicates are skipped, and merchants Outlayr already knows are matched to your categories on your phone. With Pro, the rest can go to AI matching.",
-                    es: "Sí. Exporta un CSV desde tu banco u otra app e impórtalo. Los duplicados se omiten, y los comercios que Outlayr ya conoce se asignan a tus categorías en tu celular. Con Pro, el resto se puede asociar con IA.",
+                    en: "Yes. Export a CSV from your bank or another app and import it. Duplicates are skipped, and merchants Outlayr already knows are matched to your categories on your phone. With Pro, AI matching fills in the rest, and anything still unmatched is listed as skipped.",
+                    es: "Sí. Exporta un CSV desde tu banco u otra app e impórtalo. Los duplicados se omiten, y los comercios que Outlayr ya conoce se asignan a tus categorías en tu celular. Con Pro, la asignación con IA completa el resto, y lo que siga sin coincidir aparece como omitido.",
                 }),
                 question: t({ en: "Can I import a CSV from my bank?", es: "¿Puedo importar un CSV de mi banco?" }),
             },
@@ -174,12 +194,12 @@ const home = {
         ],
         meta: {
             description: t({
-                en: "Outlayr is an expense tracker and budget app. Log a purchase in one sentence, by voice, or by scanning the receipt. Free on iPhone, Android soon.",
-                es: "Outlayr es una app para controlar tus gastos y tu presupuesto. Registra una compra en una oración, con tu voz o escaneando el recibo. Gratis en iPhone, pronto en Android.",
+                en: "Outlayr is an expense tracker and budget app for iPhone. Log a purchase in one sentence, by voice, or from a receipt, and track every subscription. Free to start.",
+                es: "Outlayr es una app para controlar tus gastos y tu presupuesto en iPhone. Registra una compra en una oración, con tu voz o con un recibo, y controla tus suscripciones. Gratis.",
             }),
             title: t({
-                en: "Outlayr: Expense Tracker, Budget App & Receipt Scanner",
-                es: "Outlayr: control de gastos, presupuestos y escáner de recibos",
+                en: "Outlayr: Expense Tracker, Budget App & Subscription Tracker",
+                es: "App para controlar gastos y presupuesto en iPhone · Outlayr",
             }),
         },
         plansCopy: {

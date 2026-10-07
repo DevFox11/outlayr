@@ -28,6 +28,7 @@ const SITE_GRAPH = {
         {
             "@id": ORGANIZATION_ID,
             "@type": "Organization",
+            brand: { "@type": "Brand", name: "Outlayr" },
             email: SUPPORT_EMAIL,
             logo: `${SITE_URL}/apple-touch-icon.png`,
             name: COMPANY,
