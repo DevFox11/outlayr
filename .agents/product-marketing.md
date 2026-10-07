@@ -1,7 +1,7 @@
 # Product Marketing Context
 
-**Document version:** v1
-**Last updated:** 2026-09-24
+**Document version:** v2
+**Last updated:** 2026-10-07
 
 ## Product Overview
 **One-liner:** An expense tracker and budget app where you log a purchase in one sentence.
@@ -32,6 +32,13 @@
 **Emotional tension:** Not knowing where the money went.
 
 ## Competitive Landscape
+**Entity sentence (use it everywhere):** "Outlayr is an expense tracker and budget app for iPhone, made by danestves LLC." Search results for "Outlayr" go to outlayr.com, an unrelated payments company, and to apps named "Outlay".
+**Direct (each has a page under /compare, facts dated and linked to the rival's own site):**
+- Rocket Money: subscription manager, US only, cancellation by its team is Premium. Deepest "alternative" demand.
+- YNAB, Monarch, Copilot: paid, bank-synced, US-centric (Copilot USD only; Monarch US and Canada).
+- EveryDollar (US-only mobile app, USD only), PocketGuard (paid, bank sync).
+- Spendee, Wallet by BudgetBakers: multi-currency, named most often in Spanish AI answers, bank sync in Premium.
+- Mint: shut down; "reimagined on Credit Karma" per Intuit. Served by /guides/mint-alternative (CSV import).
 **Secondary:** Spreadsheets and notes apps. Flexible, but slow to log and give no pace or projection.
 **Indirect:** Banking apps. Show transactions per bank, not a single picture across accounts and currencies.
 
@@ -51,6 +58,16 @@
 | Is it on Android? | Not yet; coming soon. |
 
 **Anti-persona:** People who want automatic bank-feed syncing.
+
+## Search Targets
+Full evidence: `docs/marketing/aso-keyword-research-2026-10.md` and `docs/marketing/web-search-research-2026-10.md`.
+| Intent | App Store | Web |
+|---|---|---|
+| Subscription tracker / manager | Name "Subscription Tracker: Outlayr" (winnable: top-10 median 258 ratings) | /guides/subscription-tracker, /compare/rocket-money |
+| Expense tracker / budget app | Combinations across name, subtitle, keywords (long game: medians 16k to 19k) | Home, /guides/budget-planner |
+| "<rival> alternative" | No App Store demand; Apple Ads brand keywords only | /compare/<rival>, titled "<Rival> Alternative" |
+| Spanish | "control de gastos", "presupuesto y suscripciones" | "app para controlar gastos iphone gratis" (es home title) |
+Never target "budget app without bank linking" style queries: they can only be won by marketing the absence of bank linking.
 
 ## Customer Language
 **Words to use:** log, entry, ledger, the month, what is left, pace, one sentence.
@@ -82,4 +99,5 @@
 
 ## Changelog
 *Newest first. One line per revision: what changed and why.*
+- v2 (2026-10-07): Direct competitors, the entity sentence, and search targets, from the ASO and web search research.
 - v1 (2026-09-24) — Initial context, drafted from the codebase, App Store listing, and site copy.
