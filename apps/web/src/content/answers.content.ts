@@ -9,6 +9,22 @@ const OUTLAYR_LEAD = {
 } as const;
 
 const RIVALS = {
+    everydollar: {
+        en: "EveryDollar is a budget app from Ramsey Solutions whose mobile app is sold in the United States, with bank connections in its paid version.",
+        es: "EveryDollar es una app de presupuesto de Ramsey Solutions cuya app móvil se vende en Estados Unidos, con conexión al banco en su versión de pago.",
+    },
+    pocketguard: {
+        en: "PocketGuard is a paid budget app that syncs linked bank accounts.",
+        es: "PocketGuard es una app de presupuesto de pago que sincroniza cuentas de banco vinculadas.",
+    },
+    spendee: {
+        en: "Spendee is a budget app with cash wallets in several currencies and bank sync in its Premium plan.",
+        es: "Spendee es una app de presupuesto con billeteras de efectivo en varias monedas y sincronización bancaria en su plan Premium.",
+    },
+    wallet: {
+        en: "Wallet by BudgetBakers is a money app with a free tier for tracking by hand and bank sync in Premium.",
+        es: "Wallet by BudgetBakers es una app de finanzas con un plan gratis para registrar a mano y sincronización bancaria en Premium.",
+    },
     copilot: {
         en: "Copilot is a paid money app for Apple devices and the web that syncs linked accounts.",
         es: "Copilot es una app de finanzas de pago para dispositivos Apple y la web que sincroniza cuentas vinculadas.",
@@ -26,6 +42,11 @@ const RIVALS = {
         es: "YNAB es un método de presupuesto de pago basado en importar movimientos del banco.",
     },
 } as const;
+
+const OUTLAYR_SUBSCRIPTIONS = t({
+    en: "Log themselves on their day, with a monthly cost and a reminder before each charge",
+    es: "Se registran solas en su día, con un costo mensual y un aviso antes de cada cobro",
+});
 
 const OUTLAYR = {
     budgets: t({
@@ -64,11 +85,24 @@ const COST_FAQ = {
     question: t({ en: "How much does Outlayr cost?", es: "¿Cuánto cuesta Outlayr?" }),
 };
 
+const RATE_FAQ = {
+    answer: t({
+        en: "The rate from the day of each purchase, so entries you already logged do not move when the rate does. You can also type the rate you actually got.",
+        es: "La tasa del día de cada compra, así que los registros que ya hiciste no cambian cuando la tasa se mueve. También puedes escribir la tasa que te dieron.",
+    }),
+    question: t({ en: "Which exchange rate does Outlayr use?", es: "¿Qué tasa de cambio usa Outlayr?" }),
+};
+
 const START_FREE = t({ en: "Want to start free", es: "Quieres empezar gratis" });
 const SAY_OR_SCAN = t({
     en: "Would rather say or scan a purchase than fill in a form",
     es: "Prefieres dictar o escanear una compra en vez de llenar un formulario",
 });
+const DAY_RATE = t({
+    en: "Want each purchase converted at the rate from its day",
+    es: "Quieres cada compra convertida con la tasa de su día",
+});
+const NEED_ANDROID_OR_WEB = t({ en: "Need Android or a web app today", es: "Necesitas Android o una app web hoy" });
 const OUTSIDE_US = t({ en: "Live outside the United States", es: "Vives fuera de Estados Unidos" });
 const SEVERAL_CURRENCIES = t({ en: "Spend in more than one currency", es: "Gastas en más de una moneda" });
 const SYNC_ACCOUNTS = t({
@@ -155,6 +189,102 @@ const answers = {
                 summary: t(RIVALS.copilot),
                 title: t({ en: "Outlayr as a Copilot alternative.", es: "Outlayr como alternativa a Copilot." }),
             },
+            everydollar: {
+                faq: [
+                    {
+                        answer: t({
+                            en: "It is if you live outside the United States, spend in more than one currency, or would rather say or scan a purchase than type it. EveryDollar fits better if you want transactions streamed from your bank, or budget on a computer too.",
+                            es: "Sí, si vives fuera de Estados Unidos, gastas en más de una moneda o prefieres dictar o escanear una compra en vez de escribirla. EveryDollar te conviene más si quieres que los movimientos lleguen desde tu banco, o si también haces tu presupuesto en la computadora.",
+                        }),
+                        question: t({
+                            en: "Is Outlayr a good EveryDollar alternative?",
+                            es: "¿Outlayr es una buena alternativa a EveryDollar?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Yes. Outlayr is offered in all 175 App Store countries and regions, Canada included, with 165 currencies. EveryDollar's mobile app is sold in the United States App Store and Google Play only, and it supports US dollars.",
+                            es: "Sí. Outlayr se ofrece en los 175 países y regiones del App Store, Canadá incluido, con 165 monedas. La app móvil de EveryDollar solo se vende en el App Store y Google Play de Estados Unidos, y admite dólares estadounidenses.",
+                        }),
+                        question: t({
+                            en: "Does Outlayr work in Canada and outside the United States?",
+                            es: "¿Outlayr funciona en Canadá y fuera de Estados Unidos?",
+                        }),
+                    },
+                    COST_FAQ,
+                ],
+                fit: {
+                    outlayr: [OUTSIDE_US, SEVERAL_CURRENCIES, SAY_OR_SCAN],
+                    rival: [
+                        t({
+                            en: "Want transactions streamed from your bank",
+                            es: "Quieres que los movimientos lleguen desde tu banco",
+                        }),
+                        t({
+                            en: "Want to budget on a computer too",
+                            es: "También quieres hacer tu presupuesto en la computadora",
+                        }),
+                        t({ en: "Live in the United States", es: "Vives en Estados Unidos" }),
+                    ],
+                },
+                lead: t({
+                    en: `${OUTLAYR_LEAD.en} ${RIVALS.everydollar.en}`,
+                    es: `${OUTLAYR_LEAD.es} ${RIVALS.everydollar.es}`,
+                }),
+                meta: {
+                    title: t({
+                        en: "EveryDollar Alternative: Outlayr vs EveryDollar",
+                        es: "Alternativa a EveryDollar: Outlayr vs EveryDollar",
+                    }),
+                },
+                rival: "EveryDollar",
+                rows: [
+                    {
+                        label: LABELS.price,
+                        outlayr: OUTLAYR.price,
+                        rival: t({
+                            en: "Free version. Premium is $17.99 a month or $79.99 a year, after a 14-day trial",
+                            es: "Versión gratis. Premium cuesta $17.99 al mes o $79.99 al año, después de una prueba de 14 días",
+                        }),
+                    },
+                    {
+                        label: LABELS.entries,
+                        outlayr: OUTLAYR.entries,
+                        rival: t({
+                            en: "Entered by hand. Bank connection in Premium",
+                            es: "A mano. Conexión al banco en Premium",
+                        }),
+                    },
+                    {
+                        label: LABELS.currencies,
+                        outlayr: OUTLAYR.currencies,
+                        rival: t({ en: "US dollars only", es: "Solo dólares estadounidenses" }),
+                    },
+                    {
+                        label: LABELS.availability,
+                        outlayr: t({
+                            en: "175 App Store countries and regions",
+                            es: "175 países y regiones del App Store",
+                        }),
+                        rival: t({
+                            en: "Mobile app in the United States only",
+                            es: "App móvil solo en Estados Unidos",
+                        }),
+                    },
+                    {
+                        label: LABELS.platforms,
+                        outlayr: OUTLAYR.platforms,
+                        rival: t({ en: "Computer, phone, or tablet", es: "Computadora, celular o tableta" }),
+                    },
+                ],
+                site: "ramseysolutions.com",
+                source: "https://www.ramseysolutions.com/money/everydollar",
+                summary: t(RIVALS.everydollar),
+                title: t({
+                    en: "Outlayr as an EveryDollar alternative.",
+                    es: "Outlayr como alternativa a EveryDollar.",
+                }),
+            },
             monarch: {
                 faq: [
                     {
@@ -194,7 +324,7 @@ const answers = {
                             en: "Track investments alongside spending",
                             es: "Sigues tus inversiones junto con tus gastos",
                         }),
-                        t({ en: "Need Android or a web app today", es: "Necesitas Android o una app web hoy" }),
+                        NEED_ANDROID_OR_WEB,
                     ],
                 },
                 lead: t({
@@ -240,6 +370,91 @@ const answers = {
                 source: "https://www.monarch.com/pricing",
                 summary: t(RIVALS.monarch),
                 title: t({ en: "Outlayr as a Monarch alternative.", es: "Outlayr como alternativa a Monarch." }),
+            },
+            pocketguard: {
+                faq: [
+                    {
+                        answer: t({
+                            en: "It is if you want to start free, spend in more than one currency, or would rather say or scan a purchase than type it. PocketGuard fits better if you want linked accounts to sync on their own, a web app today, or an Apple Watch app.",
+                            es: "Sí, si quieres empezar gratis, gastas en más de una moneda o prefieres dictar o escanear una compra en vez de escribirla. PocketGuard te conviene más si quieres que tus cuentas vinculadas se sincronicen solas, una app web hoy o una app para Apple Watch.",
+                        }),
+                        question: t({
+                            en: "Is Outlayr a good PocketGuard alternative?",
+                            es: "¿Outlayr es una buena alternativa a PocketGuard?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Yes. Subscriptions log themselves on their day, Upcoming shows what they cost per month, and a reminder can come before each charge. Like PocketGuard, Outlayr leaves cancelling to you.",
+                            es: "Sí. Las suscripciones se registran solas en su día, Próximos muestra cuánto cuestan al mes y puede llegarte un aviso antes de cada cobro. Igual que PocketGuard, Outlayr te deja a ti la cancelación.",
+                        }),
+                        question: t({
+                            en: "Does Outlayr track subscriptions like PocketGuard?",
+                            es: "¿Outlayr controla suscripciones como PocketGuard?",
+                        }),
+                    },
+                    COST_FAQ,
+                ],
+                fit: {
+                    outlayr: [START_FREE, SEVERAL_CURRENCIES, SAY_OR_SCAN],
+                    rival: [
+                        SYNC_ACCOUNTS,
+                        t({ en: "Want a web app today", es: "Quieres una app web hoy" }),
+                        t({ en: "Use an Apple Watch with it", es: "La usas con un Apple Watch" }),
+                    ],
+                },
+                lead: t({
+                    en: `${OUTLAYR_LEAD.en} ${RIVALS.pocketguard.en}`,
+                    es: `${OUTLAYR_LEAD.es} ${RIVALS.pocketguard.es}`,
+                }),
+                meta: {
+                    title: t({
+                        en: "PocketGuard Alternative: Outlayr vs PocketGuard",
+                        es: "Alternativa a PocketGuard: Outlayr vs PocketGuard",
+                    }),
+                },
+                rival: "PocketGuard",
+                rows: [
+                    {
+                        label: LABELS.price,
+                        outlayr: OUTLAYR.price,
+                        rival: t({
+                            en: "$12.99 a month, $74.99 a year, or $149.99 once, after a 7-day trial",
+                            es: "$12.99 al mes, $74.99 al año o $149.99 en un solo pago, después de una prueba de 7 días",
+                        }),
+                    },
+                    {
+                        label: LABELS.entries,
+                        outlayr: OUTLAYR.entries,
+                        rival: t({
+                            en: "Synced from linked accounts, plus cash transactions and file import",
+                            es: "Sincronizados desde cuentas vinculadas, más movimientos en efectivo e importación de archivos",
+                        }),
+                    },
+                    {
+                        label: LABELS.subscriptions,
+                        outlayr: OUTLAYR_SUBSCRIPTIONS,
+                        rival: t({
+                            en: "Listed for you. You cancel each one with the service",
+                            es: "Te las lista. Tú cancelas cada una con el servicio",
+                        }),
+                    },
+                    {
+                        label: LABELS.platforms,
+                        outlayr: OUTLAYR.platforms,
+                        rival: t({
+                            en: "Web, iPhone, Apple Watch, Android",
+                            es: "Web, iPhone, Apple Watch, Android",
+                        }),
+                    },
+                ],
+                site: "pocketguard.com",
+                source: "https://pocketguard.com/pricing/",
+                summary: t(RIVALS.pocketguard),
+                title: t({
+                    en: "Outlayr as a PocketGuard alternative.",
+                    es: "Outlayr como alternativa a PocketGuard.",
+                }),
             },
             "rocket-money": {
                 faq: [
@@ -316,10 +531,7 @@ const answers = {
                     },
                     {
                         label: LABELS.subscriptions,
-                        outlayr: t({
-                            en: "Log themselves on their day, with a monthly cost and a reminder before each charge",
-                            es: "Se registran solas en su día, con un costo mensual y un aviso antes de cada cobro",
-                        }),
+                        outlayr: OUTLAYR_SUBSCRIPTIONS,
                         rival: t({
                             en: "Found in linked accounts. Cancellation by its team is a Premium feature",
                             es: "Las encuentra en tus cuentas vinculadas. La cancelación por su equipo es una función Premium",
@@ -351,6 +563,145 @@ const answers = {
                 title: t({
                     en: "Outlayr as a Rocket Money alternative.",
                     es: "Outlayr como alternativa a Rocket Money.",
+                }),
+            },
+            spendee: {
+                faq: [
+                    {
+                        answer: t({
+                            en: "It is if you would rather say or scan a purchase than type it, want each purchase converted at the rate from its day, or want two budgets on the free plan. Spendee fits better if you want bank sync, or need Android today.",
+                            es: "Sí, si prefieres dictar o escanear una compra en vez de escribirla, quieres cada compra convertida con la tasa de su día o quieres dos presupuestos en el plan gratis. Spendee te conviene más si quieres sincronización bancaria, o necesitas Android hoy.",
+                        }),
+                        question: t({
+                            en: "Is Outlayr a good Spendee alternative?",
+                            es: "¿Outlayr es una buena alternativa a Spendee?",
+                        }),
+                    },
+                    RATE_FAQ,
+                    COST_FAQ,
+                ],
+                fit: {
+                    outlayr: [
+                        SAY_OR_SCAN,
+                        DAY_RATE,
+                        t({
+                            en: "Want two budgets on the free plan",
+                            es: "Quieres dos presupuestos en el plan gratis",
+                        }),
+                    ],
+                    rival: [SYNC_ACCOUNTS, t({ en: "Need Android today", es: "Necesitas Android hoy" })],
+                },
+                lead: t({
+                    en: `${OUTLAYR_LEAD.en} ${RIVALS.spendee.en}`,
+                    es: `${OUTLAYR_LEAD.es} ${RIVALS.spendee.es}`,
+                }),
+                meta: {
+                    title: t({
+                        en: "Spendee Alternative: Outlayr vs Spendee",
+                        es: "Alternativa a Spendee: Outlayr vs Spendee",
+                    }),
+                },
+                rival: "Spendee",
+                rows: [
+                    {
+                        label: LABELS.price,
+                        outlayr: OUTLAYR.price,
+                        rival: t({
+                            en: "Free basic plan with 1 budget. Plus $1.99 a month or $14.99 a year, Premium $5.99 a month or $35.99 a year, after a 7-day trial. Prices vary by country",
+                            es: "Plan básico gratis con 1 presupuesto. Plus $1.99 al mes o $14.99 al año, Premium $5.99 al mes o $35.99 al año, después de una prueba de 7 días. Los precios cambian según el país",
+                        }),
+                    },
+                    {
+                        label: LABELS.entries,
+                        outlayr: OUTLAYR.entries,
+                        rival: t({
+                            en: "Cash wallets by hand. Bank sync in Premium",
+                            es: "Billeteras de efectivo a mano. Sincronización bancaria en Premium",
+                        }),
+                    },
+                    {
+                        label: LABELS.currencies,
+                        outlayr: OUTLAYR.currencies,
+                        rival: t({ en: "Several currencies", es: "Varias monedas" }),
+                    },
+                    {
+                        label: LABELS.platforms,
+                        outlayr: OUTLAYR.platforms,
+                        rival: t({ en: "iPhone, Android. Web coming", es: "iPhone, Android. Web próximamente" }),
+                    },
+                ],
+                site: "spendee.com",
+                source: "https://www.spendee.com/pricing",
+                summary: t(RIVALS.spendee),
+                title: t({ en: "Outlayr as a Spendee alternative.", es: "Outlayr como alternativa a Spendee." }),
+            },
+            wallet: {
+                faq: [
+                    {
+                        answer: t({
+                            en: "It is if you would rather say or scan a purchase than type it, or want each purchase converted at the rate from its day. Wallet fits better if you want bank sync, or need Android or a web app today.",
+                            es: "Sí, si prefieres dictar o escanear una compra en vez de escribirla, o quieres cada compra convertida con la tasa de su día. Wallet te conviene más si quieres sincronización bancaria, o necesitas Android o una app web hoy.",
+                        }),
+                        question: t({
+                            en: "Is Outlayr a good alternative to Wallet by BudgetBakers?",
+                            es: "¿Outlayr es una buena alternativa a Wallet by BudgetBakers?",
+                        }),
+                    },
+                    RATE_FAQ,
+                    COST_FAQ,
+                ],
+                fit: {
+                    outlayr: [SAY_OR_SCAN, DAY_RATE],
+                    rival: [SYNC_ACCOUNTS, NEED_ANDROID_OR_WEB],
+                },
+                lead: t({
+                    en: `${OUTLAYR_LEAD.en} ${RIVALS.wallet.en}`,
+                    es: `${OUTLAYR_LEAD.es} ${RIVALS.wallet.es}`,
+                }),
+                meta: {
+                    title: t({
+                        en: "Wallet by BudgetBakers Alternative: Outlayr vs Wallet",
+                        es: "Alternativa a Wallet by BudgetBakers: Outlayr vs Wallet",
+                    }),
+                },
+                rival: "Wallet by BudgetBakers",
+                rows: [
+                    {
+                        label: LABELS.price,
+                        outlayr: OUTLAYR.price,
+                        rival: t({
+                            en: "Free tier. Premium monthly, yearly, or lifetime, priced in the app",
+                            es: "Plan gratis. Premium al mes, al año o de por vida, con precio en la app",
+                        }),
+                    },
+                    {
+                        label: LABELS.entries,
+                        outlayr: OUTLAYR.entries,
+                        rival: t({
+                            en: "By hand on the free tier. Bank sync with over 15,000 institutions in Premium",
+                            es: "A mano en el plan gratis. Sincronización con más de 15,000 instituciones en Premium",
+                        }),
+                    },
+                    {
+                        label: LABELS.currencies,
+                        outlayr: OUTLAYR.currencies,
+                        rival: t({
+                            en: "Several, converted at real-time rates",
+                            es: "Varias, convertidas con tasas en tiempo real",
+                        }),
+                    },
+                    {
+                        label: LABELS.platforms,
+                        outlayr: OUTLAYR.platforms,
+                        rival: t({ en: "iPhone, Android, web", es: "iPhone, Android, web" }),
+                    },
+                ],
+                site: "budgetbakers.com",
+                source: "https://budgetbakers.com/en/products/wallet/",
+                summary: t(RIVALS.wallet),
+                title: t({
+                    en: "Outlayr as an alternative to Wallet by BudgetBakers.",
+                    es: "Outlayr como alternativa a Wallet by BudgetBakers.",
                 }),
             },
             ynab: {
@@ -388,7 +739,7 @@ const answers = {
                             en: "Follow the give every dollar a job method",
                             es: "Sigues el método de darle un trabajo a cada dólar",
                         }),
-                        t({ en: "Need Android or a web app today", es: "Necesitas Android o una app web hoy" }),
+                        NEED_ANDROID_OR_WEB,
                     ],
                 },
                 lead: t({

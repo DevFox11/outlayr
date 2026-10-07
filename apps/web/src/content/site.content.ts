@@ -8,8 +8,12 @@ const site = {
         answerLinks: {
             compare: {
                 copilot: "Copilot",
+                everydollar: "EveryDollar",
                 monarch: "Monarch",
+                pocketguard: "PocketGuard",
                 "rocket-money": "Rocket Money",
+                spendee: "Spendee",
+                wallet: "Wallet by BudgetBakers",
                 ynab: "YNAB",
             } satisfies Record<keyof typeof answers.content.compare, string>,
             guides: {
