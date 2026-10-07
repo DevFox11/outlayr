@@ -15,6 +15,7 @@ type GuideSlug = keyof ReturnType<typeof getIntlayer<"answers">>["guides"];
 
 const PLATES = {
     "apple-pay-expense-tracker": "/screens/log-an-expense.webp",
+    "budget-planner": "/screens/04.webp",
     "mint-alternative": "/screens/log-an-expense.webp",
     "multi-currency-expense-tracker": "/screens/06.webp",
     "receipt-scanner": "scan",

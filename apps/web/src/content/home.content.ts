@@ -1,7 +1,7 @@
 import { t } from "intlayer";
 import type { Dictionary } from "intlayer";
 
-import { ACCOUNTS_SCREEN_ALT, RECEIPT_SCAN_ANSWER } from "./shared";
+import { ACCOUNTS_SCREEN_ALT, BUDGETS_SCREEN_ALT, RECEIPT_SCAN_ANSWER } from "./shared";
 
 const home = {
     content: {
@@ -225,10 +225,7 @@ const home = {
         ],
         tour: [
             {
-                alt: t({
-                    en: "Outlayr Budgets screen: $1,018.59 left this month, a spending curve projected past the limit, and the note that on this pace the period ends $319 short.",
-                    es: "Pantalla de presupuestos de Outlayr: $1,018.59 disponibles este mes, una curva de gasto que pasa el límite y la nota de que, a este ritmo, te faltarán $319 al final del período.",
-                }),
+                alt: BUDGETS_SCREEN_ALT,
                 body: t({
                     en: "Set a limit per category or one for the whole month, and carry over what you didn’t spend. The chart shows where this pace ends, not just what’s left.",
                     es: "Pon un límite por categoría o uno para todo el mes, y acumula lo que no gastaste. El gráfico muestra a dónde te lleva este ritmo, no solo lo que queda.",

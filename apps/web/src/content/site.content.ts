@@ -14,6 +14,7 @@ const site = {
             } satisfies Record<keyof typeof answers.content.compare, string>,
             guides: {
                 "apple-pay-expense-tracker": t({ en: "Apple Pay", es: "Apple Pay" }),
+                "budget-planner": t({ en: "Budgets", es: "Presupuestos" }),
                 "mint-alternative": t({ en: "From Mint", es: "Desde Mint" }),
                 "multi-currency-expense-tracker": t({ en: "Multi-currency", es: "Varias monedas" }),
                 "receipt-scanner": t({ en: "Receipt scanner", es: "Escáner de recibos" }),

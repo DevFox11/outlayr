@@ -1,7 +1,7 @@
 import { insert, t } from "intlayer";
 import type { Dictionary } from "intlayer";
 
-import { ACCOUNTS_SCREEN_ALT, RECEIPT_SCAN_ANSWER } from "./shared";
+import { ACCOUNTS_SCREEN_ALT, BUDGETS_SCREEN_ALT, RECEIPT_SCAN_ANSWER } from "./shared";
 
 const OUTLAYR_LEAD = {
     en: "Outlayr is a free expense tracker you fill in by sentence, voice, or receipt.",
@@ -559,6 +559,119 @@ const answers = {
                 title: t({
                     en: "Log Apple Pay purchases as you pay.",
                     es: "Registra tus compras con Apple Pay al pagar.",
+                }),
+            },
+            "budget-planner": {
+                facts: [
+                    {
+                        label: t({ en: "Limits", es: "Límites" }),
+                        text: t({
+                            en: "One per category, or one overall budget",
+                            es: "Uno por categoría, o un presupuesto general",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Periods", es: "Períodos" }),
+                        text: t({ en: "A day, a week, a month, or a year", es: "Un día, una semana, un mes o un año" }),
+                    },
+                    {
+                        label: t({ en: "Carry-over", es: "Acumular" }),
+                        text: t({
+                            en: "What you don't spend is added to the next period, and what you overspend is taken off it",
+                            es: "Lo que no gastas se suma al siguiente período, y lo que te pasas se resta",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Pace", es: "Ritmo" }),
+                        text: t({
+                            en: "How far short this pace ends, or the day the money ran out",
+                            es: "Cuánto te va a faltar a este ritmo, o el día en que se acabó el dinero",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Month start", es: "Inicio del mes" }),
+                        text: t({
+                            en: "Any day of the month, like payday",
+                            es: "Cualquier día del mes, como el día de pago",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Free plan", es: "Plan gratis" }),
+                        text: t({
+                            en: "2 category budgets. Unlimited with Pro",
+                            es: "2 presupuestos por categoría. Sin límite con Pro",
+                        }),
+                    },
+                ],
+                faq: [
+                    {
+                        answer: t({
+                            en: "Yes. Set a limit per category or one for the whole month, and Outlayr shows what is left and where your current pace ends as you log.",
+                            es: "Sí. Pon un límite por categoría o uno para todo el mes, y Outlayr te muestra lo que queda y a dónde te lleva tu ritmo mientras registras.",
+                        }),
+                        question: t({
+                            en: "Can Outlayr plan a monthly budget?",
+                            es: "¿Outlayr sirve para armar un presupuesto mensual?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Yes. In Settings, under Time frames, pick the day your month starts. Budgets and insights then run from that day, so a month can start on payday.",
+                            es: "Sí. En Configuración, en Períodos de tiempo, elige el día en que empieza tu mes. Los presupuestos y las estadísticas corren desde ese día, así que el mes puede empezar el día de pago.",
+                        }),
+                        question: t({
+                            en: "Can my budget month start on payday?",
+                            es: "¿Mi mes de presupuesto puede empezar el día de pago?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Turn on carry-over for a budget and what you don't spend is added to the next period. If you overspend, the difference is taken off the next one.",
+                            es: "Activa la opción de acumular en un presupuesto y lo que no gastes se suma al siguiente período. Si te pasas, la diferencia se resta del siguiente.",
+                        }),
+                        question: t({
+                            en: "What happens to money I don't spend?",
+                            es: "¿Qué pasa con el dinero que no gasto?",
+                        }),
+                    },
+                ],
+                lead: t({
+                    en: "Outlayr sets a budget per category or one for the whole month, carries over what you did not spend, and says where your current pace ends before the month does.",
+                    es: "Outlayr pone un presupuesto por categoría o uno para todo el mes, acumula lo que no gastaste y te dice a dónde te lleva tu ritmo antes de que termine el mes.",
+                }),
+                meta: {
+                    title: t({
+                        en: "Budget Planner App: Limits, Carry-Over, and Pace · Outlayr",
+                        es: "App de presupuesto mensual: límites y ritmo · Outlayr",
+                    }),
+                },
+                plateAlt: BUDGETS_SCREEN_ALT,
+                steps: [
+                    {
+                        text: t({
+                            en: "On Budgets, pick a category or set one limit for the month. Categories without a budget show what you typically spend.",
+                            es: "En Presupuestos, elige una categoría o pon un límite para el mes. Las categorías sin presupuesto muestran lo que gastas normalmente.",
+                        }),
+                        title: t({ en: "Set a limit", es: "Pon un límite" }),
+                    },
+                    {
+                        text: t({
+                            en: "Each entry updates what is left and the pace, whether you type, say, or scan it.",
+                            es: "Cada registro actualiza lo que queda y el ritmo, ya sea que lo escribas, lo dictes o lo escanees.",
+                        }),
+                        title: t({ en: "Log as you spend", es: "Registra al gastar" }),
+                    },
+                    {
+                        text: t({
+                            en: "If this pace runs past the limit, Budgets says by how much, or the day the money ran out.",
+                            es: "Si este ritmo pasa el límite, Presupuestos te dice por cuánto, o el día en que se acabó el dinero.",
+                        }),
+                        title: t({ en: "Read the pace", es: "Mira el ritmo" }),
+                    },
+                ],
+                title: t({
+                    en: "Plan a budget and see where this pace ends.",
+                    es: "Arma tu presupuesto y ve a dónde te lleva este ritmo.",
                 }),
             },
             "mint-alternative": {
