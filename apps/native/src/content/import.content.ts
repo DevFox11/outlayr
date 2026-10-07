@@ -279,13 +279,17 @@ const importSheet = {
             en: "We didn't understand the answer, so we ignored all of it.",
             es: "No entendimos la respuesta, así que la ignoramos por completo.",
         }),
+        "import.unavailableNoEntries": t({
+            en: "None of its rows matched one of your categories on your device.",
+            es: "Ninguna de sus filas coincidió con una de tus categorías en tu dispositivo.",
+        }),
         "import.unavailableNotConfigured": t({
             en: "Not configured yet.",
             es: "Aún no está configurado.",
         }),
         "import.unavailableNotEntitled": t({
-            en: "Importing is part of Pro.",
-            es: "Importar es parte de Pro.",
+            en: "AI suggestions are part of Pro.",
+            es: "Las sugerencias con IA son parte de Pro.",
         }),
         "import.unavailableOffline": t({
             en: "You're offline.",

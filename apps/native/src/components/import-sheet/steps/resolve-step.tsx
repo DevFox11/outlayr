@@ -126,38 +126,42 @@ export function ResolveStep({ review, onOpenFeatureLab, onSeePro }: ResolveStepP
         }
     }, [outcome, entryCount]);
 
-    if (outcome === "unavailable" && reason != null) {
-        return (
-            <View className="flex-1 gap-4 px-5 pt-4">
-                <View className="border-border gap-2 border-y py-3">
-                    <Text className="font-sans-medium text-callout text-foreground">
-                        {t("import.unavailableTitle")}
-                    </Text>
-                    <Text className="text-footnote text-muted">{t(REASON_COPY[reason])}</Text>
-                </View>
-                <UnavailableAction onRetry={run} onSeePro={onSeePro} reason={reason} />
-            </View>
-        );
-    }
+    const reviewCta =
+        entryCount > 0 ? (
+            <StepCta
+                className="mt-6"
+                label={t("import.resolveReviewCta", { count: entryCount })}
+                onPress={() => importDraftStore.setStep("review")}
+            />
+        ) : null;
 
-    if (outcome === "declined") {
+    if ((outcome === "unavailable" && reason != null) || outcome === "declined") {
         return (
             <View className="flex-1 gap-4 px-5 pt-4">
                 <View className="border-border gap-2 border-y py-3">
                     <Text className="font-sans-medium text-callout text-foreground">
                         {t("import.unavailableTitle")}
                     </Text>
-                    <Text className="text-footnote text-muted">{t("import.declinedBody")}</Text>
+                    <Text className="text-footnote text-muted">
+                        {reason == null ? t("import.declinedBody") : t(REASON_COPY[reason])}
+                    </Text>
+                    {entryCount === 0 ? (
+                        <Text className="text-footnote text-muted">{t("import.unavailableNoEntries")}</Text>
+                    ) : null}
                 </View>
-                <Pressable accessibilityRole="button" onPress={onOpenFeatureLab}>
-                    <Text className="font-sans-medium text-body text-tint">{t("import.openFeatureLab")}</Text>
-                </Pressable>
+                {reason == null ? (
+                    <Pressable accessibilityRole="button" onPress={onOpenFeatureLab}>
+                        <Text className="font-sans-medium text-body text-tint">{t("import.openFeatureLab")}</Text>
+                    </Pressable>
+                ) : (
+                    <UnavailableAction onRetry={run} onSeePro={onSeePro} reason={reason} />
+                )}
+                {reviewCta}
             </View>
         );
     }
 
     const rowCount = flow.parsed?.rows.length ?? 0;
-    const showCta = outcome === "applied" && entryCount > 0;
     const settledStage: CsvImportStage = outcome == null ? stage : "settled";
 
     return (
@@ -191,13 +195,7 @@ export function ResolveStep({ review, onOpenFeatureLab, onSeePro }: ResolveStepP
             </View>
             <Text className="text-footnote text-muted leading-snug">{t("import.resolveFootnote")}</Text>
 
-            {showCta ? (
-                <StepCta
-                    className="mt-6"
-                    label={t("import.resolveReviewCta", { count: entryCount })}
-                    onPress={() => importDraftStore.setStep("review")}
-                />
-            ) : null}
+            {outcome === "applied" ? reviewCta : null}
         </View>
     );
 }

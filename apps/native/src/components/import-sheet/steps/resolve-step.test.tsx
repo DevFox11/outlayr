@@ -256,6 +256,47 @@ describe("resolveStep", () => {
         expect(queryByText("import.tryAgain")).toBeNull();
     });
 
+    it("lets an import without suggestions continue with the rows matched on the device", async () => {
+        loadFile();
+        importDraftStore.setStep("resolve");
+        mockContext = baseContext({ outcome: "unavailable", reason: "notEntitled" });
+        const { getByText } = await render(
+            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([ENTRY])} />
+        );
+
+        expect(getByText("import.unavailableNotEntitled")).toBeTruthy();
+        expect(getByText("pro.action.see")).toBeTruthy();
+        expect(importDraftStore.getSnapshot().ui.step).toBe("resolve");
+        await fireEvent.press(getByText('import.resolveReviewCta:{"count":1}'));
+        expect(importDraftStore.getSnapshot().ui.step).toBe("review");
+    });
+
+    it("lets a declined import continue with the rows matched on the device", async () => {
+        loadFile();
+        importDraftStore.setStep("resolve");
+        mockContext = baseContext({ outcome: "declined" });
+        const { getByText } = await render(
+            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([ENTRY])} />
+        );
+
+        expect(getByText("import.openFeatureLab")).toBeTruthy();
+        await fireEvent.press(getByText('import.resolveReviewCta:{"count":1}'));
+        expect(importDraftStore.getSnapshot().ui.step).toBe("review");
+    });
+
+    it("says nothing matched instead of offering an empty review", async () => {
+        loadFile();
+        importDraftStore.setStep("resolve");
+        mockContext = baseContext({ outcome: "unavailable", reason: "overCap" });
+        const { getByText, queryByText } = await render(
+            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([])} />
+        );
+
+        expect(getByText("import.unavailableNoEntries")).toBeTruthy();
+        expect(queryByText(/import\.resolveReviewCta/)).toBeNull();
+        expect(importDraftStore.getSnapshot().ui.step).toBe("resolve");
+    });
+
     it("spaces the review CTA with a fixed margin, not an inert flex spacer", async () => {
         loadFile();
         importDraftStore.setStep("resolve");
