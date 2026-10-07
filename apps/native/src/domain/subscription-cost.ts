@@ -65,7 +65,7 @@ export function monthlySubscriptionCost(
     const perMonth: CurrencyEntry[] = [];
     for (const schedule of schedules) {
         const charges = monthlyChargeCount(schedule.recurringType, schedule.recurringCoefficient);
-        if (charges === 0) {
+        if (charges === 0 || schedule.income) {
             continue;
         }
         const endsAt = schedule.recurringEndDate;

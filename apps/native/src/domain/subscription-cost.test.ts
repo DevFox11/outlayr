@@ -95,12 +95,17 @@ describe("monthlySubscriptionCost", () => {
         ]);
     });
 
-    it("offsets a recurring income against the schedules it pays for", () => {
-        const [bucket] = monthlySubscriptionCost(
+    it("leaves a recurring income out of the cost", () => {
+        const buckets = monthlySubscriptionCost(
             [schedule(10, RECURRING_TYPE.monthly), schedule(3000, RECURRING_TYPE.monthly, 1, { income: true })],
             "USD"
         );
-        expect(bucket.amount).toBe(2990);
+        expect(buckets.map((bucket) => [bucket.currencyCode, bucket.amount])).toStrictEqual([["USD", -10]]);
+    });
+
+    it("counts nothing when only income repeats", () => {
+        const buckets = monthlySubscriptionCost([schedule(3000, RECURRING_TYPE.monthly, 1, { income: true })], "USD");
+        expect(buckets.some((bucket) => bucket.transactionCount > 0)).toBe(false);
     });
 
     it("drops a schedule whose end date has passed", () => {
