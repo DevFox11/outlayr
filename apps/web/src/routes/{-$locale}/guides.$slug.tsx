@@ -3,12 +3,13 @@ import { getIntlayer } from "intlayer";
 import { useIntlayer } from "react-intlayer";
 
 import { ScanPanel } from "@/components/demo/capture-panels";
+import { HubTrail } from "@/components/hub-trail";
 import { Screen } from "@/components/screen";
 import { AppStoreBadge } from "@/components/store-badges";
 import { hasKey } from "@/lib/has-key";
 import { LANGUAGES, localeFromParam } from "@/lib/i18n";
 import { CONTAINER } from "@/lib/layout";
-import { faqPage, ldJson, pageMeta } from "@/lib/seo";
+import { answerTrail, faqPage, ldJson, pageMeta } from "@/lib/seo";
 
 type GuideSlug = keyof ReturnType<typeof getIntlayer<"answers">>["guides"];
 
@@ -36,7 +37,10 @@ export const Route = createFileRoute("/{-$locale}/guides/$slug")({
         const guide = getIntlayer("answers", locale).guides[loaderData];
         return {
             meta: pageMeta(guide.meta.title, guide.lead),
-            scripts: [ldJson(faqPage(guide.faq, LANGUAGES[locale].lang))],
+            scripts: [
+                ldJson(faqPage(guide.faq, LANGUAGES[locale].lang)),
+                ldJson(answerTrail(locale, "guides", loaderData, guide.title)),
+            ],
         };
     },
 });
@@ -50,7 +54,8 @@ function Guide() {
         <main className={`${CONTAINER} pt-10 pb-24 md:pt-16`}>
             <section className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-center lg:gap-24">
                 <div>
-                    <h1 className="text-display font-bold">{guide.title}</h1>
+                    <HubTrail hub="/guides" />
+                    <h1 className="text-display mt-4 font-bold">{guide.title}</h1>
                     <p className="text-lead text-muted mt-6 max-w-[33rem]">{guide.lead}</p>
                     <div className="mt-9">
                         <AppStoreBadge placement="answer" />

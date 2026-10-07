@@ -38,12 +38,14 @@
 
 ## Guides
 
+- [All guides](https://tryoutlayr.com/guides): every guide in one list
 - [Multi-currency expense tracking](https://tryoutlayr.com/guides/multi-currency-expense-tracker): 165 currencies, the rate from the day of each purchase, and accounts that each keep their own currency
 - [Apple Pay logging](https://tryoutlayr.com/guides/apple-pay-expense-tracker): how a Shortcuts automation logs each Apple Pay purchase on iPhone
 - [Receipt scanner](https://tryoutlayr.com/guides/receipt-scanner): what a scan reads, the free and Pro capture limits, and what it needs
 
 ## Comparisons
 
+- [All comparisons](https://tryoutlayr.com/compare): every comparison in one list, with a one-line summary of each app
 - [Outlayr and YNAB](https://tryoutlayr.com/compare/ynab): price, how entries are added, budgets, currencies, and platforms
 - [Outlayr and Monarch](https://tryoutlayr.com/compare/monarch): price, how entries are added, currencies, and platforms
 - [Outlayr and Copilot](https://tryoutlayr.com/compare/copilot): price, how entries are added, currencies, and platforms

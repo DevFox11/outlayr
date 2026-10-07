@@ -8,6 +8,21 @@ const OUTLAYR_LEAD = {
     es: "Outlayr es una app gratis para controlar tus gastos que llenas con una oración, con tu voz o con un recibo.",
 } as const;
 
+const RIVALS = {
+    copilot: {
+        en: "Copilot is a paid money app for Apple devices and the web that syncs linked accounts.",
+        es: "Copilot es una app de finanzas de pago para dispositivos Apple y la web que sincroniza cuentas vinculadas.",
+    },
+    monarch: {
+        en: "Monarch is a paid money dashboard that syncs linked accounts in the United States and Canada.",
+        es: "Monarch es un panel de finanzas de pago que sincroniza cuentas vinculadas en Estados Unidos y Canadá.",
+    },
+    ynab: {
+        en: "YNAB is a paid budgeting method built on bank imports.",
+        es: "YNAB es un método de presupuesto de pago basado en importar movimientos del banco.",
+    },
+} as const;
+
 const OUTLAYR = {
     budgets: t({
         en: "A limit per category or per month, with where the pace ends",
@@ -66,8 +81,8 @@ const answers = {
                     ],
                 },
                 lead: t({
-                    en: `${OUTLAYR_LEAD.en} Copilot is a paid money app for Apple devices and the web that syncs linked accounts.`,
-                    es: `${OUTLAYR_LEAD.es} Copilot es una app de finanzas de pago para dispositivos Apple y la web que sincroniza cuentas vinculadas.`,
+                    en: `${OUTLAYR_LEAD.en} ${RIVALS.copilot.en}`,
+                    es: `${OUTLAYR_LEAD.es} ${RIVALS.copilot.es}`,
                 }),
                 meta: {
                     title: t({
@@ -102,6 +117,7 @@ const answers = {
                     },
                 ],
                 site: "copilot.money",
+                summary: t(RIVALS.copilot),
                 title: t({ en: "Outlayr and Copilot, side by side.", es: "Outlayr y Copilot, lado a lado." }),
             },
             monarch: {
@@ -124,8 +140,8 @@ const answers = {
                     ],
                 },
                 lead: t({
-                    en: `${OUTLAYR_LEAD.en} Monarch is a paid money dashboard that syncs linked accounts in the United States and Canada.`,
-                    es: `${OUTLAYR_LEAD.es} Monarch es un panel de finanzas de pago que sincroniza cuentas vinculadas en Estados Unidos y Canadá.`,
+                    en: `${OUTLAYR_LEAD.en} ${RIVALS.monarch.en}`,
+                    es: `${OUTLAYR_LEAD.es} ${RIVALS.monarch.es}`,
                 }),
                 meta: {
                     title: t({
@@ -163,6 +179,7 @@ const answers = {
                     },
                 ],
                 site: "monarch.com",
+                summary: t(RIVALS.monarch),
                 title: t({ en: "Outlayr and Monarch, side by side.", es: "Outlayr y Monarch, lado a lado." }),
             },
             ynab: {
@@ -181,8 +198,8 @@ const answers = {
                     ],
                 },
                 lead: t({
-                    en: `${OUTLAYR_LEAD.en} YNAB is a paid budgeting method built on bank imports.`,
-                    es: `${OUTLAYR_LEAD.es} YNAB es un método de presupuesto de pago basado en importar movimientos del banco.`,
+                    en: `${OUTLAYR_LEAD.en} ${RIVALS.ynab.en}`,
+                    es: `${OUTLAYR_LEAD.es} ${RIVALS.ynab.es}`,
                 }),
                 meta: {
                     title: t({
@@ -228,6 +245,7 @@ const answers = {
                     },
                 ],
                 site: "ynab.com",
+                summary: t(RIVALS.ynab),
                 title: t({ en: "Outlayr and YNAB, side by side.", es: "Outlayr y YNAB, lado a lado." }),
             },
         },
@@ -570,6 +588,34 @@ const answers = {
                     },
                 ],
                 title: t({ en: "Scan a receipt into an expense.", es: "Convierte un recibo en un gasto." }),
+            },
+        },
+        hubs: {
+            compare: {
+                lead: t({
+                    en: `${OUTLAYR_LEAD.en} Each page sets price, how entries get in, and platforms side by side, checked at the other app's own site.`,
+                    es: `${OUTLAYR_LEAD.es} Cada página pone lado a lado el precio, cómo registras y las plataformas, revisados en el sitio de la otra app.`,
+                }),
+                meta: {
+                    title: t({
+                        en: "Budget App Comparisons: Outlayr vs YNAB, Monarch, and More",
+                        es: "Comparativas de apps de presupuesto: Outlayr vs YNAB, Monarch y más",
+                    }),
+                },
+                title: t({ en: "Outlayr next to the apps you know.", es: "Outlayr junto a las apps que conoces." }),
+            },
+            guides: {
+                lead: t({
+                    en: "How each part of Outlayr works, step by step, with what the free plan includes.",
+                    es: "Cómo funciona cada parte de Outlayr, paso a paso, con lo que incluye el plan gratis.",
+                }),
+                meta: {
+                    title: t({
+                        en: "Expense Tracking Guides · Outlayr",
+                        es: "Guías para controlar tus gastos · Outlayr",
+                    }),
+                },
+                title: t({ en: "How Outlayr does it.", es: "Cómo lo hace Outlayr." }),
             },
         },
         labels: {

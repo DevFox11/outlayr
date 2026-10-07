@@ -11,6 +11,8 @@ function pages(): [path: string, updated: Date | null][] {
         ["/support", null],
         ["/terms", LEGAL_DAYS.terms],
         ["/privacy", LEGAL_DAYS.privacy],
+        ["/guides", null],
+        ["/compare", null],
         ...Object.keys(guides).map((slug): [string, null] => [`/guides/${slug}`, null]),
         ...Object.keys(compare).map((slug): [string, null] => [`/compare/${slug}`, null]),
     ];

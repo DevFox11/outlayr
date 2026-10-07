@@ -2,11 +2,12 @@ import { createFileRoute, notFound, rootRouteId } from "@tanstack/react-router";
 import { getIntlayer } from "intlayer";
 import { useIntlayer } from "react-intlayer";
 
+import { HubTrail } from "@/components/hub-trail";
 import { AppStoreBadge } from "@/components/store-badges";
 import { hasKey } from "@/lib/has-key";
 import { localeFromParam } from "@/lib/i18n";
 import { CONTAINER } from "@/lib/layout";
-import { pageMeta } from "@/lib/seo";
+import { answerTrail, ldJson, pageMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/{-$locale}/compare/$slug")({
     component: Compare,
@@ -20,8 +21,12 @@ export const Route = createFileRoute("/{-$locale}/compare/$slug")({
         if (!loaderData) {
             return {};
         }
-        const rival = getIntlayer("answers", localeFromParam(params.locale)).compare[loaderData];
-        return { meta: pageMeta(rival.meta.title, rival.lead) };
+        const locale = localeFromParam(params.locale);
+        const rival = getIntlayer("answers", locale).compare[loaderData];
+        return {
+            meta: pageMeta(rival.meta.title, rival.lead),
+            scripts: [ldJson(answerTrail(locale, "compare", loaderData, rival.title))],
+        };
     },
 });
 
@@ -35,7 +40,8 @@ function Compare() {
     ];
     return (
         <main className={`${CONTAINER} pt-10 pb-24 md:pt-16`}>
-            <h1 className="text-display max-w-[46rem] font-bold">{page.title}</h1>
+            <HubTrail hub="/compare" />
+            <h1 className="text-display mt-4 max-w-[46rem] font-bold">{page.title}</h1>
             <p className="text-lead text-muted mt-6 max-w-[40rem]">{page.lead}</p>
             <div className="mt-9">
                 <AppStoreBadge placement="answer" />

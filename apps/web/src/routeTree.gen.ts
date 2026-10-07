@@ -16,7 +16,9 @@ import { Route as Char123LocaleChar125SplatRouteImport } from './routes/{-$local
 import { Route as Char123LocaleChar125PrivacyRouteImport } from './routes/{-$locale}/privacy'
 import { Route as Char123LocaleChar125SupportRouteImport } from './routes/{-$locale}/support'
 import { Route as Char123LocaleChar125TermsRouteImport } from './routes/{-$locale}/terms'
+import { Route as Char123LocaleChar125CompareIndexRouteImport } from './routes/{-$locale}/compare.index'
 import { Route as Char123LocaleChar125CompareSlugRouteImport } from './routes/{-$locale}/compare.$slug'
+import { Route as Char123LocaleChar125GuidesIndexRouteImport } from './routes/{-$locale}/guides.index'
 import { Route as Char123LocaleChar125GuidesSlugRouteImport } from './routes/{-$locale}/guides.$slug'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -60,10 +62,22 @@ const Char123LocaleChar125TermsRoute =
     path: '/terms',
     getParentRoute: () => Char123LocaleChar125RouteRoute,
   } as any)
+const Char123LocaleChar125CompareIndexRoute =
+  Char123LocaleChar125CompareIndexRouteImport.update({
+    id: '/compare/',
+    path: '/compare/',
+    getParentRoute: () => Char123LocaleChar125RouteRoute,
+  } as any)
 const Char123LocaleChar125CompareSlugRoute =
   Char123LocaleChar125CompareSlugRouteImport.update({
     id: '/compare/$slug',
     path: '/compare/$slug',
+    getParentRoute: () => Char123LocaleChar125RouteRoute,
+  } as any)
+const Char123LocaleChar125GuidesIndexRoute =
+  Char123LocaleChar125GuidesIndexRouteImport.update({
+    id: '/guides/',
+    path: '/guides/',
     getParentRoute: () => Char123LocaleChar125RouteRoute,
   } as any)
 const Char123LocaleChar125GuidesSlugRoute =
@@ -83,6 +97,8 @@ export interface FileRoutesByFullPath {
   '/{-$locale}/': typeof Char123LocaleChar125IndexRoute
   '/{-$locale}/compare/$slug': typeof Char123LocaleChar125CompareSlugRoute
   '/{-$locale}/guides/$slug': typeof Char123LocaleChar125GuidesSlugRoute
+  '/{-$locale}/compare/': typeof Char123LocaleChar125CompareIndexRoute
+  '/{-$locale}/guides/': typeof Char123LocaleChar125GuidesIndexRoute
 }
 export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -93,6 +109,8 @@ export interface FileRoutesByTo {
   '/{-$locale}': typeof Char123LocaleChar125IndexRoute
   '/{-$locale}/compare/$slug': typeof Char123LocaleChar125CompareSlugRoute
   '/{-$locale}/guides/$slug': typeof Char123LocaleChar125GuidesSlugRoute
+  '/{-$locale}/compare': typeof Char123LocaleChar125CompareIndexRoute
+  '/{-$locale}/guides': typeof Char123LocaleChar125GuidesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -105,6 +123,8 @@ export interface FileRoutesById {
   '/{-$locale}/': typeof Char123LocaleChar125IndexRoute
   '/{-$locale}/compare/$slug': typeof Char123LocaleChar125CompareSlugRoute
   '/{-$locale}/guides/$slug': typeof Char123LocaleChar125GuidesSlugRoute
+  '/{-$locale}/compare/': typeof Char123LocaleChar125CompareIndexRoute
+  '/{-$locale}/guides/': typeof Char123LocaleChar125GuidesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -118,6 +138,8 @@ export interface FileRouteTypes {
     | '/{-$locale}/'
     | '/{-$locale}/compare/$slug'
     | '/{-$locale}/guides/$slug'
+    | '/{-$locale}/compare/'
+    | '/{-$locale}/guides/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/sitemap.xml'
@@ -128,6 +150,8 @@ export interface FileRouteTypes {
     | '/{-$locale}'
     | '/{-$locale}/compare/$slug'
     | '/{-$locale}/guides/$slug'
+    | '/{-$locale}/compare'
+    | '/{-$locale}/guides'
   id:
     | '__root__'
     | '/{-$locale}'
@@ -139,6 +163,8 @@ export interface FileRouteTypes {
     | '/{-$locale}/'
     | '/{-$locale}/compare/$slug'
     | '/{-$locale}/guides/$slug'
+    | '/{-$locale}/compare/'
+    | '/{-$locale}/guides/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -197,11 +223,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char123LocaleChar125TermsRouteImport
       parentRoute: typeof Char123LocaleChar125RouteRoute
     }
+    '/{-$locale}/compare/': {
+      id: '/{-$locale}/compare/'
+      path: '/compare'
+      fullPath: '/{-$locale}/compare/'
+      preLoaderRoute: typeof Char123LocaleChar125CompareIndexRouteImport
+      parentRoute: typeof Char123LocaleChar125RouteRoute
+    }
     '/{-$locale}/compare/$slug': {
       id: '/{-$locale}/compare/$slug'
       path: '/compare/$slug'
       fullPath: '/{-$locale}/compare/$slug'
       preLoaderRoute: typeof Char123LocaleChar125CompareSlugRouteImport
+      parentRoute: typeof Char123LocaleChar125RouteRoute
+    }
+    '/{-$locale}/guides/': {
+      id: '/{-$locale}/guides/'
+      path: '/guides'
+      fullPath: '/{-$locale}/guides/'
+      preLoaderRoute: typeof Char123LocaleChar125GuidesIndexRouteImport
       parentRoute: typeof Char123LocaleChar125RouteRoute
     }
     '/{-$locale}/guides/$slug': {
@@ -222,6 +262,8 @@ interface Char123LocaleChar125RouteRouteChildren {
   Char123LocaleChar125IndexRoute: typeof Char123LocaleChar125IndexRoute
   Char123LocaleChar125CompareSlugRoute: typeof Char123LocaleChar125CompareSlugRoute
   Char123LocaleChar125GuidesSlugRoute: typeof Char123LocaleChar125GuidesSlugRoute
+  Char123LocaleChar125CompareIndexRoute: typeof Char123LocaleChar125CompareIndexRoute
+  Char123LocaleChar125GuidesIndexRoute: typeof Char123LocaleChar125GuidesIndexRoute
 }
 
 const Char123LocaleChar125RouteRouteChildren: Char123LocaleChar125RouteRouteChildren =
@@ -233,6 +275,9 @@ const Char123LocaleChar125RouteRouteChildren: Char123LocaleChar125RouteRouteChil
     Char123LocaleChar125IndexRoute: Char123LocaleChar125IndexRoute,
     Char123LocaleChar125CompareSlugRoute: Char123LocaleChar125CompareSlugRoute,
     Char123LocaleChar125GuidesSlugRoute: Char123LocaleChar125GuidesSlugRoute,
+    Char123LocaleChar125CompareIndexRoute:
+      Char123LocaleChar125CompareIndexRoute,
+    Char123LocaleChar125GuidesIndexRoute: Char123LocaleChar125GuidesIndexRoute,
   }
 
 const Char123LocaleChar125RouteRouteWithChildren =
