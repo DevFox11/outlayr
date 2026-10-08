@@ -7,27 +7,30 @@ import { accountBalance } from "@/domain/account-balance";
 import { buildRateTable } from "@/domain/valuation";
 
 import type { SpendDb } from "./budget-spent";
-import { accountCellQuery, toCurrencyCells } from "./cell-query";
+import { settledAccountCellQuery, toCurrencyCells } from "./cell-query";
 import {
+    settledTransferInboundQuery,
+    settledTransferOutboundQuery,
+    settledTransfersInboundQuery,
+    settledTransfersOutboundQuery,
     toTransferCell,
-    transferInboundQuery,
-    transferOutboundQuery,
-    transfersInboundQuery,
-    transfersOutboundQuery,
 } from "./transfer-cells";
 
 const DAY = new Date(Date.UTC(2026, 7, 9));
 
 async function transferCells(db: SpendDb, accountId: string) {
     const [outbound, inbound] = await Promise.all([
-        transferOutboundQuery(db, accountId),
-        transferInboundQuery(db, accountId),
+        settledTransferOutboundQuery(db, accountId, DAY),
+        settledTransferInboundQuery(db, accountId, DAY),
     ]);
     return [...outbound.map((row) => toTransferCell(row, false)), ...inbound.map((row) => toTransferCell(row, true))];
 }
 
 async function allTransferCells(db: SpendDb) {
-    const [outbound, inbound] = await Promise.all([transfersOutboundQuery(db), transfersInboundQuery(db)]);
+    const [outbound, inbound] = await Promise.all([
+        settledTransfersOutboundQuery(db, DAY),
+        settledTransfersInboundQuery(db, DAY),
+    ]);
     return [
         ...outbound.map(({ accountId, ...row }) => ({ accountId, ...toTransferCell(row, false) })),
         ...inbound.map(({ accountId, ...row }) => ({ accountId, ...toTransferCell(row, true) })),
@@ -254,7 +257,10 @@ describe("transfer legs and account balances", () => {
             updatedAt: DAY,
         });
 
-        const cells = [...toCurrencyCells(await accountCellQuery(db, "a")), ...(await transferCells(db, "a"))];
+        const cells = [
+            ...toCurrencyCells(await settledAccountCellQuery(db, "a", DAY)),
+            ...(await transferCells(db, "a")),
+        ];
         const source = accountBalance({ currency: "USD", initialBalance: 500 }, cells, NO_RATES);
 
         expect(source.total).toBe(400);

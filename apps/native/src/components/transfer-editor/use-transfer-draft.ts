@@ -9,6 +9,7 @@ import { pairRateSource, usePriorCustomRate, useTransferRates } from "@/data/tra
 import type { RateSource } from "@/data/transfer-rates";
 import { lastTransfer } from "@/data/transfers-core";
 import type { SavedTransfer } from "@/data/transfers-core";
+import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import { minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
@@ -413,8 +414,8 @@ function savedQuote(
     return same ? saved.rate : null;
 }
 
-function restoredBy(saved: SavedTransfer | undefined, account: Account | null): number {
-    if (saved === undefined || account === null) {
+function restoredBy(saved: SavedTransfer | undefined, account: Account | null, nowMs: number): number {
+    if (saved === undefined || account === null || saved.date.getTime() > nowMs) {
         return 0;
     }
     const sent = account.id === saved.fromAccountId && account.currency === saved.fromCurrency ? saved.sent : 0;
@@ -451,19 +452,28 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
     const crossCurrency = fromCurrency !== toCurrency;
     const pair = `${fromCurrency}/${toCurrency}`;
     const carriedRate = opening.carriedRates[pair];
-    const fromRestored = restoredBy(saved, from);
-    const toRestored = restoredBy(saved, to);
+    const nowMs = useNow();
+    const fromRestored = restoredBy(saved, from, nowMs);
+    const toRestored = restoredBy(saved, to, nowMs);
 
-    const fromBalance = useAccountBalance(db, {
-        currency: fromCurrency,
-        id: fromId ?? "",
-        initialBalance: from?.initialBalance ?? 0,
-    });
-    const toBalance = useAccountBalance(db, {
-        currency: toCurrency,
-        id: toId ?? "",
-        initialBalance: to?.initialBalance ?? 0,
-    });
+    const fromBalance = useAccountBalance(
+        db,
+        {
+            currency: fromCurrency,
+            id: fromId ?? "",
+            initialBalance: from?.initialBalance ?? 0,
+        },
+        nowMs
+    );
+    const toBalance = useAccountBalance(
+        db,
+        {
+            currency: toCurrency,
+            id: toId ?? "",
+            initialBalance: to?.initialBalance ?? 0,
+        },
+        nowMs
+    );
 
     const chosenQuote = quoteOf(chosenRate, marketType, carriedRate);
     const quotedTypes = useMemo(

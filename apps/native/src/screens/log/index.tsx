@@ -113,7 +113,8 @@ export function Log() {
     // An account inside its undo window is already gone from the accounts screen;
     // it must not linger here as a row that can still be opened.
     const { pendingId: pendingAccountId } = useDeferredDelete("account");
-    const accountsOverview = useAccountsOverviewIn(db, valuation, pendingAccountId);
+    const nowMs = useNow();
+    const accountsOverview = useAccountsOverviewIn(db, valuation, nowMs, pendingAccountId);
     const accountRows = useAccounts(db);
     const valued = useValuedCurrencies(db);
     const { showCents, swapTimeLabel, use24Hour } = useDisplaySettings().state;
@@ -124,7 +125,6 @@ export function Log() {
     const firstWeekday = useSettingNumber("firstWeekday");
     const period = logPeriodFromStored(useSettingNumber("logInsightsTimeFrame"));
     const measure = logMeasureFromStored(useSettingNumber("logInsightsType"));
-    const nowMs = useNow();
 
     const [filter, setFilter] = useState<LogFilter>("all");
     const [categoryId, setCategoryId] = useState<string | null>(null);

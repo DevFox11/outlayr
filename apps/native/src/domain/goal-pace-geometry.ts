@@ -64,11 +64,6 @@ export function makeGeometry({ actual, height, nowMs, required, startTime, targe
     const line = (points: readonly GoalLinePoint[]) =>
         points.map((point, index) => `${index === 0 ? "M" : "L"} ${x(point.time)} ${y(point.value)}`).join(" ");
 
-    // The last point at or before today, NOT the last point outright. A goal's
-    // account can hold future-dated transactions — `accountCellQuery` is unbounded
-    // by date — so the series runs past today, and anchoring the head there would
-    // mark a balance the account does not hold yet and measure the gap against a
-    // stretch of the required line that has not come due.
     // At the point's own timestamp — the start of the current UTC day — because
     // that is the instant `standingFor` measures at too. Both were briefly on
     // different footings, which drew a gap kinder than the verdict printed beside

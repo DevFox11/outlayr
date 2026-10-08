@@ -39,6 +39,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useAccountBalance, useAccounts } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
+import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import { formatSignedAmount, isMultiCurrency } from "@/domain/account-display";
 import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
@@ -183,7 +184,8 @@ const AccountRow = memo(({ account, colors, db, onDelete, onOpen }: AccountRowPr
     const t = useTranslation();
     const { language } = useLanguage();
     const { showCents } = useDisplaySettings().state;
-    const balance = useAccountBalance(db, account);
+    const nowMs = useNow();
+    const balance = useAccountBalance(db, account, nowMs);
     const stacked = useAccessibilityTextSize();
     const subtitle = isMultiCurrency(balance.composition, account.currency)
         ? t("accounts.multiCurrency")

@@ -405,10 +405,6 @@ function keptAccount(previous: Transaction | null, input: TransactionInput): str
     return input.accountId === undefined ? (previous?.accountId ?? null) : input.accountId;
 }
 
-/**
- * The account's attached rows, newest first and unbounded — a balance counts
- * everything the account ever saw, so its history shows the same set.
- */
 export function accountTransactionsQuery(db: SpendDb, accountId: string) {
     return db
         .select(LOG_COLUMNS)

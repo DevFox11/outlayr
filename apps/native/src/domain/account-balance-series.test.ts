@@ -176,27 +176,15 @@ describe("accountBalanceSeries", () => {
         expect(series.at(-1)).toMatchObject({ date: "2026-08-10", exact: true, value: 0 });
     });
 
-    it("extends through future cells without applying them before their effective date", () => {
+    it("ends today, drawing an opening stamped later on today's point", () => {
         const series = accountBalanceSeries(
-            account({ initialBalance: 100, initialBalanceDate: new Date("2026-08-01T12:00:00Z") }),
-            [cell({ amount: 50, amountUsd: 50, dateKey: "2026-08-20", income: true })],
-            NO_RATES,
-            NOW
-        );
-
-        expect(pointAt(series, "2026-08-10")).toMatchObject({ value: 100 });
-        expect(series.at(-1)).toMatchObject({ date: "2026-08-20", value: 150 });
-    });
-
-    it("bounds far-future effective dates while retaining normal future movements", () => {
-        const series = accountBalanceSeries(
-            account({ initialBalance: 100, initialBalanceDate: new Date("2040-01-01T12:00:00Z") }),
-            [cell({ amount: 50, amountUsd: 50, dateKey: "2040-01-02", income: true })],
+            account({ initialBalance: 100, initialBalanceDate: new Date("2026-08-11T12:00:00Z") }),
+            [],
             NO_RATES,
             NOW
         );
 
         expect(series).toHaveLength(1);
-        expect(series[0]).toMatchObject({ date: "2027-02-08", value: 0 });
+        expect(series[0]).toMatchObject({ date: "2026-08-10", value: 100 });
     });
 });

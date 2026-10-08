@@ -6,7 +6,6 @@ import type { CurrencyCell } from "./currency-totals";
 import type { RateTable } from "./valuation";
 
 const HISTORY_DAYS = 182;
-const MAX_FUTURE_DAYS = HISTORY_DAYS;
 
 export interface AccountBalanceSeriesAccount {
     currency: string;
@@ -38,8 +37,7 @@ function applyCell(
 
 /**
  * Daily account balance points over the recent historical window. Entries that
- * predate the window become its opening value, while future-dated cells extend
- * the line to their effective day within the bounded future horizon.
+ * predate the window become its opening value.
  */
 export function accountBalanceSeries(
     account: AccountBalanceSeriesAccount,
@@ -61,20 +59,11 @@ export function accountBalanceSeries(
     const opening = valuedIn === undefined ? account.initialBalance : valuedIn.opening;
     const nowKey = utcDateString(now.getTime());
     const windowStart = addUtcDays(nowKey, -(HISTORY_DAYS - 1));
-    const openingDate = utcDateString(account.initialBalanceDate.getTime());
-    const latestCellDate = cells.reduce<string | null>(
-        (latest, cell) => (cell.dateKey > (latest ?? "") ? cell.dateKey : latest),
-        null
-    );
-    const requestedEndDate = [nowKey, openingDate, latestCellDate].reduce<string>(
-        (latest, date) => (date && date > latest ? date : latest),
-        nowKey
-    );
-    const latestAllowedDate = addUtcDays(nowKey, MAX_FUTURE_DAYS);
-    const endDate = requestedEndDate > latestAllowedDate ? latestAllowedDate : requestedEndDate;
+    const stampedOpening = utcDateString(account.initialBalanceDate.getTime());
+    const openingDate = stampedOpening > nowKey ? nowKey : stampedOpening;
     let startDate = windowStart;
     if (account.initialBalance !== 0 && openingDate > windowStart) {
-        startDate = openingDate > endDate ? endDate : openingDate;
+        startDate = openingDate;
     }
     const cellsByDate = new Map<string, CurrencyCell[]>();
     const state = { exact: true, value: 0 };
@@ -103,7 +92,7 @@ export function accountBalanceSeries(
     }
 
     const series: AccountBalanceSeriesPoint[] = [];
-    for (let date = startDate; date <= endDate; date = addUtcDays(date, 1)) {
+    for (let date = startDate; date <= nowKey; date = addUtcDays(date, 1)) {
         if (date === openingDate) {
             state.value += opening;
         }

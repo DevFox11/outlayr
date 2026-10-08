@@ -219,7 +219,7 @@ export function Insights() {
     const currency = useGlobalCurrency(db);
     const { showCents } = useDisplaySettings().state;
     const nowMs = useNow();
-    const netWorth = useNetWorthSeries(db);
+    const netWorth = useNetWorthSeries(db, nowMs);
 
     const incomeTracking = useSettingBool("incomeTracking");
     const storedPeriod = useSettingNumber("insightsTimeFrame");

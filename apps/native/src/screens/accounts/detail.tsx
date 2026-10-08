@@ -17,6 +17,7 @@ import { useAccountTransfers } from "@/data/account-transfers";
 import { useAccountBalanceDetails, useAccounts, useAccountTransactions } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
+import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import { formatSignedAmount } from "@/domain/account-display";
 import { monthAbbrevTitle } from "@/domain/dates";
@@ -53,7 +54,8 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
     const t = useTranslation();
     const { language } = useLanguage();
     const { showCents } = useDisplaySettings().state;
-    const { balance, cells, rates } = useAccountBalanceDetails(db, account);
+    const nowMs = useNow();
+    const { balance, cells, rates } = useAccountBalanceDetails(db, account, nowMs);
     const transactionRows = useAccountTransactions(db, account.id);
     const transferRows = useAccountTransfers(db, account.id);
     const rows = useMemo(() => mergeByRecency(transactionRows, transferRows), [transactionRows, transferRows]);

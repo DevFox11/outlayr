@@ -2,17 +2,22 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { renderHook } from "@testing-library/react-native";
 
 import type { Database } from "@/db/client";
-import { transactions } from "@/db/schema";
+import { accounts, transactions, transfers } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
+import { RECURRING_TYPE } from "@/domain/recurrence";
 import { buildRateTable } from "@/domain/valuation";
 
-import { openingForBalance, useAccountCells, useAccountsOverviewIn } from "./accounts";
-import { accountsCellQuery, toCurrencyCell } from "./cell-query";
+import { openingForBalance, useAccountBalance, useAccountsOverviewIn, useSettledAccountCells } from "./accounts";
+import { settledAccountsCellQuery, toCurrencyCell } from "./cell-query";
 import type { CellRow } from "./cell-query";
+import { backfillRecurring } from "./recurrence-backfill";
+import { transactionsRepo } from "./transactions-core";
 
 const makeDb = () => migratedDatabase({ foreignKeys: false });
 
 const JUNE_1 = new Date("2026-06-01T12:00:00.000Z");
+const JUNE_2 = new Date("2026-06-02T12:00:00.000Z");
+const valuation = { displayCurrency: "USD", rates: buildRateTable([]) };
 
 async function addTransaction(
     db: Database,
@@ -32,7 +37,7 @@ async function addTransaction(
     });
 }
 
-describe("accountsCellQuery", () => {
+describe("settledAccountsCellQuery", () => {
     let db: Database;
     beforeEach(() => {
         db = makeDb();
@@ -49,7 +54,7 @@ describe("accountsCellQuery", () => {
         });
         await addTransaction(db, { accountId: "a2", amount: 11, id: "t4" });
 
-        const rows = await accountsCellQuery(db);
+        const rows = await settledAccountsCellQuery(db, JUNE_1);
         const byKey = rows.map((row) => ({
             accountId: row.accountId,
             ...toCurrencyCell(row),
@@ -73,7 +78,7 @@ describe("accountsCellQuery", () => {
         });
         await addTransaction(db, { accountId: "a1", amount: 4, id: "t3" });
 
-        const rows = await accountsCellQuery(db);
+        const rows = await settledAccountsCellQuery(db, JUNE_1);
         expect(rows).toHaveLength(1);
         expect(rows[0].accountId).toBe("a1");
         expect(toCurrencyCell(rows[0]).amount).toBe(4);
@@ -88,22 +93,25 @@ describe("openingForBalance", () => {
         await addTransaction(db, { accountId: "a1", amount: 40, deletedAt: JUNE_1, id: "t3" });
         await addTransaction(db, { accountId: "a2", amount: 99, id: "t4" });
 
-        await expect(openingForBalance(db, "a1", 50, "USD")).resolves.toBe(57);
-        await expect(openingForBalance(db, "a1", -20, "USD")).resolves.toBe(-13);
+        await expect(openingForBalance(db, "a1", 50, "USD", JUNE_1)).resolves.toBe(57);
+        await expect(openingForBalance(db, "a1", -20, "USD", JUNE_1)).resolves.toBe(-13);
     });
 });
 
 jest.mock("./live-query", () => ({
+    ...jest.requireActual<typeof import("./live-query")>("./live-query"),
     useLiveQuery: jest.fn<typeof import("./live-query").useLiveQuery>(),
 }));
 
 const mockUseLiveQuery = jest.mocked(jest.requireMock<typeof import("./live-query")>("./live-query").useLiveQuery);
+const { useLiveQuery } = jest.requireActual<typeof import("./live-query")>("./live-query");
 
-function liveRow(overrides: Partial<CellRow> = {}): CellRow {
+function liveRow(overrides: Partial<CellRow & { plotDay: string }> = {}): CellRow & { plotDay: string } {
     return {
         currency: "USD",
         dateKey: "2026-08-06",
         income: true,
+        plotDay: "2026-08-06",
         rows: 1,
         total: 4,
         totalUsd: 4,
@@ -113,21 +121,37 @@ function liveRow(overrides: Partial<CellRow> = {}): CellRow {
     };
 }
 
-describe("useAccountCells", () => {
+describe("useSettledAccountCells", () => {
     beforeEach(() => {
         mockUseLiveQuery.mockReset();
     });
 
     it("keeps transaction cells and maps outbound and inbound transfers with opposite directions", async () => {
         const transaction = liveRow();
-        const outbound = liveRow({ currency: "EUR", dateKey: "2026-08-07", income: false, total: 35, totalUsd: 40 });
-        const inbound = liveRow({ currency: "VES", dateKey: "2026-08-08", income: false, total: 10, totalUsd: 1 });
+        const outbound = liveRow({
+            currency: "EUR",
+            dateKey: "2026-08-07",
+            income: false,
+            plotDay: "2026-08-07",
+            total: 35,
+            totalUsd: 40,
+        });
+        const inbound = liveRow({
+            currency: "VES",
+            dateKey: "2026-08-08",
+            income: false,
+            plotDay: "2026-08-08",
+            total: 10,
+            totalUsd: 1,
+        });
         mockUseLiveQuery
             .mockReturnValueOnce([transaction])
             .mockReturnValueOnce([outbound])
             .mockReturnValueOnce([inbound]);
 
-        const { result } = await renderHook(() => useAccountCells({} as Database, "account-1"));
+        const { result } = await renderHook(() =>
+            useSettledAccountCells({} as Database, "account-1", JUNE_1.getTime())
+        );
 
         expect(result.current).toStrictEqual([
             {
@@ -137,6 +161,7 @@ describe("useAccountCells", () => {
                 currencyCode: "USD",
                 dateKey: "2026-08-06",
                 income: true,
+                plotDay: "2026-08-06",
                 rateNeededAmount: 0,
                 rateNeededCount: 0,
                 unconvertedAmount: 0,
@@ -149,6 +174,7 @@ describe("useAccountCells", () => {
                 currencyCode: "EUR",
                 dateKey: "2026-08-07",
                 income: false,
+                plotDay: "2026-08-07",
                 rateNeededAmount: 0,
                 rateNeededCount: 0,
                 unconvertedAmount: 0,
@@ -161,6 +187,7 @@ describe("useAccountCells", () => {
                 currencyCode: "VES",
                 dateKey: "2026-08-08",
                 income: true,
+                plotDay: "2026-08-08",
                 rateNeededAmount: 0,
                 rateNeededCount: 0,
                 unconvertedAmount: 0,
@@ -175,7 +202,6 @@ describe("useAccountsOverviewIn", () => {
         mockUseLiveQuery.mockReset();
     });
 
-    const valuation = { displayCurrency: "USD", rates: buildRateTable([]) };
     const account = (id: string, initialBalance: number) => ({
         currency: "USD",
         id,
@@ -193,7 +219,9 @@ describe("useAccountsOverviewIn", () => {
             .mockReturnValueOnce([])
             .mockReturnValueOnce([]);
 
-        const { result } = await renderHook(() => useAccountsOverviewIn({} as Database, valuation, "going"));
+        const { result } = await renderHook(() =>
+            useAccountsOverviewIn({} as Database, valuation, JUNE_1.getTime(), "going")
+        );
 
         expect(result.current?.count).toBe(1);
         expect(result.current?.total).toBe(100);
@@ -207,9 +235,105 @@ describe("useAccountsOverviewIn", () => {
             .mockReturnValueOnce([])
             .mockReturnValueOnce([]);
 
-        const { result } = await renderHook(() => useAccountsOverviewIn({} as Database, valuation, null));
+        const { result } = await renderHook(() =>
+            useAccountsOverviewIn({} as Database, valuation, JUNE_1.getTime(), null)
+        );
 
         expect(result.current?.count).toBe(2);
         expect(result.current?.total).toBe(150);
+    });
+
+    it("leaves a future-dated row out of the total until its date", async () => {
+        mockUseLiveQuery.mockImplementation(useLiveQuery);
+        const db = makeDb();
+        await db
+            .insert(accounts)
+            .values({ ...account("a1", 100), dateCreated: JUNE_1, name: "Checking", updatedAt: JUNE_1 });
+        await addTransaction(db, { accountId: "a1", amount: 7, date: JUNE_2, day: JUNE_2, id: "later" });
+        const { rerender, result } = await renderHook(
+            (nowMs: number) => useAccountsOverviewIn(db, valuation, nowMs)?.total,
+            { initialProps: JUNE_1.getTime() }
+        );
+        expect(result.current).toBe(100);
+
+        await rerender(JUNE_2.getTime());
+
+        expect(result.current).toBe(93);
+    });
+});
+
+describe("a row dated after now", () => {
+    const checking = { currency: "USD", id: "a1", initialBalance: 100 };
+    const savings = { currency: "USD", id: "a2", initialBalance: 0 };
+    let db: Database;
+
+    beforeEach(async () => {
+        mockUseLiveQuery.mockImplementation(useLiveQuery);
+        db = makeDb();
+        await addTransaction(db, { accountId: "a1", amount: 10, id: "settled" });
+    });
+
+    async function balanceBeforeAndOn(account: typeof checking): Promise<number[]> {
+        const { rerender, result } = await renderHook((nowMs: number) => useAccountBalance(db, account, nowMs).total, {
+            initialProps: JUNE_1.getTime(),
+        });
+        const before = result.current;
+        await rerender(JUNE_2.getTime());
+        return [before, result.current];
+    }
+
+    it("leaves an expense out of the balance until its date", async () => {
+        await addTransaction(db, { accountId: "a1", amount: 7, date: JUNE_2, day: JUNE_2, id: "later" });
+
+        await expect(balanceBeforeAndOn(checking)).resolves.toStrictEqual([90, 83]);
+    });
+
+    it("leaves both legs of a transfer out of the balances until its date", async () => {
+        await db.insert(transfers).values({
+            date: JUNE_2,
+            dateCreated: JUNE_1,
+            day: JUNE_2,
+            fromAccountId: "a1",
+            fromAmount: 40,
+            fromCurrency: "USD",
+            id: "move",
+            month: JUNE_2,
+            toAccountId: "a2",
+            toAmount: 40,
+            toCurrency: "USD",
+            updatedAt: JUNE_1,
+        });
+
+        await expect(balanceBeforeAndOn(checking)).resolves.toStrictEqual([90, 50]);
+        await expect(balanceBeforeAndOn(savings)).resolves.toStrictEqual([0, 40]);
+    });
+
+    it("leaves a subscription charging tomorrow out of the balance until it charges", async () => {
+        const id = await transactionsRepo.create(db, {
+            accountId: "a1",
+            amount: 7.06,
+            categoryId: null,
+            currency: "USD",
+            date: JUNE_2,
+            details: null,
+            income: false,
+            note: "Prime Video",
+            onceRecurring: true,
+            recurringCoefficient: 1,
+            recurringEndDate: null,
+            recurringType: RECURRING_TYPE.monthly,
+            reminderLeadDays: null,
+        });
+        await backfillRecurring(db, id, JUNE_1);
+
+        await expect(balanceBeforeAndOn(checking)).resolves.toStrictEqual([90, 82.94]);
+    });
+
+    it("keeps the opening when the editor saves the balance it shows", async () => {
+        await addTransaction(db, { accountId: "a1", amount: 7, date: JUNE_2, day: JUNE_2, id: "later" });
+        const { result } = await renderHook(() => useAccountBalance(db, checking, JUNE_1.getTime()).total);
+
+        expect(result.current).toBe(90);
+        await expect(openingForBalance(db, "a1", result.current, "USD", JUNE_1)).resolves.toBe(checking.initialBalance);
     });
 });

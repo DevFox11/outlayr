@@ -7,7 +7,7 @@ import { accountBalance } from "@/domain/account-balance";
 import { buildRateTable } from "@/domain/valuation";
 
 import { accountsRepo, getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "./accounts-core";
-import { accountCellQuery, toCurrencyCells } from "./cell-query";
+import { settledAccountCellQuery, toCurrencyCells } from "./cell-query";
 import { candidateLogoIds } from "./logo-backfill-state";
 import { transactionsRepo } from "./transactions-core";
 
@@ -279,7 +279,7 @@ describe("accountsRepo lifecycle", () => {
     });
 });
 
-describe("accountCellQuery", () => {
+describe("settledAccountCellQuery", () => {
     let db: Database;
     beforeEach(() => {
         db = makeDb();
@@ -313,7 +313,7 @@ describe("accountCellQuery", () => {
         await addEntry("no-account", { accountId: null });
         await addEntry("deleted", { accountId: "a1", deletedAt: JAN_5 });
 
-        const cells = toCurrencyCells(await accountCellQuery(db, "a1"));
+        const cells = toCurrencyCells(await settledAccountCellQuery(db, "a1", JAN_5));
 
         expect(cells).toHaveLength(2);
         const expense = cells.find((cell) => !cell.income);
@@ -334,7 +334,7 @@ describe("accountCellQuery", () => {
             income: true,
         });
 
-        const cells = toCurrencyCells(await accountCellQuery(db, "a1"));
+        const cells = toCurrencyCells(await settledAccountCellQuery(db, "a1", JAN_5));
         const balance = accountBalance({ currency: "USD", initialBalance: 100 }, cells, buildRateTable([]));
 
         expect(balance.total).toBe(82);
@@ -403,7 +403,7 @@ describe("an attached entry moving the balance", () => {
         if (account == null) {
             throw new Error("Account not found.");
         }
-        return accountBalance(account, toCurrencyCells(await accountCellQuery(db, accountId)), rates);
+        return accountBalance(account, toCurrencyCells(await settledAccountCellQuery(db, accountId, JAN_5)), rates);
     }
 
     it("shifts the balance in the account's own currency", async () => {

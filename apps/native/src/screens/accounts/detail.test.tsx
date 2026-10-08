@@ -65,6 +65,10 @@ jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
     useColors: () => mockTestColors(),
 }));
 
+jest.mock<typeof import("@/data/use-now")>("@/data/use-now", () => ({
+    useNow: () => Date.UTC(2026, 7, 10),
+}));
+
 jest.mock<Partial<typeof import("@/contexts/local-data-context")>>("@/contexts/local-data-context", () => ({
     useDatabase: () => mockUnusedDatabase(),
 }));
@@ -82,7 +86,7 @@ const mockUseAccountBalanceDetails = jest.fn((_db: unknown, _account: unknown) =
     cells: [...mockTransactionCells, ...mockTransferCells],
     rates: undefined,
 }));
-const mockUseAccountCells = jest.fn((_db: unknown, _accountId: string) => [
+const mockUseSettledAccountCells = jest.fn((_db: unknown, _accountId: string) => [
     ...mockTransactionCells,
     ...mockTransferCells,
 ]);
@@ -96,7 +100,7 @@ let mockTransferCells: CurrencyCell[] = [];
 jest.mock("@/data/accounts", () => ({
     useAccountBalance: (db: unknown, account: unknown) => mockUseAccountBalance(db, account),
     useAccountBalanceDetails: (db: unknown, account: unknown) => mockUseAccountBalanceDetails(db, account),
-    useAccountCells: (db: unknown, accountId: string) => mockUseAccountCells(db, accountId),
+    useSettledAccountCells: (db: unknown, accountId: string) => mockUseSettledAccountCells(db, accountId),
     useAccountTransactions: () => mockTransactions(),
     useAccounts: () => [
         {
@@ -213,7 +217,7 @@ beforeEach(() => {
     mockPush.mockClear();
     mockUseAccountBalance.mockClear();
     mockUseAccountBalanceDetails.mockClear();
-    mockUseAccountCells.mockClear();
+    mockUseSettledAccountCells.mockClear();
     mockUseValuationIn.mockClear();
     setTransactions([]);
     setTransfers([], false);
@@ -225,7 +229,7 @@ describe("an account's history", () => {
 
         expect(mockUseAccountBalanceDetails).toHaveBeenCalledTimes(1);
         expect(mockUseAccountBalance).not.toHaveBeenCalled();
-        expect(mockUseAccountCells).not.toHaveBeenCalled();
+        expect(mockUseSettledAccountCells).not.toHaveBeenCalled();
         expect(mockUseValuationIn).not.toHaveBeenCalled();
     });
 

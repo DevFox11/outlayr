@@ -12,7 +12,7 @@ import type { TransferLogRow } from "@/domain/transfer-log-rows";
 import { buildRateTable } from "@/domain/valuation";
 
 import { useAccountTransfers } from "./account-transfers";
-import { useAccountCells, useAccountTransactions } from "./accounts";
+import { useAccountTransactions, useSettledAccountCells } from "./accounts";
 
 const AUG_9 = new Date(Date.UTC(2026, 7, 9, 12));
 const AUG_10 = new Date(Date.UTC(2026, 7, 10, 12));
@@ -62,7 +62,7 @@ async function readDay(db: Database, accountId: string): Promise<{ balance: numb
     let seen = { balance: 0, total: 0 };
     function Probe() {
         const rows = mergeByRecency(useAccountTransactions(db, accountId), useAccountTransfers(db, accountId));
-        const cells = useAccountCells(db, accountId);
+        const cells = useSettledAccountCells(db, accountId, AUG_9.getTime());
         seen = {
             balance: accountBalance({ currency: "USD", initialBalance: 0 }, cells, buildRateTable([])).total,
             total: groupByDay(rows, "USD")[0]?.total ?? 0,

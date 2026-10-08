@@ -124,11 +124,16 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
     const balanceSheetRef = useRef<BottomSheetModal>(null);
 
     const startingCurrency = loaded?.currency ?? globalCurrency;
-    const currentBalance = useAccountBalance(db, {
-        currency: startingCurrency,
-        id: loaded?.id ?? "",
-        initialBalance: loaded?.initialBalance ?? 0,
-    }).total;
+    const [balanceAt] = useState(Date.now);
+    const currentBalance = useAccountBalance(
+        db,
+        {
+            currency: startingCurrency,
+            id: loaded?.id ?? "",
+            initialBalance: loaded?.initialBalance ?? 0,
+        },
+        balanceAt
+    ).total;
     const [initialValues] = useState(() => {
         const startingBalance = roundToMinorUnits(currentBalance, startingCurrency);
         return {
@@ -178,7 +183,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                     await accountsRepo.update(db, loaded.id, {
                         ...input,
                         initialBalance: balanceChanged
-                            ? await openingForBalance(db, loaded.id, balance, value.currency)
+                            ? await openingForBalance(db, loaded.id, balance, value.currency, new Date(balanceAt))
                             : loaded.initialBalance,
                     });
                 }

@@ -100,32 +100,6 @@ export function logCellQuery(db: SpendDb, start: Date | null, now: Date) {
         .groupBy(transactions.currency, transactions.income, UTC_DAY);
 }
 
-/**
- * One account's ledger as cells, unbounded by date: a balance is the sum of
- * everything the account ever saw, future-dated entries included.
- */
-export function accountCellQuery(db: SpendDb, accountId: string) {
-    return db
-        .select(CELL_COLUMNS)
-        .from(transactions)
-        .where(and(isNull(transactions.deletedAt), eq(transactions.accountId, accountId)))
-        .groupBy(transactions.currency, transactions.income, UTC_DAY);
-}
-
-/**
- * Every attached transaction as cells split by account, unbounded by date —
- * {@link accountCellQuery} for the whole ledger at once, so the accounts
- * overview costs one grouped read rather than one per account.
- */
-export function accountsCellQuery(db: SpendDb) {
-    return db
-        .select({ accountId: transactions.accountId, ...CELL_COLUMNS })
-        .from(transactions)
-        .where(and(isNull(transactions.deletedAt), isNotNull(transactions.accountId)))
-        .groupBy(transactions.accountId, transactions.currency, transactions.income, UTC_DAY);
-}
-
-/** {@link accountCellQuery} bounded at `now` — see {@link settledAccountsCellQuery}. */
 export function settledAccountCellQuery(db: SpendDb, accountId: string, now: Date) {
     return db
         .select({ ...CELL_COLUMNS, plotDay: LOCAL_DAY })
@@ -135,13 +109,11 @@ export function settledAccountCellQuery(db: SpendDb, accountId: string, now: Dat
 }
 
 /**
- * {@link accountsCellQuery} bounded at `now`, by the row's own timestamp.
- *
- * A goal asks what has been put aside SO FAR, so it cannot count money dated
+ * A balance is what has happened SO FAR, so it cannot count money dated
  * later. Filtering the cells afterwards is not equivalent: a cell carries only a
  * `YYYY-MM-DD` key, so an entry scheduled for 23:00 today is indistinguishable
- * from one already made at 09:00 and reads as saved. The bound has to be applied
- * to the rows before they are grouped, which is what this does.
+ * from one already made at 09:00. The bound has to be applied to the rows before
+ * they are grouped, which is what this does.
  */
 export function settledAccountsCellQuery(db: SpendDb, now: Date) {
     return db

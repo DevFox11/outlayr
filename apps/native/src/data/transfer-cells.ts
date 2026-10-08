@@ -36,31 +36,6 @@ const INBOUND_COLUMNS = {
     unconvertedRows: sql<number>`SUM(CASE WHEN ${transfers.toAmountUsd} IS NULL THEN 1 ELSE 0 END)`,
 } as const;
 
-export function transferOutboundQuery(db: SpendDb, accountId: string) {
-    return db
-        .select(OUTBOUND_COLUMNS)
-        .from(transfers)
-        .where(and(isNull(transfers.deletedAt), eq(transfers.fromAccountId, accountId)))
-        .groupBy(transfers.fromCurrency, TRANSFER_UTC_DAY);
-}
-
-export function transferInboundQuery(db: SpendDb, accountId: string) {
-    return db
-        .select(INBOUND_COLUMNS)
-        .from(transfers)
-        .where(and(isNull(transfers.deletedAt), eq(transfers.toAccountId, accountId)))
-        .groupBy(transfers.toCurrency, TRANSFER_UTC_DAY);
-}
-
-export function transfersOutboundQuery(db: SpendDb) {
-    return db
-        .select({ accountId: transfers.fromAccountId, ...OUTBOUND_COLUMNS })
-        .from(transfers)
-        .where(isNull(transfers.deletedAt))
-        .groupBy(transfers.fromAccountId, transfers.fromCurrency, TRANSFER_UTC_DAY);
-}
-
-/** Single-account settled legs, for a chart that draws one account's history. */
 export function settledTransferOutboundQuery(db: SpendDb, accountId: string, now: Date) {
     return db
         .select({ ...OUTBOUND_COLUMNS, plotDay: TRANSFER_LOCAL_DAY })
@@ -77,11 +52,6 @@ export function settledTransferInboundQuery(db: SpendDb, accountId: string, now:
         .groupBy(transfers.toCurrency, TRANSFER_UTC_DAY, TRANSFER_LOCAL_DAY);
 }
 
-/**
- * {@link transfersOutboundQuery} and {@link transfersInboundQuery} bounded at
- * `now` by the row's own timestamp — see `settledAccountsCellQuery` for why the
- * bound cannot be applied to the cells afterwards.
- */
 export function settledTransfersOutboundQuery(db: SpendDb, now: Date) {
     return db
         .select({ accountId: transfers.fromAccountId, ...OUTBOUND_COLUMNS })
@@ -95,14 +65,6 @@ export function settledTransfersInboundQuery(db: SpendDb, now: Date) {
         .select({ accountId: transfers.toAccountId, ...INBOUND_COLUMNS })
         .from(transfers)
         .where(and(isNull(transfers.deletedAt), lte(transfers.date, now)))
-        .groupBy(transfers.toAccountId, transfers.toCurrency, TRANSFER_UTC_DAY);
-}
-
-export function transfersInboundQuery(db: SpendDb) {
-    return db
-        .select({ accountId: transfers.toAccountId, ...INBOUND_COLUMNS })
-        .from(transfers)
-        .where(isNull(transfers.deletedAt))
         .groupBy(transfers.toAccountId, transfers.toCurrency, TRANSFER_UTC_DAY);
 }
 

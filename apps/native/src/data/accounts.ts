@@ -15,13 +15,7 @@ import type { NetWorthSeriesPoint } from "@/domain/net-worth-series";
 import type { RateTable } from "@/domain/valuation";
 
 import type { Account } from "./accounts-core";
-import {
-    accountCellQuery,
-    accountsCellQuery,
-    settledAccountCellQuery,
-    settledAccountsCellQuery,
-    toCurrencyCell,
-} from "./cell-query";
+import { settledAccountCellQuery, settledAccountsCellQuery, toCurrencyCell } from "./cell-query";
 import { useLiveQuery } from "./live-query";
 import { useDecoratedRows } from "./transactions";
 import type { TransactionWithCategory } from "./transactions";
@@ -32,10 +26,6 @@ import {
     settledTransfersInboundQuery,
     settledTransfersOutboundQuery,
     toTransferCell,
-    transferInboundQuery,
-    transferOutboundQuery,
-    transfersInboundQuery,
-    transfersOutboundQuery,
 } from "./transfer-cells";
 import { useValuation, useValuationIn } from "./use-valuation";
 import { loadValuationIn } from "./valuation-source";
@@ -50,27 +40,6 @@ export function useAccounts(db: Database): Account[] {
     ) as Account[];
 }
 
-export function useAccountCells(db: Database, accountId: string): CurrencyCell[] {
-    const rows = useLiveQuery(transactions, () => accountCellQuery(db, accountId), [accountId]);
-    const outbound = useLiveQuery(transfers, () => transferOutboundQuery(db, accountId), [accountId]);
-    const inbound = useLiveQuery(transfers, () => transferInboundQuery(db, accountId), [accountId]);
-    return useMemo(
-        () => [
-            ...rows.map(toCurrencyCell),
-            ...outbound.map((row) => toTransferCell(row, false)),
-            ...inbound.map((row) => toTransferCell(row, true)),
-        ],
-        [rows, outbound, inbound]
-    );
-}
-
-/**
- * {@link useAccountCells} bounded at `now`, carrying each row's plotting day.
- *
- * A hook of its own rather than a flag on that one: only these queries select
- * `plotDay`, so only here is it a known part of the row rather than something a
- * caller has to go looking for.
- */
 export function useSettledAccountCells(db: Database, accountId: string, nowMs: number): PlottedCell[] {
     // Bounded in SQL for the reason `settledAccountsCellQuery` documents: a cell
     // keeps only a day key, so a row dated later today cannot be told from one
@@ -107,9 +76,10 @@ export function useSettledAccountCells(db: Database, accountId: string, nowMs: n
  */
 export function useAccountBalanceDetails(
     db: Database,
-    account: Pick<Account, "id" | "currency" | "initialBalance">
+    account: Pick<Account, "id" | "currency" | "initialBalance">,
+    nowMs: number
 ): { balance: AccountBalance; cells: CurrencyCell[]; rates: RateTable } {
-    const cells = useAccountCells(db, account.id);
+    const cells = useSettledAccountCells(db, account.id, nowMs);
     const { rates } = useValuationIn(db, account.currency);
     const balance = useMemo(() => accountBalance(account, cells, rates), [account, cells, rates]);
     return useMemo(() => ({ balance, cells, rates }), [balance, cells, rates]);
@@ -118,9 +88,10 @@ export function useAccountBalanceDetails(
 /** The account's derived balance, valued into its own currency. */
 export function useAccountBalance(
     db: Database,
-    account: Pick<Account, "id" | "currency" | "initialBalance">
+    account: Pick<Account, "id" | "currency" | "initialBalance">,
+    nowMs: number
 ): AccountBalance {
-    return useAccountBalanceDetails(db, account).balance;
+    return useAccountBalanceDetails(db, account, nowMs).balance;
 }
 
 /**
@@ -132,6 +103,7 @@ export function useAccountBalance(
 export function useAccountsOverviewIn(
     db: Database,
     valuation: Valuation,
+    nowMs: number,
     excludeId: string | null = null
 ): AccountsOverview | null {
     const all = useAccounts(db);
@@ -139,9 +111,10 @@ export function useAccountsOverviewIn(
         () => (excludeId == null ? all : all.filter((account) => account.id !== excludeId)),
         [all, excludeId]
     );
-    const cellRows = useLiveQuery(transactions, () => accountsCellQuery(db));
-    const outbound = useLiveQuery(transfers, () => transfersOutboundQuery(db));
-    const inbound = useLiveQuery(transfers, () => transfersInboundQuery(db));
+    const settledAt = useMemo(() => new Date(nowMs), [nowMs]);
+    const cellRows = useLiveQuery(transactions, () => settledAccountsCellQuery(db, settledAt), [settledAt]);
+    const outbound = useLiveQuery(transfers, () => settledTransfersOutboundQuery(db, settledAt), [settledAt]);
+    const inbound = useLiveQuery(transfers, () => settledTransfersInboundQuery(db, settledAt), [settledAt]);
     const { displayCurrency, rates } = valuation;
     return useMemo(
         () =>
@@ -168,11 +141,12 @@ export function useAccountsOverviewIn(
  * Shares the cell set `useAccountsOverviewIn` reads, so the line's last point
  * and the accounts card agree by construction rather than by coincidence.
  */
-function useNetWorthSeriesIn(db: Database, valuation: Valuation): NetWorthSeriesPoint[] {
+function useNetWorthSeriesIn(db: Database, valuation: Valuation, nowMs: number): NetWorthSeriesPoint[] {
     const rows = useAccounts(db);
-    const cellRows = useLiveQuery(transactions, () => accountsCellQuery(db));
-    const outbound = useLiveQuery(transfers, () => transfersOutboundQuery(db));
-    const inbound = useLiveQuery(transfers, () => transfersInboundQuery(db));
+    const settledAt = useMemo(() => new Date(nowMs), [nowMs]);
+    const cellRows = useLiveQuery(transactions, () => settledAccountsCellQuery(db, settledAt), [settledAt]);
+    const outbound = useLiveQuery(transfers, () => settledTransfersOutboundQuery(db, settledAt), [settledAt]);
+    const inbound = useLiveQuery(transfers, () => settledTransfersInboundQuery(db, settledAt), [settledAt]);
     const { displayCurrency, rates } = valuation;
     return useMemo(() => {
         const byAccount = new Map<string, CurrencyCell[]>();
@@ -196,19 +170,15 @@ function useNetWorthSeriesIn(db: Database, valuation: Valuation): NetWorthSeries
         for (const { accountId, ...row } of inbound) {
             push(accountId, toTransferCell(row, true));
         }
-        return netWorthSeries(rows, byAccount, rates, new Date(), displayCurrency);
-    }, [rows, cellRows, outbound, inbound, rates, displayCurrency]);
+        return netWorthSeries(rows, byAccount, rates, settledAt, displayCurrency);
+    }, [rows, cellRows, outbound, inbound, rates, settledAt, displayCurrency]);
 }
 
 /** {@link useNetWorthSeriesIn} for the ledger's own display currency. */
-export function useNetWorthSeries(db: Database): NetWorthSeriesPoint[] {
-    return useNetWorthSeriesIn(db, useValuation(db));
+export function useNetWorthSeries(db: Database, nowMs: number): NetWorthSeriesPoint[] {
+    return useNetWorthSeriesIn(db, useValuation(db), nowMs);
 }
 
-/**
- * The account's attached transactions, newest first and unbounded — a balance
- * counts everything the account ever saw, so its history shows the same set.
- */
 export function useAccountTransactions(db: Database, accountId: string): TransactionWithCategory[] {
     const data = useLiveQuery(transactions, () => accountTransactionsQuery(db, accountId), [accountId]);
     return useDecoratedRows(db, data);
@@ -316,12 +286,13 @@ export async function openingForBalance(
     db: Database,
     accountId: string,
     balance: number,
-    currency: string
+    currency: string,
+    now: Date
 ): Promise<number> {
     const [rows, outbound, inbound, { rates }] = await Promise.all([
-        accountCellQuery(db, accountId),
-        transferOutboundQuery(db, accountId),
-        transferInboundQuery(db, accountId),
+        settledAccountCellQuery(db, accountId, now),
+        settledTransferOutboundQuery(db, accountId, now),
+        settledTransferInboundQuery(db, accountId, now),
         loadValuationIn(db, currency),
     ]);
     const cells = [

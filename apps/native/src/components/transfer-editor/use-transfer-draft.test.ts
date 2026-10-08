@@ -24,10 +24,15 @@ const mockRates = new Map<string, number>();
 const mockBinanceRates = new Map<string, number>();
 const mockBalances = new Map<string, number>();
 const mockLastTransfer = jest.fn<() => SavedTransfer | null>(() => null);
+const mockNowMs = Date.UTC(2026, 9, 1);
 
 jest.mock("@/data/accounts", () => ({
     useAccountBalance: (_db: unknown, account: { id: string }) => ({ total: mockBalances.get(account.id) ?? 0 }),
     useAccounts: () => mockAccounts,
+}));
+
+jest.mock("@/data/use-now", () => ({
+    useNow: () => mockNowMs,
 }));
 
 jest.mock("@/data/transfers-core", () => ({
@@ -733,6 +738,20 @@ describe("reopening a saved transfer", () => {
         });
 
         expect(result.current).toMatchObject({ fromBalanceAfter: 890, toBalanceAfter: 5500 });
+    });
+
+    it("previews a transfer dated after now against balances that have not counted it yet", async () => {
+        mockRates.set("VES", OFFICIAL_VES_PER_USD);
+        mockBalances.set("usd", 1000);
+        mockBalances.set("ves", 0);
+        const result = await reopened({ ...saved, date: new Date(Date.UTC(2026, 9, 2)) });
+
+        expect(result.current).toMatchObject({
+            fromBalance: 1000,
+            fromBalanceAfter: 897.3,
+            toBalance: 0,
+            toBalanceAfter: 5550,
+        });
     });
 });
 
