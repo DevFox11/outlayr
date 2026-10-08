@@ -77,6 +77,8 @@
 			   picked against white and do not clear the inset plane here. */
             --danger: #c01005;
             --over-budget: #bd1c1e;
+            --income-on-wash: #036643;
+            --danger-on-wash: #aa1106;
 
             /* The destructive swipe pill, which writes literal white over it. It
 			   cannot be `--danger`: in dark that token has to stay light enough to
@@ -218,6 +220,8 @@
 
             --danger: #ff493c;
             --over-budget: #f17879;
+            --income-on-wash: #3fd99b;
+            --danger-on-wash: #fe5a4d;
 
             /* See the light-mode note. */
             --danger-fill: #da0f01;

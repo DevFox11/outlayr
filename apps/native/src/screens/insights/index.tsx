@@ -544,7 +544,10 @@ function VerdictBadge({ badge, favourable }: { badge: string | null; favourable:
                 paddingVertical: 2,
             }}
         >
-            <Text className="font-sans-semibold text-footnote" style={{ color: tone }}>
+            <Text
+                className="font-sans-semibold text-footnote"
+                style={{ color: favourable ? colors.incomeOnWash : colors.dangerOnWash }}
+            >
                 {badge}
             </Text>
         </View>

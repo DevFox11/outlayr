@@ -355,6 +355,34 @@ describe("wCAG AA for text on every ground its theme paints", () => {
     });
 });
 
+describe("verdict badge text over its own wash", () => {
+    const WASH_ALPHA = 0.2;
+    const over = (tone: string, ground: string) => {
+        const channel = (hex: string, offset: number) => Number.parseInt(hex.slice(offset, offset + 2), 16);
+        return `#${[1, 3, 5]
+            .map((offset) =>
+                Math.round(WASH_ALPHA * channel(tone, offset) + (1 - WASH_ALPHA) * channel(ground, offset))
+                    .toString(16)
+                    .padStart(2, "0")
+            )
+            .join("")}`;
+    };
+
+    for (const theme of THEMES) {
+        it(`holds ${AA_TEXT_CONTRAST}:1 in ${theme}`, () => {
+            const failures: string[] = [];
+            for (const tone of ["income", "danger"]) {
+                const wash = over(tokenValue(theme, tone), tokenValue(theme, "background"));
+                const ratio = contrastRatio(tokenValue(theme, `${tone}-on-wash`), wash);
+                if (ratio < AA_TEXT_CONTRAST) {
+                    failures.push(`${theme}: --${tone}-on-wash on its wash = ${ratio.toFixed(2)}:1`);
+                }
+            }
+            expect(failures).toStrictEqual([]);
+        });
+    }
+});
+
 describe("fills that carry literal white text", () => {
     it(`holds ${AA_TEXT_CONTRAST}:1 for white over each of them, in both themes`, () => {
         const failures: string[] = [];
