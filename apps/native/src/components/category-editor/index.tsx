@@ -123,6 +123,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
     const colors = useColors();
     const haptics = useHaptics();
     const insets = useSafeAreaInsets();
+    const [ctaHeight, setCtaHeight] = useState(CTA_HEIGHT);
 
     const { draft, setDraft } = useIdentityDraft();
     const { pickerOpen, setPickerOpen, floatProgress } = useIdentityFlyUp();
@@ -437,7 +438,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
             <View
                 style={{
                     flex: 1,
-                    paddingBottom: CTA_HEIGHT + CTA_BOTTOM_PADDING + insets.bottom,
+                    paddingBottom: ctaHeight + CTA_BOTTOM_PADDING + insets.bottom,
                     paddingTop: heroBand,
                 }}
             >
@@ -502,7 +503,14 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: import("@/db/cli
                 pointerEvents={pickerOpen ? "none" : "box-none"}
                 style={{ opacity: pickerOpen ? 0 : 1 }}
             >
-                <EditorCta busy={isSubmitting} canSave={canSave} label={ctaLabel} onPress={() => pressSubmit(form)} />
+                <View onLayout={(event) => setCtaHeight(event.nativeEvent.layout.height)}>
+                    <EditorCta
+                        busy={isSubmitting}
+                        canSave={canSave}
+                        label={ctaLabel}
+                        onPress={() => pressSubmit(form)}
+                    />
+                </View>
             </View>
 
             {showToast ? (

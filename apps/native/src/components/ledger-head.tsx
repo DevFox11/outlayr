@@ -3,6 +3,7 @@ import { Pressable, View } from "react-native";
 
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { currencySymbol, formatAmount } from "@/domain/money";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
 import { AmountsHiddenContext, FlowAmount } from "./amount-text";
@@ -40,15 +41,25 @@ export function LedgerHead({ cells, code }: LedgerHeadProps) {
     const t = useTranslation();
     const { language } = useLanguage();
     const hidden = use(AmountsHiddenContext);
+    const stacked = useAccessibilityTextSize();
     return (
         <View>
             <View className="bg-border h-px w-full" />
-            <View className="flex-row">
+            <View className={stacked ? undefined : "flex-row"}>
                 {cells.map((cell, index) => (
-                    <View className={cn("flex-1 overflow-hidden", index > 0 && "pl-3.5")} key={index}>
-                        {/* Absolute so the rule spans the taller of the two columns
-						    rather than only its own content. */}
-                        {index > 0 ? <View className="bg-border absolute inset-y-0 left-0 w-px" /> : null}
+                    <View
+                        className={stacked ? undefined : cn("flex-1 overflow-hidden", index > 0 && "pl-3.5")}
+                        key={index}
+                    >
+                        {/* Side by side, absolute so the rule spans the taller of the
+						    two columns rather than only its own content. */}
+                        {index > 0 ? (
+                            <View
+                                className={
+                                    stacked ? "bg-border h-px w-full" : "bg-border absolute inset-y-0 left-0 w-px"
+                                }
+                            />
+                        ) : null}
                         <Pressable
                             accessibilityHint={cell.accessibilityHint ?? t("log.ledger.showFigure")}
                             accessibilityLabel={`${cell.label}, ${hidden ? t("log.amounts.hidden") : `${cell.positive ? "+" : "-"}${formatAmount(cell.magnitude, code, showCents, language)}`}`}

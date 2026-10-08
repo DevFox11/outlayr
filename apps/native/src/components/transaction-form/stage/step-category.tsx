@@ -2,6 +2,7 @@ import { ScrollView } from "react-native";
 
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import type { Category, CategoryWithChildren } from "@/data/categories-core";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
@@ -9,9 +10,10 @@ import { StageOptionRow } from "./stage-options";
 import type { StageOptionItem } from "./stage-options";
 
 /**
- * Four rows of pills — 38pt each with 8pt between them. Past that the options
- * scroll inside the step rather than growing the stage, which is docked to the
- * bottom of the form and would otherwise push the sentence off the screen.
+ * Four rows of pills — 38pt each with 8pt between them. Past that, at standard
+ * text sizes, the options scroll inside the step rather than growing the stage,
+ * which is docked to the bottom of the form and would otherwise push the
+ * sentence off the screen.
  */
 const MAX_LIST_HEIGHT = 176;
 
@@ -60,6 +62,7 @@ interface StepCategoryProps {
 export function StepCategory({ categories, onCreate, onSelect, selectedId }: StepCategoryProps) {
     const t = useTranslation();
     const colors = useColors();
+    const largeText = useAccessibilityTextSize();
     const flat = flattenCategories(categories);
 
     const options: StageOptionItem<string>[] = flat.map(({ category, label }) => ({
@@ -96,8 +99,9 @@ export function StepCategory({ categories, onCreate, onSelect, selectedId }: Ste
     return (
         <ScrollView
             keyboardShouldPersistTaps="handled"
+            scrollEnabled={!largeText}
             showsVerticalScrollIndicator={false}
-            style={{ maxHeight: MAX_LIST_HEIGHT }}
+            style={largeText ? undefined : { maxHeight: MAX_LIST_HEIGHT }}
             testID="stage-categories"
         >
             <StageOptionRow onSelect={pick} options={options} selectedId={selectedId} />

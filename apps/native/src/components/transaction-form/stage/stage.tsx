@@ -1,7 +1,7 @@
 import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { createContext, use, useEffect, useState } from "react";
 import { Keyboard, Pressable, View } from "react-native";
 import Animated, { Keyframe, ReduceMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GlassButton } from "@/components/glass-button";
 import { FontScaleCapContext, Text } from "@/components/text";
 import { cn } from "@/components/tw";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useColors } from "@/theme/use-colors";
 
 import { EASE } from "../../sentence/sentence-motion";
@@ -48,6 +49,10 @@ const BACK_GLYPH = 19;
 
 const STAGE_FONT_SCALE_CAP = 1.35;
 
+const LARGE_TEXT_STAGE_FONT_SCALE_CAP = 2;
+
+export const StagePartContext = createContext<"inline" | "pinned" | null>(null);
+
 /**
  * A body arriving where another already was. No `exiting` partner on purpose:
  * Reanimated keeps an exiting view mounted, and two bodies inside a
@@ -63,7 +68,7 @@ function stageBodyEntering(forward: boolean) {
         .reduceMotion(ReduceMotion.System);
 }
 
-/** The label alone cross-fades; the button around it is a fixed box either way. */
+/** The label alone cross-fades; the button around it keeps its box either way. */
 const FOOTER_LABEL_ENTERING = new Keyframe({
     0: { opacity: 0 },
     100: { easing: EASE, opacity: 1 },
@@ -141,7 +146,7 @@ function StageRightMeta({ action, node }: { action?: StageAction; node?: ReactNo
             <View className="ml-auto">
                 <GlassButton
                     accessibilityLabel={action.label}
-                    className="h-[38px] rounded-full px-4"
+                    className="min-h-[38px] rounded-full px-4"
                     onPress={action.onPress}
                 >
                     <Text className="font-sans-semibold text-subtitle text-tint">{action.label}</Text>
@@ -156,10 +161,9 @@ function StageRightMeta({ action, node }: { action?: StageAction; node?: ReactNo
 }
 
 /**
- * The one surface pinned to the bottom of the transaction form. Nothing is
- * presented over the form any more: `transactions/create` is itself a modal, and
- * a native sheet over it insets the parent and drops it from the accessibility
- * tree.
+ * The one surface at the bottom of the transaction form. Nothing is presented
+ * over the form any more: `transactions/create` is itself a modal, and a native
+ * sheet over it insets the parent and drops it from the accessibility tree.
  *
  * Pure: every string arrives as a prop and every action is a callback, so the
  * same container serves whichever step the form is on.
@@ -178,15 +182,54 @@ export function TransactionStage({
     const colors = useColors();
     const insets = useSafeAreaInsets();
     const keyboardShown = useKeyboardShown();
+    const part = use(StagePartContext);
+    const largeText = useAccessibilityTextSize();
+    const fontScaleCap = largeText ? LARGE_TEXT_STAGE_FONT_SCALE_CAP : STAGE_FONT_SCALE_CAP;
+    const buttonOnly = part === "pinned" && largeText;
+    const inline = part === "inline";
     const tone = footer?.tone ?? "primary";
+    // Nothing presents this surface, so it clears the home indicator on
+    // its own rather than inheriting a parent's inset.
+    const bottomPad = { paddingBottom: keyboardShown ? KEYBOARD_BOTTOM_PAD : Math.max(BOTTOM_PAD, insets.bottom) };
+
+    // The keyboard replaces this button: a step with a text field cannot fit
+    // both above the keyboard, and return already does the same job.
+    const button =
+        footer && !keyboardShown ? (
+            <Pressable
+                accessibilityLabel={footer.label}
+                accessibilityRole="button"
+                className={cn(
+                    "min-h-[48px] items-center justify-center rounded-[14px] px-4 py-2 active:opacity-80",
+                    buttonOnly ? null : "mt-4",
+                    FOOTER_FILL[tone]
+                )}
+                onPress={footer.onPress}
+                testID="stage-footer"
+            >
+                <Animated.View entering={FOOTER_LABEL_ENTERING} key={footer.label}>
+                    <Text className={cn("font-sans-semibold text-callout text-center", FOOTER_INK[tone])}>
+                        {footer.label}
+                    </Text>
+                </Animated.View>
+            </Pressable>
+        ) : null;
+
+    if (buttonOnly) {
+        return button === null ? null : (
+            <FontScaleCapContext value={fontScaleCap}>
+                <View className="border-separator bg-background border-t px-5 pt-3" style={bottomPad}>
+                    {button}
+                </View>
+            </FontScaleCapContext>
+        );
+    }
 
     return (
-        <FontScaleCapContext value={STAGE_FONT_SCALE_CAP}>
+        <FontScaleCapContext value={fontScaleCap}>
             <View
-                className="border-separator bg-background border-t px-5 pt-[15px]"
-                // Nothing presents this surface, so it clears the home indicator on
-                // its own rather than inheriting a parent's inset.
-                style={{ paddingBottom: keyboardShown ? KEYBOARD_BOTTOM_PAD : Math.max(BOTTOM_PAD, insets.bottom) }}
+                className={cn("border-separator border-t pt-[15px]", inline ? null : "bg-background px-5")}
+                style={inline ? undefined : bottomPad}
             >
                 {/* Centred the way the sheet's own header above it is, rather than
                 trailing the back chevron: laid out in the flow the title would sit
@@ -194,7 +237,7 @@ export function TransactionStage({
                 has a chevron and what its trailing control is. Absolute keeps it on
                 the screen's centre line; `pointerEvents` keeps it from covering the
                 two controls it sits between. */}
-                <View className="h-[38px] flex-row items-center">
+                <View className={cn(largeText ? "min-h-[38px]" : "h-[38px]", "flex-row items-center")}>
                     {onBack ? (
                         <GlassButton
                             accessibilityLabel={backLabel}
@@ -218,26 +261,7 @@ export function TransactionStage({
                     {children}
                 </Animated.View>
 
-                {/* The keyboard replaces this button: a step with a text field cannot fit
-                both above the keyboard, and return already does the same job. */}
-                {footer && !keyboardShown ? (
-                    <Pressable
-                        accessibilityLabel={footer.label}
-                        accessibilityRole="button"
-                        className={cn(
-                            "mt-4 h-[48px] items-center justify-center rounded-[14px] active:opacity-80",
-                            FOOTER_FILL[tone]
-                        )}
-                        onPress={footer.onPress}
-                        testID="stage-footer"
-                    >
-                        <Animated.View entering={FOOTER_LABEL_ENTERING} key={footer.label}>
-                            <Text className={cn("font-sans-semibold text-callout", FOOTER_INK[tone])}>
-                                {footer.label}
-                            </Text>
-                        </Animated.View>
-                    </Pressable>
-                ) : null}
+                {inline ? null : button}
             </View>
         </FontScaleCapContext>
     );

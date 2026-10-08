@@ -2,10 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals
 import { render, screen } from "@testing-library/react-native";
 import { Dimensions, StyleSheet } from "react-native";
 
+import { AMOUNT_HERO_MAX_SIZE, amountHeroFontSize } from "@/domain/amount-hero-size";
 import { amountParts, currencySymbol, formatAmount } from "@/domain/money";
 import type { Language } from "@/i18n/languages";
 
-import { FlowAmount, HeroNumber } from "./amount-text";
+import { fittedHeroSize, FlowAmount, HeroNumber } from "./amount-text";
 import { FontScaleCapContext } from "./text";
 
 let mockLanguage: Language = "en";
@@ -33,6 +34,26 @@ beforeEach(() => {
 
 afterEach(() => {
     jest.restoreAllMocks();
+});
+
+const AX3_FONT_SCALE = 2.643;
+
+describe("fittedHeroSize", () => {
+    it("fits the figure Dynamic Type draws, not the one it is asked for", () => {
+        const width = 400;
+        const amount = 123_456.78;
+        const drawn = fittedHeroSize(40, amount, 2, width, AX3_FONT_SCALE) * AX3_FONT_SCALE;
+
+        expect(drawn).toBeLessThanOrEqual(amountHeroFontSize(amount, 2, width));
+        expect(fittedHeroSize(40, 5137.55, 2, width, AX3_FONT_SCALE) * AX3_FONT_SCALE).toBeLessThanOrEqual(
+            AMOUNT_HERO_MAX_SIZE
+        );
+    });
+
+    it("leaves an unscaled figure where it was", () => {
+        expect(fittedHeroSize(40, 5137.55, 2, 272, 1)).toBe(40);
+        expect(fittedHeroSize(40, 453_333_333, 2, 353, 1)).toBe(Math.floor(amountHeroFontSize(453_333_333, 2, 353)));
+    });
 });
 
 describe("heroNumber", () => {

@@ -4,6 +4,7 @@ import { View } from "react-native";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 
 /**
  * A cell states which of the two it is rather than leaving the strip to infer it
@@ -17,12 +18,19 @@ export type MeasureStripCell = {
 } & ({ figure: string; value?: never } | { figure?: never; value: ReactNode });
 
 export function MeasureStrip({ cells, className }: { cells: readonly MeasureStripCell[]; className?: string }) {
+    const stacked = useAccessibilityTextSize();
     return (
         <View className={cn("border-border border-y", className)}>
-            <View className="flex-row">
+            <View className={stacked ? undefined : "flex-row"}>
                 {cells.map((cell, index) => (
-                    <View className={cn("flex-1", index > 0 && "pl-3.5")} key={cell.key}>
-                        {index > 0 ? <View className="bg-border absolute inset-y-0 left-0 w-px" /> : null}
+                    <View className={stacked ? undefined : cn("flex-1", index > 0 && "pl-3.5")} key={cell.key}>
+                        {index > 0 ? (
+                            <View
+                                className={
+                                    stacked ? "bg-border h-px w-full" : "bg-border absolute inset-y-0 left-0 w-px"
+                                }
+                            />
+                        ) : null}
                         <View className="gap-0.75 py-2.5">
                             <MonoLabel numberOfLines={1}>{cell.label}</MonoLabel>
                             {cell.figure === undefined ? (

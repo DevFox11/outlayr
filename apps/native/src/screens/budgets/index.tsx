@@ -393,7 +393,7 @@ export function Budgets() {
 
                 {budgets.length ? (
                     <View className="pt-6">
-                        <View className="flex-row items-baseline justify-between pb-2">
+                        <View className="flex-row flex-wrap items-baseline justify-between gap-x-3 pb-2">
                             <MonoLabel>{main ? t("budgets.list.categories") : t("budgets.list.budgets")}</MonoLabel>
                             {overCount ? (
                                 <MonoLabel>

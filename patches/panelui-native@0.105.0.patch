@@ -1,3 +1,59 @@
+diff --git a/lib/module/components/heatmap-chart/index.js b/lib/module/components/heatmap-chart/index.js
+--- a/lib/module/components/heatmap-chart/index.js
++++ b/lib/module/components/heatmap-chart/index.js
+@@ -71,6 +71,8 @@ function isToken(value) {
+ /** Room left for the weekday labels when the y-axis does not ask for its own. */
+ const DEFAULT_AXIS_WIDTH = 26;
+ 
++const AXIS_LABEL_MAX_FONT_SCALE = 1.353;
++
+ /**
+  * Height assumed for the readout when placing it above a cell. It is a single
+  * line of `xs` text in a padded box, so it does not vary — and measuring it
+@@ -601,6 +603,7 @@ function HeatmapXAxis({
+     }) => /*#__PURE__*/_jsx(Text, {
+       size: "xs",
+       muted: true,
++      maxFontSizeMultiplier: AXIS_LABEL_MAX_FONT_SCALE,
+       className: "absolute",
+       style: {
+         left: column * step
+@@ -638,6 +641,7 @@ function HeatmapYAxis({
+       return /*#__PURE__*/_jsx(Text, {
+         size: "xs",
+         muted: true,
++        maxFontSizeMultiplier: AXIS_LABEL_MAX_FONT_SCALE,
+         className: "absolute"
+         // Centred on the cell rather than aligned to its top edge, so a
+         // label reads as belonging to the row it sits beside.
+diff --git a/lib/module/components/line-chart/index.js b/lib/module/components/line-chart/index.js
+--- a/lib/module/components/line-chart/index.js
++++ b/lib/module/components/line-chart/index.js
+@@ -72,6 +72,8 @@ const Y_AXIS_WIDTH = 44;
+ /** Gap between the value labels and the plot they sit beside. */
+ const Y_AXIS_GUTTER = 6;
+ 
++const AXIS_LABEL_MAX_FONT_SCALE = 1.353;
++
+ /**
+  * Which layer a part belongs to. Read off the component itself, so composition
+  * stays a flat list of children instead of two nested slots the caller has to
+@@ -699,6 +701,7 @@ function LineChartXAxis({
+       size: "xs",
+       muted: true,
+       numberOfLines: 1,
++      maxFontSizeMultiplier: AXIS_LABEL_MAX_FONT_SCALE,
+       style: {
+         position: 'absolute',
+         bottom: 0,
+@@ -769,6 +772,7 @@ function LineChartYAxis({
+       size: "xs",
+       muted: true,
+       numberOfLines: 1,
++      maxFontSizeMultiplier: AXIS_LABEL_MAX_FONT_SCALE,
+       children: label.text
+     }, label.key))
+   });
 diff --git a/lib/module/components/toast/index.js b/lib/module/components/toast/index.js
 --- a/lib/module/components/toast/index.js
 +++ b/lib/module/components/toast/index.js
@@ -23,6 +79,63 @@ diff --git a/lib/module/components/toast/index.js b/lib/module/components/toast/
  const toastVariants = tv({
    slots: {
      root: 'w-full flex-row items-start gap-3 rounded-2xl border px-4 py-3.5 shadow-lg',
+diff --git a/src/components/heatmap-chart/index.tsx b/src/components/heatmap-chart/index.tsx
+--- a/src/components/heatmap-chart/index.tsx
++++ b/src/components/heatmap-chart/index.tsx
+@@ -89,6 +89,8 @@ function isToken(value: string | undefined): value is string {
+ /** Room left for the weekday labels when the y-axis does not ask for its own. */
+ const DEFAULT_AXIS_WIDTH = 26;
+ 
++const AXIS_LABEL_MAX_FONT_SCALE = 1.353;
++
+ /**
+  * Height assumed for the readout when placing it above a cell. It is a single
+  * line of `xs` text in a padded box, so it does not vary — and measuring it
+@@ -871,6 +873,7 @@ function HeatmapXAxis({ className, formatLabel, labels: given }: HeatmapXAxisPro
+           key={`${column}-${label}`}
+           size="xs"
+           muted
++          maxFontSizeMultiplier={AXIS_LABEL_MAX_FONT_SCALE}
+           className="absolute"
+           style={{ left: column * step }}
+         >
+@@ -922,6 +925,7 @@ function HeatmapYAxis({
+             key={row}
+             size="xs"
+             muted
++            maxFontSizeMultiplier={AXIS_LABEL_MAX_FONT_SCALE}
+             className="absolute"
+             // Centred on the cell rather than aligned to its top edge, so a
+             // label reads as belonging to the row it sits beside.
+diff --git a/src/components/line-chart/index.tsx b/src/components/line-chart/index.tsx
+--- a/src/components/line-chart/index.tsx
++++ b/src/components/line-chart/index.tsx
+@@ -106,6 +106,8 @@ const Y_AXIS_WIDTH = 44;
+ /** Gap between the value labels and the plot they sit beside. */
+ const Y_AXIS_GUTTER = 6;
+ 
++const AXIS_LABEL_MAX_FONT_SCALE = 1.353;
++
+ /**
+  * Which layer a part belongs to. Read off the component itself, so composition
+  * stays a flat list of children instead of two nested slots the caller has to
+@@ -853,6 +855,7 @@ function LineChartXAxis({ ticks = 4, format, className }: LineChartXAxisProps) {
+           size="xs"
+           muted
+           numberOfLines={1}
++          maxFontSizeMultiplier={AXIS_LABEL_MAX_FONT_SCALE}
+           style={{
+             position: 'absolute',
+             bottom: 0,
+@@ -930,7 +933,7 @@ function LineChartYAxis({ ticks = 4, format, className }: LineChartYAxisProps) {
+       className={cn('items-end justify-between', className)}
+     >
+       {labels.map((label) => (
+-        <Text key={label.key} size="xs" muted numberOfLines={1}>
++        <Text key={label.key} size="xs" muted numberOfLines={1} maxFontSizeMultiplier={AXIS_LABEL_MAX_FONT_SCALE}>
+           {label.text}
+         </Text>
+       ))}
 diff --git a/src/components/toast/index.tsx b/src/components/toast/index.tsx
 --- a/src/components/toast/index.tsx
 +++ b/src/components/toast/index.tsx

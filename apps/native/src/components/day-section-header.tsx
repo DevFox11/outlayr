@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { formatDayHeader } from "@/domain/dates";
 import type { DaySection } from "@/domain/day-sections";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
 import { ActionMenu } from "./action-menu";
@@ -28,9 +29,10 @@ export function DaySectionHeader({ section, first = false, onShare }: DaySection
     // `formatDayHeader`'s `runtimeLanguage()` default is invisible to React.
     const { language } = useLanguage();
     const t = useTranslation();
+    const largeText = useAccessibilityTextSize();
     const body = (
         <>
-            <View className="flex-row items-baseline justify-between gap-2">
+            <View className={cn("flex-row items-baseline justify-between gap-2", largeText && "flex-wrap")}>
                 <MonoLabel>{formatDayHeader(section.day, undefined, language)}</MonoLabel>
                 <DayTotal showCents={showCents} totals={section.totals} />
             </View>

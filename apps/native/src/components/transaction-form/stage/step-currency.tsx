@@ -5,6 +5,7 @@ import { View } from "react-native";
 
 import { SEARCH_FIELD } from "@/components/search-field-style";
 import { TextInput } from "@/components/text";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useColors } from "@/theme/use-colors";
 
 import { CurrencyPickerList } from "../../currency-picker-list";
@@ -16,7 +17,7 @@ export interface StepCurrencyProps {
      */
     favourites: readonly string[];
     /**
-     * Floor for the virtualised list. A stage body has no intrinsic height, and
+     * Sizes the virtualised list. A stage body has no intrinsic height, and
      * an auto-sized list measures to zero for the frames the stage is swapping.
      */
     listMinHeight: number;
@@ -42,6 +43,7 @@ export function StepCurrency({
     selected,
 }: StepCurrencyProps) {
     const colors = useColors();
+    const largeText = useAccessibilityTextSize();
     const [query, setQuery] = useState("");
 
     return (
@@ -69,7 +71,7 @@ export function StepCurrency({
                 onToggleFavourite={onToggleFavourite}
                 query={query}
                 selected={selected}
-                style={{ minHeight: listMinHeight }}
+                style={largeText ? { height: listMinHeight } : { minHeight: listMinHeight }}
             />
         </View>
     );

@@ -19,12 +19,14 @@ import type { ImportSheetHandle } from "@/components/import-sheet/import-sheet";
 import { cn } from "@/components/tw";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccounts } from "@/data/accounts";
+import { LARGEST_STANDARD_FONT_SCALE } from "@/hooks/use-accessibility-text-size";
 import { useTranslation } from "@/i18n/context";
 import { importDraftStore } from "@/lib/import-draft-store";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
 const DIAL_BOTTOM_INSET = 16;
+const NAV_BAR_HEIGHT = 44;
 const DIAL_EDGE_INSET = 20;
 const ACTION_ICON_SIZE = 22;
 const TRIGGER_ICON_SIZE = 26;
@@ -33,34 +35,49 @@ const ACTION_HEIGHT = 56;
 const TRIGGER_HEIGHT = 64;
 const DIAL_GAP = 12;
 
-const LABEL_MAX_WIDTH = 200;
+const LABEL_WIDTHS = [280, 240, 200] as const;
+const LABEL_MAX_CLASS = { 200: "max-w-[200px]", 240: "max-w-[240px]", 280: "max-w-[280px]" } as const;
+const LABEL_GAP = 12;
+const CHIP_PADDING_X = 10;
+const DIAL_ROW_CHROME = DIAL_EDGE_INSET * 2 + ACTION_HEIGHT + LABEL_GAP + CHIP_PADDING_X * 2;
 const LONGEST_LABEL_WIDTH = 190;
-const LABEL_LINE_HEIGHT = 21;
+const LABEL_LINE_HEIGHT = 24;
 const CHIP_PADDING_Y = 8;
 
 type LabelLines = 1 | 2 | null;
+type LabelWidth = (typeof LABEL_WIDTHS)[number];
 
 const LABEL_CLAMP = { 1: "line-clamp-1", 2: "line-clamp-2" } as const;
 
-function labelClassName(lines: LabelLines) {
-    return cn(lines === null ? null : LABEL_CLAMP[lines], "max-w-[200px] text-base");
+function labelWidth(fontScale: number, windowWidth: number): LabelWidth {
+    if (fontScale <= LARGEST_STANDARD_FONT_SCALE) {
+        return 200;
+    }
+    return LABEL_WIDTHS.find((width) => width <= windowWidth - DIAL_ROW_CHROME) ?? 200;
 }
 
-function chipLines(fontScale: number, lines: LabelLines) {
-    const natural = Math.ceil((LONGEST_LABEL_WIDTH * fontScale) / LABEL_MAX_WIDTH);
+function labelClassName(lines: LabelLines, width: LabelWidth) {
+    return cn(lines === null ? null : LABEL_CLAMP[lines], LABEL_MAX_CLASS[width], "text-base");
+}
+
+function chipLines(fontScale: number, lines: LabelLines, width: LabelWidth) {
+    const natural = Math.ceil((LONGEST_LABEL_WIDTH * fontScale) / width);
     return lines === null ? natural : Math.min(natural, lines);
 }
 
-function actionHeight(fontScale: number, lines: LabelLines) {
-    return Math.max(ACTION_HEIGHT, CHIP_PADDING_Y + chipLines(fontScale, lines) * LABEL_LINE_HEIGHT * fontScale);
+function actionHeight(fontScale: number, lines: LabelLines, width: LabelWidth) {
+    return Math.max(ACTION_HEIGHT, CHIP_PADDING_Y + chipLines(fontScale, lines, width) * LABEL_LINE_HEIGHT * fontScale);
 }
 
-const dialHeight = (actionCount: number, fontScale: number, lines: LabelLines) =>
-    actionCount * (actionHeight(fontScale, lines) + DIAL_GAP) + TRIGGER_HEIGHT;
+const dialHeight = (actionCount: number, fontScale: number, lines: LabelLines, width: LabelWidth) =>
+    actionHeight(fontScale, null, width) +
+    (actionCount - 1) * (actionHeight(fontScale, lines, width) + DIAL_GAP) +
+    DIAL_GAP +
+    TRIGGER_HEIGHT;
 
-function fittingActionCount(candidates: number, room: number, fontScale: number, lines: LabelLines) {
+function fittingActionCount(candidates: number, room: number, fontScale: number, lines: LabelLines, width: LabelWidth) {
     for (let count = candidates; count > 1; count -= 1) {
-        if (dialHeight(count, fontScale, lines) <= room) {
+        if (dialHeight(count, fontScale, lines, width) <= room) {
             return count;
         }
     }
@@ -74,18 +91,24 @@ interface DialFit {
 
 /**
  * Every action at its natural label height when the screen has the room; else
- * the labels clamp to two lines, then one, and only then do actions drop off
- * the top of the dial — the last one standing is always "Add a transaction".
+ * the other labels clamp to two lines, then one, and only then do actions drop
+ * off the top of the dial. At an accessibility text size one line cuts a label
+ * to a word, so actions drop before that clamp. "Add a transaction" is never
+ * clamped and is always the last one standing.
  */
-function fitDial(actionCount: number, room: number, fontScale: number): DialFit {
-    const fits = (count: number, lines: LabelLines) => dialHeight(count, fontScale, lines) <= room;
+function fitDial(actionCount: number, room: number, fontScale: number, width: LabelWidth): DialFit {
+    const fits = (count: number, lines: LabelLines) => dialHeight(count, fontScale, lines, width) <= room;
+    const tightest = fontScale > LARGEST_STANDARD_FONT_SCALE ? 2 : 1;
 
     for (const lines of [null, 2, 1] as const) {
+        if (lines !== null && lines < tightest) {
+            break;
+        }
         if (fits(actionCount, lines)) {
             return { kept: actionCount, lines };
         }
     }
-    return { kept: fittingActionCount(actionCount, room, fontScale, 1), lines: 1 };
+    return { kept: fittingActionCount(actionCount, room, fontScale, tightest, width), lines: tightest };
 }
 
 interface AddAction {
@@ -99,10 +122,12 @@ function DialAction({
     action,
     lines,
     onSelect,
+    width,
 }: {
     action: AddAction;
     lines: LabelLines;
     onSelect: (action: AddAction) => void;
+    width: LabelWidth;
 }) {
     // SAFETY: `--foreground` is declared in global.css for both schemes.
     const foreground = useCSSVariable("--foreground") as string;
@@ -111,7 +136,7 @@ function DialAction({
         <Fab.Action
             icon={<HugeiconsIcon color={foreground} icon={action.icon} size={ACTION_ICON_SIZE} strokeWidth={1.8} />}
             label={action.label}
-            labelClassName={labelClassName(lines)}
+            labelClassName={labelClassName(lines, width)}
             onPress={() => onSelect(action)}
         />
     );
@@ -135,7 +160,7 @@ export function FloatingAddButton() {
             };
         }, [])
     );
-    const { fontScale, height: windowHeight } = useWindowDimensions();
+    const { fontScale, height: windowHeight, width: windowWidth } = useWindowDimensions();
     const importSheetRef = useRef<ImportSheetHandle>(null);
     const select = useCallback(({ href }: AddAction) => {
         if (href === null) {
@@ -151,7 +176,7 @@ export function FloatingAddButton() {
     }, []);
     const canTransfer = useAccounts(useDatabase()).length >= 2;
 
-    const room = windowHeight - insets.top - insets.bottom - DIAL_BOTTOM_INSET;
+    const room = windowHeight - insets.top - NAV_BAR_HEIGHT - insets.bottom - DIAL_BOTTOM_INSET;
     // Bottom-up by how often each is reached for: the transaction always, then
     // moving money, speaking, scanning, and a CSV import last.
     const ranked: AddAction[] = [
@@ -175,7 +200,8 @@ export function FloatingAddButton() {
         { href: "/transactions/scan", icon: ScanIcon, key: "scan", label: t("log.add.scan") },
         { href: null, icon: FileImportIcon, key: "import", label: t("log.add.import") },
     ];
-    const { kept, lines } = fitDial(ranked.length, room, fontScale);
+    const width = labelWidth(fontScale, windowWidth);
+    const { kept, lines } = fitDial(ranked.length, room, fontScale, width);
     // The dial reads top to bottom, so the least-reached-for action sits furthest from the thumb.
     const actions = ranked.slice(0, kept).reverse();
 
@@ -211,7 +237,13 @@ export function FloatingAddButton() {
                     style={{ bottom: insets.bottom + DIAL_BOTTOM_INSET, right: DIAL_EDGE_INSET }}
                 >
                     {actions.map((action) => (
-                        <DialAction action={action} key={action.key} lines={lines} onSelect={select} />
+                        <DialAction
+                            action={action}
+                            key={action.key}
+                            lines={action.key === "transaction" ? null : lines}
+                            onSelect={select}
+                            width={width}
+                        />
                     ))}
                 </Fab.Group>
             </ScopedVariables>

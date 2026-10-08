@@ -22,6 +22,8 @@ import {
     foregroundStyle,
     frame,
     labelsHidden,
+    lineLimit,
+    minimumScaleFactor,
     multilineTextAlignment,
     onSubmit,
     onTapGesture,
@@ -32,6 +34,7 @@ import {
 import type { RefObject } from "react";
 
 import { BODY, ROW, rowLabel } from "@/components/transaction-form/style";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { hitArea, outline } from "@/lib/swift-ui-geometry";
 
 const SIGN_FONT = font({
@@ -40,6 +43,7 @@ const SIGN_FONT = font({
     weight: "medium",
 });
 const SIGN_HIT = 44;
+const BALANCE_MIN_SCALE = 0.5;
 
 interface AccountEditorDetailsSectionProps {
     balanceEditA11y: string;
@@ -99,6 +103,31 @@ export function AccountEditorDetailsSection({
     onToggleSign,
     tintColor,
 }: AccountEditorDetailsSectionProps) {
+    const stacked = useAccessibilityTextSize();
+    const balanceControls = (
+        <>
+            <Button modifiers={[buttonStyle("plain"), accessibilityLabel(balanceSignA11y)]} onPress={onToggleSign}>
+                <SwiftText
+                    modifiers={[
+                        SIGN_FONT,
+                        foregroundStyle(negative ? tintColor : mutedColor),
+                        // A bare glyph measures ~10pt; 44 is the HIG minimum target.
+                        frame({ height: SIGN_HIT, width: SIGN_HIT }),
+                        hitArea(outline.rectangle()),
+                    ]}
+                >
+                    {negative ? "−" : "+"}
+                </SwiftText>
+            </Button>
+            <Button modifiers={[buttonStyle("plain"), accessibilityLabel(balanceEditA11y)]} onPress={onBalancePress}>
+                <SwiftText
+                    modifiers={[BODY, foregroundStyle(tintColor), lineLimit(1), minimumScaleFactor(BALANCE_MIN_SCALE)]}
+                >
+                    {balanceValue}
+                </SwiftText>
+            </Button>
+        </>
+    );
     return (
         <VStack spacing={0}>
             <Divider modifiers={hairline} />
@@ -168,29 +197,21 @@ export function AccountEditorDetailsSection({
 
             <Divider modifiers={hairline} />
 
-            <HStack modifiers={ROW}>
-                <SwiftText modifiers={[BODY, rowLabel]}>{balanceLabel}</SwiftText>
-                <Spacer />
-                <Button modifiers={[buttonStyle("plain"), accessibilityLabel(balanceSignA11y)]} onPress={onToggleSign}>
-                    <SwiftText
-                        modifiers={[
-                            SIGN_FONT,
-                            foregroundStyle(negative ? tintColor : mutedColor),
-                            // A bare glyph measures ~10pt; 44 is the HIG minimum target.
-                            frame({ height: SIGN_HIT, width: SIGN_HIT }),
-                            hitArea(outline.rectangle()),
-                        ]}
-                    >
-                        {negative ? "−" : "+"}
-                    </SwiftText>
-                </Button>
-                <Button
-                    modifiers={[buttonStyle("plain"), accessibilityLabel(balanceEditA11y)]}
-                    onPress={onBalancePress}
-                >
-                    <SwiftText modifiers={[BODY, foregroundStyle(tintColor)]}>{balanceValue}</SwiftText>
-                </Button>
-            </HStack>
+            {stacked ? (
+                <HStack modifiers={ROW}>
+                    <VStack alignment="leading" spacing={0}>
+                        <SwiftText modifiers={[BODY, rowLabel]}>{balanceLabel}</SwiftText>
+                        <HStack>{balanceControls}</HStack>
+                    </VStack>
+                    <Spacer />
+                </HStack>
+            ) : (
+                <HStack modifiers={ROW}>
+                    <SwiftText modifiers={[BODY, rowLabel]}>{balanceLabel}</SwiftText>
+                    <Spacer />
+                    {balanceControls}
+                </HStack>
+            )}
 
             <Divider modifiers={hairline} />
         </VStack>

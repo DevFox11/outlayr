@@ -15,6 +15,7 @@ import { FALLBACK_IDENTITY_COLOR, resolveTransactionIdentity } from "@/domain/tr
 import type { TransferLogRow, TransferMove } from "@/domain/transfer-log-rows";
 import { isExact } from "@/domain/valuation";
 import type { RateTable } from "@/domain/valuation";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
@@ -89,6 +90,59 @@ function UnderAmount({ fee, moved, sentCurrency, showCents }: UnderAmountProps) 
     );
 }
 
+interface RowMetaProps {
+    currency: string;
+    details: string | null | undefined;
+    foreignCode: string | null;
+    future: boolean;
+    rateNeeded: boolean;
+    subtitle: string;
+    unplaced: boolean;
+    wrap: boolean;
+}
+
+function RowMeta({ currency, details, foreignCode, future, rateNeeded, subtitle, unplaced, wrap }: RowMetaProps) {
+    const t = useTranslation();
+    return (
+        <>
+            <View className={cn("flex-row items-center gap-1.25", wrap && "flex-wrap")}>
+                <Text
+                    className={cn("font-sans-medium text-subtitle", future ? "text-subtle" : "text-muted")}
+                    numberOfLines={1}
+                >
+                    {subtitle}
+                </Text>
+                {foreignCode ? (
+                    <View className="border-border rounded-[3px] border px-[3px]">
+                        <MonoLabel>{foreignCode}</MonoLabel>
+                    </View>
+                ) : null}
+                {unplaced ? (
+                    <View
+                        accessibilityLabel={t("log.row.unplaced", { code: currency })}
+                        className="border-border rounded-[3px] border px-[3px]"
+                    >
+                        <MonoLabel className="text-subtle">{`${currency}?`}</MonoLabel>
+                    </View>
+                ) : null}
+                {rateNeeded ? (
+                    <View
+                        accessibilityLabel={t("log.row.rateNeededAccessibility")}
+                        className="border-warning rounded-[3px] border px-[3px]"
+                    >
+                        <MonoLabel className="text-foreground">{t("log.row.rateNeeded")}</MonoLabel>
+                    </View>
+                ) : null}
+            </View>
+            {details ? (
+                <Text className={cn("text-footnote", future ? "text-subtle" : "text-muted")} numberOfLines={1}>
+                    {details}
+                </Text>
+            ) : null}
+        </>
+    );
+}
+
 interface TransactionRowProps {
     /** Global display currency, used when the row's own currency is null. */
     currency: string;
@@ -142,6 +196,7 @@ export function TransactionRow({
     const colors = useColors();
     const t = useTranslation();
     const { language } = useLanguage();
+    const stacked = useAccessibilityTextSize();
     const date = new Date(transaction.date);
     const future = forcedFuture ?? isFuture(date);
     const code = transaction.currency ?? currency;
@@ -173,6 +228,31 @@ export function TransactionRow({
     const timeLabel = swapTimeLabel ? (transaction.categoryName ?? "") : formatTime(date, use24Hour, language);
     const subtitle = future ? formatUpcomingDate(landsOn ?? date, language) : timeLabel;
 
+    const amount = (
+        <View className={stacked ? "items-start" : "items-end"}>
+            <RowAmount
+                amount={transaction.moved?.sent ?? transaction.amount}
+                code={code}
+                income={transaction.income}
+                isFuture={future}
+                showCents={showCents}
+                transfer={isTransfer}
+                transferSign={transaction.sign}
+            />
+            <UnderAmount
+                fee={
+                    transaction.fee && {
+                        amount: transaction.fee.amount,
+                        currency: transaction.fee.currency ?? currency,
+                    }
+                }
+                moved={transaction.moved}
+                sentCurrency={code}
+                showCents={showCents}
+            />
+        </View>
+    );
+
     const row = (
         <Pressable
             // The hold is the only route to the action menu, and nothing on screen says
@@ -185,7 +265,10 @@ export function TransactionRow({
             accessibilityRole="button"
             // The menu lifts this row into its preview, so the row carries the ground
             // it is snapshotted against rather than borrowing the list's.
-            className="bg-background flex-row items-center gap-3 py-2 active:opacity-70"
+            className={cn(
+                "bg-background flex-row gap-3 py-2 active:opacity-70",
+                stacked ? "items-start" : "items-center"
+            )}
             onAccessibilityAction={
                 onDelete
                     ? (event: AccessibilityActionEvent) => {
@@ -225,67 +308,23 @@ export function TransactionRow({
             <View className="flex-1 gap-0.5">
                 <Text
                     className={cn("font-sans-medium text-callout", future ? "text-future" : "text-foreground")}
-                    numberOfLines={1}
+                    numberOfLines={stacked ? 2 : 1}
                 >
                     {transaction.note}
                 </Text>
-                <View className="flex-row items-center gap-1.25">
-                    <Text
-                        className={cn("font-sans-medium text-subtitle", future ? "text-subtle" : "text-muted")}
-                        numberOfLines={1}
-                    >
-                        {subtitle}
-                    </Text>
-                    {foreignCode ? (
-                        <View className="border-border rounded-[3px] border px-[3px]">
-                            <MonoLabel>{foreignCode}</MonoLabel>
-                        </View>
-                    ) : null}
-                    {unplaced ? (
-                        <View
-                            accessibilityLabel={t("log.row.unplaced", { code: currency })}
-                            className="border-border rounded-[3px] border px-[3px]"
-                        >
-                            <MonoLabel className="text-subtle">{`${currency}?`}</MonoLabel>
-                        </View>
-                    ) : null}
-                    {rateNeeded ? (
-                        <View
-                            accessibilityLabel={t("log.row.rateNeededAccessibility")}
-                            className="border-warning rounded-[3px] border px-[3px]"
-                        >
-                            <MonoLabel className="text-foreground">{t("log.row.rateNeeded")}</MonoLabel>
-                        </View>
-                    ) : null}
-                </View>
-                {transaction.details ? (
-                    <Text className={cn("text-footnote", future ? "text-subtle" : "text-muted")} numberOfLines={1}>
-                        {transaction.details}
-                    </Text>
-                ) : null}
-            </View>
-            <View className="items-end">
-                <RowAmount
-                    amount={transaction.moved?.sent ?? transaction.amount}
-                    code={code}
-                    income={transaction.income}
-                    isFuture={future}
-                    showCents={showCents}
-                    transfer={isTransfer}
-                    transferSign={transaction.sign}
-                />
-                <UnderAmount
-                    fee={
-                        transaction.fee && {
-                            amount: transaction.fee.amount,
-                            currency: transaction.fee.currency ?? currency,
-                        }
-                    }
-                    moved={transaction.moved}
-                    sentCurrency={code}
-                    showCents={showCents}
+                {stacked ? amount : null}
+                <RowMeta
+                    currency={currency}
+                    details={transaction.details}
+                    foreignCode={foreignCode}
+                    future={future}
+                    rateNeeded={rateNeeded}
+                    subtitle={subtitle}
+                    unplaced={unplaced}
+                    wrap={stacked}
                 />
             </View>
+            {stacked ? null : amount}
         </Pressable>
     );
 

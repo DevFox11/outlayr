@@ -10,6 +10,39 @@ diff --git a/lib/module/native/glyphMetricsShared.js b/lib/module/native/glyphMe
    const weight = style.fontWeight ?? "";
    const base = `${style.fontFamily}:${style.fontSize}:${variant}:${weight}`;
    return additionalChars ? `${base}:${additionalChars}` : base;
+diff --git a/lib/module/native/useMeasuredGlyphMetrics.js b/lib/module/native/useMeasuredGlyphMetrics.js
+--- a/lib/module/native/useMeasuredGlyphMetrics.js
++++ b/lib/module/native/useMeasuredGlyphMetrics.js
+@@ -1,7 +1,7 @@
+ "use strict";
+ 
+ import React, { useCallback, useMemo, useReducer, useRef } from "react";
+-import { Text } from "react-native";
++import { Text, useWindowDimensions } from "react-native";
+ import { buildCharSet, cacheKey, estimateCharBounds, metricsCache } from "./glyphMetricsShared.js";
+ import { jsx as _jsx } from "react/jsx-runtime";
+ const MeasureComponent = /*#__PURE__*/React.memo(({
+@@ -71,7 +71,10 @@ const MeasureComponent = /*#__PURE__*/React.memo(({
+ MeasureComponent.displayName = "NumberFlowMeasure";
+ export function useMeasuredGlyphMetrics(style, additionalChars, localeDigitStrings) {
+   const charSet = useMemo(() => buildCharSet(additionalChars), [additionalChars]);
+-  const key = cacheKey(style, additionalChars);
++  const {
++    fontScale
++  } = useWindowDimensions();
++  const key = `${cacheKey(style, additionalChars)}|${fontScale}`;
+   const cached = metricsCache.get(key);
+   const [, forceUpdate] = useReducer(n => n + 1, 0);
+ 
+@@ -80,7 +83,7 @@ export function useMeasuredGlyphMetrics(style, additionalChars, localeDigitStrin
+    * returning null (and unmounting all slots) when additionalChars
+    * changes and triggers an async re-measurement.
+    */
+-  const baseKey = cacheKey(style);
++  const baseKey = `${cacheKey(style)}|${fontScale}`;
+   const prevMetricsRef = useRef(null);
+   if (cached) prevMetricsRef.current = cached;
+   const handleComplete = useCallback(metrics => {
 diff --git a/lib/typescript/native/glyphMetricsShared.d.ts b/lib/typescript/native/glyphMetricsShared.d.ts
 --- a/lib/typescript/native/glyphMetricsShared.d.ts
 +++ b/lib/typescript/native/glyphMetricsShared.d.ts
@@ -40,3 +73,32 @@ diff --git a/src/native/glyphMetricsShared.ts b/src/native/glyphMetricsShared.ts
    const weight = style.fontWeight ?? "";
    const base = `${style.fontFamily}:${style.fontSize}:${variant}:${weight}`;
    return additionalChars ? `${base}:${additionalChars}` : base;
+diff --git a/src/native/useMeasuredGlyphMetrics.tsx b/src/native/useMeasuredGlyphMetrics.tsx
+--- a/src/native/useMeasuredGlyphMetrics.tsx
++++ b/src/native/useMeasuredGlyphMetrics.tsx
+@@ -1,5 +1,5 @@
+ import React, { useCallback, useMemo, useReducer, useRef } from "react";
+-import { Text, type TextStyle } from "react-native";
++import { Text, useWindowDimensions, type TextStyle } from "react-native";
+ import type { GlyphMetrics } from "../core/types";
+ import { buildCharSet, cacheKey, estimateCharBounds, metricsCache } from "./glyphMetricsShared";
+ 
+@@ -108,7 +108,8 @@ export function useMeasuredGlyphMetrics(
+   MeasureElement: React.ReactElement | null;
+ } {
+   const charSet = useMemo(() => buildCharSet(additionalChars), [additionalChars]);
+-  const key = cacheKey(style, additionalChars);
++  const { fontScale } = useWindowDimensions();
++  const key = `${cacheKey(style, additionalChars)}|${fontScale}`;
+   const cached = metricsCache.get(key);
+   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
+ 
+@@ -117,7 +118,7 @@ export function useMeasuredGlyphMetrics(
+    * returning null (and unmounting all slots) when additionalChars
+    * changes and triggers an async re-measurement.
+    */
+-  const baseKey = cacheKey(style);
++  const baseKey = `${cacheKey(style)}|${fontScale}`;
+   const prevMetricsRef = useRef<GlyphMetrics | null>(null);
+   if (cached) prevMetricsRef.current = cached;
+ 

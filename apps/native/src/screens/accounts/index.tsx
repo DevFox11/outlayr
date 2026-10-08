@@ -41,6 +41,7 @@ import type { Account } from "@/data/accounts-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import type { Database } from "@/db/client";
 import { formatSignedAmount, isMultiCurrency } from "@/domain/account-display";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { hitArea, outline } from "@/lib/swift-ui-geometry";
 import { useColors } from "@/theme/use-colors";
@@ -183,10 +184,24 @@ const AccountRow = memo(({ account, colors, db, onDelete, onOpen }: AccountRowPr
     const { language } = useLanguage();
     const { showCents } = useDisplaySettings().state;
     const balance = useAccountBalance(db, account);
+    const stacked = useAccessibilityTextSize();
     const subtitle = isMultiCurrency(balance.composition, account.currency)
         ? t("accounts.multiCurrency")
         : account.currency;
     const tileColor = account.imageColor ?? account.customColor ?? colors.foreground;
+    const subtitleText = (
+        <SwiftText modifiers={[SUBTITLE, lineLimit(1), foregroundStyle(colors.muted)]}>{subtitle}</SwiftText>
+    );
+    const balanceTexts = (
+        <>
+            {balance.exact ? null : (
+                <SwiftText modifiers={[APPROX, foregroundStyle(colors.subtle)]}>{`${account.currency}?`}</SwiftText>
+            )}
+            <SwiftText modifiers={[AMOUNT, monospacedDigit(), lineLimit(1), foregroundStyle(LABEL)]}>
+                {formatSignedAmount(balance.total, account.currency, showCents, language)}
+            </SwiftText>
+        </>
+    );
 
     return (
         <SwipeActions>
@@ -217,21 +232,27 @@ const AccountRow = memo(({ account, colors, db, onDelete, onOpen }: AccountRowPr
                         />
                     </View>
                 </RNHostView>
-                <VStack alignment="leading" spacing={1}>
-                    <SwiftText modifiers={[PARENT_NAME, lineLimit(1), foregroundStyle(LABEL)]}>
-                        {account.name}
-                    </SwiftText>
-                    <SwiftText modifiers={[SUBTITLE, lineLimit(1), foregroundStyle(colors.muted)]}>
-                        {subtitle}
-                    </SwiftText>
-                </VStack>
-                <Spacer />
-                {balance.exact ? null : (
-                    <SwiftText modifiers={[APPROX, foregroundStyle(colors.subtle)]}>{`${account.currency}?`}</SwiftText>
+                {stacked ? (
+                    <VStack alignment="leading" spacing={1}>
+                        <SwiftText modifiers={[PARENT_NAME, foregroundStyle(LABEL)]}>
+                            {`${account.name} `}
+                            <SwiftText modifiers={[SUBTITLE, foregroundStyle(colors.muted)]}>{subtitle}</SwiftText>
+                        </SwiftText>
+                        <HStack spacing={6}>{balanceTexts}</HStack>
+                    </VStack>
+                ) : (
+                    <>
+                        <VStack alignment="leading" spacing={1}>
+                            <SwiftText modifiers={[PARENT_NAME, lineLimit(1), foregroundStyle(LABEL)]}>
+                                {account.name}
+                            </SwiftText>
+                            {subtitleText}
+                        </VStack>
+                        <Spacer />
+                        {balanceTexts}
+                    </>
                 )}
-                <SwiftText modifiers={[AMOUNT, monospacedDigit(), lineLimit(1), foregroundStyle(LABEL)]}>
-                    {formatSignedAmount(balance.total, account.currency, showCents, language)}
-                </SwiftText>
+                {stacked ? <Spacer /> : null}
                 <Image color={colors.muted} modifiers={[CHEVRON]} systemName="chevron.right" />
             </HStack>
             <SwipeActions.Actions edge="trailing">

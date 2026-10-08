@@ -6,6 +6,7 @@ import { Pressable, View } from "react-native";
 import { Sentence } from "@/components/sentence/sentence";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useColors } from "@/theme/use-colors";
 
 import { StageOptionRow } from "./stage-options";
@@ -36,6 +37,7 @@ interface StepFeeProps<Id extends string> {
 }
 
 function FeeField({ comesTo, label, placeholder, unit, value }: StepFeeField) {
+    const largeText = useAccessibilityTextSize();
     return (
         <View
             accessibilityLabel={label}
@@ -46,7 +48,7 @@ function FeeField({ comesTo, label, placeholder, unit, value }: StepFeeField) {
                     .join(", "),
             }}
             accessible
-            className="border-tint h-12 flex-row items-baseline gap-2.5 border-b-2"
+            className={cn("border-tint flex-row items-baseline gap-2.5 border-b-2", largeText ? "min-h-12" : "h-12")}
             testID="stage-fee-field"
         >
             <View className="flex-row items-center">

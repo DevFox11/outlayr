@@ -17,6 +17,7 @@ import { measureIsIncome, measureIsPositive, measureMagnitude } from "@/domain/l
 import type { LogFigures, LogMeasure } from "@/domain/log-measure";
 import type { SparklinePoint } from "@/domain/log-sparkline";
 import { formatAmount, maskedAmount } from "@/domain/money";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
@@ -26,6 +27,7 @@ import { LogHeroNumber } from "./log-hero-number";
 import { LogSparkline } from "./log-sparkline";
 
 const LOG_CONTROLS = { alignItems: "center", flexDirection: "row", gap: 8 } as const;
+const LOG_CONTROLS_UNDER_HERO = { ...LOG_CONTROLS, alignSelf: "flex-end" } as const;
 
 interface LogInsightsProps {
     /** What the chip offers, ledger currency first — see `logCurrencyOptions`. */
@@ -71,6 +73,7 @@ export function LogInsights({
 }: LogInsightsProps) {
     const { showCents } = useDisplaySettings().state;
     const t = useTranslation();
+    const largeText = useAccessibilityTextSize();
     // The buckets are already expressed in `displayCurrency`; it only fails to
     // name one when nothing in the period could be placed there.
     const figures = insights.perCurrency.find((f) => f.currencyCode === displayCurrency) ?? insights.dominant;
@@ -80,8 +83,8 @@ export function LogInsights({
         <View className="pt-3.5 pb-1.5">
             <MonoLabel>{`${t(MEASURE_WORD_KEY[measure])} · ${t(PERIOD_PHRASE_KEY[period])}`}</MonoLabel>
 
-            <View className="flex-row items-center gap-2 pt-1">
-                <View className="flex-1">
+            <View className={largeText ? "gap-2 pt-1" : "flex-row items-center gap-2 pt-1"}>
+                <View className={largeText ? undefined : "flex-1"}>
                     <LogHeroNumber
                         code={figures.currencyCode}
                         magnitude={measureMagnitude(measure, figures)}
@@ -89,7 +92,7 @@ export function LogInsights({
                         showCents={showCents}
                     />
                 </View>
-                <GlassContainer style={LOG_CONTROLS}>
+                <GlassContainer style={largeText ? LOG_CONTROLS_UNDER_HERO : LOG_CONTROLS}>
                     <AmountsEyeButton />
                     <DisplayCurrencyChip
                         // The figures' own currency, not the requested one: when nothing in

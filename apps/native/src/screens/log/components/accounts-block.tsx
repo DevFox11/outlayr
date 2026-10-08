@@ -11,6 +11,7 @@ import type { Account } from "@/data/accounts-core";
 import type { AccountsOverview, OverviewRow } from "@/domain/account-display";
 import { formatSignedAmount } from "@/domain/account-display";
 import { maskedAmount } from "@/domain/money";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 import { useColors } from "@/theme/use-colors";
@@ -56,6 +57,7 @@ export function AccountsBlock({
     const t = useTranslation();
     const { language } = useLanguage();
     const hidden = use(AmountsHiddenContext);
+    const stacked = useAccessibilityTextSize();
     if (overview == null) {
         return null;
     }
@@ -74,7 +76,10 @@ export function AccountsBlock({
                     accessibilityLabel={`${t("accounts.overview.heading")} · ${overview.count}`}
                     accessibilityRole="button"
                     accessibilityValue={{ text: hidden ? t("log.amounts.hidden") : total }}
-                    className="flex-1 flex-row items-baseline justify-between gap-2 active:opacity-70"
+                    className={cn(
+                        "flex-1 active:opacity-70",
+                        stacked ? "gap-0.75" : "flex-row items-baseline justify-between gap-2"
+                    )}
                     onPress={onOpenAll}
                     testID="accounts-overview-card"
                 >
@@ -151,6 +156,18 @@ function AccountRow({ account, row, currency, showCents, language, onPress }: Ac
         ? maskedAmount(currency)
         : formatSignedAmount(owed ? -row.balance : row.balance, currency, showCents, language);
     const tileColor = account.imageColor ?? account.customColor ?? colors.foreground;
+    const stacked = useAccessibilityTextSize();
+    const balance = (
+        <>
+            {row.exact ? null : <MonoLabel className="text-subtle">{`${currency}?`}</MonoLabel>}
+            <Text
+                className={cn("font-sans-medium text-callout tabular-nums", owed ? "text-muted" : "text-foreground")}
+                numberOfLines={1}
+            >
+                {figure}
+            </Text>
+        </>
+    );
 
     return (
         <Pressable
@@ -158,7 +175,7 @@ function AccountRow({ account, row, currency, showCents, language, onPress }: Ac
                 .filter((part) => part !== null)
                 .join(", ")}
             accessibilityRole="button"
-            className="flex-row items-center gap-3 py-2 active:opacity-70"
+            className={cn("flex-row gap-3 py-2 active:opacity-70", stacked ? "items-start" : "items-center")}
             onPress={onPress}
         >
             <CategoryIconTile
@@ -171,22 +188,17 @@ function AccountRow({ account, row, currency, showCents, language, onPress }: Ac
                 type="solid"
             />
             <View className="flex-1 gap-0.5">
-                <Text className="font-sans-medium text-callout text-foreground" numberOfLines={1}>
+                <Text className="font-sans-medium text-callout text-foreground" numberOfLines={stacked ? 2 : 1}>
                     {account.name}
                 </Text>
+                {stacked ? <View className="flex-row items-baseline gap-1.5">{balance}</View> : null}
                 {subtitle === null ? null : (
                     <Text className="font-sans-medium text-subtitle text-muted" numberOfLines={1}>
                         {subtitle}
                     </Text>
                 )}
             </View>
-            {row.exact ? null : <MonoLabel className="text-subtle">{`${currency}?`}</MonoLabel>}
-            <Text
-                className={cn("font-sans-medium text-callout tabular-nums", owed ? "text-muted" : "text-foreground")}
-                numberOfLines={1}
-            >
-                {figure}
-            </Text>
+            {stacked ? null : balance}
         </Pressable>
     );
 }

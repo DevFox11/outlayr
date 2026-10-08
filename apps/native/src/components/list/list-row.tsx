@@ -12,6 +12,7 @@ import { settingsIcon } from "@/components/settings/settings-icons";
 import { TintedLabel, tintedLabelAvailable } from "@/components/settings/tinted-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useColors } from "@/theme/use-colors";
 
 const GLYPH = 20;
@@ -31,6 +32,7 @@ export function SettingsSection({ title, footer, children }: { title: string; fo
 }
 
 interface RowShellProps {
+    below?: ReactNode;
     children?: ReactNode;
     destructive?: boolean;
     detail?: string;
@@ -38,8 +40,9 @@ interface RowShellProps {
     title: string;
 }
 
-function RowShell({ icon, title, destructive, detail, children }: RowShellProps) {
+function RowShell({ icon, title, destructive, detail, children, below }: RowShellProps) {
     const colors = useColors();
+    const largeText = useAccessibilityTextSize();
     return (
         <View className="border-border border-b py-3.5">
             <View className="flex-row items-center gap-3">
@@ -53,12 +56,13 @@ function RowShell({ icon, title, destructive, detail, children }: RowShellProps)
                 ) : null}
                 <Text
                     className={cn("text-body flex-1", destructive ? "text-danger" : "text-foreground")}
-                    numberOfLines={1}
+                    numberOfLines={largeText ? 2 : 1}
                 >
                     {title}
                 </Text>
                 {children}
             </View>
+            {below ? <View className={cn(icon && TITLE_INSET, "items-start")}>{below}</View> : null}
             {detail ? (
                 <Text className={cn(icon && TITLE_INSET, "text-muted text-subtitle leading-snug")}>{detail}</Text>
             ) : null}
@@ -100,9 +104,16 @@ interface LinkRowProps {
 }
 
 export function LinkRow({ icon, title, value, detail, destructive, onPress }: LinkRowProps) {
+    const stacked = useAccessibilityTextSize() && Boolean(value);
     const body = (
-        <RowShell destructive={destructive} detail={detail} icon={icon} title={title}>
-            <RowTrailing interactive={onPress != null} value={value} />
+        <RowShell
+            below={stacked ? <Text className="text-body text-muted">{value}</Text> : undefined}
+            destructive={destructive}
+            detail={detail}
+            icon={icon}
+            title={title}
+        >
+            <RowTrailing interactive={onPress != null} value={stacked ? undefined : value} />
         </RowShell>
     );
 
@@ -135,39 +146,38 @@ export function PickerRow<T extends string | number | boolean>({
     onChange: (value: T) => void;
 }) {
     const colors = useColors();
-    return (
-        <RowShell detail={detail} icon={icon} title={title}>
-            <Host matchContents>
-                <Picker
-                    modifiers={[pickerStyle("menu"), tint(attention ? colors.danger : colors.muted)]}
-                    onSelectionChange={(next) => {
-                        const picked = options.find((option) => String(option.value) === next);
-                        if (picked) {
-                            onChange(picked.value);
-                        }
-                    }}
-                    selection={String(value)}
-                >
-                    {options.map((option) => {
-                        const key = String(option.value);
-                        if (tintedLabelAvailable && option.swatch) {
-                            return (
-                                <TintedLabel
-                                    color={option.swatch}
-                                    key={key}
-                                    modifiers={[tag(key)]}
-                                    title={option.label}
-                                />
-                            );
-                        }
+    const stacked = useAccessibilityTextSize();
+    const picker = (
+        <Host matchContents>
+            <Picker
+                modifiers={[pickerStyle("menu"), tint(attention ? colors.danger : colors.muted)]}
+                onSelectionChange={(next) => {
+                    const picked = options.find((option) => String(option.value) === next);
+                    if (picked) {
+                        onChange(picked.value);
+                    }
+                }}
+                selection={String(value)}
+            >
+                {options.map((option) => {
+                    const key = String(option.value);
+                    if (tintedLabelAvailable && option.swatch) {
                         return (
-                            <NativeText key={key} modifiers={[tag(key)]}>
-                                {option.label}
-                            </NativeText>
+                            <TintedLabel color={option.swatch} key={key} modifiers={[tag(key)]} title={option.label} />
                         );
-                    })}
-                </Picker>
-            </Host>
+                    }
+                    return (
+                        <NativeText key={key} modifiers={[tag(key)]}>
+                            {option.label}
+                        </NativeText>
+                    );
+                })}
+            </Picker>
+        </Host>
+    );
+    return (
+        <RowShell below={stacked ? picker : undefined} detail={detail} icon={icon} title={title}>
+            {stacked ? null : picker}
         </RowShell>
     );
 }

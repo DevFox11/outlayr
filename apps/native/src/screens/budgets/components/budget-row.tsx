@@ -16,6 +16,7 @@ import type { CategoryBudgetView } from "@/data/budgets";
 import { buildDaySlots, dayVerdictSentence } from "@/domain/budget-day-slots";
 import { BUDGET_TYPE, leftPerDay } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useOverBudgetMoment } from "@/hooks/use-over-budget-moment";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
@@ -55,6 +56,7 @@ export function BudgetRow({
     const haptics = useHaptics();
     const t = useTranslation();
     const { language } = useLanguage();
+    const stacked = useAccessibilityTextSize();
     const swipeRef = useRef<SwipeableMethods>(null);
     const now = new Date(nowMs);
     const over = budget.overBudget;
@@ -136,8 +138,11 @@ export function BudgetRow({
                         }}
                         onPress={() => onPress(budget.id)}
                     >
-                        <View className="flex-row items-center gap-2">
-                            <Text className="font-sans-semibold text-body text-foreground flex-1" numberOfLines={1}>
+                        <View className={stacked ? "items-start gap-1" : "flex-row items-center gap-2"}>
+                            <Text
+                                className={cn("font-sans-semibold text-body text-foreground", !stacked && "flex-1")}
+                                numberOfLines={stacked ? undefined : 1}
+                            >
                                 {budget.name}
                             </Text>
                             <Animated.View style={crossedStyle}>
@@ -171,7 +176,7 @@ export function BudgetRow({
                         ) : (
                             <BudgetProgressBar limit={budget.amount} spent={budget.spent} tint={budget.color} />
                         )}
-                        <MonoLabel numberOfLines={1}>{meta}</MonoLabel>
+                        <MonoLabel numberOfLines={stacked ? undefined : 1}>{meta}</MonoLabel>
                         {dayVerdict ? <Text className="text-foreground text-label">{dayVerdict}</Text> : null}
                     </Pressable>
                 </ActionMenu>

@@ -9,6 +9,7 @@ import { cn } from "@/components/tw";
 import type { CategoryBreakdownEntry, InsightsMeasure } from "@/data/insights";
 import { breakdownRiseIsFavourable } from "@/domain/insights-measure";
 import { formatAmount } from "@/domain/money";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
@@ -38,6 +39,7 @@ export function CategoryBreakdownRow({
     const colors = useColors();
     const t = useTranslation();
     const { language } = useLanguage();
+    const stacked = useAccessibilityTextSize();
     const income = measure === "income";
     const toneClass = income ? "text-income" : "text-foreground";
     const sign = income ? "+" : "-";
@@ -46,6 +48,38 @@ export function CategoryBreakdownRow({
     // direction, and the category is the secondary fact.
     const fill = income ? colors.income : entry.color;
     const pct = Math.round(entry.fraction * 100);
+
+    const name = (
+        <Text
+            className={cn("font-sans-semibold text-body text-foreground", !stacked && "flex-1")}
+            numberOfLines={stacked ? undefined : 1}
+        >
+            {entry.name}
+        </Text>
+    );
+    const figures = (
+        <>
+            <Text className={cn("tabular-nums", "font-sans-semibold text-body", toneClass)} numberOfLines={1}>
+                {sign}
+                {formatAmount(entry.amount, code, showCents, language)}
+            </Text>
+            <Text className="text-label text-muted min-w-[34px] text-right font-mono">{pct}%</Text>
+            {selected && onClear ? (
+                <Pressable
+                    accessibilityElementsHidden
+                    accessibilityLabel={t("insights.category.clearFilter")}
+                    accessibilityRole="button"
+                    className="bg-surface size-[26px] items-center justify-center rounded-full active:opacity-70"
+                    hitSlop={9}
+                    onPress={onClear}
+                >
+                    <HugeiconsIcon color={colors.muted} icon={Cancel01Icon} size={13} strokeWidth={2.5} />
+                </Pressable>
+            ) : (
+                <DeltaCell delta={entry.delta} measure={measure} />
+            )}
+        </>
+    );
 
     const body = (
         <View
@@ -58,27 +92,16 @@ export function CategoryBreakdownRow({
         >
             <View className="flex-row items-center gap-3">
                 <CategoryIconTile color={entry.color} emoji={entry.emoji} icon={entry.icon} size={34} />
-                <Text className="font-sans-semibold text-body text-foreground flex-1" numberOfLines={1}>
-                    {entry.name}
-                </Text>
-                <Text className={cn("tabular-nums", "font-sans-semibold text-body", toneClass)} numberOfLines={1}>
-                    {sign}
-                    {formatAmount(entry.amount, code, showCents, language)}
-                </Text>
-                <Text className="text-label text-muted min-w-[34px] text-right font-mono">{pct}%</Text>
-                {selected && onClear ? (
-                    <Pressable
-                        accessibilityElementsHidden
-                        accessibilityLabel={t("insights.category.clearFilter")}
-                        accessibilityRole="button"
-                        className="bg-surface size-[26px] items-center justify-center rounded-full active:opacity-70"
-                        hitSlop={9}
-                        onPress={onClear}
-                    >
-                        <HugeiconsIcon color={colors.muted} icon={Cancel01Icon} size={13} strokeWidth={2.5} />
-                    </Pressable>
+                {stacked ? (
+                    <View className="flex-1 gap-1">
+                        {name}
+                        <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1">{figures}</View>
+                    </View>
                 ) : (
-                    <DeltaCell delta={entry.delta} measure={measure} />
+                    <>
+                        {name}
+                        {figures}
+                    </>
                 )}
             </View>
             <View className="bg-rail-track h-1 w-full overflow-hidden rounded-full">

@@ -13,6 +13,7 @@ const mockPresent = jest.fn();
 const mockAccounts = jest.fn(() => [{ id: "a" }, { id: "b" }]);
 /** The QA sim in portrait. Overridden per-test to stand the window on its side. */
 const mockWindowHeight = jest.fn(() => 956);
+const mockWindowWidth = jest.fn(() => 440);
 /** Dynamic Type multiplier. 1 is a device that has not scaled its text. */
 const mockFontScale = jest.fn(() => 1);
 /** Whether the Log is the tab on screen. Flip it to leave the tab. */
@@ -61,7 +62,7 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
     __esModule: true,
-    default: () => ({ fontScale: mockFontScale(), height: mockWindowHeight(), scale: 3, width: 440 }),
+    default: () => ({ fontScale: mockFontScale(), height: mockWindowHeight(), scale: 3, width: mockWindowWidth() }),
 }));
 
 /**
@@ -89,6 +90,12 @@ const pressAction = (label: string) => press(screen.getByLabelText(label));
  */
 const dialExpanded = () => screen.getByLabelText("log.add.menu").props.accessibilityState.expanded;
 
+const LINE_CLAMP = /line-clamp-(\d)/;
+const chipClamps = () =>
+    screen
+        .getAllByText(/^log\.add\./)
+        .map((chip) => [chip.props.children, LINE_CLAMP.exec(chip.props.className)?.[1] ?? null]);
+
 describe("floatingAddButton", () => {
     beforeEach(() => {
         mockPush.mockClear();
@@ -98,6 +105,7 @@ describe("floatingAddButton", () => {
         mockGetResumeStep.mockReturnValue("source");
         mockAccounts.mockReturnValue([{ id: "a" }, { id: "b" }]);
         mockWindowHeight.mockReturnValue(956);
+        mockWindowWidth.mockReturnValue(440);
         mockFontScale.mockReturnValue(1);
         mockIsFocused.mockReturnValue(true);
         mockHaptics.mockClear();
@@ -256,38 +264,42 @@ describe("floatingAddButton", () => {
         expect(mockHaptics).toHaveBeenCalledWith("selection");
     });
 
-    it("clamps the labels when Dynamic Type wraps them tall, keeping every action", async () => {
-        // An accessibility text size wraps each chip to three lines, which makes a
-        // row roughly four times its resting height even in portrait.
-        mockFontScale.mockReturnValue(3.1);
+    it("drops the least-reached-for actions at an accessibility size rather than cut every label to a word", async () => {
+        mockFontScale.mockReturnValue(3.143);
 
         await render(<FloatingAddButton />);
         await openDial();
 
-        expect(screen.getAllByText(/^log\.add\./).map((chip) => chip.props.children)).toStrictEqual([
-            "log.add.import",
-            "log.add.scan",
-            "log.add.voice",
-            "log.add.transfer",
-            "log.add.transaction",
+        expect(chipClamps()).toStrictEqual([
+            ["log.add.voice", "2"],
+            ["log.add.transfer", "2"],
+            ["log.add.transaction", null],
         ]);
     });
 
-    it("clamps the labels rather than dropping a working action", async () => {
-        // An iPhone in landscape at an accessibility text size: ~331pt of room for
-        // a column the four runnable actions want ~940pt for at full height. The
-        // second and third label lines are given up before any command is, and
-        // only then the import, so the three most-wanted commands survive.
-        mockWindowHeight.mockReturnValue(440);
-        mockFontScale.mockReturnValue(3.1);
+    it("narrows the labels to fit a 375pt screen at an accessibility size", async () => {
+        mockWindowWidth.mockReturnValue(375);
+        mockFontScale.mockReturnValue(2.643);
 
         await render(<FloatingAddButton />);
         await openDial();
 
-        expect(screen.getAllByText(/^log\.add\./).map((chip) => chip.props.children)).toStrictEqual([
-            "log.add.voice",
-            "log.add.transfer",
-            "log.add.transaction",
+        for (const chip of screen.getAllByText(/^log\.add\./)) {
+            expect(chip.props.className).toContain("max-w-[240px]");
+        }
+    });
+
+    it("clamps the labels before dropping an action at a standard text size", async () => {
+        mockWindowHeight.mockReturnValue(440);
+        mockFontScale.mockReturnValue(1.3);
+
+        await render(<FloatingAddButton />);
+        await openDial();
+
+        expect(chipClamps()).toStrictEqual([
+            ["log.add.voice", "1"],
+            ["log.add.transfer", "1"],
+            ["log.add.transaction", null],
         ]);
     });
 

@@ -92,6 +92,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
     const colors = useColors();
     const haptics = useHaptics();
     const insets = useSafeAreaInsets();
+    const [ctaHeight, setCtaHeight] = useState(CTA_HEIGHT);
     const globalCurrency = useGlobalCurrency(db);
     const aiEnrichment = useAppSettings().state.bool("aiEnrichment");
     const groundedLookup = useAppSettings().state.bool("groundedLookup");
@@ -367,7 +368,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
             <View
                 style={{
                     flex: 1,
-                    paddingBottom: CTA_HEIGHT + CTA_BOTTOM_PADDING + insets.bottom,
+                    paddingBottom: ctaHeight + CTA_BOTTOM_PADDING + insets.bottom,
                     paddingTop: heroBand,
                 }}
             >
@@ -444,12 +445,14 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
             >
                 <InlineFailure message={failure} />
 
-                <EditorCta
-                    busy={isSubmitting}
-                    canSave={canSave}
-                    label={t(mode === "create" ? "accounts.addAccount" : "accounts.saveAccount")}
-                    onPress={() => pressSubmit(form)}
-                />
+                <View onLayout={(event) => setCtaHeight(event.nativeEvent.layout.height)}>
+                    <EditorCta
+                        busy={isSubmitting}
+                        canSave={canSave}
+                        label={t(mode === "create" ? "accounts.addAccount" : "accounts.saveAccount")}
+                        onPress={() => pressSubmit(form)}
+                    />
+                </View>
             </Animated.View>
 
             <CurrencyPickerSheet

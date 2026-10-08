@@ -10,6 +10,7 @@ import { useSettingBool } from "@/contexts/display-settings-context";
 import { bucketDateLabel } from "@/data/insights";
 import type { InsightsBucket, InsightsMeasure, InsightsPeriod } from "@/data/insights";
 import { amountParts, formatAmount, withCurrencySymbol } from "@/domain/money";
+import { LARGEST_STANDARD_FONT_SCALE } from "@/hooks/use-accessibility-text-size";
 import { useChartDraw } from "@/hooks/use-chart-draw";
 import { useLanguage } from "@/i18n/context";
 import { CHART_BAR, CHART_DASH, CHART_SCRUB, compactMagnitude, dashArray } from "@/theme/chart";
@@ -326,7 +327,12 @@ function Bar({ value, plot, color, trackColor, animated, dimmed, future, label, 
 
 function AxisLabel({ children, color }: { children: string; color: string }) {
     return (
-        <RNText className="text-micro font-mono" numberOfLines={1} style={{ color }}>
+        <RNText
+            className="text-micro font-mono"
+            maxFontSizeMultiplier={LARGEST_STANDARD_FONT_SCALE}
+            numberOfLines={1}
+            style={{ color }}
+        >
             {children}
         </RNText>
     );

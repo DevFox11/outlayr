@@ -8,6 +8,7 @@ import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { CategoryMover, InsightsMeasure } from "@/data/insights";
 import { breakdownRiseIsFavourable } from "@/domain/insights-measure";
 import { formatAmount } from "@/domain/money";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
 interface InsightsMoversProps {
@@ -52,21 +53,22 @@ function MoverRow({
 }) {
     const t = useTranslation();
     const { language } = useLanguage();
+    const stacked = useAccessibilityTextSize();
     const rose = mover.delta > 0;
     // Shared with `CategoryBreakdownRow` directly below, so the two cannot disagree.
     const favourable = breakdownRiseIsFavourable(measure) === rose;
     const toneClass = favourable ? "text-income" : "text-danger";
 
-    return (
-        // `accessible` collapses the four figures into one stop, the way the
-        // `Pressable` around the structurally identical `CategoryBreakdownRow`
-        // does. Without it a mover reads as a name, then a number, then a
-        // percent, with nothing relating them.
-        <View accessible className="flex-row items-center gap-2.5 py-1.5">
-            <CategoryIconTile color={mover.color} emoji={mover.emoji} icon={mover.icon} size={26} />
-            <Text className="font-sans-medium text-caption text-foreground flex-1" numberOfLines={1}>
-                {mover.name}
-            </Text>
+    const name = (
+        <Text
+            className={cn("font-sans-medium text-caption text-foreground", !stacked && "flex-1")}
+            numberOfLines={stacked ? undefined : 1}
+        >
+            {mover.name}
+        </Text>
+    );
+    const figures = (
+        <>
             <Text className={cn("tabular-nums", "font-sans-medium text-caption", toneClass)} numberOfLines={1}>
                 {rose ? "+" : "-"}
                 {formatAmount(Math.abs(mover.delta), code, showCents, language)}
@@ -76,6 +78,27 @@ function MoverRow({
                     ? t("insights.movers.new")
                     : `${mover.fraction > 0 ? "+" : ""}${Math.round(mover.fraction * 100)}%`}
             </Text>
+        </>
+    );
+
+    return (
+        // `accessible` collapses the four figures into one stop, the way the
+        // `Pressable` around the structurally identical `CategoryBreakdownRow`
+        // does. Without it a mover reads as a name, then a number, then a
+        // percent, with nothing relating them.
+        <View accessible className="flex-row items-center gap-2.5 py-1.5">
+            <CategoryIconTile color={mover.color} emoji={mover.emoji} icon={mover.icon} size={26} />
+            {stacked ? (
+                <View className="flex-1 gap-0.5">
+                    {name}
+                    <View className="flex-row flex-wrap items-center gap-x-2.5">{figures}</View>
+                </View>
+            ) : (
+                <>
+                    {name}
+                    {figures}
+                </>
+            )}
         </View>
     );
 }

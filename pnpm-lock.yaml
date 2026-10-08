@@ -56,8 +56,8 @@ packageExtensionsChecksum: sha256-vxRN6mijkLwKmGYe9K2T5UqJGw1dzskfO0l88utc9AY=
 
 patchedDependencies:
   expo-widgets@58.0.11: 1b7403ea42781fb39be7082be82a826594fb0f1894fc1954c9b7b38b4426ed29
-  number-flow-react-native@0.5.1: 96ba3028d2ebfa8444f210eee24e1ce37e7fd5ff553d95cd0ed0093c8071f0ed
-  panelui-native@0.105.0: c763cfd232353931aa0deaadf2e0f5bda97a9710b9441bdb050d06b90f9bab7a
+  number-flow-react-native@0.5.1: 68c4f1f878ed9a15dc006b39f473fe1d5518708c5bf041db100e122212776c2f
+  panelui-native@0.105.0: 55096cf0fd93cd173bea780405d0e1ffcc8fe2483863c5c920ed8b2f7dd30880
 
 importers:
 
@@ -263,10 +263,10 @@ importers:
         version: 9.5.2(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)(zod@4.6.2)
       number-flow-react-native:
         specifier: ^0.5.1
-        version: 0.5.1(patch_hash=96ba3028d2ebfa8444f210eee24e1ce37e7fd5ff553d95cd0ed0093c8071f0ed)(react-native-reanimated@4.7.0(react-native-worklets@0.13.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
+        version: 0.5.1(patch_hash=68c4f1f878ed9a15dc006b39f473fe1d5518708c5bf041db100e122212776c2f)(react-native-reanimated@4.7.0(react-native-worklets@0.13.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
       panelui-native:
         specifier: ^0.105.0
-        version: 0.105.0(patch_hash=c763cfd232353931aa0deaadf2e0f5bda97a9710b9441bdb050d06b90f9bab7a)(f41c063867571ca8a613f0e339cdbef3)
+        version: 0.105.0(patch_hash=55096cf0fd93cd173bea780405d0e1ffcc8fe2483863c5c920ed8b2f7dd30880)(f41c063867571ca8a613f0e339cdbef3)
       posthog-react-native:
         specifier: ^4.78.4
         version: 4.78.4(28de68947f9ef80cf5321ea92a99f1d3)
@@ -19150,7 +19150,7 @@ snapshots:
 
   nullthrows@1.1.1: {}
 
-  ? number-flow-react-native@0.5.1(patch_hash=96ba3028d2ebfa8444f210eee24e1ce37e7fd5ff553d95cd0ed0093c8071f0ed)(react-native-reanimated@4.7.0(react-native-worklets@0.13.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
+  ? number-flow-react-native@0.5.1(patch_hash=68c4f1f878ed9a15dc006b39f473fe1d5518708c5bf041db100e122212776c2f)(react-native-reanimated@4.7.0(react-native-worklets@0.13.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
   : dependencies:
       react: 19.3.0
       react-native: 0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
@@ -19349,7 +19349,7 @@ snapshots:
 
   pako@1.0.11: {}
 
-  panelui-native@0.105.0(patch_hash=c763cfd232353931aa0deaadf2e0f5bda97a9710b9441bdb050d06b90f9bab7a)(f41c063867571ca8a613f0e339cdbef3):
+  panelui-native@0.105.0(patch_hash=55096cf0fd93cd173bea780405d0e1ffcc8fe2483863c5c920ed8b2f7dd30880)(f41c063867571ca8a613f0e339cdbef3):
     dependencies:
       '@hugeicons/core-free-icons': 4.3.0
       '@hugeicons/react-native': 1.0.16(react-native-svg@15.15.5(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)

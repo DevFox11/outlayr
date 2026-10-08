@@ -1,6 +1,15 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
-import { Host, RNHostView, ScrollView, VStack } from "@expo/ui/swift-ui";
-import { animation, blur, padding, scrollDismissesKeyboard } from "@expo/ui/swift-ui/modifiers";
+import { Host, RNHostView, ScrollView, useNativeState, VStack } from "@expo/ui/swift-ui";
+import {
+    animation,
+    blur,
+    id as scrollId,
+    onAppear,
+    padding,
+    scrollDismissesKeyboard,
+    scrollPosition,
+    scrollTargetLayout,
+} from "@expo/ui/swift-ui/modifiers";
 import { ENTRY_RATE_TYPES } from "@outlayr/money/rates";
 import type { EntryRateType } from "@outlayr/money/rates";
 import { useField, useForm, useSelector } from "@tanstack/react-form";
@@ -100,6 +109,7 @@ import {
 import { buildTransactionInput } from "@/domain/transaction-form-save";
 import { transactionFormErrors } from "@/domain/transaction-form-validate";
 import { resolveTransactionIdentity } from "@/domain/transaction-identity";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
 import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 import { useRegionCode } from "@/hooks/use-region-code";
@@ -139,7 +149,7 @@ import { TransactionSentenceBody } from "./sentence/sentence-body";
 import type { TransactionSentenceMark } from "./sentence/slots";
 import type { TransactionRateClause } from "./sentence/transaction-sentence";
 import { MetaLine } from "./stage/meta-line";
-import { TransactionStage } from "./stage/stage";
+import { StagePartContext, TransactionStage } from "./stage/stage";
 import type { StageAction, StageFooter } from "./stage/stage";
 import type { StageOptionItem } from "./stage/stage-options";
 import { StepAccount } from "./stage/step-account";
@@ -1127,6 +1137,10 @@ export function TransactionForm({
      */
     const [stage, setStage] = useState<StagePosition>({ forward: true, step: "amount" });
     const stageStep = stage.step;
+    const largeText = useAccessibilityTextSize();
+    const stageScroll = useNativeState<string | null>(null);
+    const [stageTurn, setStageTurn] = useState(0);
+    const stageTarget = `stage-${stageTurn}`;
     const goStage = (step: StageStep, forward: boolean) => {
         // Unconditional: no step arrives focused, so a keyboard still standing here
         // was raised by the step or the note field being left behind, and it would
@@ -1134,6 +1148,7 @@ export function TransactionForm({
         Keyboard.dismiss();
         rest?.onWake();
         setStage({ forward, step });
+        setStageTurn((turn) => turn + 1);
     };
     /** Opens a step. The arriving body travels in from the right. */
     const enterStep = (step: StageStep) => goStage(step, true);
@@ -2481,6 +2496,15 @@ export function TransactionForm({
         );
     };
 
+    const stageFields = (
+        <SubscribeFields
+            selector={(s) => ({ amount: s.values.amount, merchant: s.values.merchant })}
+            store={form.store}
+        >
+            {({ amount, merchant }) => renderStage(amount, merchant)}
+        </SubscribeFields>
+    );
+
     const clearIdentity = () => {
         setIdentitySource("user");
         markTouched("identity");
@@ -2526,10 +2550,12 @@ export function TransactionForm({
                             // return key writes a newline and cannot also put the keyboard
                             // away. A drag is the way out.
                             scrollDismissesKeyboard("immediately"),
+                            ...(largeText ? [scrollPosition(stageScroll, { anchor: "top" })] : []),
                         ]}
                     >
                         <VStack
                             modifiers={[
+                                ...(largeText ? [scrollTargetLayout()] : []),
                                 padding({
                                     bottom: resting ? 0 : 40,
                                     horizontal: 20,
@@ -2777,6 +2803,25 @@ export function TransactionForm({
                                     </Animated.View>
                                 </RNHostView>
                             ) : null}
+
+                            {largeText && !resting ? (
+                                <>
+                                    <VStack
+                                        key={stageTarget}
+                                        modifiers={[
+                                            scrollId(stageTarget),
+                                            onAppear(() => stageScroll.set(stageTarget)),
+                                        ]}
+                                    >
+                                        {null}
+                                    </VStack>
+                                    <RNHostView matchContents>
+                                        <View style={{ width: contentWidth }}>
+                                            <StagePartContext value="inline">{stageFields}</StagePartContext>
+                                        </View>
+                                    </RNHostView>
+                                </>
+                            ) : null}
                         </VStack>
                     </ScrollView>
                 </Host>
@@ -2830,13 +2875,8 @@ export function TransactionForm({
 				    bottom of the screen. Only that step lifts: every other one is
 				    what the keyboard is meant to uncover. */}
                 {resting ? null : (
-                    <KeyboardAvoidingView behavior="padding" enabled={stageStep === "merchant"}>
-                        <SubscribeFields
-                            selector={(s) => ({ amount: s.values.amount, merchant: s.values.merchant })}
-                            store={form.store}
-                        >
-                            {({ amount, merchant }) => renderStage(amount, merchant)}
-                        </SubscribeFields>
+                    <KeyboardAvoidingView behavior="padding" enabled={stageStep === "merchant" && !largeText}>
+                        <StagePartContext value="pinned">{stageFields}</StagePartContext>
                     </KeyboardAvoidingView>
                 )}
 

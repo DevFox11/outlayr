@@ -14,6 +14,7 @@ import { APP_ICONS } from "@/domain/app-icons";
 import { FREE_ACCOUNTS, FREE_BUDGETS, FREE_CURRENCIES } from "@/domain/pro-limits";
 import { readPlans } from "@/domain/pro-plans";
 import type { Plan, PlanKind } from "@/domain/pro-plans";
+import { LARGEST_STANDARD_FONT_SCALE, useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useIsMounted } from "@/hooks/use-is-mounted";
 import { useLongWait } from "@/hooks/use-long-wait";
 import { proSellable } from "@/hooks/use-pro-locked";
@@ -52,8 +53,20 @@ function Comparison() {
         <View className="pt-4">
             <View className="flex-row items-baseline pb-1.5">
                 <View className="flex-1" />
-                <MonoLabel className="w-[74px] text-right">{t("pro.col.free")}</MonoLabel>
-                <MonoLabel className="text-foreground w-[74px] text-right">{t("pro.col.pro")}</MonoLabel>
+                <MonoLabel
+                    className="w-[74px] text-right"
+                    maxFontSizeMultiplier={LARGEST_STANDARD_FONT_SCALE}
+                    numberOfLines={1}
+                >
+                    {t("pro.col.free")}
+                </MonoLabel>
+                <MonoLabel
+                    className="text-foreground w-[74px] text-right"
+                    maxFontSizeMultiplier={LARGEST_STANDARD_FONT_SCALE}
+                    numberOfLines={1}
+                >
+                    {t("pro.col.pro")}
+                </MonoLabel>
             </View>
             <View className="border-foreground border-t">
                 <Row free="20" label={t("pro.row.captures")} pro="500" />
@@ -225,6 +238,7 @@ export function Paywall() {
     const { eligibleForTrial, getPackages, isMirrored, isPro, mirrorEntitlement, purchasePackage, restorePurchases } =
         useRevenueCat();
     const isMounted = useIsMounted();
+    const largeText = useAccessibilityTextSize();
     const { accountId } = useAuthSession();
     const [plans, setPlans] = useState<readonly Plan[] | null>(null);
     const [selected, setSelected] = useState<PlanKind | null>(null);
@@ -334,138 +348,149 @@ export function Paywall() {
     const needsAccount = !noCloud && accountId === null;
     const canBuy = !(isPro || needsAccount || noCloud);
 
+    const footer = (
+        <>
+            {needsAccount ? (
+                <View className="items-center px-5 pt-5">
+                    <Text className="text-muted text-subtitle text-center">{t("pro.needsAccount")}</Text>
+                </View>
+            ) : null}
+            {noCloud ? (
+                <View className="items-center px-5 pt-5">
+                    <Text className="text-muted text-subtitle text-center" testID="paywall-no-cloud">
+                        {t("pro.needsCloud")}
+                    </Text>
+                </View>
+            ) : null}
+            {canBuy ? (
+                <View className="px-5">
+                    <PlanPicker
+                        empty={empty}
+                        onRetry={retry}
+                        onSelect={setSelected}
+                        plans={plans}
+                        selected={selected}
+                    />
+                </View>
+            ) : null}
+            {isPro && failure === null ? (
+                <View className="items-center gap-3 px-5 pt-5">
+                    {isMirrored ? (
+                        <Text className="text-income text-subtitle text-center">{t("pro.alreadyActive")}</Text>
+                    ) : (
+                        <>
+                            <Text className="text-muted text-subtitle text-center" testID="paywall-unconfirmed">
+                                {t("pro.unconfirmed")}
+                            </Text>
+                            <Pressable
+                                accessibilityRole="button"
+                                disabled={busy !== null}
+                                onPress={confirm}
+                                testID="paywall-confirm"
+                            >
+                                {busy === "confirm" ? (
+                                    <BusyText className={MONO_LABEL_CLASS} color={colors.foreground}>
+                                        {t("pro.checking")}
+                                    </BusyText>
+                                ) : (
+                                    <MonoLabel className="text-foreground">{t("pro.retry")}</MonoLabel>
+                                )}
+                            </Pressable>
+                        </>
+                    )}
+                </View>
+            ) : null}
+
+            {failure === null ? null : (
+                <View className="px-5 pt-3">
+                    <Text className="text-danger text-footnote text-center" testID="paywall-failure">
+                        {t(failure)}
+                    </Text>
+                </View>
+            )}
+
+            {canBuy ? (
+                <View className="px-5 pt-5">
+                    <Button
+                        className="rounded-full"
+                        disabled={plan === null || busy !== null}
+                        fullWidth
+                        onPress={buy}
+                        size="md"
+                        testID="paywall-cta"
+                        variant="primary"
+                    >
+                        {busy === "buy" ? (
+                            <BusyText className="text-[16px] font-medium" color={colors.primaryForeground}>
+                                {t("pro.cta.unlocking")}
+                            </BusyText>
+                        ) : (
+                            ctaLabel(plan, t)
+                        )}
+                    </Button>
+                    {plan === null || plan.trialDays === null ? null : (
+                        <Text className="text-muted text-micro pt-2 text-center font-mono">
+                            {t(THEN_LABEL[plan.kind], { price: plan.priceString })}
+                        </Text>
+                    )}
+                </View>
+            ) : null}
+
+            <View className="flex-row items-center justify-center gap-4 px-5 pt-4">
+                {needsAccount ? null : (
+                    <>
+                        <Pressable
+                            accessibilityRole="button"
+                            disabled={busy !== null}
+                            onPress={restore}
+                            testID="paywall-restore"
+                        >
+                            {busy === "restore" ? (
+                                <BusyText className={MONO_LABEL_CLASS} color={colors.foreground}>
+                                    {t("pro.legal.restoring")}
+                                </BusyText>
+                            ) : (
+                                <MonoLabel>{t("pro.legal.restore")}</MonoLabel>
+                            )}
+                        </Pressable>
+                        <LegalDot />
+                    </>
+                )}
+                <Pressable accessibilityRole="link" onPress={() => openBrowserAsync(legalUrl("terms", language))}>
+                    <MonoLabel>{t("pro.legal.terms")}</MonoLabel>
+                </Pressable>
+                <LegalDot />
+                <Pressable accessibilityRole="link" onPress={() => openBrowserAsync(legalUrl("privacy", language))}>
+                    <MonoLabel>{t("pro.legal.privacy")}</MonoLabel>
+                </Pressable>
+            </View>
+        </>
+    );
+
     return (
         <View className="bg-background flex-1">
             <ScrollView
                 className="flex-1"
-                contentContainerClassName="px-5 pb-2"
+                contentContainerClassName={largeText ? "pb-4" : "pb-2"}
                 contentInsetAdjustmentBehavior="automatic"
             >
-                <View className="pt-2">
-                    <MonoLabel>{t("pro.eyebrow")}</MonoLabel>
-                    <Text className="text-foreground text-title font-sans-semibold pt-2 tracking-tight">
-                        {t("pro.title")}
-                    </Text>
-                </View>
-                <Comparison />
-            </ScrollView>
-
-            <ScrollView bounces={false} className="shrink grow-0" contentContainerClassName="pb-safe-offset-4">
-                {needsAccount ? (
-                    <View className="items-center px-5 pt-5">
-                        <Text className="text-muted text-subtitle text-center">{t("pro.needsAccount")}</Text>
-                    </View>
-                ) : null}
-                {noCloud ? (
-                    <View className="items-center px-5 pt-5">
-                        <Text className="text-muted text-subtitle text-center" testID="paywall-no-cloud">
-                            {t("pro.needsCloud")}
+                <View className="px-5">
+                    <View className="pt-2">
+                        <MonoLabel>{t("pro.eyebrow")}</MonoLabel>
+                        <Text className="text-foreground text-title font-sans-semibold pt-2 tracking-tight">
+                            {t("pro.title")}
                         </Text>
                     </View>
-                ) : null}
-                {canBuy ? (
-                    <View className="px-5">
-                        <PlanPicker
-                            empty={empty}
-                            onRetry={retry}
-                            onSelect={setSelected}
-                            plans={plans}
-                            selected={selected}
-                        />
-                    </View>
-                ) : null}
-                {isPro && failure === null ? (
-                    <View className="items-center gap-3 px-5 pt-5">
-                        {isMirrored ? (
-                            <Text className="text-income text-subtitle text-center">{t("pro.alreadyActive")}</Text>
-                        ) : (
-                            <>
-                                <Text className="text-muted text-subtitle text-center" testID="paywall-unconfirmed">
-                                    {t("pro.unconfirmed")}
-                                </Text>
-                                <Pressable
-                                    accessibilityRole="button"
-                                    disabled={busy !== null}
-                                    onPress={confirm}
-                                    testID="paywall-confirm"
-                                >
-                                    {busy === "confirm" ? (
-                                        <BusyText className={MONO_LABEL_CLASS} color={colors.foreground}>
-                                            {t("pro.checking")}
-                                        </BusyText>
-                                    ) : (
-                                        <MonoLabel className="text-foreground">{t("pro.retry")}</MonoLabel>
-                                    )}
-                                </Pressable>
-                            </>
-                        )}
-                    </View>
-                ) : null}
-
-                {failure === null ? null : (
-                    <View className="px-5 pt-3">
-                        <Text className="text-danger text-footnote text-center" testID="paywall-failure">
-                            {t(failure)}
-                        </Text>
-                    </View>
-                )}
-
-                {canBuy ? (
-                    <View className="px-5 pt-5">
-                        <Button
-                            className="rounded-full"
-                            disabled={plan === null || busy !== null}
-                            fullWidth
-                            onPress={buy}
-                            size="md"
-                            testID="paywall-cta"
-                            variant="primary"
-                        >
-                            {busy === "buy" ? (
-                                <BusyText className="text-[16px] font-medium" color={colors.primaryForeground}>
-                                    {t("pro.cta.unlocking")}
-                                </BusyText>
-                            ) : (
-                                ctaLabel(plan, t)
-                            )}
-                        </Button>
-                        {plan === null || plan.trialDays === null ? null : (
-                            <Text className="text-muted text-micro pt-2 text-center font-mono">
-                                {t(THEN_LABEL[plan.kind], { price: plan.priceString })}
-                            </Text>
-                        )}
-                    </View>
-                ) : null}
-
-                <View className="flex-row items-center justify-center gap-4 px-5 pt-4">
-                    {needsAccount ? null : (
-                        <>
-                            <Pressable
-                                accessibilityRole="button"
-                                disabled={busy !== null}
-                                onPress={restore}
-                                testID="paywall-restore"
-                            >
-                                {busy === "restore" ? (
-                                    <BusyText className={MONO_LABEL_CLASS} color={colors.foreground}>
-                                        {t("pro.legal.restoring")}
-                                    </BusyText>
-                                ) : (
-                                    <MonoLabel>{t("pro.legal.restore")}</MonoLabel>
-                                )}
-                            </Pressable>
-                            <LegalDot />
-                        </>
-                    )}
-                    <Pressable accessibilityRole="link" onPress={() => openBrowserAsync(legalUrl("terms", language))}>
-                        <MonoLabel>{t("pro.legal.terms")}</MonoLabel>
-                    </Pressable>
-                    <LegalDot />
-                    <Pressable accessibilityRole="link" onPress={() => openBrowserAsync(legalUrl("privacy", language))}>
-                        <MonoLabel>{t("pro.legal.privacy")}</MonoLabel>
-                    </Pressable>
+                    <Comparison />
                 </View>
+                {largeText ? footer : null}
             </ScrollView>
+
+            {largeText ? null : (
+                <ScrollView bounces={false} className="shrink grow-0" contentContainerClassName="pb-safe-offset-4">
+                    {footer}
+                </ScrollView>
+            )}
         </View>
     );
 }

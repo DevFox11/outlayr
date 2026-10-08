@@ -31,7 +31,7 @@ interface EditorCtaProps {
  */
 export function EditorCta({ label, canSave, busy = false, onPress }: EditorCtaProps) {
     return (
-        <View style={{ height: CTA_HEIGHT, opacity: canSave || busy ? 1 : DISABLED_OPACITY }} testID="editor-cta">
+        <View style={{ minHeight: CTA_HEIGHT, opacity: canSave || busy ? 1 : DISABLED_OPACITY }} testID="editor-cta">
             <Button
                 className="rounded-full"
                 disabled={!canSave || busy}

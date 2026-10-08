@@ -85,7 +85,11 @@ export function NetWorthCard({ series, currency, showCents }: NetWorthCardProps)
         <View className="w-full gap-1.5 px-5 pt-6">
             <View accessibilityLabel={summary} accessibilityRole="image" accessible testID="net-worth-summary">
                 <MonoLabel>{t("insights.netWorth.heading")}</MonoLabel>
-                <Text className="text-foreground text-hero font-mono tabular-nums">
+                <Text
+                    adjustsFontSizeToFit
+                    className="text-foreground text-hero font-mono tabular-nums"
+                    numberOfLines={1}
+                >
                     {formatSignedAmount(latest.value, currency, showCents, language)}
                 </Text>
                 <Text className={`text-footnote ${change < 0 ? "text-expense" : "text-income"}`}>

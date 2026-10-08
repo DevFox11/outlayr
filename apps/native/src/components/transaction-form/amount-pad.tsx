@@ -3,6 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react-native";
 
 import { GlassButton } from "@/components/glass-button";
 import type { NumpadKey, NumpadMode } from "@/domain/numpad";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
@@ -65,6 +66,7 @@ export function TransactionFormAmountPad({
 }: TransactionFormAmountPadProps) {
     const t = useTranslation();
     const colors = useColors();
+    const largeText = useAccessibilityTextSize();
     // 500 is the heaviest mono face the app loads — see `_layout.tsx`'s
     // `useFonts`, which registers Geist Mono at 400 and 500 only.
     const codeText = <Text className="text-callout text-foreground tracking-eyebrow font-mono-medium">{code}</Text>;
@@ -82,7 +84,7 @@ export function TransactionFormAmountPad({
         <GlassButton
             accessibilityLabel={t("transaction.amount.changeCurrency")}
             accessibilityValue={{ text: code }}
-            className="h-[42px] rounded-full pr-3 pl-4"
+            className="min-h-[42px] rounded-full pr-3 pl-4"
             onPress={onCodePress}
         >
             {codeText}
@@ -103,12 +105,13 @@ export function TransactionFormAmountPad({
         />
     );
     // `label` names a transfer's pad, whose code is not a control.
-    // The money pad carries no title at all — the sentence above already states
-    // the amount — so the currency is the header's only element and sits where
-    // every other step's trailing control does.
-    const shared = onCodePress
-        ? { footer, forward, right: currency, stepKey }
-        : { footer, forward, right: currency, stepKey, title: label };
+    // The money pad carries no title at standard text sizes — the sentence above
+    // already states the amount — so the currency is the header's only element
+    // and sits where every other step's trailing control does.
+    const shared =
+        onCodePress && !largeText
+            ? { footer, forward, right: currency, stepKey }
+            : { footer, forward, right: currency, stepKey, title: label };
 
     // Branched rather than spread: the stage pairs `onBack` with `backLabel` in a
     // union so a chevron can never ship without a label, and a spread of an

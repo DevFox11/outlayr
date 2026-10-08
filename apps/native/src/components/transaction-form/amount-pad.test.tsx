@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from "@jest/globals";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 
 import { TransactionFormAmountPad } from "./amount-pad";
@@ -8,6 +8,10 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 jest.mock("@/i18n/context", () => ({
     useTranslation: () => (key: string) => key,
+}));
+const mockLargeText = jest.fn(() => false);
+jest.mock<Partial<typeof import("@/hooks/use-accessibility-text-size")>>("@/hooks/use-accessibility-text-size", () => ({
+    useAccessibilityTextSize: () => mockLargeText(),
 }));
 jest.mock("../amount-numpad", () => {
     const react = require("react") as typeof import("react");
@@ -69,6 +73,10 @@ const texts = (node: JsonNode | string | null): string[] => {
 };
 
 describe("transactionFormAmountPad", () => {
+    beforeEach(() => {
+        mockLargeText.mockReturnValue(false);
+    });
+
     // The sentence above the pad already shows the figure; letting the keypad draw
     // its own puts two different amounts on screen at once.
     it("suppresses the keypad's own amount readout", async () => {
@@ -123,6 +131,13 @@ describe("transactionFormAmountPad", () => {
 
         expect(rendered).not.toStrictEqual(expect.arrayContaining(["Amount"]));
         expect(rendered).toStrictEqual(expect.arrayContaining(["USD"]));
+    });
+
+    it("names the field again at accessibility text sizes", async () => {
+        mockLargeText.mockReturnValue(true);
+        const { toJSON } = await render(<TransactionFormAmountPad {...BASE} onCodePress={() => {}} />);
+
+        expect(texts(toJSON() as JsonNode)).toStrictEqual(expect.arrayContaining(["Amount", "USD"]));
     });
 
     // Nothing presents it any more, so it sits on the home indicator unless it

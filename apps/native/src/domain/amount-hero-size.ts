@@ -11,7 +11,7 @@ export const AMOUNT_HERO_MIN_SIZE = 26;
 const ADVANCE_PER_CHAR = 0.58;
 
 /** Room the currency symbol and its gap take out of the line. */
-const SYMBOL_ALLOWANCE = 26;
+export const SYMBOL_ALLOWANCE = 26;
 
 /** Characters a figure renders as, including group separators and the decimal. */
 export function amountHeroLength(amount: number, minorUnits: number): number {

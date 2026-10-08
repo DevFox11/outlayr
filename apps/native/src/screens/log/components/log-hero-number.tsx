@@ -1,9 +1,10 @@
 import { use, useState } from "react";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 
 import { AmountsHiddenContext, fittedHeroSize, FlowAmount } from "@/components/amount-text";
 import { Text } from "@/components/text";
 import { amountDigits, amountParts, withCurrencySymbol } from "@/domain/money";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
 /**
@@ -25,13 +26,16 @@ export function LogHeroNumber({ magnitude, code, positive, showCents }: LogHeroN
     const t = useTranslation();
     const { language } = useLanguage();
     const hidden = use(AmountsHiddenContext);
+    const { fontScale } = useWindowDimensions();
+    const largeText = useAccessibilityTextSize();
     const [width, setWidth] = useState(0);
     const parts = amountParts(magnitude, code, showCents, language);
     const digits = amountDigits(parts);
     const sign = positive ? "+" : "-";
+    const figureSize = hidden ? FONT_SIZE : fittedHeroSize(FONT_SIZE, magnitude, parts.minorUnits, width, fontScale);
     // Sized down as the symbol lengthens: a one-character "$" can sit close to the
     // figure, but a four-character "Bs.D" at the same weight reads as part of it.
-    const symbolSize = FONT_SIZE * (parts.symbol.length > 1 ? 0.44 : 0.6);
+    const symbolSize = (largeText ? figureSize : FONT_SIZE) * (parts.symbol.length > 1 ? 0.44 : 0.6);
 
     return (
         <View
@@ -50,7 +54,7 @@ export function LogHeroNumber({ magnitude, code, positive, showCents }: LogHeroN
                 className="text-foreground font-sans tabular-nums"
                 code={code}
                 showCents={showCents}
-                size={hidden ? FONT_SIZE : fittedHeroSize(FONT_SIZE, magnitude, parts.minorUnits, width)}
+                size={figureSize}
             />
         </View>
     );

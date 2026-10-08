@@ -1,6 +1,9 @@
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { HeaderHeightContext } from "expo-router/react-navigation";
+import { use, useRef, useState } from "react";
+import type { RefObject } from "react";
 import { AccessibilityInfo, Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
+import type { LayoutChangeEvent, ScrollViewInstance } from "react-native";
 
 import { AmountNumpad } from "@/components/amount-numpad";
 import { InlineFailure } from "@/components/form/inline-failure";
@@ -8,7 +11,7 @@ import { Text } from "@/components/text";
 import { TransactionFormAmountPad } from "@/components/transaction-form/amount-pad";
 import { TransactionFormCta } from "@/components/transaction-form/cta";
 import { MetaLine } from "@/components/transaction-form/stage/meta-line";
-import { TransactionStage } from "@/components/transaction-form/stage/stage";
+import { StagePartContext, TransactionStage } from "@/components/transaction-form/stage/stage";
 import type { StageFooter } from "@/components/transaction-form/stage/stage";
 import { StepAccount } from "@/components/transaction-form/stage/step-account";
 import { StepDate } from "@/components/transaction-form/stage/step-date";
@@ -35,6 +38,7 @@ import {
     rateEntryText,
 } from "@/domain/transaction-entry-rate";
 import { quotedByBcv, rateNameKey, rateSourceWordKey, transactionWhenLabel } from "@/domain/transaction-form-labels";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 import type { SheetRest } from "@/hooks/use-resting-sheet";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -130,6 +134,26 @@ function TransferGap({ blocked, crossCurrency, gap, onResolve, resting }: Transf
     );
 }
 
+function useInlineStageScroll(scrollRef: RefObject<ScrollViewInstance | null>) {
+    const stage = useRef({ pending: true, y: 0 });
+    const headerHeight = use(HeaderHeightContext) ?? 0;
+    const scrollTo = (y: number) => scrollRef.current?.scrollTo({ animated: false, y: y - headerHeight });
+    return {
+        enter: () => {
+            stage.current.pending = true;
+            scrollTo(stage.current.y);
+        },
+        onLayout: (event: LayoutChangeEvent) => {
+            const { y } = event.nativeEvent.layout;
+            stage.current.y = y;
+            if (stage.current.pending) {
+                stage.current.pending = false;
+                scrollTo(y);
+            }
+        },
+    };
+}
+
 export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, saved, seed }: TransferEditorProps) {
     const db = useDatabase();
     const router = useRouter();
@@ -175,6 +199,9 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, 
     const [fresh, setFresh] = useState(true);
     const freshRef = useRef(true);
     const saves = draft.canSave && draft.arrivalSeen;
+    const largeText = useAccessibilityTextSize();
+    const scrollRef = useRef<ScrollViewInstance>(null);
+    const stageScroll = useInlineStageScroll(scrollRef);
 
     const enter = (next: Step, direction = true) => {
         if (next === "arrives") {
@@ -186,6 +213,9 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, 
         freshRef.current = true;
         setFresh(true);
         setStep(next);
+        if (largeText) {
+            stageScroll.enter();
+        }
     };
 
     const touch = () => onDirtyChange?.(true);
@@ -648,6 +678,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, 
                     keyboardDismissMode="on-drag"
                     keyboardShouldPersistTaps="handled"
                     onContentSizeChange={(_width, height) => rest?.onHeight(height)}
+                    ref={scrollRef}
                 >
                     <TransferSentence
                         activeSlot={resting ? null : activeSlot}
@@ -728,7 +759,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, 
                                         key={account.id}
                                     >
                                         <Text className="text-label text-muted font-mono">{account.name}</Text>
-                                        <Text className="text-label text-foreground font-mono">
+                                        <Text className="text-label text-foreground shrink text-right font-mono">
                                             {next === null ? balance : `${balance} → ${next}`}
                                         </Text>
                                     </View>
@@ -747,6 +778,12 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, 
                         }}
                         rest={rest}
                     />
+
+                    {largeText && !resting ? (
+                        <View onLayout={stageScroll.onLayout}>
+                            <StagePartContext value="inline">{renderStage()}</StagePartContext>
+                        </View>
+                    ) : null}
                 </ScrollView>
             </View>
 
@@ -765,7 +802,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, 
             <View className="px-5">
                 <InlineFailure message={saveFailure} />
             </View>
-            {resting ? null : renderStage()}
+            {resting ? null : <StagePartContext value="pinned">{renderStage()}</StagePartContext>}
         </View>
     );
 }

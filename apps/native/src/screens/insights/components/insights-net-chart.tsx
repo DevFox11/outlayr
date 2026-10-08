@@ -10,6 +10,7 @@ import { useSettingBool } from "@/contexts/display-settings-context";
 import { bucketDateLabel } from "@/data/insights";
 import type { InsightsBucket, InsightsPeriod } from "@/data/insights";
 import { formatAmount } from "@/domain/money";
+import { LARGEST_STANDARD_FONT_SCALE } from "@/hooks/use-accessibility-text-size";
 import { useChartDraw, useChartPath } from "@/hooks/use-chart-draw";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { hatchPathD } from "@/lib/chart-paths";
@@ -266,6 +267,7 @@ export function InsightsNetChart({
                             >
                                 <RNText
                                     className="text-micro font-mono"
+                                    maxFontSizeMultiplier={LARGEST_STANDARD_FONT_SCALE}
                                     numberOfLines={1}
                                     style={{ color: colors.muted }}
                                 >

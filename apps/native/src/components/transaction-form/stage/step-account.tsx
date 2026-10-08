@@ -5,6 +5,7 @@ import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
 import type { Account } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
@@ -36,6 +37,7 @@ interface StepAccountProps {
 export function StepAccount({ accounts, allowNone = true, onSelect, selectedId }: StepAccountProps) {
     const t = useTranslation();
     const colors = useColors();
+    const largeText = useAccessibilityTextSize();
     const ledgerCurrency = useGlobalCurrency(useDatabase());
 
     if (accounts.length === 0) {
@@ -77,8 +79,9 @@ export function StepAccount({ accounts, allowNone = true, onSelect, selectedId }
     return (
         <ScrollView
             keyboardShouldPersistTaps="handled"
+            scrollEnabled={!largeText}
             showsVerticalScrollIndicator={false}
-            style={{ maxHeight: MAX_LIST_HEIGHT }}
+            style={largeText ? undefined : { maxHeight: MAX_LIST_HEIGHT }}
             testID="stage-accounts"
         >
             <StageOptionRow onSelect={pick} options={options} selectedId={selectedId ?? NONE_OPTION} />

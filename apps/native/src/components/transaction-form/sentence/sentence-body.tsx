@@ -250,7 +250,7 @@ export function TransactionSentenceBody({
                     <Chip
                         accessibilityLabel={verb.accessibilityLabel}
                         className={cn(
-                            "h-[34px] gap-[7px]",
+                            "h-auto min-h-[34px] gap-[7px]",
                             verb.active ? "border-tint bg-tint" : "border-separator border-dashed",
                             verb.disabled && "opacity-40"
                         )}

@@ -146,7 +146,7 @@ export function BudgetBurndownHero({
                     accessibilityRole="button"
                 >
                     <View onLayout={onLayout}>
-                        <View className="flex-row items-baseline justify-between">
+                        <View className="flex-row flex-wrap items-baseline justify-between gap-x-3">
                             <MonoLabel>{t("budgets.hero.eyebrow", { period: period.toUpperCase() })}</MonoLabel>
                             <MonoLabel>
                                 {scrubLabel

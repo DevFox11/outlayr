@@ -5,12 +5,13 @@ import { useWindowDimensions, View } from "react-native";
 import { Easing } from "react-native-reanimated";
 import { useResolveClassNames } from "uniwind";
 
-import { amountHeroFontSize } from "@/domain/amount-hero-size";
+import { amountHeroFontSize, SYMBOL_ALLOWANCE } from "@/domain/amount-hero-size";
 import { rowAmountLabel } from "@/domain/amount-label";
 import type { RowAmountLabelInput } from "@/domain/amount-label";
 import type { CurrencyBucket } from "@/domain/currency-totals";
 import { AMOUNT_MASK, amountDigits, amountParts, formatAmount, maskedAmount, withCurrencySymbol } from "@/domain/money";
 import type { NumberLocale } from "@/domain/money";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 
@@ -100,8 +101,18 @@ export function FlowAmount({ amount, className, code, prefix, showCents, size, s
     );
 }
 
-export function fittedHeroSize(size: number, amount: number, minorUnits: number, width: number): number {
-    return width > 0 ? Math.min(size, Math.floor(amountHeroFontSize(amount, minorUnits, width))) : size;
+export function fittedHeroSize(
+    size: number,
+    amount: number,
+    minorUnits: number,
+    width: number,
+    fontScale: number
+): number {
+    if (width <= 0) {
+        return size;
+    }
+    const drawn = amountHeroFontSize(amount, minorUnits, width - SYMBOL_ALLOWANCE * (fontScale - 1));
+    return Math.min(size, Math.floor(drawn / fontScale));
 }
 
 interface HeroNumberProps {
@@ -131,10 +142,10 @@ export function HeroNumber({
     // that reads it without also consuming this context is bailed out of the
     // re-render when the language changes and keeps printing the old locale.
     const { language } = useLanguage();
-    const { width: windowWidth } = useWindowDimensions();
+    const { fontScale, width: windowWidth } = useWindowDimensions();
     const parts = amountParts(amount, code, showCents, language);
     const resolvedSign = sign ?? (amount < 0 ? "-" : "+");
-    const fitted = fittedHeroSize(size, amount, parts.minorUnits, windowWidth - HERO_GUTTER);
+    const fitted = fittedHeroSize(size, amount, parts.minorUnits, windowWidth - HERO_GUTTER, fontScale);
     const small = (Math.round(size * 0.5) * fitted) / size;
     const whole = Math.trunc(roundMoney(Math.abs(amount), parts.minorUnits));
     return (
@@ -212,6 +223,7 @@ export function RowAmount({
     const t = useTranslation();
     const { language } = useLanguage();
     const hidden = use(AmountsHiddenContext);
+    const largeText = useAccessibilityTextSize();
     const sign = transfer ? (transferSign ?? "") : signFor(income);
     return (
         <Text
@@ -222,6 +234,7 @@ export function RowAmount({
                     ? t("log.amounts.hidden")
                     : rowAmountLabel({ amount, code, income: transfer ? null : income, showCents, transferSign }, t)
             }
+            adjustsFontSizeToFit={largeText}
             className={cn(rowAmount({ income: !transfer && income === true, isFuture, struck }), "tabular-nums")}
             numberOfLines={1}
         >

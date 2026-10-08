@@ -13,6 +13,7 @@ import { measureIsIncome, measureIsPositive, measureMagnitude } from "@/domain/l
 import type { LogFigures, LogMeasure } from "@/domain/log-measure";
 import { canStepForward, stepCursor } from "@/domain/log-period-cursor";
 import type { ScopeTotals } from "@/domain/log-scope-figures";
+import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
 
@@ -135,13 +136,14 @@ function ScopeFigures({
     showCents: boolean;
 }) {
     const t = useTranslation();
+    const largeText = useAccessibilityTextSize();
     const { shown, others } = totals;
 
     return (
         <View className="pt-3 pb-1.5">
             <MonoLabel>{scopeMeasureLabel(t, measure, shown.currencyCode, displayCurrency)}</MonoLabel>
-            <View className="flex-row items-center gap-2 pt-1">
-                <View className="flex-1">
+            <View className={largeText ? "items-end gap-2 pt-1" : "flex-row items-center gap-2 pt-1"}>
+                <View className={largeText ? "self-stretch" : "flex-1"}>
                     <LogHeroNumber
                         code={shown.currencyCode}
                         magnitude={measureMagnitude(measure, shown)}
