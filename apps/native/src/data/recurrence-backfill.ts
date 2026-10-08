@@ -59,7 +59,7 @@ const OCCURRENCE_NAMESPACE = "0f2b9f1e-6d3a-4c58-9a71-2c8f5d6e4b31";
  * sweeping device's zone, so a phone in Madrid and an iPad in New York derived
  * two ids for one charge and both rows replicated.
  */
-function occurrenceId(parentLocalId: string, holding: Date): string {
+export function occurrenceId(parentLocalId: string, holding: Date): string {
     return uuidV5(`${parentLocalId}:${utcDateString(holding.getTime())}`, OCCURRENCE_NAMESPACE);
 }
 

@@ -3,6 +3,8 @@ import type { Language } from "@/i18n/languages";
 import { runtimeLanguage } from "@/i18n/runtime";
 import { translate } from "@/i18n/translate";
 
+import { daysBetween } from "./local-day";
+
 /**
  * Every date name this module renders comes from the catalog, so there is one
  * localized set rather than a table per call site. The lookup stays hook-free on
@@ -152,6 +154,21 @@ export function formatChargeDate(date: Date, now: Date = new Date(), language: L
     const weekday = dateName(`dates.weekday.${date.getDay()}`, language);
     const base = `${weekday}, ${date.getDate()} ${monthAbbrevTitle(date, language)}`;
     return date.getFullYear() === now.getFullYear() ? base : `${base} ${date.getFullYear()}`;
+}
+
+export function formatDueDay(date: Date, from: Date, language: Language = runtimeLanguage()): string {
+    const days = daysBetween(startOfDay(from).getTime(), startOfDay(date).getTime());
+    if (days === 0) {
+        return dateName("common.today", language);
+    }
+    if (days === 1) {
+        return dateName("common.tomorrow", language);
+    }
+    const named =
+        days > 1 && days < 7
+            ? dateName(`dates.weekdayLong.${date.getDay()}`, language)
+            : formatChargeDate(date, from, language);
+    return `${named.charAt(0).toUpperCase()}${named.slice(1)}`;
 }
 
 export function formatWeekdayDay(date: Date, language: Language = runtimeLanguage()): string {

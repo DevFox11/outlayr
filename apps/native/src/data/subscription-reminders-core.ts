@@ -1,7 +1,7 @@
-import { and, gt, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
-import { transactions } from "@/db/schema";
+import { accounts, categories, transactions } from "@/db/schema";
 import { startOfDay } from "@/domain/dates";
 import { DEFAULT_CURRENCY } from "@/domain/money";
 import { anchorDayOf, nextLanding, RECURRING_TYPE } from "@/domain/recurrence";
@@ -10,20 +10,28 @@ import { reminderPlan } from "@/domain/subscription-reminder";
 import type { ArmedReminder, ReminderCandidate } from "@/domain/subscription-reminder";
 
 import { getMeta, META_KEYS } from "./app-meta-core";
+import { occurrenceId } from "./recurrence-backfill";
 
 /** Carries the copy a notification body needs, which `ArmedReminder` does not. */
 export interface SubscriptionReminderCandidate extends ReminderCandidate {
+    account: string | null;
     amount: number;
+    category: string | null;
+    chargeId: string;
     /** Resolved, never null: a row that stored none adopts the ledger's. */
     currency: string;
+    income: boolean;
     note: string;
 }
 
 const CANDIDATE_COLUMNS = {
+    account: accounts.name,
     amount: transactions.amount,
+    category: categories.name,
     currency: transactions.currency,
     date: transactions.date,
     id: transactions.id,
+    income: transactions.income,
     note: transactions.note,
     recurringAnchorDay: transactions.recurringAnchorDay,
     recurringCoefficient: transactions.recurringCoefficient,
@@ -45,6 +53,8 @@ export async function reminderCandidates(db: Database, now: Date): Promise<Subsc
     const rows = await db
         .select(CANDIDATE_COLUMNS)
         .from(transactions)
+        .leftJoin(categories, eq(categories.id, transactions.categoryId))
+        .leftJoin(accounts, and(eq(accounts.id, transactions.accountId), isNull(accounts.deletedAt)))
         .where(
             and(
                 gt(transactions.recurringType, RECURRING_TYPE.none),
@@ -62,8 +72,8 @@ export async function reminderCandidates(db: Database, now: Date): Promise<Subsc
     const ledgerCurrency = (await getMeta(db, META_KEYS.currency)) ?? DEFAULT_CURRENCY;
 
     return rows.flatMap((row) => {
-        const landing = nextLanding(
-            startOfDay(row.date),
+        const charge = nextLanding(
+            row.date,
             row.recurringType,
             row.recurringCoefficient,
             row.recurringEndDate,
@@ -71,14 +81,18 @@ export async function reminderCandidates(db: Database, now: Date): Promise<Subsc
             anchorDayOf(row)
         );
         // A chain that has run past its end date has no charge left to announce.
-        if (landing == null) {
+        if (charge == null) {
             return [];
         }
         return [
             {
+                account: row.account,
                 amount: row.amount,
+                category: row.category,
+                chargeId: charge.getTime() === row.date.getTime() ? row.id : occurrenceId(row.id, charge),
                 currency: row.currency ?? ledgerCurrency,
-                landing,
+                income: row.income,
+                landing: startOfDay(charge),
                 leadDays: row.reminderLeadDays,
                 localId: row.id,
                 note: row.note,
@@ -89,8 +103,12 @@ export async function reminderCandidates(db: Database, now: Date): Promise<Subsc
 
 /** An armed request plus everything its notification body has to say. */
 export interface PendingSubscriptionReminder extends ArmedReminder {
+    account: string | null;
     amount: number;
+    category: string | null;
+    chargeId: string;
     currency: string;
+    income: boolean;
     /** The charge itself, which `fireAt` sits `leadDays` ahead of. */
     landing: Date;
     note: string;
@@ -119,8 +137,12 @@ export async function pendingReminderPlan(
         return [
             {
                 ...armed,
+                account: candidate.account,
                 amount: candidate.amount,
+                category: candidate.category,
+                chargeId: candidate.chargeId,
                 currency: candidate.currency,
+                income: candidate.income,
                 landing: candidate.landing,
                 note: candidate.note,
             },

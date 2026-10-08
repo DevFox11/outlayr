@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import { asc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
-import { transactions } from "@/db/schema";
+import { accounts, categories, transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
 import { startOfDay } from "@/domain/dates";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 
 import { setMeta } from "./app-meta-core";
+import { backfillRecurring } from "./recurrence-backfill";
 import { pendingReminderPlan, reminderCandidates } from "./subscription-reminders-core";
 
 const NOW = new Date(2025, 5, 15, 10, 30);
@@ -21,6 +22,7 @@ const byLocalId = (a: LandingRow, b: LandingRow): number => String(a[0]).localeC
 const makeDb = () => migratedDatabase({ foreignKeys: false });
 
 interface CarrierOverrides {
+    accountId?: string | null;
     amount?: number;
     currency?: string | null;
     /** Its LAST charge, clock time included — the landing must not be read off it. */
@@ -28,6 +30,7 @@ interface CarrierOverrides {
     day?: Date;
     deletedAt?: Date | null;
     id?: string;
+    income?: boolean;
     note?: string;
     recurringAnchorDay?: number | null;
     recurringCoefficient?: number;
@@ -39,6 +42,7 @@ interface CarrierOverrides {
 async function seedCarrier(db: Database, overrides: CarrierOverrides): Promise<string> {
     const id = overrides.id ?? "src";
     await db.insert(transactions).values({
+        accountId: overrides.accountId ?? null,
         amount: overrides.amount ?? 9.99,
         categoryId: "bills",
         currency: overrides.currency === undefined ? "USD" : overrides.currency,
@@ -47,7 +51,7 @@ async function seedCarrier(db: Database, overrides: CarrierOverrides): Promise<s
         deletedAt: overrides.deletedAt ?? null,
         details: null,
         id,
-        income: false,
+        income: overrides.income ?? false,
         month: startOfDay(overrides.date),
         note: overrides.note ?? "Netflix",
         onceRecurring: true,
@@ -132,6 +136,7 @@ describe("reminderCandidates", () => {
         const [candidate] = await reminderCandidates(db, NOW);
 
         expect(candidate?.landing.getTime()).toBe(at(2025, 7, 15).getTime());
+        expect(candidate?.chargeId).toBe("src");
     });
 
     it("carries the copy a notice has to print", async () => {
@@ -148,6 +153,42 @@ describe("reminderCandidates", () => {
         expect(candidate?.note).toBe("Spotify");
         expect(candidate?.amount).toBe(11.99);
         expect(candidate?.currency).toBe("EUR");
+    });
+
+    it("names the category and the live account, and reads a deleted account as none", async () => {
+        await db.insert(categories).values({ id: "bills", income: true, name: "Salary", updatedAt: NOW });
+        await db.insert(accounts).values([
+            {
+                currency: "USD",
+                dateCreated: NOW,
+                id: "live",
+                initialBalanceDate: NOW,
+                name: "Payoneer USD",
+                updatedAt: NOW,
+            },
+            {
+                currency: "USD",
+                dateCreated: NOW,
+                deletedAt: NOW,
+                id: "gone",
+                initialBalanceDate: NOW,
+                name: "Old Visa",
+                updatedAt: NOW,
+            },
+        ]);
+        await seedCarrier(db, { accountId: "live", date: at(2025, 3, 15), id: "a", income: true, reminderLeadDays: 1 });
+        await seedCarrier(db, { accountId: "gone", date: at(2025, 3, 15), id: "b", reminderLeadDays: 1 });
+
+        const candidates = await reminderCandidates(db, NOW);
+
+        expect(
+            candidates
+                .map(({ account, category, income, localId }) => ({ account, category, income, localId }))
+                .sort((x, y) => x.localId.localeCompare(y.localId))
+        ).toStrictEqual([
+            { account: "Payoneer USD", category: "Salary", income: true, localId: "a" },
+            { account: null, category: "Salary", income: false, localId: "b" },
+        ]);
     });
 
     it("stamps a row that stored no currency with the ledger's", async () => {
@@ -323,6 +364,19 @@ describe("pendingReminderPlan", () => {
         expect(reminder?.amount).toBe(11.99);
         expect(reminder?.currency).toBe("EUR");
         expect(reminder?.landing.getTime()).toBe(at(2025, 7, 15).getTime());
+    });
+
+    it("names the very row the backfill writes once the charge lands, evening clock time included", async () => {
+        await seedCarrier(db, { date: at(2025, 6, 15, 21, 30), reminderLeadDays: 0 });
+
+        const [reminder] = await pendingReminderPlan(db, NOW, NINE_AM);
+        await backfillRecurring(db, "src", at(2025, 7, 15, 9, 0));
+
+        const [charge] = await db
+            .select({ date: transactions.date })
+            .from(transactions)
+            .where(eq(transactions.id, reminder?.chargeId ?? ""));
+        expect(charge?.date).toStrictEqual(at(2025, 7, 15, 21, 30));
     });
 
     it("resolves a row with no currency of its own against the ledger's", async () => {

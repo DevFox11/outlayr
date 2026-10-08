@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 import { setBoolSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
+import { transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
+import { startOfDay } from "@/domain/dates";
+import { RECURRING_TYPE } from "@/domain/recurrence";
 
 jest.mock("./reminders", () => ({
     cancelReminders: jest.fn(async () => undefined),
@@ -48,5 +51,32 @@ describe("syncSubscriptionReminders", () => {
         await syncSubscriptionReminders(db);
 
         expect(mockReminders.cancelReminders).toHaveBeenCalledWith(["outlayr.sub-due.a"]);
+    });
+
+    it("arms a due charge with its copy and the row a tap opens", async () => {
+        mockReminders.reminderPermission.mockResolvedValue("granted");
+        const today = new Date();
+        await db.insert(transactions).values({
+            amount: 7.06,
+            currency: "USD",
+            date: today,
+            day: startOfDay(today),
+            id: "prime",
+            income: false,
+            month: startOfDay(today),
+            note: "Prime Video",
+            recurringType: RECURRING_TYPE.monthly,
+            reminderLeadDays: 1,
+            updatedAt: today,
+        });
+
+        await syncSubscriptionReminders(db);
+
+        expect(mockReminders.scheduleDatedReminder).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: { charge: expect.any(String), subscription: "prime" },
+                title: "$7.06 · Prime Video",
+            })
+        );
     });
 });

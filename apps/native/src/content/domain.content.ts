@@ -133,6 +133,13 @@ const domain = {
         "dates.weekdayInitial.4": t({ en: "T", es: "J" }),
         "dates.weekdayInitial.5": t({ en: "F", es: "V" }),
         "dates.weekdayInitial.6": t({ en: "S", es: "S" }),
+        "dates.weekdayLong.0": t({ en: "Sunday", es: "domingo" }),
+        "dates.weekdayLong.1": t({ en: "Monday", es: "lunes" }),
+        "dates.weekdayLong.2": t({ en: "Tuesday", es: "martes" }),
+        "dates.weekdayLong.3": t({ en: "Wednesday", es: "miércoles" }),
+        "dates.weekdayLong.4": t({ en: "Thursday", es: "jueves" }),
+        "dates.weekdayLong.5": t({ en: "Friday", es: "viernes" }),
+        "dates.weekdayLong.6": t({ en: "Saturday", es: "sábado" }),
         "daySlots.over_one": t({
             en: "One {noun} too many.",
             es: "Un gasto de más en {noun}.",

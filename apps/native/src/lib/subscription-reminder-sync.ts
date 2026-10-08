@@ -1,11 +1,9 @@
 import { readBoolSetting, setBoolSetting } from "@/data/settings-core";
 import { pendingReminderPlan } from "@/data/subscription-reminders-core";
 import type { Database } from "@/db/client";
-import { formatUpcomingDate } from "@/domain/dates";
-import { formatAmount } from "@/domain/money";
 import { reminderReconcile } from "@/domain/reminder";
 import { orphanedReminderIds } from "@/domain/subscription-reminder";
-import { translateNow } from "@/i18n/runtime";
+import { reminderCopy } from "@/domain/subscription-reminder-copy";
 import { useForegroundSweep } from "@/lib/use-foreground-sweep";
 
 import { readReminderTime } from "./reminder-sync";
@@ -62,13 +60,10 @@ async function reconcileSubscriptionReminders(db: Database): Promise<void> {
     for (const reminder of armed) {
         // oxlint-disable-next-line no-await-in-loop -- arming mutates the one shared iOS notification queue, which is why `cancelReminders` (lib/reminders.ts) walks it serially too
         await scheduleDatedReminder({
-            body: translateNow("reminder.due.body", {
-                amount: formatAmount(reminder.amount, reminder.currency),
-                date: formatUpcomingDate(reminder.landing),
-            }),
+            ...reminderCopy(reminder),
+            data: { charge: reminder.chargeId, subscription: reminder.localId },
             fireAt: reminder.fireAt,
             id: reminder.id,
-            title: reminder.note.trim() || translateNow("reminder.due.untitled"),
         });
     }
 

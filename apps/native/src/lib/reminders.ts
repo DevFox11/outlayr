@@ -77,6 +77,7 @@ export async function pendingReminderIds(): Promise<string[]> {
 
 export interface DatedReminder {
     body: string;
+    data: Record<string, string>;
     fireAt: Date;
     id: string;
     title: string;
@@ -87,9 +88,9 @@ export interface DatedReminder {
  * on a date the schedule has to recompute, so each sweep arms the next one
  * afresh under the same identifier.
  */
-export async function scheduleDatedReminder({ id, title, body, fireAt }: DatedReminder): Promise<void> {
+export async function scheduleDatedReminder({ id, title, body, data, fireAt }: DatedReminder): Promise<void> {
     await scheduleNotificationAsync({
-        content: { body, sound: "default", title },
+        content: { body, data, sound: "default", title },
         identifier: id,
         trigger: { date: fireAt, type: SchedulableTriggerInputTypes.DATE },
     });

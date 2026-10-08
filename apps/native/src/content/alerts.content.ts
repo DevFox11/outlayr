@@ -47,10 +47,6 @@ const alerts = {
             en: "Log what you spent today.",
             es: "Registra lo que gastaste hoy.",
         }),
-        "reminder.due.body": t({
-            en: "{amount} comes out on {date}.",
-            es: "{amount} se cobra el {date}.",
-        }),
         "reminder.due.untitled": t({
             en: "Subscription",
             es: "Suscripción",

@@ -9,6 +9,7 @@ import * as dates from "./dates";
 import {
     formatChargeDate,
     formatDayHeader,
+    formatDueDay,
     formatTime,
     formatUpcomingDate,
     formatWeekdayDay,
@@ -185,6 +186,26 @@ describe("formatChargeDate", () => {
 
     it("adds the year only once the charge leaves the current one", () => {
         expect(formatChargeDate(new Date(2027, 1, 7), NOW, "en")).toBe("Sun, 7 Feb 2027");
+    });
+});
+
+describe("formatDueDay", () => {
+    const FIRE = new Date(2026, 9, 8, 8, 0);
+
+    it("counts calendar days from the moment it is read, not elapsed hours", () => {
+        expect(formatDueDay(new Date(2026, 9, 8), FIRE, "en")).toBe("Today");
+        expect(formatDueDay(new Date(2026, 9, 9), FIRE, "en")).toBe("Tomorrow");
+        expect(formatDueDay(new Date(2026, 9, 9), FIRE, "es")).toBe("Mañana");
+    });
+
+    it("names the weekday inside the week, capitalized", () => {
+        expect(formatDueDay(new Date(2026, 9, 10), FIRE, "en")).toBe("Saturday");
+        expect(formatDueDay(new Date(2026, 9, 14), FIRE, "es")).toBe("Miércoles");
+    });
+
+    it("dates a charge a week or more out", () => {
+        expect(formatDueDay(new Date(2026, 9, 15), FIRE, "en")).toBe("Thu, 15 Oct");
+        expect(formatDueDay(new Date(2026, 9, 15), FIRE, "es")).toBe("Jue, 15 oct");
     });
 });
 

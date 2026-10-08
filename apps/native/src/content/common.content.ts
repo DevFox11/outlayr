@@ -91,6 +91,10 @@ const common = {
             en: "Today",
             es: "Hoy",
         }),
+        "common.tomorrow": t({
+            en: "Tomorrow",
+            es: "Mañana",
+        }),
         "common.undo": t({
             en: "Undo",
             es: "Deshacer",
