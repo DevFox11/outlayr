@@ -4,7 +4,17 @@ import { cloudConfiguration, env } from "@outlayr/env/native";
 import { createAuthClient } from "better-auth/react";
 import { ConvexReactClient } from "convex/react";
 import Constants from "expo-constants";
-import { getItem, setItem } from "expo-secure-store";
+import { AFTER_FIRST_UNLOCK, getItem, setItem } from "expo-secure-store";
+
+const keychain = { keychainAccessible: AFTER_FIRST_UNLOCK };
+
+function readKeychain(key: string): string | null {
+    try {
+        return getItem(key, keychain);
+    } catch {
+        return null;
+    }
+}
 
 function createCloudRuntime() {
     if (cloudConfiguration() !== "configured") {
@@ -30,7 +40,10 @@ function createCloudRuntime() {
                 convexClient(),
                 expoClient({
                     scheme,
-                    storage: { getItem, setItem },
+                    storage: {
+                        getItem: readKeychain,
+                        setItem: (key, value) => setItem(key, value, keychain),
+                    },
                     storagePrefix: scheme,
                 }),
             ],
