@@ -12,7 +12,11 @@ import {
 import type { TextFieldRef, useNativeState } from "@expo/ui/swift-ui";
 import type { ViewModifier } from "@expo/ui/swift-ui/modifiers";
 import {
+    accessibilityAddTraits,
+    accessibilityElement,
+    accessibilityHidden,
     accessibilityLabel,
+    accessibilityValue,
     buttonStyle,
     font,
     foregroundStyle,
@@ -120,7 +124,17 @@ export function AccountEditorDetailsSection({
 
             <Divider modifiers={hairline} />
 
-            <HStack modifiers={[...ROW, hitArea(outline.rectangle()), onTapGesture(onCurrencyPress)]}>
+            <HStack
+                modifiers={[
+                    ...ROW,
+                    hitArea(outline.rectangle()),
+                    onTapGesture(onCurrencyPress),
+                    accessibilityElement("combine"),
+                    accessibilityAddTraits(["isButton"]),
+                    accessibilityLabel(currencyLabel),
+                    accessibilityValue(currencyCode),
+                ]}
+            >
                 <SwiftText modifiers={[BODY, rowLabel]}>{currencyLabel}</SwiftText>
                 <Spacer />
                 <SwiftText modifiers={[BODY, foregroundStyle(tintColor)]}>{currencyCode}</SwiftText>
@@ -142,10 +156,11 @@ export function AccountEditorDetailsSection({
             {/* A card and an overdrawn current account both read as a negative
 			    balance; this is the only thing that tells them apart. */}
             <HStack modifiers={ROW}>
-                <SwiftText modifiers={[BODY, rowLabel]}>{kindLabel}</SwiftText>
+                <SwiftText modifiers={[BODY, rowLabel, accessibilityHidden()]}>{kindLabel}</SwiftText>
                 <Spacer />
                 <Toggle
                     isOn={liability}
+                    label={kindLabel}
                     modifiers={[tint(tintColor), labelsHidden()]}
                     onIsOnChange={onToggleLiability}
                 />

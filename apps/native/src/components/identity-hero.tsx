@@ -254,25 +254,26 @@ export function IdentityHero({
                         {isEmpty ? plusBadge : null}
                     </View>
                 ) : (
-                    <Pressable
-                        accessibilityHint={t(A11Y[variant].hint)}
-                        accessibilityLabel={t(A11Y[variant].tile)}
-                        accessibilityRole="button"
-                        onPress={onPress}
-                        onPressIn={() => {
-                            pressScale.set(withSpring(0.96, PRESS_SPRING));
-                            pressOpacity.set(withSpring(0.85, PRESS_SPRING));
-                        }}
-                        onPressOut={() => {
-                            pressScale.set(withSpring(1, PRESS_SPRING));
-                            pressOpacity.set(withSpring(1, PRESS_SPRING));
-                        }}
-                        style={{ height: HERO_RING, width: HERO_RING }}
-                    >
-                        {tile}
-                        {isEmpty ? (
-                            plusBadge
-                        ) : (
+                    <View style={{ height: HERO_RING, width: HERO_RING }}>
+                        <Pressable
+                            accessibilityHint={t(A11Y[variant].hint)}
+                            accessibilityLabel={t(A11Y[variant].tile)}
+                            accessibilityRole="button"
+                            onPress={onPress}
+                            onPressIn={() => {
+                                pressScale.set(withSpring(0.96, PRESS_SPRING));
+                                pressOpacity.set(withSpring(0.85, PRESS_SPRING));
+                            }}
+                            onPressOut={() => {
+                                pressScale.set(withSpring(1, PRESS_SPRING));
+                                pressOpacity.set(withSpring(1, PRESS_SPRING));
+                            }}
+                            style={{ height: HERO_RING, width: HERO_RING }}
+                        >
+                            {tile}
+                            {isEmpty ? plusBadge : null}
+                        </Pressable>
+                        {isEmpty ? null : (
                             <Pressable
                                 accessibilityLabel={t(A11Y[variant].reset)}
                                 accessibilityRole="button"
@@ -293,7 +294,7 @@ export function IdentityHero({
                                 <HugeiconsIcon color="#FFFFFF" icon={Cancel01Icon} size={13} strokeWidth={2.4} />
                             </Pressable>
                         )}
-                    </Pressable>
+                    </View>
                 )}
             </Animated.View>
 

@@ -14,7 +14,9 @@ import {
 import {
     accessibilityAddTraits,
     accessibilityElement,
+    accessibilityInputLabels,
     accessibilityLabel,
+    accessibilityValue,
     font,
     foregroundStyle,
     lineLimit,
@@ -132,8 +134,11 @@ export function Accounts() {
                                 <HStack
                                     modifiers={[
                                         hitArea(outline.rectangle()),
-                                        accessibilityLabel(t("transfers.a11y.new")),
                                         onTapGesture(() => router.push("/transactions/transfers/create")),
+                                        accessibilityElement("combine"),
+                                        accessibilityAddTraits(["isButton"]),
+                                        accessibilityLabel(t("transfers.a11y.new")),
+                                        accessibilityInputLabels([t("transfers.title"), t("transfers.a11y.new")]),
                                     ]}
                                     spacing={12}
                                 >
@@ -193,8 +198,9 @@ const AccountRow = memo(({ account, colors, db, onDelete, onOpen }: AccountRowPr
                     // is four loose strings and no way to open it.
                     accessibilityElement("combine"),
                     accessibilityAddTraits(["isButton"]),
-                    accessibilityLabel(
-                        `${account.name}, ${subtitle}, ${formatSignedAmount(balance.total, account.currency, showCents, language)}`
+                    accessibilityLabel(account.name),
+                    accessibilityValue(
+                        `${subtitle}, ${formatSignedAmount(balance.total, account.currency, showCents, language)}`
                     ),
                 ]}
                 spacing={12}

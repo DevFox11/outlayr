@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react-nativ
 import type { PurchasesPackage } from "react-native-purchases";
 
 import type { PurchaseOutcome } from "@/contexts/revenuecat-context";
+import { FREE_ACCOUNTS } from "@/domain/pro-limits";
 
 import { Paywall } from "./index";
 
@@ -94,6 +95,16 @@ describe("paywall", () => {
         await waitFor(() => expect(planCard("annual")).toBeTruthy());
         expect(planCard("annual").props.accessibilityState.selected).toBe(true);
         expect(screen.getByTestId("paywall-cta")).toHaveTextContent("pro.cta.start:7");
+    });
+
+    it("reads a comparison row as one element that names both plans", async () => {
+        await render(<Paywall />);
+        await waitFor(() => expect(planCard("annual")).toBeTruthy());
+
+        expect(screen.getByLabelText(`pro.a11y.row:pro.row.accounts,${FREE_ACCOUNTS},pro.value.unlimited`)).toHaveProp(
+            "accessible",
+            true
+        );
     });
 
     it("names the plan's price on the button when it has no trial", async () => {

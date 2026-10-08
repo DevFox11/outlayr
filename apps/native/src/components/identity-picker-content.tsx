@@ -14,6 +14,7 @@ import {
     VStack,
 } from "@expo/ui/swift-ui";
 import {
+    accessibilityLabel,
     background,
     buttonStyle,
     fixedSize,
@@ -358,7 +359,7 @@ function IdentityPickerContent({
                     />
                     {searching ? (
                         <Button
-                            modifiers={[buttonStyle("plain")]}
+                            modifiers={[buttonStyle("plain"), accessibilityLabel(t("common.clearSearch"))]}
                             onPress={() => {
                                 queryState.set("");
                                 setQuery("");
@@ -474,13 +475,18 @@ function ColorRail({
     usedColors: readonly string[];
     onSelect: (hex: string) => void;
 }) {
+    const t = useTranslation();
     return (
         <ScrollView axes="horizontal" modifiers={[padding({ bottom: 8 })]} showsIndicators={false}>
             <HStack modifiers={[padding({ horizontal: 20 })]} spacing={12}>
-                {CATEGORY_PALETTE.map((hex) => (
+                {CATEGORY_PALETTE.map((hex, index) => (
                     <RNHostView key={hex} matchContents>
                         <ColorSwatch
                             hex={hex}
+                            label={t("transaction.identity.colorSwatch", {
+                                position: index + 1,
+                                total: CATEGORY_PALETTE.length,
+                            })}
                             onPress={() => onSelect(hex)}
                             selected={selected === hex}
                             used={usedColors.includes(hex)}
@@ -490,7 +496,7 @@ function ColorRail({
                 {/* Bare on purpose while the swatches above tick: the wheel streams a
 				    colour for every finger move and would buzz for the whole drag. */}
                 <ColorPicker
-                    label=""
+                    label={t("transaction.identity.color")}
                     modifiers={[labelsHidden(), fixedSize()]}
                     onSelectionChange={onSelect}
                     selection={selected ?? CATEGORY_PALETTE[0]}

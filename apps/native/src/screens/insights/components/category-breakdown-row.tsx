@@ -1,6 +1,7 @@
 import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Pressable, View } from "react-native";
+import type { AccessibilityActionEvent } from "react-native";
 
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { Text } from "@/components/text";
@@ -10,6 +11,8 @@ import { breakdownRiseIsFavourable } from "@/domain/insights-measure";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
+
+const CLEAR_ACTION = "clear";
 
 interface CategoryBreakdownRowProps {
     code: string;
@@ -65,6 +68,7 @@ export function CategoryBreakdownRow({
                 <Text className="text-label text-muted min-w-[34px] text-right font-mono">{pct}%</Text>
                 {selected && onClear ? (
                     <Pressable
+                        accessibilityElementsHidden
                         accessibilityLabel={t("insights.category.clearFilter")}
                         accessibilityRole="button"
                         className="bg-surface size-[26px] items-center justify-center rounded-full active:opacity-70"
@@ -93,8 +97,25 @@ export function CategoryBreakdownRow({
         return body;
     }
 
+    const clearable = selected && onClear !== undefined;
     return (
-        <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress}>
+        <Pressable
+            accessibilityActions={
+                clearable ? [{ label: t("insights.category.clearFilter"), name: CLEAR_ACTION }] : undefined
+            }
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            onAccessibilityAction={
+                clearable
+                    ? (event: AccessibilityActionEvent) => {
+                          if (event.nativeEvent.actionName === CLEAR_ACTION) {
+                              onClear();
+                          }
+                      }
+                    : undefined
+            }
+            onPress={onPress}
+        >
             {body}
         </Pressable>
     );

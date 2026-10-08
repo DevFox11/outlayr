@@ -20,6 +20,8 @@ const SYMBOL_CELL_RADIUS = 10;
 const SYMBOL_SELECTED_WASH = 0.18;
 const EMOJI_SIZE = 26;
 const GLYPH_SIZE = 20;
+const TRAILING_DIGITS = /\d+$/;
+const INNER_CAPITAL = /\B(?=[A-Z])/g;
 
 /** Cells are square in a flexible column, so they grow with the sheet. */
 export function symbolCellSize(width: number): number {
@@ -56,7 +58,8 @@ export function SymbolIconCell({ iconKey, tint, selected, size, onPress }: Symbo
     const isDark = theme === "dark";
     return (
         <Pressable
-            accessibilityLabel={iconKey}
+            accessibilityLabel={iconKey.replace(TRAILING_DIGITS, "").replaceAll(INNER_CAPITAL, " ")}
+            accessibilityLanguage="en"
             accessibilityRole="button"
             accessibilityState={{ selected }}
             onPress={onPress}
@@ -96,11 +99,13 @@ const SWATCH_BOX = SWATCH + RING_INSET * 2;
  */
 export function ColorSwatch({
     hex,
+    label,
     selected,
     used = false,
     onPress,
 }: {
     hex: string;
+    label: string;
     selected: boolean;
     used?: boolean;
     onPress: () => void;
@@ -111,7 +116,7 @@ export function ColorSwatch({
     return (
         <Pressable
             accessibilityHint={dimmed ? t("transaction.identity.colorUsed") : undefined}
-            accessibilityLabel={hex}
+            accessibilityLabel={label}
             accessibilityRole="button"
             accessibilityState={{ selected }}
             disabled={dimmed}

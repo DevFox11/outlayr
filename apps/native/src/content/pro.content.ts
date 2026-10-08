@@ -3,6 +3,10 @@ import type { Dictionary } from "intlayer";
 
 const pro = {
     content: {
+        "pro.a11y.row": t({
+            en: "{feature}. Free: {free}. Pro: {pro}.",
+            es: "{feature}. Gratis: {free}. Pro: {pro}.",
+        }),
         "pro.action.see": t({
             en: "See Outlayr Pro",
             es: "Ver Outlayr Pro",
@@ -222,6 +226,10 @@ const pro = {
         "pro.value.on": t({
             en: "on",
             es: "sí",
+        }),
+        "pro.value.unlimited": t({
+            en: "unlimited",
+            es: "sin límite",
         }),
         "pro.value.web": t({
             en: "web",

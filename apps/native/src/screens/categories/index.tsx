@@ -15,6 +15,9 @@ import {
 } from "@expo/ui/swift-ui";
 import {
     accessibilityAddTraits,
+    accessibilityElement,
+    accessibilityLabel,
+    accessibilityValue,
     buttonStyle,
     font,
     foregroundStyle,
@@ -463,6 +466,7 @@ function CategoryRow({
     const t = useTranslation();
     const { language } = useLanguage();
     const size = indented ? CHILD_TILE : PARENT_TILE;
+    const amountText = amount > 0 ? formatAmount(amount, currency, false, language) : null;
     return (
         <SwipeActions modifiers={[indented ? FLUSH_ROW : PARENT_ROW, NO_RULE]}>
             <ZStack alignment="leading">
@@ -477,13 +481,16 @@ function CategoryRow({
                         padding({ vertical: indented ? 3 : 4 }),
                         padding({ leading: indented ? CHILD_LEADING : ROW_LEADING }),
                         padding({ trailing: ROW_TRAILING }),
-                        // A single Section leaves VoiceOver no per-parent group boundary; the
-                        // heading trait hands it back.
-                        ...(indented ? [] : [accessibilityAddTraits(["isHeader"])]),
                         // Without `hitArea`, the Spacer and amount gap are not
                         // hit-testable, so a row tap only lands on the label.
                         hitArea(outline.rectangle()),
                         onTapGesture(() => onEdit(category)),
+                        accessibilityElement("combine"),
+                        // A single Section leaves VoiceOver no per-parent group boundary; the
+                        // heading trait hands it back.
+                        accessibilityAddTraits(indented ? ["isButton"] : ["isButton", "isHeader"]),
+                        accessibilityLabel(category.name ?? ""),
+                        accessibilityValue(amountText ?? ""),
                     ]}
                     spacing={indented ? 10 : 12}
                 >
@@ -502,11 +509,11 @@ function CategoryRow({
                         {category.name}
                     </SwiftText>
                     <Spacer />
-                    {amount > 0 ? (
+                    {amountText === null ? null : (
                         <SwiftText modifiers={[SUBHEADLINE_MEDIUM, lineLimit(1), foregroundStyle(colors.muted)]}>
-                            {formatAmount(amount, currency, false, language)}
+                            {amountText}
                         </SwiftText>
-                    ) : null}
+                    )}
                     <Image
                         color={colors.muted}
                         modifiers={[indented ? CHILD_CHEVRON : PARENT_CHEVRON]}
@@ -549,6 +556,9 @@ function GhostAddRow({ tint, closesTree, onPress }: { tint: string; closesTree: 
                     padding({ trailing: ROW_TRAILING }),
                     hitArea(outline.rectangle()),
                     onTapGesture(onPress),
+                    accessibilityElement("combine"),
+                    accessibilityAddTraits(["isButton"]),
+                    accessibilityLabel(t("categories.addSubcategory")),
                 ]}
                 spacing={10}
             >

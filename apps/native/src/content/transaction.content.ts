@@ -215,6 +215,10 @@ const transaction = {
             en: "Color",
             es: "Color",
         }),
+        "transaction.identity.colorSwatch": t({
+            en: "Color {position} of {total}",
+            es: "Color {position} de {total}",
+        }),
         "transaction.identity.colorUsed": t({
             en: "Already used by another category",
             es: "Ya usada por otra categoría",

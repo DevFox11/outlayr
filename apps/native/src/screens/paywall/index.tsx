@@ -27,8 +27,14 @@ import { useColors } from "@/theme/use-colors";
 const UNLIMITED = "\u221E";
 
 function Row({ label, free, pro }: { free: string; label: string; pro: string }) {
+    const t = useTranslation();
+    const spoken = (value: string) => (value === UNLIMITED ? t("pro.value.unlimited") : value);
     return (
-        <View className="border-border flex-row items-center border-b py-2.5">
+        <View
+            accessibilityLabel={t("pro.a11y.row", { feature: label, free: spoken(free), pro: spoken(pro) })}
+            accessible
+            className="border-border flex-row items-center border-b py-2.5"
+        >
             <Text className="text-foreground text-subtitle flex-1">{label}</Text>
             <Text className="text-muted text-footnote w-[74px] text-right font-mono tabular-nums">{free}</Text>
             <Text className="text-income text-footnote w-[74px] text-right font-mono tabular-nums">{pro}</Text>
