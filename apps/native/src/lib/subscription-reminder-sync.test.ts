@@ -79,4 +79,36 @@ describe("syncSubscriptionReminders", () => {
             })
         );
     });
+
+    it("swaps the armed single notices for one digest once a second charge joins their morning", async () => {
+        mockReminders.reminderPermission.mockResolvedValue("granted");
+        mockReminders.pendingReminderIds.mockResolvedValueOnce(["outlayr.sub-due.netflix", "outlayr.sub-due.prime"]);
+        mockReminders.scheduleDatedReminder.mockClear();
+        const today = new Date();
+        await db.insert(transactions).values(
+            ["netflix", "prime"].map((id) => ({
+                amount: 7.06,
+                currency: "USD",
+                date: today,
+                day: startOfDay(today),
+                id,
+                income: false,
+                month: startOfDay(today),
+                note: id,
+                recurringType: RECURRING_TYPE.monthly,
+                reminderLeadDays: 1,
+                updatedAt: today,
+            }))
+        );
+
+        await syncSubscriptionReminders(db);
+
+        expect(mockReminders.cancelReminders).toHaveBeenCalledWith([
+            "outlayr.sub-due.netflix",
+            "outlayr.sub-due.prime",
+        ]);
+        expect(mockReminders.scheduleDatedReminder.mock.calls).toStrictEqual([
+            [expect.objectContaining({ data: { open: "log" }, title: "2 charges tomorrow" })],
+        ]);
+    });
 });

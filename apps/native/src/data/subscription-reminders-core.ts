@@ -16,6 +16,7 @@ import { occurrenceId } from "./recurrence-backfill";
 export interface SubscriptionReminderCandidate extends ReminderCandidate {
     account: string | null;
     amount: number;
+    amountUsd: number | null;
     category: string | null;
     chargeId: string;
     /** Resolved, never null: a row that stored none adopts the ledger's. */
@@ -27,6 +28,7 @@ export interface SubscriptionReminderCandidate extends ReminderCandidate {
 const CANDIDATE_COLUMNS = {
     account: accounts.name,
     amount: transactions.amount,
+    amountUsd: transactions.amountUsd,
     category: categories.name,
     currency: transactions.currency,
     date: transactions.date,
@@ -88,6 +90,7 @@ export async function reminderCandidates(db: Database, now: Date): Promise<Subsc
             {
                 account: row.account,
                 amount: row.amount,
+                amountUsd: row.amountUsd,
                 category: row.category,
                 chargeId: charge.getTime() === row.date.getTime() ? row.id : occurrenceId(row.id, charge),
                 currency: row.currency ?? ledgerCurrency,
@@ -105,6 +108,7 @@ export async function reminderCandidates(db: Database, now: Date): Promise<Subsc
 export interface PendingSubscriptionReminder extends ArmedReminder {
     account: string | null;
     amount: number;
+    amountUsd: number | null;
     category: string | null;
     chargeId: string;
     currency: string;
@@ -139,6 +143,7 @@ export async function pendingReminderPlan(
                 ...armed,
                 account: candidate.account,
                 amount: candidate.amount,
+                amountUsd: candidate.amountUsd,
                 category: candidate.category,
                 chargeId: candidate.chargeId,
                 currency: candidate.currency,

@@ -80,6 +80,20 @@ describe("useSubscriptionReminderTaps", () => {
         expect(mockNavigate.mock.calls).toStrictEqual([["/transactions/prime"], ["/transactions/prime"]]);
     });
 
+    it("opens the Log for a notice that folds several charges", async () => {
+        await renderHook(() => useSubscriptionReminderTaps(db, true));
+        mockTaps.listener?.({
+            actionIdentifier: "expo.modules.notifications.actions.DEFAULT",
+            notification: {
+                date: 5,
+                request: { content: { data: { open: "log" } }, identifier: "outlayr.sub-due.digest.1.2" },
+            },
+        });
+        await settle();
+
+        expect(mockNavigate.mock.calls).toStrictEqual([["/"]]);
+    });
+
     it("opens the charge the notice announced once it has landed, not last cycle's", async () => {
         await seed(db, "prime");
         await seed(db, "landed", { recurringType: RECURRING_TYPE.monthly });

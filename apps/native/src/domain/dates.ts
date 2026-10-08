@@ -156,19 +156,24 @@ export function formatChargeDate(date: Date, now: Date = new Date(), language: L
     return date.getFullYear() === now.getFullYear() ? base : `${base} ${date.getFullYear()}`;
 }
 
-export function formatDueDay(date: Date, from: Date, language: Language = runtimeLanguage()): string {
+export function dueDay(date: Date, from: Date, language: Language = runtimeLanguage()) {
     const days = daysBetween(startOfDay(from).getTime(), startOfDay(date).getTime());
     if (days === 0) {
-        return dateName("common.today", language);
+        return { days, name: dateName("common.today", language) };
     }
     if (days === 1) {
-        return dateName("common.tomorrow", language);
+        return { days, name: dateName("common.tomorrow", language) };
     }
-    const named =
+    const name =
         days > 1 && days < 7
             ? dateName(`dates.weekdayLong.${date.getDay()}`, language)
             : formatChargeDate(date, from, language);
-    return `${named.charAt(0).toUpperCase()}${named.slice(1)}`;
+    return { days, name };
+}
+
+export function formatDueDay(date: Date, from: Date, language: Language = runtimeLanguage()): string {
+    const { name } = dueDay(date, from, language);
+    return `${name.charAt(0).toUpperCase()}${name.slice(1)}`;
 }
 
 export function formatWeekdayDay(date: Date, language: Language = runtimeLanguage()): string {

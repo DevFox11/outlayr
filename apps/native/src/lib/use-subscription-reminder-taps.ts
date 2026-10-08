@@ -5,6 +5,7 @@ import {
 } from "expo-notifications";
 import type { NotificationResponse } from "expo-notifications";
 import { useRouter } from "expo-router";
+import type { Href } from "expo-router";
 import { useEffect } from "react";
 import { z } from "zod";
 
@@ -13,9 +14,10 @@ import { getTransactionById } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { RECURRING_TYPE } from "@/domain/recurrence";
 
-const reminderTapSchema = z.object({ charge: z.string(), subscription: z.string() });
+const subscriptionTapSchema = z.object({ charge: z.string(), subscription: z.string() });
+const reminderTapSchema = z.union([subscriptionTapSchema, z.object({ open: z.literal("log") })]);
 
-function announcedRowId(db: Database, { charge, subscription }: z.infer<typeof reminderTapSchema>): string | null {
+function announcedRowId(db: Database, { charge, subscription }: z.infer<typeof subscriptionTapSchema>): string | null {
     const landed = getTransactionById(db, charge);
     if (landed !== null && landed.deletedAt === null) {
         return charge;
@@ -41,12 +43,16 @@ export function useSubscriptionReminderTaps(db: Database, ready: boolean): void 
                 return;
             }
             const tap = `${response.notification.request.identifier}@${response.notification.date}`;
-            await backfillRecurring(db, parsed.data.subscription);
-            const id = announcedRowId(db, parsed.data);
-            if (disposed || tap === handled || id === null) {
+            let target: Href | null = "/";
+            if ("subscription" in parsed.data) {
+                await backfillRecurring(db, parsed.data.subscription);
+                const id = announcedRowId(db, parsed.data);
+                target = id === null ? null : `/transactions/${id}`;
+            }
+            if (disposed || tap === handled || target === null) {
                 return;
             }
-            router.navigate(`/transactions/${id}`);
+            router.navigate(target);
             handled = tap;
             clearLastNotificationResponse();
         };

@@ -47,6 +47,18 @@ const alerts = {
             en: "Log what you spent today.",
             es: "Registra lo que gastaste hoy.",
         }),
+        "reminder.digest.on": t({
+            en: "{count} charges on {day}",
+            es: "{count} cobros el {day}",
+        }),
+        "reminder.digest.today": t({
+            en: "{count} charges today",
+            es: "{count} cobros hoy",
+        }),
+        "reminder.digest.tomorrow": t({
+            en: "{count} charges tomorrow",
+            es: "{count} cobros mañana",
+        }),
         "reminder.due.untitled": t({
             en: "Subscription",
             es: "Suscripción",

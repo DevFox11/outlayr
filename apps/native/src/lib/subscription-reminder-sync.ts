@@ -3,7 +3,7 @@ import { pendingReminderPlan } from "@/data/subscription-reminders-core";
 import type { Database } from "@/db/client";
 import { reminderReconcile } from "@/domain/reminder";
 import { orphanedReminderIds } from "@/domain/subscription-reminder";
-import { reminderCopy } from "@/domain/subscription-reminder-copy";
+import { reminderNotices } from "@/domain/subscription-reminder-copy";
 import { useForegroundSweep } from "@/lib/use-foreground-sweep";
 
 import { readReminderTime } from "./reminder-sync";
@@ -48,23 +48,21 @@ async function reconcileSubscriptionReminders(db: Database): Promise<void> {
         return;
     }
     const decision = reminderReconcile(enabled, permission);
-    const armed = decision === "schedule" ? await pendingReminderPlan(db, new Date(), await readReminderTime(db)) : [];
+    const notices =
+        decision === "schedule"
+            ? reminderNotices(await pendingReminderPlan(db, new Date(), await readReminderTime(db)))
+            : [];
 
     await cancelReminders(
         orphanedReminderIds(
-            armed.map((reminder) => reminder.id),
+            notices.map((notice) => notice.id),
             await pendingReminderIds()
         )
     );
 
-    for (const reminder of armed) {
+    for (const notice of notices) {
         // oxlint-disable-next-line no-await-in-loop -- arming mutates the one shared iOS notification queue, which is why `cancelReminders` (lib/reminders.ts) walks it serially too
-        await scheduleDatedReminder({
-            ...reminderCopy(reminder),
-            data: { charge: reminder.chargeId, subscription: reminder.localId },
-            fireAt: reminder.fireAt,
-            id: reminder.id,
-        });
+        await scheduleDatedReminder(notice);
     }
 
     if (decision === "disable") {
