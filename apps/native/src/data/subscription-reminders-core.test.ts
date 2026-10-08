@@ -6,9 +6,10 @@ import { accounts, categories, transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
 import { startOfDay } from "@/domain/dates";
 import { RECURRING_TYPE } from "@/domain/recurrence";
+import { reminderNotices } from "@/domain/subscription-reminder-copy";
 
 import { setMeta } from "./app-meta-core";
-import { backfillRecurring } from "./recurrence-backfill";
+import { backfillRecurring, occurrenceId } from "./recurrence-backfill";
 import { pendingReminderPlan, reminderCandidates } from "./subscription-reminders-core";
 
 const NOW = new Date(2025, 5, 15, 10, 30);
@@ -75,13 +76,13 @@ describe("reminderCandidates", () => {
         db = makeDb();
     });
 
-    it("names the charge after today, never today's or one already taken", async () => {
+    it("names the charge after today once today's notice has passed, never one already taken", async () => {
         await seedCarrier(db, {
             date: at(2025, 3, 15, 14, 30),
             reminderLeadDays: 2,
         });
 
-        const candidates = await reminderCandidates(db, NOW);
+        const candidates = await reminderCandidates(db, NOW, NINE_AM);
 
         expect(candidates).toHaveLength(1);
         expect(candidates[0]?.localId).toBe("src");
@@ -98,7 +99,7 @@ describe("reminderCandidates", () => {
             reminderLeadDays: 0,
         });
 
-        const [candidate] = await reminderCandidates(db, NOW);
+        const [candidate] = await reminderCandidates(db, NOW, NINE_AM);
 
         expect(candidate?.landing.getHours()).toBe(0);
         expect(candidate?.landing.getMinutes()).toBe(0);
@@ -112,7 +113,7 @@ describe("reminderCandidates", () => {
             reminderLeadDays: 0,
         });
 
-        const [candidate] = await reminderCandidates(db, NOW);
+        const [candidate] = await reminderCandidates(db, NOW, NINE_AM);
 
         expect(candidate?.landing).toStrictEqual(at(2025, 7, 15));
     });
@@ -122,7 +123,7 @@ describe("reminderCandidates", () => {
         // anchor it was clamped from. March has a 31st, so the charge goes back.
         await seedCarrier(db, { date: at(2025, 2, 28), recurringAnchorDay: 31, reminderLeadDays: 0 });
 
-        const [candidate] = await reminderCandidates(db, at(2025, 3, 5));
+        const [candidate] = await reminderCandidates(db, at(2025, 3, 5), NINE_AM);
 
         expect(candidate?.landing).toStrictEqual(at(2025, 3, 31));
     });
@@ -133,7 +134,7 @@ describe("reminderCandidates", () => {
             reminderLeadDays: 3,
         });
 
-        const [candidate] = await reminderCandidates(db, NOW);
+        const [candidate] = await reminderCandidates(db, NOW, NINE_AM);
 
         expect(candidate?.landing.getTime()).toBe(at(2025, 7, 15).getTime());
         expect(candidate?.chargeId).toBe("src");
@@ -148,7 +149,7 @@ describe("reminderCandidates", () => {
             reminderLeadDays: 1,
         });
 
-        const [candidate] = await reminderCandidates(db, NOW);
+        const [candidate] = await reminderCandidates(db, NOW, NINE_AM);
 
         expect(candidate?.note).toBe("Spotify");
         expect(candidate?.amount).toBe(11.99);
@@ -179,7 +180,7 @@ describe("reminderCandidates", () => {
         await seedCarrier(db, { accountId: "live", date: at(2025, 3, 15), id: "a", income: true, reminderLeadDays: 1 });
         await seedCarrier(db, { accountId: "gone", date: at(2025, 3, 15), id: "b", reminderLeadDays: 1 });
 
-        const candidates = await reminderCandidates(db, NOW);
+        const candidates = await reminderCandidates(db, NOW, NINE_AM);
 
         expect(
             candidates
@@ -199,7 +200,7 @@ describe("reminderCandidates", () => {
             reminderLeadDays: 1,
         });
 
-        const [candidate] = await reminderCandidates(db, NOW);
+        const [candidate] = await reminderCandidates(db, NOW, NINE_AM);
 
         expect(candidate?.currency).toBe("MXN");
     });
@@ -211,7 +212,7 @@ describe("reminderCandidates", () => {
             reminderLeadDays: 1,
         });
 
-        const [candidate] = await reminderCandidates(db, NOW);
+        const [candidate] = await reminderCandidates(db, NOW, NINE_AM);
 
         expect(candidate?.currency).toBe("USD");
     });
@@ -219,13 +220,13 @@ describe("reminderCandidates", () => {
     it("yields nothing for a carrier with no notice set", async () => {
         await seedCarrier(db, { date: at(2025, 3, 15), reminderLeadDays: null });
 
-        await expect(reminderCandidates(db, NOW)).resolves.toStrictEqual([]);
+        await expect(reminderCandidates(db, NOW, NINE_AM)).resolves.toStrictEqual([]);
     });
 
     it("keeps a same-day notice, which is not the off state", async () => {
         await seedCarrier(db, { date: at(2025, 3, 15), reminderLeadDays: 0 });
 
-        const candidates = await reminderCandidates(db, NOW);
+        const candidates = await reminderCandidates(db, NOW, NINE_AM);
 
         expect(candidates).toHaveLength(1);
         expect(candidates[0]?.leadDays).toBe(0);
@@ -238,7 +239,7 @@ describe("reminderCandidates", () => {
             reminderLeadDays: 2,
         });
 
-        await expect(reminderCandidates(db, NOW)).resolves.toStrictEqual([]);
+        await expect(reminderCandidates(db, NOW, NINE_AM)).resolves.toStrictEqual([]);
     });
 
     // Every retire path clears the column, but a peer's hand-off replicates in
@@ -250,7 +251,7 @@ describe("reminderCandidates", () => {
             reminderLeadDays: 2,
         });
 
-        await expect(reminderCandidates(db, NOW)).resolves.toStrictEqual([]);
+        await expect(reminderCandidates(db, NOW, NINE_AM)).resolves.toStrictEqual([]);
     });
 
     it("yields nothing once the chain has run past its end date", async () => {
@@ -261,7 +262,7 @@ describe("reminderCandidates", () => {
             reminderLeadDays: 1,
         });
 
-        await expect(reminderCandidates(db, NOW)).resolves.toStrictEqual([]);
+        await expect(reminderCandidates(db, NOW, NINE_AM)).resolves.toStrictEqual([]);
     });
 
     it("resolves every live carrier, each on its own cadence", async () => {
@@ -277,7 +278,7 @@ describe("reminderCandidates", () => {
             reminderLeadDays: 1,
         });
 
-        const candidates = await reminderCandidates(db, NOW);
+        const candidates = await reminderCandidates(db, NOW, NINE_AM);
 
         expect(
             candidates.map((candidate) => [candidate.localId, candidate.landing.getTime()]).sort(byLocalId)
@@ -377,6 +378,45 @@ describe("pendingReminderPlan", () => {
             .from(transactions)
             .where(eq(transactions.id, reminder?.chargeId ?? ""));
         expect(charge?.date).toStrictEqual(at(2025, 7, 15, 21, 30));
+    });
+
+    it("arms an on-the-day notice through its morning, before the sweep moves the carrier and after", async () => {
+        await seedCarrier(db, { date: at(2025, 5, 15, 21, 30), reminderLeadDays: 0 });
+        const morning = at(2025, 6, 15, 7, 0);
+
+        const [before] = await pendingReminderPlan(db, morning, NINE_AM);
+        await backfillRecurring(db, "src", morning);
+        const [after] = await pendingReminderPlan(db, morning, NINE_AM);
+
+        expect(before?.fireAt).toStrictEqual(at(2025, 6, 15, 9, 0));
+        expect(before?.chargeId).toBe(occurrenceId("src", at(2025, 6, 15, 21, 30)));
+        expect(after?.fireAt).toStrictEqual(at(2025, 6, 15, 9, 0));
+        expect(after?.localId).toBe(before?.chargeId);
+        expect(after?.chargeId).toBe(after?.localId);
+    });
+
+    it("arms the next cycle once the on-the-day notice has fired", async () => {
+        await seedCarrier(db, { date: at(2025, 5, 15, 21, 30), reminderLeadDays: 0 });
+        const late = at(2025, 6, 15, 10, 0);
+
+        const [before] = await pendingReminderPlan(db, late, NINE_AM);
+        await backfillRecurring(db, "src", late);
+        const [after] = await pendingReminderPlan(db, late, NINE_AM);
+
+        expect(before?.fireAt).toStrictEqual(at(2025, 7, 15, 9, 0));
+        expect(after?.fireAt).toStrictEqual(at(2025, 7, 15, 9, 0));
+        expect(after?.chargeId).toBe(occurrenceId(after?.localId ?? "", at(2025, 7, 15, 21, 30)));
+    });
+
+    it("folds two charges due this morning into one digest", async () => {
+        await seedCarrier(db, { date: at(2025, 5, 15), id: "netflix", reminderLeadDays: 0 });
+        await seedCarrier(db, { date: at(2025, 5, 15), id: "gym", note: "Gym", reminderLeadDays: 0 });
+
+        const plan = await pendingReminderPlan(db, at(2025, 6, 15, 7, 0), NINE_AM);
+
+        expect(reminderNotices(plan, "en")).toStrictEqual([
+            expect.objectContaining({ fireAt: at(2025, 6, 15, 9, 0), title: "2 charges today" }),
+        ]);
     });
 
     it("resolves a row with no currency of its own against the ledger's", async () => {

@@ -2,11 +2,11 @@ import { and, eq, gt, isNotNull, isNull } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { accounts, categories, transactions } from "@/db/schema";
-import { startOfDay } from "@/domain/dates";
+import { addDays, startOfDay } from "@/domain/dates";
 import { DEFAULT_CURRENCY } from "@/domain/money";
 import { anchorDayOf, nextLanding, RECURRING_TYPE } from "@/domain/recurrence";
 import type { TimeOfDay } from "@/domain/reminder";
-import { reminderPlan } from "@/domain/subscription-reminder";
+import { normalizeLead, reminderFireAt, reminderPlan } from "@/domain/subscription-reminder";
 import type { ArmedReminder, ReminderCandidate } from "@/domain/subscription-reminder";
 
 import { getMeta, META_KEYS } from "./app-meta-core";
@@ -51,7 +51,11 @@ const CANDIDATE_COLUMNS = {
  * chain's schedule, so the column alone cannot tell a live carrier apart from a
  * tombstone or a retired occurrence (see its note in `db/schema.ts`).
  */
-export async function reminderCandidates(db: Database, now: Date): Promise<SubscriptionReminderCandidate[]> {
+export async function reminderCandidates(
+    db: Database,
+    now: Date,
+    time: TimeOfDay
+): Promise<SubscriptionReminderCandidate[]> {
     const rows = await db
         .select(CANDIDATE_COLUMNS)
         .from(transactions)
@@ -74,14 +78,21 @@ export async function reminderCandidates(db: Database, now: Date): Promise<Subsc
     const ledgerCurrency = (await getMeta(db, META_KEYS.currency)) ?? DEFAULT_CURRENCY;
 
     return rows.flatMap((row) => {
-        const charge = nextLanding(
-            row.date,
-            row.recurringType,
-            row.recurringCoefficient,
-            row.recurringEndDate,
-            now,
-            anchorDayOf(row)
-        );
+        const landingAfter = (day: Date) =>
+            nextLanding(
+                row.date,
+                row.recurringType,
+                row.recurringCoefficient,
+                row.recurringEndDate,
+                day,
+                anchorDayOf(row)
+            );
+        const lead = normalizeLead(row.reminderLeadDays);
+        const soonest = landingAfter(addDays(now, -1));
+        const charge =
+            soonest !== null && lead !== null && reminderFireAt(soonest, lead, time).getTime() > now.getTime()
+                ? soonest
+                : landingAfter(now);
         // A chain that has run past its end date has no charge left to announce.
         if (charge == null) {
             return [];
@@ -128,7 +139,7 @@ export async function pendingReminderPlan(
     time: TimeOfDay,
     cap?: number
 ): Promise<PendingSubscriptionReminder[]> {
-    const candidates = await reminderCandidates(db, now);
+    const candidates = await reminderCandidates(db, now, time);
     const byLocalId = new Map(candidates.map((candidate) => [candidate.localId, candidate]));
     return reminderPlan({ candidates, cap, now, time }).arm.flatMap((armed) => {
         const candidate = byLocalId.get(armed.localId);
