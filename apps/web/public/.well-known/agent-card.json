@@ -1,0 +1,34 @@
+{
+    "name": "Outlayr",
+    "description": "Answers questions about Outlayr, the expense tracker, budget app, and subscription tracker for iPhone by danestves LLC, with its product facts. It cannot read or change anyone's ledger.",
+    "supportedInterfaces": [
+        {
+            "url": "https://tryoutlayr.com/a2a",
+            "protocolBinding": "JSONRPC",
+            "protocolVersion": "1.0"
+        }
+    ],
+    "provider": {
+        "organization": "danestves LLC",
+        "url": "https://tryoutlayr.com"
+    },
+    "version": "1.0.0",
+    "documentationUrl": "https://tryoutlayr.com/llms.txt",
+    "iconUrl": "https://tryoutlayr.com/apple-touch-icon.png",
+    "capabilities": {
+        "streaming": false,
+        "pushNotifications": false,
+        "extendedAgentCard": false
+    },
+    "defaultInputModes": ["text/plain"],
+    "defaultOutputModes": ["text/markdown"],
+    "skills": [
+        {
+            "id": "product-facts",
+            "name": "Outlayr product facts",
+            "description": "Returns Outlayr's product facts as Markdown: features, Free and Pro plans, privacy, platforms, languages, guides, and comparisons. Every message gets the same document.",
+            "tags": ["expense tracker", "budget app", "subscription tracker", "personal finance", "iPhone"],
+            "examples": ["What does Outlayr do?", "What does Outlayr Pro include?", "Does Outlayr work offline?"]
+        }
+    ]
+}

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as A2aRouteImport } from './routes/a2a'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as Char123LocaleChar125RouteRouteImport } from './routes/{-$locale}/route'
 import { Route as DotwellKnownApiCatalogRouteImport } from './routes/[.]well-known.api-catalog'
@@ -23,6 +24,11 @@ import { Route as Char123LocaleChar125CompareSlugRouteImport } from './routes/{-
 import { Route as Char123LocaleChar125GuidesIndexRouteImport } from './routes/{-$locale}/guides.index'
 import { Route as Char123LocaleChar125GuidesSlugRouteImport } from './routes/{-$locale}/guides.$slug'
 
+const A2aRoute = A2aRouteImport.update({
+  id: '/a2a',
+  path: '/a2a',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -102,6 +108,7 @@ const Char123LocaleChar125GuidesSlugRoute =
 
 export interface FileRoutesByFullPath {
   '/{-$locale}': typeof Char123LocaleChar125RouteRouteWithChildren
+  '/a2a': typeof A2aRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/{-$locale}/guides/': typeof Char123LocaleChar125GuidesIndexRoute
 }
 export interface FileRoutesByTo {
+  '/a2a': typeof A2aRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
@@ -132,6 +140,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/{-$locale}': typeof Char123LocaleChar125RouteRouteWithChildren
+  '/a2a': typeof A2aRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/{-$locale}'
+    | '/a2a'
     | '/sitemap.xml'
     | '/.well-known/api-catalog'
     | '/{-$locale}/$'
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/guides/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/a2a'
     | '/sitemap.xml'
     | '/.well-known/api-catalog'
     | '/{-$locale}/$'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/{-$locale}'
+    | '/a2a'
     | '/sitemap.xml'
     | '/.well-known/api-catalog'
     | '/{-$locale}/$'
@@ -194,12 +206,20 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   Char123LocaleChar125RouteRoute: typeof Char123LocaleChar125RouteRouteWithChildren
+  A2aRoute: typeof A2aRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   DotwellKnownApiCatalogRoute: typeof DotwellKnownApiCatalogRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/a2a': {
+      id: '/a2a'
+      path: '/a2a'
+      fullPath: '/a2a'
+      preLoaderRoute: typeof A2aRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -329,6 +349,7 @@ const Char123LocaleChar125RouteRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   Char123LocaleChar125RouteRoute: Char123LocaleChar125RouteRouteWithChildren,
+  A2aRoute: A2aRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   DotwellKnownApiCatalogRoute: DotwellKnownApiCatalogRoute,
 }
