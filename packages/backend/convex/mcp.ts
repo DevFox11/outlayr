@@ -20,8 +20,25 @@ export const configureOAuth = internalMutation({
 
 const tools = [...ledgerTools, ...entryTools];
 
+async function onSiteOrigin(request: Request): Promise<Request> {
+    const site = process.env.CONVEX_SITE_URL;
+    if (!site) {
+        return request;
+    }
+    const url = new URL(request.url);
+    const origin = new URL(site);
+    url.protocol = origin.protocol;
+    url.host = origin.host;
+    const bodiless = request.method === "GET" || request.method === "HEAD";
+    return new Request(url, {
+        body: bodiless ? undefined : await request.arrayBuffer(),
+        headers: request.headers,
+        method: request.method,
+    });
+}
+
 export async function handleMcp(ctx: ActionCtx, request: Request): Promise<Response> {
-    return await gateway.handleMcpRequest(ctx, request, {
+    return await gateway.handleMcpRequest(ctx, await onSiteOrigin(request), {
         authorize: async (_ctx, { identity }) =>
             identity ? { allowed: true } : { allowed: false, reason: "Unauthorized" },
         requireAuth: true,
@@ -44,7 +61,7 @@ const AUTH_MD = "https://tryoutlayr.com/auth.md";
 const GatewayMetadata = z.looseObject({});
 
 export async function protectedResourceMetadata(ctx: ActionCtx, request: Request): Promise<Response> {
-    const response = await gateway.serveProtectedResourceMetadata(ctx, request);
+    const response = await gateway.serveProtectedResourceMetadata(ctx, await onSiteOrigin(request));
     if (!response.ok) {
         return response;
     }

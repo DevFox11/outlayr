@@ -32,6 +32,31 @@ describe("MCP discovery metadata", () => {
         });
     });
 
+    it("publishes the site origin even when the proxy hands Convex plain http", async () => {
+        vi.stubEnv("CONVEX_SITE_URL", ORIGIN);
+        const t = convexTest(schema, modules);
+        register(t);
+        await t.mutation(internal.mcp.configureOAuth, { authServerUrl: ORIGIN });
+
+        const metadata = await t.fetch("/.well-known/oauth-protected-resource/mcp");
+        const challenge = await t.fetch("/mcp", {
+            body: JSON.stringify({
+                id: 1,
+                jsonrpc: "2.0",
+                method: "initialize",
+                params: { protocolVersion: "2025-06-18" },
+            }),
+            headers: { accept: "application/json, text/event-stream", "content-type": "application/json" },
+            method: "POST",
+        });
+
+        await expect(metadata.json()).resolves.toMatchObject({ resource: `${ORIGIN}/mcp/` });
+        expect(challenge.status).toBe(401);
+        expect(challenge.headers.get("www-authenticate")).toContain(
+            `${ORIGIN}/.well-known/oauth-protected-resource/mcp`
+        );
+    });
+
     it("keeps better-auth's RFC 8414 fields beside the agent_auth block", async () => {
         vi.stubEnv("SITE_URL", ORIGIN);
         const t = convexTest(schema, modules);
