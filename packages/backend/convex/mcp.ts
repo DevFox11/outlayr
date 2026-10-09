@@ -25,10 +25,8 @@ async function onSiteOrigin(request: Request): Promise<Request> {
     if (!site) {
         return request;
     }
-    const url = new URL(request.url);
-    const origin = new URL(site);
-    url.protocol = origin.protocol;
-    url.host = origin.host;
+    const { pathname, search } = new URL(request.url);
+    const url = new URL(`${pathname}${search}`, site);
     const bodiless = request.method === "GET" || request.method === "HEAD";
     return new Request(url, {
         body: bodiless ? undefined : await request.arrayBuffer(),
