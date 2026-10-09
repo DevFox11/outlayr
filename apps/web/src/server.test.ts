@@ -22,9 +22,11 @@ beforeEach(() => {
     );
 });
 
-it("serves the main content as markdown to a client that prefers it", async () => {
+it("serves the main content as markdown to a client that prefers it, even on a navigation", async () => {
     const response = await server.fetch(
-        new Request("https://tryoutlayr.com/", { headers: { accept: "text/markdown" } })
+        new Request("https://tryoutlayr.com/", {
+            headers: { accept: "text/markdown", "sec-fetch-dest": "document" },
+        })
     );
     const markdown = await response.text();
 
@@ -37,9 +39,12 @@ it("serves the main content as markdown to a client that prefers it", async () =
     }
 });
 
-it.each(["text/html", "*/*", "application/json"])("hands %s to the app untouched", async (accept) => {
-    const request = new Request("https://tryoutlayr.com/", { headers: { accept } });
-    await server.fetch(request);
+it.each(["text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "*/*", "application/json"])(
+    "hands %s to the app untouched",
+    async (accept) => {
+        const request = new Request("https://tryoutlayr.com/", { headers: { accept } });
+        await server.fetch(request);
 
-    expect(handlerFetch).toHaveBeenCalledWith(request);
-});
+        expect(handlerFetch).toHaveBeenCalledWith(request);
+    }
+);

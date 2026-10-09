@@ -32,10 +32,7 @@ function toMarkdown(html: string): string {
 
 export default createServerEntry({
     async fetch(request, opts) {
-        const wanted = negotiateContent(
-            request.headers.get("accept") ?? undefined,
-            request.headers.get("sec-fetch-dest") ?? undefined
-        );
+        const wanted = negotiateContent(request.headers.get("accept") ?? undefined);
         const bodiless = request.method === "GET" || request.method === "HEAD";
         if (wanted !== "markdown" || !bodiless) {
             return handler.fetch(request, opts);
