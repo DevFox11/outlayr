@@ -141,6 +141,83 @@ describe("applyPendingWrites", () => {
         expect(row).toStrictEqual({ categoryId: "cat-income", income: true, note: "STARBUCKS" });
     });
 
+    it("folds the bank's push for a Wallet tap into the tap's row across currencies", async () => {
+        await seedAccounts(db);
+        const tap = walletWrite("tap", {
+            amount: 22.6,
+            amountText: "€22.60",
+            card: "N26",
+            dedupeKey: "wallet:expense:sumup *fantoni grazia:2260:n26",
+            note: "SumUp *Fantoni Grazia",
+        });
+        const push = walletWrite("push", {
+            amount: 0,
+            amountText: null,
+            card: "Payoneer",
+            date: NOW.getTime() + 30_000,
+            dedupeKey: "notification:expense:payoneer",
+            note: "",
+            text: "Card payment\nYou paid $24.10 at FANTONI GRAZIA, Florence",
+        });
+
+        await applyPendingWrites(db, [tap, push], NOW);
+
+        const rows = await db.select({ amount: transactions.amount, id: transactions.id }).from(transactions);
+        expect(rows).toStrictEqual([{ amount: 22.6, id: rows[0]?.id }]);
+        await expect(pendingWriteTxId(db, "push")).resolves.toBe(rows[0]?.id);
+        expect(parseWalletCards(await getMeta(db, META_KEYS.walletCards)).map((card) => card.text)).toContain(
+            "Payoneer"
+        );
+    });
+
+    it("keeps a bank push in the tap's currency whose amount differs", async () => {
+        const push = walletWrite("push", {
+            amount: 0,
+            amountText: null,
+            card: "Payoneer",
+            dedupeKey: "notification:expense:payoneer",
+            note: "",
+            text: "You paid $50.00 at Blue Bottle",
+        });
+
+        await applyPendingWrites(db, [walletWrite("tap", { card: "Visa" }), push], NOW);
+
+        await expect(undeleted(db)).resolves.toHaveLength(2);
+    });
+
+    it("keeps a second push from the same app as its own purchase", async () => {
+        const push = (id: string) =>
+            walletWrite(id, {
+                amount: 0,
+                amountText: null,
+                card: "Payoneer",
+                dedupeKey: `notification:expense:${id}`,
+                note: "",
+                text: `You paid $6.40 at Blue Bottle (${id})`,
+            });
+
+        await applyPendingWrites(db, [walletWrite("tap", { card: "Visa" }), push("first"), push("second")], NOW);
+
+        await expect(undeleted(db)).resolves.toHaveLength(2);
+    });
+
+    it("gives the tap's row the account the bank push resolves", async () => {
+        await seedAccounts(db);
+        const push = walletWrite("push", {
+            amount: 0,
+            amountText: null,
+            card: "N26",
+            dedupeKey: "notification:expense:n26",
+            note: "",
+            text: "€6.40 at Blue Bottle",
+        });
+
+        await applyPendingWrites(db, [walletWrite("tap", { amountText: "€6.40", card: "Visa 1234" }), push], NOW);
+
+        const rows = await db.select({ accountId: transactions.accountId }).from(transactions);
+        expect(rows).toStrictEqual([{ accountId: "acc-n26" }]);
+    });
+
     it("settles a subscription's occurrence instead of adding a twin, once", async () => {
         const push = (id: string) =>
             walletWrite(id, {

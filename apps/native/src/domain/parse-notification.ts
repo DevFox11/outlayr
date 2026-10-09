@@ -59,7 +59,7 @@ export function parseNotification(text: string): ParsedNotification | null {
     return { amount, amountText, income, merchant };
 }
 
-function cleanMerchant(raw: string | null): string | null {
+export function cleanMerchant(raw: string | null): string | null {
     const cleaned = raw?.split(",", 1)[0]?.replace(POS_PREFIX, "").trim();
     return cleaned || null;
 }

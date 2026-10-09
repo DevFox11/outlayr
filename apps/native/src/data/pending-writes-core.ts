@@ -1,5 +1,5 @@
 import { anchorDayOf, nextDate, RECURRING_TYPE } from "@outlayr/money/recurrence";
-import { and, between, desc, eq, gt, isNull, like, or, sql } from "drizzle-orm";
+import { and, between, desc, eq, gt, inArray, isNull, like, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Database } from "@/db/client";
@@ -9,7 +9,7 @@ import { detectCurrency } from "@/domain/detect-currency";
 import type { CardAccountCandidate } from "@/domain/match-card-account";
 import { matchCardAccount } from "@/domain/match-card-account";
 import { DEFAULT_CURRENCY } from "@/domain/money";
-import { parseNotification } from "@/domain/parse-notification";
+import { cleanMerchant, parseNotification } from "@/domain/parse-notification";
 import type { ClaimedWrites, PendingWrite } from "@/lib/pending-writes-core";
 
 import { accountsRepo, getAccountById } from "./accounts-core";
@@ -245,6 +245,11 @@ function fromAutomation(job: PendingWrite): boolean {
     return Boolean(job.card?.trim()) || /^(?:wallet|notification):/.test(job.dedupeKey ?? "");
 }
 
+function sourceOf(job: PendingWrite): string | null {
+    const kind = /^(wallet|notification):/.exec(job.dedupeKey ?? "")?.[1];
+    return kind ? `${kind}:${job.card?.trim().toLowerCase() ?? ""}` : null;
+}
+
 /** A notification job with its amount and merchant filled in, or null when it names no purchase. */
 function readNotification(job: PendingWrite): PendingWrite | null {
     if (!job.text) {
@@ -273,6 +278,7 @@ interface LedgerEntry {
     id: string;
     /** The purchase it came from, when the intent could name one. */
     key: string | null;
+    source?: string;
     txId: string;
 }
 
@@ -283,6 +289,7 @@ const ledgerSchema = z.array(
             date: z.number().finite().optional(),
             id: z.string(),
             key: z.string().nullable(),
+            source: z.string().optional(),
             txId: z.string(),
         })
         // Per entry, so one bad row does not discard a ledger that is otherwise
@@ -404,7 +411,9 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
         }
         const { account, asks } = await resolveAccount(db, job);
         const currency = resolveWriteCurrency(job, account);
-        const settled = fromAutomation(job) ? await settledOccurrence(db, job, account, currency, ledger, now) : null;
+        const twin = fromAutomation(job) ? await sameCharge(db, job, account, currency, ledger) : null;
+        const settled =
+            fromAutomation(job) && !twin ? await settledOccurrence(db, job, account, currency, ledger, now) : null;
         // oxlint-disable-next-line no-loop-func -- awaited in place, so nothing outlives the iteration whose `job` and `categoryId` it reads
         await withTransaction(db, async () => {
             if (settled && Math.abs(settled.amount - job.amount) > AMOUNT_EPSILON) {
@@ -417,6 +426,7 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
                 await setMeta(db, META_KEYS.repricedSubscriptions, JSON.stringify(repriced));
             }
             const txId =
+                twin?.id ??
                 settled?.id ??
                 (await transactionsRepo.create(db, {
                     accountId: account?.id ?? null,
@@ -433,7 +443,12 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
                     income: job.income,
                     note: job.note,
                 }));
-            ledger = remember(ledger, { at, date: job.date, id: job.id, key: job.dedupeKey?.trim() || null, txId }, at);
+            const source = sourceOf(job) ?? undefined;
+            ledger = remember(
+                ledger,
+                { at, date: job.date, id: job.id, key: job.dedupeKey?.trim() || null, source, txId },
+                at
+            );
             await setMeta(db, META_KEYS.pendingWriteLedger, JSON.stringify(ledger));
             if (fromAutomation(job)) {
                 const entry: LastWalletEntry = { at, txId };
@@ -444,6 +459,10 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
                 await rememberCard(db, card, job.date, asks && currency ? txId : null);
             }
         });
+        const opened = twin && !twin.accountId && account ? getAccountById(db, account.id) : null;
+        if (twin && opened) {
+            await transactionsRepo.attachAccount(db, twin.id, opened, now);
+        }
         applied += 1;
     }
     /* oxlint-enable no-await-in-loop */
@@ -454,6 +473,62 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
 interface MatchedAccount {
     currency: string;
     id: string;
+}
+
+function merchantOf(note: string): string {
+    return cleanMerchant(note)?.toLowerCase() ?? "";
+}
+
+async function sameCharge(
+    db: Database,
+    job: PendingWrite,
+    account: MatchedAccount | null,
+    currency: string | null,
+    ledger: readonly LedgerEntry[]
+): Promise<{ accountId: string | null; id: string } | null> {
+    const source = sourceOf(job);
+    if (!source) {
+        return null;
+    }
+    const fed = new Set(ledger.filter((entry) => entry.source === source).map((entry) => entry.txId));
+    const ids = ledger
+        .filter(
+            (entry) =>
+                entry.source !== undefined &&
+                entry.source !== source &&
+                !fed.has(entry.txId) &&
+                Math.abs(job.date - (entry.date ?? entry.at)) <= WALLET_DEDUPE_WINDOW_MS
+        )
+        .map((entry) => entry.txId);
+    if (ids.length === 0) {
+        return null;
+    }
+    const code = currency ?? (await getMeta(db, META_KEYS.currency)) ?? DEFAULT_CURRENCY;
+    const rows = await db
+        .select({
+            accountId: transactions.accountId,
+            amount: transactions.amount,
+            currency: transactions.currency,
+            date: transactions.date,
+            id: transactions.id,
+            note: transactions.note,
+        })
+        .from(transactions)
+        .where(and(inArray(transactions.id, ids), isNull(transactions.deletedAt), eq(transactions.income, job.income)));
+    const merchant = merchantOf(job.note);
+    const [match] = rows
+        .filter((row) => {
+            if (account && row.accountId && row.accountId !== account.id) {
+                return false;
+            }
+            if (row.currency === code) {
+                return Math.abs(row.amount - job.amount) <= AMOUNT_EPSILON;
+            }
+            const filed = merchantOf(row.note);
+            return merchant !== "" && filed !== "" && (filed.includes(merchant) || merchant.includes(filed));
+        })
+        .sort((a, b) => Math.abs(a.date.getTime() - job.date) - Math.abs(b.date.getTime() - job.date));
+    return match ? { accountId: match.accountId, id: match.id } : null;
 }
 
 async function settledOccurrence(
