@@ -10,7 +10,7 @@ import { Linking } from "react-native";
  * Re-share and update this whenever `LogWalletTransactionIntent`'s parameters
  * change: a shortcut is a snapshot of the action, not a reference to it.
  */
-export const WALLET_SHORTCUT_URL: string | null = "https://www.icloud.com/shortcuts/3311d702ff234334b4951de64882f374";
+export const WALLET_SHORTCUT_URL: string | null = "https://www.icloud.com/shortcuts/8da78a0436dc4e94be4674ca6cb439db";
 
 /**
  * Undocumented but stable since iOS 17: lands on the Automations tab, which is
