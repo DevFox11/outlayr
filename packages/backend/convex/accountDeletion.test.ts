@@ -265,7 +265,11 @@ interface AuthRow {
     userId?: string;
 }
 
-function authRows(t: TestConvex<typeof schema>, model: "account" | "session" | "user", userId: string) {
+function authRows(
+    t: TestConvex<typeof schema>,
+    model: "account" | "oauthAccessToken" | "oauthConsent" | "session" | "user",
+    userId: string
+) {
     return t.run(async (ctx) => {
         const page = (await ctx.runQuery(components.betterAuth.adapter.findMany, {
             model,
@@ -296,6 +300,41 @@ async function linkAppleAccount(t: TestConvex<typeof schema>, userId: string) {
     );
 }
 
+async function grantAssistant(t: TestConvex<typeof schema>, userId: string) {
+    const now = Date.now();
+    await t.run(async (ctx) => {
+        await ctx.runMutation(components.betterAuth.adapter.create, {
+            input: {
+                data: {
+                    accessToken: "mcp-access-token",
+                    accessTokenExpiresAt: now + 3_600_000,
+                    clientId: "assistant",
+                    createdAt: now,
+                    refreshToken: "mcp-refresh-token",
+                    refreshTokenExpiresAt: now + 604_800_000,
+                    scopes: "openid offline_access",
+                    updatedAt: now,
+                    userId,
+                },
+                model: "oauthAccessToken",
+            },
+        });
+        await ctx.runMutation(components.betterAuth.adapter.create, {
+            input: {
+                data: {
+                    clientId: "assistant",
+                    consentGiven: true,
+                    createdAt: now,
+                    scopes: "openid",
+                    updatedAt: now,
+                    userId,
+                },
+                model: "oauthConsent",
+            },
+        });
+    });
+}
+
 describe("auth deletion", () => {
     afterEach(() => {
         vi.unstubAllGlobals();
@@ -305,6 +344,7 @@ describe("auth deletion", () => {
         stubUpstream(200);
         const { owner, resumeSecret, t } = await purgedJob();
         await linkAppleAccount(t, owner.userId);
+        await grantAssistant(t, owner.userId);
         await t.action(api.accountDeletion.eraseBilling, { resumeSecret });
         await expect(t.mutation(api.accountDeletion.advance, { resumeSecret })).resolves.toMatchObject({
             phase: "authDeleting",
@@ -317,6 +357,8 @@ describe("auth deletion", () => {
         await expect(authRows(t, "user", owner.userId)).resolves.toHaveLength(0);
         await expect(authRows(t, "session", owner.userId)).resolves.toHaveLength(0);
         await expect(authRows(t, "account", owner.userId)).resolves.toHaveLength(0);
+        await expect(authRows(t, "oauthAccessToken", owner.userId)).resolves.toHaveLength(0);
+        await expect(authRows(t, "oauthConsent", owner.userId)).resolves.toHaveLength(0);
         await expect(t.query(api.accountDeletion.poll, { resumeSecret })).resolves.toMatchObject({
             phase: "complete",
         });

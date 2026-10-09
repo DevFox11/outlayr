@@ -12,4 +12,6 @@ crons.interval("prune stale exchange rates", { hours: 24 }, internal.exchangeRat
 
 crons.interval("drop expired deletion jobs", { hours: 24 }, internal.accountDeletion.cleanupExpired, {});
 
+crons.interval("prune MCP audit log and idle sessions", { hours: 24 }, internal.mcp.pruneRecords, {});
+
 export default crons;

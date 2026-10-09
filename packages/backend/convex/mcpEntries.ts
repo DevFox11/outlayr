@@ -248,6 +248,7 @@ export const entryTools: McpToolRegistration[] = [
         ].join(" "),
         fn: internal.mcpEntries.logEntry,
         identityArg: "caller",
+        metadata: { auditArgs: false, auditErrorMessage: false },
         name: "log_entry",
     }),
 ];

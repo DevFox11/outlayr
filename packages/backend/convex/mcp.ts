@@ -2,7 +2,7 @@ import { McpGateway } from "convex-mcp-gateway";
 import { v } from "convex/values";
 import { z } from "zod";
 
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
 import type { ActionCtx } from "./_generated/server";
 import { createAuth } from "./auth";
@@ -15,6 +15,20 @@ export const configureOAuth = internalMutation({
     args: { authServerUrl: v.string() },
     handler: async (ctx, { authServerUrl }) => {
         await gateway.setOAuthConfig(ctx, { authServerUrl });
+    },
+});
+
+const DAY_MS = 86_400_000;
+const AUDIT_RETENTION_MS = 30 * DAY_MS;
+
+export const pruneRecords = internalMutation({
+    args: {},
+    handler: async (ctx): Promise<void> => {
+        const audit = await gateway.pruneAuditEntries(ctx, AUDIT_RETENTION_MS);
+        const sessions = await gateway.pruneSessions(ctx, DAY_MS);
+        if (audit > 0 || sessions > 0) {
+            await ctx.scheduler.runAfter(0, internal.mcp.pruneRecords, {});
+        }
     },
 });
 

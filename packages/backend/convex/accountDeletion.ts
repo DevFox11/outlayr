@@ -218,7 +218,11 @@ async function forgetUsage(ctx: MutationCtx, userId: string, tokenIdentifier: st
  * delete. `deleteMany` deletes a single page per call, so the cursor has to be
  * followed to the end or the rest survive the erasure.
  */
-async function deleteAuthRows(ctx: MutationCtx, model: "account" | "session", userId: string): Promise<void> {
+async function deleteAuthRows(
+    ctx: MutationCtx,
+    model: "account" | "oauthAccessToken" | "oauthConsent" | "session",
+    userId: string
+): Promise<void> {
     let cursor: string | null = null;
     let done = false;
     /* oxlint-disable no-await-in-loop -- each page's cursor is the next request's argument */
@@ -270,6 +274,8 @@ export const advance = mutation({
             return publicStatus({ ...job, phase: "authDeleting" });
         }
         await forgetUsage(ctx, job.userId, job.tokenIdentifier);
+        await deleteAuthRows(ctx, "oauthAccessToken", job.userId);
+        await deleteAuthRows(ctx, "oauthConsent", job.userId);
         await deleteAuthRows(ctx, "session", job.userId);
         await deleteAuthRows(ctx, "account", job.userId);
         // SAFETY: the better-auth component types its mutation references
