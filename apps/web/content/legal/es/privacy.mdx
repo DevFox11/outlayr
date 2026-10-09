@@ -1,6 +1,6 @@
 ---
 title: "Política de privacidad"
-description: "Qué guarda Outlayr en tu dispositivo, qué llega a nuestros servidores, a nuestro proveedor de IA y a nuestro servicio de analíticas, cuánto tiempo se conserva y cómo eliminarlo. Actualizado el 3 de octubre de 2026."
+description: "Qué guarda Outlayr en tu dispositivo, qué llega a nuestros servidores, a nuestro proveedor de IA y a nuestro servicio de analíticas, cuánto tiempo se conserva y cómo eliminarlo. Actualizado el 9 de octubre de 2026."
 intro: "Esta política explica qué recopila Outlayr, adónde va, cuánto tiempo se conserva y qué puedes hacer al respecto. Esta traducción se ofrece para tu comodidad. Si hay alguna diferencia con la versión en inglés, prevalece la versión en inglés."
 ---
 
@@ -12,6 +12,7 @@ intro: "Esta política explica qué recopila Outlayr, adónde va, cuánto tiempo
 - Las sugerencias de comercios y las búsquedas web están activadas de forma predeterminada. Puedes oponerte a cualquiera de ellas desactivándola en **Configuración › Laboratorio de funciones**.
 - La app envía analíticas de uso y reportes de fallas a PostHog: qué pantallas abres, cuándo guardas algo y los errores. Nunca montos, comercios, notas ni nombres. Empieza desactivado si la región de tu dispositivo está en el EEE o el Reino Unido, y activado en el resto del mundo. Cámbialo en **Configuración › Compartir analíticas**.
 - Este sitio web también usa PostHog, con una cookie. Si estás en el EEE o el Reino Unido, te pregunta primero. Cambia tu respuesta en el pie de página, en **Cookies**.
+- Puedes conectar a tu cuenta un asistente de IA como Claude. Una vez que lo apruebas, puede leer lo que tus dispositivos sincronizaron y, con Outlayr Pro, agregar entradas. Lo que lee se rige por la política de privacidad de ese asistente.
 - Sin anuncios y sin rastreo en apps de otras empresas. No vendemos ni compartimos tu información personal.
 - Puedes eliminar tu cuenta y todo lo que está sincronizado con ella desde la app en cualquier momento: **Configuración › Cuenta › Eliminar cuenta**.
 
@@ -41,6 +42,9 @@ Todos los tipos de datos que maneja Outlayr, en un solo lugar. Las secciones sig
 | ID de instalación, versión de la app, errores | Búsqueda de actualizaciones | Expo | Según la política de Expo |
 | Pantallas, guardados, errores, ID de instalación, modelo del dispositivo | Uso de la app | PostHog | Hasta la eliminación de la cuenta, o según la política de PostHog si nunca inicias sesión |
 | Páginas, clics, desplazamiento, errores, velocidad de carga, grabaciones de visitas | Visitas al sitio web | PostHog | Según la política de PostHog |
+| Entradas, saldos, presupuestos, próximos cobros | Asistente de IA que apruebas | La empresa del asistente | Según sus políticas |
+| Nombre y dirección del asistente, tu aprobación, claves de acceso | Asistente de IA que apruebas | Nuestros servidores | Hasta la eliminación de la cuenta |
+| Qué herramienta del asistente se usó, y cuándo | Uso del asistente de IA | Nuestros servidores | 30 días |
 | Tus correos | Cuando nos escribes | Nuestra bandeja de entrada | Mientras sea necesario |
 
 ## Lo que se queda en tu dispositivo
@@ -145,6 +149,16 @@ En iPhone, Outlayr puede registrar tus compras con tarjeta a través de la app A
 
 Cuando la automatización se ejecuta, Atajos le da a Outlayr el monto, el comercio y el nombre de la tarjeta de una compra con Apple Pay, o el título y el texto de una notificación de una app que elijas, como la de tu banco. Outlayr lee el monto y el comercio en tu celular, asocia la tarjeta con una de tus cuentas por su nombre y agrega la entrada. Nada de la automatización se nos envía. A partir de ahí, la nueva entrada es como cualquier otra: se sincroniza si la sincronización está activada, y su nombre de comercio puede usarse para una [sugerencia de comercio](#sugerencias-voz-y-recibos).
 
+## Asistentes de IA
+
+Puedes conectar a tu cuenta de Outlayr un asistente de IA compatible con el Model Context Protocol (MCP), como Claude. No se conecta nada hasta que agregas Outlayr en el asistente, inicias sesión con Apple o Google y apruebas el asistente en una pantalla que muestra su nombre y el sitio al que va tu acceso. Pedimos esa aprobación cada vez que un asistente se conecta.
+
+Una vez aprobado, el asistente puede leer lo que tus dispositivos sincronizaron por última vez: entradas, categorías, cuentas y sus saldos, presupuestos y próximos cobros. Con Outlayr Pro también puede agregar un gasto o un ingreso, que llega a tus dispositivos por la sincronización como cualquier otra entrada. Sin sincronización, no hay nada en nuestros servidores que pueda leer.
+
+Lo que el asistente lee, y lo que le cuentas, va a la empresa que lo opera y se rige por la política de privacidad de esa empresa. No lo enviamos a ningún otro lugar.
+
+Para que la conexión siga funcionando, guardamos el nombre y la dirección web del asistente, tu aprobación y sus claves de acceso. Las claves de acceso duran una hora, y el asistente las renueva mientras sigas conectado. Una clave que pasa siete días sin usarse vence. También guardamos durante 30 días un registro de qué herramienta usó un asistente y cuándo, sin el contenido de la entrada. Si quitas Outlayr del asistente, su acceso vence en un máximo de siete días. Eliminar tu cuenta lo quita de inmediato, y puedes escribir a [support@tryoutlayr.com](mailto:support@tryoutlayr.com) para que lo quitemos antes.
+
 ## Outlayr Pro
 
 Los pagos de Outlayr Pro se hacen a través de tu tienda de apps (el App Store de Apple en iPhone). Nunca vemos los datos de tu tarjeta ni los de tu cuenta de la tienda de apps.
@@ -203,9 +217,9 @@ Si estás en el Espacio Económico Europeo o en el Reino Unido, estas son las ba
 
 | Finalidad | Base legal |
 | --- | --- |
-| Tu cuenta, la sincronización, el almacenamiento de fotos, la entrada por voz, el escaneo de recibos, la importación de CSV y Pro | Contrato: necesitamos estos datos para darte lo que pides. |
+| Tu cuenta, la sincronización, el almacenamiento de fotos, la entrada por voz, el escaneo de recibos, la importación de CSV, Pro y las conexiones con asistentes de IA | Contrato: necesitamos estos datos para darte lo que pides. |
 | Las sugerencias de comercios, las búsquedas web, la lista compartida de comercios y los logos | Intereses legítimos: agilizar el registro de entradas. Las sugerencias y las búsquedas web están activadas de forma predeterminada, y desactivar cualquiera de ellas en el Laboratorio de funciones es la forma de oponerte. |
-| Las sesiones, los límites de uso, los registros de errores y las búsquedas de actualizaciones | Intereses legítimos: mantener Outlayr seguro, en funcionamiento y libre de abusos. |
+| Las sesiones, los límites de uso, los registros de errores, los registros de herramientas de asistentes y las búsquedas de actualizaciones | Intereses legítimos: mantener Outlayr seguro, en funcionamiento y libre de abusos. |
 | Las analíticas de uso y los reportes de fallas | Tu consentimiento. Compartir analíticas empieza desactivado cuando la región de tu dispositivo está en el EEE o el Reino Unido. Activarlo es dar tu consentimiento, y desactivarlo es retirarlo. |
 | Las analíticas del sitio web | Tu consentimiento para la cookie y las grabaciones de visitas, que pedimos en tu primera visita. Rechazarla es retirarlo. Una visita rechazada se cuenta igual sin cookie, por nuestro interés legítimo en saber cuántas personas nos visitan. |
 | La cámara, el micrófono, las fotos, el bloqueo biométrico y las notificaciones | Tu consentimiento, que das cuando tu dispositivo te pide permiso y retiras en su configuración (Configuración de iOS en iPhone). |
@@ -220,6 +234,7 @@ La [tabla de arriba](#datos-de-un-vistazo) indica cuánto tiempo se conserva cad
 - Los datos sincronizados, incluidos los registros de eliminación de las entradas que eliminaste, y las fotos respaldadas se conservan hasta que elimines tu cuenta.
 - Las conversaciones de voz se eliminan cuando cierras la pantalla de voz, o una hora después de tu último mensaje.
 - Las grabaciones y las fotos de recibos pasan por nuestro servidor hacia xAI y no las almacenamos.
+- Las conexiones con asistentes de IA (el nombre y la dirección del asistente, tu aprobación y sus claves de acceso) se conservan hasta que elimines tu cuenta. Las claves de acceso dejan de funcionar tras una hora, o tras siete días sin renovarse. El registro de qué herramienta usó un asistente, y cuándo, se conserva 30 días.
 - Las solicitudes de sugerencias de comercios no se conservan una vez respondidas. Las que quedan en cola en segundo plano esperan en nuestro servidor hasta que tu dispositivo recoja la respuesta.
 - Los contadores de uso que aplican los límites de escaneos, entradas por voz y sugerencias guardan solo cantidades, asociadas a tu ID de cuenta, y se eliminan con tu cuenta.
 - Los elementos de la lista compartida de comercios no están vinculados a nadie. Se actualizan después de 30 o 90 días.
@@ -237,7 +252,7 @@ Abre **Configuración › Cuenta › Eliminar cuenta**. Es posible que se te pid
 - Tu registro sincronizado, los registros de eliminación, las fotos respaldadas y las solicitudes de sugerencia pendientes se eliminan de nuestros servidores.
 - Se eliminan tu registro de cliente en RevenueCat y nuestra copia del estado de tu suscripción.
 - Se eliminan tu perfil en PostHog y todos los eventos de analíticas vinculados a él.
-- Se eliminan tus contadores de uso, tus conversaciones de voz abiertas, tus sesiones, tus enlaces de inicio de sesión y tu cuenta.
+- Se eliminan tus contadores de uso, tus conversaciones de voz abiertas, tus sesiones, el acceso de los asistentes de IA, tus enlaces de inicio de sesión y tu cuenta.
 
 Empieza de inmediato y se ejecuta desde tu dispositivo. Si se interrumpe, abre de nuevo Configuración › Cuenta y la app continúa donde se detuvo. Si no puedes usar la app, escribe a [support@tryoutlayr.com](mailto:support@tryoutlayr.com).
 
