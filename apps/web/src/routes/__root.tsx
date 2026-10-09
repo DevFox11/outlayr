@@ -10,6 +10,7 @@ import { ConsentBanner } from "@/components/consent-banner";
 import { NotFound } from "@/components/not-found";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { useAgentTools } from "@/lib/agent-tools";
 import { startAnalytics } from "@/lib/analytics";
 import { LANGUAGES, localeFromParam, pageUrl } from "@/lib/i18n";
 import { ORGANIZATION_ID, WEBSITE_ID, ldJson } from "@/lib/seo";
@@ -123,6 +124,7 @@ function RootDocument({ children }: { children: ReactNode }) {
     const locale = localeFromParam(useParams({ strict: false }).locale);
     const country = Route.useLoaderData();
     useEffect(() => startAnalytics(country), [country]);
+    useAgentTools(locale);
     return (
         <html lang={LANGUAGES[locale].lang} suppressHydrationWarning>
             <head>
