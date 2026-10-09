@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as A2aRouteImport } from './routes/a2a'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as Char123LocaleChar125RouteRouteImport } from './routes/{-$locale}/route'
 import { Route as DotwellKnownApiCatalogRouteImport } from './routes/[.]well-known.api-catalog'
@@ -20,6 +21,7 @@ import { Route as Char123LocaleChar125AboutRouteImport } from './routes/{-$local
 import { Route as Char123LocaleChar125PrivacyRouteImport } from './routes/{-$locale}/privacy'
 import { Route as Char123LocaleChar125SupportRouteImport } from './routes/{-$locale}/support'
 import { Route as Char123LocaleChar125TermsRouteImport } from './routes/{-$locale}/terms'
+import { Route as DotwellKnownMcpServerCardDotjsonRouteImport } from './routes/[.]well-known.mcp.server-card[.]json'
 import { Route as Char123LocaleChar125CompareIndexRouteImport } from './routes/{-$locale}/compare.index'
 import { Route as Char123LocaleChar125CompareSlugRouteImport } from './routes/{-$locale}/compare.$slug'
 import { Route as Char123LocaleChar125GuidesIndexRouteImport } from './routes/{-$locale}/guides.index'
@@ -28,6 +30,11 @@ import { Route as Char123LocaleChar125GuidesSlugRouteImport } from './routes/{-$
 const A2aRoute = A2aRouteImport.update({
   id: '/a2a',
   path: '/a2a',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -88,6 +95,12 @@ const Char123LocaleChar125TermsRoute =
     path: '/terms',
     getParentRoute: () => Char123LocaleChar125RouteRoute,
   } as any)
+const DotwellKnownMcpServerCardDotjsonRoute =
+  DotwellKnownMcpServerCardDotjsonRouteImport.update({
+    id: '/.well-known/mcp/server-card.json',
+    path: '/.well-known/mcp/server-card.json',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const Char123LocaleChar125CompareIndexRoute =
   Char123LocaleChar125CompareIndexRouteImport.update({
     id: '/compare/',
@@ -116,6 +129,7 @@ const Char123LocaleChar125GuidesSlugRoute =
 export interface FileRoutesByFullPath {
   '/{-$locale}': typeof Char123LocaleChar125RouteRouteWithChildren
   '/a2a': typeof A2aRoute
+  '/mcp': typeof McpRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/.well-known/http-message-signatures-directory': typeof DotwellKnownHttpMessageSignaturesDirectoryRoute
@@ -125,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/{-$locale}/support': typeof Char123LocaleChar125SupportRoute
   '/{-$locale}/terms': typeof Char123LocaleChar125TermsRoute
   '/{-$locale}/': typeof Char123LocaleChar125IndexRoute
+  '/.well-known/mcp/server-card.json': typeof DotwellKnownMcpServerCardDotjsonRoute
   '/{-$locale}/compare/$slug': typeof Char123LocaleChar125CompareSlugRoute
   '/{-$locale}/guides/$slug': typeof Char123LocaleChar125GuidesSlugRoute
   '/{-$locale}/compare/': typeof Char123LocaleChar125CompareIndexRoute
@@ -132,6 +147,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/a2a': typeof A2aRoute
+  '/mcp': typeof McpRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/.well-known/http-message-signatures-directory': typeof DotwellKnownHttpMessageSignaturesDirectoryRoute
@@ -141,6 +157,7 @@ export interface FileRoutesByTo {
   '/{-$locale}/support': typeof Char123LocaleChar125SupportRoute
   '/{-$locale}/terms': typeof Char123LocaleChar125TermsRoute
   '/{-$locale}': typeof Char123LocaleChar125IndexRoute
+  '/.well-known/mcp/server-card.json': typeof DotwellKnownMcpServerCardDotjsonRoute
   '/{-$locale}/compare/$slug': typeof Char123LocaleChar125CompareSlugRoute
   '/{-$locale}/guides/$slug': typeof Char123LocaleChar125GuidesSlugRoute
   '/{-$locale}/compare': typeof Char123LocaleChar125CompareIndexRoute
@@ -150,6 +167,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/{-$locale}': typeof Char123LocaleChar125RouteRouteWithChildren
   '/a2a': typeof A2aRoute
+  '/mcp': typeof McpRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/.well-known/http-message-signatures-directory': typeof DotwellKnownHttpMessageSignaturesDirectoryRoute
@@ -159,6 +177,7 @@ export interface FileRoutesById {
   '/{-$locale}/support': typeof Char123LocaleChar125SupportRoute
   '/{-$locale}/terms': typeof Char123LocaleChar125TermsRoute
   '/{-$locale}/': typeof Char123LocaleChar125IndexRoute
+  '/.well-known/mcp/server-card.json': typeof DotwellKnownMcpServerCardDotjsonRoute
   '/{-$locale}/compare/$slug': typeof Char123LocaleChar125CompareSlugRoute
   '/{-$locale}/guides/$slug': typeof Char123LocaleChar125GuidesSlugRoute
   '/{-$locale}/compare/': typeof Char123LocaleChar125CompareIndexRoute
@@ -169,6 +188,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/{-$locale}'
     | '/a2a'
+    | '/mcp'
     | '/sitemap.xml'
     | '/.well-known/api-catalog'
     | '/.well-known/http-message-signatures-directory'
@@ -178,6 +198,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/support'
     | '/{-$locale}/terms'
     | '/{-$locale}/'
+    | '/.well-known/mcp/server-card.json'
     | '/{-$locale}/compare/$slug'
     | '/{-$locale}/guides/$slug'
     | '/{-$locale}/compare/'
@@ -185,6 +206,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/a2a'
+    | '/mcp'
     | '/sitemap.xml'
     | '/.well-known/api-catalog'
     | '/.well-known/http-message-signatures-directory'
@@ -194,6 +216,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/support'
     | '/{-$locale}/terms'
     | '/{-$locale}'
+    | '/.well-known/mcp/server-card.json'
     | '/{-$locale}/compare/$slug'
     | '/{-$locale}/guides/$slug'
     | '/{-$locale}/compare'
@@ -202,6 +225,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/{-$locale}'
     | '/a2a'
+    | '/mcp'
     | '/sitemap.xml'
     | '/.well-known/api-catalog'
     | '/.well-known/http-message-signatures-directory'
@@ -211,6 +235,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/support'
     | '/{-$locale}/terms'
     | '/{-$locale}/'
+    | '/.well-known/mcp/server-card.json'
     | '/{-$locale}/compare/$slug'
     | '/{-$locale}/guides/$slug'
     | '/{-$locale}/compare/'
@@ -220,9 +245,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   Char123LocaleChar125RouteRoute: typeof Char123LocaleChar125RouteRouteWithChildren
   A2aRoute: typeof A2aRoute
+  McpRoute: typeof McpRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   DotwellKnownApiCatalogRoute: typeof DotwellKnownApiCatalogRoute
   DotwellKnownHttpMessageSignaturesDirectoryRoute: typeof DotwellKnownHttpMessageSignaturesDirectoryRoute
+  DotwellKnownMcpServerCardDotjsonRoute: typeof DotwellKnownMcpServerCardDotjsonRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -232,6 +259,13 @@ declare module '@tanstack/react-router' {
       path: '/a2a'
       fullPath: '/a2a'
       preLoaderRoute: typeof A2aRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -304,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char123LocaleChar125TermsRouteImport
       parentRoute: typeof Char123LocaleChar125RouteRoute
     }
+    '/.well-known/mcp/server-card.json': {
+      id: '/.well-known/mcp/server-card.json'
+      path: '/.well-known/mcp/server-card.json'
+      fullPath: '/.well-known/mcp/server-card.json'
+      preLoaderRoute: typeof DotwellKnownMcpServerCardDotjsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/{-$locale}/compare/': {
       id: '/{-$locale}/compare/'
       path: '/compare'
@@ -371,10 +412,12 @@ const Char123LocaleChar125RouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   Char123LocaleChar125RouteRoute: Char123LocaleChar125RouteRouteWithChildren,
   A2aRoute: A2aRoute,
+  McpRoute: McpRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   DotwellKnownApiCatalogRoute: DotwellKnownApiCatalogRoute,
   DotwellKnownHttpMessageSignaturesDirectoryRoute:
     DotwellKnownHttpMessageSignaturesDirectoryRoute,
+  DotwellKnownMcpServerCardDotjsonRoute: DotwellKnownMcpServerCardDotjsonRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

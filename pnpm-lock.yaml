@@ -500,6 +500,9 @@ importers:
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.2
     devDependencies:
       '@content-collections/cli':
         specifier: ^0.1.9
@@ -543,9 +546,6 @@ importers:
       vite-plus:
         specifier: 'catalog:'
         version: 1.0.0(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/ui@5.0.1)(esbuild@0.25.12)(jiti@2.7.0)(jsdom@20.0.3(supports-color@8.1.1))(terser@5.49.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1)
-      zod:
-        specifier: 'catalog:'
-        version: 4.6.2
 
   packages/backend:
     dependencies:

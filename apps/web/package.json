@@ -23,7 +23,8 @@
         "react": "19.2.3",
         "react-dom": "19.2.3",
         "react-intlayer": "catalog:",
-        "tailwindcss": "^4.3.3"
+        "tailwindcss": "^4.3.3",
+        "zod": "catalog:"
     },
     "devDependencies": {
         "@content-collections/cli": "^0.1.9",
@@ -39,7 +40,6 @@
         "typescript": "catalog:",
         "vite": "catalog:",
         "vite-intlayer": "catalog:",
-        "vite-plus": "catalog:",
-        "zod": "catalog:"
+        "vite-plus": "catalog:"
     }
 }
