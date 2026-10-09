@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, like, sql } from "drizzle-orm";
+import { and, between, desc, eq, isNull, like, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Database } from "@/db/client";
@@ -7,6 +7,7 @@ import { withTransaction } from "@/db/transaction";
 import { detectCurrency } from "@/domain/detect-currency";
 import type { CardAccountCandidate } from "@/domain/match-card-account";
 import { matchCardAccount } from "@/domain/match-card-account";
+import { DEFAULT_CURRENCY } from "@/domain/money";
 import { parseNotification } from "@/domain/parse-notification";
 import type { ClaimedWrites, PendingWrite } from "@/lib/pending-writes-core";
 
@@ -34,6 +35,8 @@ import { transactionsRepo } from "./transactions-core";
 export const WALLET_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
 
 export const filedNote = sql<string>`lower(${transactions.note})`;
+
+export const SUBSCRIPTION_SETTLE_WINDOW_MS = 4 * 24 * 60 * 60 * 1000;
 
 /** What `META_KEYS.lastWalletEntry` holds. */
 export interface LastWalletEntry {
@@ -369,19 +372,24 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
         await withTransaction(db, async () => {
             const { account, asks } = await resolveAccount(db, job);
             const currency = resolveWriteCurrency(job, account);
-            const txId = await transactionsRepo.create(db, {
-                accountId: account?.id ?? null,
-                amount: job.amount,
-                categoryId,
-                // Null means "the ledger's own currency", which is what
-                // `transactionsRepo.create` already resolves it to.
-                currency,
-                date: new Date(job.date),
-                details: null,
-                fee: job.income ? null : suggestedCardFee(db, { account, categoryId, currency, merchant: job.note }),
-                income: job.income,
-                note: job.note,
-            });
+            const settled = fromAutomation(job) ? await settledOccurrence(db, job, account, currency, ledger) : null;
+            const txId =
+                settled ??
+                (await transactionsRepo.create(db, {
+                    accountId: account?.id ?? null,
+                    amount: job.amount,
+                    categoryId,
+                    // Null means "the ledger's own currency", which is what
+                    // `transactionsRepo.create` already resolves it to.
+                    currency,
+                    date: new Date(job.date),
+                    details: null,
+                    fee: job.income
+                        ? null
+                        : suggestedCardFee(db, { account, categoryId, currency, merchant: job.note }),
+                    income: job.income,
+                    note: job.note,
+                }));
             ledger = remember(ledger, { at, date: job.date, id: job.id, key: job.dedupeKey?.trim() || null, txId }, at);
             await setMeta(db, META_KEYS.pendingWriteLedger, JSON.stringify(ledger));
             if (fromAutomation(job)) {
@@ -403,6 +411,53 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
 interface MatchedAccount {
     currency: string;
     id: string;
+}
+
+async function settledOccurrence(
+    db: Database,
+    job: PendingWrite,
+    account: MatchedAccount | null,
+    currency: string | null,
+    ledger: readonly LedgerEntry[]
+): Promise<string | null> {
+    const code = currency ?? (await getMeta(db, META_KEYS.currency)) ?? DEFAULT_CURRENCY;
+    const taken = new Set(ledger.map((entry) => entry.txId));
+    const rows = await db
+        .select({
+            accountId: transactions.accountId,
+            date: transactions.date,
+            id: transactions.id,
+            note: transactions.note,
+        })
+        .from(transactions)
+        .where(
+            and(
+                eq(transactions.onceRecurring, true),
+                isNull(transactions.deletedAt),
+                isNull(transactions.feeForId),
+                eq(transactions.income, job.income),
+                eq(transactions.amount, job.amount),
+                eq(transactions.currency, code),
+                between(
+                    transactions.date,
+                    new Date(job.date - SUBSCRIPTION_SETTLE_WINDOW_MS),
+                    new Date(job.date + SUBSCRIPTION_SETTLE_WINDOW_MS)
+                )
+            )
+        );
+    const merchant = job.note.trim().toLowerCase();
+    const named = (note: string) => {
+        const filed = note.trim().toLowerCase();
+        return merchant !== "" && filed !== "" && (filed.includes(merchant) || merchant.includes(filed));
+    };
+    const candidates = rows
+        .filter((row) => !taken.has(row.id) && (!account || !row.accountId || row.accountId === account.id))
+        .sort(
+            (a, b) =>
+                Number(named(b.note)) - Number(named(a.note)) ||
+                Math.abs(a.date.getTime() - job.date) - Math.abs(b.date.getTime() - job.date)
+        );
+    return candidates[0]?.id ?? null;
 }
 
 /**

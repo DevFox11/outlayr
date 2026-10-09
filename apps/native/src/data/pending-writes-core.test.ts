@@ -4,6 +4,7 @@ import { eq, isNull, ne } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { accounts, categories, transactions } from "@/db/schema";
 import { migratedDatabase, transactionalDatabase } from "@/db/test-database";
+import { DEFAULT_CURRENCY } from "@/domain/money";
 import type { PendingWrite } from "@/lib/pending-writes-core";
 
 import { getMeta, META_KEYS } from "./app-meta-core";
@@ -12,6 +13,7 @@ import {
     applyPendingWrites,
     drainPendingWrites,
     fileWaitingPurchases,
+    parseLastWalletEntry,
     parseNotificationTexts,
     parseWalletCards,
     pendingWriteTxId,
@@ -136,6 +138,40 @@ describe("applyPendingWrites", () => {
             .select({ categoryId: transactions.categoryId, income: transactions.income, note: transactions.note })
             .from(transactions);
         expect(row).toStrictEqual({ categoryId: "cat-income", income: true, note: "STARBUCKS" });
+    });
+
+    it("settles a subscription's occurrence instead of adding a twin, once", async () => {
+        const push = (id: string) =>
+            walletWrite(id, {
+                amount: 0,
+                amountText: null,
+                dedupeKey: `notification:expense:${id}`,
+                note: "",
+                text: "Card payment\nPaid $9.99 to Netflix",
+            });
+        await db.insert(transactions).values({
+            amount: 9.99,
+            categoryId: "cat-expense",
+            currency: DEFAULT_CURRENCY,
+            date: new Date(NOW.getTime() + 2 * 24 * 60 * 60 * 1000),
+            day: NOW,
+            id: "sub-netflix",
+            income: false,
+            month: NOW,
+            note: "Netflix",
+            onceRecurring: true,
+            recurringType: 1,
+            updatedAt: NOW,
+        });
+
+        await applyPendingWrites(db, [push("october")], NOW);
+
+        await expect(liveRows(db)).resolves.toStrictEqual([{ id: "sub-netflix", note: "Netflix" }]);
+        expect(parseLastWalletEntry(await getMeta(db, META_KEYS.lastWalletEntry))?.txId).toBe("sub-netflix");
+
+        await applyPendingWrites(db, [push("again")], NOW);
+
+        await expect(liveRows(db)).resolves.toHaveLength(2);
     });
 
     it("skips a notification that names no amount", async () => {
