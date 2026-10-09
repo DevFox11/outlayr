@@ -1,0 +1,44 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Outlayr website",
+        "version": "1.0.0",
+        "description": "Public, read-only resources on tryoutlayr.com. Outlayr has no public data API: the ledger is stored on the user's device."
+    },
+    "servers": [{ "url": "https://tryoutlayr.com" }],
+    "paths": {
+        "/llms.txt": {
+            "get": {
+                "summary": "Product facts for language models",
+                "responses": {
+                    "200": {
+                        "description": "What Outlayr does, its plans, and its privacy terms, in Markdown",
+                        "content": { "text/plain": { "schema": { "type": "string" } } }
+                    }
+                }
+            }
+        },
+        "/sitemap.xml": {
+            "get": {
+                "summary": "Every public page in English and Spanish",
+                "responses": {
+                    "200": {
+                        "description": "Sitemap with hreflang alternates",
+                        "content": { "application/xml": { "schema": { "type": "string" } } }
+                    }
+                }
+            }
+        },
+        "/.well-known/api-catalog": {
+            "get": {
+                "summary": "API catalog (RFC 9727)",
+                "responses": {
+                    "200": {
+                        "description": "Linkset pointing to this description and to llms.txt",
+                        "content": { "application/linkset+json": { "schema": { "type": "object" } } }
+                    }
+                }
+            }
+        }
+    }
+}
