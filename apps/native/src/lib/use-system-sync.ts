@@ -10,12 +10,15 @@ import {
     stampLedgerCurrency,
 } from "@/data/canonicalize-backfill";
 import { settlePendingFees } from "@/data/card-fees-core";
-import { drainPendingWrites, fileWaitingPurchases } from "@/data/pending-writes-core";
+import { drainPendingWrites, fileWaitingPurchases, takeRepriced } from "@/data/pending-writes-core";
 import { applyRecentRates, pullRatesIfDue } from "@/data/rates";
 import type { RateWireRow } from "@/data/rates";
 import type { Database } from "@/db/client";
+import { formatAmount } from "@/domain/money";
+import { translateNow } from "@/i18n/runtime";
 import { ratesPuller, watchRecentRates } from "@/lib/convex";
 import { armLogoBackfill, backfillLogos } from "@/lib/logo-backfill";
+import { notifyWarning } from "@/lib/notify";
 import { publishWidgets } from "@/widgets/publish";
 
 import { indexSpotlight } from "./spotlight";
@@ -62,6 +65,10 @@ export function useSystemSync(db: Database | null): void {
                 .then(() => fileWaitingPurchases(db))
                 .catch((error) => {
                     console.warn("[outlayr] waiting purchases failed to file", error);
+                })
+                .then(() => announceRepriced(db))
+                .catch((error) => {
+                    console.warn("[outlayr] repriced subscriptions failed to announce", error);
                 })
                 .then(() => backfillLogos(db))
                 .catch((error) => {
@@ -204,4 +211,13 @@ async function revalueLedger(db: Database): Promise<boolean> {
         console.warn("[outlayr] canonicalization backfill failed", error);
     }
     return changed;
+}
+
+async function announceRepriced(db: Database): Promise<void> {
+    for (const entry of await takeRepriced(db)) {
+        notifyWarning({
+            body: translateNow("log.repriced.body", { from: formatAmount(entry.from, entry.currency) }),
+            title: translateNow("log.repriced.title", { name: entry.note, to: formatAmount(entry.to, entry.currency) }),
+        });
+    }
 }

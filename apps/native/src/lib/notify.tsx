@@ -74,6 +74,10 @@ export function notifyFailure(notice: Notice): void {
     show({ ...notice, tone: { kind: "failure" } });
 }
 
+export function notifyWarning(notice: Notice): void {
+    show({ ...notice, tone: { kind: "warning" } });
+}
+
 /**
  * A neutral notice whose action is the point — an undo, say. Returns the toast
  * id, because the window an undo lives in is owned by the caller: it closes when

@@ -17,6 +17,7 @@ import {
     parseNotificationTexts,
     parseWalletCards,
     pendingWriteTxId,
+    takeRepriced,
     pickCardAccount,
     WALLET_DEDUPE_WINDOW_MS,
 } from "./pending-writes-core";
@@ -170,6 +171,82 @@ describe("applyPendingWrites", () => {
         expect(parseLastWalletEntry(await getMeta(db, META_KEYS.lastWalletEntry))?.txId).toBe("sub-netflix");
 
         await applyPendingWrites(db, [push("again")], NOW);
+
+        await expect(liveRows(db)).resolves.toHaveLength(2);
+    });
+
+    it("writes the chain's next charge itself when the push lands before the sweep", async () => {
+        await db.insert(transactions).values({
+            amount: 9.99,
+            categoryId: "cat-expense",
+            currency: DEFAULT_CURRENCY,
+            date: new Date("2026-02-04T09:00:00Z"),
+            day: new Date("2026-02-04T09:00:00Z"),
+            id: "sub-netflix",
+            income: false,
+            month: new Date("2026-02-01T09:00:00Z"),
+            note: "Netflix",
+            onceRecurring: true,
+            recurringType: 3,
+            updatedAt: NOW,
+        });
+        const job = walletWrite("march", {
+            amount: 0,
+            amountText: null,
+            dedupeKey: "notification:expense:march",
+            note: "",
+            text: "Paid $12.99 to Netflix",
+        });
+
+        await applyPendingWrites(db, [job], NOW);
+
+        const rows = await db
+            .select({ amount: transactions.amount, id: transactions.id, recurringType: transactions.recurringType })
+            .from(transactions)
+            .where(isNull(transactions.deletedAt));
+        expect(rows).toHaveLength(2);
+        const occurrence = rows.find((row) => row.id !== "sub-netflix");
+        expect(occurrence).toMatchObject({ amount: 12.99, recurringType: 3 });
+        expect(parseLastWalletEntry(await getMeta(db, META_KEYS.lastWalletEntry))?.txId).toBe(occurrence?.id);
+    });
+
+    it("adopts a subscription's new price by name within the band, and not a one-off", async () => {
+        const push = (id: string, text: string) =>
+            walletWrite(id, {
+                amount: 0,
+                amountText: null,
+                dedupeKey: `notification:expense:${id}`,
+                note: "",
+                text,
+            });
+        await db.insert(transactions).values({
+            amount: 9.99,
+            categoryId: "cat-expense",
+            currency: DEFAULT_CURRENCY,
+            date: NOW,
+            day: NOW,
+            id: "sub-netflix",
+            income: false,
+            month: NOW,
+            note: "Netflix",
+            onceRecurring: true,
+            recurringType: 1,
+            updatedAt: NOW,
+        });
+
+        await applyPendingWrites(db, [push("raise", "Paid $12.99 to Netflix")], NOW);
+
+        const [row] = await db
+            .select({ amount: transactions.amount, amountUsd: transactions.amountUsd })
+            .from(transactions)
+            .where(eq(transactions.id, "sub-netflix"));
+        expect(row).toStrictEqual({ amount: 12.99, amountUsd: null });
+        await expect(takeRepriced(db)).resolves.toStrictEqual([
+            { currency: DEFAULT_CURRENCY, from: 9.99, note: "Netflix", to: 12.99 },
+        ]);
+        await expect(takeRepriced(db)).resolves.toStrictEqual([]);
+
+        await applyPendingWrites(db, [push("gift", "Paid $120.00 to Netflix")], NOW);
 
         await expect(liveRows(db)).resolves.toHaveLength(2);
     });

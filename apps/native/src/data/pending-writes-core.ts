@@ -1,4 +1,5 @@
-import { and, between, desc, eq, isNull, like, sql } from "drizzle-orm";
+import { anchorDayOf, nextDate, RECURRING_TYPE } from "@outlayr/money/recurrence";
+import { and, between, desc, eq, gt, isNull, like, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Database } from "@/db/client";
@@ -14,6 +15,7 @@ import type { ClaimedWrites, PendingWrite } from "@/lib/pending-writes-core";
 import { accountsRepo, getAccountById } from "./accounts-core";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { suggestedCardFee } from "./card-fees-core";
+import { backfillRecurring, occurrenceId } from "./recurrence-backfill";
 import { transactionsRepo } from "./transactions-core";
 
 /**
@@ -37,6 +39,38 @@ export const WALLET_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
 export const filedNote = sql<string>`lower(${transactions.note})`;
 
 export const SUBSCRIPTION_SETTLE_WINDOW_MS = 4 * 24 * 60 * 60 * 1000;
+export const SUBSCRIPTION_PRICE_BAND = { max: 2, min: 0.5 } as const;
+const AMOUNT_EPSILON = 0.005;
+const MAX_MISSED_LANDINGS = 60;
+
+const repricedSchema = z.object({
+    currency: z.string(),
+    from: z.number().finite(),
+    note: z.string(),
+    to: z.number().finite(),
+});
+
+export type RepricedSubscription = z.infer<typeof repricedSchema>;
+
+export function parseRepriced(raw: string | null | undefined): RepricedSubscription[] {
+    if (!raw) {
+        return [];
+    }
+    try {
+        const parsed = z.array(repricedSchema.nullable().catch(null)).safeParse(JSON.parse(raw));
+        return parsed.success ? parsed.data.filter((entry) => entry !== null) : [];
+    } catch {
+        return [];
+    }
+}
+
+export async function takeRepriced(db: Database): Promise<RepricedSubscription[]> {
+    const entries = parseRepriced(await getMeta(db, META_KEYS.repricedSubscriptions));
+    if (entries.length > 0) {
+        await setMeta(db, META_KEYS.repricedSubscriptions, "[]");
+    }
+    return entries;
+}
 
 /** What `META_KEYS.lastWalletEntry` holds. */
 export interface LastWalletEntry {
@@ -368,13 +402,22 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
             console.warn("[outlayr] dropped a queued entry with no category");
             continue;
         }
+        const { account, asks } = await resolveAccount(db, job);
+        const currency = resolveWriteCurrency(job, account);
+        const settled = fromAutomation(job) ? await settledOccurrence(db, job, account, currency, ledger, now) : null;
         // oxlint-disable-next-line no-loop-func -- awaited in place, so nothing outlives the iteration whose `job` and `categoryId` it reads
         await withTransaction(db, async () => {
-            const { account, asks } = await resolveAccount(db, job);
-            const currency = resolveWriteCurrency(job, account);
-            const settled = fromAutomation(job) ? await settledOccurrence(db, job, account, currency, ledger) : null;
+            if (settled && Math.abs(settled.amount - job.amount) > AMOUNT_EPSILON) {
+                await db
+                    .update(transactions)
+                    .set({ amount: job.amount, amountUsd: null, updatedAt: now })
+                    .where(eq(transactions.id, settled.id));
+                const repriced = parseRepriced(await getMeta(db, META_KEYS.repricedSubscriptions));
+                repriced.push({ currency: settled.currency, from: settled.amount, note: settled.note, to: job.amount });
+                await setMeta(db, META_KEYS.repricedSubscriptions, JSON.stringify(repriced));
+            }
             const txId =
-                settled ??
+                settled?.id ??
                 (await transactionsRepo.create(db, {
                     accountId: account?.id ?? null,
                     amount: job.amount,
@@ -418,16 +461,24 @@ async function settledOccurrence(
     job: PendingWrite,
     account: MatchedAccount | null,
     currency: string | null,
-    ledger: readonly LedgerEntry[]
-): Promise<string | null> {
+    ledger: readonly LedgerEntry[],
+    now: Date
+): Promise<{ amount: number; currency: string; id: string; note: string } | null> {
     const code = currency ?? (await getMeta(db, META_KEYS.currency)) ?? DEFAULT_CURRENCY;
     const taken = new Set(ledger.map((entry) => entry.txId));
+    const lo = job.date - SUBSCRIPTION_SETTLE_WINDOW_MS;
+    const hi = job.date + SUBSCRIPTION_SETTLE_WINDOW_MS;
     const rows = await db
         .select({
             accountId: transactions.accountId,
+            amount: transactions.amount,
             date: transactions.date,
             id: transactions.id,
             note: transactions.note,
+            recurringAnchorDay: transactions.recurringAnchorDay,
+            recurringCoefficient: transactions.recurringCoefficient,
+            recurringEndDate: transactions.recurringEndDate,
+            recurringType: transactions.recurringType,
         })
         .from(transactions)
         .where(
@@ -436,28 +487,60 @@ async function settledOccurrence(
                 isNull(transactions.deletedAt),
                 isNull(transactions.feeForId),
                 eq(transactions.income, job.income),
-                eq(transactions.amount, job.amount),
                 eq(transactions.currency, code),
-                between(
-                    transactions.date,
-                    new Date(job.date - SUBSCRIPTION_SETTLE_WINDOW_MS),
-                    new Date(job.date + SUBSCRIPTION_SETTLE_WINDOW_MS)
+                or(
+                    between(transactions.date, new Date(lo), new Date(hi)),
+                    gt(transactions.recurringType, RECURRING_TYPE.none)
                 )
             )
         );
+    const inWindow = (at: Date) => at.getTime() >= lo && at.getTime() <= hi;
+    const stored = rows.filter((row) => inWindow(row.date)).map((row) => ({ ...row, landing: null }));
+    const landings = rows.flatMap((row) => {
+        if (row.recurringType === RECURRING_TYPE.none) {
+            return [];
+        }
+        let landing = nextDate(row.date, row.recurringType, row.recurringCoefficient, anchorDayOf(row));
+        for (let missed = 0; landing && landing.getTime() < lo && missed < MAX_MISSED_LANDINGS; missed += 1) {
+            landing = nextDate(landing, row.recurringType, row.recurringCoefficient, anchorDayOf(row));
+        }
+        const ended = row.recurringEndDate != null && landing != null && landing > row.recurringEndDate;
+        return landing && inWindow(landing) && !ended ? [{ ...row, date: landing, landing }] : [];
+    });
     const merchant = job.note.trim().toLowerCase();
     const named = (note: string) => {
         const filed = note.trim().toLowerCase();
         return merchant !== "" && filed !== "" && (filed.includes(merchant) || merchant.includes(filed));
     };
-    const candidates = rows
-        .filter((row) => !taken.has(row.id) && (!account || !row.accountId || row.accountId === account.id))
-        .sort(
-            (a, b) =>
-                Number(named(b.note)) - Number(named(a.note)) ||
-                Math.abs(a.date.getTime() - job.date) - Math.abs(b.date.getTime() - job.date)
-        );
-    return candidates[0]?.id ?? null;
+    const open = [...stored, ...landings].filter(
+        (row) => !taken.has(row.id) && (!account || !row.accountId || row.accountId === account.id)
+    );
+    const byDate = (a: { date: Date }, b: { date: Date }) =>
+        Math.abs(a.date.getTime() - job.date) - Math.abs(b.date.getTime() - job.date);
+    const samePrice = open
+        .filter((row) => Math.abs(row.amount - job.amount) <= AMOUNT_EPSILON)
+        .sort((a, b) => Number(named(b.note)) - Number(named(a.note)) || byDate(a, b));
+    const repriced = open
+        .filter((row) => {
+            const ratio = job.amount / row.amount;
+            return named(row.note) && ratio >= SUBSCRIPTION_PRICE_BAND.min && ratio <= SUBSCRIPTION_PRICE_BAND.max;
+        })
+        .sort(byDate);
+    const match = samePrice[0] ?? repriced[0];
+    if (!match) {
+        return null;
+    }
+    if (!match.landing) {
+        return { amount: match.amount, currency: code, id: match.id, note: match.note };
+    }
+    await backfillRecurring(db, match.id, new Date(Math.max(now.getTime(), match.landing.getTime())));
+    const id = occurrenceId(match.id, match.landing);
+    const [written] = await db
+        .select({ amount: transactions.amount, note: transactions.note })
+        .from(transactions)
+        .where(and(eq(transactions.id, id), isNull(transactions.deletedAt)))
+        .limit(1);
+    return written ? { amount: written.amount, currency: code, id, note: written.note } : null;
 }
 
 /**

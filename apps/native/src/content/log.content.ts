@@ -276,6 +276,14 @@ const log = {
             en: "UPCOMING",
             es: "PRÓXIMOS",
         }),
+        "log.repriced.body": t({
+            en: "Was {from}. Future charges follow.",
+            es: "Antes {from}. Los próximos cobros siguen el nuevo precio.",
+        }),
+        "log.repriced.title": t({
+            en: "{name} now costs {to}",
+            es: "{name} ahora cuesta {to}",
+        }),
         "log.upcoming.perMonth": t({
             en: "PER MONTH",
             es: "AL MES",

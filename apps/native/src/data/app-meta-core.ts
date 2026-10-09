@@ -91,6 +91,7 @@ export const META_KEYS = {
      * same SQLite transaction as the row it records.
      */
     pendingWriteLedger: "pendingWriteLedger",
+    repricedSubscriptions: "repricedSubscriptions",
     /**
      * Set once the orphaned-chain repair has run. Deleting a schedule carrier now
      * retires it, so any tombstone still holding one predates that and is repaired
