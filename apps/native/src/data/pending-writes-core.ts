@@ -184,7 +184,13 @@ function readNotification(job: PendingWrite): PendingWrite | null {
     if (!parsed) {
         return null;
     }
-    return { ...job, amount: parsed.amount, amountText: parsed.amountText, note: parsed.merchant ?? "" };
+    return {
+        ...job,
+        amount: parsed.amount,
+        amountText: parsed.amountText,
+        income: job.income || parsed.income,
+        note: parsed.merchant ?? "",
+    };
 }
 
 const LEDGER_LIMIT = 100;

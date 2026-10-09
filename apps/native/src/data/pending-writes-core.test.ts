@@ -120,6 +120,23 @@ describe("applyPendingWrites", () => {
         expect(row).toStrictEqual({ accountId: "acc-chase", amount: 12.4, currency: "MXN", note: "STARBUCKS" });
     });
 
+    it("files a refund push as income", async () => {
+        const job = walletWrite("refund", {
+            amount: 0,
+            amountText: null,
+            dedupeKey: "notification:expense:refund",
+            note: "",
+            text: "Refund of $12.40 from STARBUCKS",
+        });
+
+        await applyPendingWrites(db, [job], NOW);
+
+        const [row] = await db
+            .select({ categoryId: transactions.categoryId, income: transactions.income, note: transactions.note })
+            .from(transactions);
+        expect(row).toStrictEqual({ categoryId: "cat-income", income: true, note: "STARBUCKS" });
+    });
+
     it("skips a notification that names no amount", async () => {
         const job = walletWrite("statement", { amount: 0, note: "", text: "Your statement is ready" });
 

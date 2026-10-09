@@ -6,6 +6,7 @@ export interface ParsedNotification {
     amount: number;
     /** The money token as it appeared, e.g. "Bs. 1.250,00", for `detectCurrency`. */
     amountText: string;
+    income: boolean;
     merchant: string | null;
 }
 
@@ -21,37 +22,56 @@ const CODES = String.raw`(?<![A-Za-z])(?:${PICKABLE_CURRENCY_CODES.join("|")})(?
 const UNIT = `(?:${CODES}|${SYMBOLS})`;
 const NUMBER = String.raw`\d+(?:[.,]\d+)*`;
 const MONEY = new RegExp(String.raw`${UNIT}\s?${NUMBER}|${NUMBER}\s?${UNIT}`, "u");
+const DIGITS = new RegExp(NUMBER, "u");
 const AFTER_NUMBER = /^\d|\s?\d/;
 
-const MERCHANT =
-    /\b(?:at|in|en|to|a|de|@)\s+(.+?)(?=\s+(?:with|using|via|on|for|con|usando|por|el|la|desde|mediante)\b|[,.;\n]|$)/iu;
+const DECLINED =
+    /\b(?:declined|denied|failed|reverted|unsuccessful|insufficient funds|rechazad[ao]|denegad[ao]|fallid[ao]|revertid[ao]|no aprobad[ao]|fondos insuficientes)\b/iu;
+const INCOMING =
+    /\b(?:received|refund(?:ed)?|reversal|credited|recibi(?:ste|d[ao])|reembols(?:o|ad[ao])|devoluci[oó]n|abon(?:o|ad[ao])|acreditad[ao])\b/iu;
+
+const STOP = String.raw`(?=\s+(?:with|using|via|on|for|con|usando|por|el|la|desde|mediante)\b|[,.;\n]|$)`;
+const PAID_TO = new RegExp(String.raw`\b(?:at|in|en|to|a|de|@)\s+(.+?)${STOP}`, "iu");
+const RECEIVED_FROM = new RegExp(String.raw`\b(?:from|de|por parte de)\s+(.+?)${STOP}`, "iu");
+
+const POS_PREFIX = /^(?:sumup|sq|sqc|tst|pp|paypal|zettle|izettle|stripe|amzn(?: mktp)?)\s*\*\s*/iu;
 
 /**
  * Reads a purchase out of a bank or Wallet notification. Null when no money
- * token is found, which is how "your statement is ready" gets skipped.
+ * token is found, which is how "your statement is ready" gets skipped, and
+ * when the text says the charge did not go through.
  */
 export function parseNotification(text: string): ParsedNotification | null {
     const match = MONEY.exec(text);
-    if (!match) {
+    if (!match || DECLINED.test(text)) {
         return null;
     }
     const amountText = match[0].trim();
-    const amount = parseCsvAmount(amountText, detectDecimalSeparator([amountText]));
+    const digits = DIGITS.exec(amountText)?.[0] ?? amountText;
+    const amount = parseCsvAmount(digits, detectDecimalSeparator([digits]));
     if (amount == null || amount <= 0) {
         return null;
     }
+    const income = INCOMING.test(text);
     const tail = text.slice(match.index + match[0].length);
-    const merchant = MERCHANT.exec(tail)?.[1]?.trim() || titleMerchant(text, match.index);
-    return { amount, amountText, merchant };
+    const named = (income ? RECEIVED_FROM : PAID_TO).exec(tail)?.[1]?.trim();
+    const merchant = cleanMerchant(named || lineBefore(text, match.index));
+    return { amount, amountText, income, merchant };
 }
 
-// ponytail: the first line is the merchant only when the money sits on a later
-// line, which is Wallet's own layout; a bank's "Purchase alert" title leaks
-// through. An AI pass on misses is the upgrade.
-function titleMerchant(text: string, moneyAt: number): string | null {
-    const firstLine = text.split("\n", 1)[0]?.trim() ?? "";
-    if (!firstLine || moneyAt < firstLine.length || AFTER_NUMBER.test(firstLine)) {
+function cleanMerchant(raw: string | null): string | null {
+    const cleaned = raw?.split(",", 1)[0]?.replace(POS_PREFIX, "").trim();
+    return cleaned || null;
+}
+
+// ponytail: the line above the money is the merchant only when the money sits
+// on its own line, which is Wallet's own layout (card, merchant, amount); a
+// bank's "Purchase alert" title leaks through. An AI pass on misses is the upgrade.
+function lineBefore(text: string, moneyAt: number): string | null {
+    const above = text.slice(0, moneyAt).split("\n");
+    if (above.length < 2 || above.at(-1)?.trim()) {
         return null;
     }
-    return firstLine;
+    const line = above.at(-2)?.trim() ?? "";
+    return !line || AFTER_NUMBER.test(line) ? null : line;
 }
