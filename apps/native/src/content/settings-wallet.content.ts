@@ -100,8 +100,8 @@ const settingsWallet = {
             es: "Elige Notificación y luego la app",
         }),
         "settings.wallet.notifStep2Detail": t({
-            en: "Your bank, or Wallet",
-            es: "Tu banco, o Wallet",
+            en: "Your bank's app",
+            es: "La app de tu banco",
         }),
         "settings.wallet.notifStep3Detail": t({
             en: "Pick Log from a Notification",
@@ -124,8 +124,8 @@ const settingsWallet = {
             es: "La cuenta a la que pertenece la tarjeta de esa app",
         }),
         "settings.wallet.notificationFooter": t({
-            en: "Any app that sends a purchase push works, one automation per app. The amount and merchant are read from the text.",
-            es: "Funciona con cualquier app que te mande una notificación de compra, con una automatización por app. El monto y el comercio se leen del texto.",
+            en: "Any app that sends a purchase push works, one automation per app. The amount and merchant are read from the text. Keep one source per card: leave a card logged this way out of the Wallet automation, or every tap lands twice.",
+            es: "Funciona con cualquier app que te mande una notificación de compra, con una automatización por app. El monto y el comercio se leen del texto. Usa una sola fuente por tarjeta: deja fuera de la automatización de Wallet las tarjetas que registras así, o cada pago se duplica.",
         }),
         "settings.wallet.notificationSection": t({
             en: "Or from a bank notification",
