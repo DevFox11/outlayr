@@ -467,6 +467,9 @@ importers:
       '@fontsource-variable/geist-mono':
         specifier: ^5.3.0
         version: 5.3.0
+      '@mdream/js':
+        specifier: ^2.0.0
+        version: 2.0.0
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.1.2)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))
@@ -2838,6 +2841,10 @@ packages:
       react-native:
         optional: true
 
+  '@mdream/js@2.0.0':
+    resolution: {integrity: sha512-T2GAubm6nPmThyp15+2eVtGZxdU+6jY/V+2oJvSxttuFeyqg3foO8yOiFreGArFMhaIrdihJefOBAhfaNDa1pw==}
+    hasBin: true
+
   '@mdx-js/esbuild@3.1.1':
     resolution: {integrity: sha512-NS35VhTdvKNj5/B1JSD5W3kN1R0WDHgk+zCWq+tSChQw5L2Bgeiz7yyZPFrc5LWuPVOxE1xMbJr82bO9VVzmfQ==}
     peerDependencies:
@@ -5181,6 +5188,10 @@ packages:
   bytes@3.1.2:
     resolution: {integrity: sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==}
     engines: {node: '>= 0.8'}
+
+  cac@7.0.1:
+    resolution: {integrity: sha512-86diuUyeeWM8CrqhpGCaDafrzjS1s++7sWy2AbAPoFNz/xKv7ID57CR4pZsMuGCh60PtsnEx4z68b+Vgt07VPw==}
+    engines: {node: '>=20.19.0'}
 
   call-bind-apply-helpers@1.0.2:
     resolution: {integrity: sha512-Sp1ablJ0ivDkSzjcaJdxEunN5/XvksFJ2sMBFfq6x0ryhQV/2b/KwFe21cMpmHtPOSij8K99/wSfoEuTObmuMQ==}
@@ -12684,6 +12695,11 @@ snapshots:
       react-dom: 19.2.3(react@19.3.0)
       react-native: 0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
 
+  '@mdream/js@2.0.0':
+    dependencies:
+      cac: 7.0.1
+      pathe: 2.0.3
+
   '@mdx-js/esbuild@3.1.1(esbuild@0.25.12)(supports-color@8.1.1)':
     dependencies:
       '@mdx-js/mdx': 3.1.1(supports-color@8.1.1)
@@ -15597,6 +15613,8 @@ snapshots:
     optional: true
 
   bytes@3.1.2: {}
+
+  cac@7.0.1: {}
 
   call-bind-apply-helpers@1.0.2:
     dependencies:
