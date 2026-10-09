@@ -156,6 +156,22 @@ describe("applyPendingWrites", () => {
         expect(row).toStrictEqual({ accountId: "acc-chase", amount: 12.4, currency: "MXN", note: "STARBUCKS" });
     });
 
+    it("marks the last entry as a push only when a notification logged it", async () => {
+        const push = walletWrite("push", {
+            amount: 0,
+            amountText: null,
+            dedupeKey: "notification:expense:x",
+            note: "",
+            text: "You paid $12.40 at STARBUCKS",
+        });
+
+        await applyPendingWrites(db, [push], NOW);
+        expect(parseLastWalletEntry(await getMeta(db, META_KEYS.lastWalletEntry))?.push).toBe(true);
+
+        await applyPendingWrites(db, [walletWrite("tap")], NOW);
+        expect(parseLastWalletEntry(await getMeta(db, META_KEYS.lastWalletEntry))?.push).toBeUndefined();
+    });
+
     it("files a refund push as income", async () => {
         const job = walletWrite("refund", {
             amount: 0,

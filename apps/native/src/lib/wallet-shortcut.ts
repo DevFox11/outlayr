@@ -12,6 +12,8 @@ import { Linking } from "react-native";
  */
 export const WALLET_SHORTCUT_URL: string | null = "https://www.icloud.com/shortcuts/8da78a0436dc4e94be4674ca6cb439db";
 
+export const BANK_SHORTCUT_URL = "https://www.icloud.com/shortcuts/e0327cbcd7b34718ba42cae568f0dc12";
+
 /**
  * Undocumented but stable since iOS 17: lands on the Automations tab, which is
  * where the Wallet trigger is created. The bare scheme is the documented

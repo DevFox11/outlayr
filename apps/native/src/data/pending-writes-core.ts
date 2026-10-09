@@ -76,10 +76,11 @@ export async function takeRepriced(db: Database): Promise<RepricedSubscription[]
 export interface LastWalletEntry {
     /** Epoch ms of the commit, not of the purchase. */
     at: number;
+    push?: true;
     txId: string;
 }
 
-const lastWalletEntrySchema = z.object({ at: z.number().finite(), txId: z.string() });
+const lastWalletEntrySchema = z.object({ at: z.number().finite(), push: z.literal(true).optional(), txId: z.string() });
 
 /** Null when nothing has come through Wallet yet, or the value is unreadable. */
 export function parseLastWalletEntry(raw: string | null | undefined): LastWalletEntry | null {
@@ -451,7 +452,7 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
             );
             await setMeta(db, META_KEYS.pendingWriteLedger, JSON.stringify(ledger));
             if (fromAutomation(job)) {
-                const entry: LastWalletEntry = { at, txId };
+                const entry: LastWalletEntry = job.text ? { at, push: true, txId } : { at, txId };
                 await setMeta(db, META_KEYS.lastWalletEntry, JSON.stringify(entry));
             }
             const card = job.card?.trim();

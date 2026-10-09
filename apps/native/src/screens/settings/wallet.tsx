@@ -2,9 +2,12 @@ import { and, eq, isNull } from "drizzle-orm";
 import { Image } from "expo-image";
 import { Button, Carousel } from "panelui-native";
 import { useState } from "react";
-import { Platform, Pressable, View } from "react-native";
+import { Linking, Platform, Pressable, View } from "react-native";
 import type { ImageRequireSource } from "react-native";
 
+import bankAddFrame from "@/assets/images/recipe/bank-add.webp";
+import bankOnFrame from "@/assets/images/recipe/bank-on.webp";
+import bankPickFrame from "@/assets/images/recipe/bank-pick.webp";
 import boundFrame from "@/assets/images/recipe/bound.jpg";
 import newShortcutFrame from "@/assets/images/recipe/new-shortcut.jpg";
 import pickerFrame from "@/assets/images/recipe/picker.jpg";
@@ -34,7 +37,12 @@ import { formatAmount } from "@/domain/money";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { notifyFailure } from "@/lib/notify";
-import { openShortcutsAutomations, openWalletShortcut, WALLET_SHORTCUT_URL } from "@/lib/wallet-shortcut";
+import {
+    BANK_SHORTCUT_URL,
+    openShortcutsAutomations,
+    openWalletShortcut,
+    WALLET_SHORTCUT_URL,
+} from "@/lib/wallet-shortcut";
 
 interface Step {
     detail?: TranslationKey;
@@ -75,13 +83,10 @@ const IOS27_MANUAL_STEPS: readonly Step[] = [
     { title: "settings.wallet.step5" },
 ];
 
-const NOTIFICATION_STEPS: readonly Step[] = [
-    { frame: newShortcutFrame, title: "settings.wallet.v27Manual1" },
-    { detail: "settings.wallet.notifStep2Detail", frame: triggersFrame, title: "settings.wallet.notifStep2" },
-    { detail: "settings.wallet.notifStep3Detail", frame: pickerFrame, title: "settings.wallet.manualStep2" },
-    { detail: "settings.wallet.notifStep4Detail", title: "settings.wallet.notifStep4" },
-    { detail: "settings.wallet.notifStep5Detail", title: "settings.wallet.notifStep5" },
-    { title: "settings.wallet.step5" },
+const BANK_STEPS: readonly Step[] = [
+    { frame: bankAddFrame, title: "settings.wallet.bankStep1" },
+    { frame: bankPickFrame, title: "settings.wallet.bankStep2" },
+    { frame: bankOnFrame, title: "settings.wallet.bankStep3" },
 ];
 
 /** The shared shortcut carries an iOS 27 trigger, so only iOS 27 gets the one-tap install. */
@@ -106,8 +111,24 @@ export function Wallet() {
         () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.walletLastRunAt)),
         (rows) => (rows[0]?.value ? Number(rows[0].value) : null)
     );
+    const lastNotification = useLiveValue(
+        appMeta,
+        () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.notificationTexts)),
+        (rows) => parseNotificationTexts(rows[0]?.value).at(-1) ?? null
+    );
+    const bankSection = TRIGGERS_IN_SHORTCUTS && !lastNotification ? <BankSection /> : null;
+    const bankRow = lastNotification ? (
+        <CheckRow detail={t("settings.wallet.bankShortcutName")} title={t("settings.wallet.bankSection")} />
+    ) : null;
+    const notificationProof = lastNotification ? (
+        <ProofBlock
+            detail={lastNotification.text.replaceAll(/\s*\n\s*/g, " · ")}
+            label={t("settings.wallet.lastNotification")}
+            title={lastNotification.amountText ?? t("settings.wallet.notificationUnread")}
+        />
+    ) : null;
     const [stepsShown, setStepsShown] = useState(false);
-    const working = lastEntry != null || lastRunAt != null;
+    const working = lastRunAt != null || (lastEntry != null && !lastEntry.push);
     // What this user's automation actually runs. `added` is only ever set by the
     // shared link, so a setup built inline before the link shipped stays inline.
     const linked = HAS_SHARED_SHORTCUT && added;
@@ -133,6 +154,8 @@ export function Wallet() {
     if (HAS_SHARED_SHORTCUT && !added && !working) {
         return (
             <SettingsScreen>
+                {lastEntry ? <LastEntry db={db} txId={lastEntry.txId} /> : null}
+                {notificationProof}
                 <View className="gap-5 pt-6">
                     <Text className="text-muted text-body leading-snug">{t("settings.wallet.lead")}</Text>
                     <Button className="rounded-full" fullWidth onPress={getShortcut} size="md" variant="primary">
@@ -140,6 +163,11 @@ export function Wallet() {
                     </Button>
                     <Text className="text-muted text-subtitle leading-snug">{t("settings.wallet.getDetail")}</Text>
                 </View>
+                {bankRow ? (
+                    <SettingsSection title={t("settings.wallet.setupSection")}>{bankRow}</SettingsSection>
+                ) : null}
+                {bankSection}
+                {bankRow ? <CardsSection db={db} /> : null}
             </SettingsScreen>
         );
     }
@@ -147,12 +175,13 @@ export function Wallet() {
     return (
         <SettingsScreen>
             <Proof db={db} lastEntry={lastEntry} lastRunAt={lastRunAt} />
-            <NotificationProof db={db} />
+            {notificationProof}
 
             <SettingsSection title={t(working ? "settings.wallet.setupSection" : "settings.wallet.stepsSection")}>
                 {linked && working ? (
-                    <CheckRow detail={t("settings.wallet.shortcutName")} title={t("settings.wallet.installed")} />
+                    <CheckRow detail={t("settings.wallet.shortcutName")} title={t("settings.wallet.applePayRow")} />
                 ) : null}
+                {bankRow}
                 {working ? (
                     <ToggleStepsRow
                         linked={linked}
@@ -162,15 +191,6 @@ export function Wallet() {
                 ) : null}
                 {working && !stepsShown ? null : <StepList steps={steps} />}
             </SettingsSection>
-
-            {TRIGGERS_IN_SHORTCUTS && (!working || stepsShown) ? (
-                <SettingsSection
-                    footer={t("settings.wallet.notificationFooter")}
-                    title={t("settings.wallet.notificationSection")}
-                >
-                    <StepList steps={NOTIFICATION_STEPS} />
-                </SettingsSection>
-            ) : null}
 
             <View className="gap-2.5 pt-5">
                 <Button
@@ -188,6 +208,8 @@ export function Wallet() {
                     </Button>
                 ) : null}
             </View>
+
+            {bankSection}
 
             {working ? null : (
                 <ProofBlock detail={t("settings.wallet.tryIt")} title={t("settings.wallet.nothingYet")} />
@@ -263,25 +285,6 @@ function RanOnly({ at }: { at: number }) {
     const { use24Hour } = useDisplaySettings().state;
     const when = `${formatChargeDate(new Date(at), undefined, language)} ${formatTime(new Date(at), use24Hour, language)}`;
     return <ProofBlock detail={t("settings.wallet.ranAt", { when })} title={t("settings.wallet.nothingLogged")} />;
-}
-
-function NotificationProof({ db }: { db: Database }) {
-    const t = useTranslation();
-    const last = useLiveValue(
-        appMeta,
-        () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.notificationTexts)),
-        (rows) => parseNotificationTexts(rows[0]?.value).at(-1) ?? null
-    );
-    if (!last) {
-        return null;
-    }
-    return (
-        <ProofBlock
-            detail={last.text.replaceAll(/\s*\n\s*/g, " · ")}
-            label={t("settings.wallet.lastNotification")}
-            title={last.amountText ?? t("settings.wallet.notificationUnread")}
-        />
-    );
 }
 
 function ProofBlock({ title, detail, label }: { detail: string; label?: string; title: string }) {
@@ -388,6 +391,24 @@ function FrameStrip({ steps }: { steps: readonly Step[] }) {
                 ))}
             </Carousel.Content>
         </Carousel>
+    );
+}
+
+function BankSection() {
+    const t = useTranslation();
+    const getBankShortcut = () => {
+        Linking.openURL(BANK_SHORTCUT_URL).catch((cause: unknown) => {
+            console.error("Opening the bank shortcut failed", cause);
+            notifyFailure({ title: t("settings.wallet.bankGet") });
+        });
+    };
+    return (
+        <SettingsSection footer={t("settings.wallet.bankFooter")} title={t("settings.wallet.bankSection")}>
+            <FrameStrip steps={BANK_STEPS} />
+            <Button className="mt-3 rounded-full" fullWidth onPress={getBankShortcut} size="md" variant="primary">
+                {t("settings.wallet.bankGet")}
+            </Button>
+        </SettingsSection>
     );
 }
 

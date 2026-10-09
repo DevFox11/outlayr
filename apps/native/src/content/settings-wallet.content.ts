@@ -3,6 +3,10 @@ import type { Dictionary } from "intlayer";
 
 const settingsWallet = {
     content: {
+        "settings.wallet.applePayRow": t({
+            en: "Apple Pay taps",
+            es: "Pagos con Apple Pay",
+        }),
         "settings.wallet.automationDetail": t({
             en: "Wallet trigger runs Outlayr - Apple Pay",
             es: "El disparador de Wallet ejecuta Outlayr - Apple Pay",
@@ -15,13 +19,41 @@ const settingsWallet = {
             en: "Automation in Shortcuts",
             es: "Automatización en Atajos",
         }),
+        "settings.wallet.bankFooter": t({
+            en: "Pick only bank and card apps. A tap and its bank push land as one row.",
+            es: "Elige solo apps de bancos y tarjetas. Un pago y la notificación de su banco quedan en una sola fila.",
+        }),
+        "settings.wallet.bankGet": t({
+            en: "Get the bank shortcut",
+            es: "Obtener el atajo del banco",
+        }),
+        "settings.wallet.bankSection": t({
+            en: "Bank notifications",
+            es: "Notificaciones del banco",
+        }),
+        "settings.wallet.bankShortcutName": t({
+            en: "Outlayr - Bank Notifications",
+            es: "Outlayr - Bank Notifications",
+        }),
+        "settings.wallet.bankStep1": t({
+            en: "Add Shortcut",
+            es: "Agregar atajo",
+        }),
+        "settings.wallet.bankStep2": t({
+            en: "Tap App, pick your banks",
+            es: "Toca App y elige tus bancos",
+        }),
+        "settings.wallet.bankStep3": t({
+            en: "Turn it on in Automation",
+            es: "Actívala en Automatización",
+        }),
         "settings.wallet.cardsFooter": t({
-            en: "Each card you tap with shows up here. Its taps go to the account you choose.",
-            es: "Cada tarjeta con la que pagas aparece aquí. Sus pagos van a la cuenta que elijas.",
+            en: "Each card you pay with and each bank app that notifies you shows up here. Its purchases go to the account you choose.",
+            es: "Cada tarjeta con la que pagas y cada app de banco que te notifica aparece aquí. Sus compras van a la cuenta que elijas.",
         }),
         "settings.wallet.cardsSection": t({
-            en: "Cards",
-            es: "Tarjetas",
+            en: "Cards and apps",
+            es: "Tarjetas y apps",
         }),
         "settings.wallet.chooseAccount": t({
             en: "Choose an account",
@@ -43,21 +75,17 @@ const settingsWallet = {
             en: "Hide",
             es: "Ocultar",
         }),
-        "settings.wallet.installed": t({
-            en: "Shortcut installed",
-            es: "Atajo instalado",
-        }),
         "settings.wallet.lastNotification": t({
             en: "Last notification",
             es: "Última notificación",
         }),
         "settings.wallet.lastSection": t({
-            en: "Last from Wallet",
-            es: "Último desde Wallet",
+            en: "Last logged",
+            es: "Último registro",
         }),
         "settings.wallet.lastTap": t({
-            en: "Last tap {when}",
-            es: "Último pago {when}",
+            en: "Last used {when}",
+            es: "Último uso {when}",
         }),
         "settings.wallet.lead": t({
             en: "Every card tap lands on the Log, filed under the account it matches.",
@@ -99,45 +127,9 @@ const settingsWallet = {
             en: "Nothing yet",
             es: "Nada aún",
         }),
-        "settings.wallet.notifStep2": t({
-            en: "Pick Notification, then the app",
-            es: "Elige Notificación y luego la app",
-        }),
-        "settings.wallet.notifStep2Detail": t({
-            en: "Your bank's app",
-            es: "La app de tu banco",
-        }),
-        "settings.wallet.notifStep3Detail": t({
-            en: "Pick Log from a Notification",
-            es: "Elige Log from a Notification",
-        }),
-        "settings.wallet.notifStep4": t({
-            en: "Fill Title, Subtitle and Body",
-            es: "Completa Title, Subtitle y Body",
-        }),
-        "settings.wallet.notifStep4Detail": t({
-            en: "Tap each, pick the Notification variable above the keyboard, then the matching field",
-            es: "Toca cada uno, elige la variable de Notificación sobre el teclado y luego el campo que corresponde",
-        }),
-        "settings.wallet.notifStep5": t({
-            en: "Type the account name in Account",
-            es: "Escribe el nombre de la cuenta en Account",
-        }),
-        "settings.wallet.notifStep5Detail": t({
-            en: "The one this app's card belongs to",
-            es: "La cuenta a la que pertenece la tarjeta de esa app",
-        }),
-        "settings.wallet.notificationFooter": t({
-            en: "Any app that sends a purchase push works, one automation per app. The amount and merchant are read from the text. Keep one source per card: leave a card logged this way out of the Wallet automation, or every tap lands twice.",
-            es: "Funciona con cualquier app que te mande una notificación de compra, con una automatización por app. El monto y el comercio se leen del texto. Usa una sola fuente por tarjeta: deja fuera de la automatización de Wallet las tarjetas que registras así, o cada pago se duplica.",
-        }),
         "settings.wallet.notificationUnread": t({
             en: "Couldn't read it",
             es: "No se pudo leer",
-        }),
-        "settings.wallet.notificationSection": t({
-            en: "Or from a bank notification",
-            es: "O desde una notificación del banco",
         }),
         "settings.wallet.open": t({
             en: "Open Shortcuts",
