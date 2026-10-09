@@ -34,6 +34,9 @@ const STOP = String.raw`(?=\s+(?:with|using|via|on|for|con|usando|por|el|la|desd
 const PAID_TO = new RegExp(String.raw`\b(?:at|in|en|to|a|de|@)\s+(.+?)${STOP}`, "iu");
 const RECEIVED_FROM = new RegExp(String.raw`\b(?:from|de|por parte de)\s+(.+?)${STOP}`, "iu");
 
+const CARD_REFERENCE = /\byour\b.*\bcard\b|\btu\b.*\btarjeta\b|[x*•]{3,}[-\s]?\d{3,4}/iu;
+const PARENTHESIZED = /\(([^()]+)\)/u;
+
 const POS_PREFIX = /^(?:sumup|sq|sqc|tst|pp|paypal|zettle|izettle|stripe|amzn(?: mktp)?)\s*\*\s*/iu;
 
 /**
@@ -55,8 +58,12 @@ export function parseNotification(text: string): ParsedNotification | null {
     const income = INCOMING.test(text);
     const tail = text.slice(match.index + match[0].length);
     const named = (income ? RECEIVED_FROM : PAID_TO).exec(tail)?.[1]?.trim();
-    const merchant = cleanMerchant(named || lineBefore(text, match.index));
+    const merchant = cleanMerchant(named ? payee(named) : lineBefore(text, match.index));
     return { amount, amountText, income, merchant };
+}
+
+function payee(named: string): string | null {
+    return CARD_REFERENCE.test(named) ? (PARENTHESIZED.exec(named)?.[1] ?? null) : named;
 }
 
 export function cleanMerchant(raw: string | null): string | null {

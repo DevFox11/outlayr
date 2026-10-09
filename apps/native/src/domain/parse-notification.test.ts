@@ -21,6 +21,26 @@ describe("parseNotification", () => {
         expect(parsed).toStrictEqual({ amount: 12.4, amountText: "$12.40", income: false, merchant: "STARBUCKS" });
     });
 
+    it("reads Payoneer's card push, merchant in parentheses after the card", () => {
+        expect(
+            parseNotification(
+                "USD card charge\nA charge of 1.86 USD was made to your Payoneer USD card XXXX-3111 (TRANSPORTES ROBER S A)"
+            )
+        ).toStrictEqual({ amount: 1.86, amountText: "1.86 USD", income: false, merchant: "TRANSPORTES ROBER S A" });
+        expect(
+            parseNotification(
+                "USD card charge\nA charge of 11.63 USD was made to your Payoneer USD card XXXX-3111 (ANDALUCIA A PIE)"
+            )
+        ).toMatchObject({ amount: 11.63, merchant: "ANDALUCIA A PIE" });
+    });
+
+    it("names no merchant when the payee is only a card", () => {
+        expect(parseNotification("A charge of 5.00 USD was made to your card XXXX-3111")).toMatchObject({
+            amount: 5,
+            merchant: null,
+        });
+    });
+
     it("reads Revolut's and Wise's card pushes", () => {
         expect(parseNotification("Card payment\nPaid 4,200 HUF to Wolt Hungary")).toMatchObject({
             amount: 4200,

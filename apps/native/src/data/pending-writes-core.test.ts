@@ -99,6 +99,38 @@ describe("applyPendingWrites", () => {
         await seedCategories(db);
     });
 
+    it("files a bank app's push under its account in the charge's currency", async () => {
+        await db.insert(accounts).values(
+            ["USD", "EUR"].map((currency) => ({
+                currency,
+                dateCreated: NOW,
+                id: `acc-payoneer-${currency}`,
+                initialBalanceDate: NOW,
+                name: `Payoneer (${currency})`,
+                updatedAt: NOW,
+            }))
+        );
+        const push = (id: string, amount: string) =>
+            walletWrite(id, {
+                amount: 0,
+                amountText: null,
+                card: "Payoneer",
+                dedupeKey: `notification:expense:${id}`,
+                note: "",
+                text: `${amount.split(" ")[1]} card charge\nA charge of ${amount} was made to your Payoneer card XXXX-3111 (ANDALUCIA A PIE)`,
+            });
+
+        await applyPendingWrites(db, [push("usd", "11.63 USD"), push("eur", "9.40 EUR")], NOW);
+
+        const rows = await db
+            .select({ accountId: transactions.accountId, currency: transactions.currency })
+            .from(transactions);
+        expect(rows).toStrictEqual([
+            { accountId: "acc-payoneer-USD", currency: "USD" },
+            { accountId: "acc-payoneer-EUR", currency: "EUR" },
+        ]);
+    });
+
     it("reads a notification job's amount and merchant, and files it by account", async () => {
         await seedAccounts(db);
         const job = walletWrite("push", {

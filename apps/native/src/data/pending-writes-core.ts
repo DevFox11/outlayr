@@ -631,8 +631,15 @@ async function resolveAccount(
         return { account: null, asks: false };
     }
     const rows = await accountsRepo.listActive(db);
-    const { account, asks } = cardStatus(card, parseWalletCards(await getMeta(db, META_KEYS.walletCards)), rows);
-    return { account: account ? { currency: account.currency, id: account.id } : null, asks };
+    const status = cardStatus(card, parseWalletCards(await getMeta(db, META_KEYS.walletCards)), rows);
+    const charged = job.currency?.trim().toUpperCase() || detectCurrency(job.amountText);
+    const same = charged ? rows.filter((row) => row.currency === charged) : [];
+    const account =
+        status.account ?? (status.asks ? same.find((row) => row.id === matchCardAccount(card, same)) : undefined);
+    return {
+        account: account ? { currency: account.currency, id: account.id } : null,
+        asks: status.asks && !account,
+    };
 }
 
 /**
