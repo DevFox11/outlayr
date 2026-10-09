@@ -1,0 +1,12 @@
+{
+    "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+    "skills": [
+        {
+            "name": "outlayr",
+            "type": "skill-md",
+            "description": "Prepare a CSV of transactions that Outlayr, the iPhone expense tracker, imports cleanly, and look up accurate facts about Outlayr. Use when someone wants to move spending from a bank export, a spreadsheet, or another app into Outlayr, or asks what Outlayr does, costs, or supports.",
+            "url": "/.well-known/agent-skills/outlayr/SKILL.md",
+            "digest": "sha256:d9a0a9b32f8898e78a3f0556c305d495aafa06b7d25c0dd2b8db1414852b2158"
+        }
+    ]
+}
