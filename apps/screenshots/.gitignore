@@ -13,3 +13,6 @@ next-env.d.ts
 # ignored: re-shooting those is a full seed + capture + localize pass.
 export/
 .impeccable/
+
+public/fonts/imported/*
+!public/fonts/imported/.gitkeep

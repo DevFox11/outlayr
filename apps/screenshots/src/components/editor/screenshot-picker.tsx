@@ -2,7 +2,7 @@
 import * as React from "react";
 import { Image as ImageIcon, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { blobToDataUrl, didFail, img, setImage } from "@/lib/image-cache";
+import { didFail, img, setImage } from "@/lib/image-cache";
 import { resolveScreenshot } from "@/lib/locale";
 
 type Props = {
@@ -13,6 +13,16 @@ type Props = {
 };
 
 const ACCEPTED = ["image/png", "image/jpeg"];
+class UploadRejectedError extends Error {}
+
+async function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 async function uploadDataUrl(dataUrl: string): Promise<string | null> {
   try {
@@ -20,16 +30,24 @@ async function uploadDataUrl(dataUrl: string): Promise<string | null> {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ dataUrl }),
+      signal: AbortSignal.timeout(15000),
     });
+    if (resp.status >= 400 && resp.status < 500 && resp.status !== 404) {
+      const error = await resp.json().catch(() => ({}));
+      throw new UploadRejectedError(error.error || "Image upload was rejected");
+    }
     if (!resp.ok) return null;
     const json = (await resp.json()) as { ok: boolean; path?: string };
     return json.ok && json.path ? json.path : null;
-  } catch {
+  } catch (error) {
+    if (error instanceof UploadRejectedError) throw error;
     return null;
   }
 }
 
 export function ScreenshotPicker({ label, value, locale, onChange }: Props) {
+  const requestId = React.useRef(0);
+  React.useEffect(() => () => { requestId.current += 1; }, []);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -40,6 +58,8 @@ export function ScreenshotPicker({ label, value, locale, onChange }: Props) {
   }, [value, locale]);
 
   async function handleFile(file: File) {
+    const request = ++requestId.current;
+    setUploading(false);
     setError(null);
     if (!ACCEPTED.includes(file.type)) {
       setError("Use PNG or JPG (App Store rejects other formats)");
@@ -51,22 +71,44 @@ export function ScreenshotPicker({ label, value, locale, onChange }: Props) {
     }
     let dataUrl: string;
     try {
-      dataUrl = await blobToDataUrl(file);
+      dataUrl = await fileToDataUrl(file);
     } catch {
-      setError("Failed to read file");
+      if (request === requestId.current) setError("Failed to read file");
       return;
     }
+    if (request !== requestId.current) return;
+    let size: { w: number; h: number };
+    try {
+      const image = new Image();
+      image.src = dataUrl;
+      await image.decode();
+      if (image.naturalWidth * image.naturalHeight > 64 * 1024 * 1024) throw new Error("too large");
+      size = { w: image.naturalWidth, h: image.naturalHeight };
+    } catch {
+      if (request === requestId.current) setError("Image is corrupt or exceeds 64 megapixels");
+      return;
+    }
+    if (request !== requestId.current) return;
     // Try to persist to disk so the screenshot survives a git clone.
     // If the upload endpoint is unreachable (e.g. static export), fall back
     // to the inline data URI — still works in the current session.
     setUploading(true);
-    const uploadedPath = await uploadDataUrl(dataUrl);
+    let uploadedPath: string | null;
+    try { uploadedPath = await uploadDataUrl(dataUrl); }
+    catch (error) {
+      if (request === requestId.current) {
+        setUploading(false);
+        setError(error instanceof Error ? error.message : "Image upload failed");
+      }
+      return;
+    }
+    if (request !== requestId.current) return;
     setUploading(false);
     if (uploadedPath) {
-      setImage(uploadedPath, dataUrl);
+      setImage(uploadedPath, dataUrl, size);
       onChange(uploadedPath);
     } else {
-      setImage(dataUrl, dataUrl);
+      setImage(dataUrl, dataUrl, size);
       onChange(dataUrl);
     }
   }
@@ -154,6 +196,8 @@ export function ScreenshotPicker({ label, value, locale, onChange }: Props) {
             size="icon"
             className="h-8 w-8"
             onClick={() => {
+              requestId.current += 1;
+              setUploading(false);
               onChange("");
               setError(null);
             }}

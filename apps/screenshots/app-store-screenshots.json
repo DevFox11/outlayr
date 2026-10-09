@@ -1,14 +1,15 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "appName": "Outlayr",
   "themeId": "outlayr-paper",
+  "fontId": "template-default",
   "connectedCanvas": true,
   "locales": [
     "en",
     "es"
   ],
   "locale": "en",
-  "device": "android",
+  "device": "iphone",
   "orientation": "portrait",
   "appIcon": "/app-icon.png",
   "slidesByDevice": {
@@ -313,6 +314,184 @@
         "inverted": true
       }
     ],
+    "tvos": [
+      {
+        "id": "s_mv1m471m_d",
+        "layout": "hero",
+        "label": {
+          "en": "MEET YOUR APP"
+        },
+        "headline": {
+          "en": "Made for\nthe living room."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mv1m471m_e",
+        "layout": "split-landscape",
+        "label": {
+          "en": "FEATURE 01"
+        },
+        "headline": {
+          "en": "One idea\nper screen."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mv1m471m_f",
+        "layout": "device-top",
+        "label": {
+          "en": "FEATURE 02"
+        },
+        "headline": {
+          "en": "Flip the contrast."
+        },
+        "screenshot": "",
+        "inverted": true
+      },
+      {
+        "id": "s_mv1m471m_g",
+        "layout": "no-device",
+        "label": {
+          "en": "MORE"
+        },
+        "headline": {
+          "en": "And so\nmuch more."
+        },
+        "screenshot": ""
+      }
+    ],
+    "watchos": [
+      {
+        "id": "s_mv1m471m_h",
+        "layout": "hero",
+        "label": {
+          "en": "MEET YOUR APP"
+        },
+        "headline": {
+          "en": "On your\nwrist."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mv1m471m_i",
+        "layout": "device-bottom",
+        "label": {
+          "en": "FEATURE 01"
+        },
+        "headline": {
+          "en": "One glance.\nDone."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mv1m471m_j",
+        "layout": "device-top",
+        "label": {
+          "en": "FEATURE 02"
+        },
+        "headline": {
+          "en": "Always\nwith you."
+        },
+        "screenshot": "",
+        "inverted": true
+      }
+    ],
+    "carplay": [
+      {
+        "id": "s_mv1m471m_k",
+        "layout": "split-landscape",
+        "label": {
+          "en": "CARPLAY"
+        },
+        "headline": {
+          "en": "Eyes on\nthe road."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mv1m471m_l",
+        "layout": "device-bottom",
+        "label": {
+          "en": "FEATURE 01"
+        },
+        "headline": {
+          "en": "Everything, one tap away."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mv1m471m_m",
+        "layout": "device-top",
+        "label": {
+          "en": "FEATURE 02"
+        },
+        "headline": {
+          "en": "Made for every drive."
+        },
+        "screenshot": "",
+        "inverted": true
+      }
+    ],
+    "mac": [
+      {
+        "id": "s_mv1m471m_n",
+        "layout": "hero",
+        "label": {
+          "en": "MEET YOUR APP"
+        },
+        "headline": {
+          "en": "Made for\nyour Mac."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mv1m471m_o",
+        "layout": "split-landscape",
+        "label": {
+          "en": "FEATURE 01"
+        },
+        "headline": {
+          "en": "Everything in\none window."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mv1m471m_p",
+        "layout": "device-top",
+        "label": {
+          "en": "FEATURE 02"
+        },
+        "headline": {
+          "en": "One shortcut away."
+        },
+        "screenshot": "",
+        "inverted": true
+      },
+      {
+        "id": "s_mv1m471m_q",
+        "layout": "two-devices",
+        "label": {
+          "en": "FEATURE 03"
+        },
+        "headline": {
+          "en": "Work across windows."
+        },
+        "screenshot": "",
+        "screenshotSecondary": ""
+      },
+      {
+        "id": "s_mv1m471m_r",
+        "layout": "no-device",
+        "label": {
+          "en": "MORE"
+        },
+        "headline": {
+          "en": "And so\nmuch more."
+        },
+        "screenshot": ""
+      }
+    ],
     "android-7": [
       {
         "id": "s_mtyz8xqn_d",
@@ -371,6 +550,259 @@
         },
         "screenshot": ""
       }
+    ],
+    "duo-outer": [
+      {
+        "id": "s_mv1m471m_x",
+        "layout": "hero",
+        "label": {
+          "en": "MEET YOUR APP"
+        },
+        "headline": {
+          "en": "Everything,\none hand."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mv1m471m_y",
+        "layout": "device-bottom",
+        "label": {
+          "en": "FEATURE 01"
+        },
+        "headline": {
+          "en": "One idea\nper screen."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mv1m471m_z",
+        "layout": "two-devices",
+        "label": {
+          "en": "OPEN IT"
+        },
+        "headline": {
+          "en": "Open it for\nthe full view."
+        },
+        "screenshot": "",
+        "screenshotSecondary": ""
+      },
+      {
+        "id": "s_mv1m471m_10",
+        "layout": "device-top",
+        "label": {
+          "en": "FEATURE 02"
+        },
+        "headline": {
+          "en": "Flip the contrast."
+        },
+        "screenshot": "",
+        "inverted": true
+      },
+      {
+        "id": "s_mv1m471m_11",
+        "layout": "no-device",
+        "label": {
+          "en": "MORE"
+        },
+        "headline": {
+          "en": "And so\nmuch more."
+        },
+        "screenshot": ""
+      }
+    ],
+    "duo-outer-landscape": [
+      {
+        "id": "s_mv1m471m_12",
+        "layout": "hero",
+        "label": {
+          "en": "TURN IT"
+        },
+        "headline": {
+          "en": "Made for the wide view."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mv1m471m_13",
+        "layout": "split-landscape",
+        "label": {
+          "en": "FEATURE 01"
+        },
+        "headline": {
+          "en": "One idea\nper screen."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mv1m471m_14",
+        "layout": "device-top",
+        "label": {
+          "en": "FEATURE 02"
+        },
+        "headline": {
+          "en": "Flip the contrast."
+        },
+        "screenshot": "",
+        "inverted": true
+      }
+    ],
+    "duo-inner": [
+      {
+        "id": "s_mv1m471m_15",
+        "layout": "hero",
+        "label": {
+          "en": "UNFOLD IT"
+        },
+        "headline": {
+          "en": "Room for\nthe whole view."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mv1m471m_16",
+        "layout": "device-bottom",
+        "label": {
+          "en": "FEATURE 01"
+        },
+        "headline": {
+          "en": "One idea\nper screen."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mv1m471m_17",
+        "layout": "two-devices",
+        "label": {
+          "en": "FOLDED + OPEN"
+        },
+        "headline": {
+          "en": "Turn it, open it,\nkeep going."
+        },
+        "screenshot": "",
+        "screenshotSecondary": ""
+      },
+      {
+        "id": "s_mv1m471m_18",
+        "layout": "device-top",
+        "label": {
+          "en": "FEATURE 02"
+        },
+        "headline": {
+          "en": "Flip the contrast."
+        },
+        "screenshot": "",
+        "inverted": true
+      }
+    ],
+    "duo-inner-landscape": [
+      {
+        "id": "s_mv1m471m_19",
+        "layout": "hero",
+        "label": {
+          "en": "UNFOLD IT"
+        },
+        "headline": {
+          "en": "Lead with the two-pane view."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mv1m471m_1a",
+        "layout": "two-devices",
+        "label": {
+          "en": "FOLDED + OPEN"
+        },
+        "headline": {
+          "en": "Same moment, closed and open."
+        },
+        "screenshot": "",
+        "screenshotSecondary": ""
+      },
+      {
+        "id": "s_mv1m471m_1b",
+        "layout": "split-landscape",
+        "label": {
+          "en": "FEATURE 02"
+        },
+        "headline": {
+          "en": "One idea\nper screen."
+        },
+        "screenshot": ""
+      },
+      {
+        "id": "s_mv1m471m_1c",
+        "layout": "device-top",
+        "label": {
+          "en": "FEATURE 03"
+        },
+        "headline": {
+          "en": "Show what only the wide screen can."
+        },
+        "screenshot": "",
+        "inverted": true
+      },
+      {
+        "id": "s_mv1m471m_1d",
+        "layout": "no-device",
+        "label": {
+          "en": "MORE"
+        },
+        "headline": {
+          "en": "And so much more."
+        },
+        "screenshot": ""
+      }
+    ],
+    "creative-universal": [
+      {
+        "id": "s_mv1m471m_1e",
+        "layout": "split-landscape",
+        "label": {
+          "en": "NEW"
+        },
+        "headline": {
+          "en": "Your app,\nat a glance."
+        },
+        "screenshot": ""
+      }
+    ],
+    "creative-header": [
+      {
+        "id": "s_mv1m471m_1f",
+        "layout": "split-landscape",
+        "label": {
+          "en": "NEW"
+        },
+        "headline": {
+          "en": "Your app,\nat a glance."
+        },
+        "screenshot": ""
+      }
+    ],
+    "creative-search": [
+      {
+        "id": "s_mv1m471m_1g",
+        "layout": "split-landscape",
+        "label": {
+          "en": "NEW"
+        },
+        "headline": {
+          "en": "Your app,\nat a glance."
+        },
+        "screenshot": ""
+      }
     ]
+  },
+  "scene": {
+    "backdrop": "solid",
+    "span": false,
+    "decoration": "none",
+    "shadow": 0,
+    "glow": 0,
+    "tilt": 0,
+    "headlineWeight": 700,
+    "headlineScale": 1,
+    "headlineCase": "as-typed",
+    "captionAlign": "auto"
   }
 }

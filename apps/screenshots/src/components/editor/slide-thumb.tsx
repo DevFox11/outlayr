@@ -4,11 +4,11 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Copy, GripVertical, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { LAYOUT_LABEL } from "@/lib/constants";
+import { layoutLabel } from "@/lib/constants";
 import { pickText } from "@/lib/locale";
-import type { Device, Orientation, Slide, Theme } from "@/lib/types";
+import type { Device, Orientation, Scene, Slide, Theme } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { DeckCanvas, getCanvas } from "./slide-canvas";
+import { DeckCanvas, SlideCanvas, getCanvas } from "./slide-canvas";
 
 type Props = {
   slide: Slide;
@@ -20,7 +20,10 @@ type Props = {
   theme: Theme;
   locale: string;
   appName?: string;
+  appIcon?: string;
+  fontFamily?: string;
   connectedCanvas: boolean;
+  scene?: Scene;
   onSelect: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
@@ -39,7 +42,10 @@ export function SlideThumb({
   theme,
   locale,
   appName,
+  appIcon,
+  fontFamily,
   connectedCanvas,
+  scene,
   onSelect,
   onDelete,
   onDuplicate,
@@ -106,21 +112,43 @@ export function SlideThumb({
               pointerEvents: "none",
             }}
           >
-            <DeckCanvas
-              slides={visibleSlides}
-              device={device}
-              orientation={orientation}
-              theme={theme}
-              locale={locale}
-              appName={appName}
-              connectedCanvas={connectedCanvas}
-              editable={false}
-            />
+            {connectedCanvas ? (
+              <DeckCanvas
+                slides={visibleSlides}
+                device={device}
+                orientation={orientation}
+                theme={theme}
+                locale={locale}
+                appName={appName}
+                appIcon={appIcon}
+                fontFamily={fontFamily}
+                connectedCanvas
+                editable={false}
+                scene={scene}
+                stripStart={start}
+                stripCount={slides.length}
+              />
+            ) : (
+              <SlideCanvas
+                slide={slide}
+                device={device}
+                orientation={orientation}
+                theme={theme}
+                locale={locale}
+                appName={appName}
+                appIcon={appIcon}
+                fontFamily={fontFamily}
+                editable={false}
+                scene={scene}
+                stripIndex={index}
+                stripCount={slides.length}
+              />
+            )}
           </div>
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">
-            {`Screen ${index + 1} · ${LAYOUT_LABEL[slide.layout]}`}
+            {`Screen ${index + 1} · ${layoutLabel(slide.layout, device)}`}
           </span>
           <span className="truncate text-sm font-medium leading-tight">
             {headline.split("\n")[0] || (
@@ -135,8 +163,8 @@ export function SlideThumb({
         </div>
       </button>
 
-      {/* Always visible on touch (no hover); fades in on hover on desktop. */}
-      <div className="flex flex-col items-center justify-center gap-0.5 opacity-60 transition-opacity focus-within:opacity-100 group-hover:opacity-100 md:opacity-0">
+      {/* Keep actions discoverable on touch tablets as well as phones. */}
+      <div className="flex flex-col items-center justify-center gap-0.5 opacity-60 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
         <Button
           type="button"
           size="icon"

@@ -17,7 +17,8 @@ import {
 } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Device, Orientation, Slide, Theme } from "@/lib/types";
+import type { Device, Orientation, Scene, Slide, Theme } from "@/lib/types";
+import { isCreative } from "@/lib/constants";
 import { newSlide } from "@/lib/defaults";
 import { SlideThumb } from "./slide-thumb";
 
@@ -29,7 +30,10 @@ type Props = {
   theme: Theme;
   locale: string;
   appName?: string;
+  appIcon?: string;
+  fontFamily?: string;
   connectedCanvas: boolean;
+  scene?: Scene;
   disabled?: boolean;
   onReorder: (next: Slide[]) => void;
   onSelect: (id: string) => void;
@@ -46,7 +50,10 @@ export function Sidebar({
   theme,
   locale,
   appName,
+  appIcon,
+  fontFamily,
   connectedCanvas,
+  scene,
   disabled,
   onReorder,
   onSelect,
@@ -93,7 +100,10 @@ export function Sidebar({
                   theme={theme}
                   locale={locale}
                   appName={appName}
+                  appIcon={appIcon}
+                  fontFamily={fontFamily}
                   connectedCanvas={connectedCanvas}
+                  scene={scene}
                   onSelect={() => onSelect(slide.id)}
                   onDelete={() => onDelete(slide.id)}
                   onDuplicate={() => onDuplicate(slide.id)}
@@ -117,7 +127,17 @@ export function Sidebar({
           type="button"
           className="w-full"
           variant="default"
-          onClick={() => onAdd(newSlide(device === "feature-graphic" ? "feature-graphic" : "device-bottom"))}
+          onClick={() =>
+            onAdd(
+              newSlide(
+                device === "feature-graphic"
+                  ? "feature-graphic"
+                  : device === "mac" || device.endsWith("-landscape") || isCreative(device)
+                    ? "split-landscape"
+                    : "device-bottom",
+              ),
+            )
+          }
           disabled={disabled}
         >
           <Plus className="h-4 w-4" /> Add screen

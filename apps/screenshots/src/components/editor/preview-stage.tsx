@@ -2,17 +2,18 @@
 import * as React from "react";
 import { Maximize2, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DEVICE_LABEL, LAYOUT_LABEL } from "@/lib/constants";
+import { CREATIVE_SPECS, DEVICE_LABEL, centredCrop, layoutLabel } from "@/lib/constants";
 import type {
   Device,
   ElementId,
   ElementTransform,
   Orientation,
+  Scene,
   SelectedElement,
   Slide,
   Theme,
 } from "@/lib/types";
-import { DeckCanvas, getCanvas } from "./slide-canvas";
+import { DeckCanvas, SlideCanvas, getCanvas } from "./slide-canvas";
 
 type Props = {
   slides: Slide[];
@@ -22,7 +23,10 @@ type Props = {
   theme: Theme;
   locale: string;
   appName?: string;
+  appIcon?: string;
+  fontFamily: string;
   connectedCanvas: boolean;
+  scene?: Scene;
   selectedElement: SelectedElement | null;
   onActiveSlideChange: (id: string) => void;
   onLabelChange: (slide: Slide, v: string) => void;
@@ -42,7 +46,10 @@ export function PreviewStage({
   theme,
   locale,
   appName,
+  appIcon,
+  fontFamily,
   connectedCanvas,
+  scene,
   selectedElement,
   onActiveSlideChange,
   onLabelChange,
@@ -61,8 +68,7 @@ export function PreviewStage({
   const scale = fitScale * zoom;
   const activeIndex = Math.max(0, slides.findIndex((slide) => slide.id === activeSlideId));
   const activeSlide = slides[activeIndex] || slides[0] || null;
-  // Every edit replaces the slide object, so the pan below keys on the id.
-  const activeId = activeSlide?.id ?? null;
+  const activeId = activeSlide?.id;
 
   React.useEffect(() => {
     const el = containerRef.current;
@@ -83,19 +89,22 @@ export function PreviewStage({
     setZoom(1);
   }, [device, orientation]);
 
+  const panToActiveScreen = React.useCallback((nextScale: number) => {
+    const scroller = scrollerRef.current;
+    if (!scroller || !activeId) return;
+    const screenLeft = activeIndex * cW * nextScale;
+    const screenWidth = cW * nextScale;
+    const targetLeft = Math.max(0, screenLeft - (scroller.clientWidth - screenWidth) / 2);
+    scroller.scrollTo({ left: targetLeft, behavior: "smooth" });
+  }, [activeIndex, activeId, cW]);
+
   React.useEffect(() => {
     if (suppressNextActiveScreenPanRef.current) {
       suppressNextActiveScreenPanRef.current = false;
       return;
     }
-
-    const scroller = scrollerRef.current;
-    if (!scroller || !activeId) return;
-    const screenLeft = activeIndex * cW * scale;
-    const screenWidth = cW * scale;
-    const targetLeft = Math.max(0, screenLeft - (scroller.clientWidth - screenWidth) / 2);
-    scroller.scrollTo({ left: targetLeft, behavior: "smooth" });
-  }, [activeIndex, activeId, cW, scale]);
+    panToActiveScreen(scale);
+  }, [panToActiveScreen, scale]);
 
   const handleCanvasActiveSlideChange = React.useCallback(
     (id: string) => {
@@ -137,11 +146,14 @@ export function PreviewStage({
               theme={theme}
               locale={locale}
               appName={appName}
+              appIcon={appIcon}
+              fontFamily={fontFamily}
               connectedCanvas={connectedCanvas}
+              scene={scene}
               editable
               previewScale={scale}
               selectedElement={selectedElement}
-              activeSlideId={activeId}
+              activeSlideId={activeSlide?.id || null}
               showGuides
               edit={{
                 onLabelChange: (slideId, value) => {
@@ -169,7 +181,7 @@ export function PreviewStage({
             <span aria-hidden>·</span>
             <span>Screen {activeIndex + 1}</span>
             <span aria-hidden>·</span>
-            <span>{LAYOUT_LABEL[activeSlide.layout]}</span>
+            <span>{layoutLabel(activeSlide.layout, device)}</span>
           </>
         )}
         {orientation === "landscape" && (
@@ -185,6 +197,22 @@ export function PreviewStage({
           </>
         )}
       </div>
+
+      {device === "creative-universal" && activeSlide && (
+        <PlacementPreviews
+          slide={activeSlide}
+          index={activeIndex}
+          count={slides.length}
+          device={device}
+          orientation={orientation}
+          theme={theme}
+          locale={locale}
+          appName={appName}
+          appIcon={appIcon}
+          fontFamily={fontFamily}
+          scene={scene}
+        />
+      )}
 
       <div className="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-md bg-background/85 px-1.5 py-1 text-[10px] tabular-nums text-muted-foreground shadow-sm backdrop-blur">
         <span className="px-1">{slides.length}× {cW}×{cH}</span>
@@ -219,13 +247,92 @@ export function PreviewStage({
           variant="ghost"
           size="icon"
           className="h-6 w-6"
-          onClick={() => setZoom(1)}
+          onClick={() => {
+            setZoom(1);
+            panToActiveScreen(fitScale);
+          }}
           title="Fit active screen"
           aria-label="Fit active screen"
         >
           <Maximize2 className="h-3.5 w-3.5" />
         </Button>
       </div>
+    </div>
+  );
+}
+
+// How the active universal creative reads in each App Store placement, using
+// the same estimated crops as the canvas guides. Rendered like an export.
+function PlacementPreviews({
+  slide,
+  index,
+  count,
+  device,
+  orientation,
+  theme,
+  locale,
+  appName,
+  appIcon,
+  fontFamily,
+  scene,
+}: {
+  slide: Slide;
+  index: number;
+  count: number;
+  device: Device;
+  orientation: Orientation;
+  theme: Theme;
+  locale: string;
+  appName?: string;
+  appIcon?: string;
+  fontFamily: string;
+  scene?: Scene;
+}) {
+  const { cW, cH } = getCanvas(device, orientation);
+  const crops = device === "creative-universal" ? CREATIVE_SPECS[device].crops : [];
+  return (
+    <div
+      aria-label="Placement previews"
+      className="pointer-events-none absolute bottom-4 left-4 hidden items-end gap-3 rounded-md bg-background/85 p-2 shadow-sm backdrop-blur md:flex"
+    >
+      {crops.map((crop) => {
+        const r = centredCrop(cW, cH, crop.aspect);
+        const width = crop.aspect > 2 ? 240 : 150;
+        const k = width / r.w;
+        return (
+          <figure key={crop.label} className="space-y-1">
+            <div className="relative overflow-hidden rounded-sm ring-1 ring-black/10" style={{ width, height: r.h * k }}>
+              <div
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  top: 0,
+                  width: cW,
+                  height: cH,
+                  transform: `scale(${k}) translate(${-r.x}px, ${-r.y}px)`,
+                  transformOrigin: "top left",
+                }}
+              >
+                <SlideCanvas
+                  slide={slide}
+                  device={device}
+                  orientation={orientation}
+                  theme={theme}
+                  locale={locale}
+                  appName={appName}
+                  appIcon={appIcon}
+                  fontFamily={fontFamily}
+                  scene={scene}
+                  stripIndex={index}
+                  stripCount={count}
+                  hideEmpty
+                />
+              </div>
+            </div>
+            <figcaption className="text-[10px] text-muted-foreground">{crop.label.replace(" crop", "")} (estimated crop)</figcaption>
+          </figure>
+        );
+      })}
     </div>
   );
 }

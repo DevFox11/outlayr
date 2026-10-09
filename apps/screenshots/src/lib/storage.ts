@@ -1,17 +1,20 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PROJECT_SCHEMA_VERSION, STORAGE_KEY } from "./constants";
+import { DEFAULT_SCREENSHOT_FONT_ID, PROJECT_SCHEMA_VERSION, SCREENSHOT_FONTS, STORAGE_KEY, orientationOf } from "./constants";
+import { cleanHexColor } from "./clean-hex-color";
+import { cleanImportedFont } from "./clean-imported-font";
 import { DEFAULT_PROJECT } from "./defaults";
 import { coerceLocalized } from "./locale";
-import type { Device, ElementTransform, ProjectState, Slide, TextElement } from "./types";
+import { projectValidationError } from "./project-validation";
+import { cleanCallout, cleanLook, cleanScene } from "./scene";
+import { cleanTypography } from "./typography";
+import type { Device, ElementTransform, ImageElement, Look, ProjectState, ScreenshotFontId, Slide, TextElement } from "./types";
 
 const HISTORY_LIMIT = 50;
 // Coalesce rapid edits (typing, slider drags) into a single undo step.
 const COALESCE_MS = 500;
-// Debounce file writes — frequent enough to feel instant, infrequent enough not to thrash disk.
+// Debounce file/localStorage writes — frequent enough to feel instant, infrequent enough not to thrash disk.
 const SAVE_DEBOUNCE_MS = 600;
-// Set while localStorage holds edits the project file has not confirmed.
-const UNSAVED_KEY = `${STORAGE_KEY}:unsaved`;
 
 function cleanTransform(value: unknown): ElementTransform | undefined {
   if (!value || typeof value !== "object") return undefined;
@@ -55,9 +58,48 @@ function cleanTextElement(value: unknown): TextElement | undefined {
   };
 }
 
+function cleanImageElement(value: unknown): ImageElement | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const raw = value as Partial<ImageElement>;
+  if (typeof raw.id !== "string" || !raw.id.trim() || typeof raw.src !== "string") return undefined;
+  const transform = cleanTransform(raw.transform);
+  if (!transform) return undefined;
+  return {
+    id: raw.id,
+    src: raw.src,
+    transform,
+    ...(raw.fit === "cover" || raw.fit === "contain" ? { fit: raw.fit } : {}),
+    ...(raw.fade &&
+    typeof raw.fade === "object" &&
+    ["top", "bottom", "left", "right"].includes(raw.fade.edge as string) &&
+    typeof raw.fade.amount === "number" &&
+    Number.isFinite(raw.fade.amount)
+      ? {
+          fade: {
+            edge: raw.fade.edge,
+            amount: Math.max(0, Math.min(100, raw.fade.amount)),
+          },
+        }
+      : {}),
+  };
+}
+
+// Early builds had a "Classic Serif" that rendered exactly like Georgia.
+const LEGACY_FONT_IDS: Record<string, ScreenshotFontId> = { "classic-serif": "template-serif" };
+
+function cleanFontId(value: unknown, hasImportedFont: boolean): ScreenshotFontId {
+  if (typeof value !== "string") return DEFAULT_SCREENSHOT_FONT_ID;
+  const id = LEGACY_FONT_IDS[value] ?? value;
+  if (!Object.prototype.hasOwnProperty.call(SCREENSHOT_FONTS, id)) return DEFAULT_SCREENSHOT_FONT_ID;
+  // "Imported font" without a file behind it would render the fallback.
+  if (id === "self-hosted" && !hasImportedFont) return DEFAULT_SCREENSHOT_FONT_ID;
+  return id as ScreenshotFontId;
+}
+
 // Migrate older projects into the current schema while keeping legacy decks
 // visually stable until they explicitly opt into connected canvas.
 function migrateSlide(slide: Slide): Slide {
+  const backgroundColor = cleanHexColor(slide.backgroundColor);
   const transforms = slide.transforms
     ? Object.fromEntries(
         Object.entries(slide.transforms)
@@ -68,17 +110,27 @@ function migrateSlide(slide: Slide): Slide {
   const textElements = Array.isArray(slide.textElements)
     ? slide.textElements.map(cleanTextElement).filter((t): t is TextElement => !!t)
     : undefined;
+  const imageElements = Array.isArray(slide.imageElements)
+    ? slide.imageElements.map(cleanImageElement).filter((image): image is ImageElement => !!image)
+    : undefined;
+  const callout = cleanCallout(slide.callout);
 
   return {
     ...slide,
     label: coerceLocalized(slide.label as unknown),
     headline: coerceLocalized(slide.headline as unknown),
+    typography: cleanTypography(slide.typography),
+    ...(backgroundColor ? { backgroundColor } : { backgroundColor: undefined }),
     ...(transforms && Object.keys(transforms).length > 0 ? { transforms } : { transforms: undefined }),
     ...(textElements && textElements.length > 0 ? { textElements } : { textElements: undefined }),
+    ...(imageElements && imageElements.length > 0 ? { imageElements } : { imageElements: undefined }),
+    ...(callout ? { callout } : { callout: undefined }),
   };
 }
 
 function mergeWithDefaults(parsed: Partial<ProjectState>): ProjectState {
+  const validationError = projectValidationError(parsed);
+  if (validationError) throw new Error(validationError);
   const connectedCanvas =
     typeof parsed.connectedCanvas === "boolean"
       ? parsed.connectedCanvas
@@ -87,11 +139,26 @@ function mergeWithDefaults(parsed: Partial<ProjectState>): ProjectState {
     typeof parsed.themeId === "string" && parsed.themeId.trim()
       ? parsed.themeId
       : DEFAULT_PROJECT.themeId;
+  const importedFont = cleanImportedFont(parsed.importedFont);
+  const scene = cleanScene(parsed.scene);
+  const savedLooks = Array.isArray(parsed.savedLooks)
+    ? parsed.savedLooks.map(cleanLook).filter((look): look is Look => !!look)
+    : [];
+  const fontId = cleanFontId(parsed.fontId, !!importedFont);
   const slidesByDevice = parsed.slidesByDevice
     ? Object.fromEntries(
         Object.entries(parsed.slidesByDevice).map(([device, slides]) => [
           device,
-          Array.isArray(slides) ? slides.map((slide) => migrateSlide(slide as Slide)) : [],
+          Array.isArray(slides)
+            ? slides.map((slide) => {
+                const migrated = migrateSlide(slide as Slide);
+                // The Play Store banner deck only has one layout. Normalising
+                // here (not while editing) keeps it out of undo history.
+                return device === "feature-graphic" && migrated.layout !== "feature-graphic"
+                  ? { ...migrated, layout: "feature-graphic" as const, transforms: undefined, screenshotSecondary: undefined }
+                  : migrated;
+              })
+            : [],
         ]),
       )
     : {};
@@ -100,12 +167,18 @@ function mergeWithDefaults(parsed: Partial<ProjectState>): ProjectState {
     ...parsed,
     schemaVersion: PROJECT_SCHEMA_VERSION,
     themeId,
+    fontId,
+    ...(importedFont ? { importedFont } : { importedFont: undefined }),
+    ...(scene ? { scene } : { scene: undefined }),
+    ...(savedLooks.length > 0 ? { savedLooks } : { savedLooks: undefined }),
     connectedCanvas,
     slidesByDevice: {
       ...DEFAULT_PROJECT.slidesByDevice,
       ...slidesByDevice,
     } as ProjectState["slidesByDevice"],
   };
+  // Duo decks are fixed to one orientation each; keep the project's in step.
+  merged.orientation = orientationOf(merged.device, merged.orientation);
   // Clamp the active locale into the project's locale list so a stale
   // `locale` (e.g. from a project that dropped languages) doesn't show blank.
   if (!merged.locales || merged.locales.length === 0) {
@@ -129,18 +202,18 @@ function loadFromLocalStorage(): ProjectState | null {
 }
 
 async function loadFromFile(): Promise<
-  { ok: true; state: ProjectState | null } | { ok: false; error: string }
+  { ok: true; state: ProjectState | null; revision: string | null } | { ok: false; error: string }
 > {
   if (typeof window === "undefined") return { ok: false, error: "Window is not available" };
   try {
-    const resp = await fetch("/api/project", { cache: "no-store" });
-    if (!resp.ok) return { ok: false, error: `HTTP ${resp.status}` };
-    const json = (await resp.json()) as { ok: boolean; state: Partial<ProjectState> | null };
-    if (!json.ok) return { ok: false, error: "Project response was not ok" };
-    if (!json.state) return { ok: true, state: null };
-    return { ok: true, state: mergeWithDefaults(json.state) };
-  } catch {
-    return { ok: false, error: "Project file could not be loaded" };
+    const resp = await fetch("/api/project", { cache: "no-store", signal: AbortSignal.timeout(15000) });
+    const json = (await resp.json()) as { ok: boolean; state: Partial<ProjectState> | null; error?: string };
+    if (!resp.ok || !json.ok) return { ok: false, error: json.error || `HTTP ${resp.status}` };
+    const revision = resp.headers.get("etag");
+    if (!json.state) return { ok: true, state: null, revision };
+    return { ok: true, state: mergeWithDefaults(json.state), revision };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Project file could not be loaded" };
   }
 }
 
@@ -148,7 +221,6 @@ function saveToLocalStorage(state: ProjectState): { ok: true } | { ok: false; er
   if (typeof window === "undefined") return { ok: true };
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    window.localStorage.setItem(UNSAVED_KEY, "1");
     return { ok: true };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -156,26 +228,27 @@ function saveToLocalStorage(state: ProjectState): { ok: true } | { ok: false; er
   }
 }
 
-async function saveToFile(state: ProjectState): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (typeof window === "undefined") return { ok: true };
+async function saveToFile(state: ProjectState, revision: string | null): Promise<{ ok: true; revision: string | null } | { ok: false; error: string }> {
   try {
     const resp = await fetch("/api/project", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...(revision ? { "if-match": revision } : {}) },
       body: JSON.stringify(state),
+      signal: AbortSignal.timeout(15000),
     });
-    if (!resp.ok) {
-      return { ok: false, error: `HTTP ${resp.status}` };
-    }
     const json = (await resp.json()) as { ok: boolean; error?: string };
-    if (!json.ok) return { ok: false, error: json.error || "Unknown error" };
-    return { ok: true };
+    if (!resp.ok || !json.ok) return { ok: false, error: json.error || `HTTP ${resp.status}` };
+    return { ok: true, revision: resp.headers.get("etag") };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
 type Updater = ProjectState | ((prev: ProjectState) => ProjectState);
+
+function applyUpdater(updater: Updater, prev: ProjectState): ProjectState {
+  return typeof updater === "function" ? updater(prev) : updater;
+}
 
 export function useProject() {
   const [state, _setState] = useState<ProjectState>(DEFAULT_PROJECT);
@@ -184,37 +257,43 @@ export function useProject() {
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stateRef = useRef(state);
+  const saveQueue = useRef(Promise.resolve());
+  const saveRevision = useRef(0);
+  const fileRevision = useRef<string | null>(null);
+  const unsaved = useRef(false);
+  const [retry, setRetry] = useState(0);
+
+  // Run updates once, outside React render/updater replay. Async callbacks also
+  // see the latest state before React has committed the next render.
+  const commit = useCallback((next: ProjectState) => {
+    stateRef.current = next;
+    _setState(next);
+  }, []);
 
   // History stacks live in refs — they don't drive any rendered UI, so
   // mutating them never needs to re-render.
   const pastRef = useRef<ProjectState[]>([]);
   const futureRef = useRef<ProjectState[]>([]);
   const lastPushAt = useRef(0);
-  // Autosave is debounced but was not serialised: /api/project writes whatever
-  // body it is handed, so a slow write started at T could land after a faster
-  // one started at T+600ms. The older deck would win on disk while the UI
-  // reported a successful save, and the next reload — which prefers the file
-  // over the localStorage cache — would silently restore the stale state.
-  // Every file write now chains onto the previous one, and any write a newer
-  // edit has already superseded is dropped rather than queued behind it.
-  const saveSeq = useRef(0);
-  const saveChain = useRef<Promise<void>>(Promise.resolve());
 
   // Hydrate: prefer file (git-tracked) → localStorage (cache) → defaults.
-  // localStorage is consulted first for instant paint, then file overwrites if
-  // present — unless the cache holds edits the file never confirmed, in which
-  // case the cache wins and the autosave below writes it through.
+  // localStorage is consulted first for instant paint, then file overwrites if present.
   useEffect(() => {
     let cancelled = false;
     const cached = loadFromLocalStorage();
-    if (cached) _setState(cached);
-    const unsaved = cached !== null && window.localStorage.getItem(UNSAVED_KEY) === "1";
+    if (cached) commit(cached);
 
     void (async () => {
       const fromFile = await loadFromFile();
       if (cancelled) return;
       if (fromFile.ok) {
-        if (!unsaved) _setState(fromFile.state ?? DEFAULT_PROJECT);
+        fileRevision.current = fromFile.revision;
+        if (fromFile.state) {
+          commit(fromFile.state);
+        } else {
+          commit(DEFAULT_PROJECT);
+        }
         setFileReady(true);
       } else {
         setFileReady(false);
@@ -229,93 +308,95 @@ export function useProject() {
     return () => {
       cancelled = true;
     };
+  }, [commit]);
+
+  // A refresh inside the debounce window must not silently discard edits.
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (!unsaved.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
   }, []);
 
-  // Autosave: localStorage on every change, so closing the tab inside the
-  // debounce loses nothing, and the file (git-trackable) debounced.
+  // Debounced autosave to BOTH localStorage (fast, offline) and file (git-trackable).
   useEffect(() => {
-    if (!hydrated) return;
-    // Written before the file gate rather than behind it. A project whose file
-    // could not be read is exactly when losing the session hurts most, and this
-    // cache is what the note above promises survives a closed tab — gating it on
-    // `fileReady` meant one failed GET silently ended ALL persistence for the
-    // session, while the banner said only that the file could not be loaded.
-    const localResult = saveToLocalStorage(state);
-    if (!fileReady) return;
-    const seq = ++saveSeq.current;
+    if (!hydrated || !fileReady) return;
     if (timer.current) clearTimeout(timer.current);
+    const revision = ++saveRevision.current;
+    setSavedAt(null);
     timer.current = setTimeout(() => {
-      saveChain.current = saveChain.current.then(async () => {
-        // A newer edit is already queued; writing this one would only put an
-        // older deck on disk for however long the newer write takes.
-        if (seq !== saveSeq.current) return;
-        const fileResult = await saveToFile(state);
-        if (fileResult.ok && seq === saveSeq.current) {
-          window.localStorage.removeItem(UNSAVED_KEY);
-        }
-        if (fileResult.ok && localResult.ok) {
-          setSavedAt(Date.now());
-          setSaveError(null);
-        } else if (!fileResult.ok && !localResult.ok) {
-          setSaveError(fileResult.error);
-        } else if (!fileResult.ok) {
-          // Local cache succeeded but file save failed — work isn't git-portable yet.
-          setSavedAt(Date.now());
+      const localResult = saveToLocalStorage(state);
+      // Serialize requests so a slow older write cannot overwrite a newer edit.
+      saveQueue.current = saveQueue.current.then(async () => {
+        if (revision !== saveRevision.current) return;
+        const fileResult = await saveToFile(state, fileRevision.current);
+        // Advance even if another edit arrived while this request was in flight.
+        if (fileResult.ok) fileRevision.current = fileResult.revision;
+        if (revision !== saveRevision.current) return;
+        if (!fileResult.ok) {
           setSaveError(`File save failed: ${fileResult.error}`);
         } else {
+          unsaved.current = false;
           setSavedAt(Date.now());
           setSaveError(localResult.ok ? null : localResult.error);
         }
-        // saveToFile catches everything and always resolves, so this only fires
-        // if a future edit introduces a throw. Without it a single rejection
-        // would poison the chain and silently end every later autosave.
-      }).catch((e: unknown) => {
-        setSaveError(e instanceof Error ? e.message : String(e));
       });
     }, SAVE_DEBOUNCE_MS);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [state, hydrated, fileReady]);
+  }, [state, hydrated, fileReady, retry]);
 
-  const setState = useCallback((updater: Updater) => {
-    _setState((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      if (next === prev) return prev;
+  // `history: false` is for navigation (device, orientation, locale): it isn't
+  // an edit, so it neither takes an undo step nor clears redo. Undo still
+  // restores the snapshot's device, which takes you to the deck the undone
+  // edit was made on.
+  // Structural actions form their own step and end the typing/slider group.
+  const setState = useCallback((updater: Updater, options?: { history?: boolean; coalesce?: boolean }) => {
+    const prev = stateRef.current;
+    const next = applyUpdater(updater, prev);
+    if (next === prev) return;
+    unsaved.current = true;
+    if (options?.history === false) {
+      // Navigation is a boundary: edits to another deck must not coalesce.
+      lastPushAt.current = 0;
+    } else {
       const now = Date.now();
-      if (now - lastPushAt.current > COALESCE_MS) {
+      if (options?.coalesce === false || now - lastPushAt.current > COALESCE_MS) {
         pastRef.current.push(prev);
         if (pastRef.current.length > HISTORY_LIMIT) pastRef.current.shift();
-        futureRef.current.length = 0;
       }
-      lastPushAt.current = now;
-      return next;
-    });
-  }, []);
+      futureRef.current.length = 0;
+      lastPushAt.current = options?.coalesce === false ? 0 : now;
+    }
+    commit(next);
+  }, [commit]);
 
   const undo = useCallback(() => {
-    _setState((cur) => {
-      const prev = pastRef.current.pop();
-      if (prev === undefined) return cur;
-      futureRef.current.push(cur);
-      // Reset coalescing so the next edit after an undo creates a fresh history entry.
-      lastPushAt.current = 0;
-      return prev;
-    });
-  }, []);
+    const prev = pastRef.current.pop();
+    if (prev === undefined) return;
+    futureRef.current.push(stateRef.current);
+    unsaved.current = true;
+    lastPushAt.current = 0;
+    commit(prev);
+  }, [commit]);
 
   const redo = useCallback(() => {
-    _setState((cur) => {
-      const next = futureRef.current.pop();
-      if (next === undefined) return cur;
-      pastRef.current.push(cur);
-      lastPushAt.current = 0;
-      return next;
-    });
-  }, []);
+    const next = futureRef.current.pop();
+    if (next === undefined) return;
+    pastRef.current.push(stateRef.current);
+    unsaved.current = true;
+    lastPushAt.current = 0;
+    commit(next);
+  }, [commit]);
 
+  // "Reset all devices" resets the decks only. App name, theme, font, icon and
+  // especially `locales` (which has no editor UI) are project settings.
   const reset = useCallback(() => {
-    setState(DEFAULT_PROJECT);
+    setState((prev) => ({ ...prev, slidesByDevice: DEFAULT_PROJECT.slidesByDevice }), { coalesce: false });
   }, [setState]);
 
   const resetDevice = useCallback((device: Device) => {
@@ -325,7 +406,7 @@ export function useProject() {
         ...prev.slidesByDevice,
         [device]: DEFAULT_PROJECT.slidesByDevice[device],
       },
-    }));
+    }), { coalesce: false });
   }, [setState]);
 
   return {
@@ -334,9 +415,12 @@ export function useProject() {
     hydrated,
     savedAt,
     saveError,
+    retrySave: fileReady ? () => setRetry((value) => value + 1) : undefined,
     reset,
     resetDevice,
     undo,
     redo,
+    canUndo: pastRef.current.length > 0,
+    canRedo: futureRef.current.length > 0,
   };
 }
