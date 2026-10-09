@@ -16,6 +16,11 @@ import { APP_STORE_URL, COMPANY, SITE_URL } from "@/lib/site";
 
 const POSTER = "/screens/log-an-expense.webp";
 const DARK_POSTER = "/screens/log-an-expense-dark.webp";
+const AGENT_LINKS = [
+    '</.well-known/api-catalog>; rel="api-catalog"',
+    '</openapi.json>; rel="service-desc"; type="application/json"',
+    '</llms.txt>; rel="service-doc"; type="text/plain"',
+].join(", ");
 
 function appGraph(locale: Locale) {
     const { extras, meta } = getIntlayer("home", locale);
@@ -39,6 +44,7 @@ function appGraph(locale: Locale) {
 
 export const Route = createFileRoute("/{-$locale}/")({
     component: HomePage,
+    headers: () => ({ Link: AGENT_LINKS }),
     head: ({ params }) => {
         const locale = localeFromParam(params.locale);
         const { faq, meta } = getIntlayer("home", locale);
