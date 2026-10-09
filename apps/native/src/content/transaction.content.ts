@@ -524,6 +524,10 @@ const transaction = {
             en: "ending",
             es: "hasta el",
         }),
+        "transaction.schedule.endingOpen": t({
+            en: "ending",
+            es: "sin",
+        }),
         "transaction.schedule.every": t({
             en: "Every {interval}",
             es: "Cada {interval}",
@@ -557,6 +561,10 @@ const transaction = {
         "transaction.schedule.shortMonthTag": t({
             en: "short month",
             es: "mes corto",
+        }),
+        "transaction.schedule.openEnd": t({
+            en: "never",
+            es: "fecha de fin",
         }),
         // Lowercase, and paired with `transaction.schedule.ending`: the two words
         // the stage's schedule line reads around its dates.

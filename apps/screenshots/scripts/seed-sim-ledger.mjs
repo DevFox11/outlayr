@@ -7,7 +7,7 @@
 // alone is one Settings toggle or re-run adoption away from `enqueueAllForSync`
 // pushing every seeded row to the signed-in account.
 //
-// Usage: node apps/screenshots/scripts/seed-sim-ledger.mjs <SIMULATOR_UDID>
+// Usage: node apps/screenshots/scripts/seed-sim-ledger.mjs <SIMULATOR_UDID> [--subscriptions]
 
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -15,7 +15,8 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const [udid] = process.argv.slice(2);
+const [udid, ...flags] = process.argv.slice(2);
+const withSchedules = flags.includes("--subscriptions");
 if (!udid) {
     throw new Error("Pass the simulator UDID as the first argument.");
 }
@@ -23,6 +24,8 @@ if (!udid) {
 const LOGO_TOKEN = "pk_cgf-s1esShGTN9IOQRGZBQ";
 const BUNDLE_ID = "com.tryoutlayr.app";
 const VES_RATE = 807.3862;
+const RECURRING_MONTHLY = 3;
+const RECURRING_YEARLY = 4;
 
 // ---------------------------------------------------------------- containers
 
@@ -91,6 +94,7 @@ const MERCHANTS = {
     nike: { domain: "nike.com", label: "Nike" },
     notion: { domain: "notion.so", label: "Notion" },
     nytimes: { domain: "nytimes.com", label: "The New York Times" },
+    planetfitness: { domain: "planetfitness.com", label: "Planet Fitness" },
     shell: { domain: "shell.com", label: "Shell" },
     spotify: { domain: "spotify.com", label: "Spotify" },
     target: { domain: "target.com", label: "Target" },
@@ -434,6 +438,51 @@ for (const [year, month] of [
     }
 }
 
+if (withSchedules) {
+    entries.push(
+        {
+            a: "acc-apple",
+            amt: 24.99,
+            cat: "Subscriptions",
+            d: 15,
+            h: 7,
+            m: "planetfitness",
+            month: 8,
+            note: "Planet Fitness",
+            year: 2026,
+        },
+        {
+            a: "acc-amex",
+            amt: 139,
+            cat: "Shopping",
+            d: 20,
+            every: RECURRING_YEARLY,
+            h: 9,
+            m: "amazon",
+            month: 11,
+            note: "Amazon Prime",
+            year: 2025,
+        }
+    );
+}
+
+const SCHEDULE_LEADS = new Map([
+    ["Amazon Prime", null],
+    ["ChatGPT", null],
+    ["Netflix", 1],
+    ["Planet Fitness", null],
+    ["Rent", null],
+    ["Spotify", null],
+    ["Verizon", null],
+    ["iCloud", null],
+]);
+const carriers = new Map();
+for (const entry of withSchedules ? entries : []) {
+    if (SCHEDULE_LEADS.has(entry.note) && !carriers.has(entry.note)) {
+        carriers.set(entry.note, entry);
+    }
+}
+
 // ------------------------------------------------------------------- writing
 
 const balanceDelta = Object.fromEntries(ACCOUNTS.map((a) => [a.id, 0]));
@@ -449,12 +498,13 @@ for (const entry of entries) {
     const income = entry.inc ? 1 : 0;
     const amountUsd = account.currency === "VES" ? entry.amt / VES_RATE : entry.amt;
     const rate = account.currency === "VES" ? VES_RATE : 1;
+    const schedule = carriers.get(entry.note) === entry;
 
     balanceDelta[entry.a] += (income ? 1 : -1) * entry.amt;
 
     statements.push(
         `INSERT INTO transactions (id, amount, income, currency, note, details, date, day, month, icon, emoji, customColor, imageColor, imageUri, onceRecurring, recurringType, recurringCoefficient, recurringEndDate, categoryId, updatedAt, deletedAt, amountUsd, exchangeRate, exchangeRateType, imageKey, reminderLeadDays, accountId, recurringAnchorDay, transferId)
-     VALUES (${q(randomUUID())}, ${entry.amt}, ${income}, ${q(account.currency)}, ${q(entry.note)}, ${q(entry.det ?? "")}, ${date}, ${dayMs(entry.year, entry.month, entry.d)}, ${monthMs(entry.year, entry.month)}, '', '', '', ${q(imageColor)}, ${q(imageUri)}, 0, 0, 1, NULL, ${q(CATEGORY[entry.cat])}, ${NOW}, NULL, ${amountUsd}, ${rate}, '', '', NULL, ${q(entry.a)}, NULL, NULL);`
+     VALUES (${q(randomUUID())}, ${entry.amt}, ${income}, ${q(account.currency)}, ${q(entry.note)}, ${q(entry.det ?? "")}, ${date}, ${dayMs(entry.year, entry.month, entry.d)}, ${monthMs(entry.year, entry.month)}, '', '', '', ${q(imageColor)}, ${q(imageUri)}, 0, ${schedule ? (entry.every ?? RECURRING_MONTHLY) : 0}, 1, NULL, ${q(CATEGORY[entry.cat])}, ${NOW}, NULL, ${amountUsd}, ${rate}, '', '', ${q(schedule ? SCHEDULE_LEADS.get(entry.note) : null)}, ${q(entry.a)}, ${schedule ? entry.d : "NULL"}, NULL);`
     );
 }
 

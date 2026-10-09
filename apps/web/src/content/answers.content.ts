@@ -41,6 +41,10 @@ const RIVALS = {
         en: "YNAB is a paid budgeting method built on bank imports.",
         es: "YNAB es un método de presupuesto de pago basado en importar movimientos del banco.",
     },
+    fintonic: {
+        en: "Fintonic is a free app in Spain that reads your connected Spanish bank accounts, scores your finances with its FinScore, and arranges loans with over 40 lenders.",
+        es: "Fintonic es una app gratis en España que lee tus cuentas de bancos españoles conectadas, califica tus finanzas con su FinScore y te consigue préstamos con más de 40 entidades.",
+    },
 } as const;
 
 const OUTLAYR_SUBSCRIPTIONS = t({
@@ -284,6 +288,113 @@ const answers = {
                     en: "Outlayr as an EveryDollar alternative.",
                     es: "Outlayr como alternativa a EveryDollar.",
                 }),
+            },
+            fintonic: {
+                faq: [
+                    {
+                        answer: t({
+                            en: "It is if you live outside Spain, pay in cash as well as by card, or want to log a purchase by saying it or scanning the receipt. Fintonic fits better if you bank in Spain and want your accounts to sync on their own, a financial score, or help getting a loan.",
+                            es: "Sí, si vives fuera de España, también pagas en efectivo o quieres registrar una compra dictándola o escaneando el recibo. Fintonic te conviene más si tienes tus cuentas en un banco español y quieres que se sincronicen solas, una nota financiera o ayuda para conseguir un préstamo.",
+                        }),
+                        question: t({
+                            en: "Is Outlayr a good Fintonic alternative?",
+                            es: "¿Outlayr es una buena alternativa a Fintonic?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Yes. Outlayr is offered in all 175 App Store countries and regions, Chile and Mexico included, with 165 currencies, in English and Spanish. Fintonic is offered only in Spain and connects Spanish banks.",
+                            es: "Sí. Outlayr se ofrece en los 175 países y regiones del App Store, Chile y México incluidos, con 165 monedas, en inglés y en español. Fintonic solo se ofrece en España y conecta bancos españoles.",
+                        }),
+                        question: t({
+                            en: "Does Outlayr work in Chile and Mexico?",
+                            es: "¿Outlayr funciona en Chile y México?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Yes. Type one sentence, say it, or scan the receipt, and file it under a cash account. Fintonic's help center says it shows only movements that went through a bank account.",
+                            es: "Sí. Escribe una oración, díctala o escanea el recibo, y regístrala en una cuenta de efectivo. El centro de ayuda de Fintonic dice que solo muestra los movimientos que pasaron por una cuenta bancaria.",
+                        }),
+                        question: t({
+                            en: "Can I log cash expenses in Outlayr?",
+                            es: "¿Puedo registrar gastos en efectivo en Outlayr?",
+                        }),
+                    },
+                    COST_FAQ,
+                ],
+                fit: {
+                    outlayr: [
+                        t({ en: "Live outside Spain", es: "Vives fuera de España" }),
+                        t({ en: "Pay in cash as well as by card", es: "También pagas en efectivo" }),
+                        t({
+                            en: "Want to log a purchase by saying it or scanning the receipt",
+                            es: "Quieres registrar una compra dictándola o escaneando el recibo",
+                        }),
+                    ],
+                    rival: [
+                        SYNC_ACCOUNTS,
+                        t({
+                            en: "Want a financial score and help getting a loan",
+                            es: "Quieres una nota financiera y ayuda para conseguir un préstamo",
+                        }),
+                        t({ en: "Bank in Spain", es: "Tienes tus cuentas en un banco español" }),
+                    ],
+                },
+                lead: t({
+                    en: `${OUTLAYR_LEAD.en} ${RIVALS.fintonic.en}`,
+                    es: `${OUTLAYR_LEAD.es} ${RIVALS.fintonic.es}`,
+                }),
+                meta: {
+                    title: t({
+                        en: "Fintonic Alternative: Outlayr vs Fintonic",
+                        es: "Alternativa a Fintonic: Outlayr vs Fintonic",
+                    }),
+                },
+                rival: "Fintonic",
+                rows: [
+                    {
+                        label: LABELS.price,
+                        outlayr: OUTLAYR.price,
+                        rival: t({
+                            en: "Free. Lenders pay it when you take a loan through it",
+                            es: "Gratis. Le pagan las entidades cuando contratas un préstamo con ella",
+                        }),
+                    },
+                    {
+                        label: LABELS.entries,
+                        outlayr: OUTLAYR.entries,
+                        rival: t({
+                            en: "Movements from connected Spanish bank accounts only",
+                            es: "Solo movimientos de cuentas de bancos españoles conectadas",
+                        }),
+                    },
+                    {
+                        label: LABELS.focus,
+                        outlayr: OUTLAYR.focus,
+                        rival: t({
+                            en: "Spending by category, its FinScore, and loans from over 40 lenders",
+                            es: "Gastos por categoría, su FinScore y préstamos de más de 40 entidades",
+                        }),
+                    },
+                    {
+                        label: LABELS.availability,
+                        outlayr: t({
+                            en: "175 App Store countries and regions",
+                            es: "175 países y regiones del App Store",
+                        }),
+                        rival: t({ en: "Spain only, with Spanish banks", es: "Solo España, con bancos españoles" }),
+                    },
+                    {
+                        label: LABELS.platforms,
+                        outlayr: OUTLAYR.platforms,
+                        rival: t({ en: "iPhone, Android", es: "iPhone, Android" }),
+                    },
+                ],
+                site: "fintonic.com",
+                source: "https://www.fintonic.com/es-ES/inicio/",
+                summary: t(RIVALS.fintonic),
+                title: t({ en: "Outlayr as a Fintonic alternative.", es: "Outlayr como alternativa a Fintonic." }),
             },
             monarch: {
                 faq: [
@@ -912,6 +1023,625 @@ const answers = {
                     es: "Registra tus compras con Apple Pay al pagar.",
                 }),
             },
+            "best-expense-tracker-apps": {
+                apps: [
+                    {
+                        facts: [
+                            {
+                                label: LABELS.price,
+                                source: "https://www.monefy.com/",
+                                text: t({
+                                    en: "Free core app. A paid upgrade adds unlimited accounts and recurring transactions",
+                                    es: "La app básica es gratis. Una mejora de pago agrega cuentas ilimitadas y movimientos recurrentes",
+                                }),
+                            },
+                            {
+                                label: LABELS.entries,
+                                source: "https://www.monefy.com/",
+                                text: t({
+                                    en: "By hand in two taps, or statements you import",
+                                    es: "A mano en dos toques, o estados de cuenta que importas",
+                                }),
+                            },
+                            {
+                                label: LABELS.currencies,
+                                source: "https://www.monefy.com/",
+                                text: t({ en: "150+", es: "Más de 150" }),
+                            },
+                            {
+                                label: LABELS.platforms,
+                                source: "https://www.monefy.com/",
+                                text: t({
+                                    en: "iPhone and Android, synced through Google Drive or Dropbox",
+                                    es: "iPhone y Android, con sincronización por Google Drive o Dropbox",
+                                }),
+                            },
+                        ],
+                        name: "Monefy",
+                        slug: "monefy",
+                        summary: t({
+                            en: "Monefy is an expense tracker for iPhone and Android that logs a purchase in two taps, free at its core.",
+                            es: "Monefy es una app para controlar gastos en iPhone y Android que registra una compra en dos toques, gratis en lo básico.",
+                        }),
+                    },
+                    {
+                        facts: [
+                            {
+                                label: LABELS.price,
+                                source: "https://help.realbyteapps.com/hc/en-us/articles/10669850586649-Is-the-paid-app-an-one-time-payment-or-a-subscription-service",
+                                text: t({
+                                    en: "Premium is a one-time purchase, not a subscription",
+                                    es: "Premium es un solo pago, no una suscripción",
+                                }),
+                            },
+                            {
+                                label: t({ en: "Free plan", es: "Plan gratis" }),
+                                source: "https://help.realbyteapps.com/hc/en-us/articles/360042746754-Refer-your-friends",
+                                text: t({ en: "Up to 15 accounts", es: "Hasta 15 cuentas" }),
+                            },
+                            {
+                                label: LABELS.entries,
+                                source: "https://help.realbyteapps.com/hc/en-us/articles/360043536233-How-to-import-bulk-data-by-Excel-file",
+                                text: t({
+                                    en: "By hand, or in bulk from an Excel file",
+                                    es: "A mano, o en bloque desde un archivo de Excel",
+                                }),
+                            },
+                            {
+                                label: LABELS.currencies,
+                                source: "https://help.realbyteapps.com/hc/en-us/articles/360042988234-How-to-add-sub-currencies",
+                                text: t({
+                                    en: "Sub-currencies next to a main one, with rates you update by hand",
+                                    es: "Submonedas junto a una principal, con tasas que actualizas a mano",
+                                }),
+                            },
+                            {
+                                label: LABELS.platforms,
+                                source: "https://www.realbyteapps.com/",
+                                text: t({ en: "iPhone, Android", es: "iPhone, Android" }),
+                            },
+                        ],
+                        name: "Money Manager",
+                        slug: "money-manager",
+                        summary: t({
+                            en: "Money Manager, from Realbyte, is an expense and budget app for iPhone and Android with double-entry bookkeeping.",
+                            es: "Money Manager, de Realbyte, es una app de gastos y presupuesto para iPhone y Android con contabilidad de doble entrada.",
+                        }),
+                    },
+                    {
+                        facts: [
+                            { label: LABELS.price, text: OUTLAYR.price },
+                            { label: LABELS.entries, text: OUTLAYR.entries },
+                            { label: LABELS.currencies, text: OUTLAYR.currencies },
+                            { label: LABELS.platforms, text: OUTLAYR.platforms },
+                            {
+                                label: t({ en: "Free plan", es: "Plan gratis" }),
+                                text: t({
+                                    en: "20 voice or receipt captures every 30 days, 2 accounts, 2 category budgets, and accounts in one currency",
+                                    es: "20 capturas de voz o de recibos cada 30 días, 2 cuentas, 2 presupuestos por categoría y cuentas en una moneda",
+                                }),
+                            },
+                        ],
+                        name: "Outlayr",
+                        slug: "outlayr",
+                        summary: t(OUTLAYR_LEAD),
+                    },
+                    {
+                        facts: [
+                            {
+                                label: LABELS.price,
+                                source: "https://www.spendee.com/pricing",
+                                text: t({
+                                    en: "Free basic plan with 1 wallet and 1 budget. Plus $1.99 a month or $14.99 a year, Premium $5.99 a month or $35.99 a year, after a 7-day trial. Prices vary by country",
+                                    es: "Plan básico gratis con 1 billetera y 1 presupuesto. Plus $1.99 al mes o $14.99 al año, Premium $5.99 al mes o $35.99 al año, después de una prueba de 7 días. Los precios cambian según el país",
+                                }),
+                            },
+                            {
+                                label: LABELS.entries,
+                                source: "https://www.spendee.com/pricing",
+                                text: t({
+                                    en: "Cash wallets by hand. Bank sync in Premium",
+                                    es: "Billeteras de efectivo a mano. Sincronización bancaria en Premium",
+                                }),
+                            },
+                            {
+                                label: LABELS.currencies,
+                                source: "https://www.spendee.com/",
+                                text: t({ en: "Several currencies", es: "Varias monedas" }),
+                            },
+                            {
+                                label: LABELS.platforms,
+                                source: "https://www.spendee.com/pricing",
+                                text: t({ en: "iPhone, Android. Web coming", es: "iPhone, Android. Web próximamente" }),
+                            },
+                        ],
+                        name: "Spendee",
+                        slug: "spendee",
+                        summary: t(RIVALS.spendee),
+                    },
+                    {
+                        facts: [
+                            {
+                                label: LABELS.price,
+                                source: "https://support.budgetbakers.com/hc/en-us/articles/7151349344018-Everything-about-Premium",
+                                text: t({
+                                    en: "Free tier. Premium monthly, yearly, or lifetime, priced in the app",
+                                    es: "Plan gratis. Premium al mes, al año o de por vida, con precio en la app",
+                                }),
+                            },
+                            {
+                                label: LABELS.entries,
+                                source: "https://budgetbakers.com/en/products/wallet/",
+                                text: t({
+                                    en: "By hand on the free tier. Bank sync with over 15,000 institutions in Premium",
+                                    es: "A mano en el plan gratis. Sincronización con más de 15,000 instituciones en Premium",
+                                }),
+                            },
+                            {
+                                label: LABELS.currencies,
+                                source: "https://budgetbakers.com/en/products/wallet/",
+                                text: t({
+                                    en: "Several, converted at real-time rates",
+                                    es: "Varias, convertidas con tasas en tiempo real",
+                                }),
+                            },
+                            {
+                                label: LABELS.platforms,
+                                source: "https://budgetbakers.com/en/products/wallet/",
+                                text: t({ en: "iPhone, Android, web", es: "iPhone, Android, web" }),
+                            },
+                        ],
+                        name: "Wallet by BudgetBakers",
+                        slug: "wallet",
+                        summary: t(RIVALS.wallet),
+                    },
+                    {
+                        facts: [
+                            {
+                                label: LABELS.price,
+                                source: "https://www.ynab.com/pricing",
+                                text: t({
+                                    en: "$14.99 a month or $109 a year, after a 34-day trial",
+                                    es: "$14.99 al mes o $109 al año, después de una prueba de 34 días",
+                                }),
+                            },
+                            {
+                                label: LABELS.entries,
+                                source: "https://www.ynab.com/pricing",
+                                text: t({
+                                    en: "Bank import for select US, Canadian, UK, and EU banks, or file import",
+                                    es: "Importación desde algunos bancos de EE. UU., Canadá, Reino Unido y la UE, o importación de archivos",
+                                }),
+                            },
+                            {
+                                label: LABELS.currencies,
+                                source: "https://www.ynab.com/pricing",
+                                text: t({ en: "One per spending plan", es: "Una por plan de gastos" }),
+                            },
+                            {
+                                label: LABELS.platforms,
+                                source: "https://www.ynab.com/our-app-lineup",
+                                text: t({
+                                    en: "iPhone, iPad, Android, Apple Watch, web",
+                                    es: "iPhone, iPad, Android, Apple Watch, web",
+                                }),
+                            },
+                        ],
+                        name: "YNAB",
+                        slug: "ynab",
+                        summary: t(RIVALS.ynab),
+                    },
+                ],
+                facts: [
+                    {
+                        label: "Monefy",
+                        text: t({
+                            en: "Best if you want to log a purchase in two taps, in any of 150+ currencies",
+                            es: "Ideal si quieres registrar una compra en dos toques, en cualquiera de más de 150 monedas",
+                        }),
+                    },
+                    {
+                        label: "Money Manager",
+                        text: t({
+                            en: "Best if you want double-entry accounts for cards, savings, and loans, with Premium paid once",
+                            es: "Ideal si quieres contabilidad de doble entrada para tarjetas, ahorros y préstamos, con Premium en un solo pago",
+                        }),
+                    },
+                    {
+                        label: "Outlayr",
+                        text: t({
+                            en: "Best if you want to log by sentence, voice, or receipt, with each purchase at the rate from its day",
+                            es: "Ideal si quieres registrar con una oración, tu voz o un recibo, con cada compra a la tasa de su día",
+                        }),
+                    },
+                    {
+                        label: "Spendee",
+                        text: t({
+                            en: "Best if you want to share wallets with family or friends",
+                            es: "Ideal si quieres compartir billeteras con tu familia o tus amigos",
+                        }),
+                    },
+                    {
+                        label: "Wallet by BudgetBakers",
+                        text: t({
+                            en: "Best if you want bank sync with banks in many countries, in Premium",
+                            es: "Ideal si quieres sincronizar bancos de muchos países, en Premium",
+                        }),
+                    },
+                    {
+                        label: "YNAB",
+                        text: t({
+                            en: "Best if you want to give every dollar a job, with bank import in the US, Canada, the UK, or the EU",
+                            es: "Ideal si quieres darle un trabajo a cada dólar, con importación bancaria en EE. UU., Canadá, Reino Unido o la UE",
+                        }),
+                    },
+                ],
+                faq: [
+                    {
+                        answer: t({
+                            en: "It depends on how you want to log. Monefy logs a purchase in two taps. Money Manager keeps double-entry accounts, up to 15 on its free version. Spendee and Wallet by BudgetBakers start free and sync bank accounts in Premium. Outlayr logs by sentence, voice, or receipt on its free plan. YNAB is paid after a 34-day trial.",
+                            es: "Depende de cómo quieras registrar. Monefy registra una compra en dos toques. Money Manager lleva contabilidad de doble entrada, con hasta 15 cuentas en su versión gratis. Spendee y Wallet by BudgetBakers empiezan gratis y sincronizan cuentas de banco en Premium. Outlayr registra con una oración, tu voz o un recibo en su plan gratis. YNAB es de pago después de una prueba de 34 días.",
+                        }),
+                        question: t({
+                            en: "What is the best free expense tracker app for iPhone?",
+                            es: "¿Cuál es la mejor app gratis para controlar gastos en iPhone?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Monefy supports 150+ currencies, Wallet by BudgetBakers converts at real-time rates, and Spendee supports several. Money Manager adds sub-currencies at rates you update by hand, and YNAB uses one currency per spending plan. Outlayr has 165 and converts each purchase at the rate from its day. Its free plan holds accounts in one currency.",
+                            es: "Monefy admite más de 150 monedas, Wallet by BudgetBakers convierte con tasas en tiempo real y Spendee admite varias. Money Manager agrega submonedas con tasas que actualizas a mano, y YNAB usa una moneda por plan de gastos. Outlayr tiene 165 y convierte cada compra con la tasa de su día. Su plan gratis permite cuentas en una moneda.",
+                        }),
+                        question: t({
+                            en: "Which expense tracker handles more than one currency?",
+                            es: "¿Qué app para controlar gastos maneja varias monedas?",
+                        }),
+                    },
+                    COST_FAQ,
+                    {
+                        answer: t({
+                            en: "Yes. The app and this site are in English and Latin American Spanish.",
+                            es: "Sí. La app y este sitio están en inglés y en español de Latinoamérica.",
+                        }),
+                        question: t({ en: "Is Outlayr in Spanish?", es: "¿Outlayr está en español?" }),
+                    },
+                ],
+                lead: t({
+                    en: "Six expense trackers, each best for a different need: Monefy, Money Manager, Outlayr, Spendee, Wallet by BudgetBakers, and YNAB. All but YNAB are free to start on iPhone. Outlayr is ours; the other five are not.",
+                    es: "Seis apps para controlar gastos, cada una mejor para algo distinto: Monefy, Money Manager, Outlayr, Spendee, Wallet by BudgetBakers y YNAB. Todas menos YNAB son gratis para empezar en iPhone. Outlayr es nuestra; las otras cinco no.",
+                }),
+                meta: {
+                    title: t({
+                        en: "Best Expense Tracker Apps, Compared (2026) · Outlayr",
+                        es: "Mejor app para controlar gastos en iPhone (2026) · Outlayr",
+                    }),
+                },
+                sources: t({
+                    en: "Each detail about the other apps links to the page it was read on",
+                    es: "Los datos de las otras apps enlazan a la página donde se leyeron",
+                }),
+                title: t({
+                    en: "The best expense tracker apps, by what you need.",
+                    es: "La mejor app para controlar gastos, según lo que necesitas.",
+                }),
+            },
+            "best-subscription-tracker-apps": {
+                apps: [
+                    {
+                        facts: [
+                            {
+                                label: LABELS.price,
+                                source: "https://apps.apple.com/us/app/bobby-track-subscriptions/id1059152023",
+                                text: t({
+                                    en: "Free, with in-app purchases from $0.99 to $2.99 in the US App Store",
+                                    es: "Gratis, con compras dentro de la app de $0.99 a $2.99 en el App Store de EE. UU.",
+                                }),
+                            },
+                            {
+                                label: LABELS.entries,
+                                source: "https://apps.apple.com/us/app/bobby-track-subscriptions/id1059152023",
+                                text: t({
+                                    en: "Picked from hundreds of known subscriptions, or added by hand",
+                                    es: "Las eliges entre cientos de suscripciones conocidas o las agregas a mano",
+                                }),
+                            },
+                            {
+                                label: LABELS.subscriptions,
+                                source: "https://apps.apple.com/us/app/bobby-track-subscriptions/id1059152023",
+                                text: t({
+                                    en: "What they cost each month, and a notice when a bill is due",
+                                    es: "Cuánto cuestan al mes y un aviso cuando vence un cobro",
+                                }),
+                            },
+                            {
+                                label: LABELS.currencies,
+                                source: "https://apps.apple.com/us/app/bobby-track-subscriptions/id1059152023",
+                                text: t({
+                                    en: "Several, with exchange rates updated daily",
+                                    es: "Varias, con tasas de cambio que se actualizan a diario",
+                                }),
+                            },
+                            {
+                                label: LABELS.platforms,
+                                source: "https://apps.apple.com/us/app/bobby-track-subscriptions/id1059152023",
+                                text: "iPhone",
+                            },
+                        ],
+                        name: "Bobby",
+                        slug: "bobby",
+                        summary: t({
+                            en: "Bobby is an iPhone app that keeps a list of your subscriptions and notifies you when a bill is due.",
+                            es: "Bobby es una app para iPhone que guarda la lista de tus suscripciones y te avisa cuando vence un cobro.",
+                        }),
+                    },
+                    {
+                        facts: [
+                            {
+                                label: LABELS.price,
+                                source: "https://www.monarch.com/pricing",
+                                text: t({
+                                    en: "$14.99 a month or $99.99 a year, after a 7-day trial. Plus is $199.99 a year",
+                                    es: "$14.99 al mes o $99.99 al año, después de una prueba de 7 días. Plus cuesta $199.99 al año",
+                                }),
+                            },
+                            {
+                                label: LABELS.entries,
+                                source: "https://www.monarch.com/features/tracking",
+                                text: t({
+                                    en: "Synced from linked accounts",
+                                    es: "Sincronizados desde cuentas vinculadas",
+                                }),
+                            },
+                            {
+                                label: LABELS.subscriptions,
+                                source: "https://www.monarch.com/features/tracking",
+                                text: t({
+                                    en: "Found in your transactions and shown as a list or a calendar, with reminders",
+                                    es: "Las detecta en tus movimientos y las muestra en lista o en calendario, con avisos",
+                                }),
+                            },
+                            {
+                                label: LABELS.availability,
+                                source: "https://www.monarch.com/download",
+                                text: t({ en: "The United States and Canada", es: "Estados Unidos y Canadá" }),
+                            },
+                            {
+                                label: LABELS.platforms,
+                                source: "https://www.monarch.com/download",
+                                text: t({ en: "Web, iPhone, iPad, Android", es: "Web, iPhone, iPad, Android" }),
+                            },
+                        ],
+                        name: "Monarch",
+                        slug: "monarch",
+                        summary: t(RIVALS.monarch),
+                    },
+                    {
+                        facts: [
+                            { label: LABELS.price, text: OUTLAYR.price },
+                            { label: LABELS.entries, text: OUTLAYR.entries },
+                            { label: LABELS.subscriptions, text: OUTLAYR_SUBSCRIPTIONS },
+                            { label: LABELS.currencies, text: OUTLAYR.currencies },
+                            { label: LABELS.platforms, text: OUTLAYR.platforms },
+                            {
+                                label: t({ en: "Free plan", es: "Plan gratis" }),
+                                text: t({
+                                    en: "Subscriptions, reminders, and Upcoming are free",
+                                    es: "Las suscripciones, los avisos y Próximos son gratis",
+                                }),
+                            },
+                            {
+                                label: t({ en: "Not included", es: "No incluye" }),
+                                text: t({
+                                    en: "Finding subscriptions for you, cancelling them, or negotiating bills",
+                                    es: "Encontrar suscripciones por ti, cancelarlas o negociar facturas",
+                                }),
+                            },
+                        ],
+                        name: "Outlayr",
+                        slug: "outlayr",
+                        summary: t(OUTLAYR_LEAD),
+                    },
+                    {
+                        facts: [
+                            {
+                                label: LABELS.price,
+                                source: "https://pocketguard.com/pricing/",
+                                text: t({
+                                    en: "$12.99 a month, $74.99 a year, or $149.99 once, after a 7-day trial",
+                                    es: "$12.99 al mes, $74.99 al año o $149.99 en un solo pago, después de una prueba de 7 días",
+                                }),
+                            },
+                            {
+                                label: LABELS.entries,
+                                source: "https://pocketguard.com/pricing/",
+                                text: t({
+                                    en: "Synced from linked accounts, plus cash transactions and file import",
+                                    es: "Sincronizados desde cuentas vinculadas, más movimientos en efectivo e importación de archivos",
+                                }),
+                            },
+                            {
+                                label: LABELS.subscriptions,
+                                source: "https://pocketguard.com/cancel-subscriptions/",
+                                text: t({
+                                    en: "Found in linked accounts. You cancel each one with the service",
+                                    es: "Las encuentra en tus cuentas vinculadas. Tú cancelas cada una con el servicio",
+                                }),
+                            },
+                            {
+                                label: LABELS.availability,
+                                source: "https://pocketguard.com/",
+                                text: t({
+                                    en: "Linked accounts in the US, Canada, and the UK",
+                                    es: "Cuentas vinculadas en EE. UU., Canadá y Reino Unido",
+                                }),
+                            },
+                            {
+                                label: LABELS.platforms,
+                                source: "https://pocketguard.com/pricing/",
+                                text: t({
+                                    en: "Web, iPhone, Apple Watch, Android",
+                                    es: "Web, iPhone, Apple Watch, Android",
+                                }),
+                            },
+                        ],
+                        name: "PocketGuard",
+                        slug: "pocketguard",
+                        summary: t(RIVALS.pocketguard),
+                    },
+                    {
+                        facts: [
+                            {
+                                label: LABELS.price,
+                                source: "https://www.rocketmoney.com/learn/personal-finance/how-much-does-rocket-money-cost",
+                                text: t({
+                                    en: "Free plan. Premium is pay what you want, typically $7 to $14 a month. Premium+ is $15 a month",
+                                    es: "Plan gratis. Premium es paga lo que quieras, normalmente de $7 a $14 al mes. Premium+ cuesta $15 al mes",
+                                }),
+                            },
+                            {
+                                label: LABELS.entries,
+                                source: "https://www.rocketmoney.com/learn/personal-finance/how-much-does-rocket-money-cost",
+                                text: t({
+                                    en: "Synced from linked accounts. Manual transactions are a Premium feature",
+                                    es: "Sincronizados desde cuentas vinculadas. Los movimientos a mano son una función Premium",
+                                }),
+                            },
+                            {
+                                label: LABELS.subscriptions,
+                                source: "https://www.rocketmoney.com/learn/personal-finance/how-much-does-rocket-money-cost",
+                                text: t({
+                                    en: "Found in linked accounts. Its team cancels them for Premium members, usually in 2 to 10 days",
+                                    es: "Las encuentra en tus cuentas vinculadas. Su equipo las cancela para los miembros Premium, normalmente en 2 a 10 días",
+                                }),
+                            },
+                            {
+                                label: t({ en: "Bills", es: "Facturas" }),
+                                source: "https://www.rocketmoney.com/learn/personal-finance/how-much-does-rocket-money-cost",
+                                text: t({
+                                    en: "Its team negotiates bills, for 35% to 60% of the first year's savings when it works",
+                                    es: "Su equipo negocia tus facturas, por el 35% al 60% del ahorro del primer año cuando lo logra",
+                                }),
+                            },
+                            {
+                                label: LABELS.availability,
+                                source: "https://help.rocketmoney.com/en/articles/79778-does-rocket-money-support-international-banks",
+                                text: t({
+                                    en: "The United States, with U.S. banks",
+                                    es: "Estados Unidos, con bancos de EE. UU.",
+                                }),
+                            },
+                            {
+                                label: LABELS.platforms,
+                                source: "https://www.rocketmoney.com/learn/personal-finance/how-much-does-rocket-money-cost",
+                                text: t({
+                                    en: "iPhone, Android. Web is a Premium feature",
+                                    es: "iPhone, Android. La web es una función Premium",
+                                }),
+                            },
+                        ],
+                        name: "Rocket Money",
+                        slug: "rocket-money",
+                        summary: t(RIVALS.rocketMoney),
+                    },
+                ],
+                facts: [
+                    {
+                        label: "Bobby",
+                        text: t({
+                            en: "Best if you want a plain list of your subscriptions on iPhone",
+                            es: "Ideal si quieres una lista simple de tus suscripciones en iPhone",
+                        }),
+                    },
+                    {
+                        label: "Monarch",
+                        text: t({
+                            en: "Best if you want subscriptions next to budgets and investments from linked accounts, in the US or Canada",
+                            es: "Ideal si quieres tus suscripciones junto a presupuestos e inversiones de cuentas vinculadas, en EE. UU. o Canadá",
+                        }),
+                    },
+                    {
+                        label: "Outlayr",
+                        text: t({
+                            en: "Best if you want subscriptions in the same log as your daily spending, in any of 165 currencies, on a free plan",
+                            es: "Ideal si quieres tus suscripciones en el mismo registro que tus gastos del día, en cualquiera de 165 monedas, con un plan gratis",
+                        }),
+                    },
+                    {
+                        label: "PocketGuard",
+                        text: t({
+                            en: "Best if you want recurring charges found in linked accounts, then cancel them yourself",
+                            es: "Ideal si quieres que encuentre los cobros recurrentes en tus cuentas vinculadas y cancelarlos tú",
+                        }),
+                    },
+                    {
+                        label: "Rocket Money",
+                        text: t({
+                            en: "Best if you live in the United States and want its team to cancel subscriptions for you",
+                            es: "Ideal si vives en Estados Unidos y quieres que su equipo cancele suscripciones por ti",
+                        }),
+                    },
+                ],
+                faq: [
+                    {
+                        answer: t({
+                            en: "It depends on what you need. In the United States, Rocket Money's team can cancel subscriptions for you on Premium. PocketGuard and Monarch find recurring charges in linked accounts. Bobby keeps a plain list on iPhone. Outlayr logs each subscription on its day next to your daily spending, on a free plan.",
+                            es: "Depende de lo que necesites. En Estados Unidos, el equipo de Rocket Money puede cancelar suscripciones por ti con Premium. PocketGuard y Monarch encuentran los cobros recurrentes en tus cuentas vinculadas. Bobby lleva una lista simple en iPhone. Outlayr registra cada suscripción en su día junto a tus gastos diarios, con un plan gratis.",
+                        }),
+                        question: t({
+                            en: "What is the best app to track subscriptions?",
+                            es: "¿Cuál es la mejor app para gestionar suscripciones?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Yes. In Outlayr, subscriptions, reminders, and Upcoming are part of the free plan. Rocket Money's free plan tracks subscriptions, and Bobby is free with in-app purchases. PocketGuard and Monarch are paid after a 7-day trial.",
+                            es: "Sí. En Outlayr, las suscripciones, los avisos y Próximos son parte del plan gratis. El plan gratis de Rocket Money controla suscripciones, y Bobby es gratis con compras dentro de la app. PocketGuard y Monarch son de pago después de una prueba de 7 días.",
+                        }),
+                        question: t({
+                            en: "Is there a free subscription tracker app?",
+                            es: "¿Hay una app gratis para controlar suscripciones?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "No. You add each subscription once, and Outlayr shows what it costs and when it charges next, and can remind you before the charge, so you cancel with the service yourself. Rocket Money's team cancels subscriptions for its Premium members.",
+                            es: "No. Agregas cada suscripción una vez, y Outlayr te muestra cuánto cuesta y cuándo vuelve a cobrar, y puede avisarte antes del cobro, para que la canceles tú con el servicio. El equipo de Rocket Money cancela suscripciones para sus miembros Premium.",
+                        }),
+                        question: t({
+                            en: "Does Outlayr cancel subscriptions?",
+                            es: "¿Outlayr cancela suscripciones?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Rocket Money is available in the United States only, and Monarch in the United States and Canada. PocketGuard links accounts in the US, Canada, and the UK. Outlayr is offered in all 175 App Store countries and regions, in English and Spanish.",
+                            es: "Rocket Money solo está disponible en Estados Unidos, y Monarch en Estados Unidos y Canadá. PocketGuard vincula cuentas de EE. UU., Canadá y Reino Unido. Outlayr se ofrece en los 175 países y regiones del App Store, en inglés y en español.",
+                        }),
+                        question: t({
+                            en: "Which subscription trackers work outside the United States?",
+                            es: "¿Qué apps de suscripciones funcionan fuera de Estados Unidos?",
+                        }),
+                    },
+                ],
+                lead: t({
+                    en: "Five apps to track subscriptions, each best for a different need: Bobby, Monarch, Outlayr, PocketGuard, and Rocket Money. Outlayr is ours; the other four are not. Outlayr does not cancel subscriptions or negotiate bills, and Rocket Money's team does both.",
+                    es: "Cinco apps para controlar suscripciones, cada una mejor para algo distinto: Bobby, Monarch, Outlayr, PocketGuard y Rocket Money. Outlayr es nuestra; las otras cuatro no. Outlayr no cancela suscripciones ni negocia facturas, y el equipo de Rocket Money hace las dos cosas.",
+                }),
+                meta: {
+                    title: t({
+                        en: "Best Subscription Tracker Apps, Compared (2026) · Outlayr",
+                        es: "Mejores apps para controlar suscripciones (2026) · Outlayr",
+                    }),
+                },
+                sources: t({
+                    en: "Each detail about the other apps links to the page it was read on",
+                    es: "Los datos de las otras apps enlazan a la página donde se leyeron",
+                }),
+                title: t({
+                    en: "The best subscription tracker apps, by what you need.",
+                    es: "Las mejores apps para controlar suscripciones, según lo que necesitas.",
+                }),
+            },
             "budget-planner": {
                 facts: [
                     {
@@ -1060,10 +1790,10 @@ const answers = {
                         }),
                     },
                     {
-                        label: t({ en: "Needs", es: "Requiere" }),
+                        label: t({ en: "Plans", es: "Planes" }),
                         text: t({
-                            en: "Outlayr Pro and an account. Up to 5,000 rows a file",
-                            es: "Outlayr Pro y una cuenta. Hasta 5,000 filas por archivo",
+                            en: "Rows whose category matches one of yours by name import on any plan. Outlayr Pro matches the rest with AI, up to 5,000 rows a file",
+                            es: "Las filas cuya categoría coincide por nombre con una de las tuyas se importan en cualquier plan. Outlayr Pro asigna el resto con IA, hasta 5,000 filas por archivo",
                         }),
                     },
                 ],
@@ -1077,8 +1807,8 @@ const answers = {
                     },
                     {
                         answer: t({
-                            en: "Yes, with Outlayr Pro, if you exported a CSV from Mint. Outlayr reads its date, description, amount, type, and category columns, matches Mint's category names to yours with AI, and flags rows that look already imported before you save. A file can hold up to 5,000 rows, so split a longer export by year.",
-                            es: "Sí, con Outlayr Pro, si exportaste un CSV de Mint. Outlayr lee sus columnas de fecha, descripción, monto, tipo y categoría, asigna los nombres de categoría de Mint a los tuyos con IA y marca las filas que parecen ya importadas antes de guardar. Un archivo puede tener hasta 5,000 filas, así que divide una exportación más larga por año.",
+                            en: "Yes, if you exported a CSV from Mint. Outlayr reads its date, description, amount, type, and category columns, links each Mint category that matches one of yours by name, and flags rows that look already imported before you save. With Outlayr Pro, the other Mint category names are matched to yours with AI, up to 5,000 rows a file, so split a longer export by year.",
+                            es: "Sí, si exportaste un CSV de Mint. Outlayr lee sus columnas de fecha, descripción, monto, tipo y categoría, vincula cada categoría de Mint que coincide por nombre con una de las tuyas y marca las filas que parecen ya importadas antes de guardar. Con Outlayr Pro, los demás nombres de categoría de Mint se asignan a los tuyos con IA, hasta 5,000 filas por archivo, así que divide una exportación más larga por año.",
                         }),
                         question: t({
                             en: "Can I import my Mint data into Outlayr?",
@@ -1087,8 +1817,8 @@ const answers = {
                     },
                     {
                         answer: t({
-                            en: "Logging, budgets, goals, and subscriptions are free. Importing a Mint file needs Outlayr Pro, because Mint's category names are matched to yours with AI. Pro is billed monthly or yearly, or bought once.",
-                            es: "Registrar, los presupuestos, las metas y las suscripciones son gratis. Importar un archivo de Mint requiere Outlayr Pro, porque los nombres de categoría de Mint se asignan a los tuyos con IA. Pro se paga al mes, al año o en un solo pago.",
+                            en: "Logging, budgets, goals, and subscriptions are free, and so is importing the rows whose Mint category matches one of yours by name. Matching the other Mint category names to yours with AI needs Outlayr Pro. Pro is billed monthly or yearly, or bought once.",
+                            es: "Registrar, los presupuestos, las metas y las suscripciones son gratis, igual que importar las filas cuya categoría de Mint coincide por nombre con una de las tuyas. Asignar los demás nombres de categoría de Mint a los tuyos con IA requiere Outlayr Pro. Pro se paga al mes, al año o en un solo pago.",
                         }),
                         question: t({
                             en: "Is Outlayr free like Mint was?",
@@ -1216,13 +1946,13 @@ const answers = {
                     },
                 ],
                 lead: t({
-                    en: "Outlayr logs a purchase in any of 165 currencies and converts totals to your main currency at the rate from the day it happened.",
-                    es: "Outlayr registra una compra en cualquiera de 165 monedas y convierte los totales a tu moneda principal con la tasa del día de la compra.",
+                    en: "Outlayr logs each purchase in any of 165 currencies, from dollars and pesos to bolívares, and converts budgets and totals to your main currency at the rate from the day you paid. It works the same on a trip abroad and at home with more than one currency.",
+                    es: "Outlayr registra cada compra en cualquiera de 165 monedas, de dólares y pesos a bolívares, y convierte tus presupuestos y totales a tu moneda principal con la tasa del día en que pagaste. Funciona igual de viaje y en casa con más de una moneda.",
                 }),
                 meta: {
                     title: t({
-                        en: "Multi-Currency Expense Tracker: 165 Currencies · Outlayr",
-                        es: "Control de gastos en varias monedas: 165 monedas · Outlayr",
+                        en: "Travel and Multi-Currency Expense Tracker App: 165 Currencies · Outlayr",
+                        es: "App para controlar gastos en viajes y en varias monedas · Outlayr",
                     }),
                 },
                 plateAlt: ACCOUNTS_SCREEN_ALT,
@@ -1250,8 +1980,8 @@ const answers = {
                     },
                 ],
                 title: t({
-                    en: "Track expenses in more than one currency.",
-                    es: "Registra gastos en más de una moneda.",
+                    en: "Track expenses in any currency, at home or on a trip.",
+                    es: "Controla tus gastos en cualquier moneda, en casa o de viaje.",
                 }),
             },
             "receipt-scanner": {
@@ -1475,6 +2205,10 @@ const answers = {
                         es: "Control de suscripciones: costo mensual y avisos · Outlayr",
                     }),
                 },
+                plateAlt: t({
+                    en: "Outlayr Upcoming entries: Amazon Prime, ChatGPT, iCloud, Verizon, Spotify, rent, Netflix, and Planet Fitness, $2,036.54 per month in total.",
+                    es: "Próximos registros en Outlayr: Amazon Prime, ChatGPT, iCloud, Verizon, Spotify, la renta, Netflix y Planet Fitness, $2,036.54 al mes en total.",
+                }),
                 steps: [
                     {
                         text: t({
@@ -1501,6 +2235,250 @@ const answers = {
                 title: t({
                     en: "Track every subscription and what it costs a month.",
                     es: "Controla tus suscripciones y lo que te cuestan al mes.",
+                }),
+            },
+            "expense-tracker-template": {
+                download: {
+                    href: t({
+                        en: "/templates/expense-tracker-template.csv",
+                        es: "/templates/plantilla-control-de-gastos.csv",
+                    }),
+                    label: t({ en: "Download the template (CSV)", es: "Descargar la plantilla (CSV)" }),
+                },
+                facts: [
+                    {
+                        label: t({ en: "Columns", es: "Columnas" }),
+                        text: t({
+                            en: "Date, Note, Amount, Currency, Category, Type",
+                            es: "Fecha, Nota, Monto, Moneda, Categoría y Tipo, con el nombre en inglés entre paréntesis",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Opens in", es: "Abre en" }),
+                        text: t({ en: "Excel, Numbers, and Google Sheets", es: "Excel, Numbers y Google Sheets" }),
+                    },
+                    {
+                        label: t({ en: "Dates", es: "Fechas" }),
+                        text: t({
+                            en: "Year first, like 2026-10-09. Dates like 10/09/2026 work too",
+                            es: "Primero el año, como 2026-10-09. También sirven fechas como 09/10/2026",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Amounts", es: "Montos" }),
+                        text: t({
+                            en: "A number, with a dot or a comma for decimals",
+                            es: "Un número, con punto o coma para los decimales",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Type", es: "Tipo" }),
+                        text: t({ en: "Expense or Income", es: "Expense para un gasto, Income para un ingreso" }),
+                    },
+                    {
+                        label: t({ en: "Import", es: "Importa" }),
+                        text: t({
+                            en: "In Settings, under Import data, as a CSV file",
+                            es: "En Configuración, en Importar datos, como archivo CSV",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Plans", es: "Planes" }),
+                        text: t({
+                            en: "Rows whose category matches one of yours by name import on any plan. Outlayr Pro matches the rest with AI, up to 5,000 rows and 2 MB a file",
+                            es: "Las filas cuya categoría coincide por nombre con una de las tuyas se importan en cualquier plan. Outlayr Pro asigna el resto con IA, hasta 5,000 filas y 2 MB por archivo",
+                        }),
+                    },
+                ],
+                faq: [
+                    {
+                        answer: t({
+                            en: "Yes. Download it and use it in any spreadsheet app for as long as you like. Importing it into Outlayr is free too for every row whose category matches one of yours by name; the English file uses the categories a new Outlayr ledger starts with. Outlayr Pro matches other category names to yours with AI.",
+                            es: "Sí. Descárgala y úsala en cualquier hoja de cálculo el tiempo que quieras. Importarla a Outlayr también es gratis para cada fila cuya categoría coincide por nombre con una de las tuyas. Outlayr Pro asigna los demás nombres de categoría a los tuyos con IA.",
+                        }),
+                        question: t({ en: "Is the template free?", es: "¿La plantilla es gratis?" }),
+                    },
+                    {
+                        answer: t({
+                            en: "Yes, and with Numbers. Outlayr reads a CSV with commas between columns. Some spreadsheet apps save CSV files with semicolons where decimals are written with a comma. If yours does, download the CSV from Google Sheets, which uses commas.",
+                            es: "Sí, y también con Numbers. Outlayr lee un CSV con comas entre columnas. Algunas hojas de cálculo guardan los CSV con punto y coma en los países donde los decimales se escriben con coma. Si la tuya lo hace, descarga el CSV desde Google Sheets, que usa comas.",
+                        }),
+                        question: t({
+                            en: "Does it work with Excel and Google Sheets?",
+                            es: "¿Funciona con Excel y Google Sheets?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "It is listed as skipped before anything is saved, with the reason: an unreadable date or amount, or no matching category. Rows that look already imported are flagged too, so you can leave them out.",
+                            es: "Aparece como omitida antes de guardar, con el motivo: una fecha o un monto ilegible, o sin categoría coincidente. Las filas que parecen ya importadas también se marcan, para que las dejes fuera.",
+                        }),
+                        question: t({ en: "What if a row cannot be read?", es: "¿Y si una fila no se puede leer?" }),
+                    },
+                ],
+                lead: t({
+                    en: "A free CSV template for Excel, Numbers, and Google Sheets, with the columns Outlayr's CSV import reads. Track your spending in the spreadsheet, and bring the rows into Outlayr when you move to the app.",
+                    es: "Una plantilla CSV gratis para Excel, Numbers y Google Sheets, con las columnas que lee la importación de CSV de Outlayr. Lleva tus gastos en la hoja de cálculo y pasa las filas a Outlayr cuando te cambies a la app.",
+                }),
+                meta: {
+                    title: t({
+                        en: "Expense Tracker Template for Excel and Google Sheets (Free CSV) · Outlayr",
+                        es: "Plantilla de control de gastos en Excel gratis (CSV) · Outlayr",
+                    }),
+                },
+                steps: [
+                    {
+                        text: t({
+                            en: "Delete the sample rows and add one row per expense or income. Keep the header row as it is so Outlayr finds each column.",
+                            es: "Borra las filas de ejemplo y agrega una fila por cada gasto o ingreso. Deja la fila de encabezados como está para que Outlayr encuentre cada columna.",
+                        }),
+                        title: t({ en: "Fill it in", es: "Llénala" }),
+                    },
+                    {
+                        text: t({
+                            en: "Keep commas between columns, and save the file to Files or iCloud Drive on your iPhone.",
+                            es: "Deja las comas entre columnas y guarda el archivo en Archivos o iCloud Drive en tu iPhone.",
+                        }),
+                        title: t({ en: "Save it as a CSV", es: "Guárdala como CSV" }),
+                    },
+                    {
+                        text: t({
+                            en: "In Settings, tap Import data, then CSV file, and pick the file. Check the rows and tap Import.",
+                            es: "En Configuración, toca Importar datos, luego Archivo CSV, y elige el archivo. Revisa las filas y toca Importar.",
+                        }),
+                        title: t({ en: "Import it in Outlayr", es: "Impórtala en Outlayr" }),
+                    },
+                ],
+                title: t({
+                    en: "An expense tracker template that Outlayr can import.",
+                    es: "Plantilla de control de gastos en Excel que Outlayr puede importar.",
+                }),
+            },
+            "voice-expense-tracker": {
+                facts: [
+                    {
+                        label: t({ en: "Fills in", es: "Llena" }),
+                        text: t({
+                            en: "The amount, the merchant, the category, the account, the date, and the currency",
+                            es: "El monto, el comercio, la categoría, la cuenta, la fecha y la moneda",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Fixes", es: "Correcciones" }),
+                        text: t({
+                            en: "Say what changed, and only that part updates",
+                            es: "Di lo que cambió y solo esa parte se actualiza",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Also", es: "También" }),
+                        text: t({
+                            en: "Income, transfers between your accounts, and subscriptions that repeat",
+                            es: "Ingresos, transferencias entre tus cuentas y suscripciones que se repiten",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Languages", es: "Idiomas" }),
+                        text: t({
+                            en: "English and Spanish, following the app's language",
+                            es: "Inglés y español, según el idioma de la app",
+                        }),
+                    },
+                    {
+                        label: t({ en: "Free plan", es: "Plan gratis" }),
+                        text: t({
+                            en: "20 captures every 30 days, shared with receipt scans. Each clip is one",
+                            es: "20 capturas cada 30 días, compartidas con el escaneo de recibos. Cada grabación es una",
+                        }),
+                    },
+                    {
+                        label: "Pro",
+                        text: t({ en: "500 captures every 30 days", es: "500 capturas cada 30 días" }),
+                    },
+                    {
+                        label: t({ en: "Needs", es: "Requiere" }),
+                        text: t({ en: "An account and a connection", es: "Una cuenta y conexión" }),
+                    },
+                ],
+                faq: [
+                    {
+                        answer: t({
+                            en: "Yes. Say a purchase in one sentence and Outlayr fills in the entry for you to check and save. If something is off, say what changed, like that it was yesterday.",
+                            es: "Sí. Dicta una compra en una oración y Outlayr llena el registro para que lo revises y lo guardes. Si algo no está bien, di lo que cambió, por ejemplo que fue ayer.",
+                        }),
+                        question: t({
+                            en: "Can I log expenses by voice in Outlayr?",
+                            es: "¿Puedo registrar gastos por voz en Outlayr?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "Yes, up to a limit. The free plan includes 20 captures every 30 days, shared with receipt scans, and each clip you say is one capture. Outlayr Pro raises that to 500.",
+                            es: "Sí, hasta un límite. El plan gratis incluye 20 capturas cada 30 días, compartidas con el escaneo de recibos, y cada grabación que dictas es una captura. Outlayr Pro lo sube a 500.",
+                        }),
+                        question: t({ en: "Is voice entry free?", es: "¿Registrar por voz es gratis?" }),
+                    },
+                    {
+                        answer: t({
+                            en: "English and Spanish. Outlayr listens in the language the app is set to.",
+                            es: "Inglés y español. Outlayr escucha en el idioma que tenga la app.",
+                        }),
+                        question: t({
+                            en: "Which languages does voice entry understand?",
+                            es: "¿Qué idiomas entiende el registro por voz?",
+                        }),
+                    },
+                    {
+                        answer: t({
+                            en: "No. Speaking an entry needs an account and a connection. Typing an entry works with no signal.",
+                            es: "No. Para dictar un registro necesitas una cuenta y conexión. Escribir un registro funciona sin señal.",
+                        }),
+                        question: t({
+                            en: "Does voice entry work offline?",
+                            es: "¿El registro por voz funciona sin conexión?",
+                        }),
+                    },
+                ],
+                lead: t({
+                    en: "Say a purchase in one sentence and Outlayr fills in the amount, the merchant, the category, the date, and the account you name. Check it, fix anything by saying it again, and save.",
+                    es: "Dicta una compra en una oración y Outlayr llena el monto, el comercio, la categoría, la fecha y la cuenta que nombres. Revísala, corrige lo que haga falta diciéndolo de nuevo y guárdala.",
+                }),
+                meta: {
+                    title: t({
+                        en: "AI Voice Expense Tracker: Say a Purchase to Log It · Outlayr",
+                        es: "Registrar gastos por voz con IA · Outlayr",
+                    }),
+                },
+                plateAlt: t({
+                    en: "Outlayr voice entry: a spoken sentence becomes $12.50 at Blue Bottle under Coffee, and a spoken correction moves it to yesterday.",
+                    es: "Registro por voz de Outlayr: una oración dictada se convierte en $12.50 en Blue Bottle en Café, y una corrección dicha lo pasa a ayer.",
+                }),
+                steps: [
+                    {
+                        text: t({
+                            en: "Tap the + button, then Speak an entry.",
+                            es: "Toca el botón +, luego Dictar un registro.",
+                        }),
+                        title: t({ en: "Open voice entry", es: "Abre el registro por voz" }),
+                    },
+                    {
+                        text: t({
+                            en: "Say the amount and where, like 12.50 at Blue Bottle for coffee on my Apple Card.",
+                            es: "Di el monto y dónde, por ejemplo 12.50 de café en Blue Bottle con mi Apple Card.",
+                        }),
+                        title: t({ en: "Say the purchase", es: "Dicta la compra" }),
+                    },
+                    {
+                        text: t({
+                            en: "Say a correction if something is off, then tap Save, or Finish in the form to edit it by hand.",
+                            es: "Di una corrección si algo no está bien y toca Guardar, o Terminar en el formulario para editarlo a mano.",
+                        }),
+                        title: t({ en: "Check and save", es: "Revisa y guarda" }),
+                    },
+                ],
+                title: t({
+                    en: "Say an expense and Outlayr logs it.",
+                    es: "Dicta un gasto y Outlayr lo registra.",
                 }),
             },
         },

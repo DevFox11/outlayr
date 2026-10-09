@@ -171,6 +171,11 @@ function linkKnownMerchants(
     // lookup can learn — the domain the curated map does not carry.
     const domainless: string[] = [];
     for (const label of labels) {
+        const named = categoryIdByKey.get(categoryKey(label));
+        if (named != null) {
+            links.set(categoryKey(label), named);
+            continue;
+        }
         const match = resolveMerchant(label);
         const categoryId = match == null ? undefined : categoryIdByKey.get(categoryKey(match.categoryName));
         if (categoryId == null) {

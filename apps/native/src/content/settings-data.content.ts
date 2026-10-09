@@ -132,8 +132,8 @@ const settingsData = {
             es: "Error al exportar",
         }),
         "settings.export.footer": t({
-            en: "Deleted transactions are left out. Every other transaction is written, newest first, in six columns.",
-            es: "Las transacciones eliminadas se omiten. Todas las demás se escriben, de la más reciente a la más antigua, en seis columnas.",
+            en: "Deleted transactions are left out. Every other transaction is written, newest first, in eight columns.",
+            es: "Las transacciones eliminadas se omiten. Todas las demás se escriben, de la más reciente a la más antigua, en ocho columnas.",
         }),
         "settings.export.omitted": t({
             en: "Not in the file",
@@ -148,8 +148,8 @@ const settingsData = {
             es: "Emoji, ícono y color",
         }),
         "settings.export.omittedNote": t({
-            en: "A CSV is a readable copy of your figures, not a backup. Reading one back in re-creates only the date, name, amount, currency and type of each transaction, and every category has to be linked by hand, because the file cannot create one. Your budgets, your categories and everything listed above live only on this device.",
-            es: "Un CSV es una copia legible de tus cifras, no un respaldo. Al volver a importarlo solo se recrean la fecha, el nombre, el monto, la moneda y el tipo de cada transacción, y cada categoría se tiene que vincular a mano, porque el archivo no puede crearla. Tus presupuestos, tus categorías y todo lo anterior existen únicamente en este dispositivo.",
+            en: "A CSV is a readable copy of your figures, not a backup. Reading one back in re-creates only the date, name, amount, currency and type of each transaction, and links each one to the category with the same name, because the file cannot create a category. Your budgets, your categories and everything listed above live only on this device.",
+            es: "Un CSV es una copia legible de tus cifras, no un respaldo. Al volver a importarlo solo se recrean la fecha, el nombre, el monto, la moneda y el tipo de cada transacción, y vincula cada una con la categoría del mismo nombre, porque el archivo no puede crear categorías. Tus presupuestos, tus categorías y todo lo anterior existen únicamente en este dispositivo.",
         }),
         "settings.export.omittedPhotos": t({
             en: "Photos",

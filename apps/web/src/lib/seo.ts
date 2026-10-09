@@ -1,8 +1,9 @@
 import { getIntlayer } from "intlayer";
 import type { JSX } from "react";
 
-import { pageUrl } from "./i18n";
+import { LANGUAGES, pageUrl } from "./i18n";
 import type { Locale } from "./i18n";
+import { SITE_URL } from "./site";
 
 type Json = string | number | boolean | null | readonly Json[] | { readonly [key: string]: Json | undefined };
 
@@ -62,5 +63,19 @@ export function itemList(items: readonly { name: string; url: string }[]) {
             position: index + 1,
             url: item.url,
         })),
+    };
+}
+
+export const ORGANIZATION_ID = `${SITE_URL}/#organization`;
+export const WEBSITE_ID = `${SITE_URL}/#website`;
+
+export function webPage(locale: Locale, path: string, fields: { readonly [key: string]: Json }) {
+    return {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        inLanguage: LANGUAGES[locale].lang,
+        isPartOf: { "@id": WEBSITE_ID },
+        url: pageUrl(path, locale),
+        ...fields,
     };
 }

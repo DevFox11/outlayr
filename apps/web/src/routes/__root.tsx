@@ -12,13 +12,11 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { startAnalytics } from "@/lib/analytics";
 import { LANGUAGES, localeFromParam, pageUrl } from "@/lib/i18n";
-import { ldJson } from "@/lib/seo";
+import { ORGANIZATION_ID, WEBSITE_ID, ldJson } from "@/lib/seo";
 import { COMPANY, SITE_URL, SUPPORT_EMAIL } from "@/lib/site";
 import { THEME_SCRIPT } from "@/lib/theme";
 
 import appCss from "../index.css?url";
-
-const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 
 const visitorCountry = createServerFn({ method: "GET" }).handler(() => getRequestHeader("cf-ipcountry") ?? null);
 
@@ -28,6 +26,14 @@ const SITE_GRAPH = {
         {
             "@id": ORGANIZATION_ID,
             "@type": "Organization",
+            address: {
+                "@type": "PostalAddress",
+                addressCountry: "US",
+                addressLocality: "Middletown",
+                addressRegion: "DE",
+                postalCode: "19709",
+                streetAddress: "651 N Broad St, Suite 201",
+            },
             brand: { "@type": "Brand", name: "Outlayr" },
             email: SUPPORT_EMAIL,
             logo: `${SITE_URL}/apple-touch-icon.png`,
@@ -35,7 +41,7 @@ const SITE_GRAPH = {
             url: SITE_URL,
         },
         {
-            "@id": `${SITE_URL}/#website`,
+            "@id": WEBSITE_ID,
             "@type": "WebSite",
             inLanguage: Object.values(LANGUAGES).map((language) => language.lang),
             name: "Outlayr",

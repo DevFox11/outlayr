@@ -1,0 +1,9 @@
+Date,Note,Amount,Currency,Category,Type
+2026-10-01,Paycheck,3200.00,USD,Paycheck,Income
+2026-10-01,Rent,1450.00,USD,Rent,Expense
+2026-10-03,Costco,142.18,USD,Groceries,Expense
+2026-10-05,Shell,48.20,USD,Fuel,Expense
+2026-10-08,Electric bill,96.30,USD,Utilities,Expense
+2026-10-11,Lunch with Ana,24.50,USD,Dining Out,Expense
+2026-10-14,Netflix,15.49,USD,Entertainment,Expense
+2026-10-18,Taxi in Mexico City,180.00,MXN,Transport,Expense

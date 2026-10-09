@@ -13,6 +13,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as Char123LocaleChar125RouteRouteImport } from './routes/{-$locale}/route'
 import { Route as Char123LocaleChar125IndexRouteImport } from './routes/{-$locale}/index'
 import { Route as Char123LocaleChar125SplatRouteImport } from './routes/{-$locale}/$'
+import { Route as Char123LocaleChar125AboutRouteImport } from './routes/{-$locale}/about'
 import { Route as Char123LocaleChar125PrivacyRouteImport } from './routes/{-$locale}/privacy'
 import { Route as Char123LocaleChar125SupportRouteImport } from './routes/{-$locale}/support'
 import { Route as Char123LocaleChar125TermsRouteImport } from './routes/{-$locale}/terms'
@@ -42,6 +43,12 @@ const Char123LocaleChar125SplatRoute =
   Char123LocaleChar125SplatRouteImport.update({
     id: '/$',
     path: '/$',
+    getParentRoute: () => Char123LocaleChar125RouteRoute,
+  } as any)
+const Char123LocaleChar125AboutRoute =
+  Char123LocaleChar125AboutRouteImport.update({
+    id: '/about',
+    path: '/about',
     getParentRoute: () => Char123LocaleChar125RouteRoute,
   } as any)
 const Char123LocaleChar125PrivacyRoute =
@@ -91,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/{-$locale}': typeof Char123LocaleChar125RouteRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
+  '/{-$locale}/about': typeof Char123LocaleChar125AboutRoute
   '/{-$locale}/privacy': typeof Char123LocaleChar125PrivacyRoute
   '/{-$locale}/support': typeof Char123LocaleChar125SupportRoute
   '/{-$locale}/terms': typeof Char123LocaleChar125TermsRoute
@@ -103,6 +111,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
+  '/{-$locale}/about': typeof Char123LocaleChar125AboutRoute
   '/{-$locale}/privacy': typeof Char123LocaleChar125PrivacyRoute
   '/{-$locale}/support': typeof Char123LocaleChar125SupportRoute
   '/{-$locale}/terms': typeof Char123LocaleChar125TermsRoute
@@ -117,6 +126,7 @@ export interface FileRoutesById {
   '/{-$locale}': typeof Char123LocaleChar125RouteRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
+  '/{-$locale}/about': typeof Char123LocaleChar125AboutRoute
   '/{-$locale}/privacy': typeof Char123LocaleChar125PrivacyRoute
   '/{-$locale}/support': typeof Char123LocaleChar125SupportRoute
   '/{-$locale}/terms': typeof Char123LocaleChar125TermsRoute
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/{-$locale}'
     | '/sitemap.xml'
     | '/{-$locale}/$'
+    | '/{-$locale}/about'
     | '/{-$locale}/privacy'
     | '/{-$locale}/support'
     | '/{-$locale}/terms'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
   to:
     | '/sitemap.xml'
     | '/{-$locale}/$'
+    | '/{-$locale}/about'
     | '/{-$locale}/privacy'
     | '/{-$locale}/support'
     | '/{-$locale}/terms'
@@ -157,6 +169,7 @@ export interface FileRouteTypes {
     | '/{-$locale}'
     | '/sitemap.xml'
     | '/{-$locale}/$'
+    | '/{-$locale}/about'
     | '/{-$locale}/privacy'
     | '/{-$locale}/support'
     | '/{-$locale}/terms'
@@ -200,6 +213,13 @@ declare module '@tanstack/react-router' {
       path: '/$'
       fullPath: '/{-$locale}/$'
       preLoaderRoute: typeof Char123LocaleChar125SplatRouteImport
+      parentRoute: typeof Char123LocaleChar125RouteRoute
+    }
+    '/{-$locale}/about': {
+      id: '/{-$locale}/about'
+      path: '/about'
+      fullPath: '/{-$locale}/about'
+      preLoaderRoute: typeof Char123LocaleChar125AboutRouteImport
       parentRoute: typeof Char123LocaleChar125RouteRoute
     }
     '/{-$locale}/privacy': {
@@ -256,6 +276,7 @@ declare module '@tanstack/react-router' {
 
 interface Char123LocaleChar125RouteRouteChildren {
   Char123LocaleChar125SplatRoute: typeof Char123LocaleChar125SplatRoute
+  Char123LocaleChar125AboutRoute: typeof Char123LocaleChar125AboutRoute
   Char123LocaleChar125PrivacyRoute: typeof Char123LocaleChar125PrivacyRoute
   Char123LocaleChar125SupportRoute: typeof Char123LocaleChar125SupportRoute
   Char123LocaleChar125TermsRoute: typeof Char123LocaleChar125TermsRoute
@@ -269,6 +290,7 @@ interface Char123LocaleChar125RouteRouteChildren {
 const Char123LocaleChar125RouteRouteChildren: Char123LocaleChar125RouteRouteChildren =
   {
     Char123LocaleChar125SplatRoute: Char123LocaleChar125SplatRoute,
+    Char123LocaleChar125AboutRoute: Char123LocaleChar125AboutRoute,
     Char123LocaleChar125PrivacyRoute: Char123LocaleChar125PrivacyRoute,
     Char123LocaleChar125SupportRoute: Char123LocaleChar125SupportRoute,
     Char123LocaleChar125TermsRoute: Char123LocaleChar125TermsRoute,

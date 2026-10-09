@@ -1,7 +1,7 @@
 # Product Marketing Context
 
 **Document version:** v2
-**Last updated:** 2026-10-07
+**Last updated:** 2026-10-09
 
 ## Product Overview
 **One-liner:** An expense tracker and budget app where you log a purchase in one sentence.
@@ -32,7 +32,7 @@
 **Emotional tension:** Not knowing where the money went.
 
 ## Competitive Landscape
-**Entity sentence (use it everywhere):** "Outlayr is an expense tracker and budget app for iPhone, made by danestves LLC." Search results for "Outlayr" go to outlayr.com, an unrelated payments company, and to apps named "Outlay".
+**Entity sentence (use it everywhere):** "Outlayr is an expense tracker, budget app, and subscription tracker for iPhone, made by danestves LLC." Spanish: "Outlayr es una app para controlar tus gastos, tu presupuesto y tus suscripciones en iPhone, hecha por danestves LLC." Search results for "Outlayr" go to outlayr.com, an unrelated payments company, and to apps named "Outlay".
 **Direct (each has a page under /compare, facts dated and linked to the rival's own site):**
 - Rocket Money: subscription manager, US only, cancellation by its team is Premium. Deepest "alternative" demand.
 - YNAB, Monarch, Copilot: paid, bank-synced, US-centric (Copilot USD only; Monarch US and Canada).
@@ -99,5 +99,6 @@ Never target "budget app without bank linking" style queries: they can only be w
 
 ## Changelog
 *Newest first. One line per revision: what changed and why.*
+- v2.1 (2026-10-09): Entity sentence names the subscription tracker too, with its Spanish form, matching /about, the home FAQ, and llms.txt.
 - v2 (2026-10-07): Direct competitors, the entity sentence, and search targets, from the ASO and web search research.
 - v1 (2026-09-24) — Initial context, drafted from the codebase, App Store listing, and site copy.

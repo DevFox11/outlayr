@@ -98,6 +98,31 @@ describe("tier 1 resolves before any transport call", () => {
     });
 });
 
+describe("a label that already names a category", () => {
+    it("links on the device with AI off, as when re-importing an Outlayr export on the free plan", async () => {
+        const { fn } = deferredTransport();
+        const { result } = await renderHook(() =>
+            useCsvImport(
+                baseArgs({
+                    aiEnrichment: false,
+                    categoryIdByKey: new Map([[categoryKey("Dining Out"), "cat-dining"]]),
+                    labels: ["dining out", UNKNOWN],
+                    transport: fn,
+                })
+            )
+        );
+
+        await act(async () => {
+            result.current.run();
+        });
+
+        expect(fn).not.toHaveBeenCalled();
+        expect(result.current.links.get(categoryKey("dining out"))).toBe("cat-dining");
+        expect(result.current.links.has(categoryKey(UNKNOWN))).toBe(false);
+        expect(result.current.tier1Matched).toBe(1);
+    });
+});
+
 describe("tier 2: exactly one call per import", () => {
     it("calls the transport exactly once for several unresolved labels", async () => {
         const { fn, calls } = deferredTransport();

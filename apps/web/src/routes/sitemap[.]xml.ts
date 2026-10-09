@@ -2,19 +2,21 @@ import { createFileRoute } from "@tanstack/react-router";
 import { defaultLocale, getIntlayer, locales } from "intlayer";
 
 import { LANGUAGES, pageUrl } from "@/lib/i18n";
-import { LEGAL_DAYS, RIVALS_CHECKED } from "@/lib/site";
+import { LEGAL_DAYS, rivalChecked } from "@/lib/site";
 
 function pages(): [path: string, updated: Date | null][] {
     const { compare, guides } = getIntlayer("answers");
+    const rivals = Object.keys(compare).map((slug): [string, Date] => [`/compare/${slug}`, rivalChecked(slug)]);
     return [
         ["/", null],
         ["/support", null],
+        ["/about", null],
         ["/terms", LEGAL_DAYS.terms],
         ["/privacy", LEGAL_DAYS.privacy],
         ["/guides", null],
-        ["/compare", RIVALS_CHECKED],
+        ["/compare", new Date(Math.max(...rivals.map(([, checked]) => checked.getTime())))],
         ...Object.keys(guides).map((slug): [string, null] => [`/guides/${slug}`, null]),
-        ...Object.keys(compare).map((slug): [string, Date] => [`/compare/${slug}`, RIVALS_CHECKED]),
+        ...rivals,
     ];
 }
 

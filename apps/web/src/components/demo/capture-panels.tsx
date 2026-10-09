@@ -91,7 +91,7 @@ function sayStatus(frame: number) {
     }
 }
 
-function SayPanel({ frame }: PanelProps) {
+export function SayPanel({ frame }: PanelProps) {
     const { day, said, status, voiceAt } = useIntlayer("demo");
     const nameOf = useNames();
     const heard = frame === 2 || frame >= 5;

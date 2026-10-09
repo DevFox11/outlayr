@@ -9,6 +9,7 @@ const site = {
             compare: {
                 copilot: "Copilot",
                 everydollar: "EveryDollar",
+                fintonic: "Fintonic",
                 monarch: "Monarch",
                 pocketguard: "PocketGuard",
                 "rocket-money": "Rocket Money",
@@ -18,11 +19,18 @@ const site = {
             } satisfies Record<keyof typeof answers.content.compare, string>,
             guides: {
                 "apple-pay-expense-tracker": t({ en: "Apple Pay", es: "Apple Pay" }),
+                "best-expense-tracker-apps": t({ en: "Best expense trackers", es: "Mejores apps de gastos" }),
+                "best-subscription-tracker-apps": t({
+                    en: "Best subscription trackers",
+                    es: "Mejores apps de suscripciones",
+                }),
                 "budget-planner": t({ en: "Budgets", es: "Presupuestos" }),
+                "expense-tracker-template": t({ en: "Spreadsheet template", es: "Plantilla de Excel" }),
                 "mint-alternative": t({ en: "From Mint", es: "Desde Mint" }),
                 "multi-currency-expense-tracker": t({ en: "Multi-currency", es: "Varias monedas" }),
                 "receipt-scanner": t({ en: "Receipt scanner", es: "Escáner de recibos" }),
                 "subscription-tracker": t({ en: "Subscriptions", es: "Suscripciones" }),
+                "voice-expense-tracker": t({ en: "Voice entry", es: "Registro por voz" }),
             } satisfies Record<keyof typeof answers.content.guides, ReturnType<typeof t<string>>>,
         },
         badges: {
@@ -42,6 +50,7 @@ const site = {
             privacy: t({ en: "Privacy", es: "Privacidad" }),
         },
         footer: {
+            about: t({ en: "About", es: "Acerca de" }),
             compare: t({ en: "Compare", es: "Comparar" }),
             email: t({ en: "Email", es: "Correo" }),
             guides: t({ en: "Guides", es: "Guías" }),

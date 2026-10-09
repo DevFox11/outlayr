@@ -1,0 +1,9 @@
+﻿Fecha (Date),Nota (Note),Monto (Amount),Moneda (Currency),Categoría (Category),Tipo (Type)
+2026-10-01,Sueldo,1500.00,USD,Sueldo,Income
+2026-10-01,Renta,450.00,USD,Renta,Expense
+2026-10-03,Supermercado,85.40,USD,Supermercado,Expense
+2026-10-05,Farmatodo,1250.00,VES,Salud,Expense
+2026-10-08,Recibo de luz,38.20,USD,Servicios,Expense
+2026-10-11,Almuerzo con Ana,320.00,MXN,Restaurantes,Expense
+2026-10-14,Netflix,6.99,USD,Entretenimiento,Expense
+2026-10-18,Taxi,15000.00,COP,Transporte,Expense

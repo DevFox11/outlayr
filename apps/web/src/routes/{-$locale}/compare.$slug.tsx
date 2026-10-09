@@ -7,8 +7,8 @@ import { AppStoreBadge } from "@/components/store-badges";
 import { hasKey } from "@/lib/has-key";
 import { LANGUAGES, localeFromParam } from "@/lib/i18n";
 import { CONTAINER } from "@/lib/layout";
-import { answerTrail, faqPage, ldJson, pageMeta } from "@/lib/seo";
-import { RIVALS_CHECKED, longDate } from "@/lib/site";
+import { answerTrail, faqPage, ldJson, pageMeta, webPage } from "@/lib/seo";
+import { longDate, rivalChecked } from "@/lib/site";
 
 export const Route = createFileRoute("/{-$locale}/compare/$slug")({
     component: Compare,
@@ -29,6 +29,11 @@ export const Route = createFileRoute("/{-$locale}/compare/$slug")({
             scripts: [
                 ldJson(faqPage(rival.faq, LANGUAGES[locale].lang)),
                 ldJson(answerTrail(locale, "compare", loaderData, rival.title)),
+                ldJson(
+                    webPage(locale, `/compare/${loaderData}`, {
+                        dateModified: rivalChecked(loaderData).toISOString().slice(0, 10),
+                    })
+                ),
             ],
         };
     },
@@ -82,7 +87,7 @@ function Compare() {
                 <a className="hover:text-foreground underline underline-offset-4" href={page.source.value}>
                     {page.site}
                 </a>
-                {labels.checked({ date: longDate(RIVALS_CHECKED, LANGUAGES[locale].date) })}
+                {labels.checked({ date: longDate(rivalChecked(slug), LANGUAGES[locale].date) })}
             </p>
             <section className="mt-20">
                 <h2 className="text-title font-bold">{labels.fit}</h2>

@@ -66,10 +66,10 @@ interface StepRepeatProps {
     /** Null while the schedule runs forever. */
     endDate: Date | null;
     /**
-     * The two words the line reads around its values. No catalog key states them
+     * The words the line reads around its values. No catalog key states them
      * yet, so they arrive from the host rather than being minted here.
      */
-    labels: { ending: string; starting: string };
+    labels: { ending: string; endingOpen: string; openEnd: string; starting: string };
     /** Days ahead of a charge; null is off. */
     leadDays: number | null;
     onCadenceChange: (type: number) => void;
@@ -143,10 +143,12 @@ export function StepRepeat({
             <View className="flex-row flex-wrap items-baseline" testID="stage-repeat-line">
                 <Text className={`${LINE} text-grammar`}>{`${labels.starting} `}</Text>
                 <ScheduleValue onPress={onStartDatePress} value={formatSentenceDate(startDate, language)} />
-                <Text className={`${LINE} text-grammar`}>{`, ${labels.ending} `}</Text>
+                <Text className={`${LINE} text-grammar`}>
+                    {`, ${endDate === null ? labels.endingOpen : labels.ending} `}
+                </Text>
                 <ScheduleValue
                     onPress={onEndDatePress}
-                    value={endDate === null ? t("common.never") : formatSentenceDate(endDate, language)}
+                    value={endDate === null ? labels.openEnd : formatSentenceDate(endDate, language)}
                 />
                 <Text className={`${LINE} text-grammar`}>.</Text>
             </View>

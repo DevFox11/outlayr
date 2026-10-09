@@ -23,7 +23,7 @@ import { photoFiles, storedPhotosBase64 } from "@/lib/photo-storage";
 import { useColors } from "@/theme/use-colors";
 
 /**
- * What a transaction row holds that the six columns cannot carry (`details`,
+ * What a transaction row holds that the eight columns cannot carry (`details`,
  * `imageUri`, `emoji`/`icon`/`customColor`, the `recurring*` schedule). Named on
  * the screen because a CSV exported "to be safe" is otherwise taken for a
  * backup, and a restore from it silently comes back thinner.

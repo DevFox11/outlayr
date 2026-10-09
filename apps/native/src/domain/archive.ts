@@ -4,7 +4,7 @@ import { z } from "zod";
  * The shape of a full-ledger archive, and the rules for reading one back.
  *
  * Separate from the CSV entirely. A CSV is an interchange format for
- * spreadsheets and is lossy by design — six columns of a table that has thirty.
+ * spreadsheets and is lossy by design — eight columns of a table that has thirty.
  * This is the format that exists to be restored from, so it carries every column
  * of every table verbatim and refuses anything it cannot vouch for.
  */

@@ -2428,6 +2428,8 @@ export function TransactionForm({
                     endDate={hasEndDate ? endDate : null}
                     labels={{
                         ending: t("transaction.schedule.ending"),
+                        endingOpen: t("transaction.schedule.endingOpen"),
+                        openEnd: t("transaction.schedule.openEnd"),
                         starting: t("transaction.schedule.starting"),
                     }}
                     leadDays={leadDays}

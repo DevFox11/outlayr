@@ -8,10 +8,10 @@ const home = {
         closingTitle: t({ en: "Log the next thing you buy.", es: "Registra lo próximo que compres." }),
         extras: [
             {
-                label: t({ en: "Subscriptions", es: "Suscripciones" }),
+                label: t({ en: "Goals", es: "Metas" }),
                 text: t({
-                    en: "Rent, bills, and streaming log themselves on their day. See the monthly total and set a reminder before each charge.",
-                    es: "La renta, los servicios y el streaming se registran solos en su día. Mira el total del mes y pon un recordatorio antes de cada cobro.",
+                    en: "Save toward a date and see what you need each month.",
+                    es: "Ahorra para una fecha y mira cuánto necesitas cada mes.",
                 }),
             },
             {
@@ -82,8 +82,8 @@ const home = {
         faq: [
             {
                 answer: t({
-                    en: "Outlayr is an expense tracker and budget app for iPhone, made by danestves LLC. You log a purchase by typing one sentence, saying it, or scanning the receipt. Budgets, savings goals, subscriptions, and insights update as you log, in any of 165 currencies, in English or Spanish.",
-                    es: "Outlayr es una app para controlar tus gastos y tu presupuesto en iPhone, hecha por danestves LLC. Registras una compra escribiendo una oración, dictándola o escaneando el recibo. Los presupuestos, las metas de ahorro, las suscripciones y las estadísticas se actualizan a medida que registras, en cualquiera de 165 monedas, en inglés o en español.",
+                    en: "Outlayr is an expense tracker, budget app, and subscription tracker for iPhone, made by danestves LLC. You log a purchase by typing one sentence, saying it, or scanning the receipt. Budgets, savings goals, subscriptions, and insights update as you log, in any of 165 currencies, in English or Spanish.",
+                    es: "Outlayr es una app para controlar tus gastos, tu presupuesto y tus suscripciones en iPhone, hecha por danestves LLC. Registras una compra escribiendo una oración, dictándola o escaneando el recibo. Los presupuestos, las metas de ahorro, las suscripciones y las estadísticas se actualizan a medida que registras, en cualquiera de 165 monedas, en inglés o en español.",
                 }),
                 question: t({ en: "What is Outlayr?", es: "¿Qué es Outlayr?" }),
             },
@@ -144,8 +144,8 @@ const home = {
             },
             {
                 answer: t({
-                    en: "Yes. Export a CSV from your bank or another app and import it. Duplicates are skipped, and merchants Outlayr already knows are matched to your categories on your phone. With Pro, AI matching fills in the rest, and anything still unmatched is listed as skipped.",
-                    es: "Sí. Exporta un CSV desde tu banco u otra app e impórtalo. Los duplicados se omiten, y los comercios que Outlayr ya conoce se asignan a tus categorías en tu celular. Con Pro, la asignación con IA completa el resto, y lo que siga sin coincidir aparece como omitido.",
+                    en: "Yes. Export a CSV from your bank or another app and import it. Duplicates are skipped, and category names that match yours, or merchants Outlayr already knows, are matched to your categories on your phone. With Pro, AI matching fills in the rest, and anything still unmatched is listed as skipped.",
+                    es: "Sí. Exporta un CSV desde tu banco u otra app e impórtalo. Los duplicados se omiten, y los nombres de categoría que coinciden con los tuyos, o los comercios que Outlayr ya conoce, se asignan a tus categorías en tu celular. Con Pro, la asignación con IA completa el resto, y lo que siga sin coincidir aparece como omitido.",
                 }),
                 question: t({ en: "Can I import a CSV from my bank?", es: "¿Puedo importar un CSV de mi banco?" }),
             },
@@ -301,36 +301,39 @@ const home = {
             },
             {
                 alt: t({
-                    en: "Outlayr savings goals: Japan in April and an emergency fund marked ahead, a new MacBook marked behind, and $8,786 to go in total.",
-                    es: "Metas de ahorro en Outlayr: Japón en abril y un fondo de emergencia marcados como adelantados, una MacBook nueva marcada como atrasada y $8,786 por juntar en total.",
+                    en: "Outlayr Upcoming entries: Amazon Prime, ChatGPT, iCloud, Verizon, Spotify, rent, Netflix, and Planet Fitness, each with its next charge date, and $2,036.54 a month in total.",
+                    es: "Próximos registros en Outlayr: Amazon Prime, ChatGPT, iCloud, Verizon, Spotify, la renta, Netflix y Planet Fitness, cada uno con la fecha de su próximo cobro, y $2,036.54 al mes en total.",
                 }),
                 body: t({
-                    en: "Pick a target and a date. Outlayr shows what to save each month to get there, and whether you’re ahead or behind.",
-                    es: "Elige un objetivo y una fecha. Outlayr te muestra cuánto ahorrar cada mes para llegar, y si vas adelantado o atrasado.",
+                    en: "Rent, bills, and streaming log themselves on their day. Upcoming lists the next charges and what they add up to each month, and each one can remind you before it charges.",
+                    es: "La renta, los servicios y el streaming se registran solos en su día. Próximos muestra los siguientes cobros y cuánto suman al mes, y cada uno puede avisarte antes de cobrarte.",
                 }),
                 notes: [
                     {
                         text: t({
-                            en: "Left to save across every goal.",
-                            es: "Lo que falta por ahorrar en todas tus metas.",
+                            en: "Also shown at the top of the Log.",
+                            es: "También aparece arriba del registro.",
                         }),
-                        y: 41,
+                        y: 19.9,
                     },
                     {
                         text: t({
-                            en: "The monthly amount that gets you there on time.",
-                            es: "Lo que tienes que ahorrar al mes para llegar a tiempo.",
+                            en: "What they cost each month, yearly plans included.",
+                            es: "Lo que cuestan al mes, con los planes anuales incluidos.",
                         }),
-                        y: 58.8,
+                        y: 41.4,
                     },
                     {
-                        text: t({ en: "Behind pace shows in red.", es: "Si vas atrasado, se ve en rojo." }),
-                        y: 78.5,
+                        text: t({ en: "The day each one charges next.", es: "El día del próximo cobro de cada uno." }),
+                        y: 84.9,
                     },
                 ],
-                src: "/screens/08.webp",
-                tab: t({ en: "Goals", es: "Metas" }),
-                title: t({ en: "Goals with a date on them.", es: "Metas con fecha." }),
+                src: "/screens/10.webp",
+                tab: t({ en: "Subscriptions", es: "Suscripciones" }),
+                title: t({
+                    en: "What your subscriptions cost a month.",
+                    es: "Lo que te cuestan tus suscripciones al mes.",
+                }),
             },
         ],
         tourLabel: t({ en: "What the app shows you", es: "Lo que te muestra la app" }),

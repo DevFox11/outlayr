@@ -31,8 +31,8 @@ if (identity !== "0") {
     );
 }
 
-// en -> es. The 18 categories, the two non-brand accounts, the three goals, and
-// the overall budget's own name.
+// en -> es. The 18 categories, the two non-brand accounts, the three goals,
+// the overall budget's own name, and the rent entries.
 const CATEGORIES = {
     Business: "Negocio",
     Coffee: "Café",
@@ -66,6 +66,8 @@ const BUDGETS = { "Monthly spending": "Gasto mensual" };
 
 const TAGS = { Warehouse: "Mayorista" };
 
+const NOTES = { Rent: "Renta" };
+
 const q = (value) => `'${String(value).replaceAll("'", "''")}'`;
 
 /** Returns [from, to] for the requested direction. */
@@ -74,15 +76,16 @@ function pair(map) {
 }
 
 const statements = ["BEGIN;"];
-for (const [table, map] of [
+for (const [table, map, column = "name"] of [
     ["categories", CATEGORIES],
     ["accounts", ACCOUNTS],
     ["savingsGoals", GOALS],
     ["mainBudget", BUDGETS],
     ["tags", TAGS],
+    ["transactions", NOTES, "note"],
 ]) {
     for (const [from, to] of pair(map)) {
-        statements.push(`UPDATE ${table} SET name = ${q(to)} WHERE name = ${q(from)};`);
+        statements.push(`UPDATE ${table} SET ${column} = ${q(to)} WHERE ${column} = ${q(from)};`);
     }
 }
 statements.push("COMMIT;");

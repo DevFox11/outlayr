@@ -1,9 +1,19 @@
+import { hasKey } from "./has-key";
+
 export const SITE_URL = "https://tryoutlayr.com";
 export const APP_STORE_URL = "https://apps.apple.com/app/id6801652978";
 export const SUPPORT_EMAIL = "support@tryoutlayr.com";
 export const COMPANY = "danestves LLC";
 
 export const RIVALS_CHECKED = new Date(Date.UTC(2026, 9, 7));
+
+const RIVALS_RECHECKED = {
+    fintonic: new Date(Date.UTC(2026, 9, 9)),
+};
+
+export function rivalChecked(slug: string): Date {
+    return hasKey(RIVALS_RECHECKED, slug) ? RIVALS_RECHECKED[slug] : RIVALS_CHECKED;
+}
 
 export const LEGAL_DAYS = {
     privacy: new Date(Date.UTC(2026, 9, 3)),

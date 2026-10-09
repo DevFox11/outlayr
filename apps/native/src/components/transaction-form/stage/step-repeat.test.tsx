@@ -14,7 +14,7 @@ jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
 const baseProps: ComponentProps<typeof StepRepeat> = {
     cadence: RECURRING_TYPE.monthly,
     endDate: null,
-    labels: { ending: "ending", starting: "starting" },
+    labels: { ending: "ending", endingOpen: "ending", openEnd: "never", starting: "starting" },
     leadDays: null,
     onCadenceChange: jest.fn(),
     onCustomPress: jest.fn(),
@@ -41,7 +41,7 @@ describe("stepRepeat", () => {
             "transaction.cadence.yearly",
             "transaction.schedule.customOption",
             "15 Jul",
-            "common.never",
+            "never",
             "transaction.remind.off",
             "transaction.remind.sameDay",
             "transaction.remind.dayBefore",
@@ -82,11 +82,22 @@ describe("stepRepeat", () => {
         expect(onCadenceChange).toHaveBeenCalledWith(RECURRING_TYPE.weekly);
     });
 
+    it("reads an open end with its own connector", async () => {
+        await render(
+            <StepRepeat
+                {...baseProps}
+                labels={{ ending: "hasta el", endingOpen: "sin", openEnd: "fecha de fin", starting: "desde el" }}
+            />
+        );
+
+        expect(screen.getByTestId("stage-repeat-line")).toHaveTextContent("desde el 15 Jul, sin fecha de fin.");
+    });
+
     it("states the end date once there is one", async () => {
         await render(<StepRepeat {...baseProps} endDate={new Date(2026, 11, 1)} />);
 
         expect(screen.getByRole("button", { name: "1 Dec" })).toBeTruthy();
-        expect(screen.queryByRole("button", { name: "common.never" })).toBeNull();
+        expect(screen.queryByRole("button", { name: "never" })).toBeNull();
     });
 
     // One press per test: two in the same one leave React mid-flush, and the next
@@ -104,7 +115,7 @@ describe("stepRepeat", () => {
         const onEndDatePress = jest.fn();
         await render(<StepRepeat {...baseProps} onEndDatePress={onEndDatePress} />);
 
-        fireEvent.press(screen.getByRole("button", { name: "common.never" }));
+        fireEvent.press(screen.getByRole("button", { name: "never" }));
 
         expect(onEndDatePress).toHaveBeenCalledTimes(1);
     });

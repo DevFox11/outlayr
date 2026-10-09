@@ -35,6 +35,27 @@
         }
       },
       {
+        "id": "s9-subscriptions",
+        "layout": "hero",
+        "label": {
+          "en": "SUBSCRIPTIONS",
+          "es": "SUSCRIPCIONES"
+        },
+        "headline": {
+          "en": "Each subscription.\nOne monthly total.",
+          "es": "Tus suscripciones.\nUn total al mes."
+        },
+        "screenshot": "/screenshots/apple/iphone/{locale}/10.png",
+        "transforms": {
+          "device": {
+            "x": 153.18,
+            "y": 745.68,
+            "width": 1013.64,
+            "height": 2064.96
+          }
+        }
+      },
+      {
         "id": "s2-sentence",
         "layout": "device-bottom",
         "label": {
@@ -154,6 +175,33 @@
           "es": "Escríbelo, dilo\no tómale una foto."
         },
         "screenshot": "/screenshots/apple/iphone/{locale}/03.png",
+        "transforms": {
+          "device": {
+            "x": 103.3,
+            "y": -144,
+            "width": 1113.4,
+            "height": 2268
+          },
+          "caption": {
+            "x": 105.6,
+            "y": 2316,
+            "width": 1108.8,
+            "height": 560
+          }
+        }
+      },
+      {
+        "id": "s10-reminders",
+        "layout": "device-top",
+        "label": {
+          "en": "REMINDERS",
+          "es": "AVISOS"
+        },
+        "headline": {
+          "en": "A reminder before\neach charge.",
+          "es": "Un aviso antes\nde cada cobro."
+        },
+        "screenshot": "/screenshots/apple/iphone/{locale}/11.png",
         "transforms": {
           "device": {
             "x": 103.3,

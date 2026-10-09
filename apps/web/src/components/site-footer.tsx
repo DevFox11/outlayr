@@ -68,6 +68,7 @@ function AnswerLinks({
 
 export function SiteFooter() {
     const { answerLinks, footer, home } = useIntlayer("site");
+    const about = useIntlayer("about");
     const { locale } = useLocale();
 
     return (
@@ -85,6 +86,9 @@ export function SiteFooter() {
                     <a className={ROW} href={`mailto:${SUPPORT_EMAIL}`}>
                         <Row label={footer.email}>{SUPPORT_EMAIL}</Row>
                     </a>
+                    <LocalizedLink className={ROW} to="/about">
+                        <Row label={footer.about}>{about.title}</Row>
+                    </LocalizedLink>
                     <LocalizedLink className={ROW} to="/support">
                         <Row label={footer.support}>{footer.supportDetail}</Row>
                     </LocalizedLink>
