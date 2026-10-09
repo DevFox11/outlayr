@@ -13,6 +13,7 @@ import { Route as A2aRouteImport } from './routes/a2a'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as Char123LocaleChar125RouteRouteImport } from './routes/{-$locale}/route'
 import { Route as DotwellKnownApiCatalogRouteImport } from './routes/[.]well-known.api-catalog'
+import { Route as DotwellKnownHttpMessageSignaturesDirectoryRouteImport } from './routes/[.]well-known.http-message-signatures-directory'
 import { Route as Char123LocaleChar125IndexRouteImport } from './routes/{-$locale}/index'
 import { Route as Char123LocaleChar125SplatRouteImport } from './routes/{-$locale}/$'
 import { Route as Char123LocaleChar125AboutRouteImport } from './routes/{-$locale}/about'
@@ -45,6 +46,12 @@ const DotwellKnownApiCatalogRoute = DotwellKnownApiCatalogRouteImport.update({
   path: '/.well-known/api-catalog',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownHttpMessageSignaturesDirectoryRoute =
+  DotwellKnownHttpMessageSignaturesDirectoryRouteImport.update({
+    id: '/.well-known/http-message-signatures-directory',
+    path: '/.well-known/http-message-signatures-directory',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const Char123LocaleChar125IndexRoute =
   Char123LocaleChar125IndexRouteImport.update({
     id: '/',
@@ -111,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/a2a': typeof A2aRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
+  '/.well-known/http-message-signatures-directory': typeof DotwellKnownHttpMessageSignaturesDirectoryRoute
   '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
   '/{-$locale}/about': typeof Char123LocaleChar125AboutRoute
   '/{-$locale}/privacy': typeof Char123LocaleChar125PrivacyRoute
@@ -126,6 +134,7 @@ export interface FileRoutesByTo {
   '/a2a': typeof A2aRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
+  '/.well-known/http-message-signatures-directory': typeof DotwellKnownHttpMessageSignaturesDirectoryRoute
   '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
   '/{-$locale}/about': typeof Char123LocaleChar125AboutRoute
   '/{-$locale}/privacy': typeof Char123LocaleChar125PrivacyRoute
@@ -143,6 +152,7 @@ export interface FileRoutesById {
   '/a2a': typeof A2aRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
+  '/.well-known/http-message-signatures-directory': typeof DotwellKnownHttpMessageSignaturesDirectoryRoute
   '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
   '/{-$locale}/about': typeof Char123LocaleChar125AboutRoute
   '/{-$locale}/privacy': typeof Char123LocaleChar125PrivacyRoute
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/a2a'
     | '/sitemap.xml'
     | '/.well-known/api-catalog'
+    | '/.well-known/http-message-signatures-directory'
     | '/{-$locale}/$'
     | '/{-$locale}/about'
     | '/{-$locale}/privacy'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/a2a'
     | '/sitemap.xml'
     | '/.well-known/api-catalog'
+    | '/.well-known/http-message-signatures-directory'
     | '/{-$locale}/$'
     | '/{-$locale}/about'
     | '/{-$locale}/privacy'
@@ -192,6 +204,7 @@ export interface FileRouteTypes {
     | '/a2a'
     | '/sitemap.xml'
     | '/.well-known/api-catalog'
+    | '/.well-known/http-message-signatures-directory'
     | '/{-$locale}/$'
     | '/{-$locale}/about'
     | '/{-$locale}/privacy'
@@ -209,6 +222,7 @@ export interface RootRouteChildren {
   A2aRoute: typeof A2aRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   DotwellKnownApiCatalogRoute: typeof DotwellKnownApiCatalogRoute
+  DotwellKnownHttpMessageSignaturesDirectoryRoute: typeof DotwellKnownHttpMessageSignaturesDirectoryRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -239,6 +253,13 @@ declare module '@tanstack/react-router' {
       path: '/.well-known/api-catalog'
       fullPath: '/.well-known/api-catalog'
       preLoaderRoute: typeof DotwellKnownApiCatalogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/http-message-signatures-directory': {
+      id: '/.well-known/http-message-signatures-directory'
+      path: '/.well-known/http-message-signatures-directory'
+      fullPath: '/.well-known/http-message-signatures-directory'
+      preLoaderRoute: typeof DotwellKnownHttpMessageSignaturesDirectoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/{-$locale}/': {
@@ -352,6 +373,8 @@ const rootRouteChildren: RootRouteChildren = {
   A2aRoute: A2aRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   DotwellKnownApiCatalogRoute: DotwellKnownApiCatalogRoute,
+  DotwellKnownHttpMessageSignaturesDirectoryRoute:
+    DotwellKnownHttpMessageSignaturesDirectoryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
