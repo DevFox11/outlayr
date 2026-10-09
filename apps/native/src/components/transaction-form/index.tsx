@@ -125,6 +125,7 @@ import { fetchMerchantImage } from "@/lib/logo-fetch";
 import { notifyFailure, notifySaved } from "@/lib/notify";
 import { posthog } from "@/lib/posthog";
 import { openNotificationSettings, reminderPermission, requestReminderPermission } from "@/lib/reminders";
+import { askForReview } from "@/lib/review-prompt";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji, glowFromImage } from "@/theme/glow";
@@ -853,6 +854,11 @@ export function TransactionForm({
                 announceSaved(value, amount);
             }
             onDone();
+            if (mode === "create") {
+                askForReview(db).catch((error) => {
+                    console.error("Failed to ask for a review", error);
+                });
+            }
             return await holdSubmitting();
         },
         // The footer is never disabled, so a tap with no category lands here
