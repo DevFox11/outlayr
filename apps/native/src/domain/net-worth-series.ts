@@ -1,8 +1,9 @@
+import { initialInDisplay } from "@outlayr/money/account-overview";
+import type { CurrencyCell } from "@outlayr/money/currency-totals";
+import type { RateTable } from "@outlayr/money/valuation";
+
 import { accountBalanceSeries } from "./account-balance-series";
 import type { AccountBalanceSeriesAccount } from "./account-balance-series";
-import { initialInDisplay } from "./account-display";
-import type { CurrencyCell } from "./currency-totals";
-import type { RateTable } from "./valuation";
 
 export interface NetWorthSeriesAccount extends AccountBalanceSeriesAccount {
     id: string;

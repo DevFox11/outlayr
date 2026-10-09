@@ -1,8 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
+import { RECURRING_TYPE, landingDate } from "@outlayr/money/recurrence";
 
-import { RECURRING_TYPE } from "@/domain/recurrence";
-
-import { landingDate } from "./log-filtered";
 import type { TransactionWithCategory } from "./transactions";
 
 const at = (year: number, month: number, day: number, hour = 0): Date => new Date(year, month - 1, day, hour);

@@ -1,3 +1,17 @@
+import { effectiveLimit, rolloverCarry } from "@outlayr/money/budget-rollover";
+import { lastMsBefore, spentForCategory, spentForMain } from "@outlayr/money/budget-spent";
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
+import {
+    advanceBudgetWindow,
+    BUDGET_TYPE,
+    periodEnd,
+    periodsBackTo,
+    shiftWindow,
+    startOfPeriod,
+    windowEndMs,
+} from "@outlayr/money/budget-window";
+import type { BudgetWindow } from "@outlayr/money/budget-window";
+import { limitIn, sumValuedIn, valueDatedRowsIn } from "@outlayr/money/valuation";
 import { and, asc, desc, eq, getTableColumns, gte, inArray, isNull, lte } from "drizzle-orm";
 import { useEffect, useMemo } from "react";
 
@@ -6,22 +20,10 @@ import type { Database } from "@/db/client";
 import { budgets, mainBudget, transactions } from "@/db/schema";
 import { buildBurndown } from "@/domain/budget-burndown";
 import type { Burndown } from "@/domain/budget-burndown";
-import {
-    advanceBudgetWindow,
-    BUDGET_TYPE,
-    periodEnd,
-    periodsBackTo,
-    shiftWindow,
-    startOfPeriod,
-} from "@/domain/budget-math";
-import type { BudgetWindow } from "@/domain/budget-math";
-import { effectiveLimit, rolloverCarry } from "@/domain/budget-rollover";
 import { closedWindowsBefore, EVERY_SCOPE, spendPerWindow, typicalOf } from "@/domain/budget-typical";
-import { limitIn, sumValuedIn, valueDatedRowsIn } from "@/domain/valuation";
 import { translateNow } from "@/i18n/runtime";
 
-import { expenseContributionQuery, lastMsBefore, spentForCategory, spentForMain } from "./budget-spent";
-import type { ExpenseContribution } from "./budget-spent";
+import { expenseContributionQuery } from "./budget-spent";
 import { budgetsRepo } from "./budgets-core";
 import { useCategoryMeta } from "./categories";
 import { useLiveQuery } from "./live-query";
@@ -85,11 +87,6 @@ export interface MainBudgetView {
     spent: number;
     type: number;
     window: BudgetWindow;
-}
-
-/** The upper bound on a window's rows: its own end, or now if it has not closed. */
-export function windowEndMs(window: BudgetWindow, nowMs: number): number {
-    return Math.min(window.end.getTime() - 1, nowMs);
 }
 
 /** The first day the ledger holds anything, or null while it holds nothing. */

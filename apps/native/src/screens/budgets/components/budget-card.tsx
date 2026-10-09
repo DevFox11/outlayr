@@ -1,3 +1,5 @@
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
+import { BUDGET_TYPE } from "@outlayr/money/budget-window";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import type { LayoutChangeEvent } from "react-native";
@@ -9,10 +11,8 @@ import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
-import type { ExpenseContribution } from "@/data/budget-spent";
 import type { CategoryBudgetView } from "@/data/budgets";
 import type { Burndown } from "@/domain/budget-burndown";
-import { BUDGET_TYPE } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
 import { useOverBudgetMoment } from "@/hooks/use-over-budget-moment";
 import { useLanguage, useTranslation } from "@/i18n/context";

@@ -1,9 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
-
-import { RECURRING_TYPE } from "./recurrence";
-import { monthlyChargeCount, monthlySubscriptionCost } from "./subscription-cost";
-import type { ScheduleCostEntry } from "./subscription-cost";
-import { buildRateTable } from "./valuation";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
+import { monthlyChargeCount, monthlySubscriptionCost } from "@outlayr/money/subscription-cost";
+import type { ScheduleCostEntry } from "@outlayr/money/subscription-cost";
+import { buildRateTable } from "@outlayr/money/valuation";
 
 const DAYS_PER_MONTH = 365 / 12;
 

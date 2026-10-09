@@ -1,10 +1,10 @@
 import { describe, expect, it, jest } from "@jest/globals";
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
+import { BUDGET_TYPE } from "@outlayr/money/budget-window";
 import { render } from "@testing-library/react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import type { ExpenseContribution } from "@/data/budget-spent";
 import type { CategoryBudgetView } from "@/data/budgets";
-import { BUDGET_TYPE } from "@/domain/budget-math";
 
 import { BudgetRow } from "./budget-row";
 

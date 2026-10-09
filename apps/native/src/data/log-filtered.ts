@@ -1,12 +1,12 @@
+import { addDays, startOfDay } from "@outlayr/money/calendar";
+import { landingDate } from "@outlayr/money/recurrence";
 import { and, asc, desc, eq, gt, gte, inArray, isNull, lt, lte, or } from "drizzle-orm";
 import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
-import { addDays, startOfDay } from "@/domain/dates";
 import type { LogFilter } from "@/domain/log-filter";
 import { cursorEnd, cursorStart } from "@/domain/log-period-cursor";
-import { anchorDayOf, nextDate } from "@/domain/recurrence";
 
 import { useCategoryMeta } from "./categories";
 import { useLiveQuery } from "./live-query";
@@ -170,16 +170,4 @@ export function useUpcomingTransactions(db: Database, nowMs: number, limited: bo
             schedules,
         };
     }, [decorated, limited, nowMs]);
-}
-
-/** Swift's `nextTransactionDate`. */
-export function landingDate(row: TransactionWithCategory, now: Date): Date {
-    if (row.date.getTime() > now.getTime()) {
-        return row.date;
-    }
-    // From the instant's own day, not the stored `day`: that is midnight in the
-    // writing device's zone and can read as the day before on this one.
-    return (
-        nextDate(startOfDay(row.date), row.recurringType, row.recurringCoefficient ?? 1, anchorDayOf(row)) ?? row.date
-    );
 }

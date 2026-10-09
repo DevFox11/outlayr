@@ -4,13 +4,25 @@
     "private": true,
     "type": "module",
     "exports": {
+        "./account-balance": "./src/account-balance.ts",
+        "./account-kind": "./src/account-kind.ts",
+        "./account-overview": "./src/account-overview.ts",
         "./assert": "./src/assert.ts",
+        "./budget-rollover": "./src/budget-rollover.ts",
+        "./budget-spent": "./src/budget-spent.ts",
+        "./budget-window": "./src/budget-window.ts",
+        "./calendar": "./src/calendar.ts",
+        "./canonical-usd": "./src/canonical-usd.ts",
         "./catalog": "./src/catalog.generated.ts",
         "./currency": "./src/currency.ts",
+        "./currency-totals": "./src/currency-totals.ts",
         "./dates": "./src/dates.ts",
         "./errors": "./src/errors.ts",
         "./rates": "./src/rates.ts",
-        "./round": "./src/round.ts"
+        "./recurrence": "./src/recurrence.ts",
+        "./round": "./src/round.ts",
+        "./subscription-cost": "./src/subscription-cost.ts",
+        "./valuation": "./src/valuation.ts"
     },
     "scripts": {
         "check-types": "tsc --noEmit",

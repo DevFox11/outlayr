@@ -1,8 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
+import { buildRateTable } from "@outlayr/money/valuation";
 
 import { spendingCalendarEntries } from "./spending-calendar";
 import type { SpendingCalendarRow } from "./spending-calendar";
-import { buildRateTable } from "./valuation";
 
 const at = (year: number, month: number, day: number, hour = 0, minute = 0, second = 0): Date =>
     new Date(year, month - 1, day, hour, minute, second);

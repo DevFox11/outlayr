@@ -1,9 +1,10 @@
 import { describe, expect, it } from "@jest/globals";
+import { accountsOverview, isMultiCurrency } from "@outlayr/money/account-overview";
+import type { AccountCellRow, OverviewAccount } from "@outlayr/money/account-overview";
+import type { CurrencyCell } from "@outlayr/money/currency-totals";
+import { buildRateTable } from "@outlayr/money/valuation";
 
-import { accountsOverview, formatSignedAmount, isMultiCurrency } from "./account-display";
-import type { AccountCellRow, OverviewAccount } from "./account-display";
-import type { CurrencyCell } from "./currency-totals";
-import { buildRateTable } from "./valuation";
+import { formatSignedAmount } from "./account-display";
 
 function cell(overrides: Partial<AccountCellRow> = {}): AccountCellRow {
     return {

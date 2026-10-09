@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
+import { buildRateTable } from "@outlayr/money/valuation";
 import { renderHook } from "@testing-library/react-native";
 
 import type { Database } from "@/db/client";
 import { accounts, transactions, transfers } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
-import { RECURRING_TYPE } from "@/domain/recurrence";
-import { buildRateTable } from "@/domain/valuation";
 
 import { openingForBalance, useAccountBalance, useAccountsOverviewIn, useSettledAccountCells } from "./accounts";
 import { settledAccountsCellQuery, toCurrencyCell } from "./cell-query";

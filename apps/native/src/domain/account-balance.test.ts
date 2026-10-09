@@ -1,8 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
-
-import { accountBalance } from "./account-balance";
-import type { CurrencyCell } from "./currency-totals";
-import { buildRateTable } from "./valuation";
+import { accountBalance } from "@outlayr/money/account-balance";
+import type { CurrencyCell } from "@outlayr/money/currency-totals";
+import { buildRateTable } from "@outlayr/money/valuation";
 
 function cell(overrides: Partial<CurrencyCell>): CurrencyCell {
     return {

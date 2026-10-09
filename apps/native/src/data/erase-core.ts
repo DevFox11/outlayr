@@ -1,10 +1,10 @@
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 import { isNull } from "drizzle-orm";
 
 import { TOMBSTONED_BUDGET, TOMBSTONED_MAIN_BUDGET } from "@/data/budgets-core";
 import type { Database } from "@/db/client";
 import { budgets, mainBudget, transactions, transfers } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
-import { RECURRING_TYPE } from "@/domain/recurrence";
 
 export type EraseScope = "transactions" | "everything";
 

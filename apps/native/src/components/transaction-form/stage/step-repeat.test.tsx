@@ -1,8 +1,8 @@
 import { describe, expect, it, jest } from "@jest/globals";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ComponentProps } from "react";
 
-import { RECURRING_TYPE } from "@/domain/recurrence";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { StepRepeat } from "./step-repeat";

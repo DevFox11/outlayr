@@ -1,11 +1,11 @@
+import { buildRateTable } from "@outlayr/money/valuation";
+import type { RateTable } from "@outlayr/money/valuation";
 import { and, eq } from "drizzle-orm";
 
 import { getMeta, META_KEYS } from "@/data/app-meta-core";
 import type { SpendDb } from "@/data/budget-spent";
 import { exchangeRates } from "@/db/schema";
 import { DEFAULT_CURRENCY } from "@/domain/money";
-import { buildRateTable } from "@/domain/valuation";
-import type { RateTable } from "@/domain/valuation";
 
 export interface Valuation {
     displayCurrency: string;

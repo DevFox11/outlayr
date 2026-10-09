@@ -1,5 +1,6 @@
+import { canonicalUsd } from "@outlayr/money/canonical-usd";
+
 import type { Database } from "@/db/client";
-import { canonicalUsd } from "@/domain/canonical-usd";
 
 import { localRateLookup } from "./rates";
 

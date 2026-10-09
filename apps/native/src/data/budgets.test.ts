@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
+import { BUDGET_TYPE, shiftWindow, startOfPeriod } from "@outlayr/money/budget-window";
+import { buildRateTable, limitIn } from "@outlayr/money/valuation";
 import { and, eq, getTableColumns, isNull } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { appMeta, budgets, categories, exchangeRates, mainBudget, outbox } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
-import { BUDGET_TYPE, shiftWindow, startOfPeriod } from "@/domain/budget-math";
-import { buildRateTable, limitIn } from "@/domain/valuation";
 
 import { budgetsRepo, TOMBSTONED_BUDGET, TOMBSTONED_MAIN_BUDGET } from "./budgets-core";
 import { setSyncEnabled } from "./sync-outbox-core";

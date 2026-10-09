@@ -1,5 +1,5 @@
-import { previousPeriodStart } from "./budget-math";
-import type { BudgetWindow } from "./budget-math";
+import { previousPeriodStart } from "./budget-window";
+import type { BudgetWindow } from "./budget-window";
 
 /**
  * The most closed windows a carry is computed over.

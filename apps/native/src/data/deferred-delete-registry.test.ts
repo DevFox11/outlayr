@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { BUDGET_TYPE } from "@outlayr/money/budget-window";
+import { firstOfMonth, startOfDay } from "@outlayr/money/calendar";
 import { eq } from "drizzle-orm";
 import { toast } from "panelui-native";
 import type { ToastOptions } from "panelui-native";
@@ -8,8 +10,6 @@ import type { NoticeSlipProps } from "@/components/notice-slip";
 import type { Database } from "@/db/client";
 import { accounts, budgets, categories, mainBudget, transactions, transfers } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
-import { BUDGET_TYPE } from "@/domain/budget-math";
-import { firstOfMonth, startOfDay } from "@/domain/dates";
 
 import { accountsRepo } from "./accounts-core";
 import { budgetsRepo } from "./budgets-core";

@@ -1,3 +1,5 @@
+import { startOfDay } from "@outlayr/money/calendar";
+
 import { CATALOGS, EN } from "@/i18n/catalog";
 import type { Language } from "@/i18n/languages";
 import { runtimeLanguage } from "@/i18n/runtime";
@@ -5,7 +7,7 @@ import { translate } from "@/i18n/translate";
 import type { TranslationParams } from "@/i18n/translate";
 import type { DatedReminder } from "@/lib/reminders";
 
-import { dueDay, formatDueDay, startOfDay } from "./dates";
+import { dueDay, formatDueDay } from "./dates";
 import { formatAmount } from "./money";
 import { SUBSCRIPTION_REMINDER_PREFIX } from "./subscription-reminder";
 import type { ArmedReminder } from "./subscription-reminder";

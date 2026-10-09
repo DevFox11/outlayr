@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 import type BetterSqlite3 from "better-sqlite3";
 import { eq } from "drizzle-orm";
 
@@ -6,7 +7,6 @@ import type { Database } from "@/db/client";
 import { accounts, exchangeRates, outbox, transactions, transfers } from "@/db/schema";
 import { migratedDatabase, migratedSqlite, testDatabase } from "@/db/test-database";
 import { groupByDay } from "@/domain/day-sections";
-import { RECURRING_TYPE } from "@/domain/recurrence";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
 
 import { META_KEYS, setMeta } from "./app-meta-core";

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-
-import { ensureRecurringType, nextDate, nextLanding, RECURRING_TYPE, schedulePreview } from "./recurrence";
+import { ensureRecurringType, nextDate, nextLanding, RECURRING_TYPE, schedulePreview } from "@outlayr/money/recurrence";
 
 const at = (y: number, m: number, day: number): Date => new Date(y, m - 1, day);
 

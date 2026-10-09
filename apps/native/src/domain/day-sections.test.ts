@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
+import { buildRateTable } from "@outlayr/money/valuation";
 
 import { groupByDay } from "./day-sections";
-import { buildRateTable } from "./valuation";
 
 function row(day: string, amount: number, income = false) {
     return { amount, day: new Date(`${day}T00:00:00`), income };

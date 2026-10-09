@@ -1,3 +1,5 @@
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
+import { BUDGET_TYPE } from "@outlayr/money/budget-window";
 import { useState } from "react";
 import { useWindowDimensions, View } from "react-native";
 import type { LayoutChangeEvent } from "react-native";
@@ -10,10 +12,9 @@ import type { MeasureStripCell } from "@/components/import-sheet/measure-strip";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
-import type { ExpenseContribution } from "@/data/budget-spent";
 import type { MainBudgetView } from "@/data/budgets";
 import type { Burndown } from "@/domain/budget-burndown";
-import { BUDGET_TYPE, budgetPeriodPhrase, budgetTimeLeftLabel, leftPerDay } from "@/domain/budget-math";
+import { budgetPeriodPhrase, budgetTimeLeftLabel, leftPerDay } from "@/domain/budget-math";
 import { monthAbbrev } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";

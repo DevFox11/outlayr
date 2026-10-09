@@ -102,3 +102,13 @@ export function computeAmountUSD(input: ComputeAmountUSDInput): number {
     }
     return amountUSD;
 }
+
+export interface CanonicalRateFields {
+    amountUsd?: number | null;
+    exchangeRate?: number | null;
+    exchangeRateType?: string | null;
+}
+
+export function isTransactionRateNeeded(fields: CanonicalRateFields): boolean {
+    return fields.amountUsd === null && fields.exchangeRate === null && fields.exchangeRateType === "custom";
+}

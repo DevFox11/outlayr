@@ -3,6 +3,7 @@ import betterAuth from "@convex-dev/better-auth/convex.config";
 import r2 from "@convex-dev/r2/convex.config";
 import rateLimiter from "@convex-dev/rate-limiter/convex.config";
 import workpool from "@convex-dev/workpool/convex.config";
+import mcpGateway from "convex-mcp-gateway/convex.config";
 import revenuecat from "convex-revenuecat/convex.config";
 import { defineApp } from "convex/server";
 
@@ -11,6 +12,7 @@ app.use(betterAuth);
 app.use(r2);
 app.use(rateLimiter);
 app.use(agent);
+app.use(mcpGateway);
 app.use(revenuecat);
 app.use(workpool, { name: "enrichmentPool" });
 

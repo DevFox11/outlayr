@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 
 import { describe, expect, it } from "@jest/globals";
+import { startOfWeek } from "@outlayr/money/calendar";
 
 import { runtimeLanguage, setRuntimeLanguage } from "@/i18n/runtime";
 
@@ -15,7 +16,6 @@ import {
     formatWeekdayDay,
     monthAbbrev,
     monthAbbrevTitle,
-    startOfWeek,
     weekdayInitial,
 } from "./dates";
 

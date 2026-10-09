@@ -1,3 +1,4 @@
+import type { CurrencyBucket } from "@outlayr/money/currency-totals";
 import { roundMoney } from "@outlayr/money/round";
 import { NumberFlow } from "number-flow-react-native";
 import { createContext, Fragment, use } from "react";
@@ -8,7 +9,6 @@ import { useResolveClassNames } from "uniwind";
 import { amountHeroFontSize, SYMBOL_ALLOWANCE } from "@/domain/amount-hero-size";
 import { rowAmountLabel } from "@/domain/amount-label";
 import type { RowAmountLabelInput } from "@/domain/amount-label";
-import type { CurrencyBucket } from "@/domain/currency-totals";
 import { AMOUNT_MASK, amountDigits, amountParts, formatAmount, maskedAmount, withCurrencySymbol } from "@/domain/money";
 import type { NumberLocale } from "@/domain/money";
 import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";

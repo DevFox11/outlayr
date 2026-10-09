@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+import { buildRateTable } from "@outlayr/money/valuation";
 
 import {
     conversionOf,
@@ -8,7 +9,6 @@ import {
     resolveReceipt,
     savableReceipt,
 } from "./receipt-scan";
-import { buildRateTable } from "./valuation";
 
 const NOW = new Date(2026, 8, 5, 14, 30, 0);
 

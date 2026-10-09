@@ -1,10 +1,10 @@
 import { beforeAll, describe, expect, it } from "@jest/globals";
+import { buildRateTable } from "@outlayr/money/valuation";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import { categories, transactions } from "@/db/schema";
 import * as schema from "@/db/schema";
-import { buildRateTable } from "@/domain/valuation";
 
 import {
     bucketDateLabel,

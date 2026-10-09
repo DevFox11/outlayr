@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
+import { startOfDay } from "@outlayr/money/calendar";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 import { asc, eq } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { accounts, categories, transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
-import { startOfDay } from "@/domain/dates";
-import { RECURRING_TYPE } from "@/domain/recurrence";
 import { reminderNotices } from "@/domain/subscription-reminder-copy";
 
 import { setMeta } from "./app-meta-core";

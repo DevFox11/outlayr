@@ -1,19 +1,17 @@
-import { and, eq, isNull, lte } from "drizzle-orm";
-
-import { categories, transactions } from "@/db/schema";
 import {
     addDays,
     addMonths,
     DEFAULT_CALENDAR,
-    monthAbbrev,
-    monthAbbrevTitle,
     monthPeriodStart,
     startOfWeek,
     startOfYear,
-    weekdayInitial,
-} from "@/domain/dates";
-import type { CalendarSettings } from "@/domain/dates";
-import { valueDatedRowsIn } from "@/domain/valuation";
+} from "@outlayr/money/calendar";
+import type { CalendarSettings } from "@outlayr/money/calendar";
+import { valueDatedRowsIn } from "@outlayr/money/valuation";
+import { and, eq, isNull, lte } from "drizzle-orm";
+
+import { categories, transactions } from "@/db/schema";
+import { monthAbbrev, monthAbbrevTitle, weekdayInitial } from "@/domain/dates";
 import type { Language } from "@/i18n/languages";
 import { runtimeLanguage } from "@/i18n/runtime";
 
@@ -31,7 +29,7 @@ const FALLBACK_CATEGORY_COLOR = "#767676";
 
 const DAY_MS = 86_400_000;
 
-export { monthPeriodStart } from "@/domain/dates";
+export { monthPeriodStart } from "@outlayr/money/calendar";
 
 export type InsightsCalendar = CalendarSettings;
 

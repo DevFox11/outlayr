@@ -1,8 +1,8 @@
 import { describe, expect, it, jest } from "@jest/globals";
+import { BUDGET_TYPE } from "@outlayr/money/budget-window";
 import { act, fireEvent, render } from "@testing-library/react-native";
 
 import { testDisplaySettingsValue as mockTestDisplaySettingsValue } from "@/contexts/test-settings";
-import { BUDGET_TYPE } from "@/domain/budget-math";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { BudgetLimitBody } from "./budget-limit-body";

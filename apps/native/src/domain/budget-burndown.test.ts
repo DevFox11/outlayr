@@ -1,9 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
-
-import type { ExpenseContribution } from "@/data/budget-spent";
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
+import type { BudgetWindow } from "@outlayr/money/budget-window";
 
 import { buildBurndown } from "./budget-burndown";
-import type { BudgetWindow } from "./budget-math";
 
 const at = (y: number, m: number, day: number): Date => new Date(y, m - 1, day);
 

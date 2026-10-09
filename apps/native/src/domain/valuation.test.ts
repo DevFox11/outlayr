@@ -1,8 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
+import { currencyTotals } from "@outlayr/money/currency-totals";
 import { roundMoney } from "@outlayr/money/round";
-
-import { currencyTotals } from "./currency-totals";
-import { buildRateTable, isExact, limitIn, sumValuedIn, valueIn, valueRowsIn } from "./valuation";
+import { buildRateTable, isExact, limitIn, sumValuedIn, valueIn, valueRowsIn } from "@outlayr/money/valuation";
 
 const rates = buildRateTable([
     { date: "2026-07-01", quote: "EUR", rate: 0.9 },

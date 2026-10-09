@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 import BetterSqlite3 from "better-sqlite3";
 import { asc, isNull } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { testDatabase } from "@/db/test-database";
-import { RECURRING_TYPE } from "@/domain/recurrence";
 
 import { backfillRecurring } from "./recurrence-backfill";
 import { transactionsRepo } from "./transactions-core";

@@ -23,6 +23,7 @@
         "ai": "^7.0.107",
         "better-auth": "catalog:",
         "convex": "catalog:",
+        "convex-mcp-gateway": "2.1.1",
         "convex-revenuecat": "^0.3.2",
         "jose": "^6.2.4",
         "zod": "catalog:"

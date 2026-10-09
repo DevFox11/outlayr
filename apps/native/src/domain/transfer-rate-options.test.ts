@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
+import { buildRateTable } from "@outlayr/money/valuation";
 
 import { marketRateFor, rateTypeOptions, transferRateOptions } from "./transfer-rate-options";
-import { buildRateTable } from "./valuation";
 
 const RATES = buildRateTable([
     { date: "2026-08-01", quote: "VES", rate: 40.12 },

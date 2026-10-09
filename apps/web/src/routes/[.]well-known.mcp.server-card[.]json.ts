@@ -1,8 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { SERVER_CARD } from "@/lib/mcp";
-
-const CARD_TYPE = "application/mcp-server-card+json";
+import { SERVER_CARD, SERVER_CARD_TYPE } from "@/lib/mcp";
 
 export const Route = createFileRoute("/.well-known/mcp/server-card.json")({
     server: {
@@ -14,8 +12,8 @@ export const Route = createFileRoute("/.well-known/mcp/server-card.json")({
                         "access-control-allow-methods": "GET",
                         "access-control-allow-origin": "*",
                         "cache-control": "public, max-age=3600",
-                        "content-type": request.headers.get("accept")?.includes(CARD_TYPE)
-                            ? CARD_TYPE
+                        "content-type": request.headers.get("accept")?.includes(SERVER_CARD_TYPE)
+                            ? SERVER_CARD_TYPE
                             : "application/json",
                     },
                 }),

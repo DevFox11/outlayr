@@ -3,7 +3,9 @@ import { createClient } from "@convex-dev/better-auth";
 import type { GenericCtx } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { env } from "@outlayr/env/backend";
+import { createAuthMiddleware } from "better-auth/api";
 import { betterAuth } from "better-auth/minimal";
+import { mcp } from "better-auth/plugins";
 import { importPKCS8, SignJWT } from "jose";
 
 import { components, internal } from "./_generated/api";
@@ -40,7 +42,7 @@ const appleConfig = (() => {
     const privateKey = env.APPLE_PRIVATE_KEY;
 
     if (clientId && teamId && keyId && privateKey) {
-        return { clientId, keyId, privateKey, teamId };
+        return { clientId, keyId, privateKey, teamId, webClientId: env.APPLE_WEB_CLIENT_ID ?? clientId };
     }
 
     return null;
@@ -79,13 +81,21 @@ async function generateAppleClientSecret(clientId: string, teamId: string, keyId
 function createAuth(ctx: GenericCtx<DataModel>) {
     const siteUrl = resolveSiteUrl();
     const nativeAppUrl = resolveNativeAppUrl();
+    const mcpLoginPage = `${siteUrl}/mcp/login`;
 
     return betterAuth({
-        account: { encryptOAuthTokens: true },
+        account: { encryptOAuthTokens: true, updateAccountOnSignIn: false },
         baseURL: siteUrl,
         database: authComponent.adapter(ctx),
         emailAndPassword: {
             enabled: false,
+        },
+        hooks: {
+            before: createAuthMiddleware(async (endpoint) => {
+                if (endpoint.path === "/mcp/authorize") {
+                    return { context: { query: { ...endpoint.query, prompt: "consent" } } };
+                }
+            }),
         },
         plugins: [
             appleCredentialLifecycle(
@@ -116,6 +126,10 @@ function createAuth(ctx: GenericCtx<DataModel>) {
                 authConfig,
                 jwksRotateOnTokenGenerationError: true,
             }),
+            mcp({
+                loginPage: mcpLoginPage,
+                oidcConfig: { consentPage: `${siteUrl}/mcp/consent`, loginPage: mcpLoginPage, requirePKCE: true },
+            }),
         ],
         session: {
             expiresIn: LONGEST_COOKIE_MAX_AGE_SECONDS,
@@ -129,7 +143,6 @@ function createAuth(ctx: GenericCtx<DataModel>) {
             apple: async () => {
                 if (!appleConfig) {
                     return {
-                        appBundleIdentifier: env.APPLE_APP_BUNDLE_IDENTIFIER ?? "",
                         clientId: "",
                         clientSecret: "",
                         enabled: false,
@@ -137,10 +150,10 @@ function createAuth(ctx: GenericCtx<DataModel>) {
                 }
 
                 return {
-                    appBundleIdentifier: env.APPLE_APP_BUNDLE_IDENTIFIER ?? "",
-                    clientId: appleConfig.clientId,
+                    appBundleIdentifier: appleConfig.clientId,
+                    clientId: appleConfig.webClientId,
                     clientSecret: await generateAppleClientSecret(
-                        appleConfig.clientId,
+                        appleConfig.webClientId,
                         appleConfig.teamId,
                         appleConfig.keyId,
                         appleConfig.privateKey

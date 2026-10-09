@@ -1,10 +1,10 @@
 import { describe, expect, it } from "@jest/globals";
+import { buildRateTable } from "@outlayr/money/valuation";
 import { renderHook } from "@testing-library/react-native";
 
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
-import { buildRateTable } from "@/domain/valuation";
 
 import { logPeriodStart, useSparklineRows } from "./log-totals";
 

@@ -3,6 +3,8 @@ import CheckIcon from "@hugeicons-pro/core-stroke-rounded/CheckIcon";
 import MinusSignIcon from "@hugeicons-pro/core-stroke-rounded/MinusSignIcon";
 import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
+import { MAX_INTERVAL, RECURRING_TYPE, SELECTABLE_RECURRING_TYPES, schedulePreview } from "@outlayr/money/recurrence";
+import type { ScheduledCharge } from "@outlayr/money/recurrence";
 import { NumberFlow } from "number-flow-react-native";
 import { BottomSheet, Button, cn, Tabs } from "panelui-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -10,8 +12,6 @@ import { Pressable, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, useAnimatedStyle, withTiming } from "react-native-reanimated";
 
 import { formatChargeDate } from "@/domain/dates";
-import { MAX_INTERVAL, RECURRING_TYPE, SELECTABLE_RECURRING_TYPES, schedulePreview } from "@/domain/recurrence";
-import type { ScheduledCharge } from "@/domain/recurrence";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";

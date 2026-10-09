@@ -1,8 +1,7 @@
 import { utcDateString } from "@outlayr/money/dates";
 import { ENTRY_RATE_TYPES } from "@outlayr/money/rates";
 import type { EntryRateType } from "@outlayr/money/rates";
-
-import type { RateTable } from "./valuation";
+import type { RateTable } from "@outlayr/money/valuation";
 
 /** The only currency `resolveEntryRate` accepts `eur_reference` for. */
 const EUR_REFERENCE_CURRENCY = "VES";

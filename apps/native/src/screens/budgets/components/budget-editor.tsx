@@ -1,5 +1,6 @@
 import { DatePicker, Host, HStack, Spacer } from "@expo/ui/swift-ui";
 import { datePickerStyle, frame, labelsHidden } from "@expo/ui/swift-ui/modifiers";
+import { BUDGET_TYPE, periodEnd, startOfPeriod } from "@outlayr/money/budget-window";
 import { useMemo, useState } from "react";
 import { Pressable, Switch, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -9,7 +10,7 @@ import { revealEntering } from "@/components/sentence/sentence-motion";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
-import { BUDGET_TYPE, budgetPeriodName, budgetWindowLabel, periodEnd, startOfPeriod } from "@/domain/budget-math";
+import { budgetPeriodName, budgetWindowLabel } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";

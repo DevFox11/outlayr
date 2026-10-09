@@ -1,3 +1,4 @@
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 import {
     addNotificationResponseReceivedListener,
     clearLastNotificationResponse,
@@ -12,7 +13,6 @@ import { z } from "zod";
 import { backfillRecurring } from "@/data/recurrence-backfill";
 import { getTransactionById } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
-import { RECURRING_TYPE } from "@/domain/recurrence";
 
 const subscriptionTapSchema = z.object({ charge: z.string(), subscription: z.string() });
 const reminderTapSchema = z.union([subscriptionTapSchema, z.object({ open: z.literal("log") })]);

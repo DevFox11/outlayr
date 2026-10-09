@@ -1,4 +1,5 @@
 import { isPickableCurrency } from "@outlayr/money/currency";
+import { SELECTABLE_RECURRING_TYPES } from "@outlayr/money/recurrence";
 import { Stack } from "expo-router";
 import { useState } from "react";
 
@@ -8,7 +9,6 @@ import type { TransactionSeed } from "@/components/transaction-form";
 import { useDatabase } from "@/contexts/local-data-context";
 import { getTransactionById } from "@/data/transactions-core";
 import { AMOUNT_CEILING } from "@/domain/numpad";
-import { SELECTABLE_RECURRING_TYPES } from "@/domain/recurrence";
 import { logAgainDraft } from "@/domain/transaction-actions";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
 import { useDiscardGuard } from "@/hooks/use-discard-guard";

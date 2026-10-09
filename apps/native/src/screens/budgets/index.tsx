@@ -1,4 +1,6 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
+import { BUDGET_TYPE } from "@outlayr/money/budget-window";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -13,7 +15,6 @@ import { useSettingBool, useSettingNumber } from "@/contexts/display-settings-co
 import { useDatabase } from "@/contexts/local-data-context";
 import { settledBalanceAt, useAccountBalances, useAccounts } from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
-import type { ExpenseContribution } from "@/data/budget-spent";
 import type { CategoryBudgetView } from "@/data/budgets";
 import {
     budgetsRepo,
@@ -34,7 +35,7 @@ import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
 import type { Database } from "@/db/client";
 import { dominantCategory } from "@/domain/budget-dominant";
-import { BUDGET_TYPE, budgetTimeLeftLabel } from "@/domain/budget-math";
+import { budgetTimeLeftLabel } from "@/domain/budget-math";
 import { blocksNewBudget, FREE_BUDGETS } from "@/domain/pro-limits";
 import { useAccountCreateRoute, useProCapped } from "@/hooks/use-pro-gate";
 import { useTranslation } from "@/i18n/context";

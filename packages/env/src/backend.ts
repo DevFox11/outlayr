@@ -16,11 +16,11 @@ export const env = createEnv({
     isServer: true,
     runtimeEnv: process.env,
     server: {
-        APPLE_APP_BUNDLE_IDENTIFIER: z.string().optional(),
         APPLE_CLIENT_ID: z.string().optional(),
         APPLE_KEY_ID: z.string().optional(),
         APPLE_PRIVATE_KEY: z.string().optional(),
         APPLE_TEAM_ID: z.string().optional(),
+        APPLE_WEB_CLIENT_ID: z.string().optional(),
         GOOGLE_CLIENT_ID_IOS: z.string().optional(),
         GOOGLE_CLIENT_ID_WEB: z.string().optional(),
         GOOGLE_CLIENT_SECRET: z.string().optional(),

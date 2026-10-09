@@ -1,9 +1,8 @@
 import { utcDateString } from "@outlayr/money/dates";
+import { valueExactIn } from "@outlayr/money/valuation";
+import type { DatedValuable, RateTable } from "@outlayr/money/valuation";
 
 import type { TranslateFn } from "@/i18n/context";
-
-import { valueExactIn } from "./valuation";
-import type { DatedValuable, RateTable } from "./valuation";
 
 /** How much of the ledger the converted figures on screen actually rest on. */
 export interface ValuationCoverage {

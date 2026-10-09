@@ -1,3 +1,5 @@
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
+import { BUDGET_TYPE } from "@outlayr/money/budget-window";
 import { useMemo, useRef } from "react";
 import { Pressable, View } from "react-native";
 import type { AccessibilityActionEvent } from "react-native";
@@ -11,10 +13,9 @@ import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
-import type { ExpenseContribution } from "@/data/budget-spent";
 import type { CategoryBudgetView } from "@/data/budgets";
 import { buildDaySlots, dayVerdictSentence } from "@/domain/budget-day-slots";
-import { BUDGET_TYPE, leftPerDay } from "@/domain/budget-math";
+import { leftPerDay } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
 import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useOverBudgetMoment } from "@/hooks/use-over-budget-moment";

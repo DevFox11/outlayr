@@ -1,3 +1,6 @@
+import { advanceBudgetWindow } from "@outlayr/money/budget-window";
+import { startOfDay } from "@outlayr/money/calendar";
+import { limitIn } from "@outlayr/money/valuation";
 import { and, asc, desc, isNull, lte } from "drizzle-orm";
 
 import { getMeta, META_KEYS } from "@/data/app-meta-core";
@@ -14,11 +17,10 @@ import {
     mainBudget as mainBudgetTable,
     transactions as transactionsTable,
 } from "@/db/schema";
-import { advanceBudgetWindow, budgetPeriodPhrase } from "@/domain/budget-math";
+import { budgetPeriodPhrase } from "@/domain/budget-math";
 import { compareBudgetSeverity } from "@/domain/budget-severity";
-import { formatDayHeader, formatUpcomingDate, startOfDay } from "@/domain/dates";
+import { formatDayHeader, formatUpcomingDate } from "@/domain/dates";
 import { DEFAULT_CURRENCY, formatAmount } from "@/domain/money";
-import { limitIn } from "@/domain/valuation";
 import type { TranslationKey } from "@/i18n/catalog";
 import { translateNow } from "@/i18n/runtime";
 import { DEEP_LINKS } from "@/lib/deep-links";

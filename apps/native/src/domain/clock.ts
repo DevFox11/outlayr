@@ -1,4 +1,4 @@
-import { addDays, startOfDay } from "./dates";
+import { addDays, startOfDay } from "@outlayr/money/calendar";
 
 const DAY_MS = 86_400_000;
 

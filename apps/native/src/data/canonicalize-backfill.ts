@@ -1,3 +1,4 @@
+import { canonicalUsd } from "@outlayr/money/canonical-usd";
 import { utcDateString } from "@outlayr/money/dates";
 import { and, count, eq, isNotNull, isNull, min, ne, not, or } from "drizzle-orm";
 
@@ -5,7 +6,6 @@ import { getMeta, META_KEYS } from "@/data/app-meta-core";
 import type { SpendDb } from "@/data/budget-spent";
 import type { Database } from "@/db/client";
 import { accounts, budgets, exchangeRates, mainBudget, transactions } from "@/db/schema";
-import { canonicalUsd } from "@/domain/canonical-usd";
 import { DEFAULT_CURRENCY } from "@/domain/money";
 import type { ValuationCoverage } from "@/domain/valuation-coverage";
 

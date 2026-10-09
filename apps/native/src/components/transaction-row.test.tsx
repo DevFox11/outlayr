@@ -1,9 +1,9 @@
 import { describe, expect, it, jest } from "@jest/globals";
+import { buildRateTable } from "@outlayr/money/valuation";
 import { render } from "@testing-library/react-native";
 
 import { testDisplaySettingsValue as mockTestDisplaySettingsValue } from "@/contexts/test-settings";
 import type { TransferMove } from "@/domain/transfer-log-rows";
-import { buildRateTable } from "@/domain/valuation";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { AmountsHiddenContext } from "./amount-text";

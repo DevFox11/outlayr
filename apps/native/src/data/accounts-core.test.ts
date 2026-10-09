@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
+import { accountBalance } from "@outlayr/money/account-balance";
+import { buildRateTable } from "@outlayr/money/valuation";
 
 import type { Database } from "@/db/client";
 import { accounts, exchangeRates, transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
-import { accountBalance } from "@/domain/account-balance";
-import { buildRateTable } from "@/domain/valuation";
 
 import { accountsRepo, getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "./accounts-core";
 import { settledAccountCellQuery, toCurrencyCells } from "./cell-query";

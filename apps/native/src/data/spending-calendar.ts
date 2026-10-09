@@ -1,9 +1,9 @@
+import { addDays, startOfDay } from "@outlayr/money/calendar";
 import { and, eq, gte, isNull, lte, sum } from "drizzle-orm";
 import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
-import { addDays, startOfDay } from "@/domain/dates";
 import { spendingCalendarEntries } from "@/domain/spending-calendar";
 import type { SpendingCalendarEntry, SpendingCalendarRow } from "@/domain/spending-calendar";
 

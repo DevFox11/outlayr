@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { addDays } from "@outlayr/money/calendar";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 import { renderHook } from "@testing-library/react-native";
 
 import { occurrenceId } from "@/data/recurrence-backfill";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
-import { addDays } from "@/domain/dates";
-import { RECURRING_TYPE } from "@/domain/recurrence";
 
 const mockNavigate = jest.fn();
 const mockRouter = { navigate: mockNavigate };

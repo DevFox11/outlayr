@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import type { CurrencyCell } from "@outlayr/money/currency-totals";
+import { buildRateTable } from "@outlayr/money/valuation";
 import { render, screen } from "@testing-library/react-native";
 
-import type { CurrencyCell } from "@/domain/currency-totals";
-import { buildRateTable } from "@/domain/valuation";
 import { CHART_DRAW } from "@/theme/chart";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 

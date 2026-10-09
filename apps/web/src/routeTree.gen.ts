@@ -10,9 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as A2aRouteImport } from './routes/a2a'
+import { Route as AuthDotmdRouteImport } from './routes/auth[.]md'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as Char123LocaleChar125RouteRouteImport } from './routes/{-$locale}/route'
+import { Route as DotwellKnownAiCatalogDotjsonRouteImport } from './routes/[.]well-known.ai-catalog[.]json'
 import { Route as DotwellKnownApiCatalogRouteImport } from './routes/[.]well-known.api-catalog'
 import { Route as DotwellKnownHttpMessageSignaturesDirectoryRouteImport } from './routes/[.]well-known.http-message-signatures-directory'
 import { Route as Char123LocaleChar125IndexRouteImport } from './routes/{-$locale}/index'
@@ -32,6 +34,11 @@ const A2aRoute = A2aRouteImport.update({
   path: '/a2a',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthDotmdRoute = AuthDotmdRouteImport.update({
+  id: '/auth.md',
+  path: '/auth.md',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const McpRoute = McpRouteImport.update({
   id: '/mcp',
   path: '/mcp',
@@ -46,6 +53,12 @@ const Char123LocaleChar125RouteRoute =
   Char123LocaleChar125RouteRouteImport.update({
     id: '/{-$locale}',
     path: '/{-$locale}',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DotwellKnownAiCatalogDotjsonRoute =
+  DotwellKnownAiCatalogDotjsonRouteImport.update({
+    id: '/.well-known/ai-catalog.json',
+    path: '/.well-known/ai-catalog.json',
     getParentRoute: () => rootRouteImport,
   } as any)
 const DotwellKnownApiCatalogRoute = DotwellKnownApiCatalogRouteImport.update({
@@ -129,8 +142,10 @@ const Char123LocaleChar125GuidesSlugRoute =
 export interface FileRoutesByFullPath {
   '/{-$locale}': typeof Char123LocaleChar125RouteRouteWithChildren
   '/a2a': typeof A2aRoute
+  '/auth.md': typeof AuthDotmdRoute
   '/mcp': typeof McpRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/.well-known/ai-catalog.json': typeof DotwellKnownAiCatalogDotjsonRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/.well-known/http-message-signatures-directory': typeof DotwellKnownHttpMessageSignaturesDirectoryRoute
   '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
@@ -147,8 +162,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/a2a': typeof A2aRoute
+  '/auth.md': typeof AuthDotmdRoute
   '/mcp': typeof McpRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/.well-known/ai-catalog.json': typeof DotwellKnownAiCatalogDotjsonRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/.well-known/http-message-signatures-directory': typeof DotwellKnownHttpMessageSignaturesDirectoryRoute
   '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
@@ -167,8 +184,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/{-$locale}': typeof Char123LocaleChar125RouteRouteWithChildren
   '/a2a': typeof A2aRoute
+  '/auth.md': typeof AuthDotmdRoute
   '/mcp': typeof McpRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/.well-known/ai-catalog.json': typeof DotwellKnownAiCatalogDotjsonRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/.well-known/http-message-signatures-directory': typeof DotwellKnownHttpMessageSignaturesDirectoryRoute
   '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
@@ -188,8 +207,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/{-$locale}'
     | '/a2a'
+    | '/auth.md'
     | '/mcp'
     | '/sitemap.xml'
+    | '/.well-known/ai-catalog.json'
     | '/.well-known/api-catalog'
     | '/.well-known/http-message-signatures-directory'
     | '/{-$locale}/$'
@@ -206,8 +227,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/a2a'
+    | '/auth.md'
     | '/mcp'
     | '/sitemap.xml'
+    | '/.well-known/ai-catalog.json'
     | '/.well-known/api-catalog'
     | '/.well-known/http-message-signatures-directory'
     | '/{-$locale}/$'
@@ -225,8 +248,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/{-$locale}'
     | '/a2a'
+    | '/auth.md'
     | '/mcp'
     | '/sitemap.xml'
+    | '/.well-known/ai-catalog.json'
     | '/.well-known/api-catalog'
     | '/.well-known/http-message-signatures-directory'
     | '/{-$locale}/$'
@@ -245,8 +270,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   Char123LocaleChar125RouteRoute: typeof Char123LocaleChar125RouteRouteWithChildren
   A2aRoute: typeof A2aRoute
+  AuthDotmdRoute: typeof AuthDotmdRoute
   McpRoute: typeof McpRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  DotwellKnownAiCatalogDotjsonRoute: typeof DotwellKnownAiCatalogDotjsonRoute
   DotwellKnownApiCatalogRoute: typeof DotwellKnownApiCatalogRoute
   DotwellKnownHttpMessageSignaturesDirectoryRoute: typeof DotwellKnownHttpMessageSignaturesDirectoryRoute
   DotwellKnownMcpServerCardDotjsonRoute: typeof DotwellKnownMcpServerCardDotjsonRoute
@@ -259,6 +286,13 @@ declare module '@tanstack/react-router' {
       path: '/a2a'
       fullPath: '/a2a'
       preLoaderRoute: typeof A2aRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth.md': {
+      id: '/auth.md'
+      path: '/auth.md'
+      fullPath: '/auth.md'
+      preLoaderRoute: typeof AuthDotmdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mcp': {
@@ -280,6 +314,13 @@ declare module '@tanstack/react-router' {
       path: '/{-$locale}'
       fullPath: '/{-$locale}'
       preLoaderRoute: typeof Char123LocaleChar125RouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/ai-catalog.json': {
+      id: '/.well-known/ai-catalog.json'
+      path: '/.well-known/ai-catalog.json'
+      fullPath: '/.well-known/ai-catalog.json'
+      preLoaderRoute: typeof DotwellKnownAiCatalogDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.well-known/api-catalog': {
@@ -412,8 +453,10 @@ const Char123LocaleChar125RouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   Char123LocaleChar125RouteRoute: Char123LocaleChar125RouteRouteWithChildren,
   A2aRoute: A2aRoute,
+  AuthDotmdRoute: AuthDotmdRoute,
   McpRoute: McpRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  DotwellKnownAiCatalogDotjsonRoute: DotwellKnownAiCatalogDotjsonRoute,
   DotwellKnownApiCatalogRoute: DotwellKnownApiCatalogRoute,
   DotwellKnownHttpMessageSignaturesDirectoryRoute:
     DotwellKnownHttpMessageSignaturesDirectoryRoute,

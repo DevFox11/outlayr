@@ -392,7 +392,7 @@ async function upsert(
  * `prepared` is deliberately still allowed — the owner has asked but not
  * confirmed, and may yet cancel.
  */
-async function refuseWhileDeleting(ctx: QueryCtx, userId: string): Promise<void> {
+export async function refuseWhileDeleting(ctx: QueryCtx, userId: string): Promise<void> {
     // Every job, not a page of them: this asks whether ANY job has moved past
     // `prepared`, and a page can only answer that if the newest job is inside
     // it. `accountDeletion.prepare` caps the set per user, which is what keeps
@@ -405,6 +405,27 @@ async function refuseWhileDeleting(ctx: QueryCtx, userId: string): Promise<void>
     if (jobs.some((job) => job.phase !== "prepared")) {
         throw new ConvexError("This account is being deleted and can no longer accept changes");
     }
+}
+
+export async function seqCounter(ctx: MutationCtx, userId: string) {
+    const state = await ctx.db
+        .query("syncState")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .unique();
+    // Starts at 1 so that a cursor of 0 means "nothing read yet" rather than
+    // "read everything up to the first row".
+    const nextSeq = state?.nextSeq ?? 1;
+    return {
+        advanceTo: async (next: number) => {
+            if (next <= nextSeq) {
+                return;
+            }
+            await (state
+                ? ctx.db.patch("syncState", state._id, { nextSeq: next })
+                : ctx.db.insert("syncState", { nextSeq: next, userId }));
+        },
+        nextSeq,
+    };
 }
 
 export const push = mutation({
@@ -421,15 +442,8 @@ export const push = mutation({
             throw new ConvexError(`A push carries at most ${PUSH_BATCH_LIMIT} rows; got ${args.rows.length}`);
         }
 
-        const state = await ctx.db
-            .query("syncState")
-            .withIndex("by_user", (q) => q.eq("userId", userId))
-            .unique();
-
-        // Starts at 1 so that a cursor of 0 means "nothing read yet" rather than
-        // "read everything up to the first row".
-        const initialNextSeq = state?.nextSeq ?? 1;
-        let nextSeq = initialNextSeq;
+        const counter = await seqCounter(ctx, userId);
+        let { nextSeq } = counter;
         let accepted = 0;
         let skipped = 0;
         const reEmittedPolicyWinners = new Set<string>();
@@ -478,11 +492,7 @@ export const push = mutation({
         /* oxlint-enable no-await-in-loop */
 
         // One counter write per batch rather than per row.
-        if (nextSeq > initialNextSeq) {
-            await (state
-                ? ctx.db.patch("syncState", state._id, { nextSeq })
-                : ctx.db.insert("syncState", { nextSeq, userId }));
-        }
+        await counter.advanceTo(nextSeq);
 
         return { accepted, nextSeq, skipped };
     },

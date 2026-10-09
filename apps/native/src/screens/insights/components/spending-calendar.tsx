@@ -1,3 +1,4 @@
+import { addDays, startOfDay } from "@outlayr/money/calendar";
 import { buildHeatmapCalendar, HeatmapChart } from "panelui-native";
 import type { HeatmapCell } from "panelui-native";
 import { useMemo } from "react";
@@ -9,7 +10,7 @@ import { Text } from "@/components/text";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import { spendingCalendarStart } from "@/data/spending-calendar";
 import { useNow } from "@/data/use-now";
-import { addDays, formatChargeDate, monthAbbrevTitle, startOfDay, weekdayInitial } from "@/domain/dates";
+import { formatChargeDate, monthAbbrevTitle, weekdayInitial } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
 import type { SpendingCalendarEntry } from "@/domain/spending-calendar";
 import { useLanguage, useTranslation } from "@/i18n/context";

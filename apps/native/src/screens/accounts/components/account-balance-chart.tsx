@@ -1,3 +1,5 @@
+import type { CurrencyCell } from "@outlayr/money/currency-totals";
+import type { RateTable } from "@outlayr/money/valuation";
 import { LineChart } from "panelui-native";
 import { useMemo } from "react";
 import { View } from "react-native";
@@ -8,10 +10,8 @@ import { useSettingBool } from "@/contexts/display-settings-context";
 import { useNow } from "@/data/use-now";
 import { accountBalanceSeries } from "@/domain/account-balance-series";
 import { formatSignedAmount } from "@/domain/account-display";
-import type { CurrencyCell } from "@/domain/currency-totals";
 import { formatDayMonth } from "@/domain/dates";
 import { numberLocale } from "@/domain/money";
-import type { RateTable } from "@/domain/valuation";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { CHART_DRAW, compactMagnitude } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";

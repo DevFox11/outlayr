@@ -1,7 +1,9 @@
+import { addDays, addMonths, firstOfMonth, startOfDay, startOfWeek } from "@outlayr/money/calendar";
+
 import type { Language } from "@/i18n/languages";
 import { runtimeLanguage } from "@/i18n/runtime";
 
-import { addDays, addMonths, firstOfMonth, monthAbbrevTitle, startOfDay, startOfWeek } from "./dates";
+import { monthAbbrevTitle } from "./dates";
 
 export type CursorUnit = "day" | "week" | "month";
 

@@ -1,3 +1,4 @@
+import type { RateTable } from "@outlayr/money/valuation";
 import { useCallback, useRef, useSyncExternalStore } from "react";
 import { Pressable, View } from "react-native";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
@@ -9,7 +10,6 @@ import { ArrivalMark } from "@/components/arrival-mark";
 import { Text } from "@/components/text";
 import { TransactionRow } from "@/components/transaction-row";
 import type { TransactionWithCategory } from "@/data/transactions";
-import type { RateTable } from "@/domain/valuation";
 import { useTranslation } from "@/i18n/context";
 import { freshEntries } from "@/lib/fresh-entries";
 

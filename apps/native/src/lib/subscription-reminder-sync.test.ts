@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { startOfDay } from "@outlayr/money/calendar";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 
 import { setBoolSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
-import { startOfDay } from "@/domain/dates";
-import { RECURRING_TYPE } from "@/domain/recurrence";
 
 jest.mock("./reminders", () => ({
     cancelReminders: jest.fn(async () => undefined),

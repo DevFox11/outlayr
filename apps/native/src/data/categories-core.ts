@@ -1,3 +1,4 @@
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 import { and, eq, isNull, max } from "drizzle-orm";
 
 import { TOMBSTONED_BUDGET } from "@/data/budgets-core";
@@ -5,7 +6,6 @@ import type { Database } from "@/db/client";
 import { budgets, categories, transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { newId } from "@/domain/ids";
-import { RECURRING_TYPE } from "@/domain/recurrence";
 import { uuidV5 } from "@/domain/uuid5";
 
 export type Category = typeof categories.$inferSelect;

@@ -1,9 +1,8 @@
+import { cellIsExact } from "@outlayr/money/account-balance";
+import { valueCell } from "@outlayr/money/currency-totals";
+import type { CurrencyCell } from "@outlayr/money/currency-totals";
 import { utcDateString } from "@outlayr/money/dates";
-
-import { cellIsExact } from "./account-balance";
-import { valueCell } from "./currency-totals";
-import type { CurrencyCell } from "./currency-totals";
-import type { RateTable } from "./valuation";
+import type { RateTable } from "@outlayr/money/valuation";
 
 const HISTORY_DAYS = 182;
 

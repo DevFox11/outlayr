@@ -1,10 +1,10 @@
 import { describe, expect, it } from "@jest/globals";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 
 import { EN } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";
 
-import { RECURRING_TYPE } from "./recurrence";
 import {
     cadenceLabel,
     ctaKey,

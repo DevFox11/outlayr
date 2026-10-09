@@ -1,6 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-
-import { netWorth, toAccountKind } from "./account-kind";
+import { netWorth, toAccountKind } from "@outlayr/money/account-kind";
 
 describe("reading a stored kind", () => {
     it("treats every account written before the column existed as an asset", () => {

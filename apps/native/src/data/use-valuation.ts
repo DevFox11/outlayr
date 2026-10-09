@@ -1,9 +1,9 @@
+import { buildRateTable } from "@outlayr/money/valuation";
 import { and, eq } from "drizzle-orm";
 import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
 import { exchangeRates } from "@/db/schema";
-import { buildRateTable } from "@/domain/valuation";
 
 import { useGlobalCurrency } from "./app-meta";
 import { useRatesRead } from "./live-query";

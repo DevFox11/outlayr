@@ -1,4 +1,5 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
+import { windowEndMs } from "@outlayr/money/budget-window";
 import { Color, Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
@@ -7,13 +8,7 @@ import { Text } from "@/components/text";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useSettingNumber } from "@/contexts/display-settings-context";
 import { useGlobalCurrency } from "@/data/app-meta";
-import {
-    budgetsRepo,
-    useBudgetContributions,
-    useExpenseContributions,
-    useMainBudget,
-    windowEndMs,
-} from "@/data/budgets";
+import { budgetsRepo, useBudgetContributions, useExpenseContributions, useMainBudget } from "@/data/budgets";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";

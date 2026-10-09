@@ -1,8 +1,7 @@
 import type { EntryRateType } from "@outlayr/money/rates";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 
 import type { TransactionInput } from "@/data/transactions-core";
-
-import { RECURRING_TYPE } from "./recurrence";
 
 export interface TransactionSaveDraft {
     accountId: string | null;

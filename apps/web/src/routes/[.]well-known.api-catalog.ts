@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { SITE_URL } from "@/lib/site";
+import { LEDGER_MCP_ORIGIN, SITE_URL } from "@/lib/site";
 
 const catalog = {
     linkset: [
@@ -8,6 +8,13 @@ const catalog = {
             anchor: `${SITE_URL}/`,
             "service-desc": [{ href: `${SITE_URL}/openapi.json`, type: "application/json" }],
             "service-doc": [{ href: `${SITE_URL}/llms.txt`, type: "text/plain" }],
+        },
+        {
+            anchor: `${LEDGER_MCP_ORIGIN}/mcp`,
+            "service-doc": [{ href: `${SITE_URL}/auth.md`, type: "text/markdown" }],
+            "service-meta": [
+                { href: `${LEDGER_MCP_ORIGIN}/.well-known/oauth-protected-resource/mcp`, type: "application/json" },
+            ],
         },
     ],
 };

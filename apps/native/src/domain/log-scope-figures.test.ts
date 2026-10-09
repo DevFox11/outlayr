@@ -1,9 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
+import { currencyTotals } from "@outlayr/money/currency-totals";
+import { buildRateTable } from "@outlayr/money/valuation";
 
-import { currencyTotals } from "./currency-totals";
 import { netTotal } from "./log-measure";
 import { scopeHasFigures, scopeTotals } from "./log-scope-figures";
-import { buildRateTable } from "./valuation";
 
 const JULY_5 = new Date(Date.UTC(2026, 6, 5, 12));
 

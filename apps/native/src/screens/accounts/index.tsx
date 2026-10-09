@@ -24,6 +24,7 @@ import {
     onTapGesture,
     tint,
 } from "@expo/ui/swift-ui/modifiers";
+import { isMultiCurrency } from "@outlayr/money/account-overview";
 import { Stack, useRouter } from "expo-router";
 import { memo, useCallback, useMemo } from "react";
 import { View } from "react-native";
@@ -41,7 +42,7 @@ import type { Account } from "@/data/accounts-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
-import { formatSignedAmount, isMultiCurrency } from "@/domain/account-display";
+import { formatSignedAmount } from "@/domain/account-display";
 import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { hitArea, outline } from "@/lib/swift-ui-geometry";

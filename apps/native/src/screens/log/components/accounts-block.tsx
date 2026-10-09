@@ -1,3 +1,4 @@
+import type { AccountsOverview, OverviewRow } from "@outlayr/money/account-overview";
 import { use } from "react";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
@@ -8,7 +9,6 @@ import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import type { Account } from "@/data/accounts-core";
-import type { AccountsOverview, OverviewRow } from "@/domain/account-display";
 import { formatSignedAmount } from "@/domain/account-display";
 import { maskedAmount } from "@/domain/money";
 import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";

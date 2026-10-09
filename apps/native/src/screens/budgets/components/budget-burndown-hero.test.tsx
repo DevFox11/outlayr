@@ -1,9 +1,9 @@
 import { describe, expect, it, jest } from "@jest/globals";
+import { BUDGET_TYPE } from "@outlayr/money/budget-window";
 import { render } from "@testing-library/react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import type { MainBudgetView } from "@/data/budgets";
-import { BUDGET_TYPE } from "@/domain/budget-math";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { BudgetBurndownHero } from "./budget-burndown-hero";

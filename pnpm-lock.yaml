@@ -585,6 +585,9 @@ importers:
       convex:
         specifier: 'catalog:'
         version: 1.45.0(react@19.2.3)
+      convex-mcp-gateway:
+        specifier: 2.1.1
+        version: 2.1.1(convex@1.45.0(react@19.2.3))
       convex-revenuecat:
         specifier: ^0.3.2
         version: 0.3.2(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)(zod@4.6.2)
@@ -5431,6 +5434,11 @@ packages:
         optional: true
       zod:
         optional: true
+
+  convex-mcp-gateway@2.1.1:
+    resolution: {integrity: sha512-yJ5/lOkfBR5Khxm1sBIc2u2uy5qUDFfL9LLHcEfGkyff/yIJ4fKHIhwktxjQvU5K5KBTpmNK8GQkOF5HO+BPdg==}
+    peerDependencies:
+      convex: ^1.35.0
 
   convex-revenuecat@0.3.2:
     resolution: {integrity: sha512-f6HV6CoQ4IthyjjNcKoYBdOyzs+EgEJZbfNnETYj7hSPCy+pgIwqVXAU7sAOzkyRBp6K297hKBY6HwxEkOPYTw==}
@@ -15827,6 +15835,10 @@ snapshots:
       react: 19.3.0
       typescript: 6.0.3
       zod: 4.6.2
+
+  convex-mcp-gateway@2.1.1(convex@1.45.0(react@19.2.3)):
+    dependencies:
+      convex: 1.45.0(react@19.2.3)
 
   convex-revenuecat@0.3.2(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)(zod@4.6.2):
     dependencies:

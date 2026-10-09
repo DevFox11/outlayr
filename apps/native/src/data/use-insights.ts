@@ -1,9 +1,9 @@
+import { valueDatedRowsIn } from "@outlayr/money/valuation";
 import { and, gte, isNull, lte, min } from "drizzle-orm";
 import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
-import { valueDatedRowsIn } from "@/domain/valuation";
 import { useLanguage } from "@/i18n/context";
 
 import {

@@ -1,12 +1,12 @@
 import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
 import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
+import type { BudgetWindow } from "@outlayr/money/budget-window";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
 import { MonoLabel } from "@/components/mono-label";
 import { budgetWindowLabel } from "@/domain/budget-math";
-import type { BudgetWindow } from "@/domain/budget-math";
 import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 

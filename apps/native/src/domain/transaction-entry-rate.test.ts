@@ -1,11 +1,11 @@
 import { describe, expect, it } from "@jest/globals";
+import { isTransactionRateNeeded } from "@outlayr/money/rates";
 
 import {
     flipRateForQuote,
     formatQuotedRate,
     formatQuotedRateFigure,
     formatRateFigure,
-    isTransactionRateNeeded,
     pairQuotedInverse,
     pairUnitSymbols,
     rateDeltaPercent,

@@ -1,4 +1,5 @@
-import type { CurrencyBucket } from "./currency-totals";
+import type { CurrencyBucket } from "@outlayr/money/currency-totals";
+
 import { formatDayHeader, formatTime } from "./dates";
 import type { DayCardInput } from "./day-card";
 import { amountDigits, amountParts, withCurrencySymbol } from "./money";

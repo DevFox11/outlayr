@@ -1,8 +1,9 @@
-import { cellFigures, toCells } from "./currency-totals";
-import type { CurrencyEntry } from "./currency-totals";
+import { cellFigures, toCells } from "@outlayr/money/currency-totals";
+import type { CurrencyEntry } from "@outlayr/money/currency-totals";
+import type { RateTable } from "@outlayr/money/valuation";
+
 import { ZERO_FIGURES } from "./log-measure";
 import type { LogFigures } from "./log-measure";
-import type { RateTable } from "./valuation";
 
 export interface ScopeTotals {
     /** Every other currency the scope used, dominance order. */

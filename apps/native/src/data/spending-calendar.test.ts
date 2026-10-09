@@ -1,11 +1,11 @@
 import { describe, expect, it, jest } from "@jest/globals";
+import { buildRateTable } from "@outlayr/money/valuation";
 import { renderHook } from "@testing-library/react-native";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import { transactions } from "@/db/schema";
 import * as schema from "@/db/schema";
-import { buildRateTable } from "@/domain/valuation";
 
 import { spendingCalendarQuery, useSpendingCalendar } from "./spending-calendar";
 import { useValuation } from "./use-valuation";

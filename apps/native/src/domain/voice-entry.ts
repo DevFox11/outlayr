@@ -1,11 +1,11 @@
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
+import type { RecurringType } from "@outlayr/money/recurrence";
 import { roundMoney } from "@outlayr/money/round";
 
 import type { ProposedDraft, VoiceDraft, VoiceRecurrence, VoiceRecurrenceUnit } from "@/lib/convex";
 import { PROPOSE_DRAFT_TOOL } from "@/lib/convex";
 
 import { minorUnitsFor } from "./money";
-import { RECURRING_TYPE } from "./recurrence";
-import type { RecurringType } from "./recurrence";
 
 /**
  * A spoken draft with the ledger's own ids on it: what the review step shows

@@ -20,6 +20,7 @@ const AGENT_LINKS = [
     '</.well-known/api-catalog>; rel="api-catalog"',
     '</openapi.json>; rel="service-desc"; type="application/json"',
     '</llms.txt>; rel="service-doc"; type="text/plain"',
+    '</.well-known/ai-catalog.json>; rel="ai-catalog"',
 ].join(", ");
 
 function appGraph(locale: Locale) {

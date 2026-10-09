@@ -11,12 +11,6 @@ export interface TransactionEntryRate {
     exchangeRateType: EntryRateType;
 }
 
-export interface CanonicalRateFields {
-    amountUsd?: number | null;
-    exchangeRate?: number | null;
-    exchangeRateType?: string | null;
-}
-
 export type TransactionRateError = "customRateRequired" | "eurReferenceRequiresVes" | null;
 
 const QUOTED_IN_USD: ReadonlySet<string> = new Set([
@@ -159,8 +153,4 @@ export function transactionRateError(currency: string, selection: TransactionEnt
     }
 
     return null;
-}
-
-export function isTransactionRateNeeded(fields: CanonicalRateFields): boolean {
-    return fields.amountUsd === null && fields.exchangeRate === null && fields.exchangeRateType === "custom";
 }

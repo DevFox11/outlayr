@@ -1,5 +1,6 @@
 import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
+import { startOfDay } from "@outlayr/money/calendar";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Button, Shimmer } from "panelui-native";
@@ -34,7 +35,7 @@ import { backfillRecurring } from "@/data/recurrence-backfill";
 import { transactionsRepo } from "@/data/transactions-core";
 import { transfersRepo } from "@/data/transfers-core";
 import type { AuthGate } from "@/domain/auth-gate";
-import { formatChargeDate, startOfDay } from "@/domain/dates";
+import { formatChargeDate } from "@/domain/dates";
 import { amountParts, formatAmount } from "@/domain/money";
 import { boundedPromptNames } from "@/domain/prompt-budget";
 import {

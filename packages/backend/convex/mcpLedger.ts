@@ -1,0 +1,540 @@
+import { accountBalance } from "@outlayr/money/account-balance";
+import { accountsOverview } from "@outlayr/money/account-overview";
+import { effectiveLimit, rolloverCarry } from "@outlayr/money/budget-rollover";
+import { lastMsBefore, spentForCategory, spentForMain } from "@outlayr/money/budget-spent";
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
+import { advanceBudgetWindow, BUDGET_TYPE, windowEndMs } from "@outlayr/money/budget-window";
+import { decimalsFor } from "@outlayr/money/currency";
+import { toCells } from "@outlayr/money/currency-totals";
+import type { CurrencyCell, CurrencyEntry } from "@outlayr/money/currency-totals";
+import { landingDate, RECURRING_TYPE } from "@outlayr/money/recurrence";
+import { roundMoney } from "@outlayr/money/round";
+import { monthlySubscriptionCost } from "@outlayr/money/subscription-cost";
+import { buildRateTable, limitIn, valueDatedRowsIn } from "@outlayr/money/valuation";
+import type { RateTable } from "@outlayr/money/valuation";
+import { defineMcpQuery, mcpCallerValidator } from "convex-mcp-gateway";
+import type { McpToolRegistration } from "convex-mcp-gateway";
+import { v } from "convex/values";
+
+import { internal } from "./_generated/api";
+import { internalQuery } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
+
+const MAX_ENTRIES = 50;
+const SCAN_WINDOW = 500;
+
+export const recentTransactions = internalQuery({
+    args: { caller: mcpCallerValidator, limit: v.optional(v.number()) },
+    handler: async (ctx, { caller, limit = 20 }) => {
+        const userId = caller.subject;
+        const rows = await ctx.db
+            .query("transactions")
+            .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+            .order("desc")
+            .take(SCAN_WINDOW);
+        const entries = rows
+            .filter((row) => row.deletedAt === null)
+            .sort((a, b) => b.date - a.date)
+            .slice(0, Math.min(Math.max(limit, 1), MAX_ENTRIES));
+        const categoryIds = [...new Set(entries.flatMap((row) => (row.categoryId ? [row.categoryId] : [])))];
+        const categories = await Promise.all(
+            categoryIds.map((localId) =>
+                ctx.db
+                    .query("categories")
+                    .withIndex("by_user_and_localId", (q) => q.eq("userId", userId).eq("localId", localId))
+                    .unique()
+            )
+        );
+        const categoryNames = new Map(categories.flatMap((row) => (row?.name ? [[row.localId, row.name]] : [])));
+        return entries.map((row) => ({
+            amount: row.amount,
+            category: row.categoryId ? (categoryNames.get(row.categoryId) ?? null) : null,
+            currency: row.currency,
+            date: new Date(row.date).toISOString().slice(0, 10),
+            kind: row.income ? "income" : "expense",
+            note: row.note,
+        }));
+    },
+});
+
+const DAY_MS = 86_400_000;
+const LATEST_PAYDAY = 28;
+
+export function utcOffsetOf(localMidnight: number): number {
+    const sinceUtcMidnight = ((localMidnight % DAY_MS) + DAY_MS) % DAY_MS;
+    return sinceUtcMidnight <= DAY_MS / 2 ? 0 - sinceUtcMidnight : DAY_MS - sinceUtcMidnight;
+}
+
+export function monthWindow(nowMs: number, offsetMs: number, firstDayOfMonth: number, monthsAgo: number) {
+    const local = new Date(nowMs + offsetMs);
+    const anchor = Math.min(Math.max(1, firstDayOfMonth), LATEST_PAYDAY);
+    const month = local.getUTCMonth() - monthsAgo - (local.getUTCDate() < anchor ? 1 : 0);
+    return {
+        end: Date.UTC(local.getUTCFullYear(), month + 1, anchor) - offsetMs,
+        start: Date.UTC(local.getUTCFullYear(), month, anchor) - offsetMs,
+    };
+}
+
+// ponytail: one fixed offset, so a window across a DST change is cut an hour off; sync the IANA zone to fix.
+const wall = (instant: number, offsetMs: number) => new Date(instant + offsetMs);
+const wallDay = (date: Date) => date.toISOString().slice(0, 10);
+const localDate = (instant: number, offsetMs: number) => wallDay(wall(instant, offsetMs));
+
+function zoneOffset(rows: readonly { date: number; day: number; deletedAt: number | null }[], now: number): number {
+    let latest: (typeof rows)[number] | null = null;
+    for (const row of rows) {
+        if (row.deletedAt === null && row.date <= now && (latest === null || row.date > latest.date)) {
+            latest = row;
+        }
+    }
+    return latest ? utcOffsetOf(latest.day) : 0;
+}
+
+async function ratesIn(ctx: QueryCtx, code: string): Promise<RateTable> {
+    if (code === "USD") {
+        return buildRateTable([]);
+    }
+    const rows = await ctx.db
+        .query("exchangeRates")
+        .withIndex("by_quote_and_rateType_and_date", (q) => q.eq("quote", code).eq("rateType", "official"))
+        .collect();
+    return buildRateTable(rows);
+}
+
+async function liveCategories(ctx: QueryCtx, userId: string) {
+    const rows = await ctx.db
+        .query("categories")
+        .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+        .collect();
+    return new Map(rows.filter((row) => row.deletedAt === null).map((row) => [row.localId, row]));
+}
+
+export async function setting(ctx: QueryCtx, userId: string, key: string): Promise<string | null> {
+    const row = await ctx.db
+        .query("appMeta")
+        .withIndex("by_user_and_key", (q) => q.eq("userId", userId).eq("key", key))
+        .unique();
+    return row?.value ?? null;
+}
+
+export const spendingSummary = internalQuery({
+    args: { caller: mcpCallerValidator, monthsAgo: v.optional(v.number()) },
+    handler: async (ctx, { caller, monthsAgo = 0 }) => {
+        const userId = caller.subject;
+        const currency = (await setting(ctx, userId, "currency")) ?? "USD";
+        const firstDayOfMonth = Number(await setting(ctx, userId, "firstDayOfMonth")) || 1;
+        const now = Date.now();
+        // ponytail: full scan of the user's rows; add a by_user_and_date index when ledgers outgrow it.
+        const stored = await ctx.db
+            .query("transactions")
+            .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+            .collect();
+        const rows = stored.filter((row) => row.deletedAt === null && row.date <= now);
+        const offsetMs = zoneOffset(rows, now);
+        const window = monthWindow(now, offsetMs, firstDayOfMonth, Math.max(0, Math.trunc(monthsAgo)));
+        const values = valueDatedRowsIn(
+            rows.map((row) => ({ ...row, date: new Date(row.date) })),
+            currency,
+            await ratesIn(ctx, currency)
+        );
+        const categoryRows = await ctx.db
+            .query("categories")
+            .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+            .collect();
+        const categories = new Map(categoryRows.map((row) => [row.localId, row]));
+        const decimals = decimalsFor(currency);
+        let spent = 0;
+        let income = 0;
+        const byCategory = new Map<string, number>();
+        for (const [index, row] of rows.entries()) {
+            if (row.date < window.start || row.date >= window.end) {
+                continue;
+            }
+            const value = values[index] ?? 0;
+            if (row.income) {
+                income += value;
+                continue;
+            }
+            spent += value;
+            const category = row.categoryId ? categories.get(row.categoryId) : undefined;
+            const top = category?.parentId ? categories.get(category.parentId) : category;
+            const name = top?.name ?? "Uncategorized";
+            byCategory.set(name, (byCategory.get(name) ?? 0) + value);
+        }
+        return {
+            currency,
+            from: localDate(window.start, offsetMs),
+            income: roundMoney(income, decimals),
+            spent: roundMoney(spent, decimals),
+            spentByCategory: [...byCategory]
+                .map(([category, amount]) => ({ amount: roundMoney(amount, decimals), category }))
+                .sort((a, b) => b.amount - a.amount),
+            to: localDate(window.end - 1, offsetMs),
+        };
+    },
+});
+
+type LegEntry = CurrencyEntry & { date: Date; leg: "flow" | "inbound" | "outbound" };
+
+function groupCells(entries: readonly LegEntry[], key: (entry: LegEntry) => string): CurrencyCell[] {
+    const groups = new Map<string, LegEntry[]>();
+    for (const entry of entries) {
+        const name = key(entry);
+        const group = groups.get(name);
+        if (group) {
+            group.push(entry);
+        } else {
+            groups.set(name, [entry]);
+        }
+    }
+    return [...groups.values()].flatMap((group) => toCells(group));
+}
+
+export const accountBalances = internalQuery({
+    args: { caller: mcpCallerValidator },
+    handler: async (ctx, { caller }) => {
+        const userId = caller.subject;
+        const now = Date.now();
+        const currency = (await setting(ctx, userId, "currency")) ?? "USD";
+        const [accountRows, transactionRows, transferRows, rates] = await Promise.all([
+            ctx.db
+                .query("accounts")
+                .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+                .collect(),
+            ctx.db
+                .query("transactions")
+                .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+                .collect(),
+            ctx.db
+                .query("transfers")
+                .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+                .collect(),
+            ratesIn(ctx, currency),
+        ]);
+        const offsetMs = zoneOffset(transactionRows, now);
+        const accounts = accountRows.filter((row) => row.deletedAt === null).sort((a, b) => a.sortOrder - b.sortOrder);
+        const ledger = new Map<string, LegEntry[]>(accounts.map((account) => [account.localId, []]));
+        for (const row of transactionRows) {
+            if (row.deletedAt === null && row.date <= now && row.accountId) {
+                ledger.get(row.accountId)?.push({ ...row, date: new Date(row.date), leg: "flow" });
+            }
+        }
+        for (const row of transferRows) {
+            if (row.deletedAt !== null || row.date > now) {
+                continue;
+            }
+            const date = new Date(row.date);
+            ledger.get(row.fromAccountId)?.push({
+                amount: row.fromAmount,
+                amountUsd: row.fromAmountUsd,
+                currency: row.fromCurrency,
+                date,
+                income: false,
+                leg: "outbound",
+            });
+            ledger.get(row.toAccountId)?.push({
+                amount: row.toAmount,
+                amountUsd: row.toAmountUsd,
+                currency: row.toCurrency,
+                date,
+                income: true,
+                leg: "inbound",
+            });
+        }
+        const overview = accountsOverview(
+            accounts.map((row) => ({ ...row, id: row.localId, initialBalanceDate: new Date(row.initialBalanceDate) })),
+            accounts.flatMap((account) =>
+                groupCells(ledger.get(account.localId) ?? [], (entry) => entry.leg).map((cell) => ({
+                    ...cell,
+                    accountId: account.localId,
+                }))
+            ),
+            currency,
+            rates
+        );
+        const decimals = decimalsFor(currency);
+        if (overview === null) {
+            return { accounts: [], currency, net: 0, owed: 0, owned: 0 };
+        }
+        const codes = [...new Set(accounts.map((row) => row.currency))];
+        const ownRates = new Map(
+            await Promise.all(codes.map(async (code) => [code, await ratesIn(ctx, code)] as const))
+        );
+        return {
+            accounts: accounts.map((account, index) => {
+                const own = accountBalance(
+                    account,
+                    groupCells(
+                        ledger.get(account.localId) ?? [],
+                        (entry) => `${entry.leg}|${localDate(entry.date.getTime(), offsetMs)}`
+                    ),
+                    ownRates.get(account.currency) ?? buildRateTable([])
+                );
+                const row = overview.rows[index];
+                return {
+                    balance: roundMoney(own.total, decimalsFor(account.currency)),
+                    balanceInMainCurrency: roundMoney(row.balance, decimals),
+                    currency: account.currency,
+                    exact: own.exact && row.exact,
+                    kind: row.kind,
+                    name: account.name,
+                };
+            }),
+            currency,
+            net: roundMoney(overview.total, decimals),
+            owed: roundMoney(overview.owe, decimals),
+            owned: roundMoney(overview.own, decimals),
+        };
+    },
+});
+
+const BUDGET_PERIODS = new Map<number, string>(Object.entries(BUDGET_TYPE).map(([name, code]) => [code, name]));
+
+interface StoredBudget {
+    amount: number;
+    amountUsd: number | null;
+    currency: string | null;
+    dateCreated: number | null;
+    rollover: boolean;
+    startDate: number | null;
+    type: number;
+}
+
+interface BudgetClock {
+    currency: string;
+    now: Date;
+    offsetMs: number;
+    rates: RateTable;
+}
+
+function budgetStanding(
+    budget: StoredBudget,
+    carries: boolean,
+    spentThrough: (start: Date, last: Date) => number,
+    clock: BudgetClock
+) {
+    const window = advanceBudgetWindow(
+        budget.startDate === null ? clock.now : wall(budget.startDate, clock.offsetMs),
+        budget.type,
+        clock.now
+    );
+    const spent = spentThrough(window.start, new Date(windowEndMs(window, clock.now.getTime())));
+    const limit = limitIn(budget, new Date(window.start.getTime() - clock.offsetMs), clock.currency, clock.rates);
+    const carry = carries
+        ? rolloverCarry({
+              anchor: budget.dateCreated === null ? window.start : wall(budget.dateCreated, clock.offsetMs),
+              current: window,
+              limit,
+              spentIn: (start, end) => spentThrough(start, lastMsBefore(end)),
+              type: budget.type,
+          }).credit
+        : 0;
+    const amount = effectiveLimit(limit, carry);
+    const decimals = decimalsFor(clock.currency);
+    return {
+        carryOver: roundMoney(carry, decimals),
+        effectiveLimit: roundMoney(amount, decimals),
+        from: wallDay(window.start),
+        limit: roundMoney(limit, decimals),
+        overBudget: spent > amount,
+        period: BUDGET_PERIODS.get(budget.type) ?? null,
+        remaining: roundMoney(amount - spent, decimals),
+        rollover: budget.rollover,
+        spent: roundMoney(spent, decimals),
+        to: wallDay(new Date(window.end.getTime() - 1)),
+    };
+}
+
+const customName = (name: string | null) => (name?.trim() ? name.trim() : null);
+
+export const budgetStatus = internalQuery({
+    args: { caller: mcpCallerValidator },
+    handler: async (ctx, { caller }) => {
+        const userId = caller.subject;
+        const now = Date.now();
+        const currency = (await setting(ctx, userId, "currency")) ?? "USD";
+        const [mainRows, budgetRows, transactionRows, categories, rates] = await Promise.all([
+            ctx.db
+                .query("mainBudget")
+                .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+                .collect(),
+            ctx.db
+                .query("budgets")
+                .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+                .collect(),
+            ctx.db
+                .query("transactions")
+                .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+                .collect(),
+            liveCategories(ctx, userId),
+            ratesIn(ctx, currency),
+        ]);
+        const offsetMs = zoneOffset(transactionRows, now);
+        const expenses = transactionRows.filter((row) => row.deletedAt === null && !row.income && row.date <= now);
+        const values = valueDatedRowsIn(
+            expenses.map((row) => ({ ...row, date: new Date(row.date) })),
+            currency,
+            rates
+        );
+        const contributions: ExpenseContribution[] = expenses.map((row, index) => ({
+            amount: values[index] ?? 0,
+            categoryId: row.categoryId,
+            date: wall(row.date, offsetMs),
+            parentId: row.categoryId ? (categories.get(row.categoryId)?.parentId ?? null) : null,
+        }));
+        const clock = { currency, now: wall(now, offsetMs), offsetMs, rates };
+        const main = mainRows.find((row) => row.deletedAt === null);
+        return {
+            categories: budgetRows
+                .filter((row) => row.deletedAt === null)
+                .sort((a, b) => (a.dateCreated ?? 0) - (b.dateCreated ?? 0))
+                .map((row) => {
+                    const { categoryId } = row;
+                    return {
+                        ...budgetStanding(
+                            row,
+                            row.rollover && categoryId !== null,
+                            (start, last) =>
+                                categoryId === null ? 0 : spentForCategory(contributions, categoryId, start, last),
+                            clock
+                        ),
+                        category: categoryId ? (categories.get(categoryId)?.name ?? null) : null,
+                        name: customName(row.name),
+                        subcategories: [...categories.values()].flatMap((child) =>
+                            categoryId !== null && child.parentId === categoryId && child.name ? [child.name] : []
+                        ),
+                    };
+                }),
+            currency,
+            overall: main
+                ? {
+                      ...budgetStanding(
+                          main,
+                          main.rollover,
+                          (start, last) => spentForMain(contributions, start, last),
+                          clock
+                      ),
+                      name: customName(main.name),
+                  }
+                : null,
+        };
+    },
+});
+
+export const upcomingCharges = internalQuery({
+    args: { caller: mcpCallerValidator },
+    handler: async (ctx, { caller }) => {
+        const userId = caller.subject;
+        const now = Date.now();
+        const currency = (await setting(ctx, userId, "currency")) ?? "USD";
+        const [transactionRows, categories, rates] = await Promise.all([
+            ctx.db
+                .query("transactions")
+                .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+                .collect(),
+            liveCategories(ctx, userId),
+            ratesIn(ctx, currency),
+        ]);
+        const offsetMs = zoneOffset(transactionRows, now);
+        const today = wall(now, offsetMs);
+        const scheduled = transactionRows.filter(
+            (row) => row.deletedAt === null && (row.recurringType > RECURRING_TYPE.none || row.date > now)
+        );
+        const perMonth = monthlySubscriptionCost(
+            scheduled.map((row) => ({
+                ...row,
+                date: new Date(row.date),
+                recurringEndDate: row.recurringEndDate === null ? null : wall(row.recurringEndDate, offsetMs),
+            })),
+            currency,
+            rates,
+            today
+        );
+        const cadences = new Map<number, string>(Object.entries(RECURRING_TYPE).map(([name, code]) => [code, name]));
+        return {
+            charges: scheduled
+                .map((row) => ({
+                    landsOn: landingDate(
+                        {
+                            date: wall(row.date, offsetMs),
+                            recurringAnchorDay: row.recurringAnchorDay ?? null,
+                            recurringCoefficient: row.recurringCoefficient,
+                            recurringType: row.recurringType,
+                        },
+                        today
+                    ),
+                    row,
+                }))
+                .sort((a, b) => a.landsOn.getTime() - b.landsOn.getTime())
+                .map(({ landsOn, row }) => ({
+                    amount: row.amount,
+                    category: row.categoryId ? (categories.get(row.categoryId)?.name ?? null) : null,
+                    currency: row.currency,
+                    endsOn: row.recurringEndDate === null ? null : localDate(row.recurringEndDate, offsetMs),
+                    kind: row.income ? "income" : "expense",
+                    nextCharge: wallDay(landsOn),
+                    note: row.note,
+                    repeats:
+                        row.recurringType === RECURRING_TYPE.none
+                            ? null
+                            : { cadence: cadences.get(row.recurringType) ?? null, every: row.recurringCoefficient },
+                })),
+            currency,
+            monthlyCost: perMonth
+                .filter((bucket) => bucket.transactionCount > 0)
+                .map((bucket) => ({
+                    amount: roundMoney(-bucket.amount, decimalsFor(bucket.currencyCode)),
+                    currency: bucket.currencyCode,
+                    schedules: bucket.transactionCount,
+                })),
+        };
+    },
+});
+
+export const ledgerTools: McpToolRegistration[] = [
+    defineMcpQuery({
+        annotations: { readOnlyHint: true },
+        args: { caller: mcpCallerValidator, limit: v.optional(v.number()) },
+        description:
+            "The signed-in user's most recent Outlayr entries, newest first: date, amount, currency, category, note, and whether each is an expense or income. Reads what the user's devices last synced. `limit` defaults to 20, at most 50.",
+        fn: internal.mcpLedger.recentTransactions,
+        identityArg: "caller",
+        name: "recent_transactions",
+    }),
+    defineMcpQuery({
+        annotations: { readOnlyHint: true },
+        args: { caller: mcpCallerValidator, monthsAgo: v.optional(v.number()) },
+        description:
+            "What the signed-in user spent and earned in one budgeting month, in their main currency, with spending by category: the same figures as Outlayr's Insights screen. A month starts on the user's payday setting. `monthsAgo` is 0 for the current month (default), 1 for the previous one, and so on. Reads what the user's devices last synced.",
+        fn: internal.mcpLedger.spendingSummary,
+        identityArg: "caller",
+        name: "spending_summary",
+    }),
+    defineMcpQuery({
+        annotations: { readOnlyHint: true },
+        args: { caller: mcpCallerValidator },
+        description:
+            "Every account's balance today, as on Outlayr's Accounts screen: in the account's own currency and in the user's main currency, with its kind (asset or liability) and what the user owns, owes and is worth in total. Entries and transfers dated later than now are not counted. `exact` is false when a rate was missing and part of a figure stayed at face value.",
+        fn: internal.mcpLedger.accountBalances,
+        identityArg: "caller",
+        name: "account_balances",
+    }),
+    defineMcpQuery({
+        annotations: { readOnlyHint: true },
+        args: { caller: mcpCallerValidator },
+        description:
+            "Where the user's budgets stand in the current window, as on Outlayr's Budgets screen, in their main currency: the overall budget and each category budget with its period, window dates (`from` and `to`, inclusive), limit, carry-over from earlier windows when rollover is on, the effective limit, spent, remaining and whether it is over. A category budget counts its subcategories, which are listed.",
+        fn: internal.mcpLedger.budgetStatus,
+        identityArg: "caller",
+        name: "budget_status",
+    }),
+    defineMcpQuery({
+        annotations: { readOnlyHint: true },
+        args: { caller: mcpCallerValidator },
+        description:
+            "The user's recurring and future-dated entries, soonest first, as on Outlayr's Upcoming list: the date each next lands, its amount and currency, category, note, cadence and end date. `monthlyCost` is what the recurring expenses cost per month, per currency, converted into the main currency where a rate allows.",
+        fn: internal.mcpLedger.upcomingCharges,
+        identityArg: "caller",
+        name: "upcoming_charges",
+    }),
+];

@@ -1,7 +1,6 @@
 import { utcDateString } from "@outlayr/money/dates";
-
-import { valueDatedRowsIn, valueExactIn } from "./valuation";
-import type { RateTable } from "./valuation";
+import { valueDatedRowsIn, valueExactIn } from "@outlayr/money/valuation";
+import type { RateTable } from "@outlayr/money/valuation";
 
 interface SpendingCalendarValuation {
     displayCurrency: string;

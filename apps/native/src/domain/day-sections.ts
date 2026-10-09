@@ -1,7 +1,8 @@
-import { currencyTotals } from "./currency-totals";
-import type { CurrencyBucket } from "./currency-totals";
+import { currencyTotals } from "@outlayr/money/currency-totals";
+import type { CurrencyBucket } from "@outlayr/money/currency-totals";
+import type { RateTable } from "@outlayr/money/valuation";
+
 import { DEFAULT_CURRENCY } from "./money";
-import type { RateTable } from "./valuation";
 
 export interface DayGroupable {
     amount: number;

@@ -1,14 +1,15 @@
 import { beforeAll, describe, expect, it } from "@jest/globals";
+import { lastMsBefore, spentForCategory, spentForMain } from "@outlayr/money/budget-spent";
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
 import { utcDateString } from "@outlayr/money/dates";
+import { buildRateTable, sumValuedIn, valueDatedRowsIn, valueIn } from "@outlayr/money/valuation";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import { categories, transactions } from "@/db/schema";
 import * as schema from "@/db/schema";
-import { buildRateTable, sumValuedIn, valueDatedRowsIn, valueIn } from "@/domain/valuation";
 
-import { expenseContributionQuery, lastMsBefore, spentForCategory, spentForMain } from "./budget-spent";
-import type { ExpenseContribution } from "./budget-spent";
+import { expenseContributionQuery } from "./budget-spent";
 
 type TestDb = ReturnType<typeof makeDb>;
 

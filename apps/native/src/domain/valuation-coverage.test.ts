@@ -1,10 +1,10 @@
 import { describe, expect, it } from "@jest/globals";
+import { buildRateTable } from "@outlayr/money/valuation";
 
 import { EN } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";
 
-import { buildRateTable } from "./valuation";
 import { coverageNote, coverageOf } from "./valuation-coverage";
 
 const t: TranslateFn = (key, params) => translate(key, { catalog: EN, fallback: EN, params });

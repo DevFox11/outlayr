@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import type { CurrencyCell } from "@outlayr/money/currency-totals";
 import { fireEvent, render } from "@testing-library/react-native";
 
 import { testDisplaySettingsValue as mockTestDisplaySettingsValue } from "@/contexts/test-settings";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { unusedDatabase as mockUnusedDatabase } from "@/db/test-database";
-import type { CurrencyCell } from "@/domain/currency-totals";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { AccountDetail } from "./detail";

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
-
-import { BUDGET_TYPE } from "./budget-math";
-import { effectiveLimit, MAX_CARRY_PERIODS, rolloverCarry } from "./budget-rollover";
+import { effectiveLimit, MAX_CARRY_PERIODS, rolloverCarry } from "@outlayr/money/budget-rollover";
+import { BUDGET_TYPE } from "@outlayr/money/budget-window";
 
 const MONTH = BUDGET_TYPE.month;
 

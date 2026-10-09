@@ -1,7 +1,7 @@
-import { utcDateString } from "@outlayr/money/dates";
-import { MoneyValidationError } from "@outlayr/money/errors";
-import { computeAmountUSD, resolveEntryRate } from "@outlayr/money/rates";
-import type { EntryRateType, RateLookup } from "@outlayr/money/rates";
+import { utcDateString } from "./dates";
+import { MoneyValidationError } from "./errors";
+import { computeAmountUSD, resolveEntryRate } from "./rates";
+import type { EntryRateType, RateLookup } from "./rates";
 
 export interface CanonicalUsd {
     amountUsd: number | null;

@@ -1,4 +1,4 @@
-import { RECURRING_TYPE } from "./recurrence";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 
 export interface TransactionRowActionContext {
     /** The row's stored date, which for a carrier is its last charge, not its next. */

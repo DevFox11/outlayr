@@ -1,6 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-
-import type { ExpenseContribution } from "@/data/budget-spent";
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
 
 import { dominantCategory } from "./budget-dominant";
 

@@ -1,8 +1,8 @@
+import type { CurrencyCell } from "@outlayr/money/currency-totals";
 import { and, count, eq, gte, isNotNull, isNull, lte, sql, sum } from "drizzle-orm";
 
 import type { SpendDb } from "@/data/budget-spent";
 import { transactions } from "@/db/schema";
-import type { CurrencyCell } from "@/domain/currency-totals";
 
 /**
  * Deliberately the same key `utcDateString` derives in JS, so a rate looked up

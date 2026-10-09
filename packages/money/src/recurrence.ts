@@ -1,4 +1,4 @@
-import { addDays, startOfDay } from "./dates";
+import { addDays, startOfDay } from "./calendar";
 
 /**
  * Mirrors the Swift `RecurringCadence` raw values so a transaction's persisted
@@ -181,4 +181,19 @@ export function nextLanding(
         advanced = advance(holding);
     }
     return null;
+}
+
+/** Swift's `nextTransactionDate`. */
+export function landingDate(
+    row: { date: Date; recurringAnchorDay: number | null; recurringCoefficient: number | null; recurringType: number },
+    now: Date
+): Date {
+    if (row.date.getTime() > now.getTime()) {
+        return row.date;
+    }
+    // From the instant's own day, not the stored `day`: that is midnight in the
+    // writing device's zone and can read as the day before on this one.
+    return (
+        nextDate(startOfDay(row.date), row.recurringType, row.recurringCoefficient ?? 1, anchorDayOf(row)) ?? row.date
+    );
 }

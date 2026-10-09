@@ -1,7 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
+import { canonicalUsd } from "@outlayr/money/canonical-usd";
 import type { RateLookup } from "@outlayr/money/rates";
-
-import { canonicalUsd } from "./canonical-usd";
 
 /** A lookup over a fixed table, mirroring what the local replica serves. */
 function lookupOf(rows: Record<string, number>, seen?: { calls: number }): RateLookup {

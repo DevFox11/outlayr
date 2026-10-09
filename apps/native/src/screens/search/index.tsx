@@ -1,4 +1,6 @@
 import { SectionList } from "@legendapp/list/section-list";
+import { cellFigures, toCells } from "@outlayr/money/currency-totals";
+import type { CurrencyFigures } from "@outlayr/money/currency-totals";
 import { Stack, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -14,8 +16,6 @@ import { useSearchedTransactions } from "@/data/log-search";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
-import { cellFigures, toCells } from "@/domain/currency-totals";
-import type { CurrencyFigures } from "@/domain/currency-totals";
 import { groupByDay } from "@/domain/day-sections";
 import { useTranslation } from "@/i18n/context";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";

@@ -1,5 +1,6 @@
+import { startOfDay } from "@outlayr/money/calendar";
+
 import type { ImportEntry } from "@/data/transfer-core";
-import { startOfDay } from "@/domain/dates";
 import { merchantKey } from "@/domain/merchant-resolver";
 
 export interface ExistingRow {

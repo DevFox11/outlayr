@@ -1,13 +1,13 @@
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
+import type { BudgetWindow } from "@outlayr/money/budget-window";
 import { useMemo } from "react";
 import { View } from "react-native";
 
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
-import type { ExpenseContribution } from "@/data/budget-spent";
 import { buildDaySlots, dayVerdictSentence } from "@/domain/budget-day-slots";
 import type { DaySlots } from "@/domain/budget-day-slots";
-import type { BudgetWindow } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 

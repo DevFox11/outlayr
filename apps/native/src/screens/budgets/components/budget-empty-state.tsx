@@ -1,3 +1,5 @@
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
+import { BUDGET_TYPE } from "@outlayr/money/budget-window";
 import { Pressable, View } from "react-native";
 import type { ViewStyle } from "react-native";
 import Svg, { Path } from "react-native-svg";
@@ -5,8 +7,6 @@ import Svg, { Path } from "react-native-svg";
 import { EmptyState, useMark } from "@/components/empty-state";
 import { Arrive } from "@/components/mark-motion";
 import { Text } from "@/components/text";
-import type { ExpenseContribution } from "@/data/budget-spent";
-import { BUDGET_TYPE } from "@/domain/budget-math";
 import { useTranslation } from "@/i18n/context";
 import { MARK_CEILING } from "@/theme/empty-state-ink";
 import { useColors } from "@/theme/use-colors";

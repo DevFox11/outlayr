@@ -1,8 +1,8 @@
+import { SELECTABLE_RECURRING_TYPES } from "@outlayr/money/recurrence";
 import { Pressable, View } from "react-native";
 
 import { Text } from "@/components/text";
 import { formatSentenceDate } from "@/domain/dates";
-import { SELECTABLE_RECURRING_TYPES } from "@/domain/recurrence";
 import { cadenceLabel, leadLabel } from "@/domain/transaction-form-labels";
 import { useLanguage, useTranslation } from "@/i18n/context";
 

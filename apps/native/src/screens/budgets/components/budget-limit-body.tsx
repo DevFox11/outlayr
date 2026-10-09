@@ -1,3 +1,7 @@
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
+import { lastMsBefore, spentForCategory, spentForMain } from "@outlayr/money/budget-spent";
+import { BUDGET_TYPE, periodEnd, startOfPeriod } from "@outlayr/money/budget-window";
+import type { BudgetWindow } from "@outlayr/money/budget-window";
 import { useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -10,20 +14,10 @@ import { Sentence } from "@/components/sentence/sentence";
 import { revealEntering } from "@/components/sentence/sentence-motion";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
-import type { ExpenseContribution } from "@/data/budget-spent";
-import { lastMsBefore, spentForCategory, spentForMain } from "@/data/budget-spent";
 import { earliestDate } from "@/data/budgets";
 import { buildBurndown } from "@/domain/budget-burndown";
 import { suggestedLimit } from "@/domain/budget-limit-step";
-import {
-    BUDGET_TYPE,
-    budgetPeriodCadence,
-    budgetPeriodName,
-    budgetWindowLabel,
-    periodEnd,
-    startOfPeriod,
-} from "@/domain/budget-math";
-import type { BudgetWindow } from "@/domain/budget-math";
+import { budgetPeriodCadence, budgetPeriodName, budgetWindowLabel } from "@/domain/budget-math";
 import { typicalSpend } from "@/domain/budget-typical";
 import { monthLongTitle } from "@/domain/dates";
 import { formatAmount, minorUnitsFor } from "@/domain/money";

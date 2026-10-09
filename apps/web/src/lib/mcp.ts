@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import llms from "../../public/llms.txt?raw";
-import { SITE_URL } from "./site";
+import { LEDGER_MCP_ORIGIN, SITE_URL } from "./site";
 
 const PROTOCOL_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26"] as const;
 const LLMS_URI = `${SITE_URL}/llms.txt`;
@@ -26,16 +26,31 @@ const LLMS_RESOURCE = {
     uri: LLMS_URI,
 };
 
+export const SERVER_CARD_TYPE = "application/mcp-server-card+json";
+const CARD_SCHEMA = "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json";
+const ICONS = [{ mimeType: "image/png", sizes: ["180x180"], src: `${SITE_URL}/apple-touch-icon.png` }];
+
 export const SERVER_CARD = {
-    $schema: "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
+    $schema: CARD_SCHEMA,
     ...SERVER_INFO,
     capabilities: CAPABILITIES,
     description: "Read-only facts about the Outlayr expense tracker: features, plans, privacy, and guides.",
-    icons: [{ mimeType: "image/png", sizes: ["180x180"], src: `${SITE_URL}/apple-touch-icon.png` }],
+    icons: ICONS,
     remotes: [{ supportedProtocolVersions: PROTOCOL_VERSIONS, type: "streamable-http", url: `${SITE_URL}/mcp` }],
     serverInfo: SERVER_INFO,
     transport: { endpoint: "/mcp", type: "streamable-http" },
     websiteUrl: SITE_URL,
+};
+
+export const LEDGER_SERVER_CARD = {
+    $schema: CARD_SCHEMA,
+    description: "An Outlayr user's own entries and monthly spending, after they sign in and approve.",
+    icons: ICONS,
+    name: "com.tryoutlayr/ledger",
+    remotes: [{ type: "streamable-http", url: `${LEDGER_MCP_ORIGIN}/mcp` }],
+    title: "Outlayr ledger",
+    version: "0.1.0",
+    websiteUrl: `${SITE_URL}/auth.md`,
 };
 
 const JsonRpcMessage = z.object({

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { utcDateString } from "@outlayr/money/dates";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 import { act, fireEvent, render, waitFor, within } from "@testing-library/react-native";
 import { eq } from "drizzle-orm";
 import { AccessibilityInfo, Alert } from "react-native";
@@ -18,7 +19,6 @@ import type { Transaction } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { accounts, categories, exchangeRates, tags, transactions } from "@/db/schema";
 import { migratedDatabase, transactionalDatabase } from "@/db/test-database";
-import { RECURRING_TYPE } from "@/domain/recurrence";
 import type { LogAgainDraft } from "@/domain/transaction-actions";
 import { celebration } from "@/lib/celebration";
 import { fetchMerchantImage } from "@/lib/logo-fetch";

@@ -1,8 +1,8 @@
 import { BottomSheetModal, BottomSheetView } from "@expo/ui/community/bottom-sheet";
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
 import { useState } from "react";
 import type { Ref } from "react";
 
-import type { ExpenseContribution } from "@/data/budget-spent";
 import { useColors } from "@/theme/use-colors";
 
 import { BudgetLimitBody } from "./budget-limit-body";

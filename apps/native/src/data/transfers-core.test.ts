@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+import { firstOfMonth, startOfDay } from "@outlayr/money/calendar";
 import { utcDateString } from "@outlayr/money/dates";
 import BetterSqlite3 from "better-sqlite3";
 import { eq, isNull } from "drizzle-orm";
@@ -6,7 +7,6 @@ import { eq, isNull } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { transactions, transfers } from "@/db/schema";
 import { testDatabase, withAsyncTransactions } from "@/db/test-database";
-import { firstOfMonth, startOfDay } from "@/domain/dates";
 
 import { accountsRepo } from "./accounts-core";
 import { lastTransfer, savedTransfer, transfersRepo } from "./transfers-core";

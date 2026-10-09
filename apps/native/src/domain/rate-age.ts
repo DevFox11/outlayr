@@ -1,6 +1,7 @@
+import { startOfDay } from "@outlayr/money/calendar";
 import { utcDateString } from "@outlayr/money/dates";
 
-import { formatSentenceDate, formatTime, startOfDay } from "@/domain/dates";
+import { formatSentenceDate, formatTime } from "@/domain/dates";
 import type { TranslateFn } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 

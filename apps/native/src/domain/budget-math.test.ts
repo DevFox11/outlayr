@@ -2,23 +2,20 @@ import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 
 import { describe, expect, it } from "@jest/globals";
-
-import { EN, ES } from "@/i18n/catalog";
-
-import * as budgetMath from "./budget-math";
 import {
     advanceBudgetWindow,
     BUDGET_TYPE,
-    budgetDetailPace,
-    budgetPeriodPhrase,
-    budgetRail,
-    budgetWindowLabel,
     periodEnd,
     periodsBackTo,
     previousPeriodStart,
     shiftWindow,
     startOfPeriod,
-} from "./budget-math";
+} from "@outlayr/money/budget-window";
+
+import { EN, ES } from "@/i18n/catalog";
+
+import * as budgetMath from "./budget-math";
+import { budgetDetailPace, budgetPeriodPhrase, budgetRail, budgetWindowLabel } from "./budget-math";
 
 const d = (y: number, m: number, day: number, h = 0, min = 0): Date => new Date(y, m - 1, day, h, min, 0, 0);
 

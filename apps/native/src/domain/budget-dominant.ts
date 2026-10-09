@@ -1,6 +1,5 @@
-import type { ExpenseContribution } from "@/data/budget-spent";
-
-import type { BudgetWindow } from "./budget-math";
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
+import type { BudgetWindow } from "@outlayr/money/budget-window";
 
 export interface DominantCategory {
     categoryId: string;

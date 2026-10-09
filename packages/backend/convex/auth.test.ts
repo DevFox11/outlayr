@@ -1,6 +1,8 @@
 /// <reference types="vite/client" />
 
+import { apple as appleProvider } from "better-auth/social-providers";
 import { convexTest } from "convex-test";
+import { decodeJwt, exportJWK, generateKeyPair, SignJWT } from "jose";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { createAuth } from "./auth";
@@ -23,8 +25,30 @@ const baseUrlWith = async (vars: Record<string, string>) => {
     return await t.run(async (ctx) => createAuth(ctx).options.baseURL);
 };
 
+const resolveApple = async (vars: Record<string, string>) => {
+    vi.stubEnv("APPLE_CLIENT_ID", "com.tryoutlayr.app");
+    vi.stubEnv("APPLE_TEAM_ID", "TEAM123456");
+    vi.stubEnv("APPLE_KEY_ID", "KEY1234567");
+    vi.stubEnv("APPLE_PRIVATE_KEY", APPLE_TEST_KEY);
+    for (const [name, value] of Object.entries(vars)) {
+        vi.stubEnv(name, value);
+    }
+    vi.resetModules();
+    const { createAuth: build } = await import("./auth");
+    const t = convexTest(schema, modules);
+    const apple = await t.run(async (ctx) => {
+        const factory = build(ctx).options.socialProviders?.apple;
+        return typeof factory === "function" ? await factory() : factory;
+    });
+    if (!apple) {
+        throw new Error("Apple provider is missing");
+    }
+    return apple;
+};
+
 afterEach(() => {
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
 });
 
 describe("auth base url", () => {
@@ -66,27 +90,37 @@ describe("auth", () => {
         expect(handlerType).toBe("function");
     });
 
-    // The four APPLE_* variables are read at module scope, so the module has to be
+    // The APPLE_* variables are read at module scope, so the module has to be
     // re-imported after they are stubbed.
     it("enables the Apple provider once its credentials are configured", async () => {
-        vi.stubEnv("APPLE_CLIENT_ID", "com.tryoutlayr.app");
-        vi.stubEnv("APPLE_TEAM_ID", "TEAM123456");
-        vi.stubEnv("APPLE_KEY_ID", "KEY1234567");
-        vi.stubEnv("APPLE_PRIVATE_KEY", APPLE_TEST_KEY);
-        vi.resetModules();
-        const { createAuth: build } = await import("./auth");
-        const t = convexTest(schema, modules);
-
-        const apple = await t.run(async (ctx) => {
-            const factory = build(ctx).options.socialProviders?.apple;
-            return typeof factory === "function" ? await factory() : factory;
-        });
+        const apple = await resolveApple({});
 
         // Better Auth drops a provider whole on `enabled: false`, so this being
         // false is not "configured but off" — it is the Apple button answering
         // PROVIDER_NOT_FOUND on every tap.
-        expect(apple?.enabled).toBeTruthy();
-        expect(apple?.clientId).toBe("com.tryoutlayr.app");
+        expect(apple.enabled).toBeTruthy();
+        expect(apple.clientId).toBe("com.tryoutlayr.app");
+    });
+
+    it("signs in on the web with the Services ID and keeps verifying native id tokens against the bundle id", async () => {
+        const apple = await resolveApple({ APPLE_WEB_CLIENT_ID: "com.danestves.outlayr.si" });
+        const { privateKey, publicKey } = await generateKeyPair("ES256");
+        const jwk = { ...(await exportJWK(publicKey)), alg: "ES256", kid: "apple-test" };
+        vi.stubGlobal(
+            "fetch",
+            vi.fn(async () => Response.json({ keys: [jwk] }))
+        );
+        const nativeIdToken = await new SignJWT({ nonce: "native-nonce" })
+            .setProtectedHeader({ alg: "ES256", kid: "apple-test" })
+            .setIssuer("https://appleid.apple.com")
+            .setAudience("com.tryoutlayr.app")
+            .setSubject("001234.apple-subject")
+            .setIssuedAt()
+            .sign(privateKey);
+
+        expect(apple.clientId).toBe("com.danestves.outlayr.si");
+        expect(decodeJwt(apple.clientSecret).sub).toBe("com.danestves.outlayr.si");
+        await expect(appleProvider(apple).verifyIdToken(nativeIdToken, "native-nonce")).resolves.toBeTruthy();
     });
 
     it("disables Better Auth public deletion while the resumable job owns deletion", async () => {

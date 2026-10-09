@@ -1,8 +1,7 @@
-import { decimalsFor } from "@outlayr/money/currency";
-import { utcDateString } from "@outlayr/money/dates";
-import { convertFromUsd, roundMoney } from "@outlayr/money/round";
-
-import { isTransactionRateNeeded } from "./transaction-entry-rate";
+import { decimalsFor } from "./currency";
+import { utcDateString } from "./dates";
+import { isTransactionRateNeeded } from "./rates";
+import { convertFromUsd, roundMoney } from "./round";
 
 export interface Valuable {
     amount: number;
@@ -136,10 +135,9 @@ export interface DirectedValuable extends Valuable {
  */
 export function valueRowsIn(rows: readonly DirectedValuable[], displayCurrency: string, rates: RateTable): number[] {
     const values: number[] = Array.from({ length: rows.length });
-    const cells = new Map<string, number[]>();
+    const cells = new Map<string, { index: number; row: DirectedValuable }[]>();
 
-    for (let index = 0; index < rows.length; index += 1) {
-        const row = rows[index];
+    for (const [index, row] of rows.entries()) {
         // USD needs no conversion pass, so its rows never round and per-row is
         // already per-cell; the other two cannot be converted at all.
         if (displayCurrency === "USD" || row.currency === displayCurrency || canonicalOf(row) === null) {
@@ -149,9 +147,9 @@ export function valueRowsIn(rows: readonly DirectedValuable[], displayCurrency: 
         const key = `${row.currency}|${row.dateKey}|${row.income ?? false}`;
         const cell = cells.get(key);
         if (cell) {
-            cell.push(index);
+            cell.push({ index, row });
         } else {
-            cells.set(key, [index]);
+            cells.set(key, [{ index, row }]);
         }
     }
 
@@ -160,19 +158,18 @@ export function valueRowsIn(rows: readonly DirectedValuable[], displayCurrency: 
     // two here left a 3-decimal currency's rows failing to sum to their header.
     const decimals = decimalsFor(displayCurrency);
 
-    for (const indices of cells.values()) {
+    for (const members of cells.values()) {
         let runningUsd = 0;
         let assigned = 0;
-        for (const index of indices) {
-            const row = rows[index];
-            // SAFETY: `indices` holds only rows `canonicalOf` answered a number for —
+        for (const { index, row } of members) {
+            // SAFETY: `members` holds only rows `canonicalOf` answered a number for —
             // the null ones were partitioned out before this loop.
             runningUsd += canonicalOf(row) as number;
             const converted = convertUsdSum(runningUsd, row.dateKey, displayCurrency, rates);
             if (converted === null) {
                 // One dateKey per cell, so no rate for it means no rate for any of them.
-                for (const other of indices) {
-                    values[other] = rows[other].amount;
+                for (const other of members) {
+                    values[other.index] = other.row.amount;
                 }
                 break;
             }

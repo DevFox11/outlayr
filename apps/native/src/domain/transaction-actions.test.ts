@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 
-import { RECURRING_TYPE } from "./recurrence";
 import { logAgainDraft, transactionRowActions } from "./transaction-actions";
 
 const NOW = new Date(2025, 5, 15, 10, 30);

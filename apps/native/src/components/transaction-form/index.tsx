@@ -12,6 +12,7 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import { ENTRY_RATE_TYPES } from "@outlayr/money/rates";
 import type { EntryRateType } from "@outlayr/money/rates";
+import { ensureRecurringType, RECURRING_TYPE } from "@outlayr/money/recurrence";
 import { useField, useForm, useSelector } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
 import { PortalHost, PortalProvider } from "panelui-native";
@@ -78,7 +79,6 @@ import { formatAmount, minorUnitsFor, numberLocale, roundToMinorUnits, symbolIsS
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { rateAge } from "@/domain/rate-age";
 import type { RateAge } from "@/domain/rate-age";
-import { ensureRecurringType, RECURRING_TYPE } from "@/domain/recurrence";
 import { enableReminderStep } from "@/domain/reminder";
 import { isBalanced } from "@/domain/split";
 import { isRealSplit } from "@/domain/split-draft";

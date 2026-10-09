@@ -1,9 +1,9 @@
+import { valueCell } from "@outlayr/money/currency-totals";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
-import { valueCell } from "@/domain/currency-totals";
 
 import type { Category, CategoryWithChildren } from "./categories-core";
 import { categoryCellQuery, toCurrencyCell } from "./cell-query";

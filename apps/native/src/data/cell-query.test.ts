@@ -1,10 +1,10 @@
 import { describe, expect, it } from "@jest/globals";
+import { cellFigures } from "@outlayr/money/currency-totals";
+import { buildRateTable } from "@outlayr/money/valuation";
 import BetterSqlite3 from "better-sqlite3";
 
 import { transactions } from "@/db/schema";
 import { testSpendDb } from "@/db/test-database";
-import { cellFigures } from "@/domain/currency-totals";
-import { buildRateTable } from "@/domain/valuation";
 
 import type { SpendDb } from "./budget-spent";
 import { logCellQuery, toCurrencyCells } from "./cell-query";

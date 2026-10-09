@@ -1,12 +1,12 @@
 import { describe, expect, it } from "@jest/globals";
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
+import type { BudgetWindow } from "@outlayr/money/budget-window";
 
-import type { ExpenseContribution } from "@/data/budget-spent";
 import { EN } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";
 
 import { buildDaySlots, categoryMedian, dayVerdictSentence } from "./budget-day-slots";
-import type { BudgetWindow } from "./budget-math";
 
 const TODAY: BudgetWindow = {
     end: new Date(2026, 6, 26),

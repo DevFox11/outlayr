@@ -1,4 +1,5 @@
-import { addDays } from "./dates";
+import { addDays } from "@outlayr/money/calendar";
+
 import type { TimeOfDay } from "./reminder";
 
 /**

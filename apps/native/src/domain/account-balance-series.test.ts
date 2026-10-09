@@ -1,9 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
+import type { CurrencyCell } from "@outlayr/money/currency-totals";
+import { buildRateTable } from "@outlayr/money/valuation";
 
 import { accountBalanceSeries } from "./account-balance-series";
 import type { AccountBalanceSeriesAccount } from "./account-balance-series";
-import type { CurrencyCell } from "./currency-totals";
-import { buildRateTable } from "./valuation";
 
 const NOW = new Date("2026-08-10T12:00:00Z");
 const NO_RATES = buildRateTable([]);

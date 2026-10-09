@@ -1,11 +1,11 @@
 import { describe, expect, it } from "@jest/globals";
+import { startOfDay } from "@outlayr/money/calendar";
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import { transactions } from "@/db/schema";
 import * as schema from "@/db/schema";
 import { clockAdvances } from "@/domain/clock";
-import { startOfDay } from "@/domain/dates";
 
 import { logWindowDaysQuery, logWindowRowsQuery } from "./transactions-core";
 

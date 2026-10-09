@@ -1,10 +1,10 @@
+import { DEFAULT_ACCOUNT_KIND } from "@outlayr/money/account-kind";
+import type { AccountKind } from "@outlayr/money/account-kind";
 import { and, eq, isNull, max } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { accounts, transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
-import { DEFAULT_ACCOUNT_KIND } from "@/domain/account-kind";
-import type { AccountKind } from "@/domain/account-kind";
 import { newId } from "@/domain/ids";
 
 import { getMetaSync, META_KEYS, setMeta } from "./app-meta-core";

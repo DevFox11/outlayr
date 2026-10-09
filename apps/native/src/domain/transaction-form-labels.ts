@@ -1,6 +1,8 @@
-import { addDays, formatSentenceDate, startOfDay } from "@/domain/dates";
+import { addDays, startOfDay } from "@outlayr/money/calendar";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
+
+import { formatSentenceDate } from "@/domain/dates";
 import { formatAmount, formatFixed, minorUnitsFor } from "@/domain/money";
-import { RECURRING_TYPE } from "@/domain/recurrence";
 import { leadLabelKey } from "@/domain/subscription-reminder";
 import type { LeadLabelKey } from "@/domain/subscription-reminder";
 import type { TransferRateChoice } from "@/domain/transfer-rate-options";

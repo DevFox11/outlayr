@@ -1,6 +1,6 @@
-import { valueCell } from "./currency-totals";
-import type { CurrencyCell } from "./currency-totals";
-import type { RateTable } from "./valuation";
+import { valueCell } from "@outlayr/money/currency-totals";
+import type { CurrencyCell } from "@outlayr/money/currency-totals";
+import type { RateTable } from "@outlayr/money/valuation";
 
 /** A cell that knows where it is drawn as well as where it was valued. */
 export type PlottedCell = CurrencyCell & { plotDay: string };

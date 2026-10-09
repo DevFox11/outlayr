@@ -1,8 +1,8 @@
+import type { CurrencyCell } from "@outlayr/money/currency-totals";
 import { and, count, eq, isNull, lte, sql, sum } from "drizzle-orm";
 
 import type { SpendDb } from "@/data/budget-spent";
 import { transfers } from "@/db/schema";
-import type { CurrencyCell } from "@/domain/currency-totals";
 
 import type { CellRow } from "./cell-query";
 

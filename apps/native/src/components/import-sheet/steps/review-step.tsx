@@ -2,6 +2,8 @@ import CheckSolid from "@hugeicons-pro/core-solid-rounded/CheckmarkCircle02Icon"
 import CircleIcon from "@hugeicons-pro/core-stroke-rounded/CircleIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { SectionList } from "@legendapp/list/section-list";
+import { currencyTotals } from "@outlayr/money/currency-totals";
+import type { CurrencyBucket, CurrencyEntry } from "@outlayr/money/currency-totals";
 import { memo, useCallback, useMemo, useState } from "react";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,8 +15,6 @@ import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { ImportEntry, SkipReason } from "@/data/transfer-core";
-import { currencyTotals } from "@/domain/currency-totals";
-import type { CurrencyBucket, CurrencyEntry } from "@/domain/currency-totals";
 import { formatDayHeader, formatSentenceDate } from "@/domain/dates";
 import { FALLBACK_IDENTITY_COLOR } from "@/domain/transaction-identity";
 import type { ImportReviewResult, ReviewCategoryTile } from "@/hooks/use-import-review";

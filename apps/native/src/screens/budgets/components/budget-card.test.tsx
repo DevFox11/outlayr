@@ -1,8 +1,8 @@
 import { describe, expect, it, jest } from "@jest/globals";
+import { BUDGET_TYPE } from "@outlayr/money/budget-window";
 import { render } from "@testing-library/react-native";
 
 import type { CategoryBudgetView } from "@/data/budgets";
-import { BUDGET_TYPE } from "@/domain/budget-math";
 
 import { BudgetCard } from "./budget-card";
 

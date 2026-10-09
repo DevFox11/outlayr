@@ -1,6 +1,7 @@
 import { MARKET_RATE_TYPES } from "@outlayr/money/rates";
 import type { MarketRateType } from "@outlayr/money/rates";
 import { roundMoney } from "@outlayr/money/round";
+import type { RateTable } from "@outlayr/money/valuation";
 import { useMemo, useState } from "react";
 
 import { useAccountBalance, useAccounts } from "@/data/accounts";
@@ -18,7 +19,6 @@ import { marketRateFor, transferRateOptions } from "@/domain/transfer-rate-optio
 import type { TransferRateChoice } from "@/domain/transfer-rate-options";
 import { solveTransfer, transferGap, transferLegs } from "@/domain/transfer-reconcile";
 import type { FeeSide, TransferLegs, TransferValues } from "@/domain/transfer-reconcile";
-import type { RateTable } from "@/domain/valuation";
 
 /** `shortfall` is signed, in the fee's own currency: how far the fee overruns its side. */
 type TransferBlock = { kind: "fee"; shortfall: number } | { kind: "rate" };

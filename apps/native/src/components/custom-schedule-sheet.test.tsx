@@ -1,7 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 import { act, fireEvent, render, within } from "@testing-library/react-native";
-
-import { RECURRING_TYPE } from "@/domain/recurrence";
 
 import { CustomScheduleSheet } from "./custom-schedule-sheet";
 

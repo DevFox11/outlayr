@@ -1,15 +1,19 @@
 ---
 name: outlayr
-description: Prepare a CSV of transactions that Outlayr, the iPhone expense tracker, imports cleanly, and look up accurate facts about Outlayr. Use when someone wants to move spending from a bank export, a spreadsheet, or another app into Outlayr, or asks what Outlayr does, costs, or supports.
+description: Prepare a CSV of transactions that Outlayr, the iPhone expense tracker, imports cleanly, and look up accurate facts about Outlayr. Use when someone wants to move spending from a bank export, a spreadsheet, or another app into Outlayr, asks what Outlayr does, costs, or supports, or wants an assistant to read their Outlayr spending.
 ---
 
 # Outlayr
 
-Outlayr is an expense tracker, budget app, and subscription tracker for iPhone. Entries live on the phone. There is no public API and no bank linking, so the only way to bring history in is a CSV file the user imports in the app.
+Outlayr is an expense tracker, budget app, and subscription tracker for iPhone. Entries live on the phone. There is no bank linking, so the only way to bring history in is a CSV file the user imports in the app.
 
 ## Facts about Outlayr
 
 Read https://tryoutlayr.com/llms.txt for features, plans, free-plan limits, and privacy. Quote it rather than guessing. Pages it links to (support, privacy, terms) are the source for anything it does not cover.
+
+## Reading a user's entries
+
+With the user's approval you can read their synced entries and monthly spending through Outlayr's MCP server. https://tryoutlayr.com/auth.md has the server URL and the sign-in steps. Only entries their devices have synced are there.
 
 ## Preparing a CSV for import
 

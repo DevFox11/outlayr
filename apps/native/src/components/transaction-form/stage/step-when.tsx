@@ -1,4 +1,6 @@
-import { addDays, formatChargeDate, formatSentenceDate, formatWeekdayDay, startOfDay } from "@/domain/dates";
+import { addDays, startOfDay } from "@outlayr/money/calendar";
+
+import { formatChargeDate, formatSentenceDate, formatWeekdayDay } from "@/domain/dates";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
 import { StageOptionRow } from "./stage-options";

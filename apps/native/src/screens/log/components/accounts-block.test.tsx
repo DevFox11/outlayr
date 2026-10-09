@@ -1,9 +1,9 @@
 import { describe, expect, it, jest } from "@jest/globals";
+import type { AccountsOverview, OverviewRow } from "@outlayr/money/account-overview";
 import { act, fireEvent, render } from "@testing-library/react-native";
 
 import { AmountsHiddenContext } from "@/components/amount-text";
 import type { Account } from "@/data/accounts-core";
-import type { AccountsOverview, OverviewRow } from "@/domain/account-display";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { AccountsBlock } from "./accounts-block";
