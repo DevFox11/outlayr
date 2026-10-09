@@ -57,6 +57,39 @@ export function parseLastWalletEntry(raw: string | null | undefined): LastWallet
     }
 }
 
+const notificationTextSchema = z.object({
+    amountText: z.string().nullable(),
+    at: z.number().finite(),
+    text: z.string(),
+});
+
+export type NotificationText = z.infer<typeof notificationTextSchema>;
+
+const notificationTextsSchema = z.array(notificationTextSchema.nullable().catch(null));
+const NOTIFICATION_TEXTS_LIMIT = 5;
+
+export function parseNotificationTexts(raw: string | null | undefined): NotificationText[] {
+    if (!raw) {
+        return [];
+    }
+    try {
+        const parsed = notificationTextsSchema.safeParse(JSON.parse(raw));
+        return parsed.success ? parsed.data.filter((entry) => entry !== null) : [];
+    } catch {
+        return [];
+    }
+}
+
+async function rememberNotification(db: Database, entry: NotificationText): Promise<void> {
+    const kept = parseNotificationTexts(await getMeta(db, META_KEYS.notificationTexts));
+    const last = kept.at(-1);
+    if (last?.text === entry.text && Math.abs(entry.at - last.at) <= WALLET_DEDUPE_WINDOW_MS) {
+        return;
+    }
+    const next = [...kept, entry].slice(-NOTIFICATION_TEXTS_LIMIT);
+    await setMeta(db, META_KEYS.notificationTexts, JSON.stringify(next));
+}
+
 const walletCardSchema = z.object({
     accountId: z.string().nullable().optional(),
     lastAt: z.number().finite(),
@@ -312,6 +345,9 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
     /* oxlint-disable no-await-in-loop -- exactly-once depends on this job seeing the ledger row the previous job's SQLite transaction committed, so the jobs must land one at a time */
     for (const queued of jobs) {
         const job = readNotification(queued);
+        if (queued.text) {
+            await rememberNotification(db, { amountText: job?.amountText ?? null, at: queued.date, text: queued.text });
+        }
         if (!job) {
             continue;
         }

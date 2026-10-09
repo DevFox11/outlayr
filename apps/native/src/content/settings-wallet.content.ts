@@ -47,6 +47,10 @@ const settingsWallet = {
             en: "Shortcut installed",
             es: "Atajo instalado",
         }),
+        "settings.wallet.lastNotification": t({
+            en: "Last notification",
+            es: "Última notificación",
+        }),
         "settings.wallet.lastSection": t({
             en: "Last from Wallet",
             es: "Último desde Wallet",
@@ -126,6 +130,10 @@ const settingsWallet = {
         "settings.wallet.notificationFooter": t({
             en: "Any app that sends a purchase push works, one automation per app. The amount and merchant are read from the text. Keep one source per card: leave a card logged this way out of the Wallet automation, or every tap lands twice.",
             es: "Funciona con cualquier app que te mande una notificación de compra, con una automatización por app. El monto y el comercio se leen del texto. Usa una sola fuente por tarjeta: deja fuera de la automatización de Wallet las tarjetas que registras así, o cada pago se duplica.",
+        }),
+        "settings.wallet.notificationUnread": t({
+            en: "Couldn't read it",
+            es: "No se pudo leer",
         }),
         "settings.wallet.notificationSection": t({
             en: "Or from a bank notification",

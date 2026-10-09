@@ -20,7 +20,13 @@ import { useGlobalCurrency } from "@/data/app-meta";
 import { META_KEYS, setMeta } from "@/data/app-meta-core";
 import { useLiveQuery, useLiveValue } from "@/data/live-query";
 import type { LastWalletEntry } from "@/data/pending-writes-core";
-import { cardStatus, parseLastWalletEntry, parseWalletCards, pickCardAccount } from "@/data/pending-writes-core";
+import {
+    cardStatus,
+    parseLastWalletEntry,
+    parseNotificationTexts,
+    parseWalletCards,
+    pickCardAccount,
+} from "@/data/pending-writes-core";
 import type { Database } from "@/db/client";
 import { appMeta, transactions } from "@/db/schema";
 import { formatChargeDate, formatSentenceDate, formatTime } from "@/domain/dates";
@@ -141,6 +147,7 @@ export function Wallet() {
     return (
         <SettingsScreen>
             <Proof db={db} lastEntry={lastEntry} lastRunAt={lastRunAt} />
+            <NotificationProof db={db} />
 
             <SettingsSection title={t(working ? "settings.wallet.setupSection" : "settings.wallet.stepsSection")}>
                 {linked && working ? (
@@ -258,11 +265,30 @@ function RanOnly({ at }: { at: number }) {
     return <ProofBlock detail={t("settings.wallet.ranAt", { when })} title={t("settings.wallet.nothingLogged")} />;
 }
 
-function ProofBlock({ title, detail }: { detail: string; title: string }) {
+function NotificationProof({ db }: { db: Database }) {
+    const t = useTranslation();
+    const last = useLiveValue(
+        appMeta,
+        () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.notificationTexts)),
+        (rows) => parseNotificationTexts(rows[0]?.value).at(-1) ?? null
+    );
+    if (!last) {
+        return null;
+    }
+    return (
+        <ProofBlock
+            detail={last.text.replaceAll(/\s*\n\s*/g, " · ")}
+            label={t("settings.wallet.lastNotification")}
+            title={last.amountText ?? t("settings.wallet.notificationUnread")}
+        />
+    );
+}
+
+function ProofBlock({ title, detail, label }: { detail: string; label?: string; title: string }) {
     const t = useTranslation();
     return (
         <View className="gap-1.5 pt-6">
-            <MonoLabel>{t("settings.wallet.lastSection")}</MonoLabel>
+            <MonoLabel>{label ?? t("settings.wallet.lastSection")}</MonoLabel>
             <Text className="text-foreground text-title tabular-nums">{title}</Text>
             <Text className="text-muted text-subtitle" numberOfLines={2}>
                 {detail}

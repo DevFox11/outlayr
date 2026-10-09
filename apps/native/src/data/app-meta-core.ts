@@ -52,6 +52,7 @@ export const META_KEYS = {
      * runs on this handset.
      */
     lastWalletEntry: "lastWalletEntry",
+    notificationTexts: "notificationTexts",
     /**
      * The account subject this device's ledger has already been reconciled with.
      * Holding the id rather than a flag is what makes signing into a *different*

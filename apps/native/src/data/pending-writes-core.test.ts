@@ -12,6 +12,7 @@ import {
     applyPendingWrites,
     drainPendingWrites,
     fileWaitingPurchases,
+    parseNotificationTexts,
     parseWalletCards,
     pendingWriteTxId,
     pickCardAccount,
@@ -144,6 +145,44 @@ describe("applyPendingWrites", () => {
 
         expect(applied).toBe(0);
         await expect(liveRows(db)).resolves.toHaveLength(0);
+    });
+
+    it("keeps the last few notification texts, read or not, once per delivery", async () => {
+        const push = (id: string, text: string, date = NOW.getTime()) =>
+            walletWrite(id, {
+                amount: 0,
+                amountText: null,
+                date,
+                dedupeKey: `notification:expense:${id}`,
+                note: "",
+                text,
+            });
+        const jobs = [
+            push("statement", "Your statement is ready"),
+            push("coffee", "You spent $6.40 at Blue Bottle"),
+            push("coffee-again", "You spent $6.40 at Blue Bottle"),
+            ...Array.from({ length: 5 }, (_, index) =>
+                push(`n${index}`, `You spent $${index + 1}.00 at Shop ${index}`)
+            ),
+        ];
+
+        await applyPendingWrites(db, jobs, NOW);
+
+        const texts = parseNotificationTexts(await getMeta(db, META_KEYS.notificationTexts));
+        expect(texts).toHaveLength(5);
+        expect(texts.map((entry) => entry.amountText)).toStrictEqual(["$1.00", "$2.00", "$3.00", "$4.00", "$5.00"]);
+    });
+
+    it("records an unreadable notification without an amount", async () => {
+        await applyPendingWrites(
+            db,
+            [walletWrite("statement", { amount: 0, note: "", text: "Your statement is ready" })],
+            NOW
+        );
+
+        expect(parseNotificationTexts(await getMeta(db, META_KEYS.notificationTexts))).toStrictEqual([
+            { amountText: null, at: NOW.getTime(), text: "Your statement is ready" },
+        ]);
     });
 
     it("commits a queued entry through the repo", async () => {
