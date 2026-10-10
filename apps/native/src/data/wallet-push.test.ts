@@ -65,6 +65,7 @@ test("says where the next tap lands, the way the drain will file it", async () =
             "Work card": { label: "N26", pick: false },
         },
         newPlace: "New place, tap to pick a category.",
+        patterns: expect.objectContaining({ money: { ignoreCase: false, source: expect.any(String) } }),
         places: { expense: { "vietnam house": "Restaurants" }, income: { acme: "Salary" } },
     });
 });

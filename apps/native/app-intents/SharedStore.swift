@@ -205,6 +205,7 @@ struct WalletPushSnapshot: Codable {
 
     let cards: [String: Card]
     let newPlace: String
+    let patterns: NotificationPatterns?
     let places: Places
 }
 

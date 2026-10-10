@@ -2,6 +2,7 @@ import { and, eq, isNull, ne, sql } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { categories, transactions } from "@/db/schema";
+import { NOTIFICATION_PATTERNS } from "@/domain/parse-notification";
 import { translateNow } from "@/i18n/runtime";
 import type { WalletPushSnapshot } from "@/lib/widget-bridge";
 
@@ -54,5 +55,8 @@ export async function buildWalletPush(db: Database): Promise<WalletPushSnapshot>
         }
     }
 
-    return { cards, newPlace: translateNow("settings.wallet.pushNewPlace"), places };
+    const patterns = Object.fromEntries(
+        Object.entries(NOTIFICATION_PATTERNS).map(([name, { ignoreCase, source }]) => [name, { ignoreCase, source }])
+    );
+    return { cards, newPlace: translateNow("settings.wallet.pushNewPlace"), patterns, places };
 }

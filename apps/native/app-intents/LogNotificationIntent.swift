@@ -51,29 +51,41 @@ struct LogNotificationIntent: AppIntent {
         }
 
         let purchase = Self.dedupeKey(text: text, side: side)
-        SharedStore.enqueue(
-            PendingWrite(
-                id: UUID().uuidString,
-                amount: 0,
-                income: side == .income,
-                note: "",
-                category: nil,
-                date: Date().timeIntervalSince1970 * 1000,
-                amountText: nil,
-                card: card?
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                    .nilIfEmpty,
-                currency: nil,
-                dedupeKey: purchase,
-                text: text
-            )
+        let cardText = card?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .nilIfEmpty
+        let write = PendingWrite(
+            id: UUID().uuidString,
+            amount: 0,
+            income: side == .income,
+            note: "",
+            category: nil,
+            date: Date().timeIntervalSince1970 * 1000,
+            amountText: nil,
+            card: cardText,
+            currency: nil,
+            dedupeKey: purchase,
+            text: text
         )
+        SharedStore.enqueue(write)
 
-        let source = notificationTitle?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty ?? "a notification"
-        await SharedStore.notify(
-            body: "Noted a purchase from \(source). Open Outlayr to review it.",
-            purchase: purchase
+        let snapshot = SharedStore.walletPush()
+        guard let read = snapshot?.patterns.flatMap({ NotificationPurchase(text, patterns: $0) }) else {
+            return .result(dialog: IntentDialog("Noted."))
+        }
+        let income = side == .income || read.income
+        let push = LogWalletTransactionIntent.push(
+            amount: income ? "+\(read.amountText)" : read.amountText,
+            merchant: read.merchant ?? "",
+            card: cardText,
+            side: income ? .income : .expense,
+            snapshot: snapshot
         )
+        var userInfo: [AnyHashable: Any] = ["walletWrite": write.id, "pickCard": push.pickCard]
+        if let cardText {
+            userInfo["card"] = cardText
+        }
+        await SharedStore.notify(title: push.title, body: push.body, userInfo: userInfo, purchase: purchase)
         return .result(dialog: IntentDialog("Noted."))
     }
 

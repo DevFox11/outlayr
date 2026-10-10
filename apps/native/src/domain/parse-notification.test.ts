@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { parseNotification } from "./parse-notification";
+import { NOTIFICATION_PATTERNS, parseNotification } from "./parse-notification";
 
 describe("parseNotification", () => {
     it("reads Wallet's own notification: card, then merchant with its place, then the amount", () => {
@@ -132,5 +132,11 @@ describe("parseNotification", () => {
 
     it("skips a notification with no amount", () => {
         expect(parseNotification("Your statement is ready")).toBeNull();
+    });
+
+    it("publishes its patterns as written, not as Babel's surrogate rewrite of a u-flag literal", () => {
+        for (const { source } of Object.values(NOTIFICATION_PATTERNS)) {
+            expect(source).not.toMatch(/\\uD[89AB]/i);
+        }
     });
 });

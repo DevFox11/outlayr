@@ -25,19 +25,40 @@ const MONEY = new RegExp(String.raw`${UNIT}\s?${NUMBER}|${NUMBER}\s?${UNIT}`, "u
 const DIGITS = new RegExp(NUMBER, "u");
 const AFTER_NUMBER = /^\d|\s?\d/;
 
-const DECLINED =
-    /\b(?:declined|denied|failed|reverted|unsuccessful|insufficient funds|rechazad[ao]|denegad[ao]|fallid[ao]|revertid[ao]|no aprobad[ao]|fondos insuficientes)\b/iu;
-const INCOMING =
-    /\b(?:received|refund(?:ed)?|reversal|credited|recibi(?:ste|d[ao])|reembols(?:o|ad[ao])|devoluci[oó]n|abon(?:o|ad[ao])|acreditad[ao])\b/iu;
+/* oxlint-disable prefer-regex-literals -- LogNotificationIntent reads these sources with ICU, and Babel rewrites a u-flag literal into surrogate classes ICU matches differently */
+const DECLINED = new RegExp(
+    String.raw`\b(?:declined|denied|failed|reverted|unsuccessful|insufficient funds|rechazad[ao]|denegad[ao]|fallid[ao]|revertid[ao]|no aprobad[ao]|fondos insuficientes)\b`,
+    "iu"
+);
+const INCOMING = new RegExp(
+    String.raw`\b(?:received|refund(?:ed)?|reversal|credited|recibi(?:ste|d[ao])|reembols(?:o|ad[ao])|devoluci[oó]n|abon(?:o|ad[ao])|acreditad[ao])\b`,
+    "iu"
+);
 
 const STOP = String.raw`(?=\s+(?:with|using|via|on|for|con|usando|por|el|la|desde|mediante)\b|[,.;\n]|$)`;
 const PAID_TO = new RegExp(String.raw`\b(?:at|in|en|to|a|de|@)\s+(.+?)${STOP}`, "iu");
 const RECEIVED_FROM = new RegExp(String.raw`\b(?:from|de|por parte de)\s+(.+?)${STOP}`, "iu");
 
-const CARD_REFERENCE = /\byour\b.*\bcard\b|\btu\b.*\btarjeta\b|[x*•]{3,}[-\s]?\d{3,4}/iu;
-const PARENTHESIZED = /\(([^()]+)\)/u;
+const CARD_REFERENCE = new RegExp(String.raw`\byour\b.*\bcard\b|\btu\b.*\btarjeta\b|[x*•]{3,}[-\s]?\d{3,4}`, "iu");
+const PARENTHESIZED = new RegExp(String.raw`\(([^()]+)\)`, "u");
 
-const POS_PREFIX = /^(?:sumup|sq|sqc|tst|pp|paypal|zettle|izettle|stripe|amzn(?: mktp)?)\s*\*\s*/iu;
+const POS_PREFIX = new RegExp(
+    String.raw`^(?:sumup|sq|sqc|tst|pp|paypal|zettle|izettle|stripe|amzn(?: mktp)?)\s*\*\s*`,
+    "iu"
+);
+/* oxlint-enable prefer-regex-literals */
+
+export const NOTIFICATION_PATTERNS = {
+    afterNumber: AFTER_NUMBER,
+    cardReference: CARD_REFERENCE,
+    declined: DECLINED,
+    incoming: INCOMING,
+    money: MONEY,
+    paidTo: PAID_TO,
+    parenthesized: PARENTHESIZED,
+    posPrefix: POS_PREFIX,
+    receivedFrom: RECEIVED_FROM,
+};
 
 /**
  * Reads a purchase out of a bank or Wallet notification. Null when no money
