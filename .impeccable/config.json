@@ -206,6 +206,24 @@
         ],
         "createdAt": "2026-10-02T22:03:26.146Z",
         "reason": "agent: uppercase is only on short mono section labels (MonoLabel convention shared by every docs/design artifact), no body passages"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "docs/design/daily-reminder.html"
+        ],
+        "createdAt": "2026-10-10T21:32:37.510Z",
+        "reason": "agent: #f2f0ea is the app's light --background token (apps/native/global.css), the paper stage shared by every docs/design mock"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "docs/design/daily-reminder.html"
+        ],
+        "createdAt": "2026-10-10T21:32:37.531Z",
+        "reason": "agent: detector takes the lightest stop of the lock-screen wallpaper gradient; all white text (status, date, clock) sits on the dark top third, verified by html_preview render"
       }
     ]
   }

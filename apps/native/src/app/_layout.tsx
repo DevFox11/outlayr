@@ -42,6 +42,7 @@ import { LedgerAdoptionProvider, useLedgerAdoption } from "@/lib/ledger-adoption
 import { useScreenTracking } from "@/lib/posthog";
 import { useAnalyticsConsent } from "@/lib/posthog-consent";
 import { usePostHogIdentity } from "@/lib/posthog-identity";
+import { useDailyReminderSync } from "@/lib/reminder-sync";
 import { identityPickerDetent } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
 import { useSubscriptionReminderTaps } from "@/lib/use-subscription-reminder-taps";
@@ -269,6 +270,7 @@ function RootStack() {
     const { status: adoption } = useLedgerAdoption();
     const { height: windowHeight } = useWindowDimensions();
     const pickerDetent = identityPickerDetent(windowHeight);
+    useDailyReminderSync(db);
     useSubscriptionReminderSync(db);
     useSeededClockPreference(db);
 

@@ -24,8 +24,8 @@ const settingsNotifications = {
             es: "Un aviso a las {time}, cuando el día ya casi termina.",
         }),
         "settings.notifications.footer": t({
-            en: "One reminder a day, from this device. Outlayr never sends anything from a server.",
-            es: "Un recordatorio al día, desde este dispositivo. Outlayr nunca envía nada desde un servidor.",
+            en: "Only on days with nothing logged. From this device, never a server.",
+            es: "Solo los días sin nada registrado. Desde este dispositivo, nunca desde un servidor.",
         }),
         "settings.notifications.morning": t({
             en: "Every morning",

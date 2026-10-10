@@ -72,7 +72,7 @@ struct LogTransactionIntent: AppIntent {
             dedupeKey: nil,
             text: nil
         )
-        SharedStore.enqueue(write)
+        await SharedStore.enqueue(write)
 
         let verb = side == .income ? "Recorded" : "Logged"
         let name = write.note.isEmpty ? "" : " for \(write.note)"

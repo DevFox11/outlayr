@@ -9,15 +9,7 @@ import {
 import type { NotificationPermissionsStatus } from "expo-notifications";
 import { Linking } from "react-native";
 
-import type { ReminderPermission, TimeOfDay } from "@/domain/reminder";
-import { translateNow } from "@/i18n/runtime";
-
-/**
- * Fixed so a reschedule replaces the pending request instead of stacking a
- * second one. Swift cleared the whole queue each time (`newNotification()`),
- * which would also take out anything else the app ever schedules.
- */
-const REMINDER_ID = "outlayr.daily-reminder";
+import type { ReminderPermission } from "@/domain/reminder";
 
 /** On iOS `canAskAgain` is true only while the prompt has never been shown. */
 function toPermission(result: NotificationPermissionsStatus): ReminderPermission {
@@ -47,22 +39,6 @@ export async function requestReminderPermission(): Promise<ReminderPermission> {
         console.warn("[outlayr] notification permission request failed", error);
         return "unknown";
     }
-}
-
-export async function scheduleReminder({ hour, minute }: TimeOfDay): Promise<void> {
-    await scheduleNotificationAsync({
-        content: {
-            body: translateNow("reminder.body"),
-            sound: "default",
-            title: translateNow("reminder.title"),
-        },
-        identifier: REMINDER_ID,
-        trigger: { hour, minute, type: SchedulableTriggerInputTypes.DAILY },
-    });
-}
-
-export async function cancelReminder(): Promise<void> {
-    await cancelScheduledNotificationAsync(REMINDER_ID);
 }
 
 /** Identifiers iOS currently holds, the daily reminder's among them. */

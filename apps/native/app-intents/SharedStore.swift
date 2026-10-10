@@ -20,6 +20,8 @@ enum SharedStore {
 
     static let walletPushKey = "walletPush"
 
+    static let dailyReminderPrefix = "outlayr.daily-reminder"
+
     /// Where an intent leaves work for the app to commit, one JSON line per
     /// write. Mirrored by `QUEUE_DIRECTORY` / `QUEUE_FILE` in
     /// `src/lib/pending-writes-core.ts`.
@@ -54,11 +56,16 @@ enum SharedStore {
     /// write reserves its own offset in the kernel, so nothing is read first and
     /// there is nothing to lose. The app never edits this file in place either —
     /// it renames it aside to drain it.
-    static func enqueue(_ write: PendingWrite) {
+    static func enqueue(_ write: PendingWrite) async {
         guard let url = queueURL(),
               var line = try? JSONEncoder().encode(write) else { return }
         line.append(0x0A)
         append(line, to: url)
+        let center = UNUserNotificationCenter.current()
+        let reminders = await center.pendingNotificationRequests()
+            .map(\.identifier)
+            .filter { $0.hasPrefix(dailyReminderPrefix) }
+        center.removePendingNotificationRequests(withIdentifiers: reminders)
     }
 
     /// Posts the app's own push from an intent, once per purchase key within

@@ -15,7 +15,11 @@ import { getTransactionById } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 
 const subscriptionTapSchema = z.object({ charge: z.string(), subscription: z.string() });
-const reminderTapSchema = z.union([subscriptionTapSchema, z.object({ open: z.literal("log") })]);
+const reminderTapSchema = z.union([
+    subscriptionTapSchema,
+    z.object({ open: z.literal("log") }),
+    z.object({ date: z.string().optional(), open: z.literal("create") }),
+]);
 
 function announcedRowId(db: Database, { charge, subscription }: z.infer<typeof subscriptionTapSchema>): string | null {
     const landed = getTransactionById(db, charge);
@@ -48,6 +52,9 @@ export function useSubscriptionReminderTaps(db: Database, ready: boolean): void 
                 await backfillRecurring(db, parsed.data.subscription);
                 const id = announcedRowId(db, parsed.data);
                 target = id === null ? null : `/transactions/${id}`;
+            } else if (parsed.data.open === "create") {
+                const { date } = parsed.data;
+                target = date === undefined ? "/transactions/create" : `/transactions/create?date=${date}`;
             }
             if (disposed || tap === handled || target === null) {
                 return;

@@ -67,7 +67,7 @@ struct LogNotificationIntent: AppIntent {
             dedupeKey: purchase,
             text: text
         )
-        SharedStore.enqueue(write)
+        await SharedStore.enqueue(write)
 
         let snapshot = SharedStore.walletPush()
         guard let read = snapshot?.patterns.flatMap({ NotificationPurchase(text, patterns: $0) }) else {

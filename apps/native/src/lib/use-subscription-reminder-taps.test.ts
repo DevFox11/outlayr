@@ -94,6 +94,23 @@ describe("useSubscriptionReminderTaps", () => {
         expect(mockNavigate.mock.calls).toStrictEqual([["/"]]);
     });
 
+    it("opens the add sheet from the daily reminder, dated to the day it asked about", async () => {
+        await renderHook(() => useSubscriptionReminderTaps(db, true));
+        const daily = (data: Record<string, string>, date: number) => ({
+            actionIdentifier: "expo.modules.notifications.actions.DEFAULT",
+            notification: { date, request: { content: { data }, identifier: "outlayr.daily-reminder.1" } },
+        });
+        mockTaps.listener?.(daily({ date: "1760500000000", open: "create" }, 6));
+        await settle();
+        mockTaps.listener?.(daily({ open: "create" }, 7));
+        await settle();
+
+        expect(mockNavigate.mock.calls).toStrictEqual([
+            ["/transactions/create?date=1760500000000"],
+            ["/transactions/create"],
+        ]);
+    });
+
     it("opens the charge the notice announced once it has landed, not last cycle's", async () => {
         await seed(db, "prime");
         await seed(db, "landed", { recurringType: RECURRING_TYPE.monthly });

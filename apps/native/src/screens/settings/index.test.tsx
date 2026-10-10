@@ -29,7 +29,6 @@ jest.mock("@/i18n/context", () => ({
     useLanguage: () => ({ language: "en" }),
     useTranslation: () => (key: string) => key,
 }));
-jest.mock("@/lib/reminder-sync", () => ({ useReminderSync: () => {} }));
 jest.mock("@/lib/app-icon", () => ({
     alternateIconsSupported: false,
     useAppIcon: () => ({ active: null, choose: () => {} }),

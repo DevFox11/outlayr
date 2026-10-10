@@ -92,7 +92,7 @@ struct LogWalletTransactionIntent: AppIntent {
             dedupeKey: purchase,
             text: nil
         )
-        SharedStore.enqueue(write)
+        await SharedStore.enqueue(write)
 
         let push = Self.push(
             amount: amount.trimmingCharacters(in: .whitespacesAndNewlines),

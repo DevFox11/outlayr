@@ -45,7 +45,6 @@ import { useAuthSession } from "@/lib/auth-session";
 import { importDraftStore } from "@/lib/import-draft-store";
 import { legalUrl } from "@/lib/legal-url";
 import { notifyFailure } from "@/lib/notify";
-import { useReminderSync } from "@/lib/reminder-sync";
 import { supportMailto } from "@/lib/support-mailto";
 import type { SupportDiagnostics } from "@/lib/support-mailto";
 import { THEME_OPTIONS } from "@/theme/theme-preference";
@@ -88,7 +87,6 @@ export function Settings() {
     const [lockPending, setLockPending] = useState<boolean | null>(null);
     const { language } = useLanguage();
     const { accountId } = useAuthSession();
-    useReminderSync(db);
 
     const currency = useGlobalCurrency(db);
     const coverage = useValuationCoverage(db);

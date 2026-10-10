@@ -7,11 +7,12 @@ import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, sql } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
-import { transactions, transfers } from "@/db/schema";
+import { categories, transactions, transfers } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { newId } from "@/domain/ids";
 import { merchantKey } from "@/domain/merchant-resolver";
 import { DEFAULT_CURRENCY } from "@/domain/money";
+import type { LastEntry } from "@/domain/reminder";
 import { normalizeLead } from "@/domain/subscription-reminder";
 
 import { getMeta, META_KEYS } from "./app-meta-core";
@@ -718,4 +719,25 @@ function landedLogo(
 export function getTransactionById(db: Database, id: string): Transaction | null {
     const rows = db.select().from(transactions).where(eq(transactions.id, id)).limit(1).all();
     return rows[0] ?? null;
+}
+
+export async function lastLoggedEntry(db: Database, now: Date): Promise<LastEntry | null> {
+    const [row] = await db
+        .select({
+            amount: transactions.amount,
+            category: categories.name,
+            currency: transactions.currency,
+            date: transactions.date,
+            income: transactions.income,
+            note: transactions.note,
+        })
+        .from(transactions)
+        .leftJoin(categories, eq(categories.id, transactions.categoryId))
+        .where(visibleAt(now.getTime()))
+        .orderBy(desc(transactions.date))
+        .limit(1);
+    if (row === undefined) {
+        return null;
+    }
+    return { ...row, currency: row.currency ?? (await getMeta(db, META_KEYS.currency)) ?? DEFAULT_CURRENCY };
 }

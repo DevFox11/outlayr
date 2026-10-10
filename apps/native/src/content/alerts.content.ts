@@ -43,9 +43,37 @@ const alerts = {
             en: "That file couldn't be read as text.",
             es: "No se pudo leer ese archivo como texto.",
         }),
-        "reminder.body": t({
-            en: "Log what you spent today.",
-            es: "Registra lo que gastaste hoy.",
+        "reminder.daily.catchUp": t({
+            en: "Last: {entry}. Tap to catch up.",
+            es: "Último: {entry}. Toca para ponerte al día.",
+        }),
+        "reminder.daily.empty": t({
+            en: "Nothing logged yet",
+            es: "Aún no has registrado nada",
+        }),
+        "reminder.daily.first": t({
+            en: "Tap to add your first expense.",
+            es: "Toca para agregar tu primer gasto.",
+        }),
+        "reminder.daily.lastOn": t({
+            en: "Last: {entry}, {day}.",
+            es: "Último: {entry}, el {day}.",
+        }),
+        "reminder.daily.lastYesterday": t({
+            en: "Last: {entry}, yesterday.",
+            es: "Último: {entry}, ayer.",
+        }),
+        "reminder.daily.since": t({
+            en: "Nothing logged since {day}",
+            es: "Nada registrado desde el {day}",
+        }),
+        "reminder.daily.today": t({
+            en: "Nothing logged today",
+            es: "Nada registrado hoy",
+        }),
+        "reminder.daily.yesterday": t({
+            en: "Nothing logged yesterday",
+            es: "Nada registrado ayer",
         }),
         "reminder.digest.on": t({
             en: "{count} charges on {day}",
@@ -62,10 +90,6 @@ const alerts = {
         "reminder.due.untitled": t({
             en: "Subscription",
             es: "Suscripción",
-        }),
-        "reminder.title": t({
-            en: "Keep the streak going",
-            es: "No pierdas la racha",
         }),
     },
     key: "alerts" as const,

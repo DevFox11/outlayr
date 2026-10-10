@@ -21,13 +21,7 @@ import type { TimeOfDay } from "@/domain/reminder";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { translateNow } from "@/i18n/runtime";
-import { armReminder, useReminderSync } from "@/lib/reminder-sync";
-import {
-    cancelReminder,
-    openNotificationSettings,
-    reminderPermission,
-    requestReminderPermission,
-} from "@/lib/reminders";
+import { openNotificationSettings, reminderPermission, requestReminderPermission } from "@/lib/reminders";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useColors } from "@/theme/use-colors";
 
@@ -79,11 +73,9 @@ async function enableReminders(db: Database): Promise<void> {
     }
 
     await setBoolSetting(db, "showNotifications", true);
-    await armReminder(db);
 }
 
 async function disableReminders(db: Database): Promise<void> {
-    await cancelReminder();
     await setBoolSetting(db, "showNotifications", false);
 }
 
@@ -123,7 +115,6 @@ async function setSubscriptionReminders(db: Database, next: boolean): Promise<vo
 
 export function Notifications() {
     const db = useDatabase();
-    useReminderSync(db);
 
     const colors = useColors();
     const t = useTranslation();
@@ -140,18 +131,14 @@ export function Notifications() {
     pickerValue.setHours(custom.hour, custom.minute, 0, 0);
 
     const chooseOption = (next: number) => {
-        setNumberSetting(db, "notificationOption", next)
-            .then(() => armReminder(db))
-            .catch(reportReminderFailure);
+        setNumberSetting(db, "notificationOption", next).catch(reportReminderFailure);
     };
 
     const chooseTime = ({ hour, minute }: TimeOfDay) => {
         Promise.all([
             setNumberSetting(db, "notificationHour", hour),
             setNumberSetting(db, "notificationMinute", minute),
-        ])
-            .then(() => armReminder(db))
-            .catch(reportReminderFailure);
+        ]).catch(reportReminderFailure);
     };
 
     return (

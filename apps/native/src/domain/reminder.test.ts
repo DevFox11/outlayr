@@ -2,6 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 
 import {
     clampTimeOfDay,
+    dailyReminderNotices,
     enableReminderStep,
     formatTimeOfDay,
     REMINDER_CUSTOM,
@@ -119,5 +120,66 @@ describe("reconciling a stored setting against iOS", () => {
         expect(reminderReconcile(false, "denied")).toBe("none");
         expect(reminderReconcile(false, "undetermined")).toBe("none");
         expect(reminderReconcile(false, "unknown")).toBe("none");
+    });
+});
+
+describe("daily reminder", () => {
+    const tuesdayNight = new Date(2026, 9, 13, 21, 0);
+    const mercadona = {
+        amount: 12.4,
+        category: "Groceries",
+        currency: "EUR",
+        date: new Date(2026, 9, 13, 13, 5),
+        income: false,
+        note: "Mercadona",
+    };
+    const plan = (overrides: Partial<Parameters<typeof dailyReminderNotices>[0]>) =>
+        dailyReminderNotices({
+            hideAmounts: false,
+            language: "en",
+            last: mercadona,
+            now: tuesdayNight,
+            time: { hour: 20, minute: 0 },
+            ...overrides,
+        });
+
+    it("stays quiet on the day something was logged, then names the gap", () => {
+        const notices = plan({});
+
+        expect(notices.map((notice) => notice.fireAt)).toStrictEqual(
+            [14, 15, 16, 17, 18, 19].map((day) => new Date(2026, 9, day, 20, 0))
+        );
+        expect(notices.slice(0, 2).map(({ title, body }) => [title, body])).toStrictEqual([
+            ["Nothing logged today", "Last: Mercadona €12.40, yesterday."],
+            ["Nothing logged since Tuesday", "Last: Mercadona €12.40. Tap to catch up."],
+        ]);
+        expect(notices[0]?.data).toStrictEqual({ open: "create" });
+    });
+
+    it("asks a morning reminder about the day before and dates the tap to it", () => {
+        const [first] = plan({ time: { hour: 8, minute: 0 } });
+
+        expect(first).toStrictEqual({
+            body: "Last: Mercadona €12.40, Tuesday.",
+            data: { date: String(new Date(2026, 9, 14, 8, 0).getTime()), open: "create" },
+            fireAt: new Date(2026, 9, 15, 8, 0),
+            id: `outlayr.daily-reminder.${new Date(2026, 9, 15).getTime()}`,
+            title: "Nothing logged yesterday",
+        });
+    });
+
+    it("goes quiet once a weekday name would point back at the same weekday", () => {
+        expect(plan({ last: { ...mercadona, date: new Date(2026, 9, 7, 9, 0) } })).toStrictEqual([]);
+    });
+
+    it("drops the amount while amounts are hidden", () => {
+        expect(plan({ hideAmounts: true })[0]?.body).toBe("Last: Mercadona, yesterday.");
+    });
+
+    it("asks for a first entry on an empty ledger", () => {
+        const notices = plan({ last: null });
+
+        expect(notices).toHaveLength(6);
+        expect(notices[0]).toMatchObject({ body: "Tap to add your first expense.", title: "Nothing logged yet" });
     });
 });
