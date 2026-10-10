@@ -51,7 +51,7 @@ export interface ApplyDeps {
     persist: (bytes: Uint8Array) => Promise<{ imageColor: string | null; imageUri: string }>;
 }
 
-const MIN_KEY_LENGTH = 3;
+export const MIN_KEY_LENGTH = 3;
 const MAX_OUTBOX = 100;
 const outboxSchema = z.array(z.string()).catch([]);
 

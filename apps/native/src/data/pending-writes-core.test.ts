@@ -21,6 +21,7 @@ import {
     pickCardAccount,
     WALLET_DEDUPE_WINDOW_MS,
 } from "./pending-writes-core";
+import { setBoolSetting } from "./settings-core";
 import { transactionsRepo } from "./transactions-core";
 
 const makeDb = migratedDatabase;
@@ -186,7 +187,7 @@ describe("applyPendingWrites", () => {
         const [row] = await db
             .select({ categoryId: transactions.categoryId, income: transactions.income, note: transactions.note })
             .from(transactions);
-        expect(row).toStrictEqual({ categoryId: "cat-income", income: true, note: "STARBUCKS" });
+        expect(row).toStrictEqual({ categoryId: null, income: true, note: "STARBUCKS" });
     });
 
     it("folds the bank's push for a Wallet tap into the tap's row across currencies", async () => {
@@ -728,8 +729,27 @@ describe("applyPendingWrites", () => {
         expect(row?.currency).toBe("PLN");
     });
 
+    it("leaves an unseen merchant's category to the merchant lookup", async () => {
+        await applyPendingWrites(db, [walletWrite("a")], NOW);
+
+        const [row] = await db.select({ categoryId: transactions.categoryId, id: transactions.id }).from(transactions);
+        expect(row?.categoryId).toBeNull();
+        expect(JSON.parse((await getMeta(db, META_KEYS.enrichmentOutbox)) ?? "[]")).toStrictEqual([row?.id]);
+    });
+
+    it("files an unseen merchant under the first category when lookups are off", async () => {
+        await setBoolSetting(db, "aiEnrichment", false);
+
+        await applyPendingWrites(db, [walletWrite("a")], NOW);
+
+        const [row] = await db.select({ categoryId: transactions.categoryId }).from(transactions);
+        expect(row?.categoryId).toBe("cat-expense");
+        await expect(getMeta(db, META_KEYS.enrichmentOutbox)).resolves.toBeNull();
+    });
+
     it("drops an entry with no category to file it under", async () => {
         await db.delete(categories);
+        await setBoolSetting(db, "aiEnrichment", false);
 
         const applied = await applyPendingWrites(db, [walletWrite("a")], NOW);
 

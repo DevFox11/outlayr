@@ -34,6 +34,19 @@ describe("parseNotification", () => {
         ).toMatchObject({ amount: 11.63, merchant: "ANDALUCIA A PIE" });
     });
 
+    it("keeps a bracketed merchant whole when it holds a stop word or a dot", () => {
+        expect(
+            parseNotification(
+                "EUR card charge\nA charge of 2.00 EUR was made to your Payoneer EUR card XXXX-0294 (MERCADONA LA CATEDRAL)"
+            )
+        ).toMatchObject({ amount: 2, merchant: "MERCADONA LA CATEDRAL" });
+        expect(
+            parseNotification(
+                "EUR card charge\nA charge of 14.22 EUR was made to your Payoneer EUR card XXXX-0294 (UBR* PENDING.UBER.COM)"
+            )
+        ).toMatchObject({ amount: 14.22, merchant: "UBR* PENDING.UBER.COM" });
+    });
+
     it("names no merchant when the payee is only a card", () => {
         expect(parseNotification("A charge of 5.00 USD was made to your card XXXX-3111")).toMatchObject({
             amount: 5,

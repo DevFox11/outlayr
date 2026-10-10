@@ -8,6 +8,7 @@ import { withTransaction } from "@/db/transaction";
 import { detectCurrency } from "@/domain/detect-currency";
 import type { CardAccountCandidate } from "@/domain/match-card-account";
 import { matchCardAccount } from "@/domain/match-card-account";
+import { merchantKey } from "@/domain/merchant-resolver";
 import { DEFAULT_CURRENCY } from "@/domain/money";
 import { cleanMerchant, parseNotification } from "@/domain/parse-notification";
 import type { ClaimedWrites, PendingWrite } from "@/lib/pending-writes-core";
@@ -15,7 +16,9 @@ import type { ClaimedWrites, PendingWrite } from "@/lib/pending-writes-core";
 import { accountsRepo, getAccountById } from "./accounts-core";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { suggestedCardFee } from "./card-fees-core";
+import { MIN_KEY_LENGTH, queueEnrichment } from "./enrichment-queue-core";
 import { backfillRecurring, occurrenceId } from "./recurrence-backfill";
+import { readBoolSetting } from "./settings-core";
 import { transactionsRepo } from "./transactions-core";
 
 /**
@@ -404,8 +407,13 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
             }
             continue;
         }
-        const categoryId = await resolveCategory(db, job);
-        if (!categoryId) {
+        const known = await knownCategory(db, job);
+        const lookup =
+            known == null &&
+            merchantKey(job.note).length >= MIN_KEY_LENGTH &&
+            (await readBoolSetting(db, "aiEnrichment"));
+        const categoryId = known ?? (lookup ? null : await firstCategory(db, job.income));
+        if (categoryId == null && !lookup) {
             // Dropping beats inventing a category the user never made.
             console.warn("[outlayr] dropped a queued entry with no category");
             continue;
@@ -444,6 +452,9 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
                     income: job.income,
                     note: job.note,
                 }));
+            if (lookup && !twin && !settled) {
+                await queueEnrichment(db, txId);
+            }
             const source = sourceOf(job) ?? undefined;
             ledger = remember(
                 ledger,
@@ -666,9 +677,8 @@ function resolveWriteCurrency(job: PendingWrite, account: MatchedAccount | null)
  *    Siri chose, so the match is case-insensitive.
  * 2. Failing that, wherever this same merchant was filed last time — a Wallet
  *    automation only ever knows a merchant string, never a category.
- * 3. Failing that, the first category on the right side of the ledger.
  */
-async function resolveCategory(db: Database, job: PendingWrite): Promise<string | null> {
+async function knownCategory(db: Database, job: PendingWrite): Promise<string | null> {
     if (job.category) {
         const named = await db
             .select({ id: categories.id })
@@ -705,11 +715,14 @@ async function resolveCategory(db: Database, job: PendingWrite): Promise<string 
             return previous;
         }
     }
+    return null;
+}
 
+async function firstCategory(db: Database, income: boolean): Promise<string | null> {
     const fallback = await db
         .select({ id: categories.id })
         .from(categories)
-        .where(and(eq(categories.income, job.income), isNull(categories.parentId), isNull(categories.deletedAt)))
+        .where(and(eq(categories.income, income), isNull(categories.parentId), isNull(categories.deletedAt)))
         .limit(1);
     return fallback[0]?.id ?? null;
 }

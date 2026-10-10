@@ -17,6 +17,7 @@ import type { Database } from "@/db/client";
 import { formatAmount } from "@/domain/money";
 import { translateNow } from "@/i18n/runtime";
 import { ratesPuller, watchRecentRates } from "@/lib/convex";
+import { sendEnrichmentQueue } from "@/lib/enrichment-queue";
 import { armLogoBackfill, backfillLogos } from "@/lib/logo-backfill";
 import { notifyWarning } from "@/lib/notify";
 import { publishWidgets } from "@/widgets/publish";
@@ -62,7 +63,10 @@ export function useSystemSync(db: Database | null): void {
                     console.warn("[outlayr] pending writes failed to apply", error);
                     publish.schedule();
                 })
-                .then(() => fileWaitingPurchases(db))
+                .then(() => {
+                    sendEnrichmentQueue(db);
+                    return fileWaitingPurchases(db);
+                })
                 .catch((error) => {
                     console.warn("[outlayr] waiting purchases failed to file", error);
                 })

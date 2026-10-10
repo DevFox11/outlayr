@@ -58,12 +58,12 @@ export function parseNotification(text: string): ParsedNotification | null {
     const income = INCOMING.test(text);
     const tail = text.slice(match.index + match[0].length);
     const named = (income ? RECEIVED_FROM : PAID_TO).exec(tail)?.[1]?.trim();
-    const merchant = cleanMerchant(named ? payee(named) : lineBefore(text, match.index));
+    const merchant = cleanMerchant(named ? payee(named, tail) : lineBefore(text, match.index));
     return { amount, amountText, income, merchant };
 }
 
-function payee(named: string): string | null {
-    return CARD_REFERENCE.test(named) ? (PARENTHESIZED.exec(named)?.[1] ?? null) : named;
+function payee(named: string, tail: string): string | null {
+    return CARD_REFERENCE.test(named) ? (PARENTHESIZED.exec(tail)?.[1] ?? null) : named;
 }
 
 export function cleanMerchant(raw: string | null): string | null {
