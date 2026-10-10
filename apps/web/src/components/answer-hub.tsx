@@ -5,7 +5,7 @@ import { useLocale } from "react-intlayer";
 
 import { CONTAINER } from "@/lib/layout";
 
-import { AppStoreBadge } from "./store-badges";
+import { StoreBadges } from "./store-badges";
 
 export function AnswerHub({
     items,
@@ -24,7 +24,7 @@ export function AnswerHub({
             <h1 className="text-display max-w-[46rem] font-bold">{title}</h1>
             <p className="text-lead text-muted mt-6 max-w-[40rem]">{lead}</p>
             <div className="mt-9">
-                <AppStoreBadge placement="answer" />
+                <StoreBadges placement="answer" />
             </div>
             <ul className="border-foreground mt-14 border-t">
                 {items.map((item) => (

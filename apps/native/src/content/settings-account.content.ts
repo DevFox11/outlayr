@@ -108,8 +108,8 @@ const settingsAccount = {
             es: "Cerrar sesi\u00F3n",
         }),
         "settings.account.signOutFooter": t({
-            en: "Signing out ends the session on this iPhone. Every transaction, budget and category stays exactly where it is.",
-            es: "Cerrar sesión solo afecta a este iPhone. Tus transacciones, presupuestos y categorías se quedan tal como están.",
+            en: "Signing out ends the session on this phone. Every transaction, budget and category stays exactly where it is.",
+            es: "Cerrar sesión solo afecta a este celular. Tus transacciones, presupuestos y categorías se quedan tal como están.",
         }),
         "settings.account.signedInAs": t({
             en: "Signed in as",
@@ -148,8 +148,8 @@ const settingsAccount = {
             es: "La sincronización no cambió",
         }),
         "settings.sync.footer": t({
-            en: "Turning sync off keeps every transaction, budget and category on this iPhone; it only stops queueing them for your account. Turning it back on hands over everything logged in between.",
-            es: "Si desactivas la sincronización, cada transacción, presupuesto y categoría se queda en este iPhone; solo deja de enviarse a tu cuenta. Al activarla de nuevo, se envía todo lo que registraste mientras tanto.",
+            en: "Turning sync off keeps every transaction, budget and category on this phone; it only stops queueing them for your account. Turning it back on hands over everything logged in between.",
+            es: "Si desactivas la sincronización, cada transacción, presupuesto y categoría se queda en este celular; solo deja de enviarse a tu cuenta. Al activarla de nuevo, se envía todo lo que registraste mientras tanto.",
         }),
         "settings.sync.lastSynced": t({
             en: "Last synced",
@@ -176,8 +176,8 @@ const settingsAccount = {
             es: "Sin sincronizar",
         }),
         "settings.sync.offDetail": t({
-            en: "Nothing leaves this iPhone. Your ledger is complete here and works exactly as it does now.",
-            es: "Nada sale de este iPhone. Tu registro está completo aquí y funciona igual que ahora.",
+            en: "Nothing leaves this phone. Your ledger is complete here and works exactly as it does now.",
+            es: "Nada sale de este celular. Tu registro está completo aquí y funciona igual que ahora.",
         }),
         "settings.sync.on": t({
             en: "Syncing",
@@ -192,8 +192,8 @@ const settingsAccount = {
             es: "En pausa",
         }),
         "settings.sync.pausedDetail": t({
-            en: "Syncing needs Outlayr Pro. Your ledger is complete on this iPhone and keeps working; changes wait here until Pro is active again.",
-            es: "Sincronizar requiere Outlayr Pro. Tu registro está completo en este iPhone y sigue funcionando; los cambios esperan aquí hasta que Pro esté activo otra vez.",
+            en: "Syncing needs Outlayr Pro. Your ledger is complete on this phone and keeps working; changes wait here until Pro is active again.",
+            es: "Sincronizar requiere Outlayr Pro. Tu registro está completo en este celular y sigue funcionando; los cambios esperan aquí hasta que Pro esté activo otra vez.",
         }),
         "settings.sync.pending": t({
             en: "{count} waiting to sync",

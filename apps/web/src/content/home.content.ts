@@ -82,8 +82,8 @@ const home = {
         faq: [
             {
                 answer: t({
-                    en: "Outlayr is an expense tracker, budget app, and subscription tracker for iPhone, made by danestves LLC. You log a purchase by typing one sentence, saying it, or scanning the receipt. Budgets, savings goals, subscriptions, and insights update as you log, in any of 165 currencies, in English or Spanish.",
-                    es: "Outlayr es una app para controlar tus gastos, tu presupuesto y tus suscripciones en iPhone, hecha por danestves LLC. Registras una compra escribiendo una oración, dictándola o escaneando el recibo. Los presupuestos, las metas de ahorro, las suscripciones y las estadísticas se actualizan a medida que registras, en cualquiera de 165 monedas, en inglés o en español.",
+                    en: "Outlayr is a mobile expense tracker, budget app, and subscription tracker, made by danestves LLC. You log a purchase by typing one sentence, saying it, or scanning the receipt. Budgets, savings goals, subscriptions, and insights update as you log, in any of 165 currencies, in English or Spanish.",
+                    es: "Outlayr es una app móvil para controlar tus gastos, tu presupuesto y tus suscripciones, hecha por danestves LLC. Registras una compra escribiendo una oración, dictándola o escaneando el recibo. Los presupuestos, las metas de ahorro, las suscripciones y las estadísticas se actualizan a medida que registras, en cualquiera de 165 monedas, en inglés o en español.",
                 }),
                 question: t({ en: "What is Outlayr?", es: "¿Qué es Outlayr?" }),
             },
@@ -96,8 +96,8 @@ const home = {
             },
             {
                 answer: t({
-                    en: "Yes. Outlayr Pro is billed monthly or yearly, or bought once, at prices set per country in the App Store. There are no ads on any plan.",
-                    es: "Sí. Outlayr Pro se paga al mes, al año o en un solo pago, con precios por país en el App Store. No hay anuncios en ningún plan.",
+                    en: "Yes. Outlayr Pro is billed monthly or yearly, or bought once, at prices set per country in your app store. There are no ads on any plan.",
+                    es: "Sí. Outlayr Pro se paga al mes, al año o en un solo pago, con precios por país en tu tienda de apps. No hay anuncios en ningún plan.",
                 }),
                 question: t({
                     en: "Can I buy Outlayr Pro once instead of subscribing?",
@@ -116,8 +116,8 @@ const home = {
             },
             {
                 answer: t({
-                    en: "Not yet. Outlayr is available on iPhone with iOS 18 or later, and an Android version is coming soon.",
-                    es: "Todavía no. Outlayr está disponible en iPhone con iOS 18 o posterior, y pronto llegará una versión para Android.",
+                    en: "Soon. Outlayr is coming to Google Play. Today it runs on iPhone with iOS 18 or later.",
+                    es: "Pronto. Outlayr llegará a Google Play. Hoy funciona en iPhone con iOS 18 o posterior.",
                 }),
                 question: t({ en: "Is Outlayr on Android?", es: "¿Outlayr está en Android?" }),
             },
@@ -194,12 +194,12 @@ const home = {
         ],
         meta: {
             description: t({
-                en: "Outlayr is an expense tracker and budget app for iPhone. Log a purchase in one sentence, by voice, or from a receipt, and track every subscription. Free to start.",
-                es: "Outlayr es una app para controlar tus gastos y tu presupuesto en iPhone. Registra una compra en una oración, con tu voz o con un recibo, y controla tus suscripciones. Gratis.",
+                en: "Outlayr is a mobile expense tracker and budget app. Log a purchase in one sentence, by voice, or from a receipt, and track every subscription. Free to start.",
+                es: "Outlayr es una app móvil para controlar tus gastos y tu presupuesto. Registra una compra en una oración, con tu voz o con un recibo, y controla tus suscripciones. Gratis.",
             }),
             title: t({
                 en: "Outlayr: Expense Tracker, Budget App & Subscription Tracker",
-                es: "App para controlar gastos y presupuesto en iPhone · Outlayr",
+                es: "App para controlar gastos y presupuesto · Outlayr",
             }),
         },
         plansCopy: {

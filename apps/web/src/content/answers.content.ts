@@ -1283,8 +1283,8 @@ const answers = {
                             es: "Depende de cómo quieras registrar. Monefy registra una compra en dos toques. Money Manager lleva contabilidad de doble entrada, con hasta 15 cuentas en su versión gratis. Spendee y Wallet by BudgetBakers empiezan gratis y sincronizan cuentas de banco en Premium. Outlayr registra con una oración, tu voz o un recibo en su plan gratis. YNAB es de pago después de una prueba de 34 días.",
                         }),
                         question: t({
-                            en: "What is the best free expense tracker app for iPhone?",
-                            es: "¿Cuál es la mejor app gratis para controlar gastos en iPhone?",
+                            en: "What is the best free expense tracker app?",
+                            es: "¿Cuál es la mejor app gratis para controlar gastos?",
                         }),
                     },
                     {
@@ -1307,13 +1307,13 @@ const answers = {
                     },
                 ],
                 lead: t({
-                    en: "Six expense trackers, each best for a different need: Monefy, Money Manager, Outlayr, Spendee, Wallet by BudgetBakers, and YNAB. All but YNAB are free to start on iPhone. Outlayr is ours; the other five are not.",
-                    es: "Seis apps para controlar gastos, cada una mejor para algo distinto: Monefy, Money Manager, Outlayr, Spendee, Wallet by BudgetBakers y YNAB. Todas menos YNAB son gratis para empezar en iPhone. Outlayr es nuestra; las otras cinco no.",
+                    en: "Six expense trackers, each best for a different need: Monefy, Money Manager, Outlayr, Spendee, Wallet by BudgetBakers, and YNAB. All but YNAB are free to start. Outlayr is ours; the other five are not.",
+                    es: "Seis apps para controlar gastos, cada una mejor para algo distinto: Monefy, Money Manager, Outlayr, Spendee, Wallet by BudgetBakers y YNAB. Todas menos YNAB son gratis para empezar. Outlayr es nuestra; las otras cinco no.",
                 }),
                 meta: {
                     title: t({
                         en: "Best Expense Tracker Apps, Compared (2026) · Outlayr",
-                        es: "Mejor app para controlar gastos en iPhone (2026) · Outlayr",
+                        es: "Mejores apps para controlar gastos, comparadas (2026) · Outlayr",
                     }),
                 },
                 sources: t({
@@ -1827,8 +1827,8 @@ const answers = {
                     },
                 ],
                 lead: t({
-                    en: "Mint has been reimagined on Credit Karma, in Intuit's words. Outlayr imports the CSV you exported from Mint, then keeps your budgets and spending going on iPhone.",
-                    es: "Mint ahora vive en Credit Karma, según Intuit. Outlayr importa el CSV que exportaste de Mint y sigue con tus presupuestos y tus gastos en iPhone.",
+                    en: "Mint has been reimagined on Credit Karma, in Intuit's words. Outlayr imports the CSV you exported from Mint, then keeps your budgets and spending going on your phone.",
+                    es: "Mint ahora vive en Credit Karma, según Intuit. Outlayr importa el CSV que exportaste de Mint y sigue con tus presupuestos y tus gastos en tu celular.",
                 }),
                 meta: {
                     title: t({

@@ -1,6 +1,6 @@
 ---
 title: "Privacy Policy"
-description: "What Outlayr stores on your device, what reaches our servers, AI provider, and analytics service, how long it is kept, and how to delete it. Updated 9 October 2026."
+description: "What Outlayr stores on your device, what reaches our servers, AI provider, and analytics service, how long it is kept, and how to delete it. Updated 10 October 2026."
 intro: "This policy explains what Outlayr collects, where it goes, how long it stays, and what you can do about it."
 ---
 
@@ -38,7 +38,7 @@ Every kind of data Outlayr handles, in one place. The sections below explain eac
 | Receipt photo | Receipt scan | Our servers, xAI | Not kept |
 | File descriptions | CSV import | Our servers, xAI (Pro) | Not kept |
 | Web address, IP address | Logos | Logo.dev, Google | Their policies |
-| Purchase records, user ID, name, email | App opens, Pro | RevenueCat, Apple, our servers | Until account deletion |
+| Purchase records, user ID, name, email | App opens, Pro | RevenueCat, Apple or Google, our servers | Until account deletion |
 | Install ID, app version, errors | Update checks | Expo | Expo’s policy |
 | Screens, saves, errors, install ID, device model | App use | PostHog | Until account deletion, or PostHog’s policy if you never sign in |
 | Pages, clicks, scrolling, errors, page speed, visit recordings | Website visits | PostHog | PostHog’s policy |
@@ -161,7 +161,7 @@ To keep the connection working, we store the assistant's name and web address, y
 
 ## Outlayr Pro
 
-Payments for Outlayr Pro go through your app store (Apple’s App Store on iPhone). We never see your card details or your app store account details.
+Payments for Outlayr Pro go through your app store (Apple’s App Store on iPhone, Google Play on Android). We never see your card details or your app store account details.
 
 RevenueCat manages subscription status for us. When the app opens, RevenueCat’s software checks whether you have Pro. Before you sign in it uses a random anonymous ID. After you sign in it uses your Outlayr account ID, and the app also sends your name and email so we can find your purchases when you write to us. RevenueCat receives your app store purchase and subscription records and basic technical details, such as the app and operating system versions.
 
@@ -169,7 +169,7 @@ Our server asks RevenueCat about your account ID to confirm Pro, and RevenueCat 
 
 ## Device permissions
 
-On iPhone, the app asks for each permission the first time a feature needs it. You can change them in iOS Settings.
+The app asks for each permission the first time a feature needs it. You can change them in your phone’s Settings app.
 
 - **Camera:** taking a photo of a receipt to scan.
 - **Photos:** choosing a receipt to scan, or a custom image for a transaction or account.
@@ -188,7 +188,7 @@ These companies help run Outlayr. Each receives only what its job needs.
 - **xAI** provides the Grok AI models behind suggestions, voice entry, receipt scans, CSV import, and web lookups. It receives the content described in [Suggestions, voice, and receipts](#suggestions-voice-and-receipts).
 - **[RevenueCat](https://www.revenuecat.com/privacy)** tracks subscription status. It receives an anonymous ID, or your account ID, name, and email once you sign in, and your purchase records.
 - **[Apple](https://www.apple.com/legal/privacy/)** provides Sign in with Apple, App Store payments, and iOS features such as Siri and Shortcuts, under its own policy.
-- **[Google](https://policies.google.com/privacy)** provides Sign in with Google, under its own policy, and is a fallback source for logos, for which it receives a web address and your IP address.
+- **[Google](https://policies.google.com/privacy)** provides Sign in with Google and Google Play payments, under its own policy, and is a fallback source for logos, for which it receives a web address and your IP address.
 - **Logo.dev** provides merchant and bank logos. It receives a web address and your IP address.
 - **[Expo](https://expo.dev/privacy)** delivers app updates. It receives a random install ID, the app version, your IP address, and update error messages.
 - **[PostHog](https://posthog.com/privacy)** provides usage analytics and crash reports, from servers in the United States. It receives the events described in [What the app sends even without an account](#what-the-app-sends-even-without-an-account), a random install ID, and your account ID once you sign in. It also receives this website’s analytics, described in [This website](#this-website).
@@ -222,7 +222,7 @@ If you’re in the European Economic Area or the United Kingdom, we rely on thes
 | Sessions, usage limits, error logs, assistant tool logs, and update checks | Legitimate interests: keeping Outlayr secure, working, and free of abuse. |
 | Usage analytics and crash reports | Your consent. Share analytics starts off when your device’s region is in the EEA or UK. Turning it on gives consent, and turning it off withdraws it. |
 | Website analytics | Your consent for the cookie and visit recordings, asked on your first visit. Declining withdraws it. A declined visit is still counted without a cookie, under our legitimate interest in knowing how many people visit. |
-| Camera, microphone, photos, biometric lock, and notifications | Your permission, given when your device asks and withdrawn in its settings (iOS Settings on iPhone). |
+| Camera, microphone, photos, biometric lock, and notifications | Your permission, given when your device asks and withdrawn in its settings. |
 | Answering lawful requests and keeping records the law requires | Legal obligation. |
 
 You can object to any processing based on legitimate interests by writing to [support@tryoutlayr.com](mailto:support@tryoutlayr.com).
@@ -258,7 +258,7 @@ It starts right away and runs from your device. If it’s interrupted, open Sett
 
 Afterward, a record that a deletion happened, with no link to you, is removed within two days of it finishing.
 
-Deleting your account doesn’t cancel an Outlayr Pro subscription, because your app store (Apple’s App Store on iPhone) bills it. On iPhone, cancel it in the iOS Settings app under your name, then Subscriptions. Your app store keeps its own purchase records.
+Deleting your account doesn’t cancel an Outlayr Pro subscription, because your app store (Apple’s App Store on iPhone, Google Play on Android) bills it. On iPhone, cancel it in the Settings app under your name, then Subscriptions. On Android, cancel it in the Google Play Store app under your profile picture, then Payments & subscriptions, then Subscriptions. Your app store keeps its own purchase records.
 
 ### Erase this device
 
@@ -294,7 +294,7 @@ If you live in California or another US state with a privacy law, this is what w
 | Category and examples | Received by |
 | --- | --- |
 | **Identifiers:** name, email, account ID, install ID, IP address | Hetzner, RevenueCat, Expo, PostHog, Logo.dev, Google |
-| **Commercial information:** subscription and purchase records | Apple, RevenueCat, Hetzner |
+| **Commercial information:** subscription and purchase records | Apple, Google, RevenueCat, Hetzner |
 | **Audio and visual information:** voice clips, receipt scans, attached photos | xAI (clips and scans), Cloudflare (photos) |
 | **Internet or network activity:** IP address, user agent, request logs, app and website usage, crash reports | Hetzner, Expo, PostHog, our website host |
 | **Records you create:** synced entries, amounts, merchants, notes, budgets | Hetzner; merchant, category, and account names to xAI |

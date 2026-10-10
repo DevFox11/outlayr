@@ -6,7 +6,7 @@ import { useIntlayer, useLocale } from "react-intlayer";
 import { SayPanel, ScanPanel } from "@/components/demo/capture-panels";
 import { HubTrail } from "@/components/hub-trail";
 import { Screen } from "@/components/screen";
-import { AppStoreBadge } from "@/components/store-badges";
+import { StoreBadges } from "@/components/store-badges";
 import { hasKey } from "@/lib/has-key";
 import { LANGUAGES, localeFromParam, pageUrl } from "@/lib/i18n";
 import { CONTAINER } from "@/lib/layout";
@@ -145,7 +145,7 @@ function Guide() {
                         </a>
                     ) : null}
                     <div className="mt-9">
-                        <AppStoreBadge placement="answer" />
+                        <StoreBadges placement="answer" />
                     </div>
                 </div>
                 {plate !== null && "plateAlt" in guide ? <GuidePlate alt={guide.plateAlt.value} plate={plate} /> : null}

@@ -17,8 +17,8 @@ export function rivalChecked(slug: string): Date {
 }
 
 export const LEGAL_DAYS = {
-    privacy: new Date(Date.UTC(2026, 9, 9)),
-    terms: new Date(Date.UTC(2026, 9, 3)),
+    privacy: new Date(Date.UTC(2026, 9, 10)),
+    terms: new Date(Date.UTC(2026, 9, 10)),
 } as const;
 
 export function legalDate(document: keyof typeof LEGAL_DAYS, dateLocale: string): string {

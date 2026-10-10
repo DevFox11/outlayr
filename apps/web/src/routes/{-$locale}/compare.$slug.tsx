@@ -3,7 +3,7 @@ import { getIntlayer } from "intlayer";
 import { useIntlayer, useLocale } from "react-intlayer";
 
 import { HubTrail } from "@/components/hub-trail";
-import { AppStoreBadge } from "@/components/store-badges";
+import { StoreBadges } from "@/components/store-badges";
 import { hasKey } from "@/lib/has-key";
 import { LANGUAGES, localeFromParam } from "@/lib/i18n";
 import { CONTAINER } from "@/lib/layout";
@@ -54,7 +54,7 @@ function Compare() {
             <h1 className="text-display mt-4 max-w-[46rem] font-bold">{page.title}</h1>
             <p className="text-lead text-muted mt-6 max-w-[40rem]">{page.lead}</p>
             <div className="mt-9">
-                <AppStoreBadge placement="answer" />
+                <StoreBadges placement="answer" />
             </div>
             <table className="mt-14 w-full border-collapse text-left">
                 <thead>

@@ -32,7 +32,7 @@
 **Emotional tension:** Not knowing where the money went.
 
 ## Competitive Landscape
-**Entity sentence (use it everywhere):** "Outlayr is an expense tracker, budget app, and subscription tracker for iPhone, made by danestves LLC." Spanish: "Outlayr es una app para controlar tus gastos, tu presupuesto y tus suscripciones en iPhone, hecha por danestves LLC." Search results for "Outlayr" go to outlayr.com, an unrelated payments company, and to apps named "Outlay".
+**Entity sentence (use it everywhere):** "Outlayr is a mobile expense tracker, budget app, and subscription tracker, made by danestves LLC." Spanish: "Outlayr es una app móvil para controlar tus gastos, tu presupuesto y tus suscripciones, hecha por danestves LLC." Search results for "Outlayr" go to outlayr.com, an unrelated payments company, and to apps named "Outlay".
 **Direct (each has a page under /compare, facts dated and linked to the rival's own site):**
 - Rocket Money: subscription manager, US only, cancellation by its team is Premium. Deepest "alternative" demand.
 - YNAB, Monarch, Copilot: paid, bank-synced, US-centric (Copilot USD only; Monarch US and Canada).
@@ -55,7 +55,7 @@
 |-----------|----------|
 | Is it free? | The tracker is free; Pro raises limits and adds sync. |
 | Is my data private? | The ledger stays on the phone unless you turn on sync or use server features. No ads, never sold; usage analytics and crash reports go to PostHog, never amounts or merchants. |
-| Is it on Android? | Not yet; coming soon. |
+| Is it on Android? | Soon, on Google Play. |
 
 **Anti-persona:** People who want automatic bank-feed syncing.
 
@@ -66,7 +66,7 @@ Full evidence: `docs/marketing/aso-keyword-research-2026-10.md` and `docs/market
 | Subscription tracker / manager | Name "Subscription Tracker: Outlayr" (winnable: top-10 median 258 ratings) | /guides/subscription-tracker, /compare/rocket-money |
 | Expense tracker / budget app | Combinations across name, subtitle, keywords (long game: medians 16k to 19k) | Home, /guides/budget-planner |
 | "<rival> alternative" | No App Store demand; Apple Ads brand keywords only | /compare/<rival>, titled "<Rival> Alternative" |
-| Spanish | "control de gastos", "presupuesto y suscripciones" | "app para controlar gastos iphone gratis" (es home title) |
+| Spanish | "control de gastos", "presupuesto y suscripciones" | "app para controlar gastos gratis" (es home title) |
 Never target "budget app without bank linking" style queries: they can only be won by marketing the absence of bank linking.
 
 ## Customer Language

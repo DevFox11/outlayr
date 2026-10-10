@@ -7,8 +7,8 @@ const about = {
         allGuides: t({ en: "All guides", es: "Todas las guías" }),
         appIcon: t({ en: "App icon", es: "Ícono de la app" }),
         entity: t({
-            en: "Outlayr is an expense tracker, budget app, and subscription tracker for iPhone, made by danestves LLC.",
-            es: "Outlayr es una app para controlar tus gastos, tu presupuesto y tus suscripciones en iPhone, hecha por danestves LLC.",
+            en: "Outlayr is a mobile expense tracker, budget app, and subscription tracker, made by danestves LLC.",
+            es: "Outlayr es una app móvil para controlar tus gastos, tu presupuesto y tus suscripciones, hecha por danestves LLC.",
         }),
         facts: [
             {
@@ -21,8 +21,8 @@ const about = {
             {
                 label: t({ en: "Platforms", es: "Plataformas" }),
                 text: t({
-                    en: "iPhone with iOS 18 or later. Android is coming soon.",
-                    es: "iPhone con iOS 18 o posterior. Pronto llegará una versión para Android.",
+                    en: "iPhone with iOS 18 or later. Android is coming soon to Google Play.",
+                    es: "iPhone con iOS 18 o posterior. Pronto llegará a Google Play para Android.",
                 }),
             },
             {
@@ -67,8 +67,8 @@ const about = {
             {
                 label: t({ en: "Price", es: "Precio" }),
                 text: t({
-                    en: "Pro is billed monthly or yearly, or bought once, at prices set per country in the App Store. There are no ads on any plan.",
-                    es: "Pro se paga al mes, al año o en un solo pago, con precios por país en el App Store. No hay anuncios en ningún plan.",
+                    en: "Pro is billed monthly or yearly, or bought once, at prices set per country in your app store. There are no ads on any plan.",
+                    es: "Pro se paga al mes, al año o en un solo pago, con precios por país en tu tienda de apps. No hay anuncios en ningún plan.",
                 }),
             },
             {
@@ -88,8 +88,8 @@ const about = {
         ],
         meta: {
             description: t({
-                en: "Outlayr is an expense tracker, budget app, and subscription tracker for iPhone, made by danestves LLC. Platforms, languages, plans, free limits, and where your data lives.",
-                es: "Outlayr es una app para controlar tus gastos, tu presupuesto y tus suscripciones en iPhone, hecha por danestves LLC. Plataformas, idiomas, planes, límites y dónde están tus datos.",
+                en: "Outlayr is a mobile expense tracker, budget app, and subscription tracker, made by danestves LLC. Platforms, languages, plans, free limits, and where your data lives.",
+                es: "Outlayr es una app móvil para controlar tus gastos, tu presupuesto y tus suscripciones, hecha por danestves LLC. Plataformas, idiomas, planes, límites y dónde están tus datos.",
             }),
             title: t({
                 en: "About Outlayr: the expense tracker by danestves LLC",

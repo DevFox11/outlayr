@@ -68,7 +68,7 @@ export function useAgentTools(locale: Locale) {
             {
                 annotations: { readOnlyHint: true },
                 description:
-                    "Search tryoutlayr.com, the site for Outlayr, an expense tracker and budget app for iPhone. Covers the product overview, how-to guides, comparisons with other budget apps, support, and legal pages. Returns each match's title, description, path, and URL. Leave the query empty to list every page.",
+                    "Search tryoutlayr.com, the site for Outlayr, a mobile expense tracker and budget app. Covers the product overview, how-to guides, comparisons with other budget apps, support, and legal pages. Returns each match's title, description, path, and URL. Leave the query empty to list every page.",
                 execute: ({ query = "" }: { query?: string }) => searchPages(pages, query).map(located),
                 inputSchema: {
                     properties: {
