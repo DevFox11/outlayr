@@ -34,3 +34,5 @@ expo-env.d.ts
 # Contains the distribution private key and its p12 password — never commit.
 credentials.json
 credentials/
+
+/targets/*/Assets.xcassets

@@ -17,9 +17,10 @@ import { accountsRepo, getAccountById } from "./accounts-core";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { suggestedCardFee } from "./card-fees-core";
 import { MIN_KEY_LENGTH, queueEnrichment } from "./enrichment-queue-core";
+import { isLogoCandidate, LOGO_CANDIDATE_KEEP_MS, rememberLogoCandidate } from "./logo-backfill-state";
 import { backfillRecurring, occurrenceId } from "./recurrence-backfill";
 import { readBoolSetting } from "./settings-core";
-import { transactionsRepo } from "./transactions-core";
+import { getTransactionById, transactionsRepo } from "./transactions-core";
 
 /**
  * How far apart two Wallet runs may be and still be read as one purchase.
@@ -367,6 +368,36 @@ async function stillOnLedger(db: Database, txId: string): Promise<boolean> {
     return rows[0] != null;
 }
 
+export async function applyWatchNotes(
+    db: Database,
+    notes: Record<string, string>,
+    now: Date = new Date()
+): Promise<string[]> {
+    const applied: string[] = [];
+    for (const [id, note] of Object.entries(notes)) {
+        const trimmed = note.trim();
+        if (trimmed === "") {
+            applied.push(id);
+            continue;
+        }
+        // oxlint-disable-next-line no-await-in-loop -- each note targets one row; a handful at most
+        const txId = await pendingWriteTxId(db, id);
+        const row = txId == null ? null : getTransactionById(db, txId);
+        if (txId == null || row == null) {
+            continue;
+        }
+        // oxlint-disable-next-line no-await-in-loop -- see above
+        await withTransaction(db, async () => {
+            await db.update(transactions).set({ note: trimmed, updatedAt: now }).where(eq(transactions.id, txId));
+            if (isLogoCandidate({ ...row, note: trimmed })) {
+                await rememberLogoCandidate(db, txId, now.getTime(), LOGO_CANDIDATE_KEEP_MS);
+            }
+        });
+        applied.push(id);
+    }
+    return applied;
+}
+
 export async function pendingWriteTxId(db: Database, id: string): Promise<string | null> {
     const ledger = await readLedger(db);
     const entry = ledger.find((kept) => kept.id === id);
@@ -679,6 +710,18 @@ function resolveWriteCurrency(job: PendingWrite, account: MatchedAccount | null)
  *    automation only ever knows a merchant string, never a category.
  */
 async function knownCategory(db: Database, job: PendingWrite): Promise<string | null> {
+    if (job.categoryId) {
+        const byId = await db
+            .select({ id: categories.id })
+            .from(categories)
+            .where(
+                and(eq(categories.id, job.categoryId), eq(categories.income, job.income), isNull(categories.deletedAt))
+            )
+            .limit(1);
+        if (byId[0]) {
+            return byId[0].id;
+        }
+    }
     if (job.category) {
         const named = await db
             .select({ id: categories.id })

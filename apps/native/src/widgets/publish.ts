@@ -2,6 +2,10 @@ import { Platform } from "react-native";
 
 import { buildWalletPush } from "@/data/wallet-push";
 import type { Database } from "@/db/client";
+import { formatUpcomingDate } from "@/domain/dates";
+import { amountParts } from "@/domain/money";
+import { translateNow } from "@/i18n/runtime";
+import { publishWatchSnapshot } from "@/lib/watch-link";
 import { publishIntentSnapshot, publishWalletPush } from "@/lib/widget-bridge";
 
 import BudgetWidget from "./budget";
@@ -21,6 +25,9 @@ import { buildWidgetProps } from "./props";
  * scheduled at the window's end and the rollover costs one planned reload
  * instead of a stale tile. The other two only change when the user does
  * something, which already triggers a publish.
+ *
+ * The watch gets the same derivation as application context (latest wins), plus
+ * a complication push when one is on the face.
  *
  * Failures are swallowed: a widget that did not refresh is a stale tile, while a
  * throw here would take down whatever app-side action triggered it.
@@ -52,6 +59,7 @@ export async function publishWidgets(db: Database): Promise<void> {
         // derivation — see `publishIntentSnapshot`. It has no configuration of its
         // own, so it gets what an unconfigured tile shows.
         const budget = props.Budget.views.auto;
+        const money = amountParts(0, props.currency);
         const insights = props.Insights.windows[props.Insights.defaultPeriod];
         publishIntentSnapshot({
             budget: {
@@ -73,6 +81,46 @@ export async function publishWidgets(db: Database): Promise<void> {
                 rangeLabel: insights.rangeLabel,
                 spent: insights.spent,
             },
+        });
+        publishWatchSnapshot({
+            budget: {
+                elapsedFraction: budget.elapsedFraction,
+                isOverall: budget.isOverall,
+                name: budget.name,
+                over: budget.over,
+                percent: budget.percent,
+                periodLabel: budget.periodLabel,
+                present: budget.present,
+                remaining: budget.remaining,
+                remainingCaption: budget.remainingCaption,
+                spentFraction: budget.spentFraction,
+            },
+            categories: props.categories,
+            currency: props.currency,
+            dateLabel: formatUpcomingDate(now).toUpperCase(),
+            entries: props.Ledger.entries,
+            money: {
+                decimal: money.locale.decimal,
+                group: money.locale.group,
+                minorUnits: money.minorUnits,
+                symbol: money.symbol,
+            },
+            labels: {
+                done: translateNow("common.done"),
+                empty: translateNow("watch.empty"),
+                expense: translateNow("common.expense"),
+                income: translateNow("common.income"),
+                log: translateNow("watch.log"),
+                logged: translateNow("watch.logged"),
+                next: translateNow("common.next"),
+                note: translateNow("watch.note"),
+                recent: translateNow("watch.recent"),
+                spent: translateNow("watch.spent"),
+            },
+            publishedAt: now.getTime(),
+            todayLabel: props.Log.todayLabel,
+            todaySpent: props.Log.todaySpent,
+            zeroSpent: props.zeroSpent,
         });
     } catch (error) {
         console.warn("[outlayr] widget publish failed", error);

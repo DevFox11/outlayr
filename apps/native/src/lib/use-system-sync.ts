@@ -20,6 +20,7 @@ import { ratesPuller, watchRecentRates } from "@/lib/convex";
 import { sendEnrichmentQueue } from "@/lib/enrichment-queue";
 import { armLogoBackfill, backfillLogos } from "@/lib/logo-backfill";
 import { notifyWarning } from "@/lib/notify";
+import { drainWatchNotes, onWatchPendingWrite } from "@/lib/watch-link";
 import { publishWidgets } from "@/widgets/publish";
 
 import { indexSpotlight } from "./spotlight";
@@ -27,9 +28,9 @@ import { affectsSpotlight, affectsWidgets, debounce, PUBLISH_DEBOUNCE_MS, SPOTLI
 import { claimPendingWrites, readWalletLastRun, releasePendingWrites } from "./widget-bridge";
 
 /**
- * Keeps the widget tiles and the Spotlight index current, each on its own
- * cadence — see `sync-cadence.ts` for which tables reach which surface and why
- * the index trails the tiles so far.
+ * Keeps the widget tiles, the watch and the Spotlight index current, each on
+ * its own cadence — see `sync-cadence.ts` for which tables reach which surface
+ * and why the index trails the tiles so far.
  */
 export function useSystemSync(db: Database | null): void {
     useEffect(() => {
@@ -62,6 +63,10 @@ export function useSystemSync(db: Database | null): void {
                 .catch((error) => {
                     console.warn("[outlayr] pending writes failed to apply", error);
                     publish.schedule();
+                })
+                .then(() => drainWatchNotes(db))
+                .catch((error) => {
+                    console.warn("[outlayr] watch notes failed to apply", error);
                 })
                 .then(() => {
                     sendEnrichmentQueue(db);
@@ -122,6 +127,8 @@ export function useSystemSync(db: Database | null): void {
             }
         });
 
+        const unwatchWrites = onWatchPendingWrite(catchUp);
+
         const subscription = AppState.addEventListener("change", (state) => {
             // Background is the last moment the app can guarantee the tile behind it
             // is current.
@@ -143,6 +150,7 @@ export function useSystemSync(db: Database | null): void {
             reindex.cancel();
             listener.remove();
             subscription.remove();
+            unwatchWrites();
         };
     }, [db]);
 }

@@ -61,6 +61,7 @@ struct LogTransactionIntent: AppIntent {
             // Left empty on purpose: the app falls back to the category name.
             note: (trimmed?.isEmpty == false ? trimmed : nil) ?? "",
             category: category?.trimmingCharacters(in: .whitespacesAndNewlines),
+            categoryId: nil,
             date: Date().timeIntervalSince1970 * 1000,
             // A spoken amount carries no currency, so the app applies the
             // ledger's own.

@@ -186,6 +186,7 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
                 widgets: WIDGETS,
             },
         ],
+        "@bacons/apple-targets",
         [
             "expo-quick-actions",
             {

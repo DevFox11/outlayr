@@ -60,6 +60,7 @@ struct LogNotificationIntent: AppIntent {
             income: side == .income,
             note: "",
             category: nil,
+            categoryId: nil,
             date: Date().timeIntervalSince1970 * 1000,
             amountText: nil,
             card: cardText,

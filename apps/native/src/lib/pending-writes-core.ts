@@ -25,6 +25,7 @@ export interface PendingWrite {
     card?: string | null;
     /** Category name as spoken; resolved to a real category by the drain. */
     category: string | null;
+    categoryId?: string | null;
     /** An explicit ISO code when the automation pinned one; beats `amountText`. */
     currency?: string | null;
     /** Epoch ms — when the intent ran, not when the app got around to it. */
@@ -111,6 +112,7 @@ const pendingWriteSchema = z.object({
         .string()
         .nullish()
         .transform((value) => value ?? null),
+    categoryId: z.string().nullish(),
     currency: z.string().nullish(),
     date: z.number().finite(),
     dedupeKey: z.string().nullish(),

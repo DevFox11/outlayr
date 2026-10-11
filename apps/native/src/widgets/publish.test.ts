@@ -32,10 +32,13 @@ const mockProps: WidgetProps = {
     // SAFETY: only the fields publishWidgets reads on its way to the update
     // calls; the tiles never render here.
     Budget: { views: { auto: { present: false } } } as unknown as WidgetProps["Budget"],
+    categories: [],
+    currency: "USD",
     Insights: { defaultPeriod: "month", windows: { month: {} } } as unknown as WidgetProps["Insights"],
     Ledger: {} as WidgetProps["Ledger"],
     Log: {} as WidgetProps["Log"],
     intentBudgets: [],
+    zeroSpent: "$0.00",
 };
 jest.mock("./props", () => ({ buildWidgetProps: () => Promise.resolve(mockProps) }));
 

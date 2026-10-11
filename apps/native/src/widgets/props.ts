@@ -194,13 +194,24 @@ interface IntentBudgetProps {
     spent: string;
 }
 
+export interface CategoryProps {
+    color: string;
+    emoji: string;
+    id: string;
+    income: boolean;
+    name: string;
+}
+
 export interface WidgetProps {
     Budget: BudgetWidgetProps;
+    categories: CategoryProps[];
+    currency: string;
     Insights: InsightsWidgetProps;
     /** Every budget, overall first — see {@link IntentBudgetProps}. */
     intentBudgets: IntentBudgetProps[];
     Ledger: LedgerWidgetProps;
     Log: LogWidgetProps;
+    zeroSpent: string;
 }
 
 /** The Insights period codes as stored (`insightsTimeFrame`). */
@@ -246,6 +257,7 @@ interface CategoryRow {
     income: boolean;
     name: string | null;
     parentId: string | null;
+    sortOrder: number;
 }
 
 /**
@@ -291,14 +303,26 @@ export async function buildWidgetProps(db: SpendDb, now: Date = new Date()): Pro
             income: categoriesTable.income,
             name: categoriesTable.name,
             parentId: categoriesTable.parentId,
+            sortOrder: categoriesTable.sortOrder,
         })
         .from(categoriesTable)
-        .where(isNull(categoriesTable.deletedAt));
+        .where(isNull(categoriesTable.deletedAt))
+        .orderBy(asc(categoriesTable.sortOrder), asc(categoriesTable.name));
     const categoriesById = new Map(categoryRows.map((row) => [row.id, row]));
     const budgets = await budgetFigures(db, now, contributions, valuation);
 
     return {
         Budget: buildBudget(budgets, now, categoriesById, money, whole),
+        categories: categoryRows
+            .filter((row) => row.parentId === null)
+            .map((row) => ({
+                color: row.color ?? WIDGET_PALETTE.light.ink,
+                emoji: row.emoji ?? "",
+                id: row.id,
+                income: row.income,
+                name: row.name ?? "",
+            })),
+        currency,
         Insights: {
             chrome: WIDGET_PALETTE,
             defaultPeriod: period,
@@ -316,6 +340,7 @@ export async function buildWidgetProps(db: SpendDb, now: Date = new Date()): Pro
             url: DEEP_LINKS.newExpense,
         },
         intentBudgets: buildIntentBudgets(budgets, categoriesById, money, whole),
+        zeroSpent: money(0),
     };
 }
 

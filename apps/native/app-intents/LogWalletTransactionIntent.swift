@@ -82,6 +82,7 @@ struct LogWalletTransactionIntent: AppIntent {
             // No category: the app infers one from what this merchant was
             // filed under last time.
             category: nil,
+            categoryId: nil,
             date: Date().timeIntervalSince1970 * 1000,
             amountText: amount,
             card: cardText,
