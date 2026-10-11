@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-out="../apps/web/public/videos"
+out="../apps/web/src/assets/videos"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$out"

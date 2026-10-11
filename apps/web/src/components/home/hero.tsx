@@ -5,7 +5,7 @@ import { Icon } from "@/components/icon";
 import { StoreBadges } from "@/components/store-badges";
 import { CONTAINER } from "@/lib/layout";
 
-import { LoopVideo, Phone } from "./media";
+import { LoopVideo, Phone, videoUrl } from "./media";
 
 export const HERO_POSTER = { dark: "/screens/log-an-expense-dark.webp", light: "/screens/log-an-expense.webp" };
 
@@ -49,8 +49,8 @@ export function Hero() {
                                 label={hero.videoLabel.value}
                                 poster={HERO_POSTER}
                                 sources={{
-                                    dark: "/screens/log-an-expense-dark.mp4",
-                                    light: "/screens/log-an-expense.mp4",
+                                    dark: videoUrl("log-an-expense-dark.mp4"),
+                                    light: videoUrl("log-an-expense.mp4"),
                                 }}
                             />
                         </Phone>

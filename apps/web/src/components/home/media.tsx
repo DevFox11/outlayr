@@ -8,6 +8,16 @@ import { usePaintedTheme } from "@/lib/theme";
 
 const BEZEL = "/app/iphone.webp";
 
+const VIDEOS = import.meta.glob<string>("/src/assets/videos/*", { eager: true, import: "default" });
+
+export function videoUrl(file: string) {
+    const url = VIDEOS[`/src/assets/videos/${file}`];
+    if (url === undefined) {
+        throw new Error(`Missing video asset: ${file}`);
+    }
+    return url;
+}
+
 export function Phone({ children, className = "" }: { children: ReactNode; className?: string }) {
     return (
         <div className={`phone ${className}`}>
@@ -76,6 +86,7 @@ export function LoopVideo({
     const { inView, ref } = useInView<HTMLDivElement>(0.3);
     const video = useRef<HTMLVideoElement>(null);
     const [choice, setChoice] = useState<boolean | null>(null);
+    const [paused, setPaused] = useState(true);
     const wanted = choice ?? !reduced;
     const playing = wanted && inView;
 
@@ -91,6 +102,15 @@ export function LoopVideo({
         }
     }, [playing, theme]);
 
+    const toggle = () => {
+        setChoice(paused);
+        if (paused) {
+            video.current?.play().catch(() => undefined);
+        } else {
+            video.current?.pause();
+        }
+    };
+
     return (
         <div className={className} ref={ref}>
             {theme === null ? null : (
@@ -102,6 +122,8 @@ export function LoopVideo({
                     key={theme}
                     loop
                     muted
+                    onPause={() => setPaused(true)}
+                    onPlay={() => setPaused(false)}
                     playsInline
                     poster={poster[theme]}
                     preload="none"
@@ -111,12 +133,12 @@ export function LoopVideo({
                 />
             )}
             <button
-                aria-label={wanted ? pause.value : play.value}
+                aria-label={paused ? play.value : pause.value}
                 className="glass fluid absolute right-4 bottom-4 flex size-10 items-center justify-center rounded-full hover:scale-105 active:scale-[0.98]"
-                onClick={() => setChoice(!wanted)}
+                onClick={toggle}
                 type="button"
             >
-                <Icon name={wanted ? "pause" : "play"} />
+                <Icon name={paused ? "play" : "pause"} />
             </button>
         </div>
     );
@@ -129,8 +151,8 @@ export function Film({ label, name }: { label: string; name: string }) {
         <LoopVideo
             className="bg-surface relative aspect-square"
             label={label}
-            poster={{ dark: `/videos/${name}-dark${cut}.webp`, light: `/videos/${name}-light${cut}.webp` }}
-            sources={{ dark: `/videos/${name}-dark${cut}.mp4`, light: `/videos/${name}-light${cut}.mp4` }}
+            poster={{ dark: videoUrl(`${name}-dark${cut}.webp`), light: videoUrl(`${name}-light${cut}.webp`) }}
+            sources={{ dark: videoUrl(`${name}-dark${cut}.mp4`), light: videoUrl(`${name}-light${cut}.mp4`) }}
         />
     );
 }
