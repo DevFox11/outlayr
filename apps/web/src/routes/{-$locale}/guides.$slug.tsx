@@ -3,13 +3,12 @@ import { getIntlayer, getPrefix } from "intlayer";
 import type { ReactNode } from "react";
 import { useIntlayer, useLocale } from "react-intlayer";
 
+import { Article, DELAYS, Figures, nextAfter } from "@/components/answers/article";
+import type { ArticleSection } from "@/components/answers/article";
 import { SayPanel, ScanPanel } from "@/components/demo/capture-panels";
-import { HubTrail } from "@/components/hub-trail";
-import { Screen } from "@/components/screen";
-import { StoreBadges } from "@/components/store-badges";
+import { Icon } from "@/components/icon";
 import { hasKey } from "@/lib/has-key";
 import { LANGUAGES, localeFromParam, pageUrl } from "@/lib/i18n";
-import { CONTAINER } from "@/lib/layout";
 import { answerTrail, faqPage, itemList, ldJson, pageMeta, webPage } from "@/lib/seo";
 import { longDate } from "@/lib/site";
 
@@ -36,6 +35,9 @@ const PANELS = {
 const LISTS_CHECKED = new Date(Date.UTC(2026, 9, 9));
 
 const WWW = /^www\./u;
+const WEBP = /\.webp$/u;
+
+const LABEL = "text-muted font-mono text-xs tracking-widest uppercase";
 
 export const Route = createFileRoute("/{-$locale}/guides/$slug")({
     component: Guide,
@@ -74,51 +76,51 @@ export const Route = createFileRoute("/{-$locale}/guides/$slug")({
 
 function GuidePlate({ alt, plate }: { alt: string; plate: string }) {
     if (!hasKey(PANELS, plate)) {
-        return <Screen alt={alt} eager src={plate} />;
+        return (
+            <figure className="bg-surface mx-auto w-full max-w-sm rounded-3xl p-2 lg:max-w-xs">
+                <div className="aspect-4/5 overflow-hidden rounded-2xl lg:aspect-auto">
+                    <img
+                        alt={alt}
+                        className="light-only size-full object-cover object-top lg:h-auto"
+                        decoding="async"
+                        fetchPriority="high"
+                        height={1912}
+                        src={plate}
+                        width={880}
+                    />
+                    <img
+                        alt={alt}
+                        className="dark-only size-full object-cover object-top lg:h-auto"
+                        decoding="async"
+                        height={1912}
+                        loading="lazy"
+                        src={plate.replace(WEBP, "-dark.webp")}
+                        width={880}
+                    />
+                </div>
+            </figure>
+        );
     }
     const { frame, Panel } = PANELS[plate];
     return (
-        <figure className="border-foreground w-full max-w-[22rem] border-t">
+        <figure className="bg-surface mx-auto w-full max-w-sm rounded-3xl p-2">
             <figcaption className="sr-only">{alt}</figcaption>
-            <div aria-hidden="true">
+            <div aria-hidden="true" className="bg-raised rounded-2xl px-6 pb-6">
                 <Panel frame={frame} />
             </div>
         </figure>
     );
 }
 
-function FactList({
-    className,
-    facts,
-}: {
-    className: string;
-    facts: readonly { key: string; label: ReactNode; source?: string; text: ReactNode }[];
-}) {
+function Source({ href }: { href: string }) {
     return (
-        <dl className={`border-foreground grid border-t lg:grid-cols-2 lg:gap-x-16 ${className}`}>
-            {facts.map((fact) => (
-                <div
-                    className="border-border grid gap-1 border-b py-3 sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:items-baseline sm:gap-4"
-                    key={fact.key}
-                >
-                    <dt className="text-micro text-muted font-mono uppercase">{fact.label}</dt>
-                    <dd>
-                        {fact.text}
-                        {fact.source === undefined ? null : (
-                            <>
-                                {" "}
-                                <a
-                                    className="text-muted hover:text-foreground text-sm whitespace-nowrap underline underline-offset-4"
-                                    href={fact.source}
-                                >
-                                    {new URL(fact.source).hostname.replace(WWW, "")}
-                                </a>
-                            </>
-                        )}
-                    </dd>
-                </div>
-            ))}
-        </dl>
+        <a
+            className="fluid text-muted hover:text-foreground ml-2 inline-flex items-center gap-1 font-mono text-xs whitespace-nowrap"
+            href={href}
+        >
+            {new URL(href).hostname.replace(WWW, "")}
+            <Icon name="arrow-up-right" />
+        </a>
     );
 }
 
@@ -128,91 +130,130 @@ function Guide() {
     const { locale } = useLocale();
     const guide = guides[slug];
     const plate = PLATES[slug];
-    return (
-        <main className={`${CONTAINER} pt-10 pb-24 md:pt-16`}>
-            <section className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-center lg:gap-24">
-                <div>
-                    <HubTrail hub="/guides" />
-                    <h1 className="text-display mt-4 font-bold">{guide.title}</h1>
-                    <p className="text-lead text-muted mt-6 max-w-[33rem]">{guide.lead}</p>
-                    {"download" in guide ? (
-                        <a
-                            className="text-tint mt-6 inline-block font-medium underline underline-offset-4"
-                            download
-                            href={guide.download.href.value}
-                        >
-                            {guide.download.label}
-                        </a>
-                    ) : null}
-                    <div className="mt-9">
-                        <StoreBadges placement="answer" />
-                    </div>
-                </div>
-                {plate !== null && "plateAlt" in guide ? <GuidePlate alt={guide.plateAlt.value} plate={plate} /> : null}
-            </section>
-            <FactList
-                className="mt-16"
-                facts={guide.facts.map((fact) => ({ key: fact.label.value, label: fact.label, text: fact.text }))}
-            />
-            {"apps" in guide ? (
-                <>
-                    <p className="text-muted mt-4 text-sm">
-                        {guide.sources}
-                        {labels.checked({ date: longDate(LISTS_CHECKED, LANGUAGES[locale].date) })}
-                    </p>
-                    {guide.apps.map((app) => (
-                        <section className="mt-16 scroll-mt-8" id={app.slug.value} key={app.slug.value}>
-                            <h2 className="text-title font-bold">{app.name}</h2>
-                            <p className="text-muted mt-2 max-w-[40rem]">{app.summary}</p>
-                            <FactList
-                                className="mt-6"
-                                facts={app.facts.map((fact) => ({
-                                    key: fact.label.value,
-                                    label: fact.label,
-                                    source: "source" in fact ? fact.source.value : undefined,
-                                    text: fact.text,
-                                }))}
-                            />
-                            {hasKey(compare, app.slug.value) ? (
-                                <Link
-                                    className="hover:text-foreground text-muted mt-4 inline-block text-sm underline underline-offset-4"
-                                    params={{ locale: getPrefix(locale).localePrefix, slug: app.slug.value }}
-                                    to="/{-$locale}/compare/$slug"
+    const sections: ArticleSection[] = [];
+    if ("apps" in guide) {
+        for (const app of guide.apps) {
+            sections.push({
+                body: (
+                    <>
+                        <p className="text-muted mt-4 max-w-2xl text-lg delay-100" data-reveal>
+                            {app.summary}
+                        </p>
+                        <dl className="border-border mt-8 border-t delay-150" data-reveal>
+                            {app.facts.map((fact) => (
+                                <div
+                                    className="border-border grid gap-2 border-b py-4 sm:grid-cols-4 sm:gap-6"
+                                    key={fact.label.value}
                                 >
-                                    {compare[app.slug.value].title}
-                                </Link>
-                            ) : null}
-                        </section>
+                                    <dt className={`${LABEL} sm:pt-1`}>{fact.label}</dt>
+                                    <dd className="sm:col-span-3">
+                                        <Figures text={fact.text.value} />
+                                        {"source" in fact ? <Source href={fact.source.value} /> : null}
+                                    </dd>
+                                </div>
+                            ))}
+                        </dl>
+                        {hasKey(compare, app.slug.value) ? (
+                            <Link
+                                className="fluid bg-surface hover:bg-foreground/5 group mt-6 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold"
+                                params={{ locale: getPrefix(locale).localePrefix, slug: app.slug.value }}
+                                to="/{-$locale}/compare/$slug"
+                            >
+                                {compare[app.slug.value].title}
+                                <Icon className="fluid text-muted group-hover:translate-x-0.5" name="arrow-right" />
+                            </Link>
+                        ) : null}
+                    </>
+                ),
+                id: app.slug.value,
+                title: app.name,
+            });
+        }
+    }
+    if ("steps" in guide) {
+        sections.push({
+            body: (
+                <ol className="mt-8 flex flex-col gap-4">
+                    {guide.steps.map((step, index) => (
+                        <li
+                            className={`bg-surface flex gap-6 rounded-3xl p-6 md:gap-8 md:p-8 ${DELAYS[index]}`}
+                            data-reveal
+                            key={step.title.value}
+                        >
+                            <span aria-hidden="true" className="text-tint w-6 shrink-0 pt-1 font-mono text-sm">
+                                {String(index + 1).padStart(2, "0")}
+                            </span>
+                            <div>
+                                <h3 className="text-xl font-semibold tracking-tight">{step.title}</h3>
+                                <p className="text-muted mt-2 max-w-xl">{step.text}</p>
+                            </div>
+                        </li>
                     ))}
-                </>
+                </ol>
+            ),
+            id: "steps",
+            title: labels.steps,
+        });
+    }
+    sections.push({
+        body: (
+            <div className="border-border divide-border mt-8 max-w-2xl divide-y border-y">
+                {guide.faq.map((item) => (
+                    <div className="py-6" data-reveal key={item.question.value}>
+                        <h3 className="text-lg font-semibold">{item.question}</h3>
+                        <p className="text-muted mt-2">{item.answer}</p>
+                    </div>
+                ))}
+            </div>
+        ),
+        id: "questions",
+        title: labels.questions,
+    });
+    const download: ReactNode =
+        "download" in guide ? (
+            <a
+                className="fluid bg-foreground text-background inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold hover:-translate-y-0.5 active:translate-y-px"
+                download
+                href={guide.download.href.value}
+            >
+                <Icon className="text-base" name="download-simple" />
+                {guide.download.label}
+            </a>
+        ) : null;
+    return (
+        <Article
+            actions={download}
+            aside={
+                plate !== null && "plateAlt" in guide ? <GuidePlate alt={guide.plateAlt.value} plate={plate} /> : null
+            }
+            checked={"apps" in guide ? LISTS_CHECKED : undefined}
+            hub="/guides"
+            lead={guide.lead}
+            related={nextAfter(guides, slug, 3).map((other) => ({
+                name: guides[other].title,
+                slug: other,
+                text: guides[other].lead,
+                to: "/{-$locale}/guides/$slug",
+            }))}
+            sections={sections}
+            title={guide.title}
+        >
+            <dl className="bg-surface grid gap-x-8 gap-y-6 rounded-3xl p-6 sm:grid-cols-2 md:p-8" data-reveal>
+                {guide.facts.map((fact) => (
+                    <div key={fact.label.value}>
+                        <dt className={LABEL}>{fact.label}</dt>
+                        <dd className="mt-2">
+                            <Figures text={fact.text.value} />
+                        </dd>
+                    </div>
+                ))}
+            </dl>
+            {"apps" in guide ? (
+                <p className="text-muted mt-4 text-sm">
+                    {guide.sources}
+                    {labels.checked({ date: longDate(LISTS_CHECKED, LANGUAGES[locale].date) })}
+                </p>
             ) : null}
-            {"steps" in guide ? (
-                <section className="mt-20">
-                    <h2 className="text-title font-bold">{labels.steps}</h2>
-                    <ol className="mt-8 grid gap-8 md:grid-cols-3 md:gap-12">
-                        {guide.steps.map((step, index) => (
-                            <li key={step.title.value}>
-                                <span aria-hidden="true" className="text-tint font-mono text-sm font-medium">
-                                    {index + 1}
-                                </span>
-                                <h3 className="mt-2 text-lg font-bold">{step.title}</h3>
-                                <p className="text-muted mt-1">{step.text}</p>
-                            </li>
-                        ))}
-                    </ol>
-                </section>
-            ) : null}
-            <section className="mt-20">
-                <h2 className="text-title font-bold">{labels.questions}</h2>
-                <div className="border-foreground mt-8 max-w-[40rem] border-t">
-                    {guide.faq.map((item) => (
-                        <div className="border-border border-b py-6" key={item.question.value}>
-                            <h3 className="text-lg font-bold">{item.question}</h3>
-                            <p className="text-muted mt-2 leading-relaxed">{item.answer}</p>
-                        </div>
-                    ))}
-                </div>
-            </section>
-        </main>
+        </Article>
     );
 }

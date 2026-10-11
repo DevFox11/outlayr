@@ -1,6 +1,6 @@
-import { getLocalizedUrl } from "intlayer";
-import { useIntlayer, useLocale } from "react-intlayer";
+import { useIntlayer } from "react-intlayer";
 
+import { Icon } from "./icon";
 import { LocalizedLink } from "./localized-link";
 import { Page } from "./page";
 
@@ -13,18 +13,17 @@ const PAGES = [
 
 export function NotFound() {
     const { notFound } = useIntlayer("site");
-    const { locale } = useLocale();
     return (
         <Page meta={notFound.meta} title={notFound.title}>
-            <ul className="border-foreground mt-10 max-w-sm border-t font-mono text-xs md:mt-14">
+            <ul className="mt-12 flex flex-wrap gap-2 delay-300" data-reveal>
                 {PAGES.map((page) => (
-                    <li className="border-border border-b" key={page.id}>
+                    <li key={page.id}>
                         <LocalizedLink
-                            className="hover:bg-surface flex justify-between gap-6 py-2.5 transition-colors duration-150"
+                            className="fluid bg-surface hover:bg-foreground/5 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold active:scale-[0.98]"
                             to={page.to}
                         >
                             {notFound.pages[page.id]}
-                            <span className="text-muted">{getLocalizedUrl(page.to, locale)}</span>
+                            <Icon className="text-muted" name="arrow-right" />
                         </LocalizedLink>
                     </li>
                 ))}

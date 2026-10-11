@@ -2518,6 +2518,48 @@ const answers = {
             checked: insert(t({ en: ", checked {{date}}.", es: ", revisados el {{date}}." })),
             source: insert(t({ en: "{{name}} details from", es: "Datos de {{name}} tomados de" })),
             steps: t({ en: "How it works", es: "Cómo funciona" }),
+            checkedOn: insert(t({ en: "Checked {{date}}", es: "Revisado el {{date}}" })),
+            contents: t({ en: "On this page", es: "En esta página" }),
+            cta: {
+                lead: t({
+                    en: "Free to start. No ads on any plan.",
+                    es: "Gratis para empezar. Sin anuncios en ningún plan.",
+                }),
+                title: t({ en: "Track every expense in one sentence.", es: "Registra cada gasto en una oración." }),
+            },
+            outlayrDoes: t({ en: "What Outlayr does", es: "Qué hace Outlayr" }),
+            outlayrPoints: {
+                sentence: {
+                    text: t({
+                        en: "Type a purchase as one sentence, say it, or scan the receipt.",
+                        es: "Escribe una compra en una oración, díctala o escanea el recibo.",
+                    }),
+                    title: t({ en: "Log in one sentence", es: "Registra en una oración" }),
+                },
+                currencies: {
+                    text: t({
+                        en: "Each purchase converts to your main currency at the rate from its day.",
+                        es: "Cada compra se convierte a tu moneda principal con la tasa de su día.",
+                    }),
+                    title: t({ en: "165 currencies", es: "165 monedas" }),
+                },
+                ledger: {
+                    text: t({
+                        en: "It reaches our servers only if you sign in and turn on sync, or use a feature that needs them, like receipt scanning.",
+                        es: "Solo llega a nuestros servidores si inicias sesión y activas la sincronización, o si usas una función que los necesite, como el escaneo de recibos.",
+                    }),
+                    title: t({ en: "Your ledger stays on your phone", es: "Tu registro se queda en tu celular" }),
+                },
+                free: {
+                    text: t({
+                        en: "Budgets, goals, subscriptions, and widgets are free. Outlayr Pro raises the limits and adds sync.",
+                        es: "Los presupuestos, las metas, las suscripciones y los widgets son gratis. Outlayr Pro sube los límites y agrega la sincronización.",
+                    }),
+                    title: t({ en: "Free to start", es: "Gratis para empezar" }),
+                },
+            },
+            related: t({ en: "Keep reading", es: "Sigue leyendo" }),
+            sideBySide: insert(t({ en: "Outlayr and {{name}}, side by side", es: "Outlayr y {{name}}, lado a lado" })),
         },
     },
     key: "answers",

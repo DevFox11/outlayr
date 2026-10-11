@@ -14,7 +14,7 @@ export interface SitePage {
 const DIACRITICS = /\p{Diacritic}/gu;
 const SPACES = /\s+/u;
 
-const fold = (text: string) => text.normalize("NFD").replaceAll(DIACRITICS, "").toLowerCase();
+export const fold = (text: string) => text.normalize("NFD").replaceAll(DIACRITICS, "").toLowerCase();
 
 function sitePages(locale: Locale): SitePage[] {
     const home = getIntlayer("home", locale);

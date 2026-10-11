@@ -51,6 +51,13 @@ const site = {
         },
         footer: {
             about: t({ en: "About", es: "Acerca de" }),
+            company: t({ en: "Company", es: "Empresa" }),
+            product: t({ en: "Product", es: "Producto" }),
+            resources: t({ en: "Resources", es: "Recursos" }),
+            tagline: t({
+                en: "The expense tracker you log in one sentence.",
+                es: "La app de gastos que llenas con una sola oración.",
+            }),
             compare: t({ en: "Compare", es: "Comparar" }),
             email: t({ en: "Email", es: "Correo" }),
             guides: t({ en: "Guides", es: "Guías" }),
@@ -67,6 +74,15 @@ const site = {
             updated: insert(t({ en: "Updated {{date}}", es: "{{date}}" })),
         },
         home: t({ en: "Outlayr home", es: "Inicio de Outlayr" }),
+        nav: {
+            close: t({ en: "Close menu", es: "Cerrar menú" }),
+            features: t({ en: "Features", es: "Funciones" }),
+            how: t({ en: "How it works", es: "Cómo funciona" }),
+            label: t({ en: "Main", es: "Principal" }),
+            open: t({ en: "Open menu", es: "Abrir menú" }),
+            pricing: t({ en: "Pricing", es: "Precios" }),
+            skip: t({ en: "Skip to content", es: "Saltar al contenido" }),
+        },
         legal: {
             contents: t({ en: "Contents", es: "Contenido" }),
             effective: insert(t({ en: "Effective {{date}}", es: "Vigente desde el {{date}}" })),

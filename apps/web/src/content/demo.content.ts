@@ -51,29 +51,6 @@ const demo = {
         log: t({ en: "Log", es: "Registro" }),
         merchantField: t({ en: "Merchant name", es: "Nombre del comercio" }),
         merchantPlaceholder: t({ en: "Netflix, Groceries…", es: "Netflix, Súper…" }),
-        modes: {
-            import: {
-                label: t({ en: "Import", es: "Importa" }),
-                text: t({
-                    en: "Bring in the CSV your bank exports. Known merchants match on the phone, the rest with AI on Pro.",
-                    es: "Trae el CSV que exporta tu banco. Los comercios conocidos se reconocen en el celular y el resto, con IA en Pro.",
-                }),
-            },
-            say: {
-                label: t({ en: "Say", es: "Dicta" }),
-                text: t({
-                    en: "Speak the expense. Say it again to fix a detail.",
-                    es: "Di el gasto en voz alta. Dilo de nuevo para corregir un detalle.",
-                }),
-            },
-            scan: {
-                label: t({ en: "Scan", es: "Escanea" }),
-                text: t({
-                    en: "Point the camera at a receipt. Merchant, amount, and date come back filled in.",
-                    es: "Apunta la cámara a un recibo. El comercio, el monto y la fecha se llenan solos.",
-                }),
-            },
-        },
         names: {
             Bonus: t({ en: "Bonus", es: "Bonos" }),
             Business: t({ en: "Business", es: "Negocio" }),
@@ -146,14 +123,6 @@ const demo = {
             when: t({ en: "Date", es: "Fecha" }),
         },
         voiceAt: t({ en: "at", es: "en" }),
-        ways: {
-            lead: t({
-                en: "Most entries take a few seconds. Use whichever is closest to hand.",
-                es: "La mayoría de los registros toman unos segundos. Usa lo que tengas más a la mano.",
-            }),
-            tabs: t({ en: "Ways to log an entry", es: "Formas de registrar" }),
-            title: t({ en: "Say it, scan it, or import it.", es: "Díctalo, escanéalo o impórtalo." }),
-        },
     },
     key: "demo",
 } satisfies Dictionary;

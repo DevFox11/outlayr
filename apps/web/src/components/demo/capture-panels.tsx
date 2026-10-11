@@ -44,7 +44,7 @@ function Frame({ children, status, tag }: { children: ReactNode; status: ReactNo
             <div className="border-border flex h-11 items-center justify-between gap-4 border-b">
                 <p className="text-muted truncate text-sm">{status}</p>
                 {tag === undefined ? null : (
-                    <span className="text-micro text-tint shrink-0 font-mono uppercase">{tag}</span>
+                    <span className="text-tint shrink-0 font-mono text-xs tracking-widest uppercase">{tag}</span>
                 )}
             </div>
             <div className="flex h-[22rem] flex-col pt-5">{children}</div>
@@ -57,7 +57,7 @@ function Logged({ amount, category, merchant }: { amount: number; category: stri
     const nameOf = useNames();
     return (
         <div className={`mt-auto ${FADE_IN}`}>
-            <p className="text-micro text-muted border-foreground border-b pb-2 font-mono uppercase">{log}</p>
+            <p className="text-muted border-border border-b pb-2 font-mono text-xs tracking-widest uppercase">{log}</p>
             <div className="border-border flex items-baseline justify-between gap-4 border-b py-3">
                 <div className="min-w-0">
                     <p className="truncate font-semibold">{merchant}</p>
@@ -101,8 +101,8 @@ export function SayPanel({ frame }: PanelProps) {
             <div className="flex h-28 shrink-0 flex-col justify-center">
                 {heard ? (
                     <div className={FADE_IN}>
-                        <p className="text-title font-semibold tabular-nums">{formatMoney(12.5, "USD")}</p>
-                        <p className="text-lead mt-1">
+                        <p className="text-4xl font-semibold tracking-tight tabular-nums">{formatMoney(12.5, "USD")}</p>
+                        <p className="mt-1 text-lg">
                             <span className="text-muted">{voiceAt}</span> Blue Bottle
                         </p>
                         <p className="text-muted mt-0.5 text-sm">
@@ -185,7 +185,7 @@ export function ScanPanel({ frame }: PanelProps) {
                 <dl className="border-foreground self-start border-t">
                     {fields.map((field) => (
                         <div className="border-border border-b py-2" key={field.id}>
-                            <dt className="text-micro text-muted font-mono uppercase">{field.label}</dt>
+                            <dt className="text-muted font-mono text-xs tracking-widest uppercase">{field.label}</dt>
                             <dd className="mt-0.5 truncate font-medium tabular-nums">
                                 {frame >= field.shownAt ? (
                                     <span className={`inline-block ${FADE_IN}`}>{field.value}</span>
@@ -207,7 +207,7 @@ function ImportPanel({ frame }: PanelProps) {
     const nameOf = useNames();
     return (
         <Frame status={importStatus[frame] ?? importStatus[0]} tag={frame === 2 ? "Pro" : undefined}>
-            <p className="text-micro text-muted border-foreground border-b pb-2 font-mono uppercase">
+            <p className="text-muted border-border border-b pb-2 font-mono text-xs tracking-widest uppercase">
                 chase-activity.csv
             </p>
             <ol>

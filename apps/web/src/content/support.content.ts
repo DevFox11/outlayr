@@ -1,4 +1,4 @@
-import { t } from "intlayer";
+import { insert, t } from "intlayer";
 import type { Dictionary } from "intlayer";
 
 const support = {
@@ -57,6 +57,17 @@ const support = {
                 question: t({ en: "Which languages does Outlayr speak?", es: "¿En qué idiomas está Outlayr?" }),
             },
         ],
+        filter: {
+            empty: insert(
+                t({ en: "No answer matches “{{query}}”.", es: "Ninguna respuesta coincide con “{{query}}”." })
+            ),
+            emptyHint: t({
+                en: "Write to us and tell us what you were looking for.",
+                es: "Escríbenos y cuéntanos qué buscabas.",
+            }),
+            label: t({ en: "Filter the answers", es: "Filtra las respuestas" }),
+            placeholder: t({ en: "Try refund or cancel", es: "Prueba reembolso o cancelar" }),
+        },
         intro: t({
             en: "Write to us and include what you tapped and what happened. Screenshots help.",
             es: "Escríbenos y cuéntanos qué tocaste y qué pasó. Las capturas de pantalla ayudan.",

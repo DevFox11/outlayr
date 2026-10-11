@@ -1,15 +1,43 @@
 import type { ReactNode } from "react";
 
 import { CONTAINER } from "@/lib/layout";
+import { useMotionScan } from "@/lib/motion";
 
-export const COLUMNS = "grid grid-cols-[minmax(0,36rem)] gap-10 lg:grid-cols-[17rem_minmax(0,36rem)] lg:gap-20";
+export const COLUMNS = "grid gap-12 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16";
 export const ASIDE = "lg:sticky lg:top-24 lg:self-start";
 
-export function Page({ children, meta, title }: { children: ReactNode; meta?: ReactNode; title: ReactNode }) {
+export function Page({
+    children,
+    lead,
+    meta,
+    title,
+}: {
+    children?: ReactNode;
+    lead?: ReactNode;
+    meta?: ReactNode;
+    title: ReactNode;
+}) {
+    useMotionScan();
     return (
-        <main className={`${CONTAINER} pt-12 pb-24 md:pt-20`}>
-            <h1 className="text-title font-bold">{title}</h1>
-            {meta ? <p className="text-micro text-muted mt-4 font-mono uppercase">{meta}</p> : null}
+        <main className={`${CONTAINER} pt-24 pb-24`} id="main">
+            <header className="mt-16">
+                {meta ? (
+                    <p className="text-muted mb-6 font-mono text-xs tracking-widest uppercase" data-reveal>
+                        {meta}
+                    </p>
+                ) : null}
+                <h1
+                    className="hero-text max-w-[680px] pb-2 text-4xl font-semibold tracking-tighter delay-100 md:text-6xl"
+                    data-reveal
+                >
+                    {title}
+                </h1>
+                {lead ? (
+                    <p className="text-muted mt-6 max-w-[680px] text-lg delay-200 md:text-xl" data-reveal>
+                        {lead}
+                    </p>
+                ) : null}
+            </header>
             {children}
         </main>
     );

@@ -13,6 +13,7 @@ import { SiteHeader } from "@/components/site-header";
 import { useAgentTools } from "@/lib/agent-tools";
 import { startAnalytics } from "@/lib/analytics";
 import { LANGUAGES, localeFromParam, pageUrl } from "@/lib/i18n";
+import { useMotion } from "@/lib/motion";
 import { ORGANIZATION_ID, WEBSITE_ID, ldJson } from "@/lib/seo";
 import { COMPANY, SITE_URL, SUPPORT_EMAIL } from "@/lib/site";
 import { THEME_SCRIPT } from "@/lib/theme";
@@ -94,7 +95,7 @@ export const Route = createRootRoute({
             meta: [
                 { charSet: "utf-8" },
                 { content: "width=device-width, initial-scale=1", name: "viewport" },
-                { content: "#f2f0ea", name: "theme-color" },
+                { content: "#ffffff", name: "theme-color" },
                 { content: "Outlayr", property: "og:site_name" },
                 { content: "website", property: "og:type" },
                 { content: LANGUAGES[locale].og, property: "og:locale" },
@@ -125,6 +126,7 @@ function RootDocument({ children }: { children: ReactNode }) {
     const country = Route.useLoaderData();
     useEffect(() => startAnalytics(country), [country]);
     useAgentTools(locale);
+    useMotion();
     return (
         <html lang={LANGUAGES[locale].lang} suppressHydrationWarning>
             <head>

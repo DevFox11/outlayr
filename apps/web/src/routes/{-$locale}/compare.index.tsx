@@ -26,10 +26,15 @@ function Comparisons() {
     const { compare, hubs } = useIntlayer("answers");
     return (
         <AnswerHub
-            items={Object.entries(compare).map(([slug, page]) => ({ name: page.rival, slug, text: page.summary }))}
+            items={Object.entries(compare).map(([slug, page]) => ({
+                kicker: page.site,
+                name: page.rival,
+                slug,
+                text: page.summary,
+                to: "/{-$locale}/compare/$slug",
+            }))}
             lead={hubs.compare.lead}
             title={hubs.compare.title}
-            to="/{-$locale}/compare/$slug"
         />
     );
 }

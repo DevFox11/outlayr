@@ -1,118 +1,94 @@
-import { Link } from "@tanstack/react-router";
-import { getPrefix } from "intlayer";
 import type { ReactNode } from "react";
-import { useIntlayer, useLocale } from "react-intlayer";
+import { useIntlayer } from "react-intlayer";
 
-import { LANGUAGES } from "@/lib/i18n";
 import { CONTAINER } from "@/lib/layout";
-import { COMPANY, SUPPORT_EMAIL, legalDate } from "@/lib/site";
+import { COMPANY, SUPPORT_EMAIL } from "@/lib/site";
 
 import { ConsentSwitch } from "./consent-switch";
-import { FOOTER_ROW } from "./footer-row";
 import { LanguageSwitch } from "./language-switch";
 import { LocalizedLink } from "./localized-link";
+import type { LocalizedTo } from "./localized-link";
 import { LogoMark } from "./logo-mark";
 import { ThemeSwitch } from "./theme-switch";
 
-const ANSWER_LINK = "hover:decoration-tint underline decoration-1 underline-offset-4";
+const LINK = "fluid text-muted hover:text-foreground";
 
-const SLUG_ROUTES = {
-    "/compare": "/{-$locale}/compare/$slug",
-    "/guides": "/{-$locale}/guides/$slug",
-} as const;
-
-const ROW = `hover:bg-surface transition-colors duration-150 ${FOOTER_ROW}`;
-
-function Row({ children, label }: { children: ReactNode; label: ReactNode }) {
+function Column({ children, title }: { children: ReactNode; title: ReactNode }) {
     return (
-        <>
-            <span className="text-micro text-muted uppercase">{label}</span>
-            <span className="text-right text-[0.8125rem] sm:text-sm">{children}</span>
-        </>
-    );
-}
-
-function AnswerLinks({
-    hub,
-    label,
-    links,
-}: {
-    hub: keyof typeof SLUG_ROUTES;
-    label: ReactNode;
-    links: Record<string, ReactNode>;
-}) {
-    const { locale } = useLocale();
-    return (
-        <div className={FOOTER_ROW}>
-            <LocalizedLink
-                className="text-micro text-muted hover:text-foreground uppercase transition-colors duration-150"
-                to={hub}
-            >
-                {label}
-            </LocalizedLink>
-            <div className="flex flex-wrap justify-end gap-x-4 gap-y-1 text-[0.8125rem] sm:text-sm">
-                {Object.entries(links).map(([slug, name]) => (
-                    <Link
-                        className={ANSWER_LINK}
-                        key={slug}
-                        params={{ locale: getPrefix(locale).localePrefix, slug }}
-                        to={SLUG_ROUTES[hub]}
-                    >
-                        {name}
-                    </Link>
-                ))}
-            </div>
+        <div>
+            <h2 className="text-sm font-semibold">{title}</h2>
+            <ul className="mt-4 flex flex-col gap-3 text-sm">{children}</ul>
         </div>
     );
 }
 
-export function SiteFooter() {
-    const { answerLinks, footer, home } = useIntlayer("site");
-    const about = useIntlayer("about");
-    const { locale } = useLocale();
-
+function Item({ children, hash, to }: { children: ReactNode; hash?: string; to: LocalizedTo }) {
     return (
-        <footer className="border-foreground border-t font-mono print:hidden">
-            <div className={`${CONTAINER} pt-10 pb-12`}>
-                <LocalizedLink
-                    aria-label={home.value}
-                    className="inline-flex items-center gap-2.5 text-base font-medium"
-                    to="/"
-                >
-                    <LogoMark className="size-6" />
-                    outlayr
-                </LocalizedLink>
-                <nav aria-label={footer.nav.value} className="border-foreground mt-8 border-t">
-                    <a className={ROW} href={`mailto:${SUPPORT_EMAIL}`}>
-                        <Row label={footer.email}>{SUPPORT_EMAIL}</Row>
-                    </a>
-                    <LocalizedLink className={ROW} to="/about">
-                        <Row label={footer.about}>{about.title}</Row>
-                    </LocalizedLink>
-                    <LocalizedLink className={ROW} to="/support">
-                        <Row label={footer.support}>{footer.supportDetail}</Row>
-                    </LocalizedLink>
-                    <LocalizedLink className={ROW} to="/terms">
-                        <Row label={footer.terms}>
-                            {footer.updated({ date: legalDate("terms", LANGUAGES[locale].date) })}
-                        </Row>
-                    </LocalizedLink>
-                    <LocalizedLink className={ROW} to="/privacy">
-                        <Row label={footer.privacy}>
-                            {footer.updated({ date: legalDate("privacy", LANGUAGES[locale].date) })}
-                        </Row>
-                    </LocalizedLink>
-                    <AnswerLinks hub="/guides" label={footer.guides} links={answerLinks.guides} />
-                    <AnswerLinks hub="/compare" label={footer.compare} links={answerLinks.compare} />
-                </nav>
-                <ThemeSwitch />
-                <ConsentSwitch />
-                <LanguageSwitch />
-                <div className="border-foreground flex items-baseline justify-between gap-4 border-t-2 pt-3.5">
-                    <span className="text-micro text-muted uppercase">© {new Date().getUTCFullYear()}</span>
-                    <span className="text-sm font-medium">{COMPANY}</span>
+        <li>
+            <LocalizedLink className={LINK} hash={hash} to={to}>
+                {children}
+            </LocalizedLink>
+        </li>
+    );
+}
+
+export function SiteFooter() {
+    const { footer, home, nav } = useIntlayer("site");
+    return (
+        <footer className="print:hidden">
+            <div className={`${CONTAINER} pt-24 pb-12`}>
+                <div className="border-border flex flex-col gap-12 border-t pt-12 lg:flex-row lg:justify-between">
+                    <div className="max-w-xs">
+                        <LocalizedLink
+                            aria-label={home.value}
+                            className="flex items-center gap-2 text-base font-semibold tracking-tight"
+                            to="/"
+                        >
+                            <LogoMark className="size-6" />
+                            Outlayr
+                        </LocalizedLink>
+                        <p className="text-muted mt-4 text-sm">{footer.tagline}</p>
+                    </div>
+                    <nav aria-label={footer.nav.value} className="grid grid-cols-2 gap-x-12 gap-y-10 sm:grid-cols-3">
+                        <Column title={footer.product}>
+                            <Item hash="how" to="/">
+                                {nav.how}
+                            </Item>
+                            <Item hash="features" to="/">
+                                {nav.features}
+                            </Item>
+                            <Item hash="pricing" to="/">
+                                {nav.pricing}
+                            </Item>
+                        </Column>
+                        <Column title={footer.resources}>
+                            <Item to="/guides">{footer.guides}</Item>
+                            <Item to="/compare">{footer.compare}</Item>
+                            <Item to="/support">{footer.support}</Item>
+                        </Column>
+                        <Column title={footer.company}>
+                            <Item to="/about">{footer.about}</Item>
+                            <Item to="/privacy">{footer.privacy}</Item>
+                            <Item to="/terms">{footer.terms}</Item>
+                            <li>
+                                <a className={LINK} href={`mailto:${SUPPORT_EMAIL}`}>
+                                    {footer.email}
+                                </a>
+                            </li>
+                        </Column>
+                    </nav>
                 </div>
-                <p className="text-micro text-muted mt-6">{footer.trademarks}</p>
+                <div className="border-border mt-12 flex flex-col gap-6 border-t pt-8 md:flex-row md:items-center md:justify-between">
+                    <p className="text-muted text-xs">
+                        © {new Date().getUTCFullYear()} {COMPANY}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <LanguageSwitch />
+                        <ThemeSwitch />
+                        <ConsentSwitch />
+                    </div>
+                </div>
+                <p className="text-muted mt-6 text-xs">{footer.trademarks}</p>
             </div>
         </footer>
     );

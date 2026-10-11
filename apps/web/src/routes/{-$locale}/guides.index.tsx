@@ -26,10 +26,15 @@ function Guides() {
     const { guides, hubs } = useIntlayer("answers");
     return (
         <AnswerHub
-            items={Object.entries(guides).map(([slug, guide]) => ({ name: guide.title, slug, text: guide.lead }))}
+            items={Object.entries(guides).map(([slug, guide], index) => ({
+                kicker: String(index + 1).padStart(2, "0"),
+                name: guide.title,
+                slug,
+                text: guide.lead,
+                to: "/{-$locale}/guides/$slug",
+            }))}
             lead={hubs.guides.lead}
             title={hubs.guides.title}
-            to="/{-$locale}/guides/$slug"
         />
     );
 }

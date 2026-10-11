@@ -14,29 +14,29 @@ export function ConsentBanner() {
     return (
         <section
             aria-label={labels.label}
-            className="bg-background border-foreground fixed bottom-5 left-5 z-20 w-[min(22rem,calc(100vw-2.5rem))] border font-mono print:hidden"
+            className="glass fixed bottom-4 left-4 z-40 w-[min(24rem,calc(100vw-2rem))] rounded-3xl p-6 print:hidden"
         >
-            <div className="border-border flex items-baseline justify-between border-b px-4 py-2.5">
-                <h2 className="text-micro text-muted uppercase">{labels.label}</h2>
+            <div className="flex items-baseline justify-between gap-4">
+                <h2 className="text-sm font-semibold">{labels.label}</h2>
                 <LocalizedLink
-                    className="text-micro text-muted hover:text-foreground uppercase underline underline-offset-4 transition-colors duration-150"
+                    className="fluid text-muted hover:text-foreground text-sm underline underline-offset-4"
                     hash={labels.anchor.value}
                     to="/privacy"
                 >
                     {labels.privacy}
                 </LocalizedLink>
             </div>
-            <p className="px-4 py-3.5 font-sans text-sm">{labels.body}</p>
-            <div className="border-foreground grid grid-cols-2 border-t text-sm font-medium">
+            <p className="text-muted mt-2 text-sm">{labels.body}</p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
                 <button
-                    className="border-foreground hover:bg-surface border-r py-3 transition-colors duration-150"
+                    className="fluid border-border hover:bg-foreground/5 rounded-full border px-3 py-2 text-sm font-semibold active:scale-[0.98]"
                     onClick={() => chooseConsent(false)}
                     type="button"
                 >
                     {labels.decline}
                 </button>
                 <button
-                    className="bg-foreground text-background py-3"
+                    className="fluid bg-foreground text-background rounded-full px-3 py-2 text-sm font-semibold hover:opacity-90 active:scale-[0.98]"
                     onClick={() => chooseConsent(true)}
                     type="button"
                 >

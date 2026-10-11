@@ -3,7 +3,7 @@ import { useIntlayer } from "react-intlayer";
 
 import { chooseConsent, readConsent, subscribeConsent } from "@/lib/analytics";
 
-import { FOOTER_OPTION, FOOTER_ROW } from "./footer-row";
+import { SELECT } from "./select";
 
 export function ConsentSwitch() {
     const { consent: labels } = useIntlayer("site");
@@ -11,30 +11,21 @@ export function ConsentSwitch() {
     if (consent === null) {
         return null;
     }
-    const options = [
-        { granted: true, label: labels.allow },
-        { granted: false, label: labels.decline },
-    ];
     return (
-        <fieldset className={FOOTER_ROW}>
-            <legend className="sr-only">{labels.label}</legend>
-            <span aria-hidden="true" className="text-micro text-muted uppercase">
-                {labels.label}
-            </span>
-            <div className="flex justify-end gap-x-4 text-[0.8125rem] sm:text-sm">
-                {options.map(({ granted, label }) => (
-                    <label className="cursor-pointer" key={String(granted)}>
-                        <input
-                            checked={consent === (granted ? "granted" : "denied")}
-                            className="peer sr-only"
-                            name="cookies"
-                            onChange={() => chooseConsent(granted)}
-                            type="radio"
-                        />
-                        <span className={FOOTER_OPTION}>{label}</span>
-                    </label>
-                ))}
-            </div>
-        </fieldset>
+        <label className="relative">
+            <span className="sr-only">{labels.label}</span>
+            <select
+                className={SELECT}
+                onChange={(event) => chooseConsent(event.target.value === "granted")}
+                value={consent === "granted" ? "granted" : "denied"}
+            >
+                <option value="granted">
+                    {labels.label} · {labels.allow.value}
+                </option>
+                <option value="denied">
+                    {labels.label} · {labels.decline.value}
+                </option>
+            </select>
+        </label>
     );
 }

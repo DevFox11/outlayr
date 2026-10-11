@@ -5,7 +5,6 @@ import { ACCOUNTS_SCREEN_ALT, BUDGETS_SCREEN_ALT, RECEIPT_SCAN_ANSWER } from "./
 
 const home = {
     content: {
-        closingTitle: t({ en: "Log the next thing you buy.", es: "Registra lo próximo que compres." }),
         extras: [
             {
                 label: t({ en: "Goals", es: "Metas" }),
@@ -159,15 +158,7 @@ const home = {
         ],
         faqTitle: t({ en: "Questions, answered.", es: "Preguntas y respuestas." }),
         hero: {
-            lead: t({
-                en: "Outlayr is an expense tracker and budget app. Type a purchase as one sentence, say it, or scan the receipt.",
-                es: "Outlayr es una app para controlar tus gastos y tu presupuesto. Escribe una compra en una oración, díctala o escanea el recibo.",
-            }),
-            pauseVideo: t({ en: "Pause", es: "Pausar" }),
-            playVideo: t({ en: "Play", es: "Reproducir" }),
-            secondary: t({ en: "See what’s free", es: "Mira qué es gratis" }),
             title: t({ en: "Track every expense in one sentence.", es: "Registra cada gasto en una oración." }),
-            videoCaption: t({ en: "Logging $42.00 at Costco", es: "Registrar $42.00 en Costco" }),
             videoLabel: t({
                 en: "Logging a $42.00 grocery purchase at Costco in Outlayr, from the add menu to the Log.",
                 es: "Cómo se registra en Outlayr una compra de súper de $42.00 en Costco, desde el menú para agregar hasta el Registro.",
@@ -203,19 +194,14 @@ const home = {
             }),
         },
         plansCopy: {
-            feature: t({ en: "Feature", es: "Función" }),
             footnote: t({
                 en: "A capture is one voice entry or one receipt scan, and needs you signed in. Pro is billed monthly or yearly, or bought once, at the price your app store shows in your country.",
                 es: "Una captura es un registro por voz o un escaneo de recibo, y requiere que hayas iniciado sesión. Pro se cobra al mes o al año, o se compra una sola vez, al precio que muestra tu tienda de apps en tu país.",
             }),
-            free: t({ en: "Free", es: "Gratis" }),
             lead: t({
                 en: "The tracker is free. Pro lifts the limits and adds sync.",
                 es: "La app es gratis. Pro quita los límites y agrega la sincronización.",
             }),
-            pro: "Pro",
-            proOnlyTitle: t({ en: "Only in Pro", es: "Solo en Pro" }),
-            title: t({ en: "Free to start.", es: "Gratis para empezar." }),
         },
         proOnly: [
             t({ en: "Sync across devices", es: "Sincronizar dispositivos" }),
@@ -230,13 +216,6 @@ const home = {
                     en: "Set a limit per category or one for the whole month, and carry over what you didn’t spend. The chart shows where this pace ends, not just what’s left.",
                     es: "Pon un límite por categoría o uno para todo el mes, y acumula lo que no gastaste. El gráfico muestra a dónde te lleva este ritmo, no solo lo que queda.",
                 }),
-                notes: [
-                    { text: t({ en: "What’s left this period.", es: "Lo que queda en este período." }), y: 22.5 },
-                    { text: t({ en: "Where this pace lands.", es: "A dónde te lleva este ritmo." }), y: 44 },
-                    { text: t({ en: "The same read, in plain words.", es: "Lo mismo, en palabras simples." }), y: 58 },
-                ],
-                src: "/screens/04.webp",
-                tab: t({ en: "Budgets", es: "Presupuestos" }),
                 title: t({ en: "Spot the overspend early.", es: "Descubre a tiempo si te vas a pasar." }),
             },
             {
@@ -248,28 +227,6 @@ const home = {
                     en: "Spending by day and by category, income against spending, and net worth over time. Start the month on payday and every chart follows.",
                     es: "Gastos por día y por categoría, ingresos frente a gastos y tu patrimonio a lo largo del tiempo. Empieza el mes el día de pago y todos los gráficos se ajustan.",
                 }),
-                notes: [
-                    {
-                        text: t({
-                            en: "Change against the week before.",
-                            es: "El cambio frente a la semana anterior.",
-                        }),
-                        y: 23.4,
-                    },
-                    {
-                        text: t({ en: "The categories that moved most.", es: "Las categorías que más cambiaron." }),
-                        y: 61.8,
-                    },
-                    {
-                        text: t({
-                            en: "Where the week went, by category.",
-                            es: "En qué se fue la semana, por categoría.",
-                        }),
-                        y: 80.6,
-                    },
-                ],
-                src: "/screens/05.webp",
-                tab: t({ en: "Insights", es: "Estadísticas" }),
                 title: t({ en: "See what moved since last week.", es: "Mira qué cambió desde la semana pasada." }),
             },
             {
@@ -278,25 +235,6 @@ const home = {
                     en: "Cash, cards, savings, and debts side by side. A transfer moves money between them without counting as spending.",
                     es: "Efectivo, tarjetas, ahorros y deudas, todo junto. Una transferencia mueve dinero entre tus cuentas sin contar como gasto.",
                 }),
-                notes: [
-                    {
-                        text: t({
-                            en: "Balances stay in the currency they hold.",
-                            es: "Cada saldo se queda en su propia moneda.",
-                        }),
-                        y: 40.5,
-                    },
-                    {
-                        text: t({
-                            en: "Cards and debts carry what you owe.",
-                            es: "Las tarjetas y las deudas muestran lo que debes.",
-                        }),
-                        y: 54.4,
-                    },
-                    { text: t({ en: "Move money between accounts.", es: "Mueve dinero entre cuentas." }), y: 78.6 },
-                ],
-                src: "/screens/06.webp",
-                tab: t({ en: "Accounts", es: "Cuentas" }),
                 title: t({ en: "Every account, every currency.", es: "Cada cuenta, cada moneda." }),
             },
             {
@@ -308,35 +246,12 @@ const home = {
                     en: "Rent, bills, and streaming log themselves on their day. Upcoming lists the next charges and what they add up to each month, and each one can remind you before it charges.",
                     es: "La renta, los servicios y el streaming se registran solos en su día. Próximos muestra los siguientes cobros y cuánto suman al mes, y cada uno puede avisarte antes de cobrarte.",
                 }),
-                notes: [
-                    {
-                        text: t({
-                            en: "Also shown at the top of the Log.",
-                            es: "También aparece arriba del registro.",
-                        }),
-                        y: 19.9,
-                    },
-                    {
-                        text: t({
-                            en: "What they cost each month, yearly plans included.",
-                            es: "Lo que cuestan al mes, con los planes anuales incluidos.",
-                        }),
-                        y: 41.4,
-                    },
-                    {
-                        text: t({ en: "The day each one charges next.", es: "El día del próximo cobro de cada uno." }),
-                        y: 84.9,
-                    },
-                ],
-                src: "/screens/10.webp",
-                tab: t({ en: "Subscriptions", es: "Suscripciones" }),
                 title: t({
                     en: "What your subscriptions cost a month.",
                     es: "Lo que te cuestan tus suscripciones al mes.",
                 }),
             },
         ],
-        tourLabel: t({ en: "What the app shows you", es: "Lo que te muestra la app" }),
     },
     key: "home",
 } satisfies Dictionary;

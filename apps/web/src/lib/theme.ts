@@ -1,12 +1,14 @@
+import { useSyncExternalStore } from "react";
+
 export const THEMES = ["system", "light", "dark"] as const;
 
 export type Theme = (typeof THEMES)[number];
 
 const KEY = "outlayr-theme";
 const DARK_QUERY = "(prefers-color-scheme: dark)";
-const THEME_COLOR = { dark: "#17150f", light: "#f2f0ea" } as const;
+const THEME_COLOR = { dark: "#131209", light: "#ffffff" } as const;
 
-export const THEME_SCRIPT = `try{var c=localStorage.getItem("${KEY}"),d=c==="dark"||(c!=="light"&&matchMedia("${DARK_QUERY}").matches),t=d?"dark":"light";document.documentElement.dataset.theme=t;document.querySelector('meta[name="theme-color"]').content=d?"${THEME_COLOR.dark}":"${THEME_COLOR.light}"}catch(e){}`;
+export const THEME_SCRIPT = `document.documentElement.classList.add("js");try{var c=localStorage.getItem("${KEY}"),d=c==="dark"||(c!=="light"&&matchMedia("${DARK_QUERY}").matches),t=d?"dark":"light";document.documentElement.dataset.theme=t;document.querySelector('meta[name="theme-color"]').content=d?"${THEME_COLOR.dark}":"${THEME_COLOR.light}"}catch(e){}`;
 
 export function readTheme(): Theme {
     try {
@@ -63,4 +65,18 @@ export function watchSystemTheme(onChange: () => void) {
 
 export function isDarkPainted() {
     return document.documentElement.dataset.theme === "dark";
+}
+
+function subscribePainted(onChange: () => void) {
+    const watcher = new MutationObserver(onChange);
+    watcher.observe(document.documentElement, { attributeFilter: ["data-theme"] });
+    return () => watcher.disconnect();
+}
+
+export function usePaintedTheme(): "dark" | "light" | null {
+    return useSyncExternalStore(
+        subscribePainted,
+        () => (isDarkPainted() ? "dark" : "light"),
+        () => null
+    );
 }

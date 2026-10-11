@@ -4,8 +4,6 @@ import { useIntlayer, useLocale } from "react-intlayer";
 import type { Locale } from "@/lib/i18n";
 import { APP_STORE_URL } from "@/lib/site";
 
-const HEIGHT = { large: "h-12", small: "h-10" } as const;
-
 const APP_STORE_BADGE = {
     en: "/badges/app-store.svg",
     es: "/badges/app-store-es.svg",
@@ -16,45 +14,37 @@ const GOOGLE_PLAY_BADGE = {
     es: { height: 192, src: "/badges/google-play-es.png", width: 646 },
 } as const satisfies Record<Locale, { height: number; src: string; width: number }>;
 
-type Placement = "answer" | "closing" | "header" | "hero";
-
-export function AppStoreBadge({ placement, size = "large" }: { placement: Placement; size?: keyof typeof HEIGHT }) {
-    const { badges } = useIntlayer("site");
-    const { locale } = useLocale();
-    return (
-        <a
-            className="shrink-0"
-            href={APP_STORE_URL}
-            onClick={() => posthog.capture("app_store_badge_clicked", { placement })}
-        >
-            <img
-                alt={badges.appStore.value}
-                className={`w-auto ${HEIGHT[size]}`}
-                height={40}
-                src={APP_STORE_BADGE[locale]}
-                width={120}
-            />
-        </a>
-    );
-}
+type Placement = "answer" | "closing" | "hero" | "story";
 
 export function StoreBadges({ placement }: { placement: Placement }) {
     const { badges } = useIntlayer("site");
     const { locale } = useLocale();
     const googlePlay = GOOGLE_PLAY_BADGE[locale];
     return (
-        <div className="flex flex-wrap items-start gap-3 md:shrink-0">
-            <AppStoreBadge placement={placement} />
-            <figure className="flex shrink-0 flex-col items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-4">
+            <a
+                className="fluid shrink-0 hover:-translate-y-0.5 active:translate-y-px"
+                href={APP_STORE_URL}
+                onClick={() => posthog.capture("app_store_badge_clicked", { placement })}
+            >
                 <img
-                    alt={badges.googlePlay.value}
+                    alt={badges.appStore.value}
                     className="h-12 w-auto"
+                    height={40}
+                    src={APP_STORE_BADGE[locale]}
+                    width={120}
+                />
+            </a>
+            <span aria-disabled="true" className="flex shrink-0 items-center gap-3">
+                <img
+                    alt={`${badges.googlePlay.value}, ${badges.comingSoon.value}`}
+                    className="h-12 w-auto opacity-40 grayscale"
                     height={googlePlay.height}
                     src={googlePlay.src}
                     width={googlePlay.width}
                 />
-                <figcaption className="text-micro text-muted font-mono uppercase">{badges.comingSoon}</figcaption>
-            </figure>
+                <span className="text-muted text-sm">{badges.comingSoon}</span>
+            </span>
         </div>
     );
 }

@@ -25,8 +25,8 @@ import type { Draft, FocusIntent, Step, Target, Visit } from "./sentence-model";
 import { useAutoplay } from "./use-autoplay";
 import { useNames } from "./use-names";
 
-const HAIRLINE_GRID = "border-background/35 border-t border-l";
-const CELL = "border-background/35 border-r border-b transition-colors duration-150 ease-out";
+const HAIRLINE_GRID = "gap-2";
+const CELL = "fluid bg-raised hover:bg-foreground/5 rounded-xl active:scale-[0.98]";
 
 export function SentenceForm() {
     const { added, blank, cta, kind, lead, log, sentence, sizer, steps } = useIntlayer("demo");
@@ -103,13 +103,13 @@ export function SentenceForm() {
 
     return (
         <div
-            className="selection:bg-background selection:text-tint [&_:focus-visible]:outline-background grid gap-14 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-16 [&_button]:cursor-pointer"
+            className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-16 [&_button]:cursor-pointer"
             onBlur={onBlur}
             onFocus={() => setFocusWithin(true)}
             ref={root}
         >
             <div>
-                <h2 className="text-poster grid max-w-[16em] font-bold">
+                <h2 className="grid max-w-[16em] text-3xl leading-tight font-semibold tracking-tight md:text-5xl">
                     <span aria-hidden="true" className="invisible col-start-1 row-start-1">
                         {sizer}
                     </span>
@@ -188,17 +188,17 @@ export function SentenceForm() {
                         })}
                     </span>
                 </h2>
-                <p className="text-lead mt-8 max-w-[30rem]">{lead}</p>
+                <p className="text-muted mt-8 max-w-[30rem] text-lg">{lead}</p>
             </div>
 
             <div>
                 <div id={stageId} ref={stage} tabIndex={-1}>
-                    <div className="border-background flex h-11 items-center justify-between gap-4 border-t">
-                        <span className="text-micro font-mono uppercase">{steps[step]}</span>
+                    <div className="border-border flex h-11 items-center justify-between gap-4 border-t">
+                        <span className="text-muted font-mono text-xs tracking-widest uppercase">{steps[step]}</span>
                         {step === "amount" ? (
                             <CodeButton
                                 aimed={aim === "slot:currency"}
-                                className="text-micro px-1 py-1"
+                                className="px-1 py-1 text-xs"
                                 code={draft.currency}
                                 controls={stageId}
                                 onPress={() => open("currency")}
@@ -210,7 +210,7 @@ export function SentenceForm() {
                         <StageBody aim={aim} draft={draft} step={step} visit={visit} />
                     </div>
                     <button
-                        className={`bg-background text-tint mt-4 h-12 w-full font-semibold transition-opacity duration-150 ease-out ${aim === "footer" ? "opacity-80" : ""}`}
+                        className={`fluid bg-tint mt-4 h-12 w-full rounded-full font-semibold text-white hover:opacity-90 active:scale-[0.98] ${aim === "footer" ? "opacity-80" : ""}`}
                         onClick={() => visit({ type: "footer" })}
                         type="button"
                     >
@@ -219,19 +219,21 @@ export function SentenceForm() {
                 </div>
 
                 <div className="mt-10">
-                    <p className="text-micro border-background border-b pb-2 font-mono uppercase">{log}</p>
+                    <p className="text-muted border-border border-b pb-2 font-mono text-xs tracking-widest uppercase">
+                        {log}
+                    </p>
                     <ol>
                         {state.log.map((row) => (
                             <li
-                                className="border-background/35 flex items-baseline justify-between gap-4 border-b py-3 transition-[opacity,translate] duration-200 ease-out motion-reduce:transition-none starting:-translate-y-1 starting:opacity-0"
+                                className="border-border ease-fluid flex items-baseline justify-between gap-4 border-b py-3 transition-[opacity,translate] duration-700 motion-reduce:transition-none starting:-translate-y-2 starting:opacity-0"
                                 key={row.id}
                             >
                                 <div className="min-w-0">
                                     <p className="truncate font-semibold">{row.merchant || nameOf(row.category)}</p>
-                                    <p className="text-background mt-0.5 flex items-center gap-1.5 text-sm">
+                                    <p className="text-muted mt-1 flex items-center gap-2 text-sm">
                                         <span className="truncate">{nameOf(row.category)}</span>
                                         {row.currency === BLANK.currency ? null : (
-                                            <span className="border-background/60 border px-1 font-mono text-[0.625rem] leading-4">
+                                            <span className="bg-raised rounded px-1 font-mono text-xs">
                                                 {row.currency}
                                             </span>
                                         )}
@@ -263,7 +265,7 @@ function StageBody({ aim, draft, step, visit }: { aim: Target | null; draft: Dra
                     {KEYS.map((key) => (
                         <button
                             aria-label={key === "back" ? content.delete.value : undefined}
-                            className={`${CELL} text-lead flex items-center justify-center font-mono ${aim === `key:${key}` ? "bg-background/25" : ""}`}
+                            className={`${CELL} flex items-center justify-center font-mono text-xl ${aim === `key:${key}` ? "bg-foreground/10" : ""}`}
                             key={key}
                             onClick={() => visit({ key, type: "key" })}
                             type="button"
@@ -292,7 +294,7 @@ function StageBody({ aim, draft, step, visit }: { aim: Target | null; draft: Dra
                     <input
                         aria-label={content.merchantField.value}
                         autoComplete="off"
-                        className="border-background placeholder:text-background focus-visible:bg-background/10 h-12 w-full shrink-0 border-b-2 bg-transparent text-base"
+                        className="border-border placeholder:text-muted focus-visible:border-tint bg-raised h-12 w-full shrink-0 rounded-xl border px-4 text-base"
                         maxLength={MAX_NAME_LENGTH}
                         onChange={(event) => visit({ type: "name", value: event.target.value }, null)}
                         onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
@@ -383,9 +385,9 @@ function Options<T extends string>({
                 const chosen = value === selected;
                 let tone = "";
                 if (chosen) {
-                    tone = "bg-background text-tint";
+                    tone = "bg-foreground text-background hover:bg-foreground";
                 } else if (aim === `option:${value}`) {
-                    tone = "bg-background/25";
+                    tone = "bg-foreground/10";
                 }
                 return (
                     <button
@@ -421,17 +423,17 @@ function Slot({
     controls?: string;
     onPress: () => void;
 }) {
-    let tone = "decoration-background/70";
+    let tone = "decoration-foreground/25";
     if (active || aimed) {
-        tone = "bg-background/15 decoration-background";
+        tone = "bg-tint/10 text-tint decoration-tint";
     } else if (blank) {
-        tone = "text-background/75 decoration-background/60 decoration-dashed";
+        tone = "text-muted decoration-muted decoration-dashed";
     }
     return (
         <button
             aria-controls={controls}
             aria-expanded={controls === undefined ? undefined : active}
-            className={`underline decoration-2 underline-offset-[0.14em] transition-colors duration-150 ease-out ${tone}`}
+            className={`fluid rounded-lg underline decoration-2 underline-offset-[0.14em] ${tone}`}
             onClick={onPress}
             type="button"
         >
@@ -463,7 +465,7 @@ function CodeButton({
             aria-controls={controls}
             aria-expanded={active}
             aria-label={currency({ code }).value}
-            className={`inline-flex items-center gap-1 align-baseline font-mono font-medium tracking-[0.08em] transition-colors duration-150 ease-out ${active || aimed ? "bg-background/15" : ""} ${className}`}
+            className={`fluid inline-flex items-center gap-1 rounded align-baseline font-mono font-medium tracking-widest ${active || aimed ? "bg-tint/10 text-tint" : ""} ${className}`}
             onClick={onPress}
             type="button"
         >
