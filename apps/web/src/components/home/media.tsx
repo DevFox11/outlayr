@@ -7,6 +7,7 @@ import { useReducedMotion } from "@/lib/reduced-motion";
 import { usePaintedTheme } from "@/lib/theme";
 
 const BEZEL = "/app/iphone.webp";
+const AV1 = 'video/mp4; codecs="av01.0.08M.08"';
 
 const VIDEOS = import.meta.glob<string>("/src/assets/videos/*", { eager: true, import: "default" });
 
@@ -70,11 +71,13 @@ export function useInView<T extends Element>(threshold = 0.3) {
 }
 
 export function LoopVideo({
+    av1,
     className = "relative",
     label,
     poster,
     sources,
 }: {
+    av1?: { dark: string; light: string };
     className?: string;
     label: string;
     poster: { dark: string; light: string };
@@ -128,9 +131,11 @@ export function LoopVideo({
                     poster={poster[theme]}
                     preload="none"
                     ref={video}
-                    src={sources[theme]}
                     width={1080}
-                />
+                >
+                    {av1 === undefined ? null : <source src={av1[theme]} type={AV1} />}
+                    <source src={sources[theme]} type="video/mp4" />
+                </video>
             )}
             <button
                 aria-label={paused ? play.value : pause.value}
@@ -150,6 +155,7 @@ export function Film({ label, name }: { label: string; name: string }) {
     return (
         <LoopVideo
             className="bg-surface relative aspect-square"
+            av1={{ dark: videoUrl(`${name}-dark${cut}.av1.mp4`), light: videoUrl(`${name}-light${cut}.av1.mp4`) }}
             label={label}
             poster={{ dark: videoUrl(`${name}-dark${cut}.webp`), light: videoUrl(`${name}-light${cut}.webp`) }}
             sources={{ dark: videoUrl(`${name}-dark${cut}.mp4`), light: videoUrl(`${name}-light${cut}.mp4`) }}
