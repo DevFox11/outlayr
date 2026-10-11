@@ -1,7 +1,7 @@
 /** @type {import('@bacons/apple-targets/app.plugin').ConfigFunction} */
 module.exports = function watchWidgetTarget(config) {
     return {
-        bundleIdentifier: ".watchkitapp.complication",
+        bundleIdentifier: ".watchkitapp.widget",
         deploymentTarget: "11.0",
         displayName: "Outlayr",
         entitlements: {
