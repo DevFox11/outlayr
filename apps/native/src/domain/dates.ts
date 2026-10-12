@@ -63,6 +63,10 @@ export function formatDayHeader(day: Date, now: Date = new Date(), language: Lan
     if (target === startOfDay(addDays(now, -1)).getTime()) {
         return dateName("common.yesterday", language).toUpperCase();
     }
+    return formatDateHeader(day, now, language);
+}
+
+export function formatDateHeader(day: Date, now: Date = new Date(), language: Language = runtimeLanguage()): string {
     const weekday = dateName(`dates.weekday.${day.getDay()}`, language).toUpperCase();
     const base = `${weekday}, ${day.getDate()} ${monthAbbrev(day, language)}`;
     return day.getFullYear() < now.getFullYear() ? `${base} '${String(day.getFullYear()).slice(-2)}` : base;

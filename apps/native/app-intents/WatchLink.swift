@@ -65,11 +65,6 @@ final class WatchLink: NSObject, WCSessionDelegate {
     }
 
     private func enqueue(_ message: [String: Any]) async -> Bool {
-        if message["type"] as? String == "note", let id = message["id"] as? String, let note = message["note"] as? String {
-            SharedStore.rememberNote(id: id, note: note)
-            NotificationCenter.default.post(name: Self.pendingWriteNotification, object: nil)
-            return true
-        }
         guard message["type"] as? String == "log",
               let raw = message["write"] as? [String: Any],
               let data = try? JSONSerialization.data(withJSONObject: raw),

@@ -15,12 +15,12 @@ import type { ClaimedWrites, PendingWrite } from "@/lib/pending-writes-core";
 
 import { accountsRepo, getAccountById } from "./accounts-core";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
+import type { SpendDb } from "./budget-spent";
 import { suggestedCardFee } from "./card-fees-core";
 import { MIN_KEY_LENGTH, queueEnrichment } from "./enrichment-queue-core";
-import { isLogoCandidate, LOGO_CANDIDATE_KEEP_MS, rememberLogoCandidate } from "./logo-backfill-state";
 import { backfillRecurring, occurrenceId } from "./recurrence-backfill";
 import { readBoolSetting } from "./settings-core";
-import { getTransactionById, transactionsRepo } from "./transactions-core";
+import { transactionsRepo } from "./transactions-core";
 
 /**
  * How far apart two Wallet runs may be and still be read as one purchase.
@@ -303,7 +303,17 @@ const ledgerSchema = z.array(
         .catch(null)
 );
 
-async function readLedger(db: Database): Promise<LedgerEntry[]> {
+export async function appliedWriteIds(db: SpendDb, since: number): Promise<string[]> {
+    const ledger = await readLedger(db);
+    return ledger.filter((entry) => entry.at >= since).map((entry) => entry.id);
+}
+
+export async function writeIdsByTransaction(db: SpendDb): Promise<Map<string, string>> {
+    const ledger = await readLedger(db);
+    return new Map(ledger.map((entry) => [entry.txId, entry.id]));
+}
+
+async function readLedger(db: SpendDb): Promise<LedgerEntry[]> {
     const raw = await getMeta(db, META_KEYS.pendingWriteLedger);
     if (!raw) {
         return [];
@@ -366,36 +376,6 @@ async function stillOnLedger(db: Database, txId: string): Promise<boolean> {
         .where(and(eq(transactions.id, txId), isNull(transactions.deletedAt)))
         .limit(1);
     return rows[0] != null;
-}
-
-export async function applyWatchNotes(
-    db: Database,
-    notes: Record<string, string>,
-    now: Date = new Date()
-): Promise<string[]> {
-    const applied: string[] = [];
-    for (const [id, note] of Object.entries(notes)) {
-        const trimmed = note.trim();
-        if (trimmed === "") {
-            applied.push(id);
-            continue;
-        }
-        // oxlint-disable-next-line no-await-in-loop -- each note targets one row; a handful at most
-        const txId = await pendingWriteTxId(db, id);
-        const row = txId == null ? null : getTransactionById(db, txId);
-        if (txId == null || row == null) {
-            continue;
-        }
-        // oxlint-disable-next-line no-await-in-loop -- see above
-        await withTransaction(db, async () => {
-            await db.update(transactions).set({ note: trimmed, updatedAt: now }).where(eq(transactions.id, txId));
-            if (isLogoCandidate({ ...row, note: trimmed })) {
-                await rememberLogoCandidate(db, txId, now.getTime(), LOGO_CANDIDATE_KEEP_MS);
-            }
-        });
-        applied.push(id);
-    }
-    return applied;
 }
 
 export async function pendingWriteTxId(db: Database, id: string): Promise<string | null> {

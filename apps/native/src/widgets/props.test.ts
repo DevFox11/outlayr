@@ -325,3 +325,36 @@ describe("the Insights widget's windows", () => {
         expect(props.Insights.defaultPeriod).toBe("year");
     });
 });
+
+describe("the watch's last 7 days", () => {
+    it("totals each day's spending, oldest first, ending today", async () => {
+        const db = makeDb();
+        const daysAgo = (days: number) => new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate() - days, 7);
+        const rows = [
+            { amount: 10, days: 0, id: "today", income: false },
+            { amount: 50, days: 0, id: "salary", income: true },
+            { amount: 20, days: 1, id: "yesterday", income: false },
+            { amount: 5, days: 6, id: "first", income: false },
+            { amount: 100, days: 7, id: "outside", income: false },
+        ];
+        await db.insert(transactions).values(
+            rows.map(({ amount, days, id, income }) => ({
+                amount,
+                currency: "USD",
+                date: daysAgo(days),
+                day: daysAgo(days),
+                id,
+                income,
+                month: daysAgo(days),
+                note: "",
+                updatedAt: NOW,
+            }))
+        );
+
+        const { week } = await buildWidgetProps(db, NOW);
+
+        expect(week.days.map((day) => day.value)).toStrictEqual([5, 0, 0, 0, 0, 20, 10]);
+        expect(week.days.map((day) => day.label)).toStrictEqual(["W", "T", "F", "S", "S", "M", "T"]);
+        expect(week.average).toBe("$5");
+    });
+});

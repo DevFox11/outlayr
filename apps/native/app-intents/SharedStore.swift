@@ -22,8 +22,6 @@ enum SharedStore {
 
     static let dailyReminderPrefix = "outlayr.daily-reminder"
 
-    static let watchNotesKey = "watchNotes"
-
     /// Where an intent leaves work for the app to commit, one JSON line per
     /// write. Mirrored by `QUEUE_DIRECTORY` / `QUEUE_FILE` in
     /// `src/lib/pending-writes-core.ts`.
@@ -32,17 +30,6 @@ enum SharedStore {
 
     static var store: UserDefaults? {
         UserDefaults(suiteName: appGroup)
-    }
-
-    static func rememberNote(id: String, note: String) {
-        var notes: [String: String] = [:]
-        if let raw = store?.string(forKey: watchNotesKey), let data = raw.data(using: .utf8) {
-            notes = (try? JSONDecoder().decode([String: String].self, from: data)) ?? [:]
-        }
-        notes[id] = note
-        if let data = try? JSONEncoder().encode(notes), let raw = String(data: data, encoding: .utf8) {
-            store?.set(raw, forKey: watchNotesKey)
-        }
     }
 
     /// The app writes this on every data change and on backgrounding, so nil

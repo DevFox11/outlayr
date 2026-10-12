@@ -65,4 +65,7 @@ export const PLACEHOLDERS = {
         url: DEEP_LINKS.log,
     },
     Log: { chrome: WIDGET_PALETTE, todayLabel: "TODAY", todaySpent: ZERO, url: DEEP_LINKS.newExpense },
-} satisfies Omit<WidgetProps, "categories" | "currency" | "intentBudgets" | "zeroSpent">;
+} satisfies Omit<
+    WidgetProps,
+    "categories" | "currency" | "intentBudgets" | "showCents" | "watchEntries" | "week" | "zeroSpent"
+>;

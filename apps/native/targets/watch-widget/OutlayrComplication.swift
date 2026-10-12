@@ -4,6 +4,7 @@ import WidgetKit
 struct ComplicationSnapshot: Decodable {
     struct Budget: Decodable {
         let present: Bool
+        let endsAt: Double?
         let remaining: String
         let remainingCaption: String
         let spentFraction: Double
@@ -14,17 +15,43 @@ struct ComplicationSnapshot: Decodable {
         var elapsed: Double { min(max(elapsedFraction, 0), 1) }
     }
 
+    struct Week: Decodable {
+        struct Day: Decodable {
+            let value: Double
+        }
+
+        let days: [Day]
+
+        func shifted(by count: Int) -> Week? {
+            guard count < days.count else { return nil }
+            return Week(days: Array(days.dropFirst(count)) + Array(repeating: Day(value: 0), count: count))
+        }
+    }
+
     let todayLabel: String
     let todaySpent: String
     let zeroSpent: String?
     let budget: Budget?
+    let week: Week?
+    let publishedAt: Double?
 
-    var atMidnight: ComplicationSnapshot {
-        ComplicationSnapshot(todayLabel: todayLabel, todaySpent: zeroSpent ?? todaySpent, zeroSpent: zeroSpent, budget: budget)
+    func asOf(_ date: Date) -> ComplicationSnapshot {
+        let published = publishedAt.map { Date(timeIntervalSince1970: $0 / 1000) } ?? Date()
+        let calendar = Calendar.current
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: published), to: calendar.startOfDay(for: date)).day ?? 0
+        guard days > 0 else { return self }
+        return ComplicationSnapshot(
+            todayLabel: todayLabel,
+            todaySpent: zeroSpent ?? todaySpent,
+            zeroSpent: zeroSpent,
+            budget: budget,
+            week: week?.shifted(by: days),
+            publishedAt: publishedAt
+        )
     }
 
-    var activeBudget: Budget? {
-        guard let budget, budget.present else { return nil }
+    func activeBudget(at date: Date) -> Budget? {
+        guard let budget, budget.present, date.timeIntervalSince1970 * 1000 < budget.endsAt ?? .infinity else { return nil }
         return budget
     }
 
@@ -42,12 +69,15 @@ struct ComplicationSnapshot: Decodable {
         zeroSpent: "$0.00",
         budget: Budget(
             present: true,
+            endsAt: nil,
             remaining: "$189",
             remainingCaption: "LEFT",
             spentFraction: 0.47,
             elapsedFraction: 0.35,
             over: false
-        )
+        ),
+        week: nil,
+        publishedAt: nil
     )
 }
 
@@ -62,7 +92,7 @@ struct ComplicationProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (ComplicationEntry) -> Void) {
-        let snapshot = context.isPreview ? ComplicationSnapshot.sample : ComplicationSnapshot.load()
+        let snapshot = context.isPreview ? ComplicationSnapshot.sample : ComplicationSnapshot.load()?.asOf(Date())
         completion(ComplicationEntry(date: Date(), snapshot: snapshot))
     }
 
@@ -73,8 +103,8 @@ struct ComplicationProvider: TimelineProvider {
         completion(
             Timeline(
                 entries: [
-                    ComplicationEntry(date: now, snapshot: snapshot),
-                    ComplicationEntry(date: midnight, snapshot: snapshot?.atMidnight),
+                    ComplicationEntry(date: now, snapshot: snapshot?.asOf(now)),
+                    ComplicationEntry(date: midnight, snapshot: snapshot?.asOf(midnight)),
                 ],
                 policy: .after(midnight)
             )
@@ -95,9 +125,44 @@ struct OutlayrComplication: Widget {
     }
 }
 
+struct LogEntry: TimelineEntry {
+    let date: Date
+}
+
+struct LogProvider: TimelineProvider {
+    func placeholder(in context: Context) -> LogEntry {
+        LogEntry(date: Date())
+    }
+
+    func getSnapshot(in context: Context, completion: @escaping (LogEntry) -> Void) {
+        completion(LogEntry(date: Date()))
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<LogEntry>) -> Void) {
+        completion(Timeline(entries: [LogEntry(date: Date())], policy: .never))
+    }
+}
+
+struct OutlayrLogComplication: Widget {
+    let kind = "OutlayrLog"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: LogProvider()) { _ in
+            LogComplicationView()
+        }
+        .configurationDisplayName("Log expense")
+        .description("Opens Outlayr ready for an amount.")
+        .supportedFamilies([.accessoryCircular, .accessoryCorner])
+    }
+}
+
 @main
 struct OutlayrComplicationBundle: WidgetBundle {
     var body: some Widget {
         OutlayrComplication()
+        OutlayrLogComplication()
+        if #available(watchOS 26.0, *) {
+            OutlayrLogControl()
+        }
     }
 }

@@ -20,7 +20,7 @@ import { ratesPuller, watchRecentRates } from "@/lib/convex";
 import { sendEnrichmentQueue } from "@/lib/enrichment-queue";
 import { armLogoBackfill, backfillLogos } from "@/lib/logo-backfill";
 import { notifyWarning } from "@/lib/notify";
-import { drainWatchNotes, onWatchPendingWrite } from "@/lib/watch-link";
+import { onWatchPendingWrite } from "@/lib/watch-link";
 import { publishWidgets } from "@/widgets/publish";
 
 import { indexSpotlight } from "./spotlight";
@@ -63,10 +63,6 @@ export function useSystemSync(db: Database | null): void {
                 .catch((error) => {
                     console.warn("[outlayr] pending writes failed to apply", error);
                     publish.schedule();
-                })
-                .then(() => drainWatchNotes(db))
-                .catch((error) => {
-                    console.warn("[outlayr] watch notes failed to apply", error);
                 })
                 .then(() => {
                     sendEnrichmentQueue(db);

@@ -5,6 +5,9 @@ enum Grid {
     static let muted = Color(hex: 0xA8A0_93)
     static let subtle = Color(hex: 0x968E_80)
     static let hairline = Color(hex: 0x3530_26)
+    static let bar = Color(hex: 0x4A46_3E)
+    static let ghost = Color(hex: 0x6B66_5C)
+    static let key = Color(hex: 0x1C1C_1E)
     static let income = Color(hex: 0x3FD9_9B)
     static let over = Color(hex: 0xF178_79)
     static let accent = Color(hex: 0xEC60_3B)
@@ -74,22 +77,28 @@ struct CategoryMark: View {
 }
 
 struct EntryRow: View {
-    let entry: WatchSnapshot.Entry
+    let emoji: String
+    let color: String
+    let title: String
+    let amount: String
+    let income: Bool
+    let latest: Bool
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                CategoryMark(emoji: entry.emoji, color: entry.color).frame(width: 20)
-                Text(entry.note).font(.system(size: 16)).foregroundStyle(Grid.ink).lineLimit(1)
+                CategoryMark(emoji: emoji, color: color).frame(width: 20)
+                Text(title).font(.system(size: 16)).foregroundStyle(Grid.ink).lineLimit(1)
                 Spacer(minLength: 6)
-                Text("\(entry.income ? "+" : "−")\(entry.amount)")
+                Text("\(income ? "+" : "−")\(amount)")
                     .font(Grid.mono(15))
-                    .foregroundStyle(entry.income ? Grid.income : Grid.ink)
+                    .foregroundStyle(income ? Grid.income : Grid.ink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+                    .privacySensitive()
             }
             .padding(.vertical, 7)
-            Hairline()
+            Rectangle().fill(latest ? Grid.accent : Grid.hairline).frame(height: 1)
         }
     }
 }

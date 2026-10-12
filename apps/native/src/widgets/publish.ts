@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 
+import { appliedWriteIds } from "@/data/pending-writes-core";
 import { buildWalletPush } from "@/data/wallet-push";
 import type { Database } from "@/db/client";
 import { formatUpcomingDate } from "@/domain/dates";
@@ -13,6 +14,8 @@ import InsightsWidget from "./insights";
 import LedgerWidget from "./ledger";
 import LogWidget from "./log";
 import { buildWidgetProps } from "./props";
+
+const APPLIED_WINDOW_MS = 86_400_000;
 
 /**
  * Reloading is not free — the system grants a widget only a few dozen timeline
@@ -38,6 +41,8 @@ export async function publishWidgets(db: Database): Promise<void> {
     }
     try {
         const now = new Date();
+        const appliedSince = now.getTime() - APPLIED_WINDOW_MS;
+        const applied = await appliedWriteIds(db, appliedSince);
         const props = await buildWidgetProps(db, now);
 
         // An entry dated in the past is dropped, so the rollover is only scheduled
@@ -83,8 +88,10 @@ export async function publishWidgets(db: Database): Promise<void> {
             },
         });
         publishWatchSnapshot({
+            applied: { ids: applied, since: appliedSince },
             budget: {
                 elapsedFraction: budget.elapsedFraction,
+                endsAt: budget.endsAt,
                 isOverall: budget.isOverall,
                 name: budget.name,
                 over: budget.over,
@@ -98,28 +105,28 @@ export async function publishWidgets(db: Database): Promise<void> {
             categories: props.categories,
             currency: props.currency,
             dateLabel: formatUpcomingDate(now).toUpperCase(),
-            entries: props.Ledger.entries,
+            entries: props.watchEntries,
             money: {
+                cents: props.showCents,
                 decimal: money.locale.decimal,
                 group: money.locale.group,
                 minorUnits: money.minorUnits,
                 symbol: money.symbol,
             },
             labels: {
-                done: translateNow("common.done"),
+                all: translateNow("watch.all"),
+                average: translateNow("watch.average"),
                 empty: translateNow("watch.empty"),
-                expense: translateNow("common.expense"),
                 income: translateNow("common.income"),
-                log: translateNow("watch.log"),
-                logged: translateNow("watch.logged"),
-                next: translateNow("common.next"),
-                note: translateNow("watch.note"),
                 recent: translateNow("watch.recent"),
                 spent: translateNow("watch.spent"),
+                week: translateNow("watch.week"),
+                yesterday: translateNow("common.yesterday").toUpperCase(),
             },
             publishedAt: now.getTime(),
             todayLabel: props.Log.todayLabel,
             todaySpent: props.Log.todaySpent,
+            week: props.week,
             zeroSpent: props.zeroSpent,
         });
     } catch (error) {

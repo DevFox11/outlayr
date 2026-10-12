@@ -8,6 +8,7 @@ import type { SpendDb } from "@/data/budget-spent";
 import { OVERALL_BUDGET_ID } from "@/data/budgets-core";
 import { bucketSeries, categoryBreakdown, loadContributions, windowLabel, windowTotals } from "@/data/insights";
 import type { InsightsCalendar, InsightsPeriod, WindowTotals } from "@/data/insights";
+import { writeIdsByTransaction } from "@/data/pending-writes-core";
 import { parseBoolSetting, parseIntSetting } from "@/data/settings-core";
 import { loadValuation } from "@/data/valuation-source";
 import type { Valuation } from "@/data/valuation-source";
@@ -19,7 +20,7 @@ import {
 } from "@/db/schema";
 import { budgetPeriodPhrase } from "@/domain/budget-math";
 import { compareBudgetSeverity } from "@/domain/budget-severity";
-import { formatDayHeader, formatUpcomingDate } from "@/domain/dates";
+import { formatDateHeader, formatDayHeader, formatUpcomingDate, weekdayInitial } from "@/domain/dates";
 import { DEFAULT_CURRENCY, formatAmount } from "@/domain/money";
 import type { TranslationKey } from "@/i18n/catalog";
 import { translateNow } from "@/i18n/runtime";
@@ -40,6 +41,7 @@ type WidgetChrome = typeof WIDGET_PALETTE;
 const LEDGER_LIMIT = 8;
 /** Past five, the slices are thinner than the hairline between them. */
 const SLICE_LIMIT = 4;
+const WEEK_DAYS = 7;
 
 /** Which budget a configured tile is pinned to. */
 type BudgetSelection = "auto" | "overall" | "worst";
@@ -52,9 +54,10 @@ export interface BudgetViewProps {
     /** How far through the period we are, in [0, 1] — the pace marker. */
     elapsedFraction: number;
     /**
-     * Window end in epoch ms. Not rendered — it is the one instant at which every
-     * figure above becomes wrong, so the publisher schedules the next timeline
-     * entry here instead of polling.
+     * Window end in epoch ms — the one instant at which every figure above
+     * becomes wrong. The publisher schedules the next timeline entry here instead
+     * of polling, and the watch hides the budget past it and extrapolates the
+     * pace marker from it.
      */
     endsAt: number;
     /**
@@ -110,6 +113,14 @@ export interface LedgerEntryProps {
     id: string;
     income: boolean;
     note: string;
+}
+
+export interface WatchEntryProps extends LedgerEntryProps {
+    at: number;
+    category: string;
+    date: string;
+    rootCategoryId: string | null;
+    writeId: string | null;
 }
 
 /** What the Ledger's header figure can be pinned to. `"today"` is its default. */
@@ -202,6 +213,11 @@ export interface CategoryProps {
     name: string;
 }
 
+export interface WeekProps {
+    average: string;
+    days: { label: string; value: number }[];
+}
+
 export interface WidgetProps {
     Budget: BudgetWidgetProps;
     categories: CategoryProps[];
@@ -211,6 +227,9 @@ export interface WidgetProps {
     intentBudgets: IntentBudgetProps[];
     Ledger: LedgerWidgetProps;
     Log: LogWidgetProps;
+    showCents: boolean;
+    watchEntries: WatchEntryProps[];
+    week: WeekProps;
     zeroSpent: string;
 }
 
@@ -310,6 +329,7 @@ export async function buildWidgetProps(db: SpendDb, now: Date = new Date()): Pro
         .orderBy(asc(categoriesTable.sortOrder), asc(categoriesTable.name));
     const categoriesById = new Map(categoryRows.map((row) => [row.id, row]));
     const budgets = await budgetFigures(db, now, contributions, valuation);
+    const watchEntries = await buildWatchEntries(db, now, categoriesById, entryMoney);
 
     return {
         Budget: buildBudget(budgets, now, categoriesById, money, whole),
@@ -332,7 +352,20 @@ export async function buildWidgetProps(db: SpendDb, now: Date = new Date()): Pro
                 year: buildInsights(contributions, categoriesById, "year", now, calendar, money),
             },
         },
-        Ledger: await buildLedger(db, now, categoriesById, money, entryMoney, contributions, calendar),
+        Ledger: {
+            chrome: WIDGET_PALETTE,
+            entries: watchEntries.map(({ amount, color, day, emoji, id, income, note }) => ({
+                amount,
+                color,
+                day,
+                emoji,
+                id,
+                income,
+                note,
+            })),
+            headers: buildLedgerHeaders(contributions, now, calendar, money),
+            url: DEEP_LINKS.log,
+        },
         Log: {
             chrome: WIDGET_PALETTE,
             todayLabel: translateNow("common.today").toUpperCase(),
@@ -340,6 +373,9 @@ export async function buildWidgetProps(db: SpendDb, now: Date = new Date()): Pro
             url: DEEP_LINKS.newExpense,
         },
         intentBudgets: buildIntentBudgets(budgets, categoriesById, money, whole),
+        showCents,
+        watchEntries,
+        week: buildWeek(contributions, now, whole),
         zeroSpent: money(0),
     };
 }
@@ -563,15 +599,35 @@ function sumExpenses(rows: readonly Contribution[], start: Date, now: Date, cate
     return total;
 }
 
-async function buildLedger(
+function buildWeek(contributions: readonly Contribution[], now: Date, whole: Money): WeekProps {
+    const today = startOfDay(now);
+    const starts = Array.from(
+        { length: WEEK_DAYS },
+        (_, index) => new Date(today.getFullYear(), today.getMonth(), today.getDate() - (WEEK_DAYS - 1 - index))
+    );
+    const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).getTime();
+    const values = starts.map(() => 0);
+    for (const row of contributions) {
+        const t = row.date.getTime();
+        if (row.income || t < starts[0].getTime() || t >= end) {
+            continue;
+        }
+        const index = starts.findLastIndex((start) => start.getTime() <= t);
+        values[index] += row.amount;
+    }
+    const total = values.reduce((sum, value) => sum + value, 0);
+    return {
+        average: whole(total / WEEK_DAYS),
+        days: starts.map((start, index) => ({ label: weekdayInitial(start), value: values[index] })),
+    };
+}
+
+async function buildWatchEntries(
     db: SpendDb,
     now: Date,
     categoriesById: ReadonlyMap<string, CategoryRow>,
-    money: Money,
-    entryMoney: EntryMoney,
-    contributions: readonly Contribution[],
-    calendar: InsightsCalendar
-): Promise<LedgerWidgetProps> {
+    entryMoney: EntryMoney
+): Promise<WatchEntryProps[]> {
     const rows = await db
         .select({
             amount: transactionsTable.amount,
@@ -589,28 +645,29 @@ async function buildLedger(
         .where(and(isNull(transactionsTable.deletedAt), lte(transactionsTable.date, now)))
         .orderBy(desc(transactionsTable.date))
         .limit(LEDGER_LIMIT);
+    const writeIds = await writeIdsByTransaction(db);
 
-    return {
-        chrome: WIDGET_PALETTE,
-        entries: rows.map((row) => {
-            const category = row.categoryId ? categoriesById.get(row.categoryId) : undefined;
-            return {
-                amount: entryMoney(row.amount, row.currency),
-                // Identity precedence, matching the form.
-                color: row.customColor ?? row.imageColor ?? category?.color ?? "#767676",
-                day: formatDayHeader(row.date, now),
-                // Hugeicons glyphs are a React Native font the widget runtime does not
-                // link, so an icon identity degrades to its colour dot. An emoji is
-                // just text and crosses the process boundary intact.
-                emoji: row.emoji ?? category?.emoji ?? "",
-                id: row.id,
-                income: row.income,
-                note: row.note,
-            };
-        }),
-        headers: buildLedgerHeaders(contributions, now, calendar, money),
-        url: DEEP_LINKS.log,
-    };
+    return rows.map((row) => {
+        const category = row.categoryId ? categoriesById.get(row.categoryId) : undefined;
+        return {
+            amount: entryMoney(row.amount, row.currency),
+            at: row.date.getTime(),
+            category: category?.name ?? "",
+            // Identity precedence, matching the form.
+            color: row.customColor ?? row.imageColor ?? category?.color ?? "#767676",
+            date: formatDateHeader(row.date, now),
+            day: formatDayHeader(row.date, now),
+            // Hugeicons glyphs are a React Native font the widget runtime does not
+            // link, so an icon identity degrades to its colour dot. An emoji is
+            // just text and crosses the process boundary intact.
+            emoji: row.emoji ?? category?.emoji ?? "",
+            id: row.id,
+            income: row.income,
+            note: row.note,
+            rootCategoryId: category?.parentId ?? row.categoryId,
+            writeId: writeIds.get(row.id) ?? null,
+        };
+    });
 }
 
 /**

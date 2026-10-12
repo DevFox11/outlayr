@@ -10,6 +10,7 @@ import type { PendingWrite } from "@/lib/pending-writes-core";
 import { getMeta, META_KEYS } from "./app-meta-core";
 import { cardFeeFor } from "./card-fees-core";
 import {
+    appliedWriteIds,
     applyPendingWrites,
     drainPendingWrites,
     fileWaitingPurchases,
@@ -910,4 +911,26 @@ test("keeps a fee typed on a waiting charge when its card gets the account", asy
     await pickCardAccount(db, "Work card", "acc-n26");
 
     expect(cardFeeFor(db, charge?.id ?? "")).toMatchObject({ accountId: "acc-n26", amount: 1.5, id: "typed-fee" });
+});
+
+describe("appliedWriteIds", () => {
+    it("lists only the writes applied since the given instant", async () => {
+        const db = makeDb();
+        await seedCategories(db);
+        const watchWrite = (id: string, date: number): PendingWrite => ({
+            amount: 4.5,
+            category: "Coffee",
+            categoryId: "cat-expense",
+            date,
+            id,
+            income: false,
+            note: "",
+        });
+        const later = new Date(NOW.getTime() + 2 * 86_400_000);
+
+        await applyPendingWrites(db, [watchWrite("old", NOW.getTime())], NOW);
+        await applyPendingWrites(db, [watchWrite("new", later.getTime())], later);
+
+        await expect(appliedWriteIds(db, later.getTime() - 86_400_000)).resolves.toStrictEqual(["new"]);
+    });
 });

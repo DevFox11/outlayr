@@ -3,21 +3,17 @@ import type { Dictionary } from "intlayer";
 
 const watch = {
     content: {
+        "watch.all": t({
+            en: "All",
+            es: "Todas",
+        }),
+        "watch.average": t({
+            en: "Avg",
+            es: "Prom.",
+        }),
         "watch.empty": t({
             en: "Nothing logged yet",
             es: "Nada registrado aún",
-        }),
-        "watch.log": t({
-            en: "Log",
-            es: "Registrar",
-        }),
-        "watch.logged": t({
-            en: "Logged",
-            es: "Registrado",
-        }),
-        "watch.note": t({
-            en: "Note",
-            es: "Nota",
         }),
         "watch.recent": t({
             en: "Recent",
@@ -26,6 +22,10 @@ const watch = {
         "watch.spent": t({
             en: "spent",
             es: "gastado",
+        }),
+        "watch.week": t({
+            en: "Last 7 days",
+            es: "Últimos 7 días",
         }),
     },
     key: "watch" as const,

@@ -10,7 +10,7 @@ struct ComplicationEntryView: View {
     private static let overColor = Color(red: 0.945, green: 0.471, blue: 0.475)
 
     private var snapshot: ComplicationSnapshot { entry.snapshot ?? .sample }
-    private var budget: ComplicationSnapshot.Budget? { snapshot.activeBudget }
+    private var budget: ComplicationSnapshot.Budget? { snapshot.activeBudget(at: entry.date) }
 
     private var remainingColor: Color {
         guard renderingMode == .fullColor, budget?.over == true else { return .primary }
@@ -59,8 +59,25 @@ struct ComplicationEntryView: View {
             if let budget {
                 row(budget.remainingCaption, budget.remaining, color: remainingColor, accent: true)
                 paceBar(budget)
+            } else if let days = snapshot.week?.days, !days.isEmpty {
+                weekBars(days.map(\.value))
             }
         }
+    }
+
+    private func weekBars(_ values: [Double]) -> some View {
+        let peak = max(values.max() ?? 0, 0.01)
+        return HStack(alignment: .bottom, spacing: 3) {
+            ForEach(Array(values.enumerated()), id: \.offset) { index, value in
+                let today = index == values.count - 1
+                Rectangle()
+                    .fill(Color.primary.opacity(today ? 1 : 0.35))
+                    .frame(height: max(16 * value / peak, 1))
+                    .frame(maxWidth: .infinity)
+                    .widgetAccentable(today)
+            }
+        }
+        .frame(height: 16, alignment: .bottom)
     }
 
     @ViewBuilder
@@ -147,5 +164,28 @@ struct ComplicationEntryView: View {
             .frame(maxHeight: .infinity)
         }
         .frame(height: 6)
+    }
+}
+
+struct LogComplicationView: View {
+    @Environment(\.widgetFamily) private var family
+
+    var body: some View {
+        Group {
+            if family == .accessoryCorner {
+                Image(systemName: "plus")
+                    .font(.system(size: 22, weight: .semibold))
+                    .widgetAccentable()
+            } else {
+                ZStack {
+                    AccessoryWidgetBackground()
+                    Image(systemName: "plus")
+                        .font(.system(size: 24, weight: .semibold))
+                        .widgetAccentable()
+                }
+            }
+        }
+        .widgetURL(URL(string: "outlayr-watch://log"))
+        .containerBackground(for: .widget) { Color.clear }
     }
 }

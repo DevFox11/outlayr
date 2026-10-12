@@ -17,6 +17,8 @@ jest.mock("./ledger", () => ({ __esModule: true, default: { updateSnapshot: jest
 jest.mock("./log", () => ({ __esModule: true, default: { updateSnapshot: jest.fn() } }));
 jest.mock("@/lib/widget-bridge", () => ({ publishIntentSnapshot: jest.fn(), publishWalletPush: jest.fn() }));
 jest.mock("@/data/wallet-push", () => ({ buildWalletPush: () => Promise.resolve({}) }));
+jest.mock("@/data/pending-writes-core", () => ({ appliedWriteIds: () => Promise.resolve(["watch-write"]) }));
+jest.mock("@/lib/watch-link", () => ({ publishWatchSnapshot: jest.fn() }));
 
 // `__esModule` on the factories, or babel's interop wraps the whole factory as `default`.
 const widget = <Module extends { default: unknown }>(path: string): Module["default"] =>
@@ -38,6 +40,9 @@ const mockProps: WidgetProps = {
     Ledger: {} as WidgetProps["Ledger"],
     Log: {} as WidgetProps["Log"],
     intentBudgets: [],
+    showCents: true,
+    watchEntries: [],
+    week: { average: "$0", days: [] },
     zeroSpent: "$0.00",
 };
 jest.mock("./props", () => ({ buildWidgetProps: () => Promise.resolve(mockProps) }));
@@ -63,5 +68,18 @@ describe("publishWidgets", () => {
         expect(updates.Ledger).toHaveBeenCalledWith(mockProps.Ledger);
         expect(updates.Insights).toHaveBeenCalledWith(mockProps.Insights);
         expect(updates.Log).toHaveBeenCalledWith(mockProps.Log);
+    });
+
+    it("hands the watch the writes the phone applied and the week", async () => {
+        const publishWatchSnapshot = jest.mocked(
+            jest.requireMock<typeof import("@/lib/watch-link")>("@/lib/watch-link").publishWatchSnapshot
+        );
+
+        await publishWidgets(mockUnusedDatabase());
+
+        const snapshot = publishWatchSnapshot.mock.calls[0]?.[0];
+        expect(snapshot?.applied.ids).toStrictEqual(["watch-write"]);
+        expect(snapshot?.applied.since).toBeLessThan(snapshot?.publishedAt ?? 0);
+        expect(snapshot?.week).toBe(mockProps.week);
     });
 });
