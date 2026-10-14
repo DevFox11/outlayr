@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { budgetPace, daysLeftInWindow, hoursLeftInDay } from "./budget-math";
 import { nextClockTick } from "./clock";
 import { formatDayHeader } from "./dates";
@@ -32,7 +34,7 @@ function answer(): string {
             return String(budgetPace({ end: localDate(0), start: localDate(5) }, localDate(10)).remaining);
         }
         case "clock": {
-            const dateArgs: [number, number, number, number][] = JSON.parse(rest[0] ?? "[]");
+            const dateArgs: [number, number, number, number][] = JSON.parse(readFileSync(0, "utf-8"));
             const ticks = dateArgs.map(([year, month, day, hour]) => {
                 const nowMs = new Date(year, month, day, hour).getTime();
                 const tick = nextClockTick(nowMs);

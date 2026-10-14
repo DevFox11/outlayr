@@ -29,13 +29,15 @@ interface DstProbeResult {
  * started with `TZ` already set picks up a different zone. `[year, month, day,
  * hour]` tuples travel to the subprocess rather than epoch milliseconds
  * because the calling process's own zone would otherwise resolve "local
- * midnight" to the wrong instant.
+ * midnight" to the wrong instant. They go over stdin, not argv: a year of
+ * hours is past Linux's 128 KiB limit on a single argument.
  */
 function ticksInNewYork(dateArgs: [number, number, number, number][]): DstProbeResult[] {
     const probe = join(import.meta.dirname, "dst-probe.ts");
-    const out = execFileSync(process.execPath, ["--import", "tsx", probe, "clock", JSON.stringify(dateArgs)], {
+    const out = execFileSync(process.execPath, ["--import", "tsx", probe, "clock"], {
         encoding: "utf-8",
         env: { ...process.env, TZ: "America/New_York" },
+        input: JSON.stringify(dateArgs),
         maxBuffer: 8 * 1024 * 1024,
     });
     return JSON.parse(out);
