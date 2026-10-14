@@ -9,6 +9,7 @@ allowBuilds:
     core-js: false
     esbuild: true
     sharp: false
+    unrs-resolver: false
 catalog:
     "@better-auth/expo": ~1.6.15
     "@convex-dev/agent": ^0.7.1
@@ -45,9 +46,9 @@ minimumReleaseAgeExclude:
     - ai@7.0.107
 
 patchedDependencies:
-    expo-widgets@58.0.11: patches/expo-widgets@58.0.11.patch
+    expo-widgets@58.0.15: patches/expo-widgets@58.0.15.patch
     number-flow-react-native@0.5.1: patches/number-flow-react-native@0.5.1.patch
-    panelui-native@0.105.0: patches/panelui-native@0.105.0.patch
+    panelui-native@0.109.0: patches/panelui-native@0.109.0.patch
 overrides:
     vite@*: "catalog:"
 peerDependencyRules:

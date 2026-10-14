@@ -339,7 +339,9 @@ describe("tier 1.9: the merchant book this device already filled", () => {
     it("answers a remembered merchant without asking the backend", async () => {
         const onSuggest = jest.fn();
         const transport = deferredTransport();
-        const recallMerchant = jest.fn(async () => REMOTE_RESULT);
+        const recallMerchant = jest.fn<NonNullable<UseTransactionEnrichmentArgs["recallMerchant"]>>(
+            async () => REMOTE_RESULT
+        );
         const { result } = await renderHook(() =>
             useTransactionEnrichment(baseArgs({ onSuggest, recallMerchant, transport: transport.fn }))
         );
@@ -357,7 +359,7 @@ describe("tier 1.9: the merchant book this device already filled", () => {
 
     it("still asks the backend for a merchant it has never seen", async () => {
         const transport = deferredTransport();
-        const recallMerchant = jest.fn(async () => null);
+        const recallMerchant = jest.fn<NonNullable<UseTransactionEnrichmentArgs["recallMerchant"]>>(async () => null);
         const { result } = await renderHook(() =>
             useTransactionEnrichment(baseArgs({ recallMerchant, transport: transport.fn }))
         );
@@ -1192,7 +1194,7 @@ describe("the ledger as a source", () => {
     });
 
     it("asks the ledger about the side of the book the entry is on", async () => {
-        const resolveHistory = jest.fn(async () => null);
+        const resolveHistory = jest.fn<NonNullable<UseTransactionEnrichmentArgs["resolveHistory"]>>(async () => null);
         await typeName(UNKNOWN, { income: true, resolveHistory });
 
         expect(resolveHistory).toHaveBeenCalledWith(merchantKey(UNKNOWN), true);

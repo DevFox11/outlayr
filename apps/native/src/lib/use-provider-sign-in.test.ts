@@ -25,9 +25,12 @@ const { completeAppleSignIn, completeGoogleSignIn, googleProviderSubject } =
 describe("apple-credential-captures-code", () => {
     it("binds raw nonce through Better Auth then grants the captured Apple credential", async () => {
         const client = {
-            $fetch: jest.fn(async () => ({ data: { active: true }, error: null })),
+            $fetch: jest.fn(async (_path: string, _init: unknown) => ({ data: { active: true }, error: null })),
             signIn: {
-                social: jest.fn(async () => ({ data: { user: { id: "better-auth-user" } }, error: null })),
+                social: jest.fn(async (_request: unknown) => ({
+                    data: { user: { id: "better-auth-user" } },
+                    error: null,
+                })),
             },
         };
         const activation = { activate: jest.fn(), begin: jest.fn(), reject: jest.fn() };

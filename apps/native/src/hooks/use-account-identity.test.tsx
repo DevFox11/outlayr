@@ -77,7 +77,7 @@ afterEach(() => {
 describe("debounce and domain consumption", () => {
     it("waits the 600ms debounce, then attaches the resolved logo", async () => {
         const { fn, calls } = deferredTransport();
-        const fetchImage = jest.fn(async () => LOGO);
+        const fetchImage = jest.fn<NonNullable<UseAccountIdentityArgs["fetchImage"]>>(async () => LOGO);
         const onLogo = jest.fn();
         const { result } = await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, onLogo, transport: fn })));
 
@@ -102,7 +102,7 @@ describe("debounce and domain consumption", () => {
     });
 
     it("resolves a curated merchant's domain with no transport at all", async () => {
-        const fetchImage = jest.fn(async () => LOGO);
+        const fetchImage = jest.fn<NonNullable<UseAccountIdentityArgs["fetchImage"]>>(async () => LOGO);
         const onLogo = jest.fn();
         const { result } = await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, onLogo })));
 
@@ -120,7 +120,7 @@ describe("debounce and domain consumption", () => {
 
     it("resolves a bank on-device and never asks the model", async () => {
         const { fn } = deferredTransport();
-        const fetchImage = jest.fn(async () => LOGO);
+        const fetchImage = jest.fn<NonNullable<UseAccountIdentityArgs["fetchImage"]>>(async () => LOGO);
         const onLogo = jest.fn();
         const { result } = await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, onLogo, transport: fn })));
 
@@ -141,7 +141,7 @@ describe("debounce and domain consumption", () => {
 
     it("still resolves a bank when aiEnrichment is off", async () => {
         const { fn } = deferredTransport();
-        const fetchImage = jest.fn(async () => LOGO);
+        const fetchImage = jest.fn<NonNullable<UseAccountIdentityArgs["fetchImage"]>>(async () => LOGO);
         const onLogo = jest.fn();
         const { result } = await renderHook(() =>
             useAccountIdentity(baseArgs({ fetchImage, onLogo, remoteEnabled: false, transport: fn }))
@@ -168,7 +168,7 @@ describe("debounce and domain consumption", () => {
      */
     it("drops an older remote result that settles after a bank resolved locally", async () => {
         const { fn, calls } = deferredTransport();
-        const fetchImage = jest.fn(async () => LOGO);
+        const fetchImage = jest.fn<NonNullable<UseAccountIdentityArgs["fetchImage"]>>(async () => LOGO);
         const onLogo = jest.fn();
         const { result } = await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, onLogo, transport: fn })));
 
@@ -278,7 +278,7 @@ describe("debounce and domain consumption", () => {
 
     it("clears instead of fetching when the name resolves to no domain", async () => {
         const { fn, calls } = deferredTransport();
-        const fetchImage = jest.fn(async () => LOGO);
+        const fetchImage = jest.fn<NonNullable<UseAccountIdentityArgs["fetchImage"]>>(async () => LOGO);
         const onClear = jest.fn();
         const onLogo = jest.fn();
         const { result } = await renderHook(() =>
@@ -340,7 +340,7 @@ describe("consent gates", () => {
 describe("grounded follow-up", () => {
     it("runs the grounded lookup after the idle window, then polls knowledgeOnly", async () => {
         const { fn, calls } = deferredTransport();
-        const fetchImage = jest.fn(async () => LOGO);
+        const fetchImage = jest.fn<NonNullable<UseAccountIdentityArgs["fetchImage"]>>(async () => LOGO);
         const onLogo = jest.fn();
         const { result } = await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, onLogo, transport: fn })));
 
@@ -380,7 +380,7 @@ describe("grounded follow-up", () => {
 
 describe("acceptance and gating", () => {
     it("clears a previously suggested logo when the fetch rejects the image", async () => {
-        const fetchImage = jest.fn(async () => NO_LOGO);
+        const fetchImage = jest.fn<NonNullable<UseAccountIdentityArgs["fetchImage"]>>(async () => NO_LOGO);
         const onLogo = jest.fn();
         const onClear = jest.fn();
         const { result } = await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, onClear, onLogo })));
@@ -395,7 +395,7 @@ describe("acceptance and gating", () => {
     });
 
     it("leaves the tile alone while canAttach answers false", async () => {
-        const fetchImage = jest.fn(async () => LOGO);
+        const fetchImage = jest.fn<NonNullable<UseAccountIdentityArgs["fetchImage"]>>(async () => LOGO);
         const onLogo = jest.fn();
         const onClear = jest.fn();
         const { result } = await renderHook(() =>
@@ -414,7 +414,7 @@ describe("acceptance and gating", () => {
 
     it("drops a logo that lands after the name moved on", async () => {
         let settleFetch: (outcome: LogoOutcome) => void = () => {};
-        const fetchImage = jest.fn(
+        const fetchImage = jest.fn<NonNullable<UseAccountIdentityArgs["fetchImage"]>>(
             () =>
                 new Promise<LogoOutcome>((resolve) => {
                     settleFetch = resolve;
@@ -444,7 +444,7 @@ describe("acceptance and gating", () => {
 
 describe("a name the editor opens with", () => {
     it("is looked up on mount as if it had been typed", async () => {
-        const fetchImage = jest.fn(async () => LOGO);
+        const fetchImage = jest.fn<NonNullable<UseAccountIdentityArgs["fetchImage"]>>(async () => LOGO);
         const onLogo = jest.fn();
         await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, initialName: "Banesco", onLogo })));
 
@@ -458,7 +458,7 @@ describe("a name the editor opens with", () => {
     });
 
     it("asks nothing for an empty or disabled opening name", async () => {
-        const fetchImage = jest.fn(async () => LOGO);
+        const fetchImage = jest.fn<NonNullable<UseAccountIdentityArgs["fetchImage"]>>(async () => LOGO);
         await renderHook(() => useAccountIdentity(baseArgs({ fetchImage, initialName: "  " })));
         await renderHook(() => useAccountIdentity(baseArgs({ enabled: false, fetchImage, initialName: "Banesco" })));
 
@@ -473,7 +473,7 @@ describe("a name the editor opens with", () => {
 describe("an editor that closes mid-lookup", () => {
     it("drops a logo that lands after the hook unmounted", async () => {
         let settleFetch: (outcome: LogoOutcome) => void = () => {};
-        const fetchImage = jest.fn(
+        const fetchImage = jest.fn<NonNullable<UseAccountIdentityArgs["fetchImage"]>>(
             () =>
                 new Promise<LogoOutcome>((resolve) => {
                     settleFetch = resolve;
