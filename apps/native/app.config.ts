@@ -260,6 +260,10 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
         [
             "expo-audio",
             {
+                // Defaults to true, which adds `audio` to UIBackgroundModes and the
+                // Android media playback service. Voice entry only records in the
+                // foreground, and App Review rejects the unused mode (2.5.4).
+                enableBackgroundPlayback: false,
                 microphonePermission: "Outlayr listens while you speak an entry, then writes it down for you.",
                 recordAudioAndroid: true,
             },
