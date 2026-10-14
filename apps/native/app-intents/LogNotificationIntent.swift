@@ -86,7 +86,13 @@ struct LogNotificationIntent: AppIntent {
         if let cardText {
             userInfo["card"] = cardText
         }
-        await SharedStore.notify(title: push.title, body: push.body, userInfo: userInfo, purchase: purchase)
+        await SharedStore.notify(
+            title: push.title,
+            body: push.body,
+            userInfo: userInfo,
+            purchase: purchase,
+            repeatsOnSettle: cardText?.localizedCaseInsensitiveContains("payoneer") == true
+        )
         return .result(dialog: IntentDialog("Noted."))
     }
 

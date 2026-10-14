@@ -76,11 +76,12 @@ enum SharedStore {
         title: String = "",
         body: String,
         userInfo: [AnyHashable: Any] = [:],
-        purchase key: String
+        purchase key: String,
+        repeatsOnSettle: Bool = false
     ) async {
         let center = UNUserNotificationCenter.current()
         guard await center.notificationSettings().authorizationStatus == .authorized,
-              await PushLedger.shared.claim(key) else { return }
+              await PushLedger.shared.claim(key, repeatsOnSettle: repeatsOnSettle) else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
@@ -140,11 +141,19 @@ private actor PushLedger {
     private let defaults = SharedStore.store
     private let defaultsKey = SharedStore.pushedPurchasesKey
     private let window: TimeInterval = 10 * 60
+    private let settleWindow: TimeInterval = 4 * 24 * 60 * 60
 
-    func claim(_ key: String) -> Bool {
+    func claim(_ key: String, repeatsOnSettle: Bool) -> Bool {
         var pushed = recent()
         let id = Self.digest(key)
-        guard pushed[id] == nil else { return false }
+        if let last = pushed[id] {
+            if abs(last.timeIntervalSinceNow) <= window { return false }
+            if repeatsOnSettle {
+                pushed[id] = nil
+                defaults?.set(pushed, forKey: defaultsKey)
+                return false
+            }
+        }
         pushed[id] = Date()
         defaults?.set(pushed, forKey: defaultsKey)
         return true
@@ -158,7 +167,7 @@ private actor PushLedger {
 
     private func recent() -> [String: Date] {
         (defaults?.dictionary(forKey: defaultsKey) as? [String: Date] ?? [:])
-            .filter { abs($0.value.timeIntervalSinceNow) <= window }
+            .filter { abs($0.value.timeIntervalSinceNow) <= settleWindow }
     }
 
     private static func digest(_ key: String) -> String {

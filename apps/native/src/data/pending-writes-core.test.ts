@@ -63,6 +63,20 @@ function walletWrite(id: string, overrides: Partial<PendingWrite> = {}): Pending
     };
 }
 
+const HOUR = 60 * 60 * 1000;
+
+function busFare(id: string, hoursLater: number, card = "Payoneer"): PendingWrite {
+    return walletWrite(id, {
+        amount: 0,
+        amountText: null,
+        card,
+        date: NOW.getTime() + hoursLater * HOUR,
+        dedupeKey: "notification:expense:a charge of 1.86 usd (transportes rober s a)",
+        note: "",
+        text: "USD card charge\nA charge of 1.86 USD was made to your Payoneer USD card XXXX-3111 (TRANSPORTES ROBER S A)",
+    });
+}
+
 async function seedAccounts(db: Database): Promise<void> {
     await db.insert(accounts).values([
         {
@@ -247,6 +261,41 @@ describe("applyPendingWrites", () => {
             });
 
         await applyPendingWrites(db, [walletWrite("tap", { card: "Visa" }), push("first"), push("second")], NOW);
+
+        await expect(undeleted(db)).resolves.toHaveLength(2);
+    });
+
+    it("folds Payoneer's settle push into the row its authorize push made", async () => {
+        await applyPendingWrites(db, [busFare("auth", 0)], NOW);
+
+        const applied = await applyPendingWrites(db, [busFare("settle", 20)], NOW);
+
+        expect(applied).toBe(0);
+        await expect(undeleted(db)).resolves.toHaveLength(1);
+    });
+
+    it("keeps every fare when the same Payoneer charge happens twice before either settles", async () => {
+        await applyPendingWrites(
+            db,
+            [busFare("ride-1", 0), busFare("ride-2", 10), busFare("settle-1", 24), busFare("settle-2", 34)],
+            NOW
+        );
+
+        await expect(undeleted(db)).resolves.toHaveLength(2);
+    });
+
+    it("does not bring back an authorized charge the user deleted", async () => {
+        await applyPendingWrites(db, [busFare("auth", 0)], NOW);
+        const [row] = await liveRows(db);
+        await transactionsRepo.remove(db, row?.id ?? "", NOW);
+
+        await applyPendingWrites(db, [busFare("settle", 20)], NOW);
+
+        await expect(undeleted(db)).resolves.toHaveLength(0);
+    });
+
+    it("keeps a repeated push from another bank as its own purchase", async () => {
+        await applyPendingWrites(db, [busFare("first", 0, "Revolut"), busFare("again", 20, "Revolut")], NOW);
 
         await expect(undeleted(db)).resolves.toHaveLength(2);
     });

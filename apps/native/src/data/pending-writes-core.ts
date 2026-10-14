@@ -40,6 +40,9 @@ import { transactionsRepo } from "./transactions-core";
  */
 export const WALLET_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
 
+export const SETTLE_REPEAT_WINDOW_MS = 4 * 24 * 60 * 60 * 1000;
+const REPEATS_ON_SETTLE = /payoneer/i;
+
 export const filedNote = sql<string>`lower(${transactions.note})`;
 
 export const SUBSCRIPTION_SETTLE_WINDOW_MS = 4 * 24 * 60 * 60 * 1000;
@@ -364,6 +367,27 @@ function alreadyApplied(ledger: LedgerEntry[], job: PendingWrite): LedgerEntry |
     );
 }
 
+function settleRepeatOf(ledger: LedgerEntry[], job: PendingWrite): LedgerEntry | null {
+    const key = job.dedupeKey?.trim();
+    if (!key || !REPEATS_ON_SETTLE.test(job.card ?? "")) {
+        return null;
+    }
+    const dateOf = (entry: LedgerEntry) => entry.date ?? entry.at;
+    const repeated = (first: LedgerEntry) =>
+        ledger.some(
+            (other) =>
+                other.txId === first.txId &&
+                other.id !== first.id &&
+                dateOf(other) - dateOf(first) > WALLET_DEDUPE_WINDOW_MS
+        );
+    return (
+        ledger.find(
+            (entry) =>
+                entry.key === key && Math.abs(job.date - dateOf(entry)) <= SETTLE_REPEAT_WINDOW_MS && !repeated(entry)
+        ) ?? null
+    );
+}
+
 /**
  * A tombstone must not block. The user deleting a duplicate is them saying the
  * charge belongs on the ledger once; re-running the automation after that has to
@@ -411,9 +435,11 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
             continue;
         }
         const seen = alreadyApplied(ledger, job);
-        if (seen && (await stillOnLedger(db, seen.txId))) {
-            if (seen.id !== job.id) {
-                ledger = remember(ledger, { at, date: job.date, id: job.id, key: null, txId: seen.txId }, at);
+        const repeat = seen ? null : settleRepeatOf(ledger, job);
+        const duplicate = repeat ?? (seen && (await stillOnLedger(db, seen.txId)) ? seen : null);
+        if (duplicate) {
+            if (duplicate.id !== job.id) {
+                ledger = remember(ledger, { at, date: job.date, id: job.id, key: null, txId: duplicate.txId }, at);
                 await setMeta(db, META_KEYS.pendingWriteLedger, JSON.stringify(ledger));
             }
             continue;
