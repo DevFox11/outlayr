@@ -129,7 +129,22 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
         adaptiveIcon: {
             backgroundColor: "#f2f0ea",
             foregroundImage: "./assets/images/adaptive-icon.png",
+            // Android 13+ themed icons tint this layer; same geometry as the foreground.
+            monochromeImage: "./assets/images/adaptive-icon-monochrome.png",
         },
+        // Nothing here uses these. The template and libraries merge in the
+        // overlay, read-storage and FCM ones; the media pair is blocked before a
+        // library can add it. The photo picker reads without a permission, and
+        // reminders are local, so there is no push. WRITE_EXTERNAL_STORAGE is not
+        // here: the camera still needs it below Android 10, so
+        // `with-android-capture` caps it instead.
+        blockedPermissions: [
+            "android.permission.SYSTEM_ALERT_WINDOW",
+            "android.permission.READ_EXTERNAL_STORAGE",
+            "android.permission.READ_MEDIA_IMAGES",
+            "android.permission.READ_MEDIA_VIDEO",
+            "com.google.android.c2dm.permission.RECEIVE",
+        ],
         package: "com.tryoutlayr.app",
     },
     experiments: {
@@ -156,7 +171,6 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
         },
         icon: isProduction ? "./assets/Outlayr.icon" : "./assets/OutlayrTesting.icon",
         infoPlist: {
-            CFBundleLocalizations: ["en", "es"],
             ITSAppUsesNonExemptEncryption: false,
         },
         usesAppleSignIn: true,
@@ -168,7 +182,9 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
     owner: "danestves-llc",
     plugins: [
         "expo-router",
-        "expo-localization",
+        // iOS: CFBundleLocalizations. Android: a localeConfig, which is what gives
+        // the app its own Language entry in system Settings.
+        ["expo-localization", { supportedLocales: ["en", "es"] }],
         "expo-image",
         "expo-sqlite",
         [
@@ -270,11 +286,21 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
             },
         ],
         [
+            "expo-notifications",
+            {
+                // Android's status bar draws only the alpha, so this is the mark in
+                // white; `color` tints it in the shade. The brand vermilion, `--tint`.
+                color: "#c2371b",
+                icon: "./assets/images/notification-icon.png",
+            },
+        ],
+        [
             "./plugins/with-alternate-icons.ts",
             {
                 icons: ALTERNATE_ICONS.map((name) => `./assets/${name}.icon`),
             },
         ],
+        "./plugins/with-android-capture.ts",
         ["posthog-react-native/expo", { skipOnConflict: true }],
     ],
     // Fingerprint, not appVersion: the custom config plugins and Apple targets
