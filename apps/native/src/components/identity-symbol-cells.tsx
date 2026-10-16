@@ -29,6 +29,8 @@ export function symbolCellSize(width: number): number {
 }
 
 interface SymbolCellProps {
+    /** Extra touch area around the cell, for a cell smaller than the platform's minimum target. */
+    hitSlop?: number;
     onPress: () => void;
     selected: boolean;
     size: number;
@@ -52,7 +54,14 @@ function useCellStyle(tint: string, selected: boolean, size: number) {
     };
 }
 
-export function SymbolIconCell({ iconKey, tint, selected, size, onPress }: SymbolCellProps & { iconKey: string }) {
+export function SymbolIconCell({
+    iconKey,
+    tint,
+    selected,
+    size,
+    hitSlop,
+    onPress,
+}: SymbolCellProps & { iconKey: string }) {
     const colors = useColors();
     const { theme } = useTheme();
     const isDark = theme === "dark";
@@ -62,6 +71,7 @@ export function SymbolIconCell({ iconKey, tint, selected, size, onPress }: Symbo
             accessibilityLanguage="en"
             accessibilityRole="button"
             accessibilityState={{ selected }}
+            hitSlop={hitSlop}
             onPress={onPress}
             style={useCellStyle(tint, selected, size)}
         >
@@ -75,12 +85,20 @@ export function SymbolIconCell({ iconKey, tint, selected, size, onPress }: Symbo
     );
 }
 
-export function SymbolEmojiCell({ emoji, tint, selected, size, onPress }: SymbolCellProps & { emoji: string }) {
+export function SymbolEmojiCell({
+    emoji,
+    tint,
+    selected,
+    size,
+    hitSlop,
+    onPress,
+}: SymbolCellProps & { emoji: string }) {
     return (
         <Pressable
             accessibilityLabel={emoji}
             accessibilityRole="button"
             accessibilityState={{ selected }}
+            hitSlop={hitSlop}
             onPress={onPress}
             style={useCellStyle(tint, selected, size)}
         >
@@ -102,9 +120,12 @@ export function ColorSwatch({
     label,
     selected,
     used = false,
+    hitSlop,
     onPress,
 }: {
     hex: string;
+    /** Extra touch area around the 40pt swatch, for a platform whose minimum target is larger. */
+    hitSlop?: number;
     label: string;
     selected: boolean;
     used?: boolean;
@@ -120,6 +141,7 @@ export function ColorSwatch({
             accessibilityRole="button"
             accessibilityState={{ selected }}
             disabled={dimmed}
+            hitSlop={hitSlop}
             onPress={onPress}
             style={({ pressed }) => ({
                 alignItems: "center",

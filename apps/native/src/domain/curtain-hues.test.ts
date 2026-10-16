@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import type { IdentitySelection } from "@/components/identity-picker-content";
+import type { IdentitySelection } from "@/components/identity-picker-shared";
 
 import { computeCurtainHues } from "./curtain-hues";
 

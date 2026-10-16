@@ -2,7 +2,7 @@ import { createContext, use, useCallback, useMemo, useRef, useState } from "reac
 import { useSharedValue, withSpring } from "react-native-reanimated";
 import type { SharedValue } from "react-native-reanimated";
 
-import type { IdentitySelection } from "@/components/identity-picker-content";
+import type { IdentitySelection } from "@/components/identity-picker-shared";
 import { useHaptics } from "@/lib/use-haptics";
 
 /** Launch spring (response 0.4, dampingFraction 0.85) as stiffness/damping. */

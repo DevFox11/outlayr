@@ -2,7 +2,6 @@ import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
 import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Image } from "expo-image";
-import { SymbolView } from "expo-symbols";
 import { useEffect, useEffectEvent, useId, useRef } from "react";
 import { Pressable, View } from "react-native";
 import Animated, {
@@ -22,6 +21,7 @@ import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
 import { CategoryIconTile } from "./category-icon-tile";
+import { IdentityHeroSymbol } from "./identity-hero-symbol";
 import { Text } from "./text";
 
 const TILE = 90;
@@ -440,10 +440,16 @@ function EmptyTile({ colors, variant }: { colors: ReturnType<typeof useColors>; 
 
             {/* A category is an icon or an emoji, never a photo. */}
             {isCategory ? null : (
-                <SymbolView name="photo" size={30} tintColor={colors.muted} type="monochrome" weight="regular" />
+                <IdentityHeroSymbol
+                    name="photo"
+                    size={30}
+                    tintColor={colors.muted}
+                    type="monochrome"
+                    weight="regular"
+                />
             )}
 
-            <SymbolView
+            <IdentityHeroSymbol
                 name="sparkle"
                 size={12}
                 style={{
@@ -456,7 +462,7 @@ function EmptyTile({ colors, variant }: { colors: ReturnType<typeof useColors>; 
                 tintColor={colors.muted}
                 type="monochrome"
             />
-            <SymbolView
+            <IdentityHeroSymbol
                 name="sparkle"
                 size={9}
                 style={{

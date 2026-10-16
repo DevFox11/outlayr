@@ -37,6 +37,15 @@ import type { ReactNode } from "react";
 import { PlatformColor, Pressable, useWindowDimensions } from "react-native";
 
 import {
+    adoptPickedPhoto,
+    IDENTITY_TAB_LABEL,
+    initialIdentityTab,
+    TRANSACTION_TABS,
+    withEmoji,
+    withIcon,
+} from "@/components/identity-picker-shared";
+import type { IdentityPickerContentProps, IdentityTab } from "@/components/identity-picker-shared";
+import {
     ColorSwatch,
     SYMBOL_COLUMNS,
     SYMBOL_GAP,
@@ -47,35 +56,13 @@ import {
 } from "@/components/identity-symbol-cells";
 import { CATEGORY_PALETTE } from "@/data/categories-core";
 import { CATEGORY_EMOJI_GROUPS, CATEGORY_ICON_GROUPS, iconKeysMatching } from "@/domain/category-icon-catalog";
-import type { TranslationKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
-import { persistPickedPhoto } from "@/lib/photo-storage";
 import { outline } from "@/lib/swift-ui-geometry";
 import { useHaptics } from "@/lib/use-haptics";
-import { glowFromImage } from "@/theme/glow";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
-export interface IdentitySelection {
-    color: string | null;
-    emoji: string | null;
-    icon: string | null;
-    /** Photo glow color — auto-detected from the image, overridable via the swatch. */
-    photoColor: string | null;
-    photoUri: string | null;
-}
-
-export type IdentityTab = "photo" | "emoji" | "icons";
-
-export const TRANSACTION_TABS: readonly IdentityTab[] = ["photo", "emoji", "icons"];
-/** A category is a glyph, never a photo. */
-export const CATEGORY_TABS: readonly IdentityTab[] = ["icons", "emoji"];
-
-const TAB_LABEL = {
-    emoji: "transaction.identity.tab.emoji",
-    icons: "transaction.identity.tab.icons",
-    photo: "transaction.identity.tab.photo",
-} satisfies Record<IdentityTab, TranslationKey>;
+export { CATEGORY_TABS, TRANSACTION_TABS } from "@/components/identity-picker-shared";
 
 const SECONDARY_LABEL = PlatformColor("secondaryLabel");
 const SEARCH_FIELD_BACKGROUND = PlatformColor("systemGray6");
@@ -114,33 +101,6 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
     return rows;
 }
 
-function initialTab(value: IdentitySelection, tabs: readonly IdentityTab[]): IdentityTab {
-    if (value.icon && tabs.includes("icons")) {
-        return "icons";
-    }
-    if (value.emoji && tabs.includes("emoji")) {
-        return "emoji";
-    }
-    if (value.photoUri && tabs.includes("photo")) {
-        return "photo";
-    }
-    return tabs[0];
-}
-
-export interface IdentityPickerContentProps {
-    onChange: (next: IdentitySelection) => void;
-    onDone: () => void;
-    /** Off for income and for subcategories. */
-    showsColorRail?: boolean;
-    /** Which tabs the sheet offers, in display order. */
-    tabs?: readonly IdentityTab[];
-    /** Glyph wash / highlight color: the chosen category color, or income green. */
-    tint?: string;
-    /** Colors sibling expense categories already own; dimmed and unpickable. */
-    usedColors?: readonly string[];
-    value: IdentitySelection;
-}
-
 /**
  * The identity picker's content, shared by the transaction sheet
  * (`transaction/identity`) and the category one (`settings/category-symbol`).
@@ -161,7 +121,7 @@ function IdentityPickerContent({
     const { width } = useWindowDimensions();
     const t = useTranslation();
     const cell = symbolCellSize(width);
-    const [tab, setTab] = useState<IdentityTab>(() => initialTab(value, tabs));
+    const [tab, setTab] = useState<IdentityTab>(() => initialIdentityTab(value, tabs));
     // Both halves of the same field: the native state so the clear button can empty
     // it, the React one so the results recompute.
     const queryState = useNativeState("");
@@ -181,26 +141,14 @@ function IdentityPickerContent({
     };
     const pickEmoji = (emoji: string) => {
         haptics("selection");
-        onChange({
-            color: value.color,
-            emoji,
-            icon: null,
-            photoColor: null,
-            photoUri: null,
-        });
+        onChange(withEmoji(value, emoji));
     };
     const pickIcon = (icon: string) => {
         haptics("selection");
-        onChange({
-            color: value.color ?? CATEGORY_PALETTE[0],
-            emoji: null,
-            icon,
-            photoColor: null,
-            photoUri: null,
-        });
+        onChange(withIcon(value, icon));
     };
 
-    const adoptPickedPhoto = async () => {
+    const pickFromLibrary = async () => {
         const result = await launchImageLibraryAsync({
             allowsEditing: true,
             aspect: [1, 1],
@@ -210,23 +158,7 @@ function IdentityPickerContent({
         if (result.canceled || result.assets.length === 0) {
             return;
         }
-        const picked = result.assets[0].uri;
-        // A failed copy still leaves a usable picture for this session, and the
-        // launch reconcile adopts it while the cache entry survives.
-        const uri = await persistPickedPhoto(picked).catch((cause: unknown) => {
-            console.error("Failed to store the picked photo", cause);
-            return picked;
-        });
-        // An unreadable image costs the extracted tint alone: `glowFromImage`
-        // resolves to `[]` rather than rejecting, so the photo is still adopted.
-        const hues = await glowFromImage(uri);
-        onChange({
-            color: value.color,
-            emoji: null,
-            icon: null,
-            photoColor: hues[0] ?? null,
-            photoUri: uri,
-        });
+        onChange(await adoptPickedPhoto(value, result.assets[0].uri));
     };
 
     // The library launch itself can reject — a revoked permission, a host torn
@@ -242,7 +174,7 @@ function IdentityPickerContent({
         }
         picking.current = true;
         setPhotoFailed(false);
-        adoptPickedPhoto()
+        pickFromLibrary()
             .catch((cause: unknown) => {
                 console.error("Failed to pick a photo", cause);
                 setPhotoFailed(true);
@@ -335,7 +267,7 @@ function IdentityPickerContent({
             >
                 {tabs.map((option) => (
                     <SwiftText key={option} modifiers={[tag(option)]}>
-                        {t(TAB_LABEL[option])}
+                        {t(IDENTITY_TAB_LABEL[option])}
                     </SwiftText>
                 ))}
             </Picker>

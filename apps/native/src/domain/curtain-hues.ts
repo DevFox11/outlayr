@@ -1,4 +1,4 @@
-import type { IdentitySelection } from "@/components/identity-picker-content";
+import type { IdentitySelection } from "@/components/identity-picker-shared";
 
 export interface CurtainHuesInput {
     categoryColor: string | null | undefined;
