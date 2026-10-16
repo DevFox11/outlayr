@@ -2,6 +2,7 @@ import { use, useState } from "react";
 import { useWindowDimensions, View } from "react-native";
 
 import { AmountsHiddenContext, fittedHeroSize, FlowAmount } from "@/components/amount-text";
+import { HERO_TYPE } from "@/components/hero-type";
 import { Text } from "@/components/text";
 import { amountDigits, amountParts, withCurrencySymbol } from "@/domain/money";
 import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
@@ -11,7 +12,7 @@ import { useLanguage, useTranslation } from "@/i18n/context";
  * Scaled by hand rather than by a text style: the figure has to stay
  * proportionate to the body-sized ledger underneath it.
  */
-const FONT_SIZE = 40;
+const FONT_SIZE = 40 * HERO_TYPE.scale;
 
 interface LogHeroNumberProps {
     /** The currency the figure is denominated in — not always the global one. */
@@ -45,7 +46,11 @@ export function LogHeroNumber({ magnitude, code, positive, showCents }: LogHeroN
             className="flex-row items-baseline gap-1"
             onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
         >
-            <Text className="text-muted font-sans" numberOfLines={1} style={{ fontSize: symbolSize }}>
+            <Text
+                className="text-muted font-sans"
+                numberOfLines={1}
+                style={{ fontSize: symbolSize, ...HERO_TYPE.face }}
+            >
                 {sign}
                 {parts.symbol}
             </Text>
@@ -53,6 +58,7 @@ export function LogHeroNumber({ magnitude, code, positive, showCents }: LogHeroN
                 amount={magnitude}
                 className="text-foreground font-sans tabular-nums"
                 code={code}
+                fontFamily={HERO_TYPE.face.fontFamily}
                 showCents={showCents}
                 size={figureSize}
             />

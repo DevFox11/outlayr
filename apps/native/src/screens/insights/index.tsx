@@ -426,6 +426,7 @@ export function Insights() {
                     <View className="pt-0.5">
                         <HeroNumber
                             amount={heroMagnitude}
+                            brandFace
                             code={currency}
                             showCents={showCents}
                             sign={heroPositive ? "+" : "-"}

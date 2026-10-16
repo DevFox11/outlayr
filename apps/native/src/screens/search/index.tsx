@@ -1,7 +1,7 @@
 import { SectionList } from "@legendapp/list/section-list";
 import { cellFigures, toCells } from "@outlayr/money/currency-totals";
 import type { CurrencyFigures } from "@outlayr/money/currency-totals";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 
@@ -20,6 +20,7 @@ import { groupByDay } from "@/domain/day-sections";
 import { useTranslation } from "@/i18n/context";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 
+import { SearchBar } from "./components/search-bar";
 import { SearchEmptyState } from "./components/search-empty-state";
 
 function emptyState(query: string, rowCount: number) {
@@ -56,16 +57,7 @@ export function Search() {
 
     return (
         <>
-            <Stack.SearchBar
-                autoFocus
-                hideWhenScrolling={false}
-                // The field's Cancel closes the whole task, not just the field. Android
-                // has no Cancel: backing out of the field there closes it instead.
-                onCancelButtonPress={() => router.back()}
-                onClose={() => router.back()}
-                onChangeText={(event) => setQuery(event.nativeEvent.text)}
-                placeholder={t("search.placeholder")}
-            />
+            <SearchBar onChangeText={setQuery} onClose={() => router.back()} placeholder={t("search.placeholder")} />
             {empty ? (
                 // A scroller rather than a plain box: the field arrives focused, so
                 // without something to drag there is nothing on this screen that

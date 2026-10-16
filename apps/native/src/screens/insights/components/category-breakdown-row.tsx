@@ -4,6 +4,7 @@ import { Pressable, View } from "react-native";
 import type { AccessibilityActionEvent } from "react-native";
 
 import { CategoryIconTile } from "@/components/category-icon-tile";
+import { ROW_TYPE } from "@/components/row-type";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import type { CategoryBreakdownEntry, InsightsMeasure } from "@/data/insights";
@@ -51,7 +52,7 @@ export function CategoryBreakdownRow({
 
     const name = (
         <Text
-            className={cn("font-sans-semibold text-body text-foreground", !stacked && "flex-1")}
+            className={cn(ROW_TYPE.name, "text-foreground", !stacked && "flex-1")}
             numberOfLines={stacked ? undefined : 1}
         >
             {entry.name}
@@ -59,7 +60,7 @@ export function CategoryBreakdownRow({
     );
     const figures = (
         <>
-            <Text className={cn("tabular-nums", "font-sans-semibold text-body", toneClass)} numberOfLines={1}>
+            <Text className={cn("tabular-nums", ROW_TYPE.cell, toneClass)} numberOfLines={1}>
                 {sign}
                 {formatAmount(entry.amount, code, showCents, language)}
             </Text>

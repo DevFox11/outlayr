@@ -6,6 +6,8 @@ import { Pressable, View } from "react-native";
 import { AmountsHiddenContext } from "@/components/amount-text";
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { MonoLabel } from "@/components/mono-label";
+import { RowPressable } from "@/components/row-pressable";
+import { ROW_TYPE } from "@/components/row-type";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import type { Account } from "@/data/accounts-core";
@@ -161,7 +163,7 @@ function AccountRow({ account, row, currency, showCents, language, onPress }: Ac
         <>
             {row.exact ? null : <MonoLabel className="text-subtle">{`${currency}?`}</MonoLabel>}
             <Text
-                className={cn("font-sans-medium text-callout tabular-nums", owed ? "text-muted" : "text-foreground")}
+                className={cn(ROW_TYPE.balance, "tabular-nums", owed ? "text-muted" : "text-foreground")}
                 numberOfLines={1}
             >
                 {figure}
@@ -170,12 +172,12 @@ function AccountRow({ account, row, currency, showCents, language, onPress }: Ac
     );
 
     return (
-        <Pressable
+        <RowPressable
             accessibilityLabel={[account.name, subtitle, hidden ? t("log.amounts.hidden") : figure]
                 .filter((part) => part !== null)
                 .join(", ")}
             accessibilityRole="button"
-            className={cn("flex-row gap-3 py-2 active:opacity-70", stacked ? "items-start" : "items-center")}
+            className={cn("flex-row gap-3 py-2", stacked ? "items-start" : "items-center")}
             onPress={onPress}
         >
             <CategoryIconTile
@@ -188,17 +190,17 @@ function AccountRow({ account, row, currency, showCents, language, onPress }: Ac
                 type="solid"
             />
             <View className="flex-1 gap-0.5">
-                <Text className="font-sans-medium text-callout text-foreground" numberOfLines={stacked ? 2 : 1}>
+                <Text className={cn(ROW_TYPE.title, "text-foreground")} numberOfLines={stacked ? 2 : 1}>
                     {account.name}
                 </Text>
                 {stacked ? <View className="flex-row items-baseline gap-1.5">{balance}</View> : null}
                 {subtitle === null ? null : (
-                    <Text className="font-sans-medium text-subtitle text-muted" numberOfLines={1}>
+                    <Text className={cn(ROW_TYPE.subtitle, "text-muted")} numberOfLines={1}>
                         {subtitle}
                     </Text>
                 )}
             </View>
             {stacked ? null : balance}
-        </Pressable>
+        </RowPressable>
     );
 }

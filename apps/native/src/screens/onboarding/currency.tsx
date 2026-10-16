@@ -1,8 +1,8 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import { currencyDisplayFor } from "@outlayr/money/currency";
 import { useForm, useSelector } from "@tanstack/react-form";
-import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import Animated, {
     Easing,
@@ -83,12 +83,35 @@ function CurrencyGlyph({ symbol }: { symbol: string }) {
     );
 }
 
+/**
+ * A submit hold that ends when this screen is focused again. "Continue" pushes
+ * smart features over this screen rather than leaving it, so going back lands here
+ * still mounted: a hold that never settled left the CTA on "Saving…" for good.
+ */
+function useHoldUntilRefocused(): () => Promise<void> {
+    const release = useRef<(() => void) | null>(null);
+    useFocusEffect(
+        useCallback(() => {
+            release.current?.();
+            release.current = null;
+        }, [])
+    );
+    return useCallback(
+        () =>
+            new Promise<void>((resolve) => {
+                release.current = resolve;
+            }),
+        []
+    );
+}
+
 export function OnboardingCurrency() {
     const db = useDatabase();
     const router = useRouter();
     const stored = useGlobalCurrency(db);
     const sheet = useRef<BottomSheetModal>(null);
     const t = useTranslation();
+    const untilRefocused = useHoldUntilRefocused();
 
     const [initialValues] = useState<{ picked: string | null }>(() => ({ picked: null }));
     const form = useForm({
@@ -108,7 +131,7 @@ export function OnboardingCurrency() {
                     await finishOnboarding(db);
                 }
                 posthog?.capture("onboarding_currency_saved", { onboarding_path: meta });
-                return await holdSubmitting();
+                return await (meta === "continue" ? untilRefocused() : holdSubmitting());
             } catch (error) {
                 // A toast, unlike its sheet-bound siblings: onboarding is a plain
                 // pushed route, so nothing covers the viewport at the app root.

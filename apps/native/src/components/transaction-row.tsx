@@ -7,7 +7,7 @@ import { isTransactionRateNeeded } from "@outlayr/money/rates";
 import { isExact } from "@outlayr/money/valuation";
 import type { RateTable } from "@outlayr/money/valuation";
 import { use } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import type { AccessibilityActionEvent } from "react-native";
 
 import { useDisplaySettings } from "@/contexts/display-settings-context";
@@ -25,6 +25,8 @@ import type { ActionMenuItem } from "./action-menu";
 import { AmountsHiddenContext, RowAmount } from "./amount-text";
 import { CategoryIconTile } from "./category-icon-tile";
 import { MonoLabel } from "./mono-label";
+import { RowPressable } from "./row-pressable";
+import { ROW_TYPE } from "./row-type";
 import { Text } from "./text";
 import { BADGE_OFFSET, TILE_RADIUS, TILE_SIZE, TransferTile } from "./transfer-tile";
 import { cn } from "./tw";
@@ -107,10 +109,7 @@ function RowMeta({ currency, details, foreignCode, future, rateNeeded, subtitle,
     return (
         <>
             <View className={cn("flex-row items-center gap-1.25", wrap && "flex-wrap")}>
-                <Text
-                    className={cn("font-sans-medium text-subtitle", future ? "text-subtle" : "text-muted")}
-                    numberOfLines={1}
-                >
+                <Text className={cn(ROW_TYPE.subtitle, future ? "text-subtle" : "text-muted")} numberOfLines={1}>
                     {subtitle}
                 </Text>
                 {foreignCode ? (
@@ -255,7 +254,7 @@ export function TransactionRow({
     );
 
     const row = (
-        <Pressable
+        <RowPressable
             // The hold is the only route to the action menu, and nothing on screen says
             // so; the rotor entry is the only route to Delete, which otherwise lives
             // behind a swipe no assistive gesture can perform.
@@ -266,10 +265,7 @@ export function TransactionRow({
             accessibilityRole="button"
             // The menu lifts this row into its preview, so the row carries the ground
             // it is snapshotted against rather than borrowing the list's.
-            className={cn(
-                "bg-background flex-row gap-3 py-2 active:opacity-70",
-                stacked ? "items-start" : "items-center"
-            )}
+            className={cn("bg-background flex-row gap-3 py-2", stacked ? "items-start" : "items-center")}
             onAccessibilityAction={
                 onDelete
                     ? (event: AccessibilityActionEvent) => {
@@ -308,7 +304,7 @@ export function TransactionRow({
             )}
             <View className="flex-1 gap-0.5">
                 <Text
-                    className={cn("font-sans-medium text-callout", future ? "text-future" : "text-foreground")}
+                    className={cn(ROW_TYPE.title, future ? "text-future" : "text-foreground")}
                     numberOfLines={stacked ? 2 : 1}
                 >
                     {transaction.note}
@@ -326,7 +322,7 @@ export function TransactionRow({
                 />
             </View>
             {stacked ? null : amount}
-        </Pressable>
+        </RowPressable>
     );
 
     return menuItems?.length ? <ActionMenu items={menuItems}>{row}</ActionMenu> : row;

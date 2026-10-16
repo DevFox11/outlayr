@@ -1,5 +1,5 @@
 import { use } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { currencySymbol, formatAmount } from "@/domain/money";
@@ -8,6 +8,8 @@ import { useLanguage, useTranslation } from "@/i18n/context";
 
 import { AmountsHiddenContext, FlowAmount } from "./amount-text";
 import { MonoLabel } from "./mono-label";
+import { RowPressable } from "./row-pressable";
+import { ROW_TYPE } from "./row-type";
 import { cn } from "./tw";
 
 export interface LedgerCell {
@@ -60,25 +62,26 @@ export function LedgerHead({ cells, code }: LedgerHeadProps) {
                                 }
                             />
                         ) : null}
-                        <Pressable
+                        <RowPressable
                             accessibilityHint={cell.accessibilityHint ?? t("log.ledger.showFigure")}
                             accessibilityLabel={`${cell.label}, ${hidden ? t("log.amounts.hidden") : `${cell.positive ? "+" : "-"}${formatAmount(cell.magnitude, code, showCents, language)}`}`}
                             accessibilityRole="button"
-                            className="gap-0.75 py-2.5 active:opacity-70"
+                            className="gap-0.75 py-2.5"
                             onPress={cell.onPress}
                         >
                             <MonoLabel>{cell.label}</MonoLabel>
                             <FlowAmount
                                 amount={cell.magnitude}
                                 className={cn(
-                                    "font-sans-semibold text-body tabular-nums",
+                                    ROW_TYPE.cell,
+                                    "tabular-nums",
                                     cell.income ? "text-income" : "text-foreground"
                                 )}
                                 code={code}
                                 prefix={`${cell.positive ? "+" : "-"}${currencySymbol(code)}`}
                                 showCents={showCents}
                             />
-                        </Pressable>
+                        </RowPressable>
                     </View>
                 ))}
             </View>

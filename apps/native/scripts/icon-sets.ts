@@ -110,4 +110,19 @@ export const SETS: IconSet[] = [
         // bar. Scaled down for menu rows, which are smaller to begin with.
         stroke: 2,
     },
+    {
+        because:
+            "An Android menu row draws a leading icon only from an image source; the SF Symbol names iOS menus take are dropped.",
+        dir: "menu-icons",
+        // The SF Symbols the scope chips' window menus name: chevron.left,
+        // chevron.right and arrow.uturn.backward.
+        entries: [
+            { icon: "ArrowLeft01Icon", slug: "earlier" },
+            { icon: "ArrowRight01Icon", slug: "later" },
+            { icon: "ArrowTurnBackwardIcon", slug: "now" },
+        ],
+        // Dp. A Material 3 menu item's leading icon.
+        size: 24,
+        stroke: 1.75,
+    },
 ];

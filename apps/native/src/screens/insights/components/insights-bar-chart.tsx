@@ -16,6 +16,7 @@ import { useLanguage } from "@/i18n/context";
 import { CHART_BAR, CHART_DASH, CHART_SCRUB, compactMagnitude, dashArray } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 
+import { useChartInk } from "./chart-ink";
 import { useScrubGesture } from "./use-scrub-gesture";
 import { showXLabel } from "./x-label";
 
@@ -88,6 +89,7 @@ export function InsightsBarChart({
     nowMs,
 }: InsightsBarChartProps) {
     const colors = useColors();
+    const ink = useChartInk();
     const { language } = useLanguage();
     const reduceMotion = useReducedMotion();
     const animated = useSettingBool("animatedCharts") && !reduceMotion;
@@ -160,7 +162,7 @@ export function InsightsBarChart({
                         {buckets.map((bucket, index) => (
                             <Bar
                                 animated={animated}
-                                color={barColor(measure, colors)}
+                                color={measure === "income" ? colors.income : ink}
                                 dimmed={active != null && active !== index}
                                 future={bucket.start.getTime() > nowMs}
                                 key={index}
@@ -244,10 +246,6 @@ export function InsightsBarChart({
             </View>
         </View>
     );
-}
-
-function barColor(measure: Exclude<InsightsMeasure, "net">, colors: ReturnType<typeof useColors>): string {
-    return measure === "income" ? colors.income : colors.foreground;
 }
 
 function DashedRule({ color }: { color: string }) {

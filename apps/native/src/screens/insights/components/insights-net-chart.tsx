@@ -18,6 +18,7 @@ import { CHART_SCRUB } from "@/theme/chart";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
+import { useChartInk } from "./chart-ink";
 import { useScrubGesture } from "./use-scrub-gesture";
 import { showXLabel } from "./x-label";
 
@@ -50,6 +51,7 @@ export function InsightsNetChart({
     nowMs,
 }: InsightsNetChartProps) {
     const colors = useColors();
+    const ink = useChartInk();
     const t = useTranslation();
     const { language } = useLanguage();
     const reduceMotion = useReducedMotion();
@@ -165,7 +167,7 @@ export function InsightsNetChart({
 					    on the wrapper never sees them unless this opts out. */}
                     <Canvas pointerEvents="none" style={{ height: HEIGHT, width }}>
                         {geometry?.surplus ? (
-                            <SkPath color={withAlpha(colors.foreground, 0.07)} opacity={draw} path={surplus} />
+                            <SkPath color={withAlpha(ink, 0.07)} opacity={draw} path={surplus} />
                         ) : null}
 
                         {geometry?.surplus && geometry.hatch ? (
@@ -218,7 +220,7 @@ export function InsightsNetChart({
                                     style="stroke"
                                 />
                                 <SkCircle
-                                    color={markerValue < 0 ? colors.overBudget : colors.foreground}
+                                    color={markerValue < 0 ? colors.overBudget : ink}
                                     cx={plot.x(marker)}
                                     cy={plot.y(markerValue)}
                                     r={scrubIndex == null ? CHART_SCRUB.dotRadius : CHART_SCRUB.activeDotRadius}

@@ -15,6 +15,8 @@ import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 
+import { HERO_TYPE } from "./hero-type";
+import { ROW_TYPE } from "./row-type";
 import { FontScaleCapContext, Text } from "./text";
 import { cn, tv } from "./tw";
 
@@ -30,6 +32,8 @@ function intlDecimal(tag: string): string {
 
 interface FlowFigureProps {
     className?: string;
+    /** Overrides the face `className` names, for a hero set in another family. */
+    fontFamily?: string;
     format: Intl.NumberFormatOptions;
     locale: NumberLocale;
     prefix?: string;
@@ -38,15 +42,20 @@ interface FlowFigureProps {
     value: number;
 }
 
-export function FlowFigure({ className, format, locale, prefix, size, snapWidth, value }: FlowFigureProps) {
-    const { color, fontFamily, fontSize, fontVariant, fontWeight } = useResolveClassNames(className ?? "");
+export function FlowFigure({ className, fontFamily, format, locale, prefix, size, snapWidth, value }: FlowFigureProps) {
+    const resolved = useResolveClassNames(className ?? "");
+    const { color, fontSize, fontVariant, fontWeight } = resolved;
     const fontScaleCap = use(FontScaleCapContext);
     const { fontScale } = useWindowDimensions();
     const figureSize = size ?? fontSize;
     const overCap = figureSize !== undefined && fontScaleCap !== undefined && fontScale > fontScaleCap;
     return (
         <View className="flex-row items-center">
-            <Text accessible={false} className={className} style={size == null ? undefined : { fontSize: size }}>
+            <Text
+                accessible={false}
+                className={className}
+                style={[size == null ? undefined : { fontSize: size }, fontFamily == null ? undefined : { fontFamily }]}
+            >
                 {BASELINE_STRUT}
             </Text>
             <NumberFlow
@@ -55,7 +64,7 @@ export function FlowFigure({ className, format, locale, prefix, size, snapWidth,
                 prefix={prefix}
                 style={{
                     color,
-                    fontFamily,
+                    fontFamily: fontFamily ?? resolved.fontFamily,
                     fontSize: overCap ? (figureSize * fontScaleCap) / fontScale : figureSize,
                     fontVariant,
                     fontWeight,
@@ -71,18 +80,33 @@ interface FlowAmountProps {
     amount: number;
     className?: string;
     code: string;
+    /** See `FlowFigure`. */
+    fontFamily?: string;
     prefix?: string;
     showCents: boolean;
     size?: number;
     snapWidth?: boolean;
 }
 
-export function FlowAmount({ amount, className, code, prefix, showCents, size, snapWidth }: FlowAmountProps) {
+export function FlowAmount({
+    amount,
+    className,
+    code,
+    fontFamily,
+    prefix,
+    showCents,
+    size,
+    snapWidth,
+}: FlowAmountProps) {
     const { language } = useLanguage();
     const { locale, minorUnits } = amountParts(amount, code, showCents, language);
     if (use(AmountsHiddenContext)) {
         return (
-            <Text className={className} numberOfLines={1} style={size == null ? undefined : { fontSize: size }}>
+            <Text
+                className={className}
+                numberOfLines={1}
+                style={[size == null ? undefined : { fontSize: size }, fontFamily == null ? undefined : { fontFamily }]}
+            >
                 {prefix}
                 {AMOUNT_MASK}
             </Text>
@@ -91,6 +115,7 @@ export function FlowAmount({ amount, className, code, prefix, showCents, size, s
     return (
         <FlowFigure
             className={className}
+            fontFamily={fontFamily}
             format={{ maximumFractionDigits: minorUnits, minimumFractionDigits: minorUnits, useGrouping: true }}
             locale={locale}
             prefix={prefix}
@@ -115,9 +140,17 @@ export function fittedHeroSize(
     return Math.min(size, Math.floor(drawn / fontScale));
 }
 
+/** A hero that keeps the body face its classes name, on every platform. */
+const PLAIN_HERO: typeof HERO_TYPE = { face: {}, scale: 1 };
+
 interface HeroNumberProps {
     /** Signed magnitude; the sign shown is derived unless `sign` is given. */
     amount: number;
+    /**
+     * Sets the figure in the brand's hero type (`HERO_TYPE`): nothing changes on
+     * iOS, Android draws it in Instrument Serif. A screen's headline opts in.
+     */
+    brandFace?: boolean;
     code: string;
     /** Mirrors the "Display Cents" setting; false rounds to whole units. */
     showCents?: boolean;
@@ -130,6 +163,7 @@ interface HeroNumberProps {
 
 export function HeroNumber({
     amount,
+    brandFace = false,
     code,
     sign,
     toneClass = "text-foreground",
@@ -145,8 +179,10 @@ export function HeroNumber({
     const { fontScale, width: windowWidth } = useWindowDimensions();
     const parts = amountParts(amount, code, showCents, language);
     const resolvedSign = sign ?? (amount < 0 ? "-" : "+");
-    const fitted = fittedHeroSize(size, amount, parts.minorUnits, windowWidth - HERO_GUTTER, fontScale);
-    const small = (Math.round(size * 0.5) * fitted) / size;
+    const hero = brandFace ? HERO_TYPE : PLAIN_HERO;
+    const scaled = size * hero.scale;
+    const fitted = fittedHeroSize(scaled, amount, parts.minorUnits, windowWidth - HERO_GUTTER, fontScale);
+    const small = (Math.round(scaled * 0.5) * fitted) / scaled;
     const whole = Math.trunc(roundMoney(Math.abs(amount), parts.minorUnits));
     return (
         <View
@@ -158,13 +194,14 @@ export function HeroNumber({
             <Text
                 className="tracking-hero text-muted font-sans tabular-nums"
                 numberOfLines={1}
-                style={{ fontSize: small }}
+                style={{ fontSize: small, ...hero.face }}
             >
                 {resolvedSign}
                 {parts.symbol}
             </Text>
             <FlowFigure
                 className={cn("font-sans tabular-nums", toneClass)}
+                fontFamily={hero.face.fontFamily}
                 format={{ maximumFractionDigits: 0, useGrouping: true }}
                 locale={parts.locale}
                 size={fitted}
@@ -174,6 +211,7 @@ export function HeroNumber({
             {parts.fraction ? (
                 <FlowFigure
                     className="text-muted font-sans tabular-nums"
+                    fontFamily={hero.face.fontFamily}
                     format={{ minimumIntegerDigits: parts.minorUnits, useGrouping: false }}
                     locale={parts.locale}
                     prefix={intlDecimal(parts.locale.tag)}
@@ -191,7 +229,7 @@ export function HeroNumber({
  * row resolves to `text-future` once `tv`'s merge drops the earlier colour.
  */
 const rowAmount = tv({
-    base: "font-sans-medium text-foreground text-title",
+    base: `${ROW_TYPE.amount} text-foreground`,
     variants: {
         income: { true: "text-income" },
         isFuture: { true: "text-future" },
@@ -261,15 +299,14 @@ export function MeasureCellAmount({ magnitude, positive, income, code, showCents
     const { language } = useLanguage();
     const hidden = use(AmountsHiddenContext);
     const toneClass = income ? "text-income" : "text-foreground";
-    const sign = positive ? "+" : "-";
+    const amount = `${positive ? "+" : "-"}${hidden ? maskedAmount(code) : formatAmount(magnitude, code, showCents, language)}`;
     return (
         <Text
-            accessibilityLabel={hidden ? t("log.amounts.hidden") : undefined}
-            className={cn("font-sans-semibold text-body tabular-nums", toneClass)}
+            accessibilityLabel={hidden ? t("log.amounts.hidden") : amount}
+            className={cn(ROW_TYPE.cell, "tabular-nums", toneClass)}
             numberOfLines={1}
         >
-            {sign}
-            {hidden ? maskedAmount(code) : formatAmount(magnitude, code, showCents, language)}
+            {amount}
         </Text>
     );
 }
@@ -297,18 +334,21 @@ export function DayTotal({ totals, showCents = true, sizeClass = "text-footnote"
     const hidden = use(AmountsHiddenContext);
     return (
         <View className="flex-row items-baseline gap-1.5">
-            {totals.map((bucket, index) => (
-                <Fragment key={bucket.currencyCode}>
-                    {index > 0 ? <Text className={cn("font-sans-semibold text-subtle", sizeClass)}>/</Text> : null}
-                    <Text
-                        accessibilityLabel={hidden ? t("log.amounts.hidden") : undefined}
-                        className={cn("font-sans-semibold text-muted tabular-nums", sizeClass)}
-                        numberOfLines={1}
-                    >
-                        {signedAmount(bucket.amount, bucket.currencyCode, showCents, language, hidden)}
-                    </Text>
-                </Fragment>
-            ))}
+            {totals.map((bucket, index) => {
+                const amount = signedAmount(bucket.amount, bucket.currencyCode, showCents, language, hidden);
+                return (
+                    <Fragment key={bucket.currencyCode}>
+                        {index > 0 ? <Text className={cn(ROW_TYPE.subtotal, "text-subtle", sizeClass)}>/</Text> : null}
+                        <Text
+                            accessibilityLabel={hidden ? t("log.amounts.hidden") : amount}
+                            className={cn(ROW_TYPE.subtotal, "text-muted tabular-nums", sizeClass)}
+                            numberOfLines={1}
+                        >
+                            {amount}
+                        </Text>
+                    </Fragment>
+                );
+            })}
         </View>
     );
 }

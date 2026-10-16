@@ -6,13 +6,21 @@ import { AMOUNT_HERO_MAX_SIZE, amountHeroFontSize } from "@/domain/amount-hero-s
 import { amountParts, currencySymbol, formatAmount } from "@/domain/money";
 import type { Language } from "@/i18n/languages";
 
-import { fittedHeroSize, FlowAmount, HeroNumber } from "./amount-text";
+import {
+    AmountsHiddenContext,
+    DayTotal,
+    fittedHeroSize,
+    FlowAmount,
+    HeroNumber,
+    MeasureCellAmount,
+} from "./amount-text";
 import { FontScaleCapContext } from "./text";
 
 let mockLanguage: Language = "en";
 
 jest.mock("@/i18n/context", () => ({
     useLanguage: () => ({ language: mockLanguage, setLanguage: jest.fn() }),
+    useTranslation: () => (key: string) => key,
 }));
 jest.mock("@/i18n/device-language", () => ({
     ...jest.requireActual<typeof import("@/i18n/device-language")>("@/i18n/device-language"),
@@ -104,5 +112,21 @@ describe("flowFigure under a font scale cap", () => {
         );
 
         expect(StyleSheet.flatten(screen.getByText("17.50").props.style).fontSize).toBeCloseTo(17);
+    });
+});
+
+describe("amounts shown again after hiding", () => {
+    it("labels the day total and the cell with the figure on screen, not the hidden label", async () => {
+        const ui = (hidden: boolean) => (
+            <AmountsHiddenContext value={hidden}>
+                <DayTotal totals={[{ amount: -12.5, currencyCode: "USD", transactionCount: 1 }]} />
+                <MeasureCellAmount code="USD" income magnitude={40} positive />
+            </AmountsHiddenContext>
+        );
+        await render(ui(true));
+        await screen.rerender(ui(false));
+
+        expect(screen.getByText("-$12.50").props.accessibilityLabel).toBe("-$12.50");
+        expect(screen.getByText("+$40.00").props.accessibilityLabel).toBe("+$40.00");
     });
 });
