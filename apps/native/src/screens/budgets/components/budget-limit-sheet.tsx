@@ -3,7 +3,8 @@ import type { ExpenseContribution } from "@outlayr/money/budget-spent";
 import { useState } from "react";
 import type { Ref } from "react";
 
-import { useColors } from "@/theme/use-colors";
+import { SheetGestureRoot } from "@/components/sheet-gesture-root";
+import { useSheetSurface } from "@/hooks/use-sheet-surface";
 
 import { BudgetLimitBody } from "./budget-limit-body";
 import type { LimitCommit, LimitTarget } from "./budget-limit-body";
@@ -35,7 +36,7 @@ export function BudgetLimitSheet({
     onCommit,
     ref,
 }: BudgetLimitSheetProps) {
-    const colors = useColors();
+    const sheetSurface = useSheetSurface();
     // Bumped as the sheet closes, so the body below is thrown away rather than
     // kept: its cadence, its figure and whatever the keypad was half-way through
     // are a draft of one presentation, and a dismissed draft must not be what the
@@ -44,30 +45,33 @@ export function BudgetLimitSheet({
 
     return (
         <BottomSheetModal
-            backgroundStyle={{ backgroundColor: colors.background }}
+            backgroundStyle={{ backgroundColor: sheetSurface }}
             enableDynamicSizing
             enablePanDownToClose
             onDismiss={() => setPresentation((count) => count + 1)}
             ref={ref}
         >
-            <BottomSheetView style={{ paddingBottom: 28, paddingTop: 14 }}>
-                {target ? (
-                    <BudgetLimitBody
-                        calendar={calendar}
-                        contributions={contributions}
-                        currency={currency}
-                        // A fresh body per scope, cadence, limit and presentation. The
-                        // cadence and the limit are in the key because the editor behind
-                        // this sheet can change either — and on a foreign-currency budget
-                        // the limit also moves when the anchor does, since it is valued at
-                        // the window's opening-day rate.
-                        key={`${target.categoryId ?? "everything"}:${target.type}:${target.limit}:${presentation}`}
-                        nowMs={nowMs}
-                        onCommit={onCommit}
-                        target={target}
-                    />
-                ) : null}
-            </BottomSheetView>
+            {/* Sized to its content: a root that doesn't flex (chrome contract 1b). */}
+            <SheetGestureRoot style={{}}>
+                <BottomSheetView style={{ paddingBottom: 28, paddingTop: 14 }}>
+                    {target ? (
+                        <BudgetLimitBody
+                            calendar={calendar}
+                            contributions={contributions}
+                            currency={currency}
+                            // A fresh body per scope, cadence, limit and presentation. The
+                            // cadence and the limit are in the key because the editor behind
+                            // this sheet can change either — and on a foreign-currency budget
+                            // the limit also moves when the anchor does, since it is valued at
+                            // the window's opening-day rate.
+                            key={`${target.categoryId ?? "everything"}:${target.type}:${target.limit}:${presentation}`}
+                            nowMs={nowMs}
+                            onCommit={onCommit}
+                            target={target}
+                        />
+                    ) : null}
+                </BottomSheetView>
+            </SheetGestureRoot>
         </BottomSheetModal>
     );
 }

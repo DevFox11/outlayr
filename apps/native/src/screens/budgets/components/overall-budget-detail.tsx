@@ -4,6 +4,7 @@ import { Color, Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 
+import { ScreenHeader } from "@/components/screen-header";
 import { Text } from "@/components/text";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useSettingNumber } from "@/contexts/display-settings-context";
@@ -22,6 +23,7 @@ import type { BudgetEdit } from "@/screens/budgets/components/budget-editor";
 import type { LimitCommit } from "@/screens/budgets/components/budget-limit-body";
 import { BudgetLimitSheet } from "@/screens/budgets/components/budget-limit-sheet";
 import { BudgetPeriodStepper } from "@/screens/budgets/components/budget-period-stepper";
+import { useColors } from "@/theme/use-colors";
 
 /**
  * Lives under `/budgets/[id]` with the reserved id `overall` rather than its own
@@ -31,6 +33,7 @@ export function OverallBudgetDetail({ db, onDone }: { db: Database; onDone: () =
     const router = useRouter();
     const t = useTranslation();
     const haptics = useHaptics();
+    const colors = useColors();
     const currency = useGlobalCurrency(db);
     const nowMs = useNow();
     const [periodOffset, setPeriodOffset] = useState(0);
@@ -162,13 +165,14 @@ export function OverallBudgetDetail({ db, onDone }: { db: Database; onDone: () =
                 }}
             />
 
-            <Stack.Screen.Title>{budget.name}</Stack.Screen.Title>
+            <ScreenHeader title={budget.name} />
             <Stack.Toolbar placement="right">
                 <Stack.Toolbar.Button
                     {...toolbarIcon("delete")}
                     accessibilityLabel={t("budgets.action.delete")}
                     onPress={deleteBudget}
-                    tintColor={Color.ios.systemRed}
+                    // `Color.ios` answers null off iOS, where the brand danger stands in.
+                    tintColor={Color.ios.systemRed ?? colors.danger}
                 />
             </Stack.Toolbar>
         </>

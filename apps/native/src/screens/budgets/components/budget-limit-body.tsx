@@ -26,6 +26,7 @@ import { useLanguage, useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
 
 import { BudgetLimitPicker } from "./budget-limit-picker";
+import { SheetCommitButton } from "./sheet-commit-button";
 
 /** The scope a limit is being placed on. A null `categoryId` is the whole ledger. */
 export interface LimitTarget {
@@ -332,17 +333,9 @@ export function BudgetLimitBody({
                 {target.replacesExisting ? (
                     <Text className="text-footnote text-muted pb-3">{t("budgets.sheet.singleton")}</Text>
                 ) : null}
-                <Pressable
-                    accessibilityRole="button"
-                    className="bg-tint h-12 items-center justify-center rounded-[14px] active:opacity-80"
-                    // Never inert: a limit of nothing is a limit not typed yet, and the
-                    // button that would say so is the one being pressed.
-                    onPress={commit}
-                >
-                    <Text className="font-sans-semibold text-accent-foreground text-body">
-                        {t("budgets.picker.commit", { amount: money(limit) })}
-                    </Text>
-                </Pressable>
+                {/* Never inert: a limit of nothing is a limit not typed yet, and the
+				    button that would say so is the one being pressed. */}
+                <SheetCommitButton label={t("budgets.picker.commit", { amount: money(limit) })} onPress={commit} />
             </View>
         </View>
     );

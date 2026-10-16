@@ -13,6 +13,7 @@ import { goalRequiredLine } from "@/domain/savings-goal";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
 import { GoalPaceChart } from "./goal-pace-chart";
+import { InlineEditorKeyboard } from "./inline-editor-keyboard";
 
 interface GoalDetailViewProps {
     /** The ledger's display currency: every figure here is already valued into it. */
@@ -109,89 +110,91 @@ export function GoalDetailView({ currency, editor, entry, nowMs }: GoalDetailVie
     })();
 
     return (
-        <ScrollView
-            // The editor's name field is the last thing in this scroller, so without
-            // this the keyboard covers the field it just opened. `keyboardDismissMode`
-            // is the way back out of it, and `keyboardShouldPersistTaps` is left at its
-            // default so a tap outside is the blur that commits the name.
-            automaticallyAdjustKeyboardInsets
-            className="bg-background flex-1"
-            contentContainerStyle={{ paddingBottom: 48, paddingHorizontal: 20 }}
-            contentInsetAdjustmentBehavior="automatic"
-            keyboardDismissMode="on-drag"
-        >
-            <View className="pt-1 pb-5">
-                <Text className={cn(STATED, "text-foreground")}>
-                    {goal.name}{" "}
-                    <Text className={cn(STATED, "text-grammar")}>
-                        {t("goals.editor.by").toLocaleLowerCase(language)}{" "}
-                    </Text>
-                    <Text className={cn(STATED, "text-tint")}>{formatTargetMonth(goal.targetDate, language)}.</Text>
-                </Text>
-                <Text className={cn(STATED, "text-grammar")}>
-                    {entry.exact ? display(saved) : ""}{" "}
-                    <Text className={cn(STATED, "text-grammar")}>
-                        {entry.exact
-                            ? t("goals.detail.of", {
-                                  amount: display(target),
-                                  percent: Math.round(progress.fraction * 100),
-                              })
-                            : t("goals.detail.unvalued")}
-                    </Text>
-                </Text>
-            </View>
-
-            <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
-                {entry.exact ? null : (
-                    // The two lines would be drawn in different currencies: the
-                    // balance in the account's own, the target in the display one.
-                    // Withheld like the verdict above it, and for the same reason.
-                    <View className="border-border justify-center border-y" style={{ height: CHART_HEIGHT }}>
-                        <Text className="text-footnote text-muted text-center leading-snug">
-                            {t("goals.detail.unvalued")}
+        <InlineEditorKeyboard>
+            <ScrollView
+                // The editor's name field is the last thing in this scroller, so without
+                // this the keyboard covers the field it just opened. `keyboardDismissMode`
+                // is the way back out of it, and `keyboardShouldPersistTaps` is left at its
+                // default so a tap outside is the blur that commits the name.
+                automaticallyAdjustKeyboardInsets
+                className="bg-background flex-1"
+                contentContainerStyle={{ paddingBottom: 48, paddingHorizontal: 20 }}
+                contentInsetAdjustmentBehavior="automatic"
+                keyboardDismissMode="on-drag"
+            >
+                <View className="pt-1 pb-5">
+                    <Text className={cn(STATED, "text-foreground")}>
+                        {goal.name}{" "}
+                        <Text className={cn(STATED, "text-grammar")}>
+                            {t("goals.editor.by").toLocaleLowerCase(language)}{" "}
                         </Text>
-                    </View>
-                )}
-                {!entry.exact || width === null ? (
-                    // The chart measures its own domain, so it waits for a real width
-                    // rather than drawing once at zero and again at the true one.
-                    // Zero-height once the placeholder above has taken the space.
-                    <View style={{ height: entry.exact ? CHART_HEIGHT : 0 }} />
-                ) : (
-                    <GoalPaceChart
-                        actual={entry.actual}
-                        height={CHART_HEIGHT}
-                        label={verdict ? t("goals.a11y.chart", { standing: verdict }) : undefined}
-                        nowMs={nowMs}
-                        required={required}
-                        // The same local-day boundaries `goalRequiredLine` generates
-                        // between. Passing the raw instants put half that line
-                        // outside the domain drawing it, clamped against the left
-                        // edge, so a goal opened at noon read as far behind at once.
-                        startTime={startOfLocalDay(goal.dateCreated.getTime())}
-                        target={target}
-                        targetTime={startOfLocalDay(goal.targetDate.getTime())}
-                        width={width}
+                        <Text className={cn(STATED, "text-tint")}>{formatTargetMonth(goal.targetDate, language)}.</Text>
+                    </Text>
+                    <Text className={cn(STATED, "text-grammar")}>
+                        {entry.exact ? display(saved) : ""}{" "}
+                        <Text className={cn(STATED, "text-grammar")}>
+                            {entry.exact
+                                ? t("goals.detail.of", {
+                                      amount: display(target),
+                                      percent: Math.round(progress.fraction * 100),
+                                  })
+                                : t("goals.detail.unvalued")}
+                        </Text>
+                    </Text>
+                </View>
+
+                <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+                    {entry.exact ? null : (
+                        // The two lines would be drawn in different currencies: the
+                        // balance in the account's own, the target in the display one.
+                        // Withheld like the verdict above it, and for the same reason.
+                        <View className="border-border justify-center border-y" style={{ height: CHART_HEIGHT }}>
+                            <Text className="text-footnote text-muted text-center leading-snug">
+                                {t("goals.detail.unvalued")}
+                            </Text>
+                        </View>
+                    )}
+                    {!entry.exact || width === null ? (
+                        // The chart measures its own domain, so it waits for a real width
+                        // rather than drawing once at zero and again at the true one.
+                        // Zero-height once the placeholder above has taken the space.
+                        <View style={{ height: entry.exact ? CHART_HEIGHT : 0 }} />
+                    ) : (
+                        <GoalPaceChart
+                            actual={entry.actual}
+                            height={CHART_HEIGHT}
+                            label={verdict ? t("goals.a11y.chart", { standing: verdict }) : undefined}
+                            nowMs={nowMs}
+                            required={required}
+                            // The same local-day boundaries `goalRequiredLine` generates
+                            // between. Passing the raw instants put half that line
+                            // outside the domain drawing it, clamped against the left
+                            // edge, so a goal opened at noon read as far behind at once.
+                            startTime={startOfLocalDay(goal.dateCreated.getTime())}
+                            target={target}
+                            targetTime={startOfLocalDay(goal.targetDate.getTime())}
+                            width={width}
+                        />
+                    )}
+                </View>
+
+                <View className="border-border mt-4 flex-row border-y">
+                    <Measure
+                        label={t("goals.detail.perMonth")}
+                        value={progress.pace == null ? "—" : display(progress.pace.perMonth)}
                     />
-                )}
-            </View>
+                    <Measure
+                        label={t("goals.detail.monthsLeft")}
+                        value={progress.pace == null ? "—" : String(progress.pace.monthsLeft)}
+                    />
+                    <Measure label={t("goals.detail.pace")} tone={paceTone} value={paceValue} />
+                </View>
 
-            <View className="border-border mt-4 flex-row border-y">
-                <Measure
-                    label={t("goals.detail.perMonth")}
-                    value={progress.pace == null ? "—" : display(progress.pace.perMonth)}
-                />
-                <Measure
-                    label={t("goals.detail.monthsLeft")}
-                    value={progress.pace == null ? "—" : String(progress.pace.monthsLeft)}
-                />
-                <Measure label={t("goals.detail.pace")} tone={paceTone} value={paceValue} />
-            </View>
+                {verdict ? <Text className="text-body text-muted pt-3 leading-snug">{verdict}</Text> : null}
 
-            {verdict ? <Text className="text-body text-muted pt-3 leading-snug">{verdict}</Text> : null}
-
-            {editor}
-        </ScrollView>
+                {editor}
+            </ScrollView>
+        </InlineEditorKeyboard>
     );
 }
 

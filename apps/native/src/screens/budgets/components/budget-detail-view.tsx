@@ -26,6 +26,7 @@ import { MARK_CEILING } from "@/theme/empty-state-ink";
 import { useColors } from "@/theme/use-colors";
 
 import { BudgetProgressBar } from "./budget-progress-bar";
+import { InlineEditorKeyboard } from "./inline-editor-keyboard";
 
 interface BudgetDetailViewProps {
     amount: number;
@@ -95,60 +96,62 @@ export function BudgetDetailView({
     );
 
     return (
-        <SectionList
-            // The editor's name field lives in the list header, and without this the
-            // keyboard covers the field it just opened.
-            automaticallyAdjustKeyboardInsets
-            className="bg-background flex-1"
-            contentInsetAdjustmentBehavior="automatic"
-            // The name field is in that same header, and a drag over the rows below
-            // has to be able to put its keyboard away. `keyboardShouldPersistTaps` is
-            // left at its default so a tap outside the field does too — the editor's
-            // rows read that tap as the blur that commits the name.
-            keyboardDismissMode="on-drag"
-            sections={sections}
-            keyExtractor={(item) => item.id}
-            stickySectionHeadersEnabled={false}
-            recycleItems
-            contentContainerClassName="px-5 pt-2 pb-safe-offset-10"
-            ListHeaderComponent={
-                <BudgetSummary
-                    editor={editor}
-                    period={period}
-                    spent={spent}
-                    amount={amount}
-                    leftover={leftover}
-                    overBudget={overBudget}
-                    currency={currency}
-                    paceRemaining={paceRemaining}
-                    paceBehind={paceBehind}
-                    leftPerDayAmount={leftPerDayAmount}
-                    closed={closed}
-                    note={note}
-                    stepper={stepper}
-                    tint={tint}
-                />
-            }
-            ListEmptyComponent={
-                <EmptyState
-                    body={closed ? t("budgets.detail.emptyClosed") : t("budgets.detail.emptyOpen")}
-                    mark={<PeriodFloor closed={closed} />}
-                    tier="inFlow"
-                />
-            }
-            renderSectionHeader={({ section }) => (
-                <DaySectionHeader section={section} first={sections[0] === section} />
-            )}
-            renderItem={({ item }) => (
-                <TransactionRow
-                    transaction={item}
-                    currency={currency}
-                    rates={rates}
-                    onPress={onPressTransaction}
-                    menuItems={openRowActions(item, false)}
-                />
-            )}
-        />
+        <InlineEditorKeyboard>
+            <SectionList
+                // The editor's name field lives in the list header, and without this the
+                // keyboard covers the field it just opened.
+                automaticallyAdjustKeyboardInsets
+                className="bg-background flex-1"
+                contentInsetAdjustmentBehavior="automatic"
+                // The name field is in that same header, and a drag over the rows below
+                // has to be able to put its keyboard away. `keyboardShouldPersistTaps` is
+                // left at its default so a tap outside the field does too — the editor's
+                // rows read that tap as the blur that commits the name.
+                keyboardDismissMode="on-drag"
+                sections={sections}
+                keyExtractor={(item) => item.id}
+                stickySectionHeadersEnabled={false}
+                recycleItems
+                contentContainerClassName="px-5 pt-2 pb-safe-offset-10"
+                ListHeaderComponent={
+                    <BudgetSummary
+                        editor={editor}
+                        period={period}
+                        spent={spent}
+                        amount={amount}
+                        leftover={leftover}
+                        overBudget={overBudget}
+                        currency={currency}
+                        paceRemaining={paceRemaining}
+                        paceBehind={paceBehind}
+                        leftPerDayAmount={leftPerDayAmount}
+                        closed={closed}
+                        note={note}
+                        stepper={stepper}
+                        tint={tint}
+                    />
+                }
+                ListEmptyComponent={
+                    <EmptyState
+                        body={closed ? t("budgets.detail.emptyClosed") : t("budgets.detail.emptyOpen")}
+                        mark={<PeriodFloor closed={closed} />}
+                        tier="inFlow"
+                    />
+                }
+                renderSectionHeader={({ section }) => (
+                    <DaySectionHeader section={section} first={sections[0] === section} />
+                )}
+                renderItem={({ item }) => (
+                    <TransactionRow
+                        transaction={item}
+                        currency={currency}
+                        rates={rates}
+                        onPress={onPressTransaction}
+                        menuItems={openRowActions(item, false)}
+                    />
+                )}
+            />
+        </InlineEditorKeyboard>
     );
 }
 

@@ -1,10 +1,10 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 
+import { ScreenHeader } from "@/components/screen-header";
 import { Text } from "@/components/text";
-import { toolbarIcon } from "@/components/toolbar-icons";
 import { useSettingNumber } from "@/contexts/display-settings-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { budgetsRepo, useCategoryBudget } from "@/data/budgets";
@@ -15,6 +15,7 @@ import { budgetDetailPace, budgetPeriodPhrase, budgetWindowLabel } from "@/domai
 import { useTranslation } from "@/i18n/context";
 import { notifyFailure } from "@/lib/notify";
 import { useHaptics } from "@/lib/use-haptics";
+import { BudgetDetailToolbar } from "@/screens/budgets/components/budget-detail-toolbar";
 import { BudgetDetailView } from "@/screens/budgets/components/budget-detail-view";
 import { BudgetEditor } from "@/screens/budgets/components/budget-editor";
 import type { BudgetEdit } from "@/screens/budgets/components/budget-editor";
@@ -150,16 +151,8 @@ export function BudgetDetail({ db, id, onDone }: { db: Database; id: string; onD
                 }}
             />
 
-            <Stack.Screen.Title>{budget.name}</Stack.Screen.Title>
-            <Stack.Toolbar placement="right">
-                {/* A menu on the bar button, not an alert behind it: these are
-				    neutral choices, and the delete asks its own question. */}
-                <Stack.Toolbar.Menu {...toolbarIcon("more")} accessibilityLabel={t("budgets.action.moreA11y")}>
-                    <Stack.Toolbar.MenuAction destructive icon="trash" onPress={deleteBudget}>
-                        {t("common.delete")}
-                    </Stack.Toolbar.MenuAction>
-                </Stack.Toolbar.Menu>
-            </Stack.Toolbar>
+            <ScreenHeader title={budget.name} />
+            <BudgetDetailToolbar onDelete={deleteBudget} />
         </>
     );
 }

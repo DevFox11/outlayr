@@ -1,3 +1,5 @@
+import { MATERIAL_ROLES } from "@/theme/material-roles";
+import type { MaterialRoleColors } from "@/theme/material-roles";
 import type { ThemeColors } from "@/theme/use-colors";
 
 /**
@@ -45,3 +47,12 @@ export const testColors = (overrides: Partial<ThemeColors> = {}): ThemeColors =>
     ...LIGHT_THEME_COLORS,
     ...overrides,
 });
+
+/**
+ * A complete {@link MaterialRoleColors} for a `useMaterialColors` mock, which
+ * reads CSS variables too. One mid grey for every role: the roles a scheme
+ * produces are the platform's, so a suite asserts on behaviour, not on them.
+ */
+export const testMaterialColors = (): MaterialRoleColors =>
+    // SAFETY: `fromEntries` loses the key union; this is one entry per role.
+    Object.fromEntries(MATERIAL_ROLES.map((role) => [role, "#777777"])) as MaterialRoleColors;

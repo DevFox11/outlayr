@@ -16,6 +16,7 @@ import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
 import { MonoLabel } from "@/components/mono-label";
+import { SheetDragRegion } from "@/components/sheet-drag-region";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { Burndown, BurndownPoint } from "@/domain/budget-burndown";
@@ -306,117 +307,119 @@ export function BudgetLimitPicker({
     return (
         <View onLayout={onLayout} style={{ paddingHorizontal: GUTTER, width: "100%" }}>
             <View>
-                <GestureDetector gesture={pan}>
-                    <View
-                        accessibilityLabel={t("budgets.picker.dragA11y", {
-                            amount: limitLabel,
-                            period: periodPhrase,
-                        })}
-                        collapsable={false}
-                        style={{ height: CHART_HEIGHT, width }}
-                    >
-                        {/* Skia's canvas is a native view and swallows touches, so the pan
+                <SheetDragRegion>
+                    <GestureDetector gesture={pan}>
+                        <View
+                            accessibilityLabel={t("budgets.picker.dragA11y", {
+                                amount: limitLabel,
+                                period: periodPhrase,
+                            })}
+                            collapsable={false}
+                            style={{ height: CHART_HEIGHT, width }}
+                        >
+                            {/* Skia's canvas is a native view and swallows touches, so the pan
 						    detector on the wrapper never sees them unless this opts out. */}
-                        <Canvas pointerEvents="none" style={{ height: CHART_HEIGHT, width }}>
-                            {geometry.area ? (
-                                <SkPath color={withAlpha(colors.foreground, 0.06)} path={geometry.area} />
-                            ) : null}
+                            <Canvas pointerEvents="none" style={{ height: CHART_HEIGHT, width }}>
+                                {geometry.area ? (
+                                    <SkPath color={withAlpha(colors.foreground, 0.06)} path={geometry.area} />
+                                ) : null}
 
-                            {geometry.area && geometry.hatch && total > limit ? (
-                                <SkGroup clip={geometry.area}>
-                                    <SkGroup clip={{ height: limitYCommitted, width, x: 0, y: 0 }}>
-                                        <SkPath
-                                            color={withAlpha(colors.overBudget, 0.55)}
-                                            path={geometry.hatch}
-                                            strokeWidth={1.6}
-                                            style="stroke"
-                                        />
+                                {geometry.area && geometry.hatch && total > limit ? (
+                                    <SkGroup clip={geometry.area}>
+                                        <SkGroup clip={{ height: limitYCommitted, width, x: 0, y: 0 }}>
+                                            <SkPath
+                                                color={withAlpha(colors.overBudget, 0.55)}
+                                                path={geometry.hatch}
+                                                strokeWidth={1.6}
+                                                style="stroke"
+                                            />
+                                        </SkGroup>
                                     </SkGroup>
-                                </SkGroup>
-                            ) : null}
+                                ) : null}
 
-                            {geometry.weeks ? (
-                                <SkPath color={colors.muted} path={geometry.weeks} strokeWidth={1} style="stroke">
-                                    <DashPathEffect intervals={[1.5, 4]} />
-                                </SkPath>
-                            ) : null}
+                                {geometry.weeks ? (
+                                    <SkPath color={colors.muted} path={geometry.weeks} strokeWidth={1} style="stroke">
+                                        <DashPathEffect intervals={[1.5, 4]} />
+                                    </SkPath>
+                                ) : null}
 
-                            <SkPath
-                                color={colors.foreground}
-                                path={`M ${geometry.plotLeft} ${geometry.bottomY} L ${geometry.plotRight} ${geometry.bottomY}`}
-                                strokeWidth={1.6}
-                                style="stroke"
-                            />
-
-                            {/* One path drawn twice, clipped either side of the limit. */}
-                            {geometry.curve ? (
-                                <>
-                                    <SkGroup
-                                        clip={{
-                                            height: CHART_HEIGHT - limitYCommitted,
-                                            width,
-                                            x: 0,
-                                            y: limitYCommitted,
-                                        }}
-                                    >
-                                        <SkPath
-                                            color={colors.foreground}
-                                            path={geometry.curve}
-                                            strokeWidth={2.2}
-                                            style="stroke"
-                                        />
-                                    </SkGroup>
-                                    <SkGroup clip={{ height: limitYCommitted, width, x: 0, y: 0 }}>
-                                        <SkPath
-                                            color={colors.overBudget}
-                                            path={geometry.curve}
-                                            strokeWidth={2.2}
-                                            style="stroke"
-                                        />
-                                    </SkGroup>
-                                </>
-                            ) : null}
-
-                            {crossing == null ? null : (
                                 <SkPath
-                                    color={withAlpha(colors.overBudget, 0.7)}
-                                    path={`M ${geometry.x(crossing)} ${PLOT_TOP} L ${geometry.x(crossing)} ${geometry.bottomY}`}
-                                    strokeWidth={1}
-                                    style="stroke"
-                                >
-                                    <DashPathEffect intervals={[3.5, 3.5]} />
-                                </SkPath>
-                            )}
-
-                            <SkCircle
-                                color={colors.foreground}
-                                cx={geometry.x(geometry.lastDay)}
-                                cy={geometry.y(total)}
-                                r={3.2}
-                            />
-
-                            <SkLine
-                                color={colors.foreground}
-                                p1={limitLineStart}
-                                p2={limitLineEnd}
-                                strokeWidth={1.6}
-                                style="stroke"
-                            />
-                            <SkCircle color={colors.foreground} cx={geometry.plotRight - 5} cy={limitY} r={5} />
-
-                            {crossing == null ? null : (
-                                <SkCircle
-                                    color={colors.overBudget}
-                                    cx={geometry.x(crossing)}
-                                    cy={limitY}
-                                    r={3.6}
-                                    strokeWidth={2}
+                                    color={colors.foreground}
+                                    path={`M ${geometry.plotLeft} ${geometry.bottomY} L ${geometry.plotRight} ${geometry.bottomY}`}
+                                    strokeWidth={1.6}
                                     style="stroke"
                                 />
-                            )}
-                        </Canvas>
-                    </View>
-                </GestureDetector>
+
+                                {/* One path drawn twice, clipped either side of the limit. */}
+                                {geometry.curve ? (
+                                    <>
+                                        <SkGroup
+                                            clip={{
+                                                height: CHART_HEIGHT - limitYCommitted,
+                                                width,
+                                                x: 0,
+                                                y: limitYCommitted,
+                                            }}
+                                        >
+                                            <SkPath
+                                                color={colors.foreground}
+                                                path={geometry.curve}
+                                                strokeWidth={2.2}
+                                                style="stroke"
+                                            />
+                                        </SkGroup>
+                                        <SkGroup clip={{ height: limitYCommitted, width, x: 0, y: 0 }}>
+                                            <SkPath
+                                                color={colors.overBudget}
+                                                path={geometry.curve}
+                                                strokeWidth={2.2}
+                                                style="stroke"
+                                            />
+                                        </SkGroup>
+                                    </>
+                                ) : null}
+
+                                {crossing == null ? null : (
+                                    <SkPath
+                                        color={withAlpha(colors.overBudget, 0.7)}
+                                        path={`M ${geometry.x(crossing)} ${PLOT_TOP} L ${geometry.x(crossing)} ${geometry.bottomY}`}
+                                        strokeWidth={1}
+                                        style="stroke"
+                                    >
+                                        <DashPathEffect intervals={[3.5, 3.5]} />
+                                    </SkPath>
+                                )}
+
+                                <SkCircle
+                                    color={colors.foreground}
+                                    cx={geometry.x(geometry.lastDay)}
+                                    cy={geometry.y(total)}
+                                    r={3.2}
+                                />
+
+                                <SkLine
+                                    color={colors.foreground}
+                                    p1={limitLineStart}
+                                    p2={limitLineEnd}
+                                    strokeWidth={1.6}
+                                    style="stroke"
+                                />
+                                <SkCircle color={colors.foreground} cx={geometry.plotRight - 5} cy={limitY} r={5} />
+
+                                {crossing == null ? null : (
+                                    <SkCircle
+                                        color={colors.overBudget}
+                                        cx={geometry.x(crossing)}
+                                        cy={limitY}
+                                        r={3.6}
+                                        strokeWidth={2}
+                                        style="stroke"
+                                    />
+                                )}
+                            </Canvas>
+                        </View>
+                    </GestureDetector>
+                </SheetDragRegion>
             </View>
 
             <View className="flex-row items-baseline justify-between pt-2.5">

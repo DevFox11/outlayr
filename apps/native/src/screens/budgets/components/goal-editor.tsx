@@ -1,5 +1,3 @@
-import { DatePicker, Host, HStack, Spacer } from "@expo/ui/swift-ui";
-import { datePickerStyle, frame, labelsHidden } from "@expo/ui/swift-ui/modifiers";
 import { useMemo, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -14,6 +12,7 @@ import { tomorrowLocal } from "@/domain/local-day";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
+import { CompactDatePicker } from "./compact-date-picker";
 import { EditorRow } from "./editor-row";
 
 /** What the editor writes. Every field is optional: one row commits one fact. */
@@ -130,26 +129,21 @@ export function GoalEditor({
                 />
                 {pickingDate ? (
                     <Animated.View className="border-border border-b py-2" entering={revealEntering()}>
-                        <Host style={{ height: 40 }}>
-                            <HStack modifiers={[frame({ maxHeight: Number.POSITIVE_INFINITY })]}>
-                                <DatePicker
-                                    displayedComponents={["date"]}
-                                    modifiers={[datePickerStyle("compact"), labelsHidden()]}
-                                    // Clamped, not merely bounded: an overdue goal
-                                    // lowers the range's floor to its own past date
-                                    // so the picker can render it, which would
-                                    // otherwise let any day since be chosen afresh.
-                                    onDateChange={(next) => {
-                                        setPickingDate(false);
-                                        const floor = tomorrowLocal(nowMs);
-                                        onChange({ targetDate: next < floor ? floor : next });
-                                    }}
-                                    range={range}
-                                    selection={targetDate}
-                                />
-                                <Spacer />
-                            </HStack>
-                        </Host>
+                        <CompactDatePicker
+                            label={t("goals.editor.by")}
+                            // Clamped, not merely bounded: an overdue goal lowers the
+                            // range's floor to its own past date so the picker can
+                            // render it, which would otherwise let any day since be
+                            // chosen afresh.
+                            onChange={(next) => {
+                                setPickingDate(false);
+                                const floor = tomorrowLocal(nowMs);
+                                onChange({ targetDate: next < floor ? floor : next });
+                            }}
+                            onDismiss={() => setPickingDate(false)}
+                            range={range}
+                            value={targetDate}
+                        />
                     </Animated.View>
                 ) : null}
 

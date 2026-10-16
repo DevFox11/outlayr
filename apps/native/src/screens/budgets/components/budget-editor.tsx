@@ -1,8 +1,6 @@
-import { DatePicker, Host, HStack, Spacer } from "@expo/ui/swift-ui";
-import { datePickerStyle, frame, labelsHidden } from "@expo/ui/swift-ui/modifiers";
 import { BUDGET_TYPE, periodEnd, startOfPeriod } from "@outlayr/money/budget-window";
 import { useMemo, useState } from "react";
-import { Pressable, Switch, TextInput, View } from "react-native";
+import { Pressable, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
 
 import { MonoLabel } from "@/components/mono-label";
@@ -14,9 +12,10 @@ import { budgetPeriodName, budgetWindowLabel } from "@/domain/budget-math";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
-import { useColors } from "@/theme/use-colors";
 
+import { CompactDatePicker } from "./compact-date-picker";
 import { EditorRow } from "./editor-row";
+import { EditorSwitch } from "./editor-switch";
 
 /**
  * What the editor writes. Every field is optional: one row commits one fact.
@@ -83,7 +82,6 @@ export function BudgetEditor({
     const { language } = useLanguage();
     const haptics = useHaptics();
     const { showCents } = useDisplaySettings().state;
-    const colors = useColors();
     const [pickingPeriod, setPickingPeriod] = useState(false);
     const [pickingDate, setPickingDate] = useState(false);
     const [naming, setNaming] = useState(false);
@@ -187,31 +185,25 @@ export function BudgetEditor({
                 />
                 {pickingDate ? (
                     <Animated.View className="border-border border-b py-2" entering={revealEntering()}>
-                        <Host style={{ height: 40 }}>
-                            <HStack modifiers={[frame({ maxHeight: Number.POSITIVE_INFINITY })]}>
-                                <DatePicker
-                                    displayedComponents={["date"]}
-                                    modifiers={[datePickerStyle("compact"), labelsHidden()]}
-                                    range={anchorRange}
-                                    onDateChange={(next) => {
-                                        setPickingDate(false);
-                                        onChange({ startDate: next });
-                                    }}
-                                    selection={startDate}
-                                />
-                                <Spacer />
-                            </HStack>
-                        </Host>
+                        <CompactDatePicker
+                            label={t("budgets.editor.from")}
+                            onChange={(next) => {
+                                setPickingDate(false);
+                                onChange({ startDate: next });
+                            }}
+                            onDismiss={() => setPickingDate(false)}
+                            range={anchorRange}
+                            value={startDate}
+                        />
                     </Animated.View>
                 ) : null}
 
                 <View className="border-border border-b py-3.5">
                     <View className="flex-row items-center gap-3">
                         <Text className="text-body text-foreground flex-1">{t("budgets.editor.carry")}</Text>
-                        <Switch
+                        <EditorSwitch
                             accessibilityLabel={t("budgets.editor.carry")}
                             onValueChange={(next) => onChange({ rollover: next })}
-                            trackColor={{ false: colors.subtle, true: colors.income }}
                             value={rollover}
                         />
                     </View>

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { Ref } from "react";
 
-import { testColors as mockTestColors } from "@/theme/test-colors";
+import { testMaterialColors as mockTestMaterialColors } from "@/theme/test-colors";
 
 import { PickerRow } from "./picker-row";
 
@@ -35,8 +35,8 @@ jest.mock<typeof import("@expo/ui/community/menu")>("@expo/ui/community/menu", (
     return { MenuView, default: MenuView };
 });
 
-jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
-    useColors: () => mockTestColors({}),
+jest.mock<typeof import("@/theme/use-material-colors")>("@/theme/use-material-colors", () => ({
+    useMaterialColors: () => mockTestMaterialColors(),
 }));
 
 const OPTIONS = [

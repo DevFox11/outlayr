@@ -1,6 +1,4 @@
 import { BottomSheetModal, BottomSheetView } from "@expo/ui/community/bottom-sheet";
-import { DatePicker, Host, HStack, Spacer } from "@expo/ui/swift-ui";
-import { datePickerStyle, frame, labelsHidden } from "@expo/ui/swift-ui/modifiers";
 import { useMemo, useRef, useState } from "react";
 import type { Ref } from "react";
 import { Pressable, View } from "react-native";
@@ -11,6 +9,7 @@ import { HeroNumber } from "@/components/amount-text";
 import { MonoLabel } from "@/components/mono-label";
 import { Sentence } from "@/components/sentence/sentence";
 import { revealEntering } from "@/components/sentence/sentence-motion";
+import { SheetGestureRoot } from "@/components/sheet-gesture-root";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useNow } from "@/data/use-now";
@@ -19,9 +18,12 @@ import { addLocalMonths, tomorrowLocal } from "@/domain/local-day";
 import { formatAmount, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { goalProgress } from "@/domain/savings-goal";
+import { useSheetSurface } from "@/hooks/use-sheet-surface";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
-import { useColors } from "@/theme/use-colors";
+
+import { CompactDatePicker } from "./compact-date-picker";
+import { SheetCommitButton } from "./sheet-commit-button";
 
 /** The account a goal is being set on. Its balance is the goal's starting line. */
 export interface GoalTarget {
@@ -90,31 +92,34 @@ const STATED = "font-sans-medium text-[19px] leading-[28px] tracking-tight text-
  * fact after this one commit is edited on the goal's own screen, where it is read.
  */
 export function GoalTargetSheet({ target, onCommit, ref }: GoalTargetSheetProps) {
-    const colors = useColors();
+    const sheetSurface = useSheetSurface();
     // Bumped as the sheet closes, so a dismissed draft is never what the next
     // presentation opens on — same contract as the budget limit sheet.
     const [presentation, setPresentation] = useState(0);
 
     return (
         <BottomSheetModal
-            backgroundStyle={{ backgroundColor: colors.background }}
+            backgroundStyle={{ backgroundColor: sheetSurface }}
             enableDynamicSizing
             enablePanDownToClose
             onDismiss={() => setPresentation((count) => count + 1)}
             ref={ref}
         >
-            <BottomSheetView style={{ paddingBottom: 28, paddingTop: 14 }}>
-                {target ? (
-                    <GoalTargetBody
-                        // A fresh body per account, per stored figure and per
-                        // presentation: a dismissed draft must not be what the next
-                        // one opens on.
-                        key={`${target.accountId}:${target.existing?.targetAmount ?? "new"}:${presentation}`}
-                        onCommit={onCommit}
-                        target={target}
-                    />
-                ) : null}
-            </BottomSheetView>
+            {/* Sized to its content: a root that doesn't flex (chrome contract 1b). */}
+            <SheetGestureRoot style={{}}>
+                <BottomSheetView style={{ paddingBottom: 28, paddingTop: 14 }}>
+                    {target ? (
+                        <GoalTargetBody
+                            // A fresh body per account, per stored figure and per
+                            // presentation: a dismissed draft must not be what the next
+                            // one opens on.
+                            key={`${target.accountId}:${target.existing?.targetAmount ?? "new"}:${presentation}`}
+                            onCommit={onCommit}
+                            target={target}
+                        />
+                    ) : null}
+                </BottomSheetView>
+            </SheetGestureRoot>
         </BottomSheetModal>
     );
 }
@@ -311,41 +316,33 @@ function GoalTargetBody({ target, onCommit }: { onCommit: GoalTargetSheetProps["
                 </Animated.View>
             ) : (
                 <Animated.View className="px-5 pt-2" entering={revealEntering()} key="date">
-                    <Host style={{ height: 44 }}>
-                        <HStack modifiers={[frame({ maxHeight: Number.POSITIVE_INFINITY })]}>
-                            <DatePicker
-                                displayedComponents={["date"]}
-                                modifiers={[datePickerStyle("compact"), labelsHidden()]}
-                                // Clamped, not merely bounded: an existing deadline
-                                // already in the past lowers the range's floor so it
-                                // can render at all, which would otherwise let any
-                                // day between then and now be chosen afresh.
-                                onDateChange={(next) => {
-                                    setDateEdited(true);
-                                    setDate(notBefore(next, tomorrowLocal(nowMs)));
-                                }}
-                                range={range}
-                                selection={date}
-                            />
-                            <Spacer />
-                        </HStack>
-                    </Host>
+                    <CompactDatePicker
+                        height={44}
+                        label={t("goals.editor.by")}
+                        // Clamped, not merely bounded: an existing deadline already in
+                        // the past lowers the range's floor so it can render at all,
+                        // which would otherwise let any day between then and now be
+                        // chosen afresh.
+                        onChange={(next) => {
+                            setDateEdited(true);
+                            setDate(notBefore(next, tomorrowLocal(nowMs)));
+                        }}
+                        range={range}
+                        value={date}
+                    />
                 </Animated.View>
             )}
 
             <View className="px-5 pt-5">
                 <Text className="text-footnote text-muted border-border border-t pt-2.5 leading-snug">{demand}</Text>
-                <Pressable
-                    accessibilityRole="button"
-                    className="bg-tint mt-3 h-12 items-center justify-center rounded-[14px] active:opacity-80"
-                    // Never inert: a target of nothing is one not typed yet, and the
-                    // button that says so is the one being pressed.
-                    onPress={commit}
-                >
-                    <Text className="font-sans-semibold text-accent-foreground text-body">
-                        {t(target.existing ? "goals.sheet.save" : "goals.sheet.commit")}
-                    </Text>
-                </Pressable>
+                {/* Never inert: a target of nothing is one not typed yet, and the
+				    button that says so is the one being pressed. */}
+                <View className="mt-3">
+                    <SheetCommitButton
+                        label={t(target.existing ? "goals.sheet.save" : "goals.sheet.commit")}
+                        onPress={commit}
+                    />
+                </View>
             </View>
         </View>
     );

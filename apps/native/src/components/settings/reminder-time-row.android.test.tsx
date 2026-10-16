@@ -1,9 +1,10 @@
-import type { DateTimePickerProps } from "@expo/ui/community/datetime-picker";
+import type { TimePickerDialogProps } from "@expo/ui/jetpack-compose";
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import type { ReactNode } from "react";
 
 import { testDisplaySettingsValue as mockTestDisplaySettingsValue } from "@/contexts/test-settings";
-import { testColors as mockTestColors } from "@/theme/test-colors";
+import { testMaterialColors as mockTestMaterialColors } from "@/theme/test-colors";
 
 import { ReminderTimeRow } from "./reminder-time-row";
 
@@ -11,41 +12,31 @@ const mockPicked = new Date(2026, 9, 14, 7, 45);
 
 // Stands in for the Material dialog: on screen for as long as it is mounted,
 // with its two ways out.
-jest.mock<typeof import("@expo/ui/community/datetime-picker")>("@expo/ui/community/datetime-picker", () => {
+jest.mock("@expo/ui/jetpack-compose", () => {
     const { Pressable, Text, View } = jest.requireActual<typeof import("react-native")>("react-native");
-    function DateTimePicker({ onDismiss, onValueChange }: DateTimePickerProps) {
-        return (
+    return {
+        TimePickerDialog: ({ onDateSelected, onDismissRequest }: TimePickerDialogProps) => (
             <View testID="time-dialog">
-                <Pressable
-                    onPress={() =>
-                        onValueChange?.(
-                            {
-                                nativeEvent: {
-                                    timestamp: mockPicked.getTime(),
-                                    utcOffset: -mockPicked.getTimezoneOffset(),
-                                },
-                            },
-                            mockPicked
-                        )
-                    }
-                >
+                <Pressable onPress={() => onDateSelected?.(mockPicked)}>
                     <Text>OK</Text>
                 </Pressable>
-                <Pressable onPress={onDismiss}>
+                <Pressable onPress={onDismissRequest}>
                     <Text>Cancel</Text>
                 </Pressable>
             </View>
-        );
-    }
-    return { DateTimePicker, default: DateTimePicker };
+        ),
+    };
 });
+jest.mock("@/components/material-host", () => ({
+    MaterialHost: ({ children }: { children: ReactNode }) => children,
+}));
 
 jest.mock<Partial<typeof import("@/contexts/display-settings-context")>>("@/contexts/display-settings-context", () => ({
     useDisplaySettings: () => mockTestDisplaySettingsValue({ use24Hour: true }),
 }));
 
-jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
-    useColors: () => mockTestColors({}),
+jest.mock<typeof import("@/theme/use-material-colors")>("@/theme/use-material-colors", () => ({
+    useMaterialColors: () => mockTestMaterialColors(),
 }));
 
 async function openDialog(onChange = jest.fn()) {

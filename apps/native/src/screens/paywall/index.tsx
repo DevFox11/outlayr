@@ -1,12 +1,10 @@
 import { useRouter } from "expo-router";
-import { Button, RadioGroup } from "panelui-native";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 
 import { BusyText } from "@/components/busy-text";
 import { MONO_LABEL_CLASS, MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
-import { cn } from "@/components/tw";
 import { useRevenueCat } from "@/contexts/revenuecat-context";
 import type { RevenueCatValue } from "@/contexts/revenuecat-context";
 import { APP_ICONS } from "@/domain/app-icons";
@@ -25,6 +23,10 @@ import { alternateIconsSupported } from "@/lib/app-icon";
 import { useAuthSession } from "@/lib/auth-session";
 import { legalUrl } from "@/lib/legal-url";
 import { useColors } from "@/theme/use-colors";
+
+import { PaywallCta } from "./paywall-cta";
+import { PlanList } from "./plan-list";
+import { StoreTerms } from "./store-terms";
 
 const UNLIMITED = "\u221E";
 
@@ -86,24 +88,6 @@ function Comparison() {
     );
 }
 
-function unitOf(plan: Plan, t: TranslateFn): string | null {
-    if (plan.kind === "lifetime") {
-        return t("pro.plan.once");
-    }
-    if (plan.kind === "monthly") {
-        return t("pro.plan.perMonthBare");
-    }
-    return plan.perMonth === null ? null : t("pro.plan.perMonth", { price: plan.perMonth });
-}
-
-function noteOf(plan: Plan, t: TranslateFn): string | null {
-    const parts = [
-        plan.trialDays === null ? null : t("pro.plan.trial", { days: plan.trialDays }),
-        plan.savingsPercent === null ? null : t("pro.plan.save", { percent: plan.savingsPercent }),
-    ].filter((part): part is string => part !== null);
-    return parts.length === 0 ? null : parts.join(" · ");
-}
-
 const BUY_LABEL = {
     annual: "pro.cta.buyYearly",
     lifetime: "pro.cta.buy",
@@ -124,37 +108,6 @@ function ctaLabel(plan: Plan | null, t: TranslateFn): string {
         return t(BUY_LABEL[plan.kind], { price: plan.priceString });
     }
     return t("pro.cta.start", { days: plan.trialDays });
-}
-
-function PlanCard({ best, plan, selected }: { best: boolean; plan: Plan; selected: boolean }) {
-    const t = useTranslation();
-    const ink = selected ? "text-accent-foreground" : "text-foreground";
-    const quiet = selected ? "text-accent-foreground/70" : "text-muted";
-    const note = noteOf(plan, t);
-    const unit = unitOf(plan, t);
-
-    return (
-        <View className="flex-row items-center gap-3">
-            {best ? (
-                <View className="bg-income absolute bottom-full left-0 mb-[7px] rounded-md px-2 py-0.5">
-                    <MonoLabel className="text-background">{t("pro.plan.bestValue")}</MonoLabel>
-                </View>
-            ) : null}
-            <View className="flex-1 gap-0.5">
-                <Text className={cn("text-callout font-medium", ink)}>{t(`pro.plan.${plan.kind}`)}</Text>
-                {note === null ? null : <Text className={cn("text-footnote", quiet)}>{note}</Text>}
-            </View>
-            <View
-                className={cn(
-                    "w-[118px] items-end gap-0.5 border-l pl-3",
-                    selected ? "border-accent-foreground/25" : "border-border"
-                )}
-            >
-                <Text className={cn("text-body font-mono tabular-nums", ink)}>{plan.priceString}</Text>
-                {unit === null ? null : <Text className={cn("text-micro font-mono uppercase", quiet)}>{unit}</Text>}
-            </View>
-        </View>
-    );
 }
 
 async function loadPlans(
@@ -206,31 +159,7 @@ function PlanPicker({
             </View>
         );
     }
-    const hasBest = plans.some((plan) => plan.savingsPercent !== null);
-
-    return (
-        <RadioGroup
-            className={hasBest ? "pt-6" : "pt-1.5"}
-            onValueChange={(kind) => {
-                const picked = plans.find((plan) => plan.kind === kind);
-                if (picked !== undefined) {
-                    onSelect(picked.kind);
-                }
-            }}
-            value={selected ?? undefined}
-            variant="card"
-        >
-            {plans.map((candidate) => (
-                <RadioGroup.Item hideIndicator key={candidate.kind} value={candidate.kind}>
-                    <PlanCard
-                        best={candidate.savingsPercent !== null}
-                        plan={candidate}
-                        selected={candidate.kind === selected}
-                    />
-                </RadioGroup.Item>
-            ))}
-        </RadioGroup>
-    );
+    return <PlanList onSelect={onSelect} plans={plans} selected={selected} />;
 }
 
 export function Paywall() {
@@ -376,6 +305,7 @@ export function Paywall() {
                     />
                 </View>
             ) : null}
+            {canBuy || isPro ? <StoreTerms plan={canBuy ? plan : null} /> : null}
             {isPro && failure === null ? (
                 <View className="items-center gap-3 px-5 pt-5">
                     {isMirrored ? (
@@ -414,23 +344,14 @@ export function Paywall() {
 
             {canBuy ? (
                 <View className="px-5 pt-5">
-                    <Button
-                        className="rounded-full"
+                    <PaywallCta
+                        busy={busy === "buy"}
+                        busyLabel={t("pro.cta.unlocking")}
                         disabled={plan === null || busy !== null}
-                        fullWidth
+                        label={ctaLabel(plan, t)}
                         onPress={buy}
-                        size="md"
                         testID="paywall-cta"
-                        variant="primary"
-                    >
-                        {busy === "buy" ? (
-                            <BusyText className="text-[16px] font-medium" color={colors.primaryForeground}>
-                                {t("pro.cta.unlocking")}
-                            </BusyText>
-                        ) : (
-                            ctaLabel(plan, t)
-                        )}
-                    </Button>
+                    />
                     {plan === null || plan.trialDays === null ? null : (
                         <Text className="text-muted text-micro pt-2 text-center font-mono">
                             {t(THEN_LABEL[plan.kind], { price: plan.priceString })}

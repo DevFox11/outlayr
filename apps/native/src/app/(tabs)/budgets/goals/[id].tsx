@@ -1,7 +1,8 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 
+import { ScreenHeader } from "@/components/screen-header";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useSavingsGoal } from "@/data/savings-goals";
@@ -134,7 +135,7 @@ export default function GoalScreen() {
                 entry={entry}
                 nowMs={nowMs}
             />
-            <Stack.Screen.Title>{goal.name}</Stack.Screen.Title>
+            <ScreenHeader title={goal.name} />
             <GoalTargetSheet onCommit={commitTarget} ref={targetSheetRef} target={retarget} />
         </>
     );

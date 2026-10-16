@@ -151,6 +151,18 @@ const pro = {
             en: "{days} days free",
             es: "{days} días gratis",
         }),
+        "pro.play.manage": t({
+            en: "Manage subscription",
+            es: "Gestionar suscripción",
+        }),
+        "pro.play.renews": t({
+            en: "Subscriptions renew automatically until you cancel them. Cancel anytime in Google Play.",
+            es: "Las suscripciones se renuevan automáticamente hasta que las canceles. Cancélalas cuando quieras en Google Play.",
+        }),
+        "pro.play.trial": t({
+            en: "When the free trial ends it becomes a paid subscription, unless you cancel before then.",
+            es: "Cuando termine la prueba gratuita, pasará a ser una suscripción de pago, salvo que la canceles antes.",
+        }),
         "pro.restoreFailedBody": t({
             en: "The restore could not be completed. Check the connection and try again.",
             es: "No se pudo completar la restauración. Revisa la conexión e inténtalo de nuevo.",

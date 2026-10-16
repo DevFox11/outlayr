@@ -4,6 +4,7 @@ import { Pressable, View } from "react-native";
 import { BusyText } from "@/components/busy-text";
 import { SettingsSection } from "@/components/list/list-row";
 import { MonoLabel } from "@/components/mono-label";
+import { SettingsAction } from "@/components/settings/settings-action";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
@@ -106,23 +107,13 @@ export function ExportData() {
             </View>
 
             <View className="pt-6">
-                <Pressable
-                    accessibilityRole="button"
-                    className="bg-foreground h-14 items-center justify-center rounded-[28px] active:opacity-70"
+                <SettingsAction
+                    busy={busy === "csv"}
+                    busyLabel={t("settings.export.preparing")}
                     disabled={busy !== null || count === 0}
+                    label={t("settings.export.action")}
                     onPress={run}
-                    style={(busy !== null && busy !== "csv") || count === 0 ? { opacity: 0.4 } : undefined}
-                >
-                    {busy === "csv" ? (
-                        <BusyText className="font-sans-semibold text-callout" color={colors.background}>
-                            {t("settings.export.preparing")}
-                        </BusyText>
-                    ) : (
-                        <Text className="font-sans-semibold text-background text-callout">
-                            {t("settings.export.action")}
-                        </Text>
-                    )}
-                </Pressable>
+                />
             </View>
 
             <SettingsSection footer={t("settings.export.archiveNote")} title={t("settings.export.archiveTitle")}>

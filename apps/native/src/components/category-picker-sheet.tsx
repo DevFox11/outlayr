@@ -1,32 +1,33 @@
 import { BottomSheetModal, BottomSheetScrollView } from "@expo/ui/community/bottom-sheet";
-import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
 import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
 import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
 import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
-import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { Button, InputGroup } from "panelui-native";
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { InputGroup } from "panelui-native";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { ReactNode, Ref } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
 
+import { SheetGestureRoot } from "@/components/sheet-gesture-root";
 import { useCategoriesByNamespace } from "@/data/categories";
 import type { Category } from "@/data/categories-core";
 import { useRecentCategoryIds } from "@/data/category-recents";
 import type { Database } from "@/db/client";
 import { expandedForSelectedCategory, searchCategoryTree } from "@/domain/category-search";
-import type { CategoryMatch } from "@/domain/category-search";
 import { useMergedRef } from "@/hooks/use-merged-ref";
 import { useSheetSurface } from "@/hooks/use-sheet-surface";
 import { useTranslation } from "@/i18n/context";
-import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
-import { CategoryIconTile } from "./category-icon-tile";
-import { SheetGestureRoot } from "./sheet-gesture-root";
+import {
+    CATEGORY_PICKER_HANDLE,
+    CategoryPickerGroup,
+    CategoryPickerHeader,
+    CategoryRow,
+    RecentChip,
+} from "./category-picker-chrome";
 import { Text } from "./text";
-import { cn } from "./tw";
 
 const EASE = Easing.inOut(Easing.ease);
 const CARD_LAYOUT = LinearTransition.duration(300).easing(EASE);
@@ -66,7 +67,7 @@ export function CategoryPickerSheet({
 }: CategoryPickerSheetProps) {
     const t = useTranslation();
     const colors = useColors();
-    const sheetBackground = { backgroundColor: useSheetSurface() };
+    const sheetSurface = useSheetSurface();
     const offered = useCategoriesByNamespace(db, income);
     const blocked = useMemo(() => new Set(excludeIds), [excludeIds]);
     /**
@@ -176,7 +177,7 @@ export function CategoryPickerSheet({
         );
     } else if (searching) {
         searchPanel = (
-            <View className="bg-surface overflow-hidden rounded-xl">
+            <CategoryPickerGroup>
                 {matches.map((match, index) => (
                     <CategoryRow
                         category={match.category}
@@ -188,36 +189,22 @@ export function CategoryPickerSheet({
                         selected={match.category.id === selectedId}
                     />
                 ))}
-            </View>
+            </CategoryPickerGroup>
         );
     }
 
     return (
         <BottomSheetModal
-            backgroundStyle={sheetBackground}
+            backgroundStyle={{ backgroundColor: sheetSurface }}
             enableDynamicSizing={false}
             enablePanDownToClose
+            handleComponent={CATEGORY_PICKER_HANDLE}
             onDismiss={handleDismiss}
             ref={setRefs}
             snapPoints={["65%", "92%"]}
         >
             <SheetGestureRoot fill>
-                <View className="mb-2 justify-center px-5 py-1">
-                    <Text accessibilityRole="header" className="text-foreground text-center text-lg font-medium">
-                        {t("categories.kind.category")}
-                    </Text>
-                    <View className="absolute top-0 bottom-0 left-5 justify-center">
-                        <Button
-                            accessibilityLabel={t("common.close")}
-                            className="rounded-full"
-                            onPress={dismiss}
-                            size="icon"
-                            variant="secondary"
-                        >
-                            <HugeiconsIcon color={colors.foreground} icon={Cancel01Icon} size={22} />
-                        </Button>
-                    </View>
-                </View>
+                <CategoryPickerHeader onClose={dismiss} title={t("categories.kind.category")} />
 
                 <View className="px-5 pt-3 pb-3">
                     <InputGroup>
@@ -274,7 +261,7 @@ export function CategoryPickerSheet({
                             ) : null}
 
                             <GroupCaption text={t("transaction.category.all")} />
-                            <View className="bg-surface overflow-hidden rounded-xl">
+                            <CategoryPickerGroup>
                                 {categories.map((parent, index) => {
                                     const isExpanded = expanded.has(parent.id);
                                     return (
@@ -309,7 +296,7 @@ export function CategoryPickerSheet({
                                         </Animated.View>
                                     );
                                 })}
-                            </View>
+                            </CategoryPickerGroup>
                         </>
                     )}
                 </BottomSheetScrollView>
@@ -320,175 +307,4 @@ export function CategoryPickerSheet({
 
 function GroupCaption({ text }: { text: string }) {
     return <Text className="font-sans-medium text-footnote text-muted mb-2 ml-0.5 uppercase">{text}</Text>;
-}
-
-function tintFor(category: Category, incomeColor: string): string {
-    return category.income ? incomeColor : (category.color ?? "#767676");
-}
-
-const RecentChip = memo(({ category, onSelect }: { category: Category; onSelect: (category: Category) => void }) => {
-    const colors = useColors();
-    return (
-        <Pressable
-            accessibilityRole="button"
-            className="bg-surface flex-row items-center gap-2 rounded-full py-1 pr-3 pl-1 active:opacity-60"
-            onPress={() => onSelect(category)}
-        >
-            <CategoryIconTile
-                color={tintFor(category, colors.income)}
-                emoji={category.emoji}
-                icon={category.icon}
-                radius={999}
-                size={28}
-                type="solid"
-            />
-            <Text className="font-sans-medium text-foreground text-subtitle" numberOfLines={1}>
-                {category.name}
-            </Text>
-        </Pressable>
-    );
-});
-RecentChip.displayName = "RecentChip";
-
-const CategoryRow = memo(
-    ({
-        category,
-        selected,
-        indented = false,
-        divided = false,
-        childCount = 0,
-        excluded = false,
-        expanded = false,
-        caption,
-        crumb = null,
-        highlight,
-        onSelect,
-        onToggle,
-    }: {
-        category: Category;
-        selected: boolean;
-        indented?: boolean;
-        divided?: boolean;
-        childCount?: number;
-        /** Present as a container for its children, but not a choice of its own. */
-        excluded?: boolean;
-        expanded?: boolean;
-        caption?: string;
-        crumb?: string | null;
-        highlight?: CategoryMatch;
-        onSelect: (category: Category) => void;
-        onToggle?: (id: string) => void;
-    }) => {
-        const t = useTranslation();
-        const colors = useColors();
-        const tint = tintFor(category, colors.income);
-        const hasChildren = childCount > 0 && onToggle != null;
-
-        return (
-            <View>
-                {divided ? (
-                    <View
-                        className={indented ? "ml-[58px]" : undefined}
-                        style={{
-                            backgroundColor: withAlpha(colors.foreground, 0.07),
-                            height: StyleSheet.hairlineWidth,
-                        }}
-                    />
-                ) : null}
-                <View className={cn("flex-row items-center gap-3 pr-3.5", indented ? "py-2 pl-11" : "py-2.5 pl-3.5")}>
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityState={{ disabled: excluded, selected }}
-                        className={cn(
-                            "flex-1 flex-row items-center gap-3",
-                            excluded ? "opacity-45" : "active:opacity-60"
-                        )}
-                        disabled={excluded}
-                        onPress={() => onSelect(category)}
-                        testID={`category-row-${category.id}`}
-                    >
-                        <CategoryIconTile
-                            color={tint}
-                            emoji={category.emoji}
-                            icon={category.icon}
-                            size={indented ? 28 : 34}
-                            type="solid"
-                        />
-                        <View className="flex-1">
-                            <Text
-                                className={cn(
-                                    "font-sans-medium text-foreground",
-                                    indented ? "text-subtitle" : "text-callout"
-                                )}
-                                numberOfLines={1}
-                            >
-                                {crumb ? (
-                                    <Text className="text-muted font-sans" testID={`category-crumb-${category.id}`}>
-                                        {`${crumb} › `}
-                                    </Text>
-                                ) : null}
-                                <HighlightedName match={highlight} name={category.name ?? ""} tint={colors.tint} />
-                            </Text>
-                            {caption ? (
-                                <Text className="text-footnote text-muted" numberOfLines={1}>
-                                    {caption}
-                                </Text>
-                            ) : null}
-                        </View>
-                        {selected ? (
-                            <HugeiconsIcon color={colors.tint} icon={Tick02Icon} size={18} strokeWidth={2.4} />
-                        ) : null}
-                    </Pressable>
-                    {hasChildren ? (
-                        <Pressable
-                            accessibilityLabel={t(
-                                expanded ? "transaction.category.a11yCollapse" : "transaction.category.a11yExpand",
-                                {
-                                    name: category.name ?? "",
-                                }
-                            )}
-                            accessibilityRole="button"
-                            className="h-11 flex-row items-center justify-end pl-2 active:opacity-60"
-                            hitSlop={6}
-                            onPress={() => onToggle(category.id)}
-                        >
-                            <View
-                                className="flex-row items-center gap-1 rounded-full py-1 pr-1.5 pl-2"
-                                style={{ backgroundColor: withAlpha(colors.foreground, 0.06) }}
-                            >
-                                <Text className="text-footnote text-muted font-mono tabular-nums">
-                                    {String(childCount)}
-                                </Text>
-                                <View className={expanded ? "rotate-90" : "rotate-0"}>
-                                    <HugeiconsIcon
-                                        color={colors.muted}
-                                        icon={ArrowRight01Icon}
-                                        size={18}
-                                        strokeWidth={2}
-                                    />
-                                </View>
-                            </View>
-                        </Pressable>
-                    ) : null}
-                </View>
-            </View>
-        );
-    }
-);
-CategoryRow.displayName = "CategoryRow";
-
-function HighlightedName({ name, match, tint }: { name: string; match?: CategoryMatch; tint: string }) {
-    if (match == null || match.matchLength === 0) {
-        return name;
-    }
-    const end = match.matchStart + match.matchLength;
-    return (
-        <>
-            {name.slice(0, match.matchStart)}
-            <Text className="font-sans-bold" style={{ color: tint }}>
-                {name.slice(match.matchStart, end)}
-            </Text>
-            {name.slice(end)}
-        </>
-    );
 }

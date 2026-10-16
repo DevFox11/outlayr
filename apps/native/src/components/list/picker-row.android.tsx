@@ -1,22 +1,18 @@
 import { MenuView } from "@expo/ui/community/menu";
 import type { MenuAction, MenuComponentRef, NativeActionEvent } from "@expo/ui/community/menu";
-import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useRef } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
+import { ListItemFrame, ListItemIcon, ListItemText } from "@/components/list/material-list-item";
 import type { PickerRowProps, PickerValue } from "@/components/list/picker-row";
-import { RowShell } from "@/components/list/row-shell";
-import { Text } from "@/components/text";
-import { cn } from "@/components/tw";
-import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
-import { useColors } from "@/theme/use-colors";
+import { useIsDark } from "@/theme/use-is-dark";
 
 export type { PickerRowProps, PickerValue } from "@/components/list/picker-row";
 
 /**
- * The row shows the current choice and the whole row opens a Material dropdown
- * anchored at it, the standard Android picker. The iOS SwiftUI `Picker` has no
+ * A two-line Material 3 list item whose supporting text is the current
+ * choice. The whole row opens a dropdown menu anchored under its text, the
+ * standard Android picker (Direction B). The iOS SwiftUI `Picker` has no
  * Android view, and mounting it is a fatal Fabric crash.
  *
  * Swatches are dropped: a dropdown item only takes an image source for its icon.
@@ -30,8 +26,7 @@ export function PickerRow<T extends PickerValue>({
     value,
     onChange,
 }: PickerRowProps<T>) {
-    const colors = useColors();
-    const stacked = useAccessibilityTextSize();
+    const isDark = useIsDark();
     const menu = useRef<MenuComponentRef>(null);
     const selected = options.find((option) => option.value === value);
 
@@ -48,35 +43,30 @@ export function PickerRow<T extends PickerValue>({
         }
     };
 
-    // The anchor is only the current value, not the row: the menu's Compose host
-    // sizes to its content, so wrapping the row would shrink it to its text. The
-    // row already announces the value, so the anchor's copy stays out of TalkBack.
-    const trigger = (
-        <MenuView actions={actions} onPressAction={onPressAction} ref={menu}>
-            <View className="flex-row items-center gap-1" importantForAccessibility="no-hide-descendants">
-                <Text className={cn("text-body", attention ? "text-danger" : "text-muted")} numberOfLines={1}>
-                    {selected?.label}
-                </Text>
-                <HugeiconsIcon
-                    color={attention ? colors.danger : colors.subtle}
-                    icon={ArrowDown01Icon}
-                    size={16}
-                    strokeWidth={2.2}
-                />
-            </View>
-        </MenuView>
-    );
-
+    // The menu wraps the text, not the row: its Compose host sizes to its
+    // content, so wrapping the row would shrink it to the text anyway, and the
+    // text is where M3 anchors a list item's menu. The row already announces the
+    // value, so the anchor's copy stays out of TalkBack.
     return (
-        <Pressable
+        <ListItemFrame
             accessibilityLabel={selected ? `${title}, ${selected.label}` : title}
             accessibilityRole="button"
-            className="active:opacity-60"
             onPress={() => menu.current?.show()}
+            twoLine
         >
-            <RowShell below={stacked ? trigger : undefined} detail={detail} icon={icon} title={title}>
-                {stacked ? null : trigger}
-            </RowShell>
-        </Pressable>
+            <ListItemIcon icon={icon} />
+            <View className="flex-1 items-start">
+                <MenuView
+                    actions={actions}
+                    colorScheme={isDark ? "dark" : "light"}
+                    onPressAction={onPressAction}
+                    ref={menu}
+                >
+                    <View importantForAccessibility="no-hide-descendants">
+                        <ListItemText attention={attention} supporting={[selected?.label, detail]} title={title} />
+                    </View>
+                </MenuView>
+            </View>
+        </ListItemFrame>
     );
 }

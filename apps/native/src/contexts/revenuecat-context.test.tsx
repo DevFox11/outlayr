@@ -29,6 +29,7 @@ jest.mock<typeof import("@/lib/revenuecat")>("@/lib/revenuecat", () => ({
     hasProEntitlement: (info: CustomerInfo | null) => info?.entitlements.active.pro !== undefined,
     identifyUser: jest.fn(async () => true),
     logOutUser: jest.fn(async () => false),
+    managementUrl: jest.fn(async () => null),
     onCustomerInfoUpdated: (listener: (info: CustomerInfo) => void) => {
         mockCustomerInfo.listener = listener;
         return () => undefined;

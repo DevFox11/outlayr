@@ -1,9 +1,9 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, View } from "react-native";
+import { Alert, View } from "react-native";
 
-import { BusyText } from "@/components/busy-text";
 import { MonoLabel } from "@/components/mono-label";
+import { SettingsAction } from "@/components/settings/settings-action";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
@@ -16,11 +16,9 @@ import { pickArchiveFile, TransferError } from "@/lib/data-transfer";
 import { armLogoBackfill, cancelLogoBackfill } from "@/lib/logo-backfill";
 import { notifyFailure } from "@/lib/notify";
 import { photoFiles, writePhotosBase64 } from "@/lib/photo-storage";
-import { useColors } from "@/theme/use-colors";
 
 export function RestoreData() {
     const db = useDatabase();
-    const colors = useColors();
     const router = useRouter();
     const t = useTranslation();
     const [restoring, setRestoring] = useState<number | null>(null);
@@ -92,22 +90,13 @@ export function RestoreData() {
             </View>
 
             <View className="pt-2">
-                <Pressable
-                    accessibilityRole="button"
-                    className="bg-foreground h-14 items-center justify-center rounded-[28px] active:opacity-70"
+                <SettingsAction
+                    busy={restoring !== null}
+                    busyLabel={t("settings.restore.restoring", { count: restoring ?? 0 })}
                     disabled={restoring !== null}
+                    label={t("settings.restore.action")}
                     onPress={restore}
-                >
-                    {restoring === null ? (
-                        <Text className="font-sans-semibold text-background text-callout">
-                            {t("settings.restore.action")}
-                        </Text>
-                    ) : (
-                        <BusyText className="font-sans-semibold text-callout" color={colors.background}>
-                            {t("settings.restore.restoring", { count: restoring })}
-                        </BusyText>
-                    )}
-                </Pressable>
+                />
             </View>
         </SettingsScreen>
     );
