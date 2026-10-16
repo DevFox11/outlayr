@@ -99,6 +99,12 @@ export const META_KEYS = {
      */
     recurrenceRepaired: "recurrenceRepaired",
     /**
+     * Written when the rhythm step's deferred permission prompt has been shown,
+     * or found nothing to ask. One shot, so a refusal is never asked again on the
+     * next save. Device-local, like the choice it follows.
+     */
+    reminderAsked: "reminderAsked",
+    /**
      * Written when the rhythm step's reminder offer is taken. `notificationOption`
      * cannot stand in for it — its default is a real option, so a skipped step is
      * indistinguishable from a chosen one. The gate's flyleaf and the deferred OS

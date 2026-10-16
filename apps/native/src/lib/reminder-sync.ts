@@ -14,6 +14,8 @@ import {
 import type { TimeOfDay } from "@/domain/reminder";
 import { useForegroundSweep } from "@/lib/use-foreground-sweep";
 
+import { armChosenReminder } from "./chosen-reminder";
+import { freshEntries } from "./fresh-entries";
 import { cancelReminders, pendingReminderIds, reminderPermission, scheduleDatedReminder } from "./reminders";
 import { debounce, PUBLISH_DEBOUNCE_MS } from "./sync-cadence";
 
@@ -79,6 +81,17 @@ export function useDailyReminderSync(db: Database): void {
                 console.error("Daily reminder sync failed", error);
             });
         });
+        // The rhythm step's reminder asks after the user's first saved entry; see
+        // `armChosenReminder`. Only an in-app create marks `freshEntries` (the
+        // form, voice, receipt scan, transfers), never a sync pull, sign-in
+        // adoption or backfill, so the prompt cannot land mid-sign-in. Arming
+        // writes the setting, which resyncs from the listener below.
+        const arm = debounce(PUBLISH_DEBOUNCE_MS, () => {
+            armChosenReminder(db).catch((error) => {
+                console.error("Arming the chosen reminder failed", error);
+            });
+        });
+        const unsubscribe = freshEntries.subscribe(arm.schedule);
         const listener = addDatabaseChangeListener((event) => {
             if (RESYNC_TABLES.has(event.tableName)) {
                 resync.schedule();
@@ -86,6 +99,8 @@ export function useDailyReminderSync(db: Database): void {
         });
         return () => {
             resync.cancel();
+            arm.cancel();
+            unsubscribe();
             listener.remove();
         };
     }, [db]);
