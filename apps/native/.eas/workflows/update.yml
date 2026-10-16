@@ -17,9 +17,18 @@ on:
                 type: string
                 description: Release notes for the What's new sheet, one per line (-F message=$'First\nSecond').
                 required: true
+            # One platform per run: the runtime fingerprint is per platform, so iOS
+            # and Android can each need an OTA or a build on their own.
+            platform:
+                type: choice
+                description: Platform to publish for.
+                options:
+                    - ios
+                    - android
+                default: ios
 
 defaults:
-    image: sdk-57
+    image: sdk-58
 
 jobs:
     # Same stage as testflight.yml, for the same reason: an update can add or
@@ -60,6 +69,7 @@ jobs:
             EAS_BUILD_PROFILE: ${{ inputs.channel }}
             # Not inlined into the script, so backticks in a message stay text.
             UPDATE_MESSAGE: ${{ inputs.message }}
+            UPDATE_PLATFORM: ${{ inputs.platform || 'ios' }}
         steps:
             - uses: eas/checkout
             - uses: eas/install_node_modules
@@ -73,9 +83,14 @@ jobs:
                     production|preview) ;;
                     *) echo "EAS_BUILD_PROFILE did not interpolate: '$EAS_BUILD_PROFILE'" >&2; exit 1 ;;
                   esac
-                  npx eas-cli update --channel "$EAS_BUILD_PROFILE" --message "$UPDATE_MESSAGE" --platform ios --non-interactive
+                  case "$UPDATE_PLATFORM" in
+                    ios|android) ;;
+                    *) echo "UPDATE_PLATFORM did not interpolate: '$UPDATE_PLATFORM'" >&2; exit 1 ;;
+                  esac
+                  npx eas-cli update --channel "$EAS_BUILD_PROFILE" --message "$UPDATE_MESSAGE" --platform "$UPDATE_PLATFORM" --non-interactive
             # An update ships new Hermes chunks, so its source maps are uploaded here;
-            # builds upload theirs from the Xcode phase posthog-react-native/expo adds.
+            # builds upload theirs from the Xcode phase and Gradle script that
+            # posthog-react-native/expo adds.
             - name: Upload source maps to PostHog
               run: |
                   APP_VERSION=$(npx expo config --type public --json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")

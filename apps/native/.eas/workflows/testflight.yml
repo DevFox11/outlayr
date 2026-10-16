@@ -22,9 +22,9 @@ on:
 # fails with ERR_PNPM_NO_LOCKFILE: pnpm 8 cannot read a lockfileVersion 9 lockfile.
 #
 # `sdk-XX` resolves per runner, so this one tag covers both the Linux deploy job
-# and the macOS build. Bump it with every Expo SDK upgrade.
+# and the macOS build. Bump it in every workflow here with every Expo SDK upgrade.
 defaults:
-    image: sdk-57
+    image: sdk-58
 
 jobs:
     # Deploy the backend first so the binary is never newer than the API it calls.

@@ -55,6 +55,7 @@ overrides:
 packageExtensionsChecksum: sha256-vxRN6mijkLwKmGYe9K2T5UqJGw1dzskfO0l88utc9AY=
 
 patchedDependencies:
+  '@expo/fingerprint@0.21.4': b3a5cf680abe34a704357add8c2051e2098386e08e583548273ee760ef525741
   expo-widgets@58.0.15: 6ca73791c8170bfe906fa4b8e8597914db5c2f380a9a2fde37e3275c293d82c9
   number-flow-react-native@0.5.1: 68c4f1f878ed9a15dc006b39f473fe1d5518708c5bf041db100e122212776c2f
   panelui-native@0.109.0: 55096cf0fd93cd173bea780405d0e1ffcc8fe2483863c5c920ed8b2f7dd30880
@@ -12782,7 +12783,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@expo/fingerprint@0.21.4(supports-color@8.1.1)':
+  '@expo/fingerprint@0.21.4(patch_hash=b3a5cf680abe34a704357add8c2051e2098386e08e583548273ee760ef525741)(supports-color@8.1.1)':
     dependencies:
       '@expo/env': 2.5.1(supports-color@8.1.1)
       '@expo/spawn-async': 1.8.0
@@ -18488,7 +18489,7 @@ snapshots:
       '@expo/config': 58.0.4(supports-color@8.1.1)(typescript@6.0.3)
       '@expo/config-plugins': 58.0.7(supports-color@8.1.1)(typescript@6.0.3)
       '@expo/devtools': 58.0.2(expo@58.0.7)(react-native@0.88.0-rc.4(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.4(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
-      '@expo/fingerprint': 0.21.4(supports-color@8.1.1)
+      '@expo/fingerprint': 0.21.4(patch_hash=b3a5cf680abe34a704357add8c2051e2098386e08e583548273ee760ef525741)(supports-color@8.1.1)
       '@expo/local-build-cache-provider': 58.0.4(supports-color@8.1.1)(typescript@6.0.3)
       '@expo/log-box': 58.0.12(@expo/dom-webview@58.0.2)(expo@58.0.7)(react-native@0.88.0-rc.4(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.4(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
       '@expo/log-box-utils': 58.0.2
@@ -18531,7 +18532,7 @@ snapshots:
       '@expo/config': 58.0.4(supports-color@8.1.1)(typescript@6.0.3)
       '@expo/config-plugins': 58.0.7(supports-color@8.1.1)(typescript@6.0.3)
       '@expo/devtools': 58.0.2(expo@58.0.7)(react-native@0.88.0-rc.4(@babel/core@8.0.1)(@react-native/metro-config@0.88.0-rc.4(@babel/core@8.0.1)(supports-color@8.1.1))(@types/react@19.3.0)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
-      '@expo/fingerprint': 0.21.4(supports-color@8.1.1)
+      '@expo/fingerprint': 0.21.4(patch_hash=b3a5cf680abe34a704357add8c2051e2098386e08e583548273ee760ef525741)(supports-color@8.1.1)
       '@expo/local-build-cache-provider': 58.0.4(supports-color@8.1.1)(typescript@6.0.3)
       '@expo/log-box': 58.0.12(@expo/dom-webview@58.0.2)(expo@58.0.7)(react-native@0.88.0-rc.4(@babel/core@8.0.1)(@react-native/metro-config@0.88.0-rc.4(@babel/core@8.0.1)(supports-color@8.1.1))(@types/react@19.3.0)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       '@expo/log-box-utils': 58.0.2

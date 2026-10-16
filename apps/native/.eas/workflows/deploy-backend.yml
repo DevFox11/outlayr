@@ -13,7 +13,7 @@ on:
                 required: true
 
 defaults:
-    image: sdk-57
+    image: sdk-58
 
 jobs:
     deploy_backend:
