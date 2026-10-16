@@ -85,6 +85,8 @@ export function LegalDocument({
     const { locale } = useLocale();
     const current = useCurrentClause(toc);
     const aside = useRef<HTMLElement>(null);
+    // Policies take effect on a date; the deletion how-to only says when it was last checked.
+    const dated = slug === "delete-account" ? legal.updated : legal.effective;
 
     useEffect(() => {
         const nav = aside.current;
@@ -95,7 +97,7 @@ export function LegalDocument({
     }, [current]);
 
     return (
-        <Page lead={intro} meta={legal.effective({ date: legalDate(slug, LANGUAGES[locale].date) })} title={title}>
+        <Page lead={intro} meta={dated({ date: legalDate(slug, LANGUAGES[locale].date) })} title={title}>
             <details className="group bg-surface mt-12 rounded-3xl lg:hidden print:hidden">
                 <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 px-6 py-4 font-mono text-xs tracking-widest uppercase [&::-webkit-details-marker]:hidden">
                     {legal.contents}

@@ -13,6 +13,7 @@ function pages(): [path: string, updated: Date | null][] {
         ["/about", null],
         ["/terms", LEGAL_DAYS.terms],
         ["/privacy", LEGAL_DAYS.privacy],
+        ["/delete-account", LEGAL_DAYS["delete-account"]],
         ["/guides", null],
         ["/compare", new Date(Math.max(...rivals.map(([, checked]) => checked.getTime())))],
         ...Object.keys(guides).map((slug): [string, null] => [`/guides/${slug}`, null]),

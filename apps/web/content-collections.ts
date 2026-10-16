@@ -34,7 +34,7 @@ const legal = defineCollection({
             ...frontmatter,
             locale: z.enum(["en", "es"]).parse(_meta.directory),
             mdx: await compileMDX(context, document, { rehypePlugins: [rehypeSlug], remarkPlugins: [remarkGfm] }),
-            slug: z.enum(["terms", "privacy"]).parse(path.basename(_meta.fileName, ".mdx")),
+            slug: z.enum(["terms", "privacy", "delete-account"]).parse(path.basename(_meta.fileName, ".mdx")),
             toc,
         };
     },

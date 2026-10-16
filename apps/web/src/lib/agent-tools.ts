@@ -28,6 +28,7 @@ function sitePages(locale: Locale): SitePage[] {
         { description: support.meta.description, path: "/support", title: support.meta.title },
         { path: "/privacy", title: notFound.pages.privacy },
         { path: "/terms", title: notFound.pages.terms },
+        { path: "/delete-account", title: notFound.pages.deleteAccount },
         { description: hubs.guides.lead, path: "/guides", title: hubs.guides.meta.title },
         { description: hubs.compare.lead, path: "/compare", title: hubs.compare.meta.title },
         ...Object.entries(guides).map(([slug, guide]) => ({

@@ -20,6 +20,7 @@ import { Route as DotwellKnownHttpMessageSignaturesDirectoryRouteImport } from '
 import { Route as Char123LocaleChar125IndexRouteImport } from './routes/{-$locale}/index'
 import { Route as Char123LocaleChar125SplatRouteImport } from './routes/{-$locale}/$'
 import { Route as Char123LocaleChar125AboutRouteImport } from './routes/{-$locale}/about'
+import { Route as Char123LocaleChar125DeleteAccountRouteImport } from './routes/{-$locale}/delete-account'
 import { Route as Char123LocaleChar125PrivacyRouteImport } from './routes/{-$locale}/privacy'
 import { Route as Char123LocaleChar125SupportRouteImport } from './routes/{-$locale}/support'
 import { Route as Char123LocaleChar125TermsRouteImport } from './routes/{-$locale}/terms'
@@ -90,6 +91,12 @@ const Char123LocaleChar125AboutRoute =
     path: '/about',
     getParentRoute: () => Char123LocaleChar125RouteRoute,
   } as any)
+const Char123LocaleChar125DeleteAccountRoute =
+  Char123LocaleChar125DeleteAccountRouteImport.update({
+    id: '/delete-account',
+    path: '/delete-account',
+    getParentRoute: () => Char123LocaleChar125RouteRoute,
+  } as any)
 const Char123LocaleChar125PrivacyRoute =
   Char123LocaleChar125PrivacyRouteImport.update({
     id: '/privacy',
@@ -150,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/http-message-signatures-directory': typeof DotwellKnownHttpMessageSignaturesDirectoryRoute
   '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
   '/{-$locale}/about': typeof Char123LocaleChar125AboutRoute
+  '/{-$locale}/delete-account': typeof Char123LocaleChar125DeleteAccountRoute
   '/{-$locale}/privacy': typeof Char123LocaleChar125PrivacyRoute
   '/{-$locale}/support': typeof Char123LocaleChar125SupportRoute
   '/{-$locale}/terms': typeof Char123LocaleChar125TermsRoute
@@ -170,6 +178,7 @@ export interface FileRoutesByTo {
   '/.well-known/http-message-signatures-directory': typeof DotwellKnownHttpMessageSignaturesDirectoryRoute
   '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
   '/{-$locale}/about': typeof Char123LocaleChar125AboutRoute
+  '/{-$locale}/delete-account': typeof Char123LocaleChar125DeleteAccountRoute
   '/{-$locale}/privacy': typeof Char123LocaleChar125PrivacyRoute
   '/{-$locale}/support': typeof Char123LocaleChar125SupportRoute
   '/{-$locale}/terms': typeof Char123LocaleChar125TermsRoute
@@ -192,6 +201,7 @@ export interface FileRoutesById {
   '/.well-known/http-message-signatures-directory': typeof DotwellKnownHttpMessageSignaturesDirectoryRoute
   '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
   '/{-$locale}/about': typeof Char123LocaleChar125AboutRoute
+  '/{-$locale}/delete-account': typeof Char123LocaleChar125DeleteAccountRoute
   '/{-$locale}/privacy': typeof Char123LocaleChar125PrivacyRoute
   '/{-$locale}/support': typeof Char123LocaleChar125SupportRoute
   '/{-$locale}/terms': typeof Char123LocaleChar125TermsRoute
@@ -215,6 +225,7 @@ export interface FileRouteTypes {
     | '/.well-known/http-message-signatures-directory'
     | '/{-$locale}/$'
     | '/{-$locale}/about'
+    | '/{-$locale}/delete-account'
     | '/{-$locale}/privacy'
     | '/{-$locale}/support'
     | '/{-$locale}/terms'
@@ -235,6 +246,7 @@ export interface FileRouteTypes {
     | '/.well-known/http-message-signatures-directory'
     | '/{-$locale}/$'
     | '/{-$locale}/about'
+    | '/{-$locale}/delete-account'
     | '/{-$locale}/privacy'
     | '/{-$locale}/support'
     | '/{-$locale}/terms'
@@ -256,6 +268,7 @@ export interface FileRouteTypes {
     | '/.well-known/http-message-signatures-directory'
     | '/{-$locale}/$'
     | '/{-$locale}/about'
+    | '/{-$locale}/delete-account'
     | '/{-$locale}/privacy'
     | '/{-$locale}/support'
     | '/{-$locale}/terms'
@@ -358,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char123LocaleChar125AboutRouteImport
       parentRoute: typeof Char123LocaleChar125RouteRoute
     }
+    '/{-$locale}/delete-account': {
+      id: '/{-$locale}/delete-account'
+      path: '/delete-account'
+      fullPath: '/{-$locale}/delete-account'
+      preLoaderRoute: typeof Char123LocaleChar125DeleteAccountRouteImport
+      parentRoute: typeof Char123LocaleChar125RouteRoute
+    }
     '/{-$locale}/privacy': {
       id: '/{-$locale}/privacy'
       path: '/privacy'
@@ -420,6 +440,7 @@ declare module '@tanstack/react-router' {
 interface Char123LocaleChar125RouteRouteChildren {
   Char123LocaleChar125SplatRoute: typeof Char123LocaleChar125SplatRoute
   Char123LocaleChar125AboutRoute: typeof Char123LocaleChar125AboutRoute
+  Char123LocaleChar125DeleteAccountRoute: typeof Char123LocaleChar125DeleteAccountRoute
   Char123LocaleChar125PrivacyRoute: typeof Char123LocaleChar125PrivacyRoute
   Char123LocaleChar125SupportRoute: typeof Char123LocaleChar125SupportRoute
   Char123LocaleChar125TermsRoute: typeof Char123LocaleChar125TermsRoute
@@ -434,6 +455,8 @@ const Char123LocaleChar125RouteRouteChildren: Char123LocaleChar125RouteRouteChil
   {
     Char123LocaleChar125SplatRoute: Char123LocaleChar125SplatRoute,
     Char123LocaleChar125AboutRoute: Char123LocaleChar125AboutRoute,
+    Char123LocaleChar125DeleteAccountRoute:
+      Char123LocaleChar125DeleteAccountRoute,
     Char123LocaleChar125PrivacyRoute: Char123LocaleChar125PrivacyRoute,
     Char123LocaleChar125SupportRoute: Char123LocaleChar125SupportRoute,
     Char123LocaleChar125TermsRoute: Char123LocaleChar125TermsRoute,

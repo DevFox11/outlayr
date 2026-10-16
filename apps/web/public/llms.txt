@@ -42,6 +42,7 @@
 - [Support](https://tryoutlayr.com/support): restoring and cancelling Pro, refunds, exporting and deleting data
 - [Privacy Policy](https://tryoutlayr.com/privacy): what is collected, where it goes, and how long it is kept
 - [Terms of Use](https://tryoutlayr.com/terms): the terms for Outlayr and Outlayr Pro
+- [Delete your account](https://tryoutlayr.com/delete-account): how to delete an Outlayr account in the app or by email, what is deleted, what is kept and for how long, and how to cancel Outlayr Pro
 
 ## Guides
 
@@ -76,6 +77,7 @@
 - [Soporte](https://tryoutlayr.com/es/support): the support page in Spanish
 - [Política de privacidad](https://tryoutlayr.com/es/privacy): the Privacy Policy in Spanish
 - [Términos de uso](https://tryoutlayr.com/es/terms): the Terms of Use in Spanish
+- [Elimina tu cuenta](https://tryoutlayr.com/es/delete-account): account deletion in Spanish
 - Every guide and comparison has a Spanish version under https://tryoutlayr.com/es, for example https://tryoutlayr.com/es/guides/receipt-scanner
 
 ## Contact

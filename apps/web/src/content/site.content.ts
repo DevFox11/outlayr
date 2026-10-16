@@ -86,10 +86,12 @@ const site = {
         legal: {
             contents: t({ en: "Contents", es: "Contenido" }),
             effective: insert(t({ en: "Effective {{date}}", es: "Vigente desde el {{date}}" })),
+            updated: insert(t({ en: "Updated {{date}}", es: "Actualizado el {{date}}" })),
         },
         notFound: {
             meta: t({ en: "Error 404", es: "Error 404" }),
             pages: {
+                deleteAccount: t({ en: "Delete your account", es: "Elimina tu cuenta" }),
                 home: t({ en: "Home", es: "Inicio" }),
                 privacy: t({ en: "Privacy Policy", es: "Política de privacidad" }),
                 support: t({ en: "Support", es: "Soporte" }),
