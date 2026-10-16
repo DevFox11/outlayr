@@ -19,7 +19,7 @@ import type { SpendDb } from "./budget-spent";
 import { suggestedCardFee } from "./card-fees-core";
 import { MIN_KEY_LENGTH, queueEnrichment } from "./enrichment-queue-core";
 import { backfillRecurring, occurrenceId } from "./recurrence-backfill";
-import { readBoolSetting } from "./settings-core";
+import { readRemoteEnrichment } from "./settings-core";
 import { transactionsRepo } from "./transactions-core";
 
 /**
@@ -446,9 +446,7 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
         }
         const known = await knownCategory(db, job);
         const lookup =
-            known == null &&
-            merchantKey(job.note).length >= MIN_KEY_LENGTH &&
-            (await readBoolSetting(db, "aiEnrichment"));
+            known == null && merchantKey(job.note).length >= MIN_KEY_LENGTH && (await readRemoteEnrichment(db));
         const categoryId = known ?? (lookup ? null : await firstCategory(db, job.income));
         if (categoryId == null && !lookup) {
             // Dropping beats inventing a category the user never made.

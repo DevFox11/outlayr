@@ -51,22 +51,6 @@ const onboarding = {
             en: "What are your numbers in?",
             es: "¿En qué moneda manejas tu dinero?",
         }),
-        "onboarding.grounding.body": t({
-            en: "For a name Outlayr has never seen, it may search the public web once to learn its category — only the merchant name, whether it is an expense or income, the entry's currency code and your language and region leave your device, never an amount, date or account. On by default; change it any time in Settings.",
-            es: "Si Outlayr no conoce un comercio, puede buscarlo una vez en la web pública para saber su categoría. Solo salen de tu dispositivo el nombre del comercio, si es gasto o ingreso, el código de moneda de la entrada y tu idioma y región. Nunca un monto, una fecha ni una cuenta. Viene activado; cámbialo cuando quieras en Configuración.",
-        }),
-        "onboarding.grounding.eyebrow": t({
-            en: "Coverage",
-            es: "Cobertura",
-        }),
-        "onboarding.grounding.title": t({
-            en: "Teach it the merchants it doesn't know",
-            es: "Enséñale los comercios que no conoce",
-        }),
-        "onboarding.grounding.toggle": t({
-            en: "Look up unfamiliar merchants",
-            es: "Buscar comercios desconocidos",
-        }),
         "onboarding.rhythm.body": t({
             en: "One quiet nudge each evening. iOS isn't asked for permission until your first entry is saved.",
             es: "Un aviso discreto cada noche. iOS no te pide permiso hasta que guardes tu primera entrada.",

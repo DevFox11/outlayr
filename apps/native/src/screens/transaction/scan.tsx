@@ -13,6 +13,7 @@ import { Linking, ScrollView, Text, useWindowDimensions, View } from "react-nati
 import Animated, { FadeIn, FadeInDown, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AiConsentGate } from "@/components/ai-consent";
 import { LimitToast } from "@/components/limit-toast";
 import { PhotoStage } from "@/components/receipt/photo-stage";
 import type { StageBox } from "@/components/receipt/photo-stage";
@@ -25,6 +26,7 @@ import { useGlobalCurrency } from "@/data/app-meta";
 import { suggestedCardFee } from "@/data/card-fees-core";
 import { useCategoriesByNamespace } from "@/data/categories";
 import { getCategoryById } from "@/data/categories-core";
+import { useAiConsent } from "@/data/settings";
 import { transactionsRepo } from "@/data/transactions-core";
 import { useValuationIn } from "@/data/use-valuation";
 import type { AuthGate } from "@/domain/auth-gate";
@@ -914,12 +916,14 @@ function ScanFlowScreen() {
  * The scan screen. The picker, the request and the review only exist for a
  * signed-in session, because the action they call authenticates on the Convex
  * client the root layout mounts only then; every other gate gets the same
- * frame with the reason.
+ * frame with the reason. Signed in, xAI has to be allowed before the camera
+ * is: the photo is sent the moment it is taken.
  */
 export function ReceiptScanScreen() {
     const { gate } = useAuthSession();
+    const consent = useAiConsent(useDatabase());
     if (gate === "signed-in") {
-        return <ScanFlowScreen />;
+        return consent === "allowed" ? <ScanFlowScreen /> : <AiConsentGate />;
     }
     return <ScanGateScreen gate={gate} />;
 }

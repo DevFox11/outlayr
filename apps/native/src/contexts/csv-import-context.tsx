@@ -4,6 +4,7 @@ import { useAppSettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useCategoryMeta } from "@/data/categories";
 import type { CategoryMetaRow } from "@/data/categories";
+import { remoteEnrichmentOn } from "@/data/settings-core";
 import { categoryKey, uniqueCategoryValues } from "@/data/transfer-core";
 import type { ParsedImportFile } from "@/data/transfer-core";
 import type { MappingDraft } from "@/domain/import-mapping";
@@ -57,7 +58,7 @@ export function CsvImportProvider({ children }: { children: React.ReactNode }) {
     const db = useDatabase();
     const meta = useCategoryMeta(db);
     const settings = useAppSettings().state;
-    const aiEnrichment = settings.bool("aiEnrichment");
+    const aiEnrichment = remoteEnrichmentOn(settings.bool);
     const groundedLookup = settings.bool("groundedLookup");
     const regionCode = useRegionCode();
     const { flow: state } = useImportDraft();

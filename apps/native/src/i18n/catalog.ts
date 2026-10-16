@@ -12,6 +12,7 @@ import type { Catalog } from "./translate";
  * then fails to bundle, which is how it reached a device build.
  */
 type Accounts = typeof import("@/content/accounts.content").default;
+type AiConsent = typeof import("@/content/ai-consent.content").default;
 type Alerts = typeof import("@/content/alerts.content").default;
 type Auth = typeof import("@/content/auth.content").default;
 type Budgets = typeof import("@/content/budgets.content").default;
@@ -45,6 +46,7 @@ type Watch = typeof import("@/content/watch.content").default;
  */
 export const DICTIONARY_KEYS = [
     "accounts",
+    "ai-consent",
     "alerts",
     "auth",
     "budgets",
@@ -74,6 +76,7 @@ export const DICTIONARY_KEYS = [
 
 type Content =
     | Accounts["content"]
+    | AiConsent["content"]
     | Alerts["content"]
     | Auth["content"]
     | Budgets["content"]

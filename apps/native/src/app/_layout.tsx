@@ -15,6 +15,7 @@ import { Pressable, useWindowDimensions, View } from "react-native";
 import { SafeAreaListener, SafeAreaProvider } from "react-native-safe-area-context";
 import { Uniwind, useCSSVariable } from "uniwind";
 
+import { AiConsentSheet } from "@/components/ai-consent";
 import { AppLockGate } from "@/components/app-lock-gate";
 import { AuthCover } from "@/components/auth-cover";
 import { CelebrationConfetti } from "@/components/confetti";
@@ -187,6 +188,7 @@ function RootNavigator({ fontsLoaded }: { fontsLoaded: boolean }) {
                                     <RootStack />
                                     <Analytics />
                                     <UpdateSheet />
+                                    <AiConsentSheet />
                                     <CelebrationConfetti />
                                 </AppLockGate>
                             </AuthCover>
@@ -294,7 +296,7 @@ function RootStack() {
 				    stock theme card differs from the flow's `--fr-ground` — an opaque
 				    bar would band the top. */}
                 <Stack.Screen name="onboarding/currency" options={FIRST_RUN_STEP} />
-                <Stack.Screen name="onboarding/grounding" options={FIRST_RUN_STEP} />
+                <Stack.Screen name="onboarding/smart-features" options={FIRST_RUN_STEP} />
                 <Stack.Screen name="onboarding/rhythm" options={FIRST_RUN_STEP} />
             </Stack.Protected>
 

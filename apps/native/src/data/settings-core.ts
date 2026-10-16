@@ -18,6 +18,7 @@ export type BoolSettingKey =
     | "showNotifications"
     | "subscriptionReminders"
     | "categorySuggestions"
+    | "aiConsent"
     | "aiEnrichment"
     | "groundedLookup"
     | "hideAmounts"
@@ -43,6 +44,7 @@ export type NumberSettingKey =
 
 export const SETTING_DEFAULTS = {
     accentColor: 0,
+    aiConsent: false,
     aiEnrichment: true,
     animatedCharts: true,
     biometricLock: false,
@@ -107,6 +109,28 @@ export const NUMBER_ENTRY_OPTIONS: readonly ChoiceOption[] = [
     },
 ];
 
+/**
+ * The answer to "Send data to xAI?". No stored row is a question not yet asked,
+ * which a parsed bool cannot tell apart from Not now; the launch sheet asks only
+ * the first. Nothing reaches xAI until it is `allowed`.
+ */
+export type AiConsent = "unanswered" | "allowed" | "declined";
+
+export function parseAiConsent(raw: string | null): AiConsent {
+    if (raw == null) {
+        return "unanswered";
+    }
+    return parseBoolSetting(raw, false) ? "allowed" : "declined";
+}
+
+/**
+ * Whether a merchant name may go to xAI for a category: the person allowed
+ * sending data to xAI and kept Suggest category and tags on.
+ */
+export function remoteEnrichmentOn(bool: (key: BoolSettingKey) => boolean): boolean {
+    return bool("aiConsent") && bool("aiEnrichment");
+}
+
 export function onOffLabel(value: boolean): TranslationKey {
     return value ? "common.on" : "common.off";
 }
@@ -136,6 +160,15 @@ export async function readBoolSetting(db: Database, key: BoolSettingKey): Promis
 
 export async function readNumberSetting(db: Database, key: NumberSettingKey): Promise<number> {
     return parseIntSetting(await getMeta(db, key), SETTING_DEFAULTS[key]);
+}
+
+/** `remoteEnrichmentOn` for a background pass, read at the moment it would send. */
+export async function readRemoteEnrichment(db: Database): Promise<boolean> {
+    const [consent, enrichment] = await Promise.all([
+        readBoolSetting(db, "aiConsent"),
+        readBoolSetting(db, "aiEnrichment"),
+    ]);
+    return consent && enrichment;
 }
 
 export async function setBoolSetting(db: Database, key: BoolSettingKey, value: boolean): Promise<void> {

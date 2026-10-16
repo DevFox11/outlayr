@@ -19,6 +19,7 @@ import Animated, {
 import type { SharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AiConsentGate } from "@/components/ai-consent";
 import { FlowAmount } from "@/components/amount-text";
 import { intervalPhrase } from "@/components/custom-schedule-sheet";
 import { LimitToast } from "@/components/limit-toast";
@@ -32,6 +33,7 @@ import { suggestedCardFee } from "@/data/card-fees-core";
 import { useCategoriesByNamespace } from "@/data/categories";
 import { getCategoryById } from "@/data/categories-core";
 import { backfillRecurring } from "@/data/recurrence-backfill";
+import { useAiConsent } from "@/data/settings";
 import { transactionsRepo } from "@/data/transactions-core";
 import { transfersRepo } from "@/data/transfers-core";
 import type { AuthGate } from "@/domain/auth-gate";
@@ -938,11 +940,13 @@ function VoiceThreadScreen() {
  * The voice screen. The thread, the recorder and the turns subscription only
  * exist for a signed-in session, because the Convex provider they need is
  * mounted only then; every other gate gets the same frame with the reason.
+ * Signed in, xAI has to be allowed first: the recorder starts as it mounts.
  */
 export function VoiceEntryScreen() {
     const { gate } = useAuthSession();
+    const consent = useAiConsent(useDatabase());
     if (gate === "signed-in") {
-        return <VoiceThreadScreen />;
+        return consent === "allowed" ? <VoiceThreadScreen /> : <AiConsentGate />;
     }
     return <VoiceGateScreen gate={gate} />;
 }

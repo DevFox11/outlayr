@@ -98,9 +98,9 @@ export function OnboardingCurrency() {
             try {
                 await setCurrency(db, code);
                 if (meta === "continue") {
-                    // The root guard does not swap on this write alone — grounding is
-                    // next, so this screen has to push there itself.
-                    router.push("/onboarding/grounding");
+                    // The root guard does not swap on this write alone — the xAI
+                    // question is next, so this screen has to push there itself.
+                    router.push("/onboarding/smart-features");
                 } else {
                     // Nothing navigates on success here: `finishOnboarding` settles the
                     // root guard, which swaps this stack for sign-in. Pushing as well

@@ -71,6 +71,10 @@ const settingsFeatureLab = {
             en: "Transaction rows",
             es: "Filas de transacción",
         }),
+        "settings.featureLab.xaiNote": t({
+            en: "Both go to Grok, made by xAI, and only while Send data to xAI is on in Settings.",
+            es: "Ambas van a Grok, de xAI, y solo mientras Enviar datos a xAI esté activado en Configuración.",
+        }),
     },
     key: "settings-feature-lab" as const,
 } satisfies Dictionary;

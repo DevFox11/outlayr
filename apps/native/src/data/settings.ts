@@ -7,8 +7,14 @@ import { appMeta } from "@/db/schema";
 
 import { useLiveQuery, useLiveValue } from "./live-query";
 import type { SyncQuery } from "./live-query";
-import { parseBoolSetting, parseIntSetting, SETTING_DEFAULTS, seedClockPreference } from "./settings-core";
-import type { BoolSettingKey, NumberSettingKey } from "./settings-core";
+import {
+    parseAiConsent,
+    parseBoolSetting,
+    parseIntSetting,
+    SETTING_DEFAULTS,
+    seedClockPreference,
+} from "./settings-core";
+import type { AiConsent, BoolSettingKey, NumberSettingKey } from "./settings-core";
 
 export interface SettingsSnapshot {
     bool: (key: BoolSettingKey) => boolean;
@@ -51,6 +57,16 @@ export function useBoolSetting(db: Database | null, key: BoolSettingKey): boolea
         () => selectSetting(db, key),
         (rows) => parseBoolSetting(rows[0]?.value ?? null, SETTING_DEFAULTS[key]),
         [db, key]
+    );
+}
+
+/** The `aiConsent` row with an unasked question kept apart from Not now. */
+export function useAiConsent(db: Database | null): AiConsent {
+    return useLiveValue(
+        appMeta,
+        () => selectSetting(db, "aiConsent"),
+        (rows) => parseAiConsent(rows[0]?.value ?? null),
+        [db]
     );
 }
 

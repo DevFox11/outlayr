@@ -2,7 +2,7 @@ import { File } from "expo-file-system";
 
 import { attachMissingLogos } from "@/data/logo-backfill-core";
 import type { LogoBackfillDeps } from "@/data/logo-backfill-core";
-import { readBoolSetting } from "@/data/settings-core";
+import { readBoolSetting, readRemoteEnrichment } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import { firstLocale } from "@/i18n/device-language";
 import { persistLogo } from "@/lib/persist-logo";
@@ -12,9 +12,9 @@ import { fetchMerchantImage } from "./logo-fetch";
 
 /**
  * The production wiring for `attachMissingLogos`: the same consent gates the
- * form honours (`aiEnrichment` keeps every lookup on-device, `groundedLookup`
- * is passed through for the server to re-check), the device locale, and the
- * real image and photo pipelines.
+ * form honours (`readRemoteEnrichment` keeps every lookup on-device until xAI
+ * is allowed and suggestions are on, `groundedLookup` is passed through for the
+ * server to re-check), the device locale, and the real image and photo pipelines.
  */
 /**
  * Names the database the passes of this session will run against, before
@@ -78,7 +78,7 @@ export function discardLogo(imageUri: string): void {
 }
 
 async function runBackfill(db: Database, cancelled: () => boolean): Promise<number> {
-    const remoteEnabled = await readBoolSetting(db, "aiEnrichment");
+    const remoteEnabled = await readRemoteEnrichment(db);
     const device = firstLocale();
     const locale = device?.languageTag?.trim() || undefined;
     const regionCode = device?.regionCode?.trim() || undefined;
@@ -94,13 +94,13 @@ async function runBackfill(db: Database, cancelled: () => boolean): Promise<numb
                       // pass outlives the screen the settings are on, a name must not
                       // leave the device after consent went, nor reach the web after
                       // that consent went.
-                      const [aiEnrichment, groundedLookup] = await Promise.all([
-                          readBoolSetting(db, "aiEnrichment"),
+                      const [remoteEnrichment, groundedLookup] = await Promise.all([
+                          readRemoteEnrichment(db),
                           readBoolSetting(db, "groundedLookup"),
                       ]);
                       // The reads awaited; a cancel that landed during them (the
                       // device erase) sends nothing and is not made to wait.
-                      if (!aiEnrichment || cancelled()) {
+                      if (!remoteEnrichment || cancelled()) {
                           return null;
                       }
                       const result = await transport({

@@ -24,6 +24,7 @@ export const AI_TIER_MAX_ROWS = 5000;
 const CLIENT_TIMEOUT_MS = 15_000;
 
 export interface UseCsvImportArgs {
+    /** `remoteEnrichmentOn`: xAI allowed and suggestions on. False matches on the device only. */
     aiEnrichment: boolean;
     categoryIdByKey: ReadonlyMap<string, string>;
     categoryTree: readonly CategoryBranch[];

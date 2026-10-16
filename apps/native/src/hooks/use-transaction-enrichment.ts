@@ -74,7 +74,7 @@ export interface UseTransactionEnrichmentArgs {
      * user may run an English UI on a device set to a different region.
      */
     regionCode?: string;
-    /** The `aiEnrichment` setting. False keeps every lookup on-device. */
+    /** `remoteEnrichmentOn`: xAI allowed and suggestions on. False keeps every lookup on-device. */
     remoteEnabled?: boolean;
     /**
      * What the ledger already knows about this merchant. Omitted in tests that
@@ -439,7 +439,9 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
 
     /** A fast result that already carried a domain suppresses this follow-up entirely. */
     const runGroundedFollowUp = useCallback(async () => {
-        if (!latest.current.groundedLookup) {
+        // `remoteEnabled` too: a merchant the ledger already knew records an
+        // outcome without asking anyone, and must not send its name from here.
+        if (!latest.current.groundedLookup || !latest.current.remoteEnabled) {
             return;
         }
         const key = merchantKey(nameRef.current);

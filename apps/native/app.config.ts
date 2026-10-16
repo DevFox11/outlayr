@@ -246,9 +246,9 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
         [
             "expo-image-picker",
             {
-                cameraPermission: "Outlayr uses the camera to scan a receipt.",
+                cameraPermission: "Outlayr uses the camera to scan a receipt. The photo goes to xAI to read it.",
                 photosPermission:
-                    "Outlayr uses your photos to set a custom logo for a transaction or to scan a receipt.",
+                    "Outlayr uses your photos to set a custom logo for a transaction or to scan a receipt, which sends that photo to xAI to read it.",
             },
         ],
         [
@@ -264,7 +264,8 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
                 // Android media playback service. Voice entry only records in the
                 // foreground, and App Review rejects the unused mode (2.5.4).
                 enableBackgroundPlayback: false,
-                microphonePermission: "Outlayr listens while you speak an entry, then writes it down for you.",
+                microphonePermission:
+                    "Outlayr listens while you speak an entry. The recording goes to xAI to write it down for you.",
                 recordAudioAndroid: true,
             },
         ],

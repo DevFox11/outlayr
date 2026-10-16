@@ -31,7 +31,7 @@ export interface UseAccountIdentityArgs {
     onLogo: (logo: AccountLogo) => void;
     persistLogo?: (bytes: Uint8Array) => Promise<AccountLogo>;
     regionCode?: string;
-    /** The `aiEnrichment` setting. False keeps every lookup on-device. */
+    /** `remoteEnrichmentOn`: xAI allowed and suggestions on. False keeps every lookup on-device. */
     remoteEnabled?: boolean;
     /** Injected in tests; production resolves the real Convex call. */
     transport?: EnrichmentFn | null;

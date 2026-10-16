@@ -113,6 +113,8 @@ describe("applyPendingWrites", () => {
     beforeEach(async () => {
         db = makeDb();
         await seedCategories(db);
+        // The baseline is someone who allowed xAI, so an unseen merchant waits on the lookup.
+        await setBoolSetting(db, "aiConsent", true);
     });
 
     it("files a bank app's push under its account in the charge's currency", async () => {
@@ -785,6 +787,16 @@ describe("applyPendingWrites", () => {
         const [row] = await db.select({ categoryId: transactions.categoryId, id: transactions.id }).from(transactions);
         expect(row?.categoryId).toBeNull();
         expect(JSON.parse((await getMeta(db, META_KEYS.enrichmentOutbox)) ?? "[]")).toStrictEqual([row?.id]);
+    });
+
+    it("files an unseen merchant under the first category until xAI is allowed", async () => {
+        await setBoolSetting(db, "aiConsent", false);
+
+        await applyPendingWrites(db, [walletWrite("a")], NOW);
+
+        const [row] = await db.select({ categoryId: transactions.categoryId }).from(transactions);
+        expect(row?.categoryId).toBe("cat-expense");
+        await expect(getMeta(db, META_KEYS.enrichmentOutbox)).resolves.toBeNull();
     });
 
     it("files an unseen merchant under the first category when lookups are off", async () => {

@@ -1,6 +1,6 @@
 ---
 title: "Privacy Policy"
-description: "What Outlayr stores on your device, what reaches our servers, AI provider, and analytics service, how long it is kept, and how to delete it. Updated 10 October 2026."
+description: "What Outlayr stores on your device, what reaches our servers, AI provider, and analytics service, how long it is kept, and how to delete it. Updated 16 October 2026."
 intro: "This policy explains what Outlayr collects, where it goes, how long it stays, and what you can do about it."
 ---
 
@@ -9,7 +9,7 @@ intro: "This policy explains what Outlayr collects, where it goes, how long it s
 - Your ledger is stored on your device. You can use Outlayr without an account, and then your entries, amounts, and notes never leave the phone.
 - An account (Sign in with Apple or Google) turns on merchant suggestions, voice entry, and receipt scans. With Outlayr Pro it also turns on sync, which keeps a copy of your ledger and photos on our servers until you delete your account.
 - Voice entries, receipt scans, and merchant suggestions are processed by xAI. We don’t store your recordings or scanned photos, and we never send xAI your name, email, or account ID.
-- Merchant suggestions and web lookups are on by default. You can object to either by turning it off in **Settings › Feature lab**.
+- Nothing goes to xAI until you allow it. The app asks during setup, or after you sign in, and Speak an entry and Scan a receipt ask again until you do. Withdraw it any time in **Settings › Send data to xAI**. Once allowed, merchant suggestions and web lookups are on, and each can be turned off in **Settings › Feature lab**.
 - The app sends usage analytics and crash reports to PostHog: which screens you open, when you save something, and errors. Never amounts, merchants, notes, or names. It starts off if your device’s region is in the EEA or UK, and on everywhere else. Change it in **Settings › Share analytics**.
 - This website uses PostHog too, with a cookie. If you’re in the EEA or UK, it asks first. Change your answer in the footer under **Cookies**.
 - You can connect an AI assistant such as Claude to your account. Once you approve it, it can read what your devices synced, and with Outlayr Pro add entries. What it reads is handled under that assistant’s privacy policy.
@@ -103,7 +103,7 @@ Turning sync off stops that device from sending changes. It doesn’t remove wha
 
 ## Suggestions, voice, and receipts
 
-These features need an account. Each request goes to our server first, which checks your account and limits, then forwards only the content listed below to xAI. None of them send xAI your name, email, or account ID.
+These features need an account, and none of them run until you allow sending data to xAI when the app asks. Turning off **Settings › Send data to xAI** stops all of them. Each request goes to our server first, which checks your account and limits, then forwards only the content listed below to xAI. None of them send xAI your name, email, or account ID.
 
 ### Merchant suggestions (Smart fill)
 
@@ -111,13 +111,13 @@ When you type, speak, scan, or log from Apple Pay a merchant Outlayr doesn’t r
 
 Our server first checks a shared list of known merchants (below). If the merchant isn’t there, it asks xAI’s Grok model, and the answer (a category, tags, an emoji, and the merchant’s web address) comes back to your device. Saved entries that still have no logo may be looked up again in the background. Those requests wait on our server only until your device collects the answer.
 
-On by default. Turn it off in **Settings › Feature lab › Suggest category and tags**.
+On once you allow sending data to xAI. Turn it off in **Settings › Feature lab › Suggest category and tags**.
 
 ### Web lookup of new merchants
 
 If the model can’t place a merchant and you have Pro, our server may ask xAI to search the web for it. xAI’s model runs the searches, using the merchant name and sometimes a country or city. It receives the merchant name, expense or income, currency code, language, and region, and for background lookups, your category names too. A web lookup usually improves the answer for the next entry with that merchant rather than the one you’re typing.
 
-On by default. Turn it off in **Settings › Feature lab › Look up new merchants**. The app sends your choice with every request, and our server also honors the synced setting, so no web lookup runs for you while it’s off.
+On once you allow sending data to xAI. Turn it off in **Settings › Feature lab › Look up new merchants**. The app sends your choice with every request, and our server also honors the synced setting, so no web lookup runs for you while it’s off.
 
 ### The shared merchant list
 
@@ -218,7 +218,8 @@ If you’re in the European Economic Area or the United Kingdom, we rely on thes
 | Purpose | Legal basis |
 | --- | --- |
 | Your account, sync, photo storage, voice entry, receipt scans, CSV import, Pro, and AI assistant connections | Contract: we need this data to provide what you ask for. |
-| Merchant suggestions, web lookups, the shared merchant list, and logos | Legitimate interests: making entries faster to file. Suggestions and web lookups are on by default, and turning either off in Feature lab is how you object. |
+| Sending voice entries, receipt photos, CSV descriptions, and merchant names to xAI | Your consent, given with Allow when the app asks and withdrawn in **Settings › Send data to xAI**. |
+| Merchant suggestions, web lookups, the shared merchant list, and logos | Legitimate interests: making entries faster to file. Suggestions and web lookups reach xAI only once you allow it, and turning either off in Feature lab is how you object. |
 | Sessions, usage limits, error logs, assistant tool logs, and update checks | Legitimate interests: keeping Outlayr secure, working, and free of abuse. |
 | Usage analytics and crash reports | Your consent. Share analytics starts off when your device’s region is in the EEA or UK. Turning it on gives consent, and turning it off withdraws it. |
 | Website analytics | Your consent for the cookie and visit recordings, asked on your first visit. Declining withdraws it. A declined visit is still counted without a cookie, under our legitimate interest in knowing how many people visit. |

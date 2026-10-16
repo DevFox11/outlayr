@@ -60,7 +60,7 @@ import { useRecentMerchants } from "@/data/merchant-history";
 import { rememberedCategoryFor } from "@/data/merchant-history-core";
 import { applyMerchantToSiblings } from "@/data/merchant-siblings-core";
 import { backfillRecurring } from "@/data/recurrence-backfill";
-import { setBoolSetting } from "@/data/settings-core";
+import { remoteEnrichmentOn, setBoolSetting } from "@/data/settings-core";
 import { splitsRepo } from "@/data/splits-core";
 import { useTagIdsFor, useTags } from "@/data/tags";
 import { tagIdsForQuery, tagsRepo } from "@/data/tags-core";
@@ -1127,8 +1127,8 @@ export function TransactionForm({
             celebration.fire();
         }
     };
-    const aiEnrichment = useAppSettings().state.bool("aiEnrichment");
-    const queueable = (merchant: string) => aiEnrichment && merchant.trim() !== "";
+    const remoteEnrichment = remoteEnrichmentOn(useAppSettings().state.bool);
+    const queueable = (merchant: string) => remoteEnrichment && merchant.trim() !== "";
     const groundedLookup = useAppSettings().state.bool("groundedLookup");
     const containerHeight = useSharedValue(0);
     const heroRestTop = useDerivedValue(() => HERO_REST_TOP);
@@ -1669,7 +1669,7 @@ export function TransactionForm({
         onSuggest: applySuggestion,
         recallMerchant: recallBookMerchant,
         regionCode,
-        remoteEnabled: aiEnrichment,
+        remoteEnabled: remoteEnrichment,
         resolveHistory,
         resolveLocal,
     });

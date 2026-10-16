@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { AppState } from "react-native";
 
 import { applyEnrichmentAnswer, sendQueuedEnrichment } from "@/data/enrichment-queue-core";
-import { readBoolSetting } from "@/data/settings-core";
+import { readBoolSetting, readRemoteEnrichment } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import { firstLocale } from "@/i18n/device-language";
 import { persistLogo } from "@/lib/persist-logo";
@@ -19,7 +19,7 @@ import { fetchMerchantImage } from "./logo-fetch";
 let sends: Promise<unknown> = Promise.resolve();
 
 async function sendOnce(db: Database): Promise<number> {
-    if (!isCloudAuthenticated() || !(await readBoolSetting(db, "aiEnrichment"))) {
+    if (!isCloudAuthenticated() || !(await readRemoteEnrichment(db))) {
         return 0;
     }
     const device = firstLocale();

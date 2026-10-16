@@ -12,8 +12,8 @@ const importSheet = {
             es: "Elegir otro archivo",
         }),
         "import.declinedBody": t({
-            en: "AI suggestions are off in Settings → Feature Lab.",
-            es: "Las sugerencias de IA están desactivadas en Configuración → Laboratorio de funciones.",
+            en: "AI suggestions are off in Settings.",
+            es: "Las sugerencias de IA están desactivadas en Configuración.",
         }),
         "import.doneAddedLabel": t({
             en: "Added",

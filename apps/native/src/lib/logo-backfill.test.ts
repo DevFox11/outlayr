@@ -7,6 +7,7 @@ jest.mock("@/data/logo-backfill-core", () => ({
 }));
 jest.mock("@/data/settings-core", () => ({
     readBoolSetting: jest.fn(async () => false),
+    readRemoteEnrichment: jest.fn(async () => false),
 }));
 jest.mock("./convex", () => ({ convex: null, enrichmentTransport: () => null }));
 jest.mock("./logo-fetch", () => ({ fetchMerchantImage: jest.fn() }));

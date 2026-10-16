@@ -97,6 +97,7 @@ export function Settings() {
     const showNotifications = settings.bool("showNotifications");
     const biometricLock = settings.bool("biometricLock");
     const shareAnalytics = settings.bool("shareAnalytics");
+    const aiConsent = settings.bool("aiConsent");
     const incomeTracking = settings.bool("incomeTracking");
     const showUpcoming = settings.bool("showUpcoming");
     const animatedCharts = settings.bool("animatedCharts");
@@ -272,6 +273,14 @@ export function Settings() {
                     }}
                     title={t("settings.row.shareAnalytics")}
                     value={shareAnalytics}
+                />
+                <ToggleRow
+                    icon="Sparkles"
+                    onValueChange={(next) => {
+                        setBoolSetting(db, "aiConsent", next);
+                    }}
+                    title={t("settings.row.sendToXai")}
+                    value={aiConsent}
                 />
                 <PickerRow
                     icon="Tap01"

@@ -357,6 +357,28 @@ describe("tier 1.9: the merchant book this device already filled", () => {
         expect(suggestion).toMatchObject({ domain: "example.com", source: "remote" });
     });
 
+    it("sends nothing for a remembered merchant without a domain while remote lookups are off", async () => {
+        const transport = deferredTransport();
+        const recallMerchant = jest.fn<NonNullable<UseTransactionEnrichmentArgs["recallMerchant"]>>(async () => ({
+            ...REMOTE_RESULT,
+            domain: null,
+        }));
+        const { result } = await renderHook(() =>
+            useTransactionEnrichment(baseArgs({ recallMerchant, remoteEnabled: false, transport: transport.fn }))
+        );
+
+        await act(async () => {
+            result.current.onNameChange(UNKNOWN);
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        });
+        await act(async () => {
+            jest.advanceTimersByTime(GROUNDED_IDLE_MS - DEBOUNCE_MS);
+        });
+
+        expect(recallMerchant).toHaveBeenCalledWith(UNKNOWN, undefined);
+        expect(transport.fn).not.toHaveBeenCalled();
+    });
+
     it("still asks the backend for a merchant it has never seen", async () => {
         const transport = deferredTransport();
         const recallMerchant = jest.fn<NonNullable<UseTransactionEnrichmentArgs["recallMerchant"]>>(async () => null);
