@@ -2,6 +2,8 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 
 import { CloseToolbar } from "@/components/close-toolbar";
+import { RestingSheetFrame } from "@/components/resting-sheet-frame";
+import { ScreenHeader } from "@/components/screen-header";
 import TransferEditor from "@/components/transfer-editor";
 import { useDatabase } from "@/contexts/local-data-context";
 import { savedTransfer } from "@/data/transfers-core";
@@ -16,7 +18,7 @@ export function EditTransfer({ id }: { id: string }) {
     const db = useDatabase();
     const t = useTranslation();
     const { requestDelete } = useDeferredDelete("row");
-    const { awake, rest, sheet } = useRestingSheet(t("transfers.title"));
+    const { awake, height, rest, sheet } = useRestingSheet(t("transfers.title"));
     const [saved] = useState(() => savedTransfer(db, id));
 
     useEffect(() => {
@@ -32,19 +34,21 @@ export function EditTransfer({ id }: { id: string }) {
     return (
         <>
             <Stack.Screen options={sheet} />
-            {awake ? <Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title> : null}
+            <ScreenHeader title={awake ? t("transfers.title") : undefined} />
             <CloseToolbar placement="left" />
 
-            <TransferEditor
-                onDelete={() => {
-                    requestDelete(id);
-                    leave();
-                }}
-                onDirtyChange={setDirty}
-                onDone={leave}
-                rest={rest}
-                saved={saved}
-            />
+            <RestingSheetFrame height={height}>
+                <TransferEditor
+                    onDelete={() => {
+                        requestDelete(id);
+                        leave();
+                    }}
+                    onDirtyChange={setDirty}
+                    onDone={leave}
+                    rest={rest}
+                    saved={saved}
+                />
+            </RestingSheetFrame>
         </>
     );
 }

@@ -48,6 +48,7 @@ import { identityPickerDetent } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
 import { useSubscriptionReminderTaps } from "@/lib/use-subscription-reminder-taps";
 import { useWalletPushTaps } from "@/lib/use-wallet-push-taps";
+import { useStackChrome } from "@/navigation/stack-chrome";
 import { BODY_FONTS } from "@/theme/body-fonts";
 import { useAccent } from "@/theme/use-accent";
 import { useApplyThemePreference } from "@/theme/use-theme-preference";
@@ -247,20 +248,6 @@ function RouteGate({
 }
 
 /**
- * A bare chevron over the step's own background: `minimal` drops the back title,
- * which would otherwise read the cover's title from behind it. `fade` swaps the
- * default horizontal push for a crossfade, so advancing reads as the stage
- * trading objects rather than a new page sliding in.
- */
-const FIRST_RUN_STEP = {
-    animation: "fade",
-    headerBackButtonDisplayMode: "minimal",
-    headerShadowVisible: false,
-    headerTransparent: true,
-    title: "",
-} as const;
-
-/**
  * Split from `RootNavigator` so `useDatabase` is only ever called below the
  * splash gate, where the database is guaranteed open.
  */
@@ -273,6 +260,7 @@ function RootStack() {
     const { status: adoption } = useLedgerAdoption();
     const { height: windowHeight } = useWindowDimensions();
     const pickerDetent = identityPickerDetent(windowHeight);
+    const chrome = useStackChrome();
     useDailyReminderSync(db);
     useSubscriptionReminderSync(db);
     useSeededClockPreference(db);
@@ -296,9 +284,9 @@ function RootStack() {
 				    brings the matching hit target with it. Transparent, because the
 				    stock theme card differs from the flow's `--fr-ground` — an opaque
 				    bar would band the top. */}
-                <Stack.Screen name="onboarding/currency" options={FIRST_RUN_STEP} />
-                <Stack.Screen name="onboarding/smart-features" options={FIRST_RUN_STEP} />
-                <Stack.Screen name="onboarding/rhythm" options={FIRST_RUN_STEP} />
+                <Stack.Screen name="onboarding/currency" options={chrome.firstRunStep} />
+                <Stack.Screen name="onboarding/smart-features" options={chrome.firstRunStep} />
+                <Stack.Screen name="onboarding/rhythm" options={chrome.firstRunStep} />
             </Stack.Protected>
 
             {/* Behind onboarding, not in front of it: the currency step is the only
@@ -322,92 +310,35 @@ function RootStack() {
             <Stack.Protected guard={group === "ledger"}>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
-                <Stack.Screen
-                    name="search"
-                    options={{
-                        presentation: "modal",
-                        sheetGrabberVisible: true,
-                    }}
-                >
-                    <Stack.Header transparent />
-                    <Stack.Screen.Title>{t("nav.search")}</Stack.Screen.Title>
-                </Stack.Screen>
-
-                <Stack.Screen
-                    name="paywall"
-                    options={{
-                        presentation: "modal",
-                        sheetGrabberVisible: true,
-                        title: "",
-                    }}
-                >
-                    <Stack.Header transparent />
-                </Stack.Screen>
+                {/* Header chrome per group comes from `useStackChrome`, which has an
+				    Android sibling: Material 3 bars, dialogs and sheets there. */}
+                <Stack.Screen name="search" options={chrome.search(t("nav.search"))} />
+                <Stack.Screen name="paywall" options={chrome.paywall} />
 
                 {TITLED_SCREENS.map((screen) => (
-                    <Stack.Screen key={screen.name} name={screen.name}>
-                        <Stack.Header transparent />
-                        <Stack.Screen.BackButton displayMode="minimal" />
-                        <Stack.Screen.Title>{t(screen.titleKey)}</Stack.Screen.Title>
-                    </Stack.Screen>
+                    <Stack.Screen key={screen.name} name={screen.name} options={chrome.titled(t(screen.titleKey))} />
                 ))}
-                <Stack.Screen name="accounts/reorder" />
-                <Stack.Screen name="accounts/[accountId]/index" />
-                <Stack.Screen name="settings/categories/reorder" />
-                <Stack.Screen name="settings/licenses/[name]" />
+                <Stack.Screen name="accounts/reorder" options={chrome.pushed} />
+                <Stack.Screen name="accounts/[accountId]/index" options={chrome.pushed} />
+                <Stack.Screen name="settings/categories/reorder" options={chrome.pushed} />
+                <Stack.Screen name="settings/licenses/[name]" options={chrome.pushed} />
                 {SHEET_SCREENS.map((sheet) => (
                     <Stack.Screen
                         key={sheet.name}
                         name={sheet.name}
-                        options={{
-                            presentation: "formSheet",
-                            sheetAllowedDetents: [sheet.detent, 1],
-                            sheetGrabberVisible: true,
-                            title: t(sheet.titleKey),
-                        }}
-                    >
-                        <Stack.Header transparent />
-                        <Stack.Screen.BackButton displayMode="minimal" />
-                        <Stack.Screen.Title>{t(sheet.titleKey)}</Stack.Screen.Title>
-                    </Stack.Screen>
+                        options={chrome.sheet({ detent: sheet.detent, title: t(sheet.titleKey) })}
+                    />
                 ))}
-                <Stack.Screen
-                    name="settings/category-symbol"
-                    options={{
-                        headerShown: false,
-                        presentation: "formSheet",
-                        sheetAllowedDetents: [pickerDetent, 1],
-                        sheetCornerRadius: 40,
-                        sheetGrabberVisible: true,
-                    }}
-                />
+                <Stack.Screen name="settings/category-symbol" options={chrome.pickerSheet(pickerDetent)} />
 
                 {MODAL_SCREENS.map((modal) => (
-                    <Stack.Screen key={modal.name} name={modal.name} options={{ presentation: "modal" }}>
-                        <Stack.Header transparent />
-                        <Stack.Screen.BackButton displayMode="minimal" />
-                        <Stack.Screen.Title>{t(modal.titleKey)}</Stack.Screen.Title>
-                    </Stack.Screen>
+                    <Stack.Screen key={modal.name} name={modal.name} options={chrome.modal(t(modal.titleKey))} />
                 ))}
-                <Stack.Screen name="transactions/[id]" options={{ presentation: "formSheet", title: "" }}>
-                    <Stack.Header transparent />
-                </Stack.Screen>
-                <Stack.Screen name="transactions/transfers/[id]" options={{ presentation: "formSheet", title: "" }}>
-                    <Stack.Header transparent />
-                </Stack.Screen>
-                <Stack.Screen name="transactions/voice" options={{ headerShown: false, presentation: "modal" }} />
-                <Stack.Screen name="transactions/scan" options={{ headerShown: false, presentation: "modal" }} />
-                <Stack.Screen
-                    name="transactions/identity"
-                    options={{
-                        headerShown: false,
-                        presentation: "formSheet",
-                        sheetAllowedDetents: [pickerDetent, 1],
-                        sheetCornerRadius: 40,
-                        sheetGrabberVisible: true,
-                        sheetLargestUndimmedDetentIndex: 0,
-                    }}
-                />
+                <Stack.Screen name="transactions/[id]" options={chrome.entrySheet} />
+                <Stack.Screen name="transactions/transfers/[id]" options={chrome.entrySheet} />
+                <Stack.Screen name="transactions/voice" options={chrome.bareModal} />
+                <Stack.Screen name="transactions/scan" options={chrome.bareModal} />
+                <Stack.Screen name="transactions/identity" options={chrome.identityPicker(pickerDetent)} />
             </Stack.Protected>
         </Stack>
     );

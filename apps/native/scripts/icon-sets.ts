@@ -23,6 +23,8 @@ export interface IconEntry {
     weight?: IconWeight;
     /** Also writes `<slug>-selected` from the solid weight, for on/off pairs. */
     withSelected?: boolean;
+    /** Baked RGB, for a consumer that draws the bitmap untinted. Defaults to black. */
+    ink?: string;
 }
 
 export interface IconSet {
@@ -62,6 +64,9 @@ export const SETS: IconSet[] = [
         entries: [
             { icon: "PlusSignIcon", slug: "add" },
             { icon: "Cancel01Icon", slug: "close" },
+            // Android's app bar draws a custom back image untinted, so a dark bar
+            // needs the glyph baked light (`stack-chrome.android.ts`).
+            { icon: "Cancel01Icon", ink: "#ffffff", slug: "close-light" },
             { icon: "Delete02Icon", slug: "delete" },
             { icon: "Tick02Icon", slug: "done" },
             { icon: "Search01Icon", slug: "search" },

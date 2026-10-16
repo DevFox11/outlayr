@@ -36,7 +36,7 @@ async function writeSet(set: IconSet): Promise<number> {
 
         // oxlint-disable-next-line no-await-in-loop -- rasterize shells out through execFileSync, which blocks the loop anyway, and each entry prints its progress line under its own set header
         const elements = await loadIcon(weight, entry.icon);
-        rasterize(toSvg(elements, strokeWidth), join(outDir, entry.slug), size);
+        rasterize(toSvg(elements, strokeWidth, entry.ink), join(outDir, entry.slug), size);
         written += SCALE_COUNT;
 
         if (entry.withSelected) {

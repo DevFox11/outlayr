@@ -1,4 +1,5 @@
 import type { LedgerCell } from "@/components/ledger-head";
+import type { ToolbarIconName } from "@/components/toolbar-icons";
 import type { LogPeriod } from "@/data/log-totals";
 import type { LogFilter } from "@/domain/log-filter";
 import { measureAlternatives, measureIsIncome, measureIsPositive, measureMagnitude } from "@/domain/log-measure";
@@ -22,6 +23,19 @@ export const FILTER_LABEL_KEY = {
     upcoming: "log.filter.upcoming",
     week: "log.filter.week",
 } satisfies Record<LogFilter, TranslationKey>;
+
+/** The toolbar glyph beside each filter in the Log's filter menu. */
+export const FILTER_ICON = {
+    all: "showAll",
+    category: "showCategory",
+    day: "showDay",
+    month: "showMonth",
+    recurring: "showRecurring",
+    transfers: "showTransfers",
+    type: "showType",
+    upcoming: "showUpcoming",
+    week: "showWeek",
+} satisfies Record<LogFilter, ToolbarIconName>;
 
 export const PERIOD_PHRASE_KEY = {
     all: "log.period.all",

@@ -11,6 +11,7 @@ const mockSheet = jest.fn<(options: { sheetAllowedDetents: number[]; sheetGrabbe
 
 jest.mock("expo-router", () => ({
     Stack: {
+        Header: () => null,
         Screen: Object.assign(
             ({ options }: { options: Parameters<typeof mockSheet>[0] }) => {
                 mockSheet(options);

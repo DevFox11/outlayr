@@ -1,7 +1,8 @@
 import { isPickableCurrency } from "@outlayr/money/currency";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 
 import { CloseToolbar } from "@/components/close-toolbar";
+import { ScreenHeader } from "@/components/screen-header";
 import TransferEditor from "@/components/transfer-editor";
 import { AMOUNT_CEILING } from "@/domain/numpad";
 import { useDiscardGuard } from "@/hooks/use-discard-guard";
@@ -42,7 +43,7 @@ export default function TransferCreateScreen() {
 
     return (
         <>
-            <Stack.Screen.Title>{t("transfers.title")}</Stack.Screen.Title>
+            <ScreenHeader title={t("transfers.title")} />
             <CloseToolbar placement="left" />
 
             <TransferEditor onDirtyChange={setDirty} onDone={leave} seed={seed} />

@@ -42,8 +42,9 @@ function escapeAttribute(value: string): string {
  * for the surfaces that need a heavier line to sit next to SF Symbols. It is
  * meaningless for the solid weight, which is filled rather than stroked.
  *
+ * `ink` replaces the default black for a consumer that draws the pixels as they are.
  */
-export function toSvg(elements: SvgElement[], strokeWidth?: number): string {
+export function toSvg(elements: SvgElement[], strokeWidth?: number, ink: string = INK): string {
     const markup = elements
         .map(([tag, attributes]) => {
             const serialized = Object.entries(attributes)
@@ -52,7 +53,7 @@ export function toSvg(elements: SvgElement[], strokeWidth?: number): string {
                     const resolved =
                         key === "strokeWidth" && strokeWidth !== undefined
                             ? String(strokeWidth)
-                            : value.replace("currentColor", INK);
+                            : value.replace("currentColor", ink);
                     return `${attributeName(key)}="${escapeAttribute(resolved)}"`;
                 })
                 .join(" ");

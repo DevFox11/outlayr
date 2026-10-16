@@ -8,6 +8,7 @@ import { DaySectionHeader } from "@/components/day-section-header";
 import { EmptyState } from "@/components/empty-state";
 import { Tile } from "@/components/empty-state-parts";
 import { MonoLabel } from "@/components/mono-label";
+import { ScreenHeader } from "@/components/screen-header";
 import { Text } from "@/components/text";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { TransactionRow } from "@/components/transaction-row";
@@ -75,8 +76,7 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
 
     return (
         <>
-            <Stack.Header transparent />
-            <Stack.Screen.Title>{account.name}</Stack.Screen.Title>
+            <ScreenHeader title={account.name} />
             <Stack.Screen.BackButton displayMode="minimal" />
             <Stack.Toolbar placement="right">
                 <Stack.Toolbar.Button

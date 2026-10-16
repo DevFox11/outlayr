@@ -2,6 +2,8 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 
 import { CloseToolbar } from "@/components/close-toolbar";
+import { RestingSheetFrame } from "@/components/resting-sheet-frame";
+import { ScreenHeader } from "@/components/screen-header";
 import { TransactionForm } from "@/components/transaction-form";
 import { useDatabase } from "@/contexts/local-data-context";
 import { getTransactionById } from "@/data/transactions-core";
@@ -48,7 +50,7 @@ function TransactionSheet({ initial }: { initial: Transaction }) {
     const db = useDatabase();
     const t = useTranslation();
     const { requestDelete } = useDeferredDelete("row");
-    const { awake, rest, sheet } = useRestingSheet(t("transaction.edit.title"));
+    const { awake, height, rest, sheet } = useRestingSheet(t("transaction.edit.title"));
 
     // No confirmation in front of it: the write is held for the undo window and
     // the toast that offers it is mounted at the app root, so it survives this
@@ -61,18 +63,19 @@ function TransactionSheet({ initial }: { initial: Transaction }) {
     return (
         <>
             <Stack.Screen options={sheet} />
-            <Stack.Header transparent />
-            {awake ? <Stack.Screen.Title>{t("transaction.edit.title")}</Stack.Screen.Title> : null}
+            <ScreenHeader title={awake ? t("transaction.edit.title") : undefined} />
             <CloseToolbar placement="left" />
-            <TransactionForm
-                db={db}
-                initial={initial}
-                mode="edit"
-                onDelete={deleteTransaction}
-                onDirtyChange={setDirty}
-                onDone={leave}
-                rest={rest}
-            />
+            <RestingSheetFrame height={height}>
+                <TransactionForm
+                    db={db}
+                    initial={initial}
+                    mode="edit"
+                    onDelete={deleteTransaction}
+                    onDirtyChange={setDirty}
+                    onDone={leave}
+                    rest={rest}
+                />
+            </RestingSheetFrame>
         </>
     );
 }

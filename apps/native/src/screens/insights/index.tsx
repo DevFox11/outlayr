@@ -1,5 +1,5 @@
 import type { MenuAction } from "@expo/ui/community/menu";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { useCallback, useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -51,7 +51,6 @@ import type { InsightsTotals } from "@/domain/insights-measure";
 import { quietAlternative } from "@/domain/insights-quiet";
 import { insightsVerdict } from "@/domain/insights-verdict";
 import { formatAmount } from "@/domain/money";
-import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
 import { withAlpha } from "@/theme/shade";
@@ -62,6 +61,7 @@ import { CategoryProportionBar } from "./components/category-proportion-bar";
 import { InsightsBarChart } from "./components/insights-bar-chart";
 import { InsightsMovers } from "./components/insights-movers";
 import { InsightsNetChart } from "./components/insights-net-chart";
+import { InsightsPeriodMenu } from "./components/insights-period-menu";
 import { InsightsQuiet } from "./components/insights-quiet";
 import { InsightsSample } from "./components/insights-sample";
 import { InsightsTransactionList } from "./components/insights-transaction-list";
@@ -69,13 +69,7 @@ import { NetWorthCard } from "./components/net-worth-card";
 import { SpendingCalendar } from "./components/spending-calendar";
 import { heroMagnitudeFor, heroPositiveFor } from "./hero";
 import { MEASURE_KEY } from "./measure-label";
-
-/** `value` is the stored `insightsTimeFrame` setting, which is a plain number. */
-const PERIODS = [
-    { labelKey: "insights.period.week", period: "week", value: 1 },
-    { labelKey: "insights.period.month", period: "month", value: 2 },
-    { labelKey: "insights.period.year", period: "year", value: 3 },
-] as const satisfies readonly { labelKey: TranslationKey; period: InsightsPeriod; value: number }[];
+import { PERIODS } from "./periods";
 
 function bucketAt(buckets: readonly InsightsBucket[], index: number | null): InsightsBucket | null {
     if (index == null) {
@@ -389,22 +383,7 @@ export function Insights() {
 
     return (
         <>
-            <Stack.Toolbar placement="right">
-                <Stack.Toolbar.Menu accessibilityLabel={t("insights.period.change")}>
-                    <Stack.Toolbar.Label>
-                        {t(PERIODS.find((option) => option.period === period)?.labelKey ?? "insights.period.week")}
-                    </Stack.Toolbar.Label>
-                    {PERIODS.map((option) => (
-                        <Stack.Toolbar.MenuAction
-                            isOn={option.period === period}
-                            key={option.value}
-                            onPress={() => selectPeriod(option.value)}
-                        >
-                            {t(option.labelKey)}
-                        </Stack.Toolbar.MenuAction>
-                    ))}
-                </Stack.Toolbar.Menu>
-            </Stack.Toolbar>
+            <InsightsPeriodMenu onSelect={selectPeriod} period={period} />
 
             <ScrollView
                 className="bg-background"

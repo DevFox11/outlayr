@@ -8,10 +8,10 @@ const mockEditor = jest.fn<(props: { seed: TransferSeed }) => null>(() => null);
 const mockClose = jest.fn<(props: { placement: string }) => null>(() => null);
 
 jest.mock("expo-router", () => ({
-    Stack: { Screen: { Title: () => null } },
     useLocalSearchParams: () => mockParams(),
     useRouter: () => ({ back: jest.fn() }),
 }));
+jest.mock("@/components/screen-header", () => ({ ScreenHeader: () => null }));
 jest.mock("@/components/close-toolbar", () => ({
     CloseToolbar: (props: { placement: string }) => mockClose(props),
 }));

@@ -4,6 +4,7 @@ import { View } from "react-native";
 
 import { LinkRow } from "@/components/list/list-row";
 import { MonoLabel } from "@/components/mono-label";
+import { ScreenHeader } from "@/components/screen-header";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 
@@ -36,8 +37,7 @@ export function LicenseDetail({ name }: { name: string }) {
     const license = licenses.find((entry) => entry.name === name);
     return (
         <SettingsScreen>
-            <Stack.Header transparent />
-            <Stack.Screen.Title>{name}</Stack.Screen.Title>
+            <ScreenHeader title={name} />
             <Stack.Screen.BackButton displayMode="minimal" />
             {license ? (
                 <View className="gap-3 pt-6">

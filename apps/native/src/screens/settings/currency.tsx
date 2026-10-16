@@ -32,6 +32,8 @@ export function Currency() {
                 autoCapitalize="characters"
                 hideWhenScrolling={false}
                 onChangeText={(event) => setQuery(event.nativeEvent.text)}
+                // Android only: collapsing the field back into its icon drops the filter with it.
+                onClose={() => setQuery("")}
                 placeholder={t("settings.currency.search")}
             />
             <CurrencyPickerList

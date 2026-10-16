@@ -46,5 +46,7 @@ export function useRestingSheet(wakeAnnouncement: string) {
     );
     const rest: SheetRest | undefined = awake ? undefined : { onHeight: setBodyHeight, onWake: () => setAwake(true) };
 
-    return { awake, rest, sheet };
+    // Android sizes its sheet from the content's height (`RestingSheetFrame`);
+    // iOS moves it with the detents above, so it has none to give.
+    return { awake, height: undefined, rest, sheet };
 }

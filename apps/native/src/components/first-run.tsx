@@ -178,9 +178,10 @@ export function FirstRun({
 
     return (
         // One top offset for every screen in the flow: the steps carry a
-        // transparent OS header, so content starts below a 44pt bar, and matching
-        // the cover and the gate to it keeps the stage from jumping between them.
-        <View className="bg-fr-ground pt-safe-offset-14 pb-safe-offset-5 flex-1 px-6">
+        // transparent OS header, so content starts 12 below a 44pt bar (64dp on
+        // Android), and matching the cover and the gate to it keeps the stage
+        // from jumping between them.
+        <View className="bg-fr-ground pt-safe-offset-14 android:pt-safe-offset-19 pb-safe-offset-5 flex-1 px-6">
             {object === undefined ? (
                 <>
                     <View className="gap-2">

@@ -1,9 +1,9 @@
 import { isPickableCurrency } from "@outlayr/money/currency";
 import { SELECTABLE_RECURRING_TYPES } from "@outlayr/money/recurrence";
-import { Stack } from "expo-router";
 import { useState } from "react";
 
 import { CloseToolbar } from "@/components/close-toolbar";
+import { ScreenHeader } from "@/components/screen-header";
 import { TransactionForm } from "@/components/transaction-form";
 import type { TransactionSeed } from "@/components/transaction-form";
 import { useDatabase } from "@/contexts/local-data-context";
@@ -97,8 +97,7 @@ export function NewTransaction({ from, ...params }: EntryParams & { from?: LinkP
 
     return (
         <>
-            <Stack.Header transparent />
-            <Stack.Screen.Title>{t("transaction.new.title")}</Stack.Screen.Title>
+            <ScreenHeader title={t("transaction.new.title")} />
             <CloseToolbar placement="left" />
 
             <TransactionForm

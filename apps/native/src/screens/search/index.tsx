@@ -59,8 +59,10 @@ export function Search() {
             <Stack.SearchBar
                 autoFocus
                 hideWhenScrolling={false}
-                // The field's Cancel closes the whole task, not just the field.
+                // The field's Cancel closes the whole task, not just the field. Android
+                // has no Cancel: backing out of the field there closes it instead.
                 onCancelButtonPress={() => router.back()}
+                onClose={() => router.back()}
                 onChangeText={(event) => setQuery(event.nativeEvent.text)}
                 placeholder={t("search.placeholder")}
             />
