@@ -44,8 +44,8 @@ const settingsData = {
             es: "Borrar",
         }),
         "settings.erase.confirmEverythingBody": t({
-            en: "Every transaction, recurring template and budget will be deleted. Only your categories are kept. This can't be undone.",
-            es: "Se eliminarán todas las transacciones, plantillas recurrentes y presupuestos. Solo se conservan tus categorías. Esto no se puede deshacer.",
+            en: "Every transaction, recurring template, transfer, budget and photo will be deleted. Your accounts, categories, savings goals, tags and settings are kept. This can't be undone.",
+            es: "Se eliminarán todas las transacciones, plantillas recurrentes, transferencias, presupuestos y fotos. Tus cuentas, categorías, metas de ahorro, etiquetas y configuración se conservan. Esto no se puede deshacer.",
         }),
         "settings.erase.confirmEverythingTitle": t({
             en: "Erase everything?",
