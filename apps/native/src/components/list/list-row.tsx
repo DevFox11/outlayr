@@ -1,23 +1,17 @@
-import { Host, Text as NativeText, Picker } from "@expo/ui/swift-ui";
-import { pickerStyle, tag, tint } from "@expo/ui/swift-ui/modifiers";
 import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
 import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import type { ReactNode } from "react";
 import { Pressable, Switch, View } from "react-native";
 
+import { RowShell } from "@/components/list/row-shell";
 import { MonoLabel } from "@/components/mono-label";
 import type { SettingsIconName } from "@/components/settings/settings-icons";
-import { settingsIcon } from "@/components/settings/settings-icons";
-import { TintedLabel, tintedLabelAvailable } from "@/components/settings/tinted-label";
 import { Text } from "@/components/text";
-import { cn } from "@/components/tw";
 import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useColors } from "@/theme/use-colors";
 
-const GLYPH = 20;
-
-const TITLE_INSET = "pl-8";
+export { PickerRow } from "@/components/list/picker-row";
 
 export function SettingsSection({ title, footer, children }: { title: string; footer?: string; children?: ReactNode }) {
     return (
@@ -27,45 +21,6 @@ export function SettingsSection({ title, footer, children }: { title: string; fo
             </View>
             <View className="border-border border-t">{children}</View>
             {footer ? <Text className="text-muted text-subtitle pt-2 leading-snug">{footer}</Text> : null}
-        </View>
-    );
-}
-
-interface RowShellProps {
-    below?: ReactNode;
-    children?: ReactNode;
-    destructive?: boolean;
-    detail?: string;
-    icon?: SettingsIconName;
-    title: string;
-}
-
-function RowShell({ icon, title, destructive, detail, children, below }: RowShellProps) {
-    const colors = useColors();
-    const largeText = useAccessibilityTextSize();
-    return (
-        <View className="border-border border-b py-3.5">
-            <View className="flex-row items-center gap-3">
-                {icon ? (
-                    <HugeiconsIcon
-                        color={destructive ? colors.danger : colors.foreground}
-                        icon={settingsIcon(icon)}
-                        size={GLYPH}
-                        strokeWidth={1.9}
-                    />
-                ) : null}
-                <Text
-                    className={cn("text-body flex-1", destructive ? "text-danger" : "text-foreground")}
-                    numberOfLines={largeText ? 2 : 1}
-                >
-                    {title}
-                </Text>
-                {children}
-            </View>
-            {below ? <View className={cn(icon && TITLE_INSET, "items-start")}>{below}</View> : null}
-            {detail ? (
-                <Text className={cn(icon && TITLE_INSET, "text-muted text-subtitle leading-snug")}>{detail}</Text>
-            ) : null}
         </View>
     );
 }
@@ -125,60 +80,6 @@ export function LinkRow({ icon, title, value, detail, destructive, onPress }: Li
         <Pressable accessibilityRole="button" className="active:opacity-60" onPress={onPress}>
             {body}
         </Pressable>
-    );
-}
-
-export function PickerRow<T extends string | number | boolean>({
-    attention = false,
-    icon,
-    title,
-    detail,
-    options,
-    value,
-    onChange,
-}: {
-    attention?: boolean;
-    icon: SettingsIconName;
-    title: string;
-    detail?: string;
-    options: readonly { label: string; swatch?: string; value: T }[];
-    value: T;
-    onChange: (value: T) => void;
-}) {
-    const colors = useColors();
-    const stacked = useAccessibilityTextSize();
-    const picker = (
-        <Host matchContents>
-            <Picker
-                modifiers={[pickerStyle("menu"), tint(attention ? colors.danger : colors.muted)]}
-                onSelectionChange={(next) => {
-                    const picked = options.find((option) => String(option.value) === next);
-                    if (picked) {
-                        onChange(picked.value);
-                    }
-                }}
-                selection={String(value)}
-            >
-                {options.map((option) => {
-                    const key = String(option.value);
-                    if (tintedLabelAvailable && option.swatch) {
-                        return (
-                            <TintedLabel color={option.swatch} key={key} modifiers={[tag(key)]} title={option.label} />
-                        );
-                    }
-                    return (
-                        <NativeText key={key} modifiers={[tag(key)]}>
-                            {option.label}
-                        </NativeText>
-                    );
-                })}
-            </Picker>
-        </Host>
-    );
-    return (
-        <RowShell below={stacked ? picker : undefined} detail={detail} icon={icon} title={title}>
-            {stacked ? null : picker}
-        </RowShell>
     );
 }
 

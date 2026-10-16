@@ -28,6 +28,13 @@ const mockRevenueCat = {
 };
 jest.mock("@/contexts/revenuecat-context", () => ({ useRevenueCat: () => mockRevenueCat }));
 
+const mockAppIcons = { supported: true };
+jest.mock<Partial<typeof import("@/lib/app-icon")>>("@/lib/app-icon", () => ({
+    get alternateIconsSupported() {
+        return mockAppIcons.supported;
+    },
+}));
+
 function planCard(kind: string) {
     return screen.getByRole("radio", { name: new RegExp(`pro\\.plan\\.${kind}`) });
 }
@@ -85,6 +92,7 @@ beforeEach(() => {
     mockRevenueCat.restorePurchases.mockResolvedValue(true);
     mockCloudAction.mockResolvedValue(true);
     mockSession.accountId = "user-1";
+    mockAppIcons.supported = true;
     cloud.runtime = {};
 });
 
@@ -105,6 +113,21 @@ describe("paywall", () => {
             "accessible",
             true
         );
+    });
+
+    it("sells the app icons where the icon can change", async () => {
+        await render(<Paywall />);
+        await waitFor(() => expect(planCard("annual")).toBeTruthy());
+
+        expect(screen.getByText("pro.row.icons")).toBeOnTheScreen();
+    });
+
+    it("leaves the app icons out where the icon cannot change, as on Android", async () => {
+        mockAppIcons.supported = false;
+        await render(<Paywall />);
+        await waitFor(() => expect(planCard("annual")).toBeTruthy());
+
+        expect(screen.queryByText("pro.row.icons")).toBeNull();
     });
 
     it("names the plan's price on the button when it has no trial", async () => {

@@ -11,6 +11,10 @@ const settingsNotifications = {
             en: "Outlayr cannot ask again once you have declined. Turn notifications on for Outlayr in iOS Settings and this switch will follow.",
             es: "Como ya las rechazaste, Outlayr no puede volver a preguntarte. Activa las notificaciones de Outlayr en Configuración y este interruptor se actualizará solo.",
         }),
+        "settings.notifications.deniedBody.android": t({
+            en: "Outlayr cannot ask again once you have declined. Turn notifications on for Outlayr in your phone's settings and this switch will follow.",
+            es: "Como ya las rechazaste, Outlayr no puede volver a preguntarte. Activa las notificaciones de Outlayr en la configuración del celular y este interruptor se actualizará solo.",
+        }),
         "settings.notifications.deniedTitle": t({
             en: "Notifications are off",
             es: "Las notificaciones están desactivadas",

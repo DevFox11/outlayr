@@ -8,9 +8,9 @@ import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useTranslation } from "@/i18n/context";
 import { APP_VERSION } from "@/lib/app-version";
+import { openStoreReview } from "@/lib/store-links";
 
 const WEBSITE = "https://tryoutlayr.com";
-const APP_STORE_REVIEW = "itms-apps://apps.apple.com/app/id6801652978?action=write-review";
 const X_PROFILE = "https://x.com/tryoutlayr";
 const OUTLAYR_REPO = "https://github.com/danestves/outlayr";
 const DIME_REPO = "https://github.com/rafsoh/dimeApp";
@@ -30,7 +30,7 @@ export function About() {
                 <LinkRow
                     icon="Star"
                     onPress={() => {
-                        Linking.openURL(APP_STORE_REVIEW);
+                        openStoreReview();
                     }}
                     title={t("settings.row.rate")}
                 />

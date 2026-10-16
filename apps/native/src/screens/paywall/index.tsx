@@ -21,6 +21,7 @@ import { proSellable } from "@/hooks/use-pro-locked";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
+import { alternateIconsSupported } from "@/lib/app-icon";
 import { useAuthSession } from "@/lib/auth-session";
 import { legalUrl } from "@/lib/legal-url";
 import { useColors } from "@/theme/use-colors";
@@ -77,7 +78,9 @@ function Comparison() {
                 <Row free={t("pro.value.off")} label={t("pro.row.photos")} pro={t("pro.value.on")} />
                 <Row free={t("pro.value.off")} label={t("pro.row.import")} pro={t("pro.value.on")} />
                 <Row free={t("pro.value.off")} label={t("pro.row.lookup")} pro={t("pro.value.web")} />
-                <Row free="1" label={t("pro.row.icons")} pro={String(APP_ICONS.length)} />
+                {alternateIconsSupported ? (
+                    <Row free="1" label={t("pro.row.icons")} pro={String(APP_ICONS.length)} />
+                ) : null}
             </View>
         </View>
     );

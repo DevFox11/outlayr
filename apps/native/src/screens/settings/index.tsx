@@ -1,5 +1,4 @@
 import Constants from "expo-constants";
-import { openSettings } from "expo-linking";
 import { useRouter } from "expo-router";
 import type { Href } from "expo-router";
 import { openBrowserAsync } from "expo-web-browser";
@@ -43,16 +42,13 @@ import { requestUnlock } from "@/lib/app-lock";
 import { APP_BUILD, APP_VERSION } from "@/lib/app-version";
 import { useAuthSession } from "@/lib/auth-session";
 import { importDraftStore } from "@/lib/import-draft-store";
+import { hasSystemLanguageSettings, openLanguageSettings } from "@/lib/language-settings";
 import { legalUrl } from "@/lib/legal-url";
 import { notifyFailure } from "@/lib/notify";
 import { supportMailto } from "@/lib/support-mailto";
 import type { SupportDiagnostics } from "@/lib/support-mailto";
 import { THEME_OPTIONS } from "@/theme/theme-preference";
 import { useIsDark } from "@/theme/use-is-dark";
-
-function openLanguageSettings() {
-    openSettings().catch(() => undefined);
-}
 
 const SUPPORT_EMAIL = "support@tryoutlayr.com";
 
@@ -203,12 +199,14 @@ export function Settings() {
                     value={accentColor}
                 />
                 {alternateIconsSupported ? <AppIconRow /> : null}
-                <LinkRow
-                    icon="LanguageSkill"
-                    onPress={openLanguageSettings}
-                    title={t("settings.row.language")}
-                    value={languageLabel(language)}
-                />
+                {hasSystemLanguageSettings() ? (
+                    <LinkRow
+                        icon="LanguageSkill"
+                        onPress={openLanguageSettings}
+                        title={t("settings.row.language")}
+                        value={languageLabel(language)}
+                    />
+                ) : null}
                 <ToggleRow
                     icon="Analytics01"
                     onValueChange={(next) => {

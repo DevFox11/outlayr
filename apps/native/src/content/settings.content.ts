@@ -263,6 +263,10 @@ const settings = {
             en: "Language (iOS)",
             es: "Idioma (iOS)",
         }),
+        "settings.row.language.android": t({
+            en: "Language",
+            es: "Idioma",
+        }),
         "settings.row.notifications": t({
             en: "Notifications",
             es: "Notificaciones",
@@ -278,6 +282,10 @@ const settings = {
         "settings.row.rate": t({
             en: "Rate on the App Store",
             es: "Califícanos en el App Store",
+        }),
+        "settings.row.rate.android": t({
+            en: "Rate on Google Play",
+            es: "Califícanos en Google Play",
         }),
         "settings.row.restore": t({
             en: "Restore data",

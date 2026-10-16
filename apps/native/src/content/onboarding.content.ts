@@ -55,6 +55,10 @@ const onboarding = {
             en: "One quiet nudge each evening. iOS isn't asked for permission until your first entry is saved.",
             es: "Un aviso discreto cada noche. iOS no te pide permiso hasta que guardes tu primera entrada.",
         }),
+        "onboarding.rhythm.body.android": t({
+            en: "One quiet nudge each evening. Android won't ask for permission until your first entry is saved.",
+            es: "Un aviso discreto cada noche. Android no te pide permiso hasta que guardes tu primera entrada.",
+        }),
         "onboarding.rhythm.eyebrow": t({
             en: "Rhythm",
             es: "Ritmo",

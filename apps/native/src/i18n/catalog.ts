@@ -2,6 +2,7 @@ import { getIntlayer } from "intlayer";
 import { intlayerPolyfill } from "react-native-intlayer";
 
 import type { Language } from "./languages";
+import { platformCopy } from "./platform-copy";
 import type { Catalog } from "./translate";
 
 /**
@@ -129,13 +130,13 @@ export type TranslatableKey = TranslationKey | PluralStem<TranslationKey & strin
  */
 intlayerPolyfill();
 
-/** Flattens Intlayer's per-dictionary resolution into one lookup. */
+/** Flattens Intlayer's per-dictionary resolution into one lookup, worded for this platform. */
 function catalogFor(locale: Language): Catalog {
     const flat: Record<string, string> = {};
     for (const key of DICTIONARY_KEYS) {
         Object.assign(flat, getIntlayer(key, locale));
     }
-    return flat;
+    return platformCopy(flat);
 }
 
 export const EN = catalogFor("en");

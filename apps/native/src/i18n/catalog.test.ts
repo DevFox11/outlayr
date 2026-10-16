@@ -67,6 +67,20 @@ describe("catalog parity", () => {
         }
     });
 
+    // Android reads a `.android` twin in place of its base key, so a twin whose
+    // base was renamed away would never show, and one with other placeholders
+    // would render them raw.
+    it("gives every Android twin a base key with the same placeholders", () => {
+        for (const [key, twin] of Object.entries(EN)) {
+            if (!key.endsWith(".android")) {
+                continue;
+            }
+            const base = EN[key.replace(/\.android$/, "") as keyof typeof EN];
+            expect(base).toBeDefined();
+            expect([...placeholders(twin)].sort()).toStrictEqual([...placeholders(base ?? "")].sort());
+        }
+    });
+
     it("pairs every plural key with its counterpart form", () => {
         for (const catalogName of SUPPORTED_LANGUAGES) {
             const catalog = CATALOGS[catalogName];

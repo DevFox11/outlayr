@@ -1,9 +1,8 @@
-import { DateTimePicker } from "@expo/ui/community/datetime-picker";
-import { Alert, View } from "react-native";
+import { Alert } from "react-native";
 
 import { ChoiceRow, SettingsSection, ToggleRow } from "@/components/list/list-row";
+import { ReminderTimeRow } from "@/components/settings/reminder-time-row";
 import { SettingsScreen } from "@/components/settings/settings-screen";
-import { Text } from "@/components/text";
 import { useAppSettings, useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { setBoolSetting, setNumberSetting } from "@/data/settings-core";
@@ -23,7 +22,6 @@ import { useLanguage, useTranslation } from "@/i18n/context";
 import { translateNow } from "@/i18n/runtime";
 import { openNotificationSettings, reminderPermission, requestReminderPermission } from "@/lib/reminders";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
-import { useColors } from "@/theme/use-colors";
 
 const OPTIONS = [
     {
@@ -116,7 +114,6 @@ async function setSubscriptionReminders(db: Database, next: boolean): Promise<vo
 export function Notifications() {
     const db = useDatabase();
 
-    const colors = useColors();
     const t = useTranslation();
     const { language } = useLanguage();
     const { use24Hour } = useDisplaySettings().state;
@@ -126,9 +123,6 @@ export function Notifications() {
     const option = settings.number("notificationOption");
     const custom = clampTimeOfDay(settings.number("notificationHour"), settings.number("notificationMinute"));
     const scheduled = reminderTime(option, custom);
-
-    const pickerValue = new Date();
-    pickerValue.setHours(custom.hour, custom.minute, 0, 0);
 
     const chooseOption = (next: number) => {
         setNumberSetting(db, "notificationOption", next).catch(reportReminderFailure);
@@ -180,23 +174,7 @@ export function Notifications() {
                             selected={option === choice.value}
                         />
                     ))}
-                    {option === REMINDER_CUSTOM ? (
-                        <View className="border-border flex-row items-center justify-between border-b py-2">
-                            <Text className="text-body text-foreground">{t("settings.notifications.time")}</Text>
-                            <DateTimePicker
-                                accentColor={colors.tint}
-                                display="compact"
-                                mode="time"
-                                onValueChange={(_event, date) => {
-                                    chooseTime({
-                                        hour: date.getHours(),
-                                        minute: date.getMinutes(),
-                                    });
-                                }}
-                                value={pickerValue}
-                            />
-                        </View>
-                    ) : null}
+                    {option === REMINDER_CUSTOM ? <ReminderTimeRow onChange={chooseTime} value={custom} /> : null}
                 </SettingsSection>
             ) : null}
 
