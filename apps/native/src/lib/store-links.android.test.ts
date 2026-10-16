@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { Linking } from "react-native";
 
+import { takeHandoff } from "./app-handoff";
 import { openStoreReview } from "./store-links";
 
 describe("openStoreReview on Android", () => {
@@ -25,5 +26,13 @@ describe("openStoreReview on Android", () => {
         await openStoreReview();
 
         expect(openURL).toHaveBeenLastCalledWith("https://play.google.com/store/apps/details?id=com.tryoutlayr.app");
+    });
+
+    it("announces the trip to the app lock", async () => {
+        jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
+
+        await openStoreReview();
+
+        expect(takeHandoff()).toBe(true);
     });
 });
