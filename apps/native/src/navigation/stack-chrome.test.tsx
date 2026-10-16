@@ -164,6 +164,7 @@ describe("stack chrome on Android", () => {
         expect(chrome.sheet({ detent: 0.65, title: "New category" }).sheetAllowedDetents).toStrictEqual([0.65, 1]);
         // The entry sheets are sized by their content: one constant detent, so swiping a raised one down can't crash.
         expect(chrome.entrySheet.sheetAllowedDetents).toBe("fitToContents");
+        expect(chrome.entrySheet.sheetResizeAnimationEnabled).toBe(false);
         // Dimmed at every detent, so the editor under the picker can't take taps.
         expect(chrome.identityPicker(0.5).sheetLargestUndimmedDetentIndex).toBeUndefined();
     });

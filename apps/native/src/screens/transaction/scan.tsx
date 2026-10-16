@@ -1,5 +1,4 @@
 import Camera01Icon from "@hugeicons-pro/core-stroke-rounded/Camera01Icon";
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
 import Image01Icon from "@hugeicons-pro/core-stroke-rounded/Image01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { addDays, startOfDay } from "@outlayr/money/calendar";
@@ -15,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AiConsentGate } from "@/components/ai-consent";
 import { LimitToast } from "@/components/limit-toast";
+import { ModalClose } from "@/components/modal-close";
 import { PhotoStage } from "@/components/receipt/photo-stage";
 import type { StageBox } from "@/components/receipt/photo-stage";
 import { ReceiptFrame } from "@/components/receipt/receipt-frame";
@@ -55,8 +55,6 @@ import { posthog } from "@/lib/posthog";
 import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
-/** Where the system puts a sheet's own close; see `voice.tsx` for why the top inset is not added. */
-const SHEET_CLOSE_INSET = 16;
 /** The subject's frame while it is being read: the screen's width less the gutters, capped in height. */
 const STAGE_GUTTER = 24;
 const STAGE_MAX_HEIGHT_RATIO = 0.5;
@@ -141,26 +139,10 @@ function ScanShell({
     scroll?: boolean;
 }) {
     const t = useTranslation();
-    const colors = useColors();
     const insets = useSafeAreaInsets();
     return (
         <View className="bg-background flex-1">
-            <View
-                className="flex-row justify-end"
-                style={{ paddingRight: SHEET_CLOSE_INSET + insets.right, paddingTop: SHEET_CLOSE_INSET }}
-            >
-                <Button
-                    accessibilityLabel={t("receipt.close")}
-                    disabled={closeDisabled}
-                    glass
-                    native
-                    onPress={onClose}
-                    size="icon"
-                    variant="secondary"
-                >
-                    <HugeiconsIcon color={colors.foreground} icon={Cancel01Icon} size={18} strokeWidth={2} />
-                </Button>
-            </View>
+            <ModalClose accessibilityLabel={t("receipt.close")} disabled={closeDisabled} onPress={onClose} />
             {scroll ? (
                 <ScrollView
                     className="flex-1"

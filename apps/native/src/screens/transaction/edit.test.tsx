@@ -6,13 +6,26 @@ import { unusedDatabase as mockUnusedDatabase } from "@/db/test-database";
 
 import { EditTransaction } from "./edit";
 
-const mockRows = new Map<
-    string,
-    { deletedAt: Date | null; feeForId: string | null; id: string; transferId: string | null }
->();
+interface MockRow {
+    deletedAt: Date | null;
+    feeForId: string | null;
+    id: string;
+    transferId: string | null;
+    updatedAt: Date;
+}
+
+const FEE_ROW: MockRow = { deletedAt: null, feeForId: null, id: "fee", transferId: "transfer", updatedAt: new Date(1) };
+const mockRows = new Map<string, MockRow>();
 const mockLiveTransfers = new Set<string>();
 const mockSheet = jest.fn<(options: { sheetAllowedDetents: number[]; sheetGrabberVisible: boolean }) => void>();
 const mockDetentListener = { current: (_event: { data: { index: number } }) => {} };
+const mockPush = jest.fn<(href: string) => void>();
+const mockNotRestored = jest.fn();
+/** What the screen hands the discard guard to recover a swiped-away sheet. */
+const mockGuard: { recovery?: { restore: (draft: unknown) => void; snapshot: () => unknown } } = {};
+/** The edits the mocked form publishes, and every `restore` it was rendered with. */
+const mockDraft = { values: { amount: "8459" } };
+const mockFormRestores: unknown[] = [];
 
 jest.mock("expo-router", () => {
     const Noop = () => null;
@@ -33,7 +46,7 @@ jest.mock("expo-router", () => {
                 return () => {};
             },
         }),
-        useRouter: () => ({ back: jest.fn() }),
+        useRouter: () => ({ back: jest.fn(), push: mockPush }),
     };
 });
 
@@ -60,7 +73,14 @@ jest.mock("@/i18n/context", () => ({
 jest.mock("@/components/close-toolbar", () => ({ CloseToolbar: () => null }));
 
 jest.mock("@/hooks/use-discard-guard", () => ({
-    useDiscardGuard: () => ({ leave: jest.fn(), setDirty: jest.fn() }),
+    useDiscardGuard: (recovery: typeof mockGuard.recovery) => {
+        mockGuard.recovery = recovery;
+        return { leave: jest.fn(), setDirty: jest.fn() };
+    },
+}));
+
+jest.mock("@/components/edits-discarded-snackbar", () => ({
+    notifyEditsNotRestored: () => mockNotRestored(),
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -68,9 +88,23 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 
 jest.mock("@/components/transaction-form", () => ({
-    TransactionForm: ({ initial, rest }: { initial: { id: string }; rest?: { onWake: () => void } }) => (
-        <MockText onPress={rest?.onWake}>{`form:${initial.id}`}</MockText>
-    ),
+    TransactionForm: ({
+        draftRef,
+        initial,
+        rest,
+        restore,
+    }: {
+        draftRef?: { current: (() => unknown) | null };
+        initial: { id: string };
+        rest?: { onWake: () => void };
+        restore?: unknown;
+    }) => {
+        if (draftRef) {
+            draftRef.current = () => mockDraft;
+        }
+        mockFormRestores.push(restore);
+        return <MockText onPress={rest?.onWake}>{`form:${initial.id}`}</MockText>;
+    },
 }));
 
 jest.mock("@/screens/transfers/edit", () => ({
@@ -78,10 +112,11 @@ jest.mock("@/screens/transfers/edit", () => ({
 }));
 
 beforeEach(() => {
-    mockSheet.mockClear();
+    jest.clearAllMocks();
     mockRows.clear();
     mockLiveTransfers.clear();
-    mockRows.set("fee", { deletedAt: null, feeForId: null, id: "fee", transferId: "transfer" });
+    mockFormRestores.length = 0;
+    mockRows.set("fee", FEE_ROW);
 });
 
 describe("editTransaction", () => {
@@ -123,5 +158,36 @@ describe("editTransaction", () => {
         await render(<EditTransaction id="fee" />);
 
         expect(screen.getByText("form:fee")).toBeTruthy();
+    });
+});
+
+describe("editTransaction after a swipe discarded its edits", () => {
+    it("reopens the entry with them on Undo, and only that once", async () => {
+        const swiped = await render(<EditTransaction id="fee" />);
+        const draft = mockGuard.recovery?.snapshot();
+        await swiped.unmount();
+
+        mockGuard.recovery?.restore(draft);
+        expect(mockPush).toHaveBeenCalledWith("/transactions/fee");
+        const reopened = await render(<EditTransaction id="fee" />);
+        expect(mockFormRestores.at(-1)).toStrictEqual(mockDraft);
+        await reopened.unmount();
+
+        await render(<EditTransaction id="fee" />);
+        expect(mockFormRestores.at(-1)).toBeUndefined();
+    });
+
+    it.each([
+        ["changed", { updatedAt: new Date(2) }],
+        ["deleted", { deletedAt: new Date(2), updatedAt: new Date(2) }],
+    ])("keeps them discarded when the entry was %s meanwhile", async (_case, change) => {
+        await render(<EditTransaction id="fee" />);
+        const draft = mockGuard.recovery?.snapshot();
+        mockRows.set("fee", { ...FEE_ROW, ...change });
+
+        mockGuard.recovery?.restore(draft);
+
+        expect(mockNotRestored).toHaveBeenCalledTimes(1);
+        expect(mockPush).not.toHaveBeenCalled();
     });
 });

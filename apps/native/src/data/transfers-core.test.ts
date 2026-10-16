@@ -9,7 +9,7 @@ import { transactions, transfers } from "@/db/schema";
 import { testDatabase, withAsyncTransactions } from "@/db/test-database";
 
 import { accountsRepo } from "./accounts-core";
-import { lastTransfer, savedTransfer, transfersRepo } from "./transfers-core";
+import { lastTransfer, sameSavedTransfer, savedTransfer, transfersRepo } from "./transfers-core";
 
 const DAY = new Date(Date.UTC(2026, 7, 9));
 const OFFICIAL_VES_PER_USD = 55.5;
@@ -447,6 +447,24 @@ describe("savedTransfer", () => {
             feeSide: "destination",
             sent: 100,
         });
+    });
+
+    it("tells a transfer read twice from one edited in between", async () => {
+        const db = makeDb();
+        const { from, to } = await twoAccounts(db);
+        const id = await transfersRepo.create(db, { ...baseInput(from, to), fee: { amount: 2.7, side: "source" } });
+        const read = () => {
+            const saved = savedTransfer(db, id);
+            if (saved === null) {
+                throw new Error("The transfer is gone");
+            }
+            return saved;
+        };
+        const before = read();
+
+        expect(sameSavedTransfer(before, read())).toBe(true);
+        await transfersRepo.update(db, id, { ...baseInput(from, to), fee: { amount: 3, side: "source" } });
+        expect(sameSavedTransfer(before, read())).toBe(false);
     });
 
     it("finds nothing behind a deleted transfer", async () => {

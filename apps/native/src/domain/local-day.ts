@@ -58,3 +58,19 @@ export function addLocalMonths(ms: number, months: number): Date {
     target.setDate(Math.min(source.getDate(), lastDay));
     return target;
 }
+
+/**
+ * A local day as Material 3's date picker reads it. The picker shows the UTC
+ * day of the instant it is given, so it is handed the local day's UTC midnight:
+ * an evening entry west of Greenwich would otherwise open on the next day.
+ */
+export function utcPickerDay(date: Date): string {
+    return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())).toISOString();
+}
+
+/** The day a Material 3 picker reported (a UTC midnight), at `date`'s local time of day. */
+export function onUtcPickerDay(picked: Date, date: Date): Date {
+    const next = new Date(date);
+    next.setFullYear(picked.getUTCFullYear(), picked.getUTCMonth(), picked.getUTCDate());
+    return next;
+}

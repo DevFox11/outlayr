@@ -331,6 +331,36 @@ describe("swapping a transfer that carries a custom rate", () => {
     });
 });
 
+describe("a draft taken off one editor", () => {
+    beforeEach(() => {
+        mockRates.set("VES", OFFICIAL_VES_PER_USD);
+    });
+
+    it("opens another exactly where it was left", async () => {
+        const before = await customRateDraft();
+        await act(async () => {
+            before.current.setFee("2");
+        });
+        await act(async () => {
+            before.current.toggleFeeSide();
+        });
+        const snapshot = before.current.snapshot();
+
+        const { result: after } = await renderHook(() =>
+            useTransferDraft({} as Database, undefined, undefined, snapshot)
+        );
+
+        expect(after.current.snapshot()).toStrictEqual(snapshot);
+        expect(after.current).toMatchObject({
+            customRatePadText: "600",
+            fee: before.current.fee,
+            feeSide: "destination",
+            legs: before.current.legs,
+            rateType: "custom",
+        });
+    });
+});
+
 describe("choosing my rate before typing one", () => {
     it("stays on the quoted source until a rate is typed", async () => {
         mockRates.set("VES", OFFICIAL_VES_PER_USD);

@@ -8,6 +8,14 @@ import { unusedDatabase as mockUnusedDatabase } from "@/db/test-database";
 import { EditTransfer } from "./edit";
 
 const mockSheet = jest.fn<(options: { sheetAllowedDetents: number[]; sheetGrabberVisible: boolean }) => void>();
+const mockPush = jest.fn<(href: string) => void>();
+const mockNotRestored = jest.fn();
+/** What the screen hands the discard guard to recover a swiped-away sheet. */
+const mockGuard: { recovery?: { restore: (draft: unknown) => void; snapshot: () => unknown } } = {};
+/** The edits the mocked editor publishes, and every `restore` it was rendered with. */
+const mockDraft = { draft: { sentText: "5" }, note: "" };
+const mockEditorRestores: unknown[] = [];
+const mockTransfers = new Map<string, { id: string; note: string }>();
 
 jest.mock("expo-router", () => ({
     Stack: {
@@ -21,7 +29,7 @@ jest.mock("expo-router", () => ({
         ),
     },
     useNavigation: () => ({ addListener: () => () => {} }),
-    useRouter: () => ({ back: jest.fn() }),
+    useRouter: () => ({ back: jest.fn(), push: mockPush }),
 }));
 
 jest.mock<Partial<typeof import("@/contexts/local-data-context")>>("@/contexts/local-data-context", () => ({
@@ -29,7 +37,8 @@ jest.mock<Partial<typeof import("@/contexts/local-data-context")>>("@/contexts/l
 }));
 
 jest.mock("@/data/transfers-core", () => ({
-    savedTransfer: (_db: unknown, id: string) => ({ id }),
+    sameSavedTransfer: (a: { note: string }, b: { note: string }) => a.note === b.note,
+    savedTransfer: (_db: unknown, id: string) => mockTransfers.get(id) ?? null,
 }));
 
 jest.mock("@/data/use-deferred-delete", () => ({
@@ -43,7 +52,14 @@ jest.mock("@/i18n/context", () => ({
 jest.mock("@/components/close-toolbar", () => ({ CloseToolbar: () => null }));
 
 jest.mock("@/hooks/use-discard-guard", () => ({
-    useDiscardGuard: () => ({ leave: jest.fn(), setDirty: jest.fn() }),
+    useDiscardGuard: (recovery: typeof mockGuard.recovery) => {
+        mockGuard.recovery = recovery;
+        return { leave: jest.fn(), setDirty: jest.fn() };
+    },
+}));
+
+jest.mock("@/components/edits-discarded-snackbar", () => ({
+    notifyEditsNotRestored: () => mockNotRestored(),
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -53,21 +69,33 @@ jest.mock("react-native-safe-area-context", () => ({
 jest.mock("@/components/transfer-editor", () => ({
     __esModule: true,
     default: ({
+        draftRef,
         rest,
+        restore,
         saved,
     }: {
+        draftRef?: { current: (() => unknown) | null };
         rest?: { onHeight: (height: number) => void; onWake: () => void };
+        restore?: unknown;
         saved: { id: string };
-    }) => (
-        <>
-            <MockText onPress={rest?.onWake}>{`editor:${saved.id}`}</MockText>
-            <MockText onPress={() => rest?.onHeight(400)}>taller</MockText>
-        </>
-    ),
+    }) => {
+        if (draftRef) {
+            draftRef.current = () => mockDraft;
+        }
+        mockEditorRestores.push(restore);
+        return (
+            <>
+                <MockText onPress={rest?.onWake}>{`editor:${saved.id}`}</MockText>
+                <MockText onPress={() => rest?.onHeight(400)}>taller</MockText>
+            </>
+        );
+    },
 }));
 
 beforeEach(() => {
-    mockSheet.mockClear();
+    jest.clearAllMocks();
+    mockEditorRestores.length = 0;
+    mockTransfers.set("transfer", { id: "transfer", note: "" });
 });
 
 describe("editTransfer", () => {
@@ -95,5 +123,30 @@ describe("editTransfer", () => {
         await fireEvent.press(screen.getByText("taller"));
 
         expect(mockSheet.mock.lastCall?.[0].sheetAllowedDetents[0]).toBeGreaterThan(before);
+    });
+});
+
+describe("editTransfer after a swipe discarded its edits", () => {
+    it("reopens the transfer with them on Undo", async () => {
+        const swiped = await render(<EditTransfer id="transfer" />);
+        const draft = mockGuard.recovery?.snapshot();
+        await swiped.unmount();
+
+        mockGuard.recovery?.restore(draft);
+        expect(mockPush).toHaveBeenCalledWith("/transactions/transfers/transfer");
+        await render(<EditTransfer id="transfer" />);
+
+        expect(mockEditorRestores.at(-1)).toStrictEqual(mockDraft);
+    });
+
+    it("keeps them discarded when the transfer changed meanwhile", async () => {
+        await render(<EditTransfer id="transfer" />);
+        const draft = mockGuard.recovery?.snapshot();
+        mockTransfers.set("transfer", { id: "transfer", note: "edited elsewhere" });
+
+        mockGuard.recovery?.restore(draft);
+
+        expect(mockNotRestored).toHaveBeenCalledTimes(1);
+        expect(mockPush).not.toHaveBeenCalled();
     });
 });

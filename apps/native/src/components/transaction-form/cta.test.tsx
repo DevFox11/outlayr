@@ -2,12 +2,13 @@ import { describe, expect, it, jest } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 
-import { TransactionFormCta, transactionFormCtaActions } from "./cta";
+import { TransactionFormCta } from "./cta";
+import { transactionFormCtaActions } from "./cta-actions";
 
 const mockToolbarRenders = jest.fn();
 const mockKeyboardShown = jest.fn<() => boolean>(() => false);
 
-jest.mock("./stage/stage", () => ({ useKeyboardShown: () => mockKeyboardShown() }));
+jest.mock("./stage/use-keyboard-shown", () => ({ useKeyboardShown: () => mockKeyboardShown() }));
 
 jest.mock<Partial<typeof import("expo-router")>>("expo-router", () => {
     const stub = require("../../../jest/expo-router-stub");

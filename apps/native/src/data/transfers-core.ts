@@ -189,6 +189,25 @@ export function savedTransfer(db: Database, id: string): SavedTransfer | null {
     };
 }
 
+/** Whether two reads of a transfer agree on everything its editor shows and saves. */
+export function sameSavedTransfer(a: SavedTransfer, b: SavedTransfer): boolean {
+    return (
+        a.id === b.id &&
+        a.date.getTime() === b.date.getTime() &&
+        a.sent === b.sent &&
+        a.arrived === b.arrived &&
+        a.fee === b.fee &&
+        a.feeSide === b.feeSide &&
+        a.fromAccountId === b.fromAccountId &&
+        a.fromCurrency === b.fromCurrency &&
+        a.toAccountId === b.toAccountId &&
+        a.toCurrency === b.toCurrency &&
+        a.rate === b.rate &&
+        a.rateType === b.rateType &&
+        a.note === b.note
+    );
+}
+
 export function lastTransfer(db: Database): SavedTransfer | null {
     const [row] = db
         .select({ id: transfers.id })

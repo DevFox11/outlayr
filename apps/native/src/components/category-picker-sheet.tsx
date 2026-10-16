@@ -18,11 +18,13 @@ import type { Database } from "@/db/client";
 import { expandedForSelectedCategory, searchCategoryTree } from "@/domain/category-search";
 import type { CategoryMatch } from "@/domain/category-search";
 import { useMergedRef } from "@/hooks/use-merged-ref";
+import { useSheetSurface } from "@/hooks/use-sheet-surface";
 import { useTranslation } from "@/i18n/context";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
 import { CategoryIconTile } from "./category-icon-tile";
+import { SheetGestureRoot } from "./sheet-gesture-root";
 import { Text } from "./text";
 import { cn } from "./tw";
 
@@ -64,6 +66,7 @@ export function CategoryPickerSheet({
 }: CategoryPickerSheetProps) {
     const t = useTranslation();
     const colors = useColors();
+    const sheetBackground = { backgroundColor: useSheetSurface() };
     const offered = useCategoriesByNamespace(db, income);
     const blocked = useMemo(() => new Set(excludeIds), [excludeIds]);
     /**
@@ -191,120 +194,126 @@ export function CategoryPickerSheet({
 
     return (
         <BottomSheetModal
-            backgroundStyle={{ backgroundColor: colors.background }}
+            backgroundStyle={sheetBackground}
             enableDynamicSizing={false}
             enablePanDownToClose
             onDismiss={handleDismiss}
             ref={setRefs}
             snapPoints={["65%", "92%"]}
         >
-            <View className="mb-2 justify-center px-5 py-1">
-                <Text accessibilityRole="header" className="text-foreground text-center text-lg font-medium">
-                    {t("categories.kind.category")}
-                </Text>
-                <View className="absolute top-0 bottom-0 left-5 justify-center">
-                    <Button
-                        accessibilityLabel={t("common.close")}
-                        className="rounded-full"
-                        onPress={dismiss}
-                        size="icon"
-                        variant="secondary"
-                    >
-                        <HugeiconsIcon color={colors.foreground} icon={Cancel01Icon} size={22} />
-                    </Button>
+            <SheetGestureRoot fill>
+                <View className="mb-2 justify-center px-5 py-1">
+                    <Text accessibilityRole="header" className="text-foreground text-center text-lg font-medium">
+                        {t("categories.kind.category")}
+                    </Text>
+                    <View className="absolute top-0 bottom-0 left-5 justify-center">
+                        <Button
+                            accessibilityLabel={t("common.close")}
+                            className="rounded-full"
+                            onPress={dismiss}
+                            size="icon"
+                            variant="secondary"
+                        >
+                            <HugeiconsIcon color={colors.foreground} icon={Cancel01Icon} size={22} />
+                        </Button>
+                    </View>
                 </View>
-            </View>
 
-            <View className="px-5 pt-3 pb-3">
-                <InputGroup>
-                    <InputGroup.Prefix className="px-2.5" isDecorative>
-                        <HugeiconsIcon color={colors.muted} icon={Search01Icon} size={16} strokeWidth={2} />
-                    </InputGroup.Prefix>
-                    <InputGroup.Input
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        clearButtonMode="never"
-                        onChangeText={setQuery}
-                        placeholder={t("transaction.category.search")}
-                        returnKeyType="search"
-                        size="sm"
-                        testID="category-search"
-                        value={query}
-                    />
-                    {searching ? (
-                        <InputGroup.Suffix className="px-2.5">
-                            <Pressable
-                                accessibilityLabel={t("common.clearSearch")}
-                                accessibilityRole="button"
-                                hitSlop={{ bottom: 15, left: 10, right: 12, top: 15 }}
-                                onPress={clearQuery}
-                                testID="category-search-clear"
-                            >
-                                <HugeiconsIcon color={colors.muted} icon={Cancel01Icon} size={15} strokeWidth={2} />
-                            </Pressable>
-                        </InputGroup.Suffix>
-                    ) : null}
-                </InputGroup>
-            </View>
-
-            <BottomSheetScrollView
-                contentContainerClassName="px-5"
-                keyboardDismissMode="on-drag"
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-                style={{ flex: 1 }}
-            >
-                {searching ? (
-                    searchPanel
-                ) : (
-                    <>
-                        {recents.length > 0 ? (
-                            <>
-                                <GroupCaption text={t("transaction.category.recent")} />
-                                <View className="mb-4 flex-row flex-wrap gap-2" testID="category-recents">
-                                    {recents.map((category) => (
-                                        <RecentChip category={category} key={category.id} onSelect={onSelect} />
-                                    ))}
-                                </View>
-                            </>
+                <View className="px-5 pt-3 pb-3">
+                    <InputGroup>
+                        <InputGroup.Prefix className="px-2.5" isDecorative>
+                            <HugeiconsIcon color={colors.muted} icon={Search01Icon} size={16} strokeWidth={2} />
+                        </InputGroup.Prefix>
+                        <InputGroup.Input
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            clearButtonMode="never"
+                            onChangeText={setQuery}
+                            placeholder={t("transaction.category.search")}
+                            returnKeyType="search"
+                            size="sm"
+                            testID="category-search"
+                            value={query}
+                        />
+                        {searching ? (
+                            <InputGroup.Suffix className="px-2.5">
+                                <Pressable
+                                    accessibilityLabel={t("common.clearSearch")}
+                                    accessibilityRole="button"
+                                    hitSlop={{ bottom: 15, left: 10, right: 12, top: 15 }}
+                                    onPress={clearQuery}
+                                    testID="category-search-clear"
+                                >
+                                    <HugeiconsIcon color={colors.muted} icon={Cancel01Icon} size={15} strokeWidth={2} />
+                                </Pressable>
+                            </InputGroup.Suffix>
                         ) : null}
+                    </InputGroup>
+                </View>
 
-                        <GroupCaption text={t("transaction.category.all")} />
-                        <View className="bg-surface overflow-hidden rounded-xl">
-                            {categories.map((parent, index) => {
-                                const isExpanded = expanded.has(parent.id);
-                                return (
-                                    <Animated.View key={parent.id} layout={CARD_LAYOUT}>
-                                        <CategoryRow
-                                            category={parent}
-                                            childCount={parent.children.length}
-                                            divided={index > 0}
-                                            excluded={blocked.has(parent.id)}
-                                            expanded={isExpanded}
-                                            onSelect={onSelect}
-                                            onToggle={toggle}
-                                            selected={parent.id === selectedId}
-                                        />
-                                        {isExpanded
-                                            ? parent.children.map((child) => (
-                                                  <Animated.View entering={CHILD_IN} exiting={CHILD_OUT} key={child.id}>
-                                                      <CategoryRow
-                                                          category={child}
-                                                          divided
-                                                          indented
-                                                          onSelect={onSelect}
-                                                          selected={child.id === selectedId}
-                                                      />
-                                                  </Animated.View>
-                                              ))
-                                            : null}
-                                    </Animated.View>
-                                );
-                            })}
-                        </View>
-                    </>
-                )}
-            </BottomSheetScrollView>
+                <BottomSheetScrollView
+                    contentContainerClassName="px-5"
+                    keyboardDismissMode="on-drag"
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                    style={{ flex: 1 }}
+                >
+                    {searching ? (
+                        searchPanel
+                    ) : (
+                        <>
+                            {recents.length > 0 ? (
+                                <>
+                                    <GroupCaption text={t("transaction.category.recent")} />
+                                    <View className="mb-4 flex-row flex-wrap gap-2" testID="category-recents">
+                                        {recents.map((category) => (
+                                            <RecentChip category={category} key={category.id} onSelect={onSelect} />
+                                        ))}
+                                    </View>
+                                </>
+                            ) : null}
+
+                            <GroupCaption text={t("transaction.category.all")} />
+                            <View className="bg-surface overflow-hidden rounded-xl">
+                                {categories.map((parent, index) => {
+                                    const isExpanded = expanded.has(parent.id);
+                                    return (
+                                        <Animated.View key={parent.id} layout={CARD_LAYOUT}>
+                                            <CategoryRow
+                                                category={parent}
+                                                childCount={parent.children.length}
+                                                divided={index > 0}
+                                                excluded={blocked.has(parent.id)}
+                                                expanded={isExpanded}
+                                                onSelect={onSelect}
+                                                onToggle={toggle}
+                                                selected={parent.id === selectedId}
+                                            />
+                                            {isExpanded
+                                                ? parent.children.map((child) => (
+                                                      <Animated.View
+                                                          entering={CHILD_IN}
+                                                          exiting={CHILD_OUT}
+                                                          key={child.id}
+                                                      >
+                                                          <CategoryRow
+                                                              category={child}
+                                                              divided
+                                                              indented
+                                                              onSelect={onSelect}
+                                                              selected={child.id === selectedId}
+                                                          />
+                                                      </Animated.View>
+                                                  ))
+                                                : null}
+                                        </Animated.View>
+                                    );
+                                })}
+                            </View>
+                        </>
+                    )}
+                </BottomSheetScrollView>
+            </SheetGestureRoot>
         </BottomSheetModal>
     );
 }

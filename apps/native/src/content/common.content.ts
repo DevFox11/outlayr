@@ -31,13 +31,29 @@ const common = {
             en: "Delete",
             es: "Eliminar",
         }),
+        "common.discard.body": t({
+            en: "Your changes won't be saved.",
+            es: "Tus cambios no se guardarán.",
+        }),
         "common.discard.confirm": t({
             en: "Discard",
             es: "Descartar",
         }),
+        "common.discard.discarded": t({
+            en: "Edits discarded",
+            es: "Cambios descartados",
+        }),
         "common.discard.keep": t({
             en: "Keep editing",
             es: "Seguir editando",
+        }),
+        "common.discard.restoreFailed": t({
+            en: "Edits not restored",
+            es: "No se restauraron los cambios",
+        }),
+        "common.discard.restoreFailedBody": t({
+            en: "It was changed or deleted in the meantime.",
+            es: "Se modificó o se eliminó mientras tanto.",
         }),
         "common.discard.title": t({
             en: "Discard changes?",
@@ -82,6 +98,10 @@ const common = {
         "common.retry": t({
             en: "Try Again",
             es: "Reintentar",
+        }),
+        "common.save": t({
+            en: "Save",
+            es: "Guardar",
         }),
         "common.shown": t({
             en: "Shown",

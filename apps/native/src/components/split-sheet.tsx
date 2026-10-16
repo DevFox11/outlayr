@@ -17,6 +17,7 @@ import { isBalanced, unallocated } from "@/domain/split";
 import type { Allocation } from "@/domain/split";
 import { addPart, removePart, setPartAmount, setPartCategory } from "@/domain/split-draft";
 import { useMergedRef } from "@/hooks/use-merged-ref";
+import { useSheetSurface } from "@/hooks/use-sheet-surface";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
@@ -24,6 +25,7 @@ import { AmountEntrySheet } from "./amount-entry-sheet";
 import { CategoryIconTile } from "./category-icon-tile";
 import { CategoryPickerSheet } from "./category-picker-sheet";
 import type { CategoryPickerSheetRef } from "./category-picker-sheet";
+import { SheetGestureRoot } from "./sheet-gesture-root";
 import { Text } from "./text";
 
 interface SplitSheetProps {
@@ -49,6 +51,7 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
     const t = useTranslation();
     const { language } = useLanguage();
     const colors = useColors();
+    const sheetBackground = { backgroundColor: useSheetSurface() };
     const sheetRef = useRef<BottomSheetModal>(null);
     const categoryRef = useRef<CategoryPickerSheetRef>(null);
     const categories = useCategoriesByNamespace(db, income);
@@ -99,147 +102,153 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
 
     return (
         <BottomSheetModal
-            backgroundStyle={{ backgroundColor: colors.background }}
+            backgroundStyle={sheetBackground}
             enableDynamicSizing={false}
             enablePanDownToClose
             ref={setRefs}
             snapPoints={["65%", "92%"]}
         >
-            <View className="mb-2 justify-center px-5 py-1">
-                <Text accessibilityRole="header" className="text-foreground text-center text-lg font-medium">
-                    {t("transaction.split.title")}
-                </Text>
-                <View className="absolute top-0 bottom-0 left-5 justify-center">
-                    <Button
-                        accessibilityLabel={t("common.close")}
-                        className="rounded-full"
-                        onPress={() => sheetRef.current?.dismiss()}
-                        size="icon"
-                        variant="secondary"
-                    >
-                        <HugeiconsIcon color={colors.foreground} icon={Cancel01Icon} size={22} />
-                    </Button>
+            <SheetGestureRoot fill>
+                <View className="mb-2 justify-center px-5 py-1">
+                    <Text accessibilityRole="header" className="text-foreground text-center text-lg font-medium">
+                        {t("transaction.split.title")}
+                    </Text>
+                    <View className="absolute top-0 bottom-0 left-5 justify-center">
+                        <Button
+                            accessibilityLabel={t("common.close")}
+                            className="rounded-full"
+                            onPress={() => sheetRef.current?.dismiss()}
+                            size="icon"
+                            variant="secondary"
+                        >
+                            <HugeiconsIcon color={colors.foreground} icon={Cancel01Icon} size={22} />
+                        </Button>
+                    </View>
                 </View>
-            </View>
 
-            <BottomSheetScrollView>
-                {allocations.map((part, index) => {
-                    const category = part.categoryId == null ? null : byId.get(part.categoryId);
-                    return (
-                        <View className="border-border flex-row items-center gap-3 border-t px-5 py-3" key={index}>
-                            <Pressable
-                                accessibilityLabel={t("transaction.split.chooseCategory")}
-                                accessibilityRole="button"
-                                className="flex-1 flex-row items-center gap-3"
-                                onPress={() => pickCategory(index)}
-                            >
-                                {category ? (
-                                    <CategoryIconTile
-                                        color={category.income ? colors.income : (category.color ?? "#767676")}
-                                        emoji={category.emoji}
-                                        icon={category.icon}
-                                        radius={999}
-                                        size={28}
-                                        type="solid"
-                                    />
-                                ) : null}
-                                <Text className="text-body text-foreground flex-1">
-                                    {category?.name ?? t("transaction.split.chooseCategory")}
-                                </Text>
-                            </Pressable>
-                            <Pressable
-                                accessibilityLabel={t("transaction.split.editAmount")}
-                                accessibilityRole="button"
-                                hitSlop={{ bottom: 11, left: 6, right: 6, top: 11 }}
-                                onPress={() => editAmount(index)}
-                            >
-                                <Text className="text-body text-foreground font-mono tabular-nums">
-                                    {formatAmount(part.amount, code, true, language)}
-                                </Text>
-                            </Pressable>
-                            {allocations.length > 1 ? (
+                <BottomSheetScrollView>
+                    {allocations.map((part, index) => {
+                        const category = part.categoryId == null ? null : byId.get(part.categoryId);
+                        return (
+                            <View className="border-border flex-row items-center gap-3 border-t px-5 py-3" key={index}>
                                 <Pressable
-                                    accessibilityLabel={t("transaction.split.removePart")}
+                                    accessibilityLabel={t("transaction.split.chooseCategory")}
                                     accessibilityRole="button"
-                                    hitSlop={{ bottom: 13, left: 6, right: 13, top: 13 }}
-                                    onPress={() => onChange(removePart(allocations, index, minorUnits))}
+                                    className="flex-1 flex-row items-center gap-3"
+                                    onPress={() => pickCategory(index)}
                                 >
-                                    <HugeiconsIcon color={colors.muted} icon={Cancel01Icon} size={18} />
+                                    {category ? (
+                                        <CategoryIconTile
+                                            color={category.income ? colors.income : (category.color ?? "#767676")}
+                                            emoji={category.emoji}
+                                            icon={category.icon}
+                                            radius={999}
+                                            size={28}
+                                            type="solid"
+                                        />
+                                    ) : null}
+                                    <Text className="text-body text-foreground flex-1">
+                                        {category?.name ?? t("transaction.split.chooseCategory")}
+                                    </Text>
                                 </Pressable>
-                            ) : null}
-                        </View>
-                    );
-                })}
+                                <Pressable
+                                    accessibilityLabel={t("transaction.split.editAmount")}
+                                    accessibilityRole="button"
+                                    hitSlop={{ bottom: 11, left: 6, right: 6, top: 11 }}
+                                    onPress={() => editAmount(index)}
+                                >
+                                    <Text className="text-body text-foreground font-mono tabular-nums">
+                                        {formatAmount(part.amount, code, true, language)}
+                                    </Text>
+                                </Pressable>
+                                {allocations.length > 1 ? (
+                                    <Pressable
+                                        accessibilityLabel={t("transaction.split.removePart")}
+                                        accessibilityRole="button"
+                                        hitSlop={{ bottom: 13, left: 6, right: 13, top: 13 }}
+                                        onPress={() => onChange(removePart(allocations, index, minorUnits))}
+                                    >
+                                        <HugeiconsIcon color={colors.muted} icon={Cancel01Icon} size={18} />
+                                    </Pressable>
+                                ) : null}
+                            </View>
+                        );
+                    })}
 
-                <View
-                    className={`border-border flex-row items-center justify-between border-t px-5 py-3 ${balanced ? "" : "bg-surface"}`}
-                >
-                    <Text
-                        className={`text-micro tracking-eyebrow font-mono uppercase ${balanced ? "text-income" : "text-expense"}`}
+                    <View
+                        className={`border-border flex-row items-center justify-between border-t px-5 py-3 ${balanced ? "" : "bg-surface"}`}
                     >
-                        {balanced ? t("transaction.split.balanced") : t("transaction.split.remaining")}
-                    </Text>
-                    <Text className={`text-body font-mono tabular-nums ${balanced ? "text-income" : "text-expense"}`}>
-                        {formatAmount(Math.abs(left), code, true, language)}
-                    </Text>
-                </View>
+                        <Text
+                            className={`text-micro tracking-eyebrow font-mono uppercase ${balanced ? "text-income" : "text-expense"}`}
+                        >
+                            {balanced ? t("transaction.split.balanced") : t("transaction.split.remaining")}
+                        </Text>
+                        <Text
+                            className={`text-body font-mono tabular-nums ${balanced ? "text-income" : "text-expense"}`}
+                        >
+                            {formatAmount(Math.abs(left), code, true, language)}
+                        </Text>
+                    </View>
 
-                <Pressable
-                    accessibilityLabel={t("transaction.split.addCategory")}
-                    accessibilityRole="button"
-                    className="border-border flex-row items-center gap-2 border-t px-5 py-3"
-                    onPress={() => pickCategory(allocations.length)}
-                >
-                    <HugeiconsIcon color={colors.accent} icon={PlusSignIcon} size={18} />
-                    <Text className="text-accent text-body">{t("transaction.split.addCategory")}</Text>
-                </Pressable>
-
-                {balanced ? null : (
                     <Pressable
+                        accessibilityLabel={t("transaction.split.addCategory")}
                         accessibilityRole="button"
                         className="border-border flex-row items-center gap-2 border-t px-5 py-3"
-                        onPress={() =>
-                            onChange(
-                                setPartAmount(
-                                    total,
-                                    allocations,
-                                    allocations.length - 1,
-                                    (allocations.at(-1)?.amount ?? 0) + left,
-                                    minorUnits
-                                )
-                            )
-                        }
+                        onPress={() => pickCategory(allocations.length)}
                     >
-                        <HugeiconsIcon color={colors.accent} icon={Tick02Icon} size={18} />
-                        <Text className="text-accent text-body">{t("transaction.split.fillRest")}</Text>
+                        <HugeiconsIcon color={colors.accent} icon={PlusSignIcon} size={18} />
+                        <Text className="text-accent text-body">{t("transaction.split.addCategory")}</Text>
                     </Pressable>
-                )}
 
-                <View className="h-10" />
-            </BottomSheetScrollView>
+                    {balanced ? null : (
+                        <Pressable
+                            accessibilityRole="button"
+                            className="border-border flex-row items-center gap-2 border-t px-5 py-3"
+                            onPress={() =>
+                                onChange(
+                                    setPartAmount(
+                                        total,
+                                        allocations,
+                                        allocations.length - 1,
+                                        (allocations.at(-1)?.amount ?? 0) + left,
+                                        minorUnits
+                                    )
+                                )
+                            }
+                        >
+                            <HugeiconsIcon color={colors.accent} icon={Tick02Icon} size={18} />
+                            <Text className="text-accent text-body">{t("transaction.split.fillRest")}</Text>
+                        </Pressable>
+                    )}
 
-            <CategoryPickerSheet
-                db={db}
-                income={income}
-                onSelect={onPickCategory}
-                ref={categoryRef}
-                selectedId={
-                    editing != null && editing < allocations.length ? (allocations[editing].categoryId ?? null) : null
-                }
-            />
-            <AmountEntrySheet
-                code={code}
-                minorUnits={minorUnits}
-                onChange={(next) => {
-                    setAmountText(next);
-                    if (editing != null) {
-                        onChange(setPartAmount(total, allocations, editing, numpadToNumber(next), minorUnits));
+                    <View className="h-10" />
+                </BottomSheetScrollView>
+
+                <CategoryPickerSheet
+                    db={db}
+                    income={income}
+                    onSelect={onPickCategory}
+                    ref={categoryRef}
+                    selectedId={
+                        editing != null && editing < allocations.length
+                            ? (allocations[editing].categoryId ?? null)
+                            : null
                     }
-                }}
-                onDone={() => amountSheetRef.current?.dismiss()}
-                ref={amountSheetRef}
-                value={amountText}
-            />
+                />
+                <AmountEntrySheet
+                    code={code}
+                    minorUnits={minorUnits}
+                    onChange={(next) => {
+                        setAmountText(next);
+                        if (editing != null) {
+                            onChange(setPartAmount(total, allocations, editing, numpadToNumber(next), minorUnits));
+                        }
+                    }}
+                    onDone={() => amountSheetRef.current?.dismiss()}
+                    ref={amountSheetRef}
+                    value={amountText}
+                />
+            </SheetGestureRoot>
         </BottomSheetModal>
     );
 }

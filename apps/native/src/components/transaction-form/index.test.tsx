@@ -28,6 +28,7 @@ import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { curtainGradient } from "../identity-curtain";
 import { TransactionForm } from "./index";
+import type { TransactionFormDraft } from "./index";
 
 jest.mock("@/components/thinking-orb/thinking-orb", () => ({ ThinkingOrb: () => null }));
 jest.mock<Partial<typeof import("@react-native-async-storage/async-storage")>>(
@@ -2906,6 +2907,47 @@ describe("transactionForm account attachment", () => {
 
         await pressKeys(screen, ["1"]);
 
+        expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+    });
+
+    it("opens on the edits a discarded form held, still unsaved", async () => {
+        const db = dbHolder.current as Database;
+        const initial = await seedStoredTransaction(db);
+        const readDraft: { current: (() => TransactionFormDraft) | null } = { current: null };
+        const amountShown = (screen: Screen) =>
+            sentenceSlot(screen.toJSON() as JsonNode, "transaction.field.amount").props.accessibilityValue;
+        const discarded = await render(
+            <Providers>
+                <TransactionForm db={db} draftRef={readDraft} initial={initial} mode="edit" onDone={() => {}} />
+            </Providers>
+        );
+        const untouched = amountShown(discarded);
+        await act(async () => {
+            fireEvent.press(discarded.getByLabelText("transaction.field.amount"));
+        });
+        await pressKeys(discarded, ["7"]);
+        const edited = amountShown(discarded);
+        const draft = readDraft.current?.();
+        await discarded.unmount();
+
+        const onDirtyChange = jest.fn();
+        const restored = await render(
+            <Providers>
+                <TransactionForm
+                    db={db}
+                    draftRef={readDraft}
+                    initial={initial}
+                    mode="edit"
+                    onDirtyChange={onDirtyChange}
+                    onDone={() => {}}
+                    restore={draft}
+                />
+            </Providers>
+        );
+
+        expect(edited).not.toStrictEqual(untouched);
+        expect(amountShown(restored)).toStrictEqual(edited);
+        expect(readDraft.current?.()).toStrictEqual(draft);
         expect(onDirtyChange).toHaveBeenLastCalledWith(true);
     });
 

@@ -1,8 +1,8 @@
 import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import type { ReactNode } from "react";
-import { createContext, use, useEffect, useState } from "react";
-import { Keyboard, Pressable, View } from "react-native";
+import { createContext, use } from "react";
+import { Pressable, View } from "react-native";
 import Animated, { Keyframe, ReduceMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -13,6 +13,7 @@ import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useColors } from "@/theme/use-colors";
 
 import { EASE } from "../../sentence/sentence-motion";
+import { useKeyboardShown } from "./use-keyboard-shown";
 
 const SWAP_MS = 240;
 
@@ -30,19 +31,6 @@ const BOTTOM_PAD = 30;
  * merchant step: the button was clipped by about that inset and nothing else.
  */
 const KEYBOARD_BOTTOM_PAD = 12;
-
-export function useKeyboardShown(): boolean {
-    const [shown, setShown] = useState(false);
-    useEffect(() => {
-        const show = Keyboard.addListener("keyboardWillShow", () => setShown(true));
-        const hide = Keyboard.addListener("keyboardWillHide", () => setShown(false));
-        return () => {
-            show.remove();
-            hide.remove();
-        };
-    }, []);
-    return shown;
-}
 
 /** Matches the header's own ✕, a 38pt circle. */
 const BACK_GLYPH = 19;

@@ -19,13 +19,20 @@ export interface SplitDraft {
  * Kept out of the form store because a split is written after the row exists,
  * like tags, and nothing in `validators.onChange` gates on it.
  */
-export function useSplitDraft(db: Database, mode: "create" | "edit", initial: Transaction | undefined): SplitDraft {
-    const [allocations, setAllocations] = useState<Allocation[]>([]);
+export function useSplitDraft(
+    db: Database,
+    mode: "create" | "edit",
+    initial: Transaction | undefined,
+    /** A discarded draft's parts, which stand in for the saved ones. */
+    restored?: Allocation[]
+): SplitDraft {
+    const [allocations, setAllocations] = useState<Allocation[]>(restored ?? []);
+    const [fromDraft] = useState(restored !== undefined);
 
     // An entry being edited already has its parts. Without this the sheet would
     // open empty and saving would silently clear a split the user never touched.
     useEffect(() => {
-        if (mode !== "edit" || initial == null) {
+        if (mode !== "edit" || initial == null || fromDraft) {
             return;
         }
         let cancelled = false;
@@ -41,7 +48,7 @@ export function useSplitDraft(db: Database, mode: "create" | "edit", initial: Tr
         return () => {
             cancelled = true;
         };
-    }, [db, mode, initial]);
+    }, [db, fromDraft, mode, initial]);
 
     const openSplit = (total: number, categoryId: string | null, decimals: number) => {
         setAllocations((current) => (current.length === 0 ? openDraft(total, categoryId, decimals) : current));

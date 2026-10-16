@@ -210,6 +210,8 @@ export interface TransferDraft {
     outside: number;
     paid: number;
     prefillArrival: () => void;
+    /** The draft as it stands, for `useTransferDraft`'s `restored`. */
+    snapshot: () => TransferDraftSnapshot;
     priorCustomRate: { date: Date; rate: number } | null;
     quotedRate: number | null;
     rateInverse: boolean;
@@ -275,6 +277,17 @@ interface Opening {
     rateType: TransferRateChoice | null;
     sentText: string;
     toId: string | null;
+}
+
+/**
+ * The draft's own state, enough to rebuild it: what it opened with, as since
+ * edited, plus the choices that only exist once someone made them. The swipe
+ * that discards an Android edit sheet hands this back to a new draft.
+ */
+export interface TransferDraftSnapshot extends Opening {
+    feeMode: FeeMode;
+    marketType: MarketRateType | null;
+    shownPair: string | null;
 }
 
 /** The editor's opening state: the seed where it speaks, else the last transfer's route, else the first two accounts. */
@@ -423,24 +436,49 @@ function restoredBy(saved: SavedTransfer | undefined, account: Account | null, n
     return sent - arrived;
 }
 
-export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: SavedTransfer): TransferDraft {
+/**
+ * Where a draft starts: a restored one where it left off, else the saved
+ * transfer or the seed, with the choices nobody has made yet at their defaults.
+ */
+function startingDraft(
+    db: Database,
+    accounts: readonly Account[],
+    seed?: TransferSeed,
+    saved?: SavedTransfer,
+    restored?: TransferDraftSnapshot
+): TransferDraftSnapshot {
+    if (restored !== undefined) {
+        return restored;
+    }
+    const opening = saved ? savedState(accounts, saved) : openingState(accounts, seed, lastTransfer(db));
+    return {
+        ...opening,
+        feeMode: opening.feeText === "" ? "none" : "included",
+        marketType: opening.rateType === "custom" ? "official" : opening.rateType,
+        shownPair: null,
+    };
+}
+
+export function useTransferDraft(
+    db: Database,
+    seed?: TransferSeed,
+    saved?: SavedTransfer,
+    /** A discarded draft to open as, in place of `saved` or `seed`. */
+    restored?: TransferDraftSnapshot
+): TransferDraft {
     const accounts = useAccounts(db);
-    const [opening] = useState(() =>
-        saved ? savedState(accounts, saved) : openingState(accounts, seed, lastTransfer(db))
-    );
+    const [opening] = useState(() => startingDraft(db, accounts, seed, saved, restored));
     const [fromId, setFromId] = useState<string | null>(opening.fromId);
     const [toId, setToId] = useState<string | null>(opening.toId);
     const [sentText, setSentText] = useState(opening.sentText);
     const [arrivedText, setArrivedText] = useState(opening.arrivedText);
     const [arrivalPinned, setArrivalPinned] = useState(opening.arrivalPinned);
-    const [shownPair, setShownPair] = useState<string | null>(null);
+    const [shownPair, setShownPair] = useState(opening.shownPair);
     const [chosenRate, setChosenRate] = useState<TransferRateChoice | null>(opening.rateType);
-    const [marketType, setMarketType] = useState<MarketRateType | null>(
-        opening.rateType === "custom" ? "official" : opening.rateType
-    );
+    const [marketType, setMarketType] = useState(opening.marketType);
     const [customRates, setCustomRates] = useState<Record<string, CustomRate>>(opening.customRates);
     const [feeText, setFeeText] = useState(opening.feeText);
-    const [feeMode, setFeeMode] = useState<FeeMode>(opening.feeText === "" ? "none" : "included");
+    const [feeMode, setFeeMode] = useState(opening.feeMode);
     const [feeSide, setFeeSide] = useState<FeeSide>(opening.feeSide);
     const [date, setDate] = useState(opening.date);
     const [outside, setOutside] = useState(opening.outside);
@@ -630,6 +668,23 @@ export function useTransferDraft(db: Database, seed?: TransferSeed, saved?: Save
             }
         },
         resolveAsOnTop: () => setFeeMode("onTop"),
+        snapshot: () => ({
+            arrivalPinned,
+            arrivedText,
+            carriedRates: opening.carriedRates,
+            customRates,
+            date,
+            feeMode,
+            feeSide,
+            feeText,
+            fromId,
+            marketType,
+            outside,
+            rateType: chosenRate,
+            sentText,
+            shownPair,
+            toId,
+        }),
         sent,
         sentText,
         setArrived: (text) => {

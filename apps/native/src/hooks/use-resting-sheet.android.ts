@@ -16,7 +16,7 @@ const REST_BOTTOM_ROOM = 8;
  * Declared by the root stack too (`stackChrome().entrySheet`), so the sheet is
  * created with it. One object for the sheet's whole life: see below.
  */
-const SHEET = { sheetAllowedDetents: "fitToContents" } as const;
+const SHEET = { sheetAllowedDetents: "fitToContents", sheetResizeAnimationEnabled: false } as const;
 
 /**
  * The entry sheet's resting state on Android, same contract as iOS, but the

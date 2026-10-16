@@ -1,5 +1,3 @@
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { startOfDay } from "@outlayr/money/calendar";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -23,6 +21,7 @@ import { AiConsentGate } from "@/components/ai-consent";
 import { FlowAmount } from "@/components/amount-text";
 import { intervalPhrase } from "@/components/custom-schedule-sheet";
 import { LimitToast } from "@/components/limit-toast";
+import { ModalClose } from "@/components/modal-close";
 import { VoiceOrb } from "@/components/voice/voice-orb";
 import type { VoiceOrbState } from "@/components/voice/voice-orb";
 import { useDatabase } from "@/contexts/local-data-context";
@@ -77,14 +76,6 @@ import { useColors } from "@/theme/use-colors";
 const ORB_SIZE = 180;
 /** Once a draft is on screen the orb is a badge above it, not the subject. */
 const ORB_SIZE_SETTLED = 120;
-/**
- * Where the system puts a sheet's own close: 16pt in from the card's top and
- * trailing edge. The route is a `modal`, a card that already sits under the
- * status bar, so the window's top inset does not apply inside it (adding it put
- * the close a whole status bar too low); the trailing inset still does, for
- * landscape and iPad.
- */
-const SHEET_CLOSE_INSET = 16;
 /** The orb's own press: a small give, never a bounce, so the tap reads as a touch on glass. */
 const ORB_PRESS_SCALE = 0.96;
 const ORB_SPRING = { damping: 18, mass: 0.9, stiffness: 170 };
@@ -179,26 +170,10 @@ function VoiceShell({
     overlay?: React.ReactNode;
 }) {
     const t = useTranslation();
-    const colors = useColors();
     const insets = useSafeAreaInsets();
     return (
         <View className="bg-background flex-1">
-            <View
-                className="flex-row justify-end"
-                style={{ paddingRight: SHEET_CLOSE_INSET + insets.right, paddingTop: SHEET_CLOSE_INSET }}
-            >
-                <Button
-                    accessibilityLabel={t("voice.close")}
-                    disabled={closeDisabled}
-                    glass
-                    native
-                    onPress={onClose}
-                    size="icon"
-                    variant="secondary"
-                >
-                    <HugeiconsIcon color={colors.foreground} icon={Cancel01Icon} size={18} strokeWidth={2} />
-                </Button>
-            </View>
+            <ModalClose accessibilityLabel={t("voice.close")} disabled={closeDisabled} onPress={onClose} />
             <View className="flex-1 items-center justify-center gap-6 px-6">{children}</View>
             <View className="gap-2 px-5" style={{ paddingBottom: Math.max(insets.bottom, 20) }}>
                 {bottom}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { addLocalMonths, daysBetween, startOfLocalDay, tomorrowLocal } from "./local-day";
+import { addLocalMonths, daysBetween, onUtcPickerDay, startOfLocalDay, tomorrowLocal, utcPickerDay } from "./local-day";
 
 describe("the reader's calendar", () => {
     it("floors to the local midnight, not the epoch's", () => {
@@ -29,5 +29,22 @@ describe("the reader's calendar", () => {
 
     it("keeps the day of the month where the destination has one", () => {
         expect(addLocalMonths(new Date(2026, 7, 15).getTime(), 6)).toStrictEqual(new Date(2027, 1, 15));
+    });
+});
+
+describe("the Material date picker's UTC days", () => {
+    it("opens on the entry's own local day, late in the evening too", () => {
+        expect(utcPickerDay(new Date(2026, 9, 14, 23, 30))).toBe("2026-10-14T00:00:00.000Z");
+    });
+
+    it("moves to the picked day and keeps the time of day", () => {
+        const entry = new Date(2026, 9, 14, 21, 45);
+        const moved = onUtcPickerDay(new Date("2026-10-02T00:00:00.000Z"), entry);
+        expect(moved).toStrictEqual(new Date(2026, 9, 2, 21, 45));
+    });
+
+    it("reads back the day it was opened on as no change", () => {
+        const entry = new Date(2026, 9, 14, 23, 30);
+        expect(onUtcPickerDay(new Date(utcPickerDay(entry)), entry)).toStrictEqual(entry);
     });
 });

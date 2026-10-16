@@ -33,7 +33,7 @@ describe("useRestingSheet on Android", () => {
 
         expect(result.current.awake).toBe(true);
         expect(result.current.sheet).toBe(resting);
-        expect(resting).toStrictEqual({ sheetAllowedDetents: "fitToContents" });
+        expect(resting).toStrictEqual({ sheetAllowedDetents: "fitToContents", sheetResizeAnimationEnabled: false });
     });
 
     it("rests at the header plus the measured body, and wakes to the tallest sheet", async () => {

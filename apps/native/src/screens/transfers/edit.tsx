@@ -1,25 +1,53 @@
 import { Stack, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { CloseToolbar } from "@/components/close-toolbar";
+import { notifyEditsNotRestored } from "@/components/edits-discarded-snackbar";
 import { RestingSheetFrame } from "@/components/resting-sheet-frame";
 import { ScreenHeader } from "@/components/screen-header";
 import TransferEditor from "@/components/transfer-editor";
+import type { TransferEditorDraft } from "@/components/transfer-editor";
 import { useDatabase } from "@/contexts/local-data-context";
-import { savedTransfer } from "@/data/transfers-core";
+import { sameSavedTransfer, savedTransfer } from "@/data/transfers-core";
+import type { SavedTransfer } from "@/data/transfers-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useDiscardGuard } from "@/hooks/use-discard-guard";
 import { useRestingSheet } from "@/hooks/use-resting-sheet";
 import { useTranslation } from "@/i18n/context";
+import { createDraftStash } from "@/lib/draft-stash";
+
+/**
+ * Edits an "Edits discarded" Undo carries into the transfer's reopened sheet,
+ * with the transfer as it was when they were made.
+ */
+const transferDrafts = createDraftStash<{ edits: TransferEditorDraft; saved: SavedTransfer }>();
 
 export function EditTransfer({ id }: { id: string }) {
     const router = useRouter();
-    const { leave, setDirty } = useDiscardGuard();
     const db = useDatabase();
     const t = useTranslation();
     const { requestDelete } = useDeferredDelete("row");
     const { awake, height, rest, sheet } = useRestingSheet(t("transfers.title"));
     const [saved] = useState(() => savedTransfer(db, id));
+    const readDraft = useRef<(() => TransferEditorDraft) | null>(null);
+    // Only edits made on this very transfer come back: made on an older one,
+    // they would write over whatever changed it.
+    const [restore] = useState(() => {
+        const held = transferDrafts.take(id);
+        return held !== undefined && saved !== null && sameSavedTransfer(held.saved, saved) ? held.edits : undefined;
+    });
+    const { leave, setDirty } = useDiscardGuard({
+        restore: (edits: TransferEditorDraft) => {
+            const current = savedTransfer(db, id);
+            if (saved === null || current === null || !sameSavedTransfer(saved, current)) {
+                notifyEditsNotRestored();
+                return;
+            }
+            transferDrafts.put(id, { edits, saved });
+            router.push(`/transactions/transfers/${id}`);
+        },
+        snapshot: () => readDraft.current?.() ?? null,
+    });
 
     useEffect(() => {
         if (saved === null) {
@@ -39,13 +67,16 @@ export function EditTransfer({ id }: { id: string }) {
 
             <RestingSheetFrame height={height}>
                 <TransferEditor
+                    draftRef={readDraft}
                     onDelete={() => {
-                        requestDelete(id);
-                        leave();
+                        if (leave()) {
+                            requestDelete(id);
+                        }
                     }}
                     onDirtyChange={setDirty}
                     onDone={leave}
                     rest={rest}
+                    restore={restore}
                     saved={saved}
                 />
             </RestingSheetFrame>

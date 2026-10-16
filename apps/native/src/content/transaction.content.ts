@@ -199,6 +199,10 @@ const transaction = {
             en: "Schedule",
             es: "Programación",
         }),
+        "transaction.field.time": t({
+            en: "Time",
+            es: "Hora",
+        }),
         "transaction.identity.autoDetected": t({
             en: "Auto-detected",
             es: "Detectado automáticamente",

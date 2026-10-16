@@ -1,8 +1,8 @@
-import { SymbolView } from "expo-symbols";
 import { useEffect } from "react";
 import { AccessibilityInfo } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
+import { AppSymbol } from "@/components/app-symbol";
 import { Text } from "@/components/text";
 import { useColors } from "@/theme/use-colors";
 
@@ -38,7 +38,7 @@ export function InlineFailure({ message }: { message: string | null }) {
             entering={FadeIn.duration(140)}
             exiting={FadeOut.duration(120)}
         >
-            <SymbolView name="exclamationmark.circle.fill" size={13} tintColor={colors.danger} type="monochrome" />
+            <AppSymbol name="exclamationmark.circle.fill" size={13} tintColor={colors.danger} type="monochrome" />
             <Text className="text-danger text-footnote flex-1 leading-snug">{message}</Text>
         </Animated.View>
     );

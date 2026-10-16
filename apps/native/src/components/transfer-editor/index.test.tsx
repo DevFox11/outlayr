@@ -23,9 +23,10 @@ const mockCreate = jest.fn<(db: unknown, input: TransferInput) => Promise<string
 const mockUpdate = jest.fn<(db: unknown, id: string, input: TransferInput) => Promise<void>>();
 const mockPush = jest.fn();
 const mockNotifySaved = jest.fn<typeof import("@/lib/notify").notifySaved>();
+const mockBalance = { total: 500 };
 
 jest.mock("@/data/accounts", () => ({
-    useAccountBalance: () => ({ total: 500 }),
+    useAccountBalance: () => ({ total: mockBalance.total }),
     useAccounts: () => mockAccounts,
 }));
 jest.mock<typeof import("@/data/transfer-rates")>("@/data/transfer-rates", () => ({
@@ -117,6 +118,7 @@ const quotedAt = (rate: number) => ({
 const slotValue = (label: string) => screen.getByLabelText(label).props.accessibilityValue?.text;
 
 beforeEach(() => {
+    mockBalance.total = 500;
     mockNumberEntryType.mockReturnValue(1);
     mockCreate.mockReset();
     mockCreate.mockResolvedValue("transfer");
@@ -231,6 +233,20 @@ describe("transfer editor balances", () => {
         await press("transaction.numpad.delete");
 
         expect(screen.getAllByText("$500.00")).toHaveLength(2);
+    });
+
+    it("keeps the balances it showed while the saved transfer lands in them", async () => {
+        mockCreate.mockImplementationOnce(async () => {
+            mockBalance.total = 400;
+            return "transfer";
+        });
+        const editor = <TransferEditor onDone={jest.fn()} seed={SEED} />;
+        const view = await render(editor);
+
+        await press("transfers.save");
+        await view.rerender(editor);
+
+        expect(screen.getByLabelText("Zinli, $500.00, then $400.00")).toBeTruthy();
     });
 });
 

@@ -1,11 +1,10 @@
 import { Stack } from "expo-router";
 import { memo, useCallback, useLayoutEffect, useMemo, useRef } from "react";
-import type { ComponentProps } from "react";
 
 import { toolbarIcon } from "@/components/toolbar-icons";
-import type { ToolbarIconName } from "@/components/toolbar-icons";
 
-import { useKeyboardShown } from "./stage/stage";
+import { transactionFormCtaActions } from "./cta-actions";
+import { useKeyboardShown } from "./stage/use-keyboard-shown";
 
 export interface KeyboardSave {
     blockedTint?: string;
@@ -25,59 +24,12 @@ export interface TransactionFormCtaProps {
     /** Given only while editing: a new entry looks its merchant up as it is typed. */
     onLookup?: () => void;
     save?: KeyboardSave;
-}
-
-export interface TransactionFormCtaAction {
-    accessibilityLabel: string;
-    disabled: boolean;
-    icon: ToolbarIconName;
-    key: "delete" | "lookup" | "save";
-    onPress: () => void;
-    tintColor?: string;
-    variant?: ComponentProps<typeof Stack.Toolbar.Button>["variant"];
-}
-
-export function transactionFormCtaActions({
-    deleteLabel,
-    deleteTint,
-    onDelete,
-    lookupBusy,
-    lookupLabel,
-    onLookup,
-    save,
-}: TransactionFormCtaProps): TransactionFormCtaAction[] {
-    const actions: TransactionFormCtaAction[] = [];
-    if (onLookup) {
-        actions.push({
-            accessibilityLabel: lookupLabel ?? "",
-            disabled: lookupBusy === true,
-            icon: "search",
-            key: "lookup",
-            onPress: onLookup,
-        });
-    }
-    if (onDelete) {
-        actions.push({
-            accessibilityLabel: deleteLabel ?? "",
-            disabled: false,
-            icon: "delete",
-            key: "delete",
-            onPress: onDelete,
-            tintColor: deleteTint,
-        });
-    }
-    if (save) {
-        actions.push({
-            accessibilityLabel: save.label,
-            disabled: save.busy,
-            icon: "done",
-            key: "save",
-            onPress: save.onPress,
-            tintColor: save.ready ? undefined : save.blockedTint,
-            variant: save.ready ? "done" : undefined,
-        });
-    }
-    return actions;
+    /**
+     * Set when the form is a sheet rather than a full-screen modal. iOS ignores
+     * it: the sheet keeps its native bar. Android has no bar on a sheet, so
+     * `cta.android.tsx` draws one inside it, under this title.
+     */
+    sheet?: { title?: string };
 }
 
 function CtaToolbarBody(props: TransactionFormCtaProps) {

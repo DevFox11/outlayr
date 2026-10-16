@@ -75,4 +75,16 @@ describe("useDiscardGuard", () => {
         expect(mockDisablePrevention.mock.invocationCallOrder[0]).toBeLessThan(mockBack.mock.invocationCallOrder[0]);
         expect(alert).not.toHaveBeenCalled();
     });
+
+    it("leaves once, however many times it is asked to", async () => {
+        const { result } = await renderHook(() => useDiscardGuard());
+
+        const calls: boolean[] = [];
+        await act(async () => {
+            calls.push(result.current.leave(), result.current.leave());
+        });
+
+        expect(calls).toStrictEqual([true, false]);
+        expect(mockBack).toHaveBeenCalledTimes(1);
+    });
 });

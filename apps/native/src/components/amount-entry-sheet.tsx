@@ -9,7 +9,11 @@ import { useColors } from "@/theme/use-colors";
 
 import { AmountNumpad } from "./amount-numpad";
 import { GlassButton } from "./glass-button";
+import { SheetGestureRoot } from "./sheet-gesture-root";
 import { Text } from "./text";
+
+/** Sized by its content: the sheet fits to it, so the root must not take `flex: 1`. */
+const FIT_CONTENT = { alignSelf: "stretch" } as const;
 
 interface AmountEntrySheetProps {
     code: string;
@@ -34,43 +38,45 @@ export function AmountEntrySheet({ value, minorUnits, code, toneClass, onChange,
             ref={ref}
         >
             <BottomSheetView style={{ paddingBottom: 8 }}>
-                <View className="flex-row items-center justify-between px-4 pt-2 pb-1">
-                    <Text className="font-sans-semibold text-body text-muted px-[15px]">{`${code} (${symbol})`}</Text>
+                <SheetGestureRoot style={FIT_CONTENT}>
+                    <View className="flex-row items-center justify-between px-4 pt-2 pb-1">
+                        <Text className="font-sans-semibold text-body text-muted px-[15px]">{`${code} (${symbol})`}</Text>
 
-                    <GlassButton
-                        accessibilityLabel={t("common.close")}
-                        className="size-11 rounded-[22px]"
-                        onPress={onDone}
-                    >
-                        <SymbolView
-                            name="xmark"
-                            size={18}
-                            tintColor={colors.muted}
-                            type="monochrome"
-                            weight="semibold"
+                        <GlassButton
+                            accessibilityLabel={t("common.close")}
+                            className="size-11 rounded-[22px]"
+                            onPress={onDone}
+                        >
+                            <SymbolView
+                                name="xmark"
+                                size={18}
+                                tintColor={colors.muted}
+                                type="monochrome"
+                                weight="semibold"
+                            />
+                        </GlassButton>
+                    </View>
+
+                    <View className="px-4">
+                        <AmountNumpad
+                            code={code}
+                            minorUnits={minorUnits}
+                            onChange={onChange}
+                            toneClass={toneClass}
+                            value={value}
                         />
-                    </GlassButton>
-                </View>
+                    </View>
 
-                <View className="px-4">
-                    <AmountNumpad
-                        code={code}
-                        minorUnits={minorUnits}
-                        onChange={onChange}
-                        toneClass={toneClass}
-                        value={value}
-                    />
-                </View>
-
-                <View className="px-4 pt-6">
-                    <Pressable
-                        accessibilityRole="button"
-                        className="bg-foreground h-14 items-center justify-center rounded-[28px] active:opacity-70"
-                        onPress={onDone}
-                    >
-                        <Text className="font-sans-semibold text-background text-callout">{t("common.done")}</Text>
-                    </Pressable>
-                </View>
+                    <View className="px-4 pt-6">
+                        <Pressable
+                            accessibilityRole="button"
+                            className="bg-foreground h-14 items-center justify-center rounded-[28px] active:opacity-70"
+                            onPress={onDone}
+                        >
+                            <Text className="font-sans-semibold text-background text-callout">{t("common.done")}</Text>
+                        </Pressable>
+                    </View>
+                </SheetGestureRoot>
             </BottomSheetView>
         </BottomSheetModal>
     );

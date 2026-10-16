@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { HeaderHeightContext } from "expo-router/react-navigation";
-import { use, useRef, useState } from "react";
+import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { AccessibilityInfo, Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
 import type { LayoutChangeEvent, ScrollViewInstance } from "react-native";
@@ -41,6 +41,7 @@ import { quotedByBcv, rateNameKey, rateSourceWordKey, transactionWhenLabel } fro
 import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 import type { SheetRest } from "@/hooks/use-resting-sheet";
+import { useSheetSurface } from "@/hooks/use-sheet-surface";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { freshEntries } from "@/lib/fresh-entries";
 import { notifySaved } from "@/lib/notify";
@@ -52,14 +53,24 @@ import { blockPrompt, formatRate, gapPrompt, rateDeltaNote } from "./prompts";
 import { TransferSentence } from "./transfer-sentence";
 import type { TransferSentenceSlot } from "./transfer-sentence";
 import { useTransferDraft } from "./use-transfer-draft";
-import type { TransferSeed } from "./use-transfer-draft";
+import type { TransferDraftSnapshot, TransferSeed } from "./use-transfer-draft";
 
 type Step = Exclude<TransferSentenceSlot, "feeSide" | "outside"> | "date";
 
+/** A transfer's unsaved edits, taken off one editor to open another with. */
+export interface TransferEditorDraft {
+    draft: TransferDraftSnapshot;
+    note: string;
+}
+
 type TransferEditorProps = {
+    /** Filled with a function that reads the unsaved edits, for as long as the editor is mounted. */
+    draftRef?: RefObject<(() => TransferEditorDraft) | null>;
     onDelete?: () => void;
     onDirtyChange?: (dirty: boolean) => void;
     onDone: () => void;
+    /** Edits a discarded editor held, to open with. The editor opens dirty. */
+    restore?: TransferEditorDraft;
 } & (
     | { rest?: SheetRest; saved: SavedTransfer; seed?: never }
     | { rest?: never; saved?: never; seed?: TransferSeed & { note?: string } }
@@ -134,6 +145,51 @@ function TransferGap({ blocked, crossCurrency, gap, onResolve, resting }: Transf
     );
 }
 
+/** An edit paints the sheet's surface; a new transfer keeps the screen's background. */
+function editSurface(editing: boolean, color: string) {
+    return editing ? { backgroundColor: color } : undefined;
+}
+
+/** An edit is a sheet, and its header names it once the sheet is awake. */
+function editSheet(editing: boolean, resting: boolean, title: string) {
+    if (!editing) {
+        return undefined;
+    }
+    return { title: resting ? undefined : title };
+}
+
+/** The note an editor opens with: a restored draft's, else the saved transfer's, else the seed's. */
+function openingNote(restore?: TransferEditorDraft, saved?: SavedTransfer, seed?: { note?: string }) {
+    return restore?.note ?? saved?.note ?? seed?.note ?? "";
+}
+
+/**
+ * Publishes the editor's unsaved edits through `draftRef` while it is mounted,
+ * and reports a restored draft as unsaved from the start.
+ */
+function useDraftHandoff(
+    draftRef: TransferEditorProps["draftRef"],
+    read: () => TransferEditorDraft,
+    restore: TransferEditorDraft | undefined,
+    onDirtyChange: TransferEditorProps["onDirtyChange"]
+) {
+    const [restored] = useState(restore !== undefined);
+    useEffect(() => {
+        if (restored) {
+            onDirtyChange?.(true);
+        }
+    }, [onDirtyChange, restored]);
+    useLayoutEffect(() => {
+        if (draftRef === undefined) {
+            return;
+        }
+        draftRef.current = read;
+        return () => {
+            draftRef.current = null;
+        };
+    });
+}
+
 function useInlineStageScroll(scrollRef: RefObject<ScrollViewInstance | null>) {
     const stage = useRef({ pending: true, y: 0 });
     const headerHeight = use(HeaderHeightContext) ?? 0;
@@ -154,18 +210,28 @@ function useInlineStageScroll(scrollRef: RefObject<ScrollViewInstance | null>) {
     };
 }
 
-export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, saved, seed }: TransferEditorProps) {
+export default function TransferEditor({
+    draftRef,
+    onDelete,
+    onDirtyChange,
+    onDone,
+    rest,
+    restore,
+    saved,
+    seed,
+}: TransferEditorProps) {
     const db = useDatabase();
     const router = useRouter();
     const accountCreateRoute = useAccountCreateRoute();
     const t = useTranslation();
     const { language } = useLanguage();
     const colors = useColors();
+    const sheetSurface = useSheetSurface(colors.background);
     const haptics = useHaptics();
     const entryMode = numpadMode(useSettingNumber("numberEntryType"));
     const { use24Hour } = useDisplaySettings().state;
-    const draft = useTransferDraft(db, seed, saved);
-    const initialNote = saved?.note ?? seed?.note ?? "";
+    const draft = useTransferDraft(db, seed, saved, restore?.draft);
+    const initialNote = openingNote(restore, saved, seed);
     const noteRef = useRef(initialNote);
     const [noteFilled, setNoteFilled] = useState(initialNote !== "");
     const savingRef = useRef(false);
@@ -174,6 +240,11 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, 
     const [flagged, setFlagged] = useState<TransferSentenceSlot | null>(null);
 
     const gap = blockPrompt(draft, t, language) ?? gapPrompt(draft, t, language);
+    const ledger = [
+        { account: draft.from, after: draft.fromBalanceAfter, before: draft.fromBalance },
+        { account: draft.to, after: draft.toBalanceAfter, before: draft.toBalance },
+    ];
+    const [savingLedger, setSavingLedger] = useState<typeof ledger | null>(null);
 
     const missing = () => {
         if (draft.from === null) {
@@ -219,6 +290,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, 
     };
 
     const touch = () => onDirtyChange?.(true);
+    useDraftHandoff(draftRef, () => ({ draft: draft.snapshot(), note: noteRef.current }), restore, onDirtyChange);
 
     const typed =
         (pad: { minorUnits: number; mode?: NumpadMode; onChange: (text: string) => void; value: string }) =>
@@ -238,6 +310,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, 
         }
         savingRef.current = true;
         setSaving(true);
+        setSavingLedger(ledger);
         setSaveFailure(null);
         const storedRateType = rateType === "binance" ? "custom" : rateType;
         const input: TransferInput = {
@@ -291,6 +364,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, 
             haptics("error");
             savingRef.current = false;
             setSaving(false);
+            setSavingLedger(null);
             setSaveFailure(t("transfers.save.failed"));
         }
     };
@@ -662,13 +736,30 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, 
 
     const resting = rest !== undefined;
     const activeSlot = step === "date" ? "when" : step;
-    const ledger = [
-        { account: draft.from, after: draft.fromBalanceAfter, before: draft.fromBalance },
-        { account: draft.to, after: draft.toBalanceAfter, before: draft.toBalance },
-    ];
 
     return (
-        <View className="bg-background flex-1" collapsable={false}>
+        <View
+            className="bg-background flex-1"
+            collapsable={false}
+            // An edit is a sheet: on Android that is the M3 sheet surface, and
+            // the screen background would show as a second colour under it.
+            style={editSurface(saved !== undefined, sheetSurface)}
+        >
+            {/* First, so that on Android an edit sheet's own header (`cta.android.tsx`)
+                lands above the scroller. On iOS it draws only toolbar items. */}
+            <TransactionFormCta
+                deleteLabel={t("transfers.delete.row")}
+                deleteTint={colors.danger}
+                onDelete={onDelete}
+                sheet={editSheet(saved !== undefined, resting, t("transfers.title"))}
+                save={{
+                    blockedTint: colors.subtle,
+                    busy: saving,
+                    label: t("transfers.save"),
+                    onPress: onFooter,
+                    ready: saves,
+                }}
+            />
             {/* react-native-screens resizes a ScrollView on a formSheet's first-child chain to the whole sheet. */}
             <View collapsable={false} />
             <View className="flex-1">
@@ -734,7 +825,7 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, 
 
                     {resting ? null : (
                         <View className="border-separator border-t">
-                            {ledger.map(({ account, after, before }) => {
+                            {(savingLedger ?? ledger).map(({ account, after, before }) => {
                                 if (account === null) {
                                     return null;
                                 }
@@ -787,18 +878,6 @@ export default function TransferEditor({ onDelete, onDirtyChange, onDone, rest, 
                 </ScrollView>
             </View>
 
-            <TransactionFormCta
-                deleteLabel={t("transfers.delete.row")}
-                deleteTint={colors.danger}
-                onDelete={onDelete}
-                save={{
-                    blockedTint: colors.subtle,
-                    busy: saving,
-                    label: t("transfers.save"),
-                    onPress: onFooter,
-                    ready: saves,
-                }}
-            />
             <View className="px-5">
                 <InlineFailure message={saveFailure} />
             </View>
