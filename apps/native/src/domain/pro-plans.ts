@@ -1,5 +1,7 @@
 import type { PurchasesPackage } from "react-native-purchases";
 
+import { trialEligible } from "@/lib/trial-eligibility";
+
 export interface Plan {
     kind: PlanKind;
     offer: PurchasesPackage;
@@ -25,7 +27,7 @@ const DAYS_PER_UNIT = new Map<string, number>([
 
 function trialDaysOf(offer: PurchasesPackage, eligible: ReadonlySet<string>): number | null {
     const intro = offer.product.introPrice;
-    if (intro === null || intro.price > 0 || !eligible.has(offer.product.identifier)) {
+    if (intro === null || intro.price > 0 || !trialEligible(offer, eligible)) {
         return null;
     }
     const perUnit = DAYS_PER_UNIT.get(intro.periodUnit.toUpperCase());

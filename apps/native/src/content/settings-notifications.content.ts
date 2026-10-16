@@ -3,6 +3,10 @@ import type { Dictionary } from "intlayer";
 
 const settingsNotifications = {
     content: {
+        "settings.notifications.channel": t({
+            en: "Reminders",
+            es: "Recordatorios",
+        }),
         "settings.notifications.custom": t({
             en: "Custom time",
             es: "Hora personalizada",

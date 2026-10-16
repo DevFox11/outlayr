@@ -348,7 +348,7 @@ export default defineConfig({
             },
             {
                 // Likewise for the haptics wrapper.
-                files: ["apps/native/src/lib/use-haptics.ts"],
+                files: ["apps/native/src/lib/use-haptics.ts", "apps/native/src/lib/use-haptics.android.ts"],
                 rules: {
                     "no-restricted-imports": ["error", { paths: [LIVE_QUERY_IMPORT, ...ICON_BARREL_IMPORTS] }],
                 },

@@ -10,6 +10,7 @@ import type { NotificationPermissionsStatus } from "expo-notifications";
 import { Linking } from "react-native";
 
 import type { ReminderPermission } from "@/domain/reminder";
+import { expectHandoff } from "@/lib/app-handoff";
 
 /** On iOS `canAskAgain` is true only while the prompt has never been shown. */
 function toPermission(result: NotificationPermissionsStatus): ReminderPermission {
@@ -81,6 +82,7 @@ export async function cancelReminders(ids: readonly string[]): Promise<void> {
 }
 
 export function openNotificationSettings(): void {
+    expectHandoff();
     Linking.openSettings().catch((error) => {
         console.warn("[outlayr] opening notification settings failed", error);
     });

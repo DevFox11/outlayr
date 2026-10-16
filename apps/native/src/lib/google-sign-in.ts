@@ -1,6 +1,8 @@
 import { env } from "@outlayr/env/native";
 import { GoogleOneTapSignIn, isSuccessResponse } from "react-native-nitro-google-signin";
 
+import { duringHandoff } from "@/lib/app-handoff";
+
 const webClientId = env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB;
 
 /**
@@ -21,6 +23,6 @@ export async function googleIdToken(): Promise<string | null> {
 
     await GoogleOneTapSignIn.checkPlayServices();
 
-    const response = await GoogleOneTapSignIn.presentExplicitSignIn();
+    const response = await duringHandoff(() => GoogleOneTapSignIn.presentExplicitSignIn());
     return isSuccessResponse(response) ? response.data.idToken : null;
 }

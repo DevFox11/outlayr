@@ -8,8 +8,10 @@ import type { ImagePickerResult } from "expo-image-picker";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { localIsoDate } from "@/domain/voice-entry";
+import { duringHandoff } from "@/lib/app-handoff";
 import { receiptScanTransport } from "@/lib/convex";
 import type { ReceiptDraft, ReceiptScanFn, ScanRequest } from "@/lib/convex";
+import { launchPick, pendingPick } from "@/lib/pending-pick";
 import { prepareReceiptImage } from "@/lib/receipt-image";
 import { withTimeout } from "@/lib/with-timeout";
 
@@ -189,6 +191,20 @@ export function useReceiptScan<Context>({
         [read]
     );
 
+    // A photo the picker finished for this screen after Android tore the app
+    // down under it: the launch that asked for it never resolved, so it is
+    // picked up here, on the next visit. Any pick started meanwhile wins.
+    useEffect(() => {
+        const take = takeRef.current;
+        pendingPick("receipt-scan")
+            .then((result) => {
+                if (result !== null) {
+                    adopt(result, take);
+                }
+            })
+            .catch(() => undefined);
+    }, [adopt]);
+
     const takePhoto = useCallback(() => {
         takeRef.current += 1;
         const take = takeRef.current;
@@ -196,7 +212,7 @@ export function useReceiptScan<Context>({
         void (async () => {
             let permission: Awaited<ReturnType<typeof requestCameraPermissionsAsync>>;
             try {
-                permission = await requestCameraPermissionsAsync();
+                permission = await duringHandoff(requestCameraPermissionsAsync);
             } catch {
                 if (take === takeRef.current) {
                     setPhase({ kind: "failed", photo: null, reason: "noCamera" });
@@ -211,11 +227,13 @@ export function useReceiptScan<Context>({
                 return;
             }
             try {
-                const result = await launchCameraAsync({
-                    cameraType: CameraType.back,
-                    mediaTypes: ["images"],
-                    quality: 0.9,
-                });
+                const result = await launchPick("receipt-scan", () =>
+                    launchCameraAsync({
+                        cameraType: CameraType.back,
+                        mediaTypes: ["images"],
+                        quality: 0.9,
+                    })
+                );
                 adopt(result, take);
             } catch {
                 // The one way the launch itself rejects on iOS is a device with no
@@ -233,11 +251,13 @@ export function useReceiptScan<Context>({
         setPhase({ kind: "picking", source: "library" });
         void (async () => {
             try {
-                const result = await launchImageLibraryAsync({
-                    allowsEditing: false,
-                    mediaTypes: ["images"],
-                    quality: 1,
-                });
+                const result = await launchPick("receipt-scan", () =>
+                    launchImageLibraryAsync({
+                        allowsEditing: false,
+                        mediaTypes: ["images"],
+                        quality: 1,
+                    })
+                );
                 adopt(result, take);
             } catch {
                 if (take === takeRef.current) {

@@ -1,7 +1,6 @@
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import type { Href } from "expo-router";
-import { openBrowserAsync } from "expo-web-browser";
 import { useRef, useState } from "react";
 import { Linking, Platform } from "react-native";
 
@@ -37,6 +36,7 @@ import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { languageLabel } from "@/i18n/languages";
 import { translateNow } from "@/i18n/runtime";
+import { expectHandoff, openInAppBrowser } from "@/lib/app-handoff";
 import { alternateIconsSupported, useAppIcon } from "@/lib/app-icon";
 import { requestUnlock } from "@/lib/app-lock";
 import { APP_BUILD, APP_VERSION } from "@/lib/app-version";
@@ -202,7 +202,10 @@ export function Settings() {
                 {hasSystemLanguageSettings() ? (
                     <LinkRow
                         icon="LanguageSkill"
-                        onPress={openLanguageSettings}
+                        onPress={() => {
+                            expectHandoff();
+                            openLanguageSettings();
+                        }}
                         title={t("settings.row.language")}
                         value={languageLabel(language)}
                     />
@@ -323,18 +326,19 @@ export function Settings() {
                 <LinkRow
                     icon="Mail01"
                     onPress={() => {
+                        expectHandoff();
                         Linking.openURL(supportMailto(SUPPORT_EMAIL, t("settings.support.subject"), diagnostics));
                     }}
                     title={t("settings.row.contactSupport")}
                 />
                 <LinkRow
                     icon="SecurityCheck"
-                    onPress={() => openBrowserAsync(legalUrl("privacy", language))}
+                    onPress={() => openInAppBrowser(legalUrl("privacy", language))}
                     title={t("settings.row.privacy")}
                 />
                 <LinkRow
                     icon="LegalDocument01"
-                    onPress={() => openBrowserAsync(legalUrl("terms", language))}
+                    onPress={() => openInAppBrowser(legalUrl("terms", language))}
                     title={t("settings.row.terms")}
                 />
                 <LinkRow

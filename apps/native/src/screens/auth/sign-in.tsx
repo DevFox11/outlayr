@@ -1,6 +1,5 @@
 import { currencyDisplayFor } from "@outlayr/money/currency";
 import { router } from "expo-router";
-import { openBrowserAsync } from "expo-web-browser";
 import { View } from "react-native";
 
 import { ProviderSignInButtons } from "@/components/account/provider-sign-in-buttons";
@@ -14,6 +13,7 @@ import { deferAccount } from "@/data/onboarding-core";
 import { flyleafDate } from "@/domain/flyleaf";
 import { clampTimeOfDay, formatTimeOfDay, reminderTime } from "@/domain/reminder";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { openInAppBrowser } from "@/lib/app-handoff";
 import { authClient } from "@/lib/auth-client";
 import { legalUrl } from "@/lib/legal-url";
 import { useProviderSignIn } from "@/lib/use-provider-sign-in";
@@ -97,7 +97,7 @@ function Agreement() {
             <Text
                 accessibilityRole="link"
                 className="text-fr-ink underline"
-                onPress={() => openBrowserAsync(legalUrl("terms", language))}
+                onPress={() => openInAppBrowser(legalUrl("terms", language))}
             >
                 {t("settings.row.terms")}
             </Text>
@@ -105,7 +105,7 @@ function Agreement() {
             <Text
                 accessibilityRole="link"
                 className="text-fr-ink underline"
-                onPress={() => openBrowserAsync(legalUrl("privacy", language))}
+                onPress={() => openInAppBrowser(legalUrl("privacy", language))}
             >
                 {t("settings.row.privacy")}
             </Text>

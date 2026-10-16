@@ -1,5 +1,4 @@
 import { useRouter } from "expo-router";
-import { openBrowserAsync } from "expo-web-browser";
 import { Linking, Share, View } from "react-native";
 
 import { LinkRow, SettingsSection } from "@/components/list/list-row";
@@ -7,6 +6,7 @@ import { MonoLabel } from "@/components/mono-label";
 import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useTranslation } from "@/i18n/context";
+import { expectHandoff, openInAppBrowser } from "@/lib/app-handoff";
 import { APP_VERSION } from "@/lib/app-version";
 import { openStoreReview } from "@/lib/store-links";
 
@@ -37,6 +37,7 @@ export function About() {
                 <LinkRow
                     icon="Share08"
                     onPress={() => {
+                        expectHandoff();
                         Share.share({
                             message: t("settings.share.message", { url: WEBSITE }),
                             url: WEBSITE,
@@ -47,6 +48,7 @@ export function About() {
                 <LinkRow
                     icon="NewTwitter"
                     onPress={() => {
+                        expectHandoff();
                         Linking.openURL(X_PROFILE);
                     }}
                     title={t("settings.row.followX")}
@@ -56,17 +58,17 @@ export function About() {
             <SettingsSection title={t("settings.about.links")}>
                 <LinkRow
                     icon="SourceCode"
-                    onPress={() => openBrowserAsync(OUTLAYR_REPO)}
+                    onPress={() => openInAppBrowser(OUTLAYR_REPO)}
                     title={t("settings.about.outlayrRepo")}
                 />
                 <LinkRow
                     icon="Favourite"
-                    onPress={() => openBrowserAsync(DIME_REPO)}
+                    onPress={() => openInAppBrowser(DIME_REPO)}
                     title={t("settings.about.dimeRepo")}
                 />
                 <LinkRow
                     icon="License"
-                    onPress={() => openBrowserAsync(GPL_LICENSE)}
+                    onPress={() => openInAppBrowser(GPL_LICENSE)}
                     title={t("settings.about.gplLink")}
                 />
                 <LinkRow
@@ -76,7 +78,7 @@ export function About() {
                 />
                 <LinkRow
                     icon="Sparkles"
-                    onPress={() => openBrowserAsync(LOGO_DEV)}
+                    onPress={() => openInAppBrowser(LOGO_DEV)}
                     title={t("settings.about.logoDev")}
                 />
             </SettingsSection>

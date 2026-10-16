@@ -4,6 +4,7 @@ import Purchases, { INTRO_ELIGIBILITY_STATUS, LOG_LEVEL } from "react-native-pur
 import type { CustomerInfo, PurchasesPackage } from "react-native-purchases";
 import { z } from "zod";
 
+import { duringHandoff } from "@/lib/app-handoff";
 import type { AccountProfile } from "@/lib/auth-session";
 
 const API_KEY = Platform.select({
@@ -78,7 +79,7 @@ export async function eligibleForTrial(productIds: readonly string[]): Promise<S
 }
 
 export async function purchaseAndCheckPro(pack: PurchasesPackage): Promise<boolean> {
-    const { customerInfo } = await Purchases.purchasePackage(pack);
+    const { customerInfo } = await duringHandoff(() => Purchases.purchasePackage(pack));
     return hasProEntitlement(customerInfo);
 }
 

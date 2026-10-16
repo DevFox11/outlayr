@@ -1,6 +1,7 @@
 import { useUIMessages } from "@convex-dev/agent/react";
 import {
     AudioQuality,
+    getRecordingPermissionsAsync,
     IOSOutputFormat,
     requestRecordingPermissionsAsync,
     setAudioModeAsync,
@@ -14,6 +15,7 @@ import type { SharedValue } from "react-native-reanimated";
 
 import { judgeSilence, localIsoDate, meterToLevel, proposedDraftOf, voiceTurnsOf } from "@/domain/voice-entry";
 import type { SilenceWatch, VoiceTurn } from "@/domain/voice-entry";
+import { duringHandoff } from "@/lib/app-handoff";
 import { VOICE_TURNS_QUERY, voiceThreadTransport } from "@/lib/convex";
 import type { SpeakRequest, StartThreadResult, VoiceDraft, VoiceThreadTransport } from "@/lib/convex";
 import { withTimeout } from "@/lib/with-timeout";
@@ -322,7 +324,10 @@ export function useVoiceEntry<Context>({
         const take = takeRef.current;
         // The phase moves only after the first await, so a mount effect calling
         // this sets no state synchronously; "starting" is the initial phase.
-        const permission = await requestRecordingPermissionsAsync();
+        // Only an undecided permission shows a prompt, and only that trip out is
+        // announced to the app lock.
+        const current = await getRecordingPermissionsAsync();
+        const permission = current.granted ? current : await duringHandoff(requestRecordingPermissionsAsync);
         if (take !== takeRef.current) {
             return;
         }

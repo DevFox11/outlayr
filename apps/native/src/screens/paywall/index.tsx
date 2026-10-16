@@ -1,5 +1,4 @@
 import { useRouter } from "expo-router";
-import { openBrowserAsync } from "expo-web-browser";
 import { Button, RadioGroup } from "panelui-native";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
@@ -21,6 +20,7 @@ import { proSellable } from "@/hooks/use-pro-locked";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
+import { openInAppBrowser } from "@/lib/app-handoff";
 import { alternateIconsSupported } from "@/lib/app-icon";
 import { useAuthSession } from "@/lib/auth-session";
 import { legalUrl } from "@/lib/legal-url";
@@ -459,11 +459,11 @@ export function Paywall() {
                         <LegalDot />
                     </>
                 )}
-                <Pressable accessibilityRole="link" onPress={() => openBrowserAsync(legalUrl("terms", language))}>
+                <Pressable accessibilityRole="link" onPress={() => openInAppBrowser(legalUrl("terms", language))}>
                     <MonoLabel>{t("pro.legal.terms")}</MonoLabel>
                 </Pressable>
                 <LegalDot />
-                <Pressable accessibilityRole="link" onPress={() => openBrowserAsync(legalUrl("privacy", language))}>
+                <Pressable accessibilityRole="link" onPress={() => openInAppBrowser(legalUrl("privacy", language))}>
                     <MonoLabel>{t("pro.legal.privacy")}</MonoLabel>
                 </Pressable>
             </View>

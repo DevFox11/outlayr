@@ -1,5 +1,4 @@
 import { useRouter, useSegments } from "expo-router";
-import { openBrowserAsync } from "expo-web-browser";
 import { BottomSheet, Button, cn } from "panelui-native";
 import { useMemo } from "react";
 import { ScrollView, View } from "react-native";
@@ -14,6 +13,7 @@ import { setBoolSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { openInAppBrowser } from "@/lib/app-handoff";
 import { useAuthSession } from "@/lib/auth-session";
 import { legalUrl } from "@/lib/legal-url";
 import { useColors } from "@/theme/use-colors";
@@ -52,7 +52,7 @@ export function AiConsentDetails() {
                 <Text
                     accessibilityRole="link"
                     className="text-tint"
-                    onPress={() => openBrowserAsync(legalUrl("privacy", language))}
+                    onPress={() => openInAppBrowser(legalUrl("privacy", language))}
                 >
                     {t("aiConsent.privacy")}
                 </Text>

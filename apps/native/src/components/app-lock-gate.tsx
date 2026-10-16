@@ -2,14 +2,15 @@ import SquareLock02Icon from "@hugeicons-pro/core-solid-rounded/SquareLock02Icon
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { createContext, use, useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { AppState, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { Text } from "@/components/text";
 import { useAppSettings } from "@/contexts/display-settings-context";
-import { lockFailureMessage, lockGate, lockIsUnenforceable, relocksOnPhase } from "@/domain/app-lock";
+import { lockFailureMessage, lockGate, lockIsUnenforceable } from "@/domain/app-lock";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
 import { lockIsEnforceable, requestUnlock } from "@/lib/app-lock";
+import { useRelock } from "@/lib/use-relock";
 import { useColors } from "@/theme/use-colors";
 
 const LockOpenContext = createContext(true);
@@ -61,16 +62,8 @@ export function AppLockGate({ children }: { children: ReactNode }) {
         };
     }, [enabled]);
 
-    useEffect(() => {
-        const subscription = AppState.addEventListener("change", (phase) => {
-            if (relocksOnPhase(phase)) {
-                setUnlocked(false);
-            }
-        });
-        return () => {
-            subscription.remove();
-        };
-    }, []);
+    const relock = useCallback(() => setUnlocked(false), []);
+    useRelock(relock);
 
     const attempt = useCallback(async () => {
         setChecking(true);

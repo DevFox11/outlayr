@@ -3,6 +3,7 @@ import { File, Paths } from "expo-file-system";
 import { isAvailableAsync, shareAsync } from "expo-sharing";
 
 import type { TranslationKey } from "@/i18n/catalog";
+import { duringHandoff } from "@/lib/app-handoff";
 
 /**
  * `text/plain` is carried alongside the CSV types because plenty of banks hand
@@ -44,7 +45,7 @@ export async function shareFile(
     const file = new File(Paths.cache, fileName);
     file.create({ intermediates: true, overwrite: true });
     file.writeSync(data);
-    await shareAsync(file.uri, { dialogTitle, mimeType });
+    await duringHandoff(() => shareAsync(file.uri, { dialogTitle, mimeType }));
 }
 
 export interface PickedFile {
@@ -68,11 +69,13 @@ export async function pickArchiveFile(): Promise<PickedFile | null> {
 }
 
 async function pickTextFile(type: string[]): Promise<PickedFile | null> {
-    const result = await getDocumentAsync({
-        copyToCacheDirectory: true,
-        multiple: false,
-        type,
-    });
+    const result = await duringHandoff(() =>
+        getDocumentAsync({
+            copyToCacheDirectory: true,
+            multiple: false,
+            type,
+        })
+    );
     const asset = result.canceled ? null : result.assets[0];
     if (asset == null) {
         return null;
