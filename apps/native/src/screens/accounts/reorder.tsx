@@ -4,7 +4,8 @@ import { deleteDisabled, environment, foregroundStyle, lineLimit } from "@expo/u
 import { View } from "react-native";
 
 import { CategoryIconTile } from "@/components/category-icon-tile";
-import { Eyebrow, LABEL, PARENT_NAME, PARENT_TILE } from "@/components/category-list-chrome";
+import { Eyebrow, PARENT_TILE } from "@/components/category-list-chrome";
+import { LABEL, PARENT_NAME } from "@/components/category-list-swift";
 import { groupedList, groupedRows } from "@/components/native/styles";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccounts } from "@/data/accounts";

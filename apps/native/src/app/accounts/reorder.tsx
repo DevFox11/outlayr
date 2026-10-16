@@ -1,5 +1,6 @@
 import { Stack, useRouter } from "expo-router";
 
+import { ScreenHeader } from "@/components/screen-header";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useTranslation } from "@/i18n/context";
 import { AccountReorder } from "@/screens/accounts/reorder";
@@ -11,8 +12,7 @@ export default function AccountReorderScreen() {
     return (
         <>
             <Stack.Screen.BackButton displayMode="minimal" />
-            <Stack.Header transparent />
-            <Stack.Screen.Title>{t("accounts.reorderTitle")}</Stack.Screen.Title>
+            <ScreenHeader title={t("accounts.reorderTitle")} />
             <Stack.Toolbar placement="right">
                 <Stack.Toolbar.Button
                     {...toolbarIcon("done")}

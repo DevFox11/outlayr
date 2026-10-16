@@ -1,9 +1,7 @@
-import { Host } from "@expo/ui";
-import { Picker, Text as SwiftText } from "@expo/ui/swift-ui";
-import { frame, pickerStyle, tag } from "@expo/ui/swift-ui/modifiers";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 
+import { CategoryKindToggle } from "@/components/category-kind-toggle";
 import { useToolbarIcon } from "@/components/toolbar-icons";
 import { useTranslation } from "@/i18n/context";
 import { Categories } from "@/screens/categories";
@@ -27,17 +25,7 @@ export default function CategoriesScreen() {
                 {/* The segmented picker draws its own capsule, so `hidesSharedBackground`
 				    stops the toolbar wrapping it in a second glass one. */}
                 <Stack.Toolbar.View hidesSharedBackground>
-                    <Host matchContents>
-                        <Picker
-                            label=""
-                            modifiers={[pickerStyle("segmented"), frame({ width: 190 })]}
-                            onSelectionChange={(value) => setIncome(value === "income")}
-                            selection={income ? "income" : "expense"}
-                        >
-                            <SwiftText modifiers={[tag("expense")]}>{t("common.expense")}</SwiftText>
-                            <SwiftText modifiers={[tag("income")]}>{t("common.income")}</SwiftText>
-                        </Picker>
-                    </Host>
+                    <CategoryKindToggle income={income} onChange={setIncome} />
                 </Stack.Toolbar.View>
                 <Stack.Toolbar.Spacer />
                 <Stack.Toolbar.Button {...addIcon} accessibilityLabel={t("categories.a11y.new")} onPress={goToNew} />

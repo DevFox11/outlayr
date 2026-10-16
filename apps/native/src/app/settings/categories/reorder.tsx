@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 
+import { ScreenHeader } from "@/components/screen-header";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useTranslation } from "@/i18n/context";
 import { CategoryReorder } from "@/screens/categories/reorder";
@@ -12,8 +13,7 @@ export default function CategoryReorderScreen() {
     return (
         <>
             <Stack.Screen.BackButton displayMode="minimal" />
-            <Stack.Header transparent />
-            <Stack.Screen.Title>{t("categories.reorderTitle")}</Stack.Screen.Title>
+            <ScreenHeader title={t("categories.reorderTitle")} />
             <Stack.Toolbar placement="right">
                 <Stack.Toolbar.Button
                     {...toolbarIcon("done")}

@@ -1,23 +1,14 @@
 import { Text as SwiftText } from "@expo/ui/swift-ui";
 import { font, foregroundStyle, kerning, textCase } from "@expo/ui/swift-ui/modifiers";
-import { PlatformColor } from "react-native";
 
 import type { ThemeColors } from "@/theme/use-colors";
 
 /**
  * The treatment the category tree and its reorder list have in common: the same
- * category has to read as the same row on both.
+ * category has to read as the same row on both. The SwiftUI row-name type lives
+ * in `category-list-swift.ts`, so this module exports the same names as its
+ * Android sibling.
  */
-
-/** The system's own row-title shade, so names track the list chrome. */
-export const LABEL = PlatformColor("label");
-
-export const PARENT_NAME = font({
-    design: "rounded",
-    textStyle: "body",
-    weight: "semibold",
-});
-export const CHILD_NAME = font({ design: "rounded", textStyle: "subheadline" });
 
 export const PARENT_TILE = 34;
 export const CHILD_TILE = 28;

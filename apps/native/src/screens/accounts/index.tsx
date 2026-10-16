@@ -30,7 +30,8 @@ import { memo, useCallback, useMemo } from "react";
 import { View } from "react-native";
 
 import { CategoryIconTile } from "@/components/category-icon-tile";
-import { Eyebrow, LABEL, PARENT_NAME, PARENT_TILE } from "@/components/category-list-chrome";
+import { Eyebrow, PARENT_TILE } from "@/components/category-list-chrome";
+import { LABEL, PARENT_NAME } from "@/components/category-list-swift";
 import { EmptyState } from "@/components/empty-state";
 import { Tile } from "@/components/empty-state-parts";
 import { groupedList, groupedRows } from "@/components/native/styles";

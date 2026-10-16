@@ -39,10 +39,8 @@ import { useMemo } from "react";
 import { PlatformColor, View } from "react-native";
 
 import { CategoryIconTile } from "@/components/category-icon-tile";
-import { CHILD_NAME, CHILD_TILE, Eyebrow, LABEL, PARENT_NAME, PARENT_TILE } from "@/components/category-list-chrome";
-import { MarkInk } from "@/components/empty-state";
-import { Slot, Tile } from "@/components/empty-state-parts";
-import { Fade, Settle } from "@/components/mark-motion";
+import { CHILD_TILE, Eyebrow, PARENT_TILE } from "@/components/category-list-chrome";
+import { CHILD_NAME, LABEL, PARENT_NAME } from "@/components/category-list-swift";
 import { groupedList, groupedRows } from "@/components/native/styles";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useAppSettings } from "@/contexts/display-settings-context";
@@ -56,9 +54,10 @@ import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { hitArea, outline } from "@/lib/swift-ui-geometry";
-import { staggerDelay } from "@/theme/mark-motion";
 import { useColors } from "@/theme/use-colors";
 import type { ThemeColors } from "@/theme/use-colors";
+
+import { CategoryGridOpen, EMPTY_MARK_TILE, EMPTY_MARK_WIDTH } from "./category-grid-open";
 
 /**
  * The row rules paint the translucent `separator` over the card (#E8E8E8 at
@@ -333,38 +332,6 @@ function TreeConnector({ kind }: { kind: ConnectorKind }) {
             <Rectangle modifiers={ELBOW_BAR} />
             <Rectangle modifiers={kind === "last" ? STEM_HIDDEN : STEM} />
         </VStack>
-    );
-}
-
-const EMPTY_MARK_TILE = 34;
-const EMPTY_MARK_GAP = 11;
-const EMPTY_MARK_WIDTH = EMPTY_MARK_TILE * 4 + EMPTY_MARK_GAP * 3;
-
-function CategoryGridOpen({ colors }: { colors: ThemeColors }) {
-    return (
-        <MarkInk tier="inFlow">
-            <View className="flex-row items-center" style={{ gap: EMPTY_MARK_GAP, width: EMPTY_MARK_WIDTH }}>
-                <Fade delay={staggerDelay(0)} from={0} to={1}>
-                    <Tile opacity={1} size={EMPTY_MARK_TILE} />
-                </Fade>
-                <Fade delay={staggerDelay(1)} from={0} to={1}>
-                    <Tile opacity={0.6} size={EMPTY_MARK_TILE} />
-                </Fade>
-                <Slot
-                    height={EMPTY_MARK_TILE}
-                    radius={EMPTY_MARK_TILE * 0.24}
-                    style={{ alignItems: "center", justifyContent: "center" }}
-                    width={EMPTY_MARK_TILE}
-                >
-                    <Settle delay={staggerDelay(3)}>
-                        <HugeiconsIcon color={colors.foreground} icon={PlusSignIcon} size={15} strokeWidth={2.4} />
-                    </Settle>
-                </Slot>
-                <Fade delay={staggerDelay(2)} from={0} to={1}>
-                    <Tile opacity={0.28} size={EMPTY_MARK_TILE} />
-                </Fade>
-            </View>
-        </MarkInk>
     );
 }
 

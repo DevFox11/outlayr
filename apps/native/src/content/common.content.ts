@@ -79,6 +79,14 @@ const common = {
             en: "Income",
             es: "Ingreso",
         }),
+        "common.moveDown": t({
+            en: "Move down",
+            es: "Mover hacia abajo",
+        }),
+        "common.moveUp": t({
+            en: "Move up",
+            es: "Mover hacia arriba",
+        }),
         "common.never": t({
             en: "Never",
             es: "Nunca",

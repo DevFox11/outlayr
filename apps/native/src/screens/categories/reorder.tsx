@@ -4,7 +4,8 @@ import { environment, foregroundStyle, lineLimit } from "@expo/ui/swift-ui/modif
 import { View } from "react-native";
 
 import { CategoryIconTile } from "@/components/category-icon-tile";
-import { CHILD_NAME, CHILD_TILE, Eyebrow, LABEL, PARENT_NAME, PARENT_TILE } from "@/components/category-list-chrome";
+import { CHILD_TILE, Eyebrow, PARENT_TILE } from "@/components/category-list-chrome";
+import { CHILD_NAME, LABEL, PARENT_NAME } from "@/components/category-list-swift";
 import { groupedList, groupedRows } from "@/components/native/styles";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useCategoriesByNamespace } from "@/data/categories";

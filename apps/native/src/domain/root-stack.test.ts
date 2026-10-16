@@ -45,6 +45,10 @@ const LAYOUT_PATH = join(APP_DIR, "_layout.tsx");
 const ROUTE_EXTENSIONS = [".tsx", ".ts", ".jsx", ".js"];
 const LAYOUT_BASENAME = "_layout";
 const IGNORED_ROUTE_BASENAMES = new Set(["+api", "+html", "+middleware", "+native-intent"]);
+// expo-router folds `index.android.tsx` into the route of its plain sibling,
+// which it requires to exist (`getRoutesCore`), so a platform file adds no
+// route of its own.
+const PLATFORM_SUFFIX = /\.(android|ios|native|web)$/;
 
 const UNGUARDED_CATCH_ALL = "+not-found";
 
@@ -61,7 +65,7 @@ function routeBasename(fileName: string): string | null {
         return null;
     }
     const base = fileName.slice(0, -extension.length);
-    if (base === LAYOUT_BASENAME || IGNORED_ROUTE_BASENAMES.has(base)) {
+    if (base === LAYOUT_BASENAME || IGNORED_ROUTE_BASENAMES.has(base) || PLATFORM_SUFFIX.test(base)) {
         return null;
     }
     return base;
