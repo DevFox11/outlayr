@@ -1,4 +1,5 @@
 import type { Database } from "@/db/client";
+import { DEFAULT_ACCENT_VALUE } from "@/domain/accent-options";
 import { analyticsOnByDefault } from "@/domain/analytics-consent";
 import type { TranslationKey } from "@/i18n/catalog";
 import { firstLocale } from "@/i18n/device-language";
@@ -43,7 +44,7 @@ export type NumberSettingKey =
     | "notificationMinute";
 
 export const SETTING_DEFAULTS = {
-    accentColor: 0,
+    accentColor: DEFAULT_ACCENT_VALUE,
     aiConsent: false,
     aiEnrichment: true,
     animatedCharts: true,

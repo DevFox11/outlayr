@@ -45,6 +45,15 @@ export const ACCENTS: readonly Accent[] = [
 
 export const [DEFAULT_ACCENT] = ACCENTS;
 
+/**
+ * Stored when an Android 12+ owner follows the wallpaper instead of picking a
+ * brand accent (see `accent-options.android.ts`). Reserved here, beside the
+ * list it must never collide with. Every other platform reads it the way it
+ * reads any value it does not know: as the default, both for the colour and
+ * for what the Settings row shows as selected (`offeredAccentValue`).
+ */
+export const WALLPAPER_ACCENT_VALUE = 5;
+
 /** Falls back to the default rather than throwing: the value comes from storage. */
 export function accentForValue(value: number): Accent {
     return ACCENTS.find((accent) => accent.value === value) ?? DEFAULT_ACCENT;

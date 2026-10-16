@@ -387,6 +387,10 @@ const settings = {
             en: "Vermilion",
             es: "Bermellón",
         }),
+        "settings.theme.wallpaper": t({
+            en: "Wallpaper",
+            es: "Fondo de pantalla",
+        }),
         "settings.time.dayOfMonth": t({
             en: "{day} of month",
             es: "día {day} del mes",

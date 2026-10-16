@@ -15,10 +15,11 @@ import { formatChargeDate } from "@/domain/dates";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
+import { SANS_BY_WEIGHT } from "@/theme/body-fonts";
 import { useColors } from "@/theme/use-colors";
 
 import { MonoLabel } from "./mono-label";
-import { ROUNDED, Text } from "./text";
+import { Text } from "./text";
 
 const PREVIEW_COUNT = 3;
 
@@ -324,7 +325,7 @@ export function CustomScheduleSheet({
                     <NumberFlow
                         style={{
                             color: colors.foreground,
-                            fontFamily: ROUNDED,
+                            fontFamily: SANS_BY_WEIGHT[700],
                             fontSize: SENTENCE_SIZE,
                             fontWeight: "700",
                             letterSpacing: COUNT_TRACKING,

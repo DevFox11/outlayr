@@ -5,6 +5,17 @@ import { describe, expect, it } from "@jest/globals";
 
 import { ACCENTS, DEFAULT_ACCENT } from "@/domain/accent";
 
+import {
+    FIRST_RUN_TEXT,
+    GROUNDS,
+    INVERSE_TOKENS,
+    M3_TEXT_ON,
+    ON_WASH,
+    TEXT_TOKENS,
+    WASH_ALPHA,
+    WHITE_TEXT_FILLS,
+} from "./contrast-pairs";
+
 const nativeRoot = join(import.meta.dirname, "../..");
 
 /** WCAG 2.2 AA, normal text. */
@@ -39,42 +50,6 @@ type Theme = "light" | "dark";
 const THEMES: readonly Theme[] = ["light", "dark"];
 
 /**
- * Every ground either theme paints behind text. Which token lands on which
- * ground is not statically knowable — a screen paints `bg-surface` and a child
- * three levels down writes `text-muted` — so the floor is held against all of
- * them rather than guessed per pair.
- */
-const GROUNDS = ["background", "surface", "surface-secondary", "grouped-background"] as const;
-
-/** Colour tokens that render as text over one of {@link GROUNDS}. */
-const TEXT_TOKENS = [
-    "foreground",
-    "muted",
-    "subtle",
-    "grammar",
-    "accent",
-    "expense",
-    "income",
-    "future",
-    "tint",
-    "danger",
-    "over-budget",
-] as const;
-
-/**
- * Tokens that only ever carry text over the one fill they are named for, never
- * over a page ground: `text-background` and `text-accent-foreground` both appear
- * on `bg-accent`, so measuring either against `--background` would be measuring
- * a pairing the app never draws.
- */
-const INVERSE_TOKENS: Record<string, string> = {
-    "accent-foreground": "accent",
-    background: "accent",
-    "surface-foreground": "surface",
-    "surface-secondary-foreground": "surface-secondary",
-};
-
-/**
  * Fills, hairlines and chart colours. `--warning` is the one that looks like a
  * miss and is not — 1.51:1 on paper — because no `text-warning` exists; the
  * no-text-utility assertion below is what keeps that true.
@@ -92,6 +67,9 @@ const NON_TEXT_TOKENS = [
     "rail-over",
     "rail-track",
     "fr-rule",
+    "m3-outline",
+    "m3-outline-variant",
+    "m3-scrim",
 ] as const;
 
 /**
@@ -102,28 +80,7 @@ const NON_TEXT_TOKENS = [
  */
 const FIRST_RUN_GROUNDS = ["fr-ground", "fr-card"] as const;
 
-/**
- * Each first-run text token against the grounds it is actually written over.
- * `--fr-vermilion` is the eyebrow and only the eyebrow — one call site, in the
- * stage layout of `components/first-run.tsx`, over `--fr-ground`. It never
- * enters a `bg-fr-card` box, which holds `--fr-ink` and `--fr-muted` alone, and
- * on dark it would not clear the floor there (4.42:1) if it did.
- */
-const FIRST_RUN_TEXT: Record<string, readonly string[]> = {
-    "fr-ink": ["fr-ground", "fr-card"],
-    "fr-muted": ["fr-ground", "fr-card"],
-    "fr-vermilion": ["fr-ground"],
-};
-
 const WHITE = "#ffffff";
-
-/**
- * Fills that carry a literal `text-white` rather than a token. Neither
- * {@link GROUNDS} nor {@link INVERSE_TOKENS} can reach the pairing — white is
- * not a token and the fill is not a ground — so it is named here or it is
- * measured nowhere.
- */
-const WHITE_TEXT_FILLS = ["danger-fill", "gold-fill"] as const;
 
 /**
  * Every file writing literal `text-white`, relative to `src`. The list is the
@@ -274,6 +231,8 @@ describe("the token layer", () => {
             ...NON_TEXT_TOKENS,
             ...FIRST_RUN_GROUNDS,
             ...Object.keys(FIRST_RUN_TEXT),
+            ...Object.keys(M3_TEXT_ON),
+            ...Object.values(M3_TEXT_ON).flat(),
         ]);
         for (const token of exposedTokens().values()) {
             expect(classified.has(token)).toBeTruthy();
@@ -288,6 +247,8 @@ describe("the token layer", () => {
             ...NON_TEXT_TOKENS,
             ...FIRST_RUN_GROUNDS,
             ...Object.keys(FIRST_RUN_TEXT),
+            ...Object.keys(M3_TEXT_ON),
+            ...Object.values(M3_TEXT_ON).flat(),
         ]) {
             expect(exposed.has(token)).toBeTruthy();
         }
@@ -341,6 +302,21 @@ describe("wCAG AA for text on every ground its theme paints", () => {
         expect(failures).toStrictEqual([]);
     });
 
+    it("holds the floor for each Material 3 text role on the fills it is paired with", () => {
+        const failures: string[] = [];
+        for (const theme of THEMES) {
+            for (const [token, fills] of Object.entries(M3_TEXT_ON)) {
+                for (const fill of fills) {
+                    const ratio = contrastRatio(tokenValue(theme, token), tokenValue(theme, fill));
+                    if (ratio < AA_TEXT_CONTRAST) {
+                        failures.push(`${pairKey(theme, token, fill)} = ${ratio.toFixed(2)}:1`);
+                    }
+                }
+            }
+        }
+        expect(failures).toStrictEqual([]);
+    });
+
     it("holds the floor for each inverse token on the fill it is named for", () => {
         const failures: string[] = [];
         for (const theme of THEMES) {
@@ -356,7 +332,6 @@ describe("wCAG AA for text on every ground its theme paints", () => {
 });
 
 describe("verdict badge text over its own wash", () => {
-    const WASH_ALPHA = 0.2;
     const over = (tone: string, ground: string) => {
         const channel = (hex: string, offset: number) => Number.parseInt(hex.slice(offset, offset + 2), 16);
         return `#${[1, 3, 5]
@@ -371,11 +346,11 @@ describe("verdict badge text over its own wash", () => {
     for (const theme of THEMES) {
         it(`holds ${AA_TEXT_CONTRAST}:1 in ${theme}`, () => {
             const failures: string[] = [];
-            for (const tone of ["income", "danger"]) {
+            for (const [text, tone] of Object.entries(ON_WASH)) {
                 const wash = over(tokenValue(theme, tone), tokenValue(theme, "background"));
-                const ratio = contrastRatio(tokenValue(theme, `${tone}-on-wash`), wash);
+                const ratio = contrastRatio(tokenValue(theme, text), wash);
                 if (ratio < AA_TEXT_CONTRAST) {
-                    failures.push(`${theme}: --${tone}-on-wash on its wash = ${ratio.toFixed(2)}:1`);
+                    failures.push(`${theme}: --${text} on its wash = ${ratio.toFixed(2)}:1`);
                 }
             }
             expect(failures).toStrictEqual([]);

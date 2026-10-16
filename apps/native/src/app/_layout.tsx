@@ -48,6 +48,7 @@ import { identityPickerDetent } from "@/lib/sheet-detents";
 import { useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
 import { useSubscriptionReminderTaps } from "@/lib/use-subscription-reminder-taps";
 import { useWalletPushTaps } from "@/lib/use-wallet-push-taps";
+import { BODY_FONTS } from "@/theme/body-fonts";
 import { useAccent } from "@/theme/use-accent";
 import { useApplyThemePreference } from "@/theme/use-theme-preference";
 
@@ -414,6 +415,7 @@ function RootStack() {
 
 export default function RootLayout() {
     const [fontsLoaded] = useFonts({
+        ...BODY_FONTS,
         GeistMono_400Regular,
         GeistMono_500Medium,
         InstrumentSerif_400Regular,

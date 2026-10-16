@@ -100,6 +100,9 @@ importers:
       '@expo-google-fonts/geist-mono':
         specifier: ^0.4.3
         version: 0.4.3
+      '@expo-google-fonts/google-sans-flex':
+        specifier: ^0.4.6
+        version: 0.4.6
       '@expo-google-fonts/instrument-serif':
         specifier: ^0.4.1
         version: 0.4.1
@@ -118,6 +121,9 @@ importers:
       '@legendapp/list':
         specifier: ^3.6.0
         version: 3.6.0(react-dom@19.2.3(react@19.3.0))(react-native@0.88.0-rc.4(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.4(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
+      '@material/material-color-utilities':
+        specifier: ^0.4.0
+        version: 0.4.0
       '@noble/hashes':
         specifier: ^2.4.0
         version: 2.4.0
@@ -2290,6 +2296,9 @@ packages:
   '@expo-google-fonts/geist-mono@0.4.3':
     resolution: {integrity: sha512-gjnwv1QOG4meZpMhrLjTIPC/+lhyNu8EcXa2eJPVbPrYvguVjCfBq+Ezq6cWKWW8ung6fqb2TjvuTalE6lqlnw==}
 
+  '@expo-google-fonts/google-sans-flex@0.4.6':
+    resolution: {integrity: sha512-Tloyfw6bPGBerfPNy4O6CZEAmAv0wHb8bVDnu0bsS1bP1HJ0iz1fUuWeXLWTLu0zs8KfiioGtfIb+O/oQWQdGg==}
+
   '@expo-google-fonts/instrument-serif@0.4.1':
     resolution: {integrity: sha512-1CgCrLbTSgE7RV8ZrTT7i06UAyNQDBrhxQuxkReNnfq5yvUhTmvpOK17grlEsXG5p04lJ1ZXGiIjPeHo6X0sXg==}
 
@@ -3011,6 +3020,9 @@ packages:
         optional: true
       react-native:
         optional: true
+
+  '@material/material-color-utilities@0.4.0':
+    resolution: {integrity: sha512-dlq6VExJReb8dhjj3a/yTigr3ncNwoFmL5Iy2ENtbDX03EmNeOEdZ+vsaGrj7RTuO+mB7L58II4LCsl4NpM8uw==}
 
   '@mdream/js@2.0.0':
     resolution: {integrity: sha512-T2GAubm6nPmThyp15+2eVtGZxdU+6jY/V+2oJvSxttuFeyqg3foO8yOiFreGArFMhaIrdihJefOBAhfaNDa1pw==}
@@ -12470,6 +12482,8 @@ snapshots:
 
   '@expo-google-fonts/geist-mono@0.4.3': {}
 
+  '@expo-google-fonts/google-sans-flex@0.4.6': {}
+
   '@expo-google-fonts/instrument-serif@0.4.1': {}
 
   '@expo-google-fonts/material-symbols@0.4.42': {}
@@ -13887,6 +13901,8 @@ snapshots:
     optionalDependencies:
       react-dom: 19.2.3(react@19.3.0)
       react-native: 0.88.0-rc.4(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.4(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
+
+  '@material/material-color-utilities@0.4.0': {}
 
   '@mdream/js@2.0.0':
     dependencies:

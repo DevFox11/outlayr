@@ -11,9 +11,10 @@ import { applyNumpadKey, numpadMode, numpadToNumber } from "@/domain/numpad";
 import type { NumpadKey, NumpadMode, NumpadTileKey } from "@/domain/numpad";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
+import { SANS_BY_WEIGHT } from "@/theme/body-fonts";
 import { useColors } from "@/theme/use-colors";
 
-import { ROUNDED, Text } from "./text";
+import { Text } from "./text";
 
 const GLASS = isLiquidGlassAvailable();
 
@@ -107,7 +108,7 @@ export function AmountNumpad({
                             prefix={`${symbol} `}
                             style={{
                                 color: amountColor,
-                                fontFamily: ROUNDED,
+                                fontFamily: SANS_BY_WEIGHT[500],
                                 fontSize: 40,
                                 fontWeight: "500",
                             }}

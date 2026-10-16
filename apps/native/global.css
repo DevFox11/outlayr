@@ -13,6 +13,24 @@
 
 @layer theme {
     :root {
+        /* The body face by weight, for the `font-sans-*` utilities below.
+           iOS draws every weight from the system rounded face. Android loads
+           one Google Sans Flex file per weight (`theme/body-fonts.android.ts`)
+           because it cannot pick a weight out of a `useFonts` family, so each
+           weight names its own file. Platform variables are safe here and
+           nowhere in the themed blocks: uniwind keeps them in one bag beneath
+           the light and dark ones. */
+        --font-sans-medium: "ui-rounded";
+        --font-sans-semibold: "ui-rounded";
+        --font-sans-bold: "ui-rounded";
+
+        @variant android {
+            --font-sans: "GoogleSansFlex_400Regular";
+            --font-sans-medium: "GoogleSansFlex_500Medium";
+            --font-sans-semibold: "GoogleSansFlex_600SemiBold";
+            --font-sans-bold: "GoogleSansFlex_700Bold";
+        }
+
         @variant light {
             /* Paper and ink, verbatim from the app icon's light face. The ground is
 			   the darkest plane the light theme paints: on paper a raised surface
@@ -170,6 +188,47 @@
             --fr-rule: #dcd8cc;
             --fr-vermilion: #c2371b;
             --fr-card: #faf8f3;
+
+            /* Material 3 colour roles, the vocabulary Android screens are
+               written in (`bg-m3-primary`, `text-m3-on-surface`). These are
+               the iOS answers: each role names the brand token that plays its
+               part here, so shared code that reaches one still paints paper
+               and ink. On Android `use-accent.android.ts` overwrites every one
+               of them, in both themes, before the first frame: uniwind keeps
+               platform variables in one bag beneath the theme ones, so a
+               themed value cannot differ by platform in this file. */
+            --m3-primary: #c2371b; /* --tint */
+            --m3-on-primary: #f2f0ea; /* --color-accent-foreground */
+            --m3-primary-container: #efece4; /* --surface-secondary */
+            --m3-on-primary-container: #17150f; /* --foreground */
+            --m3-secondary: #17150f; /* --accent */
+            --m3-on-secondary: #f2f0ea; /* --accent-foreground */
+            --m3-secondary-container: #ebe8e0; /* --color-surface-tertiary */
+            --m3-on-secondary-container: #17150f; /* --foreground */
+            --m3-tertiary: #2f6d99; /* --color-info */
+            --m3-on-tertiary: #f2f0ea; /* --background */
+            --m3-tertiary-container: #efece4; /* --surface-secondary */
+            --m3-on-tertiary-container: #17150f; /* --foreground */
+            --m3-surface: #f2f0ea; /* --background */
+            --m3-on-surface: #17150f; /* --foreground */
+            --m3-on-surface-variant: #6b6557; /* --muted */
+            --m3-surface-container-lowest: #f8f6f1; /* --surface */
+            --m3-surface-container-low: #f2f0ea; /* --background */
+            --m3-surface-container: #efece4; /* --surface-secondary */
+            /* Not `--color-surface-tertiary`, the one plane darker: the accent
+               is certified down to `--surface-secondary` and reads 4.45:1
+               below it, and `m3-primary` is text on every container. */
+            --m3-surface-container-high: #efece4; /* --surface-secondary */
+            --m3-surface-container-highest: #efece4; /* --surface-secondary */
+            --m3-outline: #6d6657; /* --subtle */
+            --m3-outline-variant: #dcd8cc; /* --border */
+            --m3-inverse-surface: #17150f; /* --foreground */
+            --m3-inverse-on-surface: #f2f0ea; /* --background */
+            --m3-error: #c01005; /* --danger */
+            --m3-on-error: #f2f0ea; /* --background */
+            --m3-error-container: #efece4; /* --surface-secondary */
+            --m3-on-error-container: #c01005; /* --danger */
+            --m3-scrim: #000000;
         }
 
         @variant dark {
@@ -284,6 +343,39 @@
             --fr-rule: #353026;
             --fr-vermilion: #e0552f;
             --fr-card: #201d15;
+
+            /* See the light-mode note; the same token behind each role. The
+               container ladder runs the other way here, as M3's does: lowest
+               is the darkest plane the dark face paints. */
+            --m3-primary: #ec603b;
+            --m3-on-primary: #17150f;
+            --m3-primary-container: #201d15;
+            --m3-on-primary-container: #f2efe8;
+            --m3-secondary: #f2efe8;
+            --m3-on-secondary: #17150f;
+            --m3-secondary-container: #2a251b;
+            --m3-on-secondary-container: #f2efe8;
+            --m3-tertiary: #7bb4dd;
+            --m3-on-tertiary: #17150f;
+            --m3-tertiary-container: #201d15;
+            --m3-on-tertiary-container: #f2efe8;
+            --m3-surface: #17150f;
+            --m3-on-surface: #f2efe8;
+            --m3-on-surface-variant: #a8a093;
+            --m3-surface-container-lowest: #0e0c08; /* --grouped-background */
+            --m3-surface-container-low: #17150f;
+            --m3-surface-container: #201d15;
+            --m3-surface-container-high: #2a251b;
+            --m3-surface-container-highest: #2a251b;
+            --m3-outline: #968e80;
+            --m3-outline-variant: #353026;
+            --m3-inverse-surface: #f2efe8;
+            --m3-inverse-on-surface: #17150f;
+            --m3-error: #ff493c;
+            --m3-on-error: #17150f;
+            --m3-error-container: #201d15;
+            --m3-on-error-container: #ff493c;
+            --m3-scrim: #000000;
         }
     }
 }
@@ -321,6 +413,36 @@
     --color-fr-rule: var(--fr-rule);
     --color-fr-vermilion: var(--fr-vermilion);
     --color-fr-card: var(--fr-card);
+
+    --color-m3-primary: var(--m3-primary);
+    --color-m3-on-primary: var(--m3-on-primary);
+    --color-m3-primary-container: var(--m3-primary-container);
+    --color-m3-on-primary-container: var(--m3-on-primary-container);
+    --color-m3-secondary: var(--m3-secondary);
+    --color-m3-on-secondary: var(--m3-on-secondary);
+    --color-m3-secondary-container: var(--m3-secondary-container);
+    --color-m3-on-secondary-container: var(--m3-on-secondary-container);
+    --color-m3-tertiary: var(--m3-tertiary);
+    --color-m3-on-tertiary: var(--m3-on-tertiary);
+    --color-m3-tertiary-container: var(--m3-tertiary-container);
+    --color-m3-on-tertiary-container: var(--m3-on-tertiary-container);
+    --color-m3-surface: var(--m3-surface);
+    --color-m3-on-surface: var(--m3-on-surface);
+    --color-m3-on-surface-variant: var(--m3-on-surface-variant);
+    --color-m3-surface-container-lowest: var(--m3-surface-container-lowest);
+    --color-m3-surface-container-low: var(--m3-surface-container-low);
+    --color-m3-surface-container: var(--m3-surface-container);
+    --color-m3-surface-container-high: var(--m3-surface-container-high);
+    --color-m3-surface-container-highest: var(--m3-surface-container-highest);
+    --color-m3-outline: var(--m3-outline);
+    --color-m3-outline-variant: var(--m3-outline-variant);
+    --color-m3-inverse-surface: var(--m3-inverse-surface);
+    --color-m3-inverse-on-surface: var(--m3-inverse-on-surface);
+    --color-m3-error: var(--m3-error);
+    --color-m3-on-error: var(--m3-on-error);
+    --color-m3-error-container: var(--m3-error-container);
+    --color-m3-on-error-container: var(--m3-on-error-container);
+    --color-m3-scrim: var(--m3-scrim);
 }
 
 @theme {
@@ -363,16 +485,16 @@
 }
 
 @utility font-sans-medium {
-    font-family: "ui-rounded";
+    font-family: var(--font-sans-medium);
     font-weight: 500;
 }
 
 @utility font-sans-semibold {
-    font-family: "ui-rounded";
+    font-family: var(--font-sans-semibold);
     font-weight: 600;
 }
 
 @utility font-sans-bold {
-    font-family: "ui-rounded";
+    font-family: var(--font-sans-bold);
     font-weight: 700;
 }

@@ -26,9 +26,10 @@ import {
 import { useSyncStatus } from "@/data/use-sync-status";
 import { useValuationCoverage } from "@/data/use-valuation-coverage";
 import type { Database } from "@/db/client";
-import { ACCENTS } from "@/domain/accent";
+import { ACCENT_OPTIONS, DEFAULT_ACCENT_VALUE } from "@/domain/accent-options";
 import { appIconLabel } from "@/domain/app-icons";
 import { lockFailureMessage } from "@/domain/app-lock";
+import { offeredAccentValue } from "@/domain/material-accent";
 import { syncPaused, syncStatusLabel } from "@/domain/sync-status";
 import { coverageNote } from "@/domain/valuation-coverage";
 import { useProEntitled } from "@/hooks/use-pro-locked";
@@ -190,13 +191,13 @@ export function Settings() {
                     onChange={(next) => {
                         setNumberSetting(db, "accentColor", next);
                     }}
-                    options={ACCENTS.map((accent) => ({
+                    options={ACCENT_OPTIONS.map((accent) => ({
                         label: t(accent.label),
                         swatch: accent[scheme],
                         value: accent.value,
                     }))}
                     title={t("settings.row.theme")}
-                    value={accentColor}
+                    value={offeredAccentValue(accentColor, ACCENT_OPTIONS, DEFAULT_ACCENT_VALUE)}
                 />
                 {alternateIconsSupported ? <AppIconRow /> : null}
                 {hasSystemLanguageSettings() ? (
