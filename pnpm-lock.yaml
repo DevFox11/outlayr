@@ -59,6 +59,7 @@ patchedDependencies:
   expo-widgets@58.0.20: 1b7403ea42781fb39be7082be82a826594fb0f1894fc1954c9b7b38b4426ed29
   number-flow-react-native@0.5.1: 68c4f1f878ed9a15dc006b39f473fe1d5518708c5bf041db100e122212776c2f
   panelui-native@0.109.0: 55096cf0fd93cd173bea780405d0e1ffcc8fe2483863c5c920ed8b2f7dd30880
+  uniwind@1.12.2: 47128f83332d26c7e918e543c21139a26f05838c6bf28896cb0c614a6aa79876
 
 importers:
 
@@ -279,7 +280,7 @@ importers:
         version: 0.5.1(patch_hash=68c4f1f878ed9a15dc006b39f473fe1d5518708c5bf041db100e122212776c2f)(react-native-reanimated@4.7.1(react-native-worklets@0.13.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1))(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
       panelui-native:
         specifier: ^0.109.0
-        version: 0.109.0(patch_hash=55096cf0fd93cd173bea780405d0e1ffcc8fe2483863c5c920ed8b2f7dd30880)(fefa9e5478e1e50b1ba9e09a9a0427f1)
+        version: 0.109.0(patch_hash=55096cf0fd93cd173bea780405d0e1ffcc8fe2483863c5c920ed8b2f7dd30880)(8b91ea87482ba67a80837a9d0c404760)
       posthog-react-native:
         specifier: ^4.81.0
         version: 4.81.0(b50fbebf1cf1a54b4c22f270a8633e30)
@@ -333,7 +334,7 @@ importers:
         version: 0.3.2(react@19.3.0)
       uniwind:
         specifier: ^1.12.2
-        version: 1.12.2(@expo/metro-config@58.0.14(expo@58.0.13)(supports-color@8.1.1)(typescript@6.0.3))(metro-cache@0.87.1(supports-color@8.1.1))(metro-transform-worker@0.87.1(supports-color@8.1.1))(metro@0.87.1(supports-color@8.1.1))(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(tailwindcss@4.3.3)
+        version: 1.12.2(patch_hash=47128f83332d26c7e918e543c21139a26f05838c6bf28896cb0c614a6aa79876)(@expo/metro-config@58.0.14(expo@58.0.13)(supports-color@8.1.1)(typescript@6.0.3))(metro-cache@0.87.1(supports-color@8.1.1))(metro-transform-worker@0.87.1(supports-color@8.1.1))(metro@0.87.1(supports-color@8.1.1))(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(tailwindcss@4.3.3)
       zod:
         specifier: 'catalog:'
         version: 4.6.2
@@ -20982,7 +20983,7 @@ snapshots:
 
   pako@1.0.11: {}
 
-  panelui-native@0.109.0(patch_hash=55096cf0fd93cd173bea780405d0e1ffcc8fe2483863c5c920ed8b2f7dd30880)(fefa9e5478e1e50b1ba9e09a9a0427f1):
+  panelui-native@0.109.0(patch_hash=55096cf0fd93cd173bea780405d0e1ffcc8fe2483863c5c920ed8b2f7dd30880)(8b91ea87482ba67a80837a9d0c404760):
     dependencies:
       '@hugeicons/core-free-icons': 4.3.0
       '@hugeicons/react-native': 1.0.16(react-native-svg@15.16.0(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
@@ -20998,7 +20999,7 @@ snapshots:
       tailwind-merge: 3.7.0
       tailwind-variants: 3.3.1(tailwind-merge@3.7.0)(tailwindcss@4.3.3)
       tailwindcss: 4.3.3
-      uniwind: 1.12.2(@expo/metro-config@58.0.14(expo@58.0.13)(supports-color@8.1.1)(typescript@6.0.3))(metro-cache@0.87.1(supports-color@8.1.1))(metro-transform-worker@0.87.1(supports-color@8.1.1))(metro@0.87.1(supports-color@8.1.1))(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(tailwindcss@4.3.3)
+      uniwind: 1.12.2(patch_hash=47128f83332d26c7e918e543c21139a26f05838c6bf28896cb0c614a6aa79876)(@expo/metro-config@58.0.14(expo@58.0.13)(supports-color@8.1.1)(typescript@6.0.3))(metro-cache@0.87.1(supports-color@8.1.1))(metro-transform-worker@0.87.1(supports-color@8.1.1))(metro@0.87.1(supports-color@8.1.1))(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(tailwindcss@4.3.3)
     optionalDependencies:
       '@expo/ui': 58.0.20(@babel/core@7.29.7(supports-color@8.1.1))(expo@58.0.13)(react-dom@19.2.3(react@19.3.0))(react-native-worklets@0.13.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1))(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
       expo-blur: 58.0.4(expo@58.0.13)(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
@@ -22705,7 +22706,7 @@ snapshots:
       unist-util-is: 6.0.1
       unist-util-visit-parents: 6.0.2
 
-  uniwind@1.12.2(@expo/metro-config@58.0.14(expo@58.0.13)(supports-color@8.1.1)(typescript@6.0.3))(metro-cache@0.87.1(supports-color@8.1.1))(metro-transform-worker@0.87.1(supports-color@8.1.1))(metro@0.87.1(supports-color@8.1.1))(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(tailwindcss@4.3.3):
+  uniwind@1.12.2(patch_hash=47128f83332d26c7e918e543c21139a26f05838c6bf28896cb0c614a6aa79876)(@expo/metro-config@58.0.14(expo@58.0.13)(supports-color@8.1.1)(typescript@6.0.3))(metro-cache@0.87.1(supports-color@8.1.1))(metro-transform-worker@0.87.1(supports-color@8.1.1))(metro@0.87.1(supports-color@8.1.1))(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(tailwindcss@4.3.3):
     dependencies:
       '@tailwindcss/node': 4.3.3
       '@tailwindcss/oxide': 4.3.3
