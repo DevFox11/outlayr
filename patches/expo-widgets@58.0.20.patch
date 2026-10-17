@@ -20,15 +20,3 @@ diff --git a/plugin/src/ios/withWidgetSourceFiles.ts b/plugin/src/ios/withWidget
  ${configuration?.description ? `  static var description: LocalizedStringResource = ${JSON.stringify(configuration.description)}\n` : ''}
  ${Object.entries(configuration?.parameters ?? {})
    .map(([name, param]) => {
-diff --git a/scripts/build-layout-registry.mjs b/scripts/build-layout-registry.mjs
---- a/scripts/build-layout-registry.mjs
-+++ b/scripts/build-layout-registry.mjs
-@@ -154,6 +154,7 @@ function createLayoutRegistry(expectedWidgets, capturedLayouts) {
-   return registry;
- }
- 
--if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
-+// Under pnpm, Gradle passes the symlinked path while __filename is the realpath.
-+if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(__filename)) {
-   await main();
- }

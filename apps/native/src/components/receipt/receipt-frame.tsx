@@ -47,7 +47,7 @@ function paperPath(width: number, height: number) {
     const right = width - PAPER_INSET;
     const top = PAPER_INSET;
     const bottom = height - PAPER_INSET;
-    const path = Skia.Path.Make();
+    const path = Skia.PathBuilder.Make();
     path.moveTo(left, top + PAPER_RADIUS);
     path.quadTo(left, top, left + PAPER_RADIUS, top);
     path.lineTo(right - PAPER_RADIUS, top);
@@ -62,12 +62,12 @@ function paperPath(width: number, height: number) {
         path.lineTo(right - toothWidth * (index + 1), bottom - TOOTH_HEIGHT);
     }
     path.close();
-    return path;
+    return path.detach();
 }
 
 /** The four corner marks of a viewfinder, each an L with a rounded elbow. */
 function bracketsPath(width: number, height: number) {
-    const path = Skia.Path.Make();
+    const path = Skia.PathBuilder.Make();
     const inset = BRACKET_STROKE / 2;
     const corners = [
         { sx: 1, sy: 1, x: inset, y: inset },
@@ -82,7 +82,7 @@ function bracketsPath(width: number, height: number) {
         path.quadTo(x, y, x + sx * BRACKET_RADIUS, y);
         path.lineTo(x + sx * BRACKET_ARM, y);
     }
-    return path;
+    return path.detach();
 }
 
 /**
