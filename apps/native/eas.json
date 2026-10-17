@@ -23,12 +23,18 @@
             "environment": "preview",
             "distribution": "store",
             "channel": "preview",
-            "autoIncrement": true
+            "autoIncrement": true,
+            "android": {
+                "resourceClass": "large"
+            }
         },
         "production": {
             "environment": "production",
             "channel": "production",
-            "autoIncrement": true
+            "autoIncrement": true,
+            "android": {
+                "resourceClass": "large"
+            }
         }
     },
     "submit": {
