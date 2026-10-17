@@ -1,8 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
 
-import type { AdoptionStatus } from "@/lib/ledger-adoption";
-
-import type { AuthGate } from "./auth-gate";
 import { localShellReady, routeSettled } from "./splash-gate";
 
 describe("local shell readiness", () => {
@@ -71,15 +68,5 @@ describe("route settlement", () => {
 
     it("settles while a chosen reconciliation runs", () => {
         expect(routeSettled({ adoption: "working", gate: "signed-in" })).toBe(true);
-    });
-
-    it("never holds once the restore budget has fallen through to sign-out", () => {
-        const gates: AuthGate[] = ["signed-in", "signed-out", "unconfigured"];
-        const settledStates: AdoptionStatus[] = ["settled", "ask", "working"];
-        for (const gate of gates) {
-            for (const adoption of settledStates) {
-                expect(routeSettled({ adoption, gate })).toBe(true);
-            }
-        }
     });
 });

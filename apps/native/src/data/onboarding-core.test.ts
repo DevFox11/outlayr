@@ -13,42 +13,15 @@ import {
 
 const makeDb = migratedDatabase;
 
-describe("onboarding gate", () => {
-    it("holds a fresh ledger back", () => {
-        expect(isOnboardingSettled(null)).toBe(false);
-    });
-
-    it("lets a finished run through", () => {
-        expect(isOnboardingSettled("true")).toBe(true);
-    });
-
-    it("treats anything but an affirmative as unanswered", () => {
-        expect(isOnboardingSettled("false")).toBe(false);
-        expect(isOnboardingSettled("")).toBe(false);
-        expect(isOnboardingSettled("TRUE")).toBe(false);
-    });
-});
-
 describe("finishOnboarding", () => {
     let db: Database;
     beforeEach(() => {
         db = makeDb();
     });
 
-    it("is the sole writer of onboardingComplete, shared by both terminal paths", async () => {
-        await finishOnboarding(db);
-        await expect(getMeta(db, META_KEYS.onboardingComplete)).resolves.toBe("true");
-    });
-
     it("settles the gate it writes", async () => {
         await finishOnboarding(db);
         expect(isOnboardingSettled(await getMeta(db, META_KEYS.onboardingComplete))).toBe(true);
-    });
-
-    it("is idempotent when a caller runs it more than once", async () => {
-        await finishOnboarding(db);
-        await finishOnboarding(db);
-        await expect(getMeta(db, META_KEYS.onboardingComplete)).resolves.toBe("true");
     });
 });
 
@@ -59,10 +32,6 @@ describe("shouldSettleLegacyLedger", () => {
 
     it("leaves a genuinely fresh install alone — there is nothing to backfill", () => {
         expect(shouldSettleLegacyLedger(null, null, null)).toBe(false);
-    });
-
-    it("leaves a ledger that already finished the flow itself alone", () => {
-        expect(shouldSettleLegacyLedger("true", "true", null)).toBe(false);
     });
 
     it("never re-fires once migrated, even if it would otherwise qualify", () => {
@@ -89,25 +58,6 @@ describe("settleLegacyOnboarding", () => {
         await settleLegacyOnboarding(db);
 
         await expect(getMeta(db, META_KEYS.onboardingComplete)).resolves.toBeNull();
-        await expect(getMeta(db, META_KEYS.onboardingGateMigrated)).resolves.toBe("true");
-    });
-
-    it("does not touch a ledger that already finished the flow itself", async () => {
-        await finishOnboarding(db);
-
-        await settleLegacyOnboarding(db);
-
-        await expect(getMeta(db, META_KEYS.onboardingComplete)).resolves.toBe("true");
-        await expect(getMeta(db, META_KEYS.onboardingGateMigrated)).resolves.toBe("true");
-    });
-
-    it("is idempotent — a second relaunch writes nothing further", async () => {
-        await setMeta(db, META_KEYS.currencyChosen, "true");
-        await settleLegacyOnboarding(db);
-
-        await settleLegacyOnboarding(db);
-
-        await expect(getMeta(db, META_KEYS.onboardingComplete)).resolves.toBe("true");
         await expect(getMeta(db, META_KEYS.onboardingGateMigrated)).resolves.toBe("true");
     });
 });

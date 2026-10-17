@@ -4,7 +4,6 @@ import { renderHook } from "@testing-library/react-native";
 import type { Database } from "@/db/client";
 import { exchangeRates } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
-import { logCurrencyOptions } from "@/domain/log-currency-options";
 
 import { VALUATION_RATE_TYPE } from "./valuation-source";
 import { useValuedCurrencies } from "./valued-currencies";
@@ -25,21 +24,6 @@ async function seed(db: Database, rateType: string = VALUATION_RATE_TYPE): Promi
 }
 
 describe("what the Log's currency chip may offer", () => {
-    it("offers a favourite the rate table can reach", async () => {
-        const db = migratedDatabase({ foreignKeys: false });
-        await seed(db);
-        const { result } = await renderHook(() => useValuedCurrencies(db));
-
-        expect(
-            logCurrencyOptions({
-                convertible: (code) => code === "USD" || result.current.has(code),
-                favourites: ["AED", "EUR"],
-                global: "USD",
-                produced: [],
-            })
-        ).toStrictEqual(["USD", "AED", "EUR"]);
-    });
-
     it("answers for the valuation rate type alone", async () => {
         const db = migratedDatabase({ foreignKeys: false });
         await seed(db, "binance");

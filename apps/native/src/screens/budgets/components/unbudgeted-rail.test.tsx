@@ -20,39 +20,6 @@ function scope(name: string, typical: number): UnbudgetedScope {
 }
 
 describe("the unbudgeted rail", () => {
-    it("names each scope with what it typically costs", async () => {
-        const { getByText } = await render(
-            <UnbudgetedRail
-                currency="USD"
-                everythingTypical={null}
-                offerEverything={false}
-                onPress={jest.fn()}
-                periodPhrase="a month"
-                scopes={[scope("Groceries", 372)]}
-            />
-        );
-
-        expect(getByText("Groceries")).toBeTruthy();
-        expect(getByText(/budgets\.rail\.typical.*372.*a month/)).toBeTruthy();
-    });
-
-    it("offers at most two, because the rail is a suggestion and not a chore list", async () => {
-        const { queryByText } = await render(
-            <UnbudgetedRail
-                currency="USD"
-                everythingTypical={null}
-                offerEverything={false}
-                onPress={jest.fn()}
-                periodPhrase="a month"
-                scopes={[scope("Groceries", 372), scope("Dining", 288), scope("Transport", 96)]}
-            />
-        );
-
-        expect(queryByText("Groceries")).toBeTruthy();
-        expect(queryByText("Dining")).toBeTruthy();
-        expect(queryByText("Transport")).toBeNull();
-    });
-
     it("offers the whole ledger first while no overall budget exists", async () => {
         const onPress = jest.fn();
         const { getByText } = await render(

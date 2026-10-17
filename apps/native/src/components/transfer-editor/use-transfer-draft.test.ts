@@ -191,12 +191,6 @@ describe("a fee larger than what reaches the other side", () => {
         mockRates.set("VES", OFFICIAL_VES_PER_USD);
     });
 
-    it("cannot be saved as a transfer that credits the fee", async () => {
-        const result = await feeOverArrivalDraft();
-        expect(result.current.legs).toBeNull();
-        expect(result.current.canSave).toBe(false);
-    });
-
     it("claims no arrival and names what the fee overshoots by", async () => {
         const result = await feeOverArrivalDraft();
         expect(result.current.arrived).toBeNull();

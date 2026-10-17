@@ -98,13 +98,6 @@ describe("amountNumpad mode", () => {
 
         expect(entry()).toBe("36.5");
     });
-
-    it("draws the separator key an overridden explicit keypad needs", async () => {
-        mockNumberEntryType.mockReturnValue(1);
-        await render(<Harness minorUnits={4} mode="explicitSeparator" />);
-
-        expect(screen.queryByLabelText(".")).not.toBeNull();
-    });
 });
 
 describe("amountNumpad keystroke ordering", () => {
@@ -124,16 +117,6 @@ describe("amountNumpad keystroke ordering", () => {
         await press("3");
 
         expect(onChange.mock.calls.map(([next]) => next)).toStrictEqual(["1", "12", "123"]);
-    });
-
-    it("restarts from the value once a render has caught up", async () => {
-        mockNumberEntryType.mockReturnValue(2);
-        await render(<Harness />);
-
-        await press("1");
-        await press("2");
-
-        expect(entry()).toBe("12");
     });
 });
 

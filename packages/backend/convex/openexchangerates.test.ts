@@ -8,7 +8,6 @@ import schema from "./schema";
 const modules = import.meta.glob("./**/*.ts");
 
 const PUBLISHED_AT = Date.parse("2026-09-28T22:00:00Z") / 1000;
-const MISSING_APP_ID_PATTERN = /OXR_APP_ID/;
 
 function stubFetch(payload: unknown, ok = true) {
     const response = {
@@ -70,12 +69,5 @@ describe("openexchangerates.fetchRates", () => {
         await t.action(internal.openexchangerates.fetchRates, {});
 
         await expect(t.run((ctx) => ctx.db.query("exchangeRates").collect())).resolves.toHaveLength(0);
-    });
-
-    it("throws a descriptive error when OXR_APP_ID is missing", async () => {
-        vi.stubEnv("OXR_APP_ID", "");
-        const t = convexTest(schema, modules);
-
-        await expect(t.action(internal.openexchangerates.fetchRates, {})).rejects.toThrow(MISSING_APP_ID_PATTERN);
     });
 });

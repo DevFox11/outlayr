@@ -43,16 +43,6 @@ describe("logCurrencyOptions", () => {
         ).toStrictEqual(["USD", "JPY", "EUR", "AUD"]);
     });
 
-    it("appends a produced currency that is not already offered", () => {
-        expect(
-            logCurrencyOptions({
-                favourites: ["EUR"],
-                global: "USD",
-                produced: ["VES"],
-            })
-        ).toStrictEqual(["USD", "EUR", "VES"]);
-    });
-
     it("appends produced currencies after every favourite, in their own order", () => {
         expect(
             logCurrencyOptions({
@@ -181,16 +171,6 @@ describe("logCurrencyOptions", () => {
                     produced: [],
                 })
             ).toStrictEqual(["USD", "EUR"]);
-        });
-
-        it("offers every favourite when no predicate is given", () => {
-            expect(
-                logCurrencyOptions({
-                    favourites: ["CHF"],
-                    global: "USD",
-                    produced: [],
-                })
-            ).toStrictEqual(["USD", "CHF"]);
         });
     });
 });

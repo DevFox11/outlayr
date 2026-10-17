@@ -92,17 +92,4 @@ describe("computeCurtainHues", () => {
         );
         expect(hues).toStrictEqual(["#123456"]);
     });
-
-    it("uses the income color when income is true and no category color", () => {
-        const hues = computeCurtainHues(
-            {
-                ...BASE,
-                categoryColor: null,
-                identity: { ...EMPTY_IDENTITY, icon: "wallet" },
-                income: true,
-            },
-            NEVER_CALLED
-        );
-        expect(hues).toStrictEqual(["#00FF00"]);
-    });
 });

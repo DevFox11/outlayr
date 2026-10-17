@@ -53,13 +53,6 @@ describe("stepCategory", () => {
         expect(optionNames()).toStrictEqual(["Transport", "Transport › Fuel", "Rent"]);
     });
 
-    it("marks the selected category", async () => {
-        await render(<StepCategory {...baseProps} selectedId="fuel" />);
-
-        expect(screen.getByRole("button", { name: "Transport › Fuel" }).props.accessibilityState.selected).toBe(true);
-        expect(screen.getByRole("button", { name: "Rent" }).props.accessibilityState.selected).toBe(false);
-    });
-
     it("reports the whole category, not just its id", async () => {
         const onSelect = jest.fn();
         await render(<StepCategory {...baseProps} onSelect={onSelect} />);
@@ -67,12 +60,6 @@ describe("stepCategory", () => {
         fireEvent.press(screen.getByRole("button", { name: "Transport › Fuel" }));
 
         expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "fuel", parentId: "transport" }));
-    });
-
-    it("leaves creating one out where the host cannot mint it", async () => {
-        await render(<StepCategory {...baseProps} />);
-
-        expect(screen.queryByRole("button", { name: "categories.addCategory" })).toBeNull();
     });
 
     it("offers creating one where it can", async () => {

@@ -1,39 +1,14 @@
 /// <reference types="vite/client" />
 
 import { convexTest } from "convex-test";
-import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { describe, expect, it } from "vite-plus/test";
 
 import { internal } from "./_generated/api";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.ts");
 
-afterEach(() => {
-    vi.unstubAllEnvs();
-});
-
 describe("groundedSpend", () => {
-    it("record persists a row that monthlyTotal can sum", async () => {
-        const t = convexTest(schema, modules);
-        const now = Date.UTC(2026, 6, 15);
-
-        await t.mutation(internal.groundedSpend.record, {
-            actualMicros: 6500,
-            at: now,
-            chargedMicros: 20_000,
-            inputTokens: 1000,
-            outputTokens: 100,
-            published: true,
-            searchCalls: 1,
-        });
-
-        const result = await t.query(internal.groundedSpend.monthlyTotal, {
-            at: now,
-        });
-
-        expect(result.totalMicros).toBe(6500);
-    });
-
     it("monthlyTotal sums only rows within the same calendar month", async () => {
         const t = convexTest(schema, modules);
         const lastMonth = Date.UTC(2026, 5, 20);
@@ -64,26 +39,5 @@ describe("groundedSpend", () => {
         });
 
         expect(result.totalMicros).toBe(4000);
-    });
-
-    it("monthlyTotal reports the $25 ceiling constant by default", async () => {
-        const t = convexTest(schema, modules);
-
-        const result = await t.query(internal.groundedSpend.monthlyTotal, {
-            at: Date.UTC(2026, 6, 1),
-        });
-
-        expect(result.ceilingMicros).toBe(200_000_000);
-    });
-
-    it("monthlyTotal reflects a live env-var ceiling override", async () => {
-        vi.stubEnv("GROUNDED_BUDGET_MICROS", "1000");
-        const t = convexTest(schema, modules);
-
-        const result = await t.query(internal.groundedSpend.monthlyTotal, {
-            at: Date.UTC(2026, 6, 1),
-        });
-
-        expect(result.ceilingMicros).toBe(1000);
     });
 });

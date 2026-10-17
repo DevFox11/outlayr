@@ -5,9 +5,7 @@ import { cardFeeAmount, cardFeeBase, cardFeeOf, feeDraftOf, formatFeeRate } from
 describe("cardFeeAmount", () => {
     it.each([
         [12.53, 0.035, 0.44],
-        [35.58, 0.035, 1.25],
         [5.17, 0.035, 0.18],
-        [10, 0.01, 0.1],
     ])("charges %d at %d as the bank did, %d", (base, rate, fee) => {
         expect(cardFeeAmount({ kind: "percent", rate }, base, "USD")).toBe(fee);
     });

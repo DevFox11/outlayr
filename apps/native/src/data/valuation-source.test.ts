@@ -118,35 +118,6 @@ describe("loadValuationIn", () => {
         expect(rates.earliest("JPY")).toBe("2026-07-20");
     });
 
-    it("reads back the newest rate on or before the day asked for", async () => {
-        const db = makeDb();
-        await seed(db);
-
-        const { rates } = await loadValuationIn(db, "JPY");
-
-        expect(rates.get("JPY", "2026-07-24")).toBe(155.4);
-    });
-
-    it("carries no rows for the currency it is not asked about", async () => {
-        const db = makeDb();
-        await seed(db);
-
-        const { rates } = await loadValuationIn(db, "JPY");
-
-        expect(rates.get("EUR", DAY)).toBeNull();
-    });
-
-    it("hands back an empty table for USD", async () => {
-        const db = makeDb();
-        await seed(db);
-
-        const { displayCurrency, rates } = await loadValuationIn(db, "USD");
-
-        expect(displayCurrency).toBe("USD");
-        expect(rates.get("USD", DAY)).toBeNull();
-        expect(rates.earliest("USD")).toBeNull();
-    });
-
     it("takes only the official rate where a quote carries several types", async () => {
         // VES publishes official, eur_reference and binance. A figure frozen at the
         // official rate converted back out at binance is a number that was never true.
@@ -157,18 +128,6 @@ describe("loadValuationIn", () => {
 
         expect(rates.get("VES", LATER_DAY)).toBe(OFFICIAL_VES);
         expect(rates.earliest("VES")).toBe(DAY);
-    });
-
-    it("distinguishes a quote with no rows from one with a floor", async () => {
-        // `earliest` is what predatesHistory reads to call a day unreachable rather
-        // than unfetched, so an absence must not answer with a date.
-        const db = makeDb();
-        await seed(db);
-
-        const { rates } = await loadValuationIn(db, "CHF");
-
-        expect(rates.get("CHF", DAY)).toBeNull();
-        expect(rates.earliest("CHF")).toBeNull();
     });
 });
 

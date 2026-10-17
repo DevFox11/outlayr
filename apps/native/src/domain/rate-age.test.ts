@@ -18,10 +18,6 @@ describe("rateAge", () => {
         });
     });
 
-    it("counts a single day in the singular", () => {
-        expect(rateAge(en, { ...BASE, rateDate: "2026-09-28" }).detail).toBe("1 day old · 28 Sep");
-    });
-
     it("states the time of a rate fetched today for the entry's own day", () => {
         const fetchedAt = new Date(2026, 8, 29, 9, 5).getTime();
 

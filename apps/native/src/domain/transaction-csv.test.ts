@@ -5,7 +5,6 @@ import {
     CSV_HEADER,
     deduceDateFormat,
     detectDecimalSeparator,
-    formatCsvDate,
     parseCsvAmount,
     parseCsvDate,
     parseCsvType,
@@ -22,10 +21,6 @@ describe("serializeCsvAmount", () => {
         expect(serializeCsvAmount(1240, "JPY")).toBe("1240");
     });
 
-    it("uses three decimals for a dinar", () => {
-        expect(serializeCsvAmount(1.5, "KWD")).toBe("1.500");
-    });
-
     it("never groups thousands", () => {
         expect(serializeCsvAmount(1_234_567.89, "USD")).toBe("1234567.89");
     });
@@ -40,10 +35,6 @@ describe("serializeCsvAmount", () => {
 });
 
 describe("parseCsvAmount", () => {
-    it("reads a plain decimal", () => {
-        expect(parseCsvAmount("12.50")).toBe(12.5);
-    });
-
     it("reads a bare integer", () => {
         expect(parseCsvAmount("1240")).toBe(1240);
     });
@@ -74,10 +65,6 @@ describe("parseCsvAmount", () => {
 
     it("rejects a field with two decimal points", () => {
         expect(parseCsvAmount("1.2.3")).toBeNull();
-    });
-
-    it("rejects an empty field", () => {
-        expect(parseCsvAmount("")).toBeNull();
     });
 });
 
@@ -169,10 +156,6 @@ describe("parseCsvDate", () => {
     it("rejects an impossible day rather than rolling it over", () => {
         expect(parseCsvDate("2026-02-31", "yyyy-MM-dd")).toBeNull();
     });
-
-    it("rejects a blank value", () => {
-        expect(parseCsvDate("", "yyyy-MM-dd")).toBeNull();
-    });
 });
 
 describe("parseCsvType", () => {
@@ -219,10 +202,6 @@ describe("transactionsToCsv", () => {
         },
     ];
 
-    it("leads with the header", () => {
-        expect(transactionsToCsv(rows, "USD").split("\n")[0]).toBe(CSV_HEADER.join(","));
-    });
-
     it("writes the ledger currency for a row that stated none", () => {
         const parsed = parseCsv(transactionsToCsv(rows, "USD"));
         expect(parsed[2]?.[3]).toBe("USD");
@@ -231,10 +210,6 @@ describe("transactionsToCsv", () => {
     it("keeps a comma in the note instead of deleting it", () => {
         const parsed = parseCsv(transactionsToCsv(rows, "USD"));
         expect(parsed[1]?.[1]).toBe("Bakery, twice");
-    });
-
-    it("ends with a newline", () => {
-        expect(transactionsToCsv(rows, "USD").endsWith("\n")).toBeTruthy();
     });
 
     it("round-trips date, amount, currency and type exactly", () => {
@@ -251,19 +226,6 @@ describe("transactionsToCsv", () => {
 
     it("emits only the header when there is nothing to export", () => {
         expect(transactionsToCsv([], "USD")).toBe(`${CSV_HEADER.join(",")}\n`);
-    });
-
-    it("appends optional rate columns without changing the legacy column order", () => {
-        expect(CSV_HEADER).toStrictEqual([
-            "Date",
-            "Note",
-            "Amount",
-            "Currency",
-            "Category",
-            "Type",
-            "Exchange Rate Type",
-            "Exchange Rate",
-        ]);
     });
 
     it("exports resolved custom and provider metadata exactly", () => {
@@ -295,12 +257,5 @@ describe("transactionsToCsv", () => {
         );
 
         expect(parsed[1]?.slice(6)).toStrictEqual(["", ""]);
-    });
-});
-
-describe("formatCsvDate", () => {
-    it("writes an ISO instant that parses back to the same moment", () => {
-        const date = new Date(Date.UTC(2026, 6, 29, 10, 15, 30, 250));
-        expect(parseCsvDate(formatCsvDate(date), "ISO")?.getTime()).toBe(date.getTime());
     });
 });

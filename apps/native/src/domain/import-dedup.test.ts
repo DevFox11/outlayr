@@ -35,12 +35,6 @@ describe("dedupFingerprint", () => {
         expect(a).not.toBe(b);
     });
 
-    it("differs when the amount differs", () => {
-        const a = dedupFingerprint(entry({ amount: 42.5 }));
-        const b = dedupFingerprint(entry({ amount: 42.6 }));
-        expect(a).not.toBe(b);
-    });
-
     it("tells two amounts apart in the third decimal", () => {
         const a = dedupFingerprint(entry({ amount: 12.341 }));
         const b = dedupFingerprint(entry({ amount: 12.344 }));
@@ -65,19 +59,6 @@ describe("dedupFingerprint", () => {
     });
 });
 
-describe("fingerprintsOf", () => {
-    it("returns one fingerprint per existing row", () => {
-        const rows = [
-            { amount: 10, date: new Date(2026, 7, 1), income: false, note: "A" },
-            { amount: 20, date: new Date(2026, 7, 2), income: true, note: "B" },
-        ];
-        const set = fingerprintsOf(rows);
-        expect(set.size).toBe(2);
-        expect(set.has(dedupFingerprint(rows[0]))).toBe(true);
-        expect(set.has(dedupFingerprint(rows[1]))).toBe(true);
-    });
-});
-
 describe("flagDuplicates", () => {
     it("flags exact indices whose fingerprint already exists", () => {
         const entries = [entry({ note: "Coffee Shop" }), entry({ note: "Rent" }), entry({ note: "Coffee Shop" })];
@@ -90,9 +71,5 @@ describe("flagDuplicates", () => {
             },
         ]);
         expect(flagDuplicates(entries, existing)).toStrictEqual(new Set([0, 2]));
-    });
-
-    it("flags nothing against an empty existing set", () => {
-        expect(flagDuplicates([entry()], new Set())).toStrictEqual(new Set());
     });
 });

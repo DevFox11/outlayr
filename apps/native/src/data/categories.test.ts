@@ -13,10 +13,7 @@ import {
     SEEDED_CATEGORY_NAMES,
     SUGGESTED_CATEGORY_PRESETS,
     seedCategories,
-    seededCategoryId,
     suggestedCategoriesNotAdded,
-    validateCategoryCreate,
-    validateCategoryEdit,
 } from "./categories-core";
 
 const makeDb = migratedDatabase;
@@ -255,43 +252,12 @@ describe("categoriesRepo.create sortOrder", () => {
         expect(income?.sortOrder).toBe(0);
     });
 
-    it("appends after seeded categories", async () => {
-        await seedCategories(db);
-        const nextExpense = await getCategoryById(db, await make("Coffee", false));
-        const nextIncome = await getCategoryById(db, await make("Bonus", true));
-        expect(nextExpense?.sortOrder).toBe(10);
-        expect(nextIncome?.sortOrder).toBe(4);
-    });
-
     it("scopes ordering to a parent for subcategories", async () => {
         const parentId = await make("Food", false);
         const childA = await getCategoryById(db, await make("Coffee", false, parentId));
         const childB = await getCategoryById(db, await make("Snacks", false, parentId));
         expect(childA?.sortOrder).toBe(0);
         expect(childB?.sortOrder).toBe(1);
-    });
-});
-
-describe("validateCategoryCreate", () => {
-    let db: Database;
-    beforeEach(() => {
-        db = makeDb();
-    });
-
-    it("returns the append order alongside a null error when valid", async () => {
-        await categoriesRepo.create(db, {
-            color: "#279AF4",
-            icon: "Coffee02",
-            income: false,
-            name: "Coffee",
-        });
-        const result = await validateCategoryCreate(db, {
-            icon: "Restaurant02",
-            income: false,
-            name: "Tea",
-        });
-        expect(result.error).toBeNull();
-        expect(result.order).toBe(1);
     });
 });
 
@@ -412,27 +378,6 @@ describe("categoriesRepo.update", () => {
     });
 });
 
-describe("validateCategoryEdit", () => {
-    let db: Database;
-    beforeEach(() => {
-        db = makeDb();
-    });
-
-    it("does not flag the edited row against itself", async () => {
-        const id = await categoriesRepo.create(db, {
-            color: "#279AF4",
-            icon: "Coffee02",
-            income: false,
-            name: "Coffee",
-        });
-        const result = await validateCategoryEdit(db, id, {
-            icon: "Coffee02",
-            name: "Coffee",
-        });
-        expect(result.error).toBeNull();
-    });
-});
-
 describe("categoriesRepo.reorder", () => {
     let db: Database;
     beforeEach(() => {
@@ -487,7 +432,9 @@ describe("categoriesRepo.reorder", () => {
             name: "C",
         });
 
-        await expect(categoriesRepo.reorder(db, [c, a, { notAnId: true } as unknown as string])).rejects.toThrow();
+        await expect(
+            categoriesRepo.reorder(rollbackDb, [c, a, { notAnId: true } as unknown as string])
+        ).rejects.toThrow();
 
         expect((await getCategoryById(rollbackDb, c))?.sortOrder).toBe(2);
         expect((await getCategoryById(rollbackDb, a))?.sortOrder).toBe(0);
@@ -576,13 +523,6 @@ describe("suggestedCategoriesNotAdded", () => {
     let db: Database;
     beforeEach(() => {
         db = makeDb();
-    });
-
-    it("returns every preset for an empty namespace", async () => {
-        const expense = await suggestedCategoriesNotAdded(db, false);
-        const income = await suggestedCategoriesNotAdded(db, true);
-        expect(expense).toHaveLength(SUGGESTED_CATEGORY_PRESETS.expense.length);
-        expect(income).toHaveLength(SUGGESTED_CATEGORY_PRESETS.income.length);
     });
 
     it("excludes a preset whose name is already used", async () => {
@@ -871,16 +811,5 @@ describe("seedCategories idempotency", () => {
         };
 
         await expect(identify(db)).resolves.toStrictEqual(await identify(other));
-    });
-
-    it("gives each seeded category a distinct id", async () => {
-        await seedCategories(db);
-
-        const rows = await db.select().from(categories);
-        expect(new Set(rows.map((row) => row.id)).size).toBe(rows.length);
-    });
-
-    it("derives a different id for the same name in each namespace", () => {
-        expect(seededCategoryId("Gifts", true)).not.toBe(seededCategoryId("Gifts", false));
     });
 });

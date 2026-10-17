@@ -16,10 +16,6 @@ describe("attributing an entry", () => {
         expect(allocationsFor(entry("t1", 40, "food"), [])).toStrictEqual([{ amount: 40, categoryId: "food" }]);
     });
 
-    it("carries a null category through rather than inventing one", () => {
-        expect(allocationsFor(entry("t1", 40, null), [])).toStrictEqual([{ amount: 40, categoryId: null }]);
-    });
-
     it("uses the explicit allocations when the entry has them", () => {
         const explicit: Allocation[] = [
             { amount: 25, categoryId: "food" },
@@ -68,10 +64,6 @@ describe("whether a split adds up", () => {
                 2
             )
         ).toBe(false);
-    });
-
-    it("refuses an empty split", () => {
-        expect(isBalanced(40, [], 2)).toBe(false);
     });
 
     it("reports how far off a split is, with a sign", () => {

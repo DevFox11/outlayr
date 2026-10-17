@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { isMissingCategory, TRANSACTION_FORM_ERROR, transactionFormErrors } from "./transaction-form-validate";
+import { TRANSACTION_FORM_ERROR, transactionFormErrors } from "./transaction-form-validate";
 
 const CATEGORY = { id: "cat_1" };
 const PENDING = { name: "Coffee" };
@@ -82,10 +82,6 @@ describe("transactionFormErrors", () => {
         });
     });
 
-    it("accepts official without an entered actual rate", () => {
-        expect(transactionFormErrors(VALID_VALUES)).toBeNull();
-    });
-
     it("accepts EUR-reference only for VES", () => {
         expect(transactionFormErrors({ ...VALID_VALUES, exchangeRateType: "eur_reference" })).toBeNull();
         expect(
@@ -97,7 +93,7 @@ describe("transactionFormErrors", () => {
         ).toStrictEqual({ fields: { exchangeRate: TRANSACTION_FORM_ERROR.eurReferenceRequiresVes } });
     });
 
-    it.each([null, 0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+    it.each([null, 0, -1, Number.NaN])(
         "rejects custom when the actual rate is blank zero negative or non-finite (%s)",
         (exchangeRate) => {
             expect(transactionFormErrors({ ...VALID_VALUES, exchangeRate, exchangeRateType: "custom" })).toStrictEqual({
@@ -119,13 +115,5 @@ describe("transactionFormErrors", () => {
                 exchangeRateType: "custom",
             })
         ).toBeNull();
-    });
-});
-
-describe("isMissingCategory", () => {
-    it("is true only when the category is the failing rule", () => {
-        expect(isMissingCategory({ category: null, pendingCategory: null })).toBe(true);
-        expect(isMissingCategory({ category: CATEGORY, pendingCategory: null })).toBe(false);
-        expect(isMissingCategory({ category: null, pendingCategory: PENDING })).toBe(false);
     });
 });

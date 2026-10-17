@@ -14,7 +14,6 @@ import {
 
 import { EN, ES } from "@/i18n/catalog";
 
-import * as budgetMath from "./budget-math";
 import { budgetDetailPace, budgetPeriodPhrase, budgetRail, budgetWindowLabel } from "./budget-math";
 
 const d = (y: number, m: number, day: number, h = 0, min = 0): Date => new Date(y, m - 1, day, h, min, 0, 0);
@@ -131,10 +130,6 @@ describe("budgetRail", () => {
         expect(rail.fill).toBe(0.51875);
     });
 
-    it("fills the whole track when nothing has been spent", () => {
-        expect(budgetRail(0, 400)).toStrictEqual({ fill: 1, over: false });
-    });
-
     it("empties the track at exactly the limit without calling it over", () => {
         expect(budgetRail(400, 400)).toStrictEqual({ fill: 0, over: false });
     });
@@ -176,13 +171,6 @@ describe("previousPeriodStart", () => {
 });
 
 describe("shiftWindow", () => {
-    it("returns the window it was handed at offset zero", () => {
-        expect(shiftWindow(d(2025, 7, 1), BUDGET_TYPE.month, 0)).toStrictEqual({
-            end: d(2025, 8, 1),
-            start: d(2025, 7, 1),
-        });
-    });
-
     it("steps back whole periods", () => {
         expect(shiftWindow(d(2025, 7, 1), BUDGET_TYPE.month, -4)).toStrictEqual({
             end: d(2025, 4, 1),
@@ -243,10 +231,6 @@ describe("budgetPeriodPhrase", () => {
             // English is what it cannot see.
             expect(ES[key]).not.toBe(EN[key]);
         }
-    });
-
-    it("no longer ships the reset phrase nothing rendered", () => {
-        expect(!Object.keys(budgetMath).includes("budgetResetPhrase")).toBeTruthy();
     });
 });
 

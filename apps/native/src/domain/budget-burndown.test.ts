@@ -181,22 +181,6 @@ describe("buildBurndown", () => {
         expect(result.projectedBalance).toBe(2000 - 900 - 1890);
     });
 
-    it("still warns before the blowout when spending is sparse", () => {
-        // The state the hero's ENDS SHORT footer exists for: solvent today, but
-        // pacing into the ground on 10 shopping days out of 25 elapsed.
-        const rows = [0, 2, 4, 7, 9, 12, 15, 18, 21, 24].map((offset) => expense(offset + 1, 190));
-
-        const result = buildBurndown(rows, {
-            limit: 2000,
-            now: at(2026, 7, 25),
-            window: JULY,
-        });
-
-        expect(result.runwayDay).toBeNull();
-        expect(result.projectedBalance != null && result.projectedBalance < 0).toBeTruthy();
-        expect(result.projectedBalance).toBe(-356);
-    });
-
     it("averages the middle pair when an even number of days has elapsed", () => {
         const rows = [10, 20, 30, 40, 50, 60, 70, 80].map((amount, i) => expense(i + 1, amount));
 

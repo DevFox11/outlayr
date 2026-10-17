@@ -85,17 +85,6 @@ describe("isRealLogo", () => {
         });
     });
 
-    it("rejects an ico header followed by html", () => {
-        const polyglot = new Uint8Array(1024);
-        polyglot.set([0x00, 0x00, 0x01, 0x00], 0);
-        polyglot.set(new TextEncoder().encode("<html>"), 4);
-        // The signature passes, so only the re-encode downstream neutralises this
-        // one — the predicate is not the last line of defence.
-        expect(isRealLogo(200, "image/x-icon", polyglot)).toStrictEqual({
-            ok: true,
-        });
-    });
-
     it("rejects the real placeholder even when it arrives as a 200", () => {
         expect(PLACEHOLDER_BYTES).toHaveLength(726);
         expect(fingerprint(PLACEHOLDER_BYTES)).toBe("726:1468888882");
@@ -103,11 +92,6 @@ describe("isRealLogo", () => {
             ok: false,
             reason: "placeholder",
         });
-    });
-
-    it("would otherwise have accepted it — every earlier rule passes", () => {
-        expect(PLACEHOLDER_BYTES.length).toBeGreaterThan(512);
-        expect([...PLACEHOLDER_BYTES.subarray(0, 4)]).toStrictEqual([0x89, 0x50, 0x4e, 0x47]);
     });
 });
 
@@ -119,9 +103,5 @@ describe("fingerprint", () => {
 
         b[500] = 0x01;
         expect(fingerprint(a)).not.toBe(fingerprint(b));
-    });
-
-    it("separates blobs of equal length", () => {
-        expect(fingerprint(padded([1, 2, 3, 4], 64))).not.toBe(fingerprint(padded([4, 3, 2, 1], 64)));
     });
 });

@@ -91,14 +91,6 @@ describe("useReviewEnrichment", () => {
         await renderHook(() => useReviewEnrichment(entries));
         expect(jest.mocked(fetchMerchantImage)).not.toHaveBeenCalled();
     });
-
-    it("keeps a stable map identity for the same entries", async () => {
-        const entries = [entry("NETFLIX")];
-        const { result, rerender } = await renderHook(() => useReviewEnrichment(entries));
-        const first = result.current;
-        await rerender(undefined);
-        expect(result.current).toBe(first);
-    });
 });
 
 describe("logo cache reads", () => {

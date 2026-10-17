@@ -1,11 +1,10 @@
 import { describe, expect, it, jest } from "@jest/globals";
 
 import type { ParsedImportFile } from "@/data/transfer-core";
-import { INITIAL_IMPORT_FLOW_STATE, importFlowReducer } from "@/domain/import-flow";
-import type { ImportFlowEvent } from "@/domain/import-flow";
+import { INITIAL_IMPORT_FLOW_STATE } from "@/domain/import-flow";
 import type { MappingDraft } from "@/domain/import-mapping";
 
-import { createImportDraftStore, isResumable } from "./import-draft-store";
+import { createImportDraftStore } from "./import-draft-store";
 
 const PARSED: ParsedImportFile = {
     header: ["date", "description", "amount"],
@@ -36,16 +35,6 @@ function dispatchFileParsed(store: ReturnType<typeof createImportDraftStore>) {
 }
 
 describe("createImportDraftStore", () => {
-    it("delegates dispatch to importFlowReducer verbatim", () => {
-        const store = createImportDraftStore();
-        const event: ImportFlowEvent = { sourceId: "csv", type: "sourceSelected" };
-        const expected = importFlowReducer(INITIAL_IMPORT_FLOW_STATE, event);
-
-        store.dispatch(event);
-
-        expect(store.getSnapshot().flow).toStrictEqual(expected);
-    });
-
     it("keeps getSnapshot identity stable across reads with no write between", () => {
         const store = createImportDraftStore();
         const first = store.getSnapshot();
@@ -87,13 +76,6 @@ describe("createImportDraftStore", () => {
         unsubscribe();
         store.setStep("file");
         expect(listener).toHaveBeenCalledTimes(1);
-    });
-});
-
-describe("isResumable", () => {
-    it("is true once and only once a file has been parsed", () => {
-        expect(isResumable(INITIAL_IMPORT_FLOW_STATE)).toBe(false);
-        expect(isResumable({ ...INITIAL_IMPORT_FLOW_STATE, parsed: PARSED })).toBe(true);
     });
 });
 

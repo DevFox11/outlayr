@@ -1,6 +1,5 @@
 import { describe, expect, it, jest } from "@jest/globals";
-import { render, screen, userEvent } from "@testing-library/react-native";
-import { View } from "react-native";
+import { render, screen } from "@testing-library/react-native";
 
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
@@ -23,13 +22,6 @@ describe("stageOption", () => {
         expect(screen.getByRole("button", { name: "Groceries" }).props.accessibilityState?.selected).toBe(false);
     });
 
-    it("runs its handler on press", async () => {
-        const onPress = jest.fn();
-        await render(<StageOption label="Groceries" onPress={onPress} />);
-        await userEvent.press(screen.getByRole("button", { name: "Groceries" }));
-        expect(onPress).toHaveBeenCalledTimes(1);
-    });
-
     it("prefers an explicit label over the visible one", async () => {
         await render(<StageOption accessibilityLabel="Groceries category" label="Groceries" onPress={() => {}} />);
         expect(screen.getByRole("button", { name: "Groceries category" })).toBeTruthy();
@@ -40,10 +32,5 @@ describe("stageOption", () => {
         await render(<StageOption label="Groceries" onPress={() => {}} />);
         const { hitSlop } = screen.getByRole("button", { name: "Groceries" }).props;
         expect(hitSlop.top + 38 + hitSlop.bottom).toBeGreaterThanOrEqual(44);
-    });
-
-    it("draws the leading mark it is given", async () => {
-        await render(<StageOption label="Groceries" leading={<View testID="swatch" />} onPress={() => {}} />);
-        expect(screen.getByTestId("swatch")).toBeTruthy();
     });
 });

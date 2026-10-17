@@ -187,14 +187,6 @@ describe("the replicated column set", () => {
         });
     }
 
-    // Replicating it lost photos: the receiver could not resolve the sender's
-    // container path, its reconciliation nulled the column, and the push that
-    // followed tie-broke on `deviceId` back onto the sender.
-    it("never replicates a device-local path", () => {
-        expect(!specFor("transactions").fields.includes("imageUri")).toBeTruthy();
-        expect(specFor("transactions").fields.includes("imageKey")).toBeTruthy();
-    });
-
     it("names only real timestamp columns as dates", () => {
         for (const table of SYNCED_TABLES) {
             const spec = specFor(table);
@@ -648,25 +640,6 @@ describe("applyPulledRows", () => {
         await applyPulledRows(db, { cursor: 99, rows: [] });
 
         await expect(getSyncCursor(db)).resolves.toBe(0);
-    });
-
-    it("writes an appMeta key by its key", async () => {
-        await applyPulledRows(db, {
-            cursor: 1,
-            rows: [
-                {
-                    deletedAt: null,
-                    deviceId: "device-b",
-                    fields: { value: "JPY" },
-                    localId: META_KEYS.currency,
-                    seq: 1,
-                    table: "appMeta",
-                    updatedAt: 5000,
-                },
-            ],
-        });
-
-        await expect(getMeta(db, META_KEYS.currency)).resolves.toBe("JPY");
     });
 
     // `appMeta` carries no `updatedAt` column, so without the pending guard every

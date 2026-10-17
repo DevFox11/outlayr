@@ -29,10 +29,6 @@ describe("resolveDeepLink", () => {
         expect(resolveDeepLink("outlayr://transaction")).toBe("/");
     });
 
-    it("routes a single budget by id", () => {
-        expect(resolveDeepLink("outlayr://budgets/abc123")).toBe("/budgets/abc123");
-    });
-
     it("still answers the retired Swift hosts", () => {
         expect(resolveDeepLink("outlayr://newExpense")).toBe("/transactions/create");
         expect(resolveDeepLink("outlayr://budget")).toBe("/budgets");
@@ -76,12 +72,6 @@ describe("redirectLaunchPath", () => {
     it("leaves the registry alone for a link arriving while the app runs", () => {
         const [drain, calls] = drainSpy();
         expect(redirectLaunchPath({ initial: false, path: DEEP_LINKS.budgets }, drain)).toBe("/budgets");
-        expect(calls.count).toBe(0);
-    });
-
-    it("passes a null path through with nothing to drain", () => {
-        const [drain, calls] = drainSpy();
-        expect(redirectLaunchPath({ initial: true, path: null }, drain)).toBeNull();
         expect(calls.count).toBe(0);
     });
 });

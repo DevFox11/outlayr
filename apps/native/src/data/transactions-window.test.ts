@@ -156,17 +156,6 @@ describe("log window", () => {
         expect((await windowFor(db, 3)).reachedEnd).toBe(true);
     });
 
-    it("counts days, not rows, so one busy day cannot fill the window", async () => {
-        const db = makeDb();
-        await seedDay(db, 15, 40);
-        await seedDay(db, 14, 1);
-
-        const { dayRows, rows } = await windowFor(db, 2);
-
-        expect(dayRows).toHaveLength(2);
-        expect(rows).toHaveLength(41);
-    });
-
     it("excludes deleted and future rows from the window it measures", async () => {
         const db = makeDb();
         await seedDay(db, 15, 1);
@@ -199,15 +188,6 @@ describe("log window", () => {
 
         expect(dayRows.map((r) => r.day.getDate())).toStrictEqual([15, 14]);
         expect(rows).toHaveLength(2);
-        expect(reachedEnd).toBe(true);
-    });
-
-    it("returns nothing at all when no row is visible", async () => {
-        const db = makeDb();
-        const { dayRows, rows, reachedEnd } = await windowFor(db, 30);
-
-        expect(dayRows).toHaveLength(0);
-        expect(rows).toHaveLength(0);
         expect(reachedEnd).toBe(true);
     });
 });

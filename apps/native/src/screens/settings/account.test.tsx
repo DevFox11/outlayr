@@ -115,16 +115,6 @@ describe("account — signed-out", () => {
         mockUseSession.mockReturnValue({ data: undefined, isPending: false });
     });
 
-    it("shows notSignedIn, signedOutDetail and the sign-in controls", async () => {
-        const { getByText, getByTestId } = await render(<Account />);
-        expect(getByText("settings.account.notSignedIn")).toBeTruthy();
-        expect(getByText("settings.account.signedOutDetail")).toBeTruthy();
-        expect(getByText("settings.account.signInSection")).toBeTruthy();
-        expect(getByText("settings.account.signInFooter")).toBeTruthy();
-        expect(getByTestId("provider-sign-in-buttons-stub")).toBeTruthy();
-        expect(calledRouterMethods()).toStrictEqual([]);
-    });
-
     it("renders Failure with the mapped message on a rejected sign-in", async () => {
         mockUseProviderSignIn.mockReturnValue({
             busy: null,
@@ -142,23 +132,6 @@ describe("account — signed-out", () => {
         const { getByTestId } = await render(<Account />);
         fireEvent.press(getByTestId("provider-sign-in-buttons-stub"));
         expect(start).toHaveBeenCalledWith("apple", expect.any(Function));
-        expect(calledRouterMethods()).toStrictEqual([]);
-    });
-});
-
-describe("account — signed-in", () => {
-    it("shows the label plus sign-out and delete rows, no sign-in controls", async () => {
-        mockUseSession.mockReturnValue({
-            data: { user: { email: "jane@example.com", name: "Jane" } },
-            isPending: false,
-        });
-        const { getByText, getByRole, queryByTestId, queryAllByRole } = await render(<Account />);
-        expect(getByText("settings.account.signedInAs")).toBeTruthy();
-        expect(getByText("Jane")).toBeTruthy();
-        expect(getByRole("button", { name: "settings.account.signOut" })).toBeTruthy();
-        expect(getByRole("button", { name: "settings.account.delete" })).toBeTruthy();
-        expect(queryByTestId("provider-sign-in-buttons-stub")).toBeNull();
-        expect(queryAllByRole("button")).toHaveLength(3);
         expect(calledRouterMethods()).toStrictEqual([]);
     });
 });

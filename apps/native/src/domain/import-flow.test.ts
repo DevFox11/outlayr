@@ -2,7 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 
 import type { ParsedImportFile } from "@/data/transfer-core";
 
-import { canAdvance, IMPORT_STEPS, INITIAL_IMPORT_FLOW_STATE, importFlowReducer } from "./import-flow";
+import { canAdvance, INITIAL_IMPORT_FLOW_STATE, importFlowReducer } from "./import-flow";
 import type { ImportFlowEvent, ImportFlowState } from "./import-flow";
 import type { ResolvedMapping } from "./import-mapping";
 import type { ImportSourceId } from "./import-sources";
@@ -71,10 +71,6 @@ function withResolution(): ImportFlowState {
 }
 
 describe("importFlowReducer — legal transitions", () => {
-    it("selects a source from the initial state", () => {
-        expect(withSource().sourceId).toBe("csv");
-    });
-
     it("advances through file selection with the resolved mapping", () => {
         const state = withFile();
         expect(state.parsed).toBe(PARSED);
@@ -137,25 +133,9 @@ describe("importFlowReducer — illegal transitions are no-ops", () => {
         expect(dispatch(state, event)).toBe(state);
     });
 
-    it("ignores a row toggle with no resolution yet", () => {
-        const state = withFile();
-        expect(dispatch(state, { index: 0, type: "rowToggled" })).toBe(state);
-    });
-
-    it("ignores a commit start with no resolution yet", () => {
-        const state = withFile();
-        expect(dispatch(state, { type: "commitStarted" })).toBe(state);
-    });
-
     it("ignores a commit failure with no resolution yet", () => {
         const state = withFile();
         expect(dispatch(state, { detail: null, type: "commitFailed" })).toBe(state);
-    });
-
-    it("ignores an event outside its known domain, which is why a bare pop needs no dispatch at all", () => {
-        const state = withResolution();
-        const unknown = { type: "popped" } as unknown as ImportFlowEvent;
-        expect(dispatch(state, unknown)).toBe(state);
     });
 
     it("selecting the same source again changes nothing", () => {
@@ -232,12 +212,6 @@ describe("importFlowReducer — invalidation cascade", () => {
             type: "commitFailed",
         });
         expect(failed.excluded).toBe(excluded.excluded);
-    });
-});
-
-describe("iMPORT_STEPS", () => {
-    it("orders all five steps the sheet serves, done last", () => {
-        expect(IMPORT_STEPS).toStrictEqual(["source", "file", "resolve", "review", "done"]);
     });
 });
 

@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { api } from "./_generated/api";
 import { captureLimiter, FREE_CAPTURE_CONFIG } from "./lib/captures";
-import { LANGUAGE_PATTERN, namesWithinBudget } from "./lib/ledgerPrompt";
+import { LANGUAGE_PATTERN } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
 import {
     buildPrompt,
@@ -17,7 +17,6 @@ import {
     normalizeDraft,
     normalizeItems,
     rateLimiter,
-    receiptScanArgs,
 } from "./receiptScan";
 import type { ModelOutput } from "./receiptScan";
 import schema from "./schema";
@@ -74,14 +73,6 @@ const MODEL_ANSWER: ModelOutput = {
     tip: null,
     total: 20.56,
 };
-
-describe("receipt scan args validation", () => {
-    it("carries exactly the privacy-boundary fields — photo, names, currency, language, region, today", () => {
-        expect(Object.keys(receiptScanArgs).sort()).toStrictEqual(
-            ["accounts", "categoryTree", "currency", "image", "language", "regionCode", "today"].sort()
-        );
-    });
-});
 
 describe("normalizeDraft", () => {
     it("resolves names in the ledger's spelling, uppercases the currency, and strips the domain to a hostname", () => {
@@ -194,17 +185,6 @@ describe("looksLikeJpeg and namesWithinBudget", () => {
         expect(looksLikeJpeg(JPEG)).toBeTruthy();
         expect(looksLikeJpeg(new Uint8Array([0x89, 0x50, 0x4e, 0x47]).buffer)).toBeFalsy();
         expect(looksLikeJpeg(new Uint8Array([0xff]).buffer)).toBeFalsy();
-    });
-
-    it("refuses a name past 80 characters or more than 400 names", () => {
-        expect(namesWithinBudget(BASE_ARGS.categoryTree, BASE_ARGS.accounts)).toBeTruthy();
-        expect(namesWithinBudget([{ children: [], name: "x".repeat(81) }], [])).toBeFalsy();
-        expect(
-            namesWithinBudget(
-                Array.from({ length: 200 }, (_, index) => ({ children: ["a", "b"], name: `c${index}` })),
-                []
-            )
-        ).toBeFalsy();
     });
 });
 

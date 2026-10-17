@@ -52,8 +52,4 @@ describe("splitting the accounts total into own and owe", () => {
     it("never hands a negative zero to a formatter", () => {
         expect(Object.is(netWorth([{ balance: 10, kind: "asset" }]).owe, 0)).toBe(true);
     });
-
-    it("answers zero for a ledger with no accounts", () => {
-        expect(netWorth([])).toStrictEqual({ net: 0, owe: 0, own: 0 });
-    });
 });

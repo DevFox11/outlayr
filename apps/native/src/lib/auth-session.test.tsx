@@ -26,13 +26,6 @@ describe("useAuthSession", () => {
         expect(sessionView({ user: PROVISIONAL_USER }, false, true, true).gate).toBe("restoring");
     });
 
-    it("resolves the unconfigured default via use() outside a provider", async () => {
-        const { getByTestId } = await render(<Probe />);
-        expect(getByTestId("probe").props.children).toBe(
-            JSON.stringify({ accountId: null, gate: "unconfigured", profile: null })
-        );
-    });
-
     it("makes zero cloud calls when no runtime is configured", async () => {
         const { getByTestId } = await render(
             <AuthSessionProvider>

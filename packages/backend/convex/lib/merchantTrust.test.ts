@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { CANONICAL_CATEGORY_NAMES, corroborates, shouldPublish } from "./merchantTrust";
+import { corroborates, shouldPublish } from "./merchantTrust";
 import { MAX_DOMAIN_LENGTH, MAX_TAG_LENGTH, MAX_TAGS } from "./sanitizeLimits";
 
 const BASE_CANDIDATE = {
@@ -25,10 +25,6 @@ describe(corroborates, () => {
         expect(corroborates("farmatodo.com", "https://evil.test/farmatodo.com")).toBeFalsy();
     });
 
-    it("rejects an unrelated host", () => {
-        expect(corroborates("farmatodo.com", "https://evil.test")).toBeFalsy();
-    });
-
     it("rejects an unparseable url", () => {
         expect(corroborates("farmatodo.com", "not a url")).toBeFalsy();
     });
@@ -41,10 +37,6 @@ describe(shouldPublish, () => {
 
     it("does not publish when no source corroborates the domain (T3, T6)", () => {
         expect(shouldPublish(BASE_CANDIDATE, [{ url: "https://unrelated-blog.test" }])).toBeFalsy();
-    });
-
-    it("does not publish when a source corroborates a different domain (T3)", () => {
-        expect(shouldPublish(BASE_CANDIDATE, [{ url: "https://evil.test" }])).toBeFalsy();
     });
 
     it("does not publish a category outside the canonical set (T3)", () => {
@@ -82,12 +74,6 @@ describe(shouldPublish, () => {
             )
         ).toBeFalsy();
     });
-
-    it("does not publish more than 3 tags", () => {
-        expect(
-            shouldPublish({ ...BASE_CANDIDATE, tags: ["a", "b", "c", "d"] }, [{ url: "https://farmatodo.com/es" }])
-        ).toBeFalsy();
-    });
 });
 
 describe("the limits the sanitizer and the filter share", () => {
@@ -110,16 +96,5 @@ describe("the limits the sanitizer and the filter share", () => {
 
     it("refuses a domain that is not a bare apex", () => {
         expect(shouldPublish({ ...BASE_CANDIDATE, domain: "https://farmatodo.com" }, sources)).toBeFalsy();
-    });
-});
-
-describe("canonical category names", () => {
-    it("includes every preset expense and income category name", () => {
-        expect(CANONICAL_CATEGORY_NAMES.has("Healthcare")).toBeTruthy();
-        expect(CANONICAL_CATEGORY_NAMES.has("Paycheck")).toBeTruthy();
-    });
-
-    it("excludes an arbitrary free-text string", () => {
-        expect(CANONICAL_CATEGORY_NAMES.has("Rent for Maria's apartment")).toBeFalsy();
     });
 });

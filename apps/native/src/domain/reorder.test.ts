@@ -7,10 +7,6 @@ describe("applyMove", () => {
         expect(applyMove(["a", "b", "c", "d"], [0], 3)).toStrictEqual(["b", "c", "a", "d"]);
     });
 
-    it("moves an item to the end", () => {
-        expect(applyMove(["a", "b", "c"], [0], 3)).toStrictEqual(["b", "c", "a"]);
-    });
-
     it("moves an item backward without offset correction", () => {
         expect(applyMove(["a", "b", "c", "d"], [3], 1)).toStrictEqual(["a", "d", "b", "c"]);
     });
@@ -31,12 +27,6 @@ describe("moveItem", () => {
 
     it("lands a backward move on the slot it was dropped on", () => {
         expect(moveItem(["a", "b", "c", "d"], 3, 1)).toStrictEqual(["a", "d", "b", "c"]);
-    });
-
-    it("agrees with applyMove's pre-removal destination", () => {
-        const items = ["a", "b", "c", "d", "e"];
-        expect(moveItem(items, 1, 3)).toStrictEqual(applyMove(items, [1], 4));
-        expect(moveItem(items, 4, 0)).toStrictEqual(applyMove(items, [4], 0));
     });
 
     it("returns a copy, leaving the input untouched", () => {

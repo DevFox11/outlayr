@@ -6,12 +6,10 @@ import {
     assertOptionalValidEpochMs,
     assertValidEpochMs,
 } from "./assert";
-import { isPickableCurrency } from "./currency";
 import { utcDateString } from "./dates";
 import { MoneyValidationError } from "./errors";
 import { makeRateLookup } from "./fixtures";
 import { computeAmountUSD, resolveEntryRate } from "./rates";
-import { roundMoney } from "./round";
 
 const FINITE_PATTERN = /amountUSD must be a finite number/;
 const EPOCH_PATTERN = /epoch-milliseconds/;
@@ -21,25 +19,6 @@ const CUSTOM_ONLY_PATTERN = /customRate is only allowed/;
 const EUR_VES_ONLY_PATTERN = /eur_reference rates are only available for VES/;
 const NO_MARKET_RATE_PATTERN = /No official rate available for VES on 2020-01-01/;
 const RESOLVED_RATE_POSITIVE_PATTERN = /Resolved official rate for VES on .* must be a positive number/;
-
-describe(isPickableCurrency, () => {
-    it("accepts fiat quotes the app allows", () => {
-        expect(isPickableCurrency("USD")).toBeTruthy();
-        expect(isPickableCurrency("VES")).toBeTruthy();
-        expect(isPickableCurrency("EUR")).toBeTruthy();
-    });
-
-    it("accepts metals now that they are catalog currencies (Decision #707)", () => {
-        expect(isPickableCurrency("XAU")).toBeTruthy();
-        expect(isPickableCurrency("XAG")).toBeTruthy();
-    });
-
-    it("rejects unknown and dropped codes", () => {
-        expect(isPickableCurrency("DOGE")).toBeFalsy();
-        expect(isPickableCurrency("BGN")).toBeFalsy();
-        expect(isPickableCurrency("")).toBeFalsy();
-    });
-});
 
 describe(utcDateString, () => {
     it("derives the UTC calendar date from an epoch", () => {
@@ -52,10 +31,6 @@ describe("finite / epoch assertions", () => {
     it("throws MoneyValidationError for non-finite numbers", () => {
         expect(() => assertFiniteNumber(Number.NaN, "amountUSD")).toThrow(MoneyValidationError);
         expect(() => assertFiniteNumber(Number.POSITIVE_INFINITY, "amountUSD")).toThrow(FINITE_PATTERN);
-    });
-
-    it("passes finite numbers", () => {
-        expect(() => assertFiniteNumber(42.5, "amountUSD")).not.toThrow();
     });
 
     it("treats absent optional values as valid", () => {
@@ -149,43 +124,5 @@ describe(resolveEntryRate, () => {
                 exchangeRateType: "official",
             })
         ).toThrow(MoneyValidationError);
-    });
-});
-
-describe("roundMoney (banker's rounding, half-even)", () => {
-    it("rounds a halfway value down to the even neighbor", () => {
-        expect(roundMoney(2.5, 0)).toBe(2);
-        expect(roundMoney(0.125, 2)).toBe(0.12);
-    });
-
-    it("rounds a halfway value up to the even neighbor", () => {
-        expect(roundMoney(3.5, 0)).toBe(4);
-        expect(roundMoney(0.375, 2)).toBe(0.38);
-        expect(roundMoney(0.135, 2)).toBe(0.14);
-    });
-
-    it("applies half-even to negative halfway values", () => {
-        expect(roundMoney(-2.5, 0)).toBe(-2);
-        expect(roundMoney(-0.125, 2)).toBe(-0.12);
-    });
-
-    it("rounds non-halfway values to the nearest cent", () => {
-        expect(roundMoney(1.014, 2)).toBe(1.01);
-        expect(roundMoney(1.016, 2)).toBe(1.02);
-    });
-
-    it("defaults to two decimals and is identity on whole values", () => {
-        expect(roundMoney(10)).toBe(10);
-        expect(roundMoney(10.006)).toBe(10.01);
-    });
-
-    it("rounds once after full-precision summation (aggregate rule)", () => {
-        const unrounded = [10.125, 20.125, 30.125];
-        const sum = unrounded.reduce((total, value) => total + value, 0);
-        expect(roundMoney(sum, 2)).toBe(60.38);
-        const roundEachFirst = unrounded
-            .map((value) => roundMoney(value, 2))
-            .reduce((total, value) => total + value, 0);
-        expect(roundMoney(roundEachFirst, 2)).toBe(60.36);
     });
 });

@@ -39,32 +39,6 @@ const RESOLVED_MAPPING: ResolvedMapping = {
     },
 };
 
-interface JsonNode {
-    children?: (JsonNode | string)[] | null;
-    props?: Record<string, unknown>;
-}
-
-function classNames(node: JsonNode | JsonNode[] | null): string[] {
-    if (node == null) {
-        return [];
-    }
-    if (Array.isArray(node)) {
-        return node.flatMap(classNames);
-    }
-    const own = node.props?.className;
-    return [
-        ...(typeof own === "string" ? [own] : []),
-        ...(node.children ?? []).flatMap((child) => (typeof child === "string" ? [] : classNames(child))),
-    ];
-}
-
-function isPureFlexFill(className: string): boolean {
-    return className
-        .trim()
-        .split(/\s+/)
-        .every((token) => /^(flex-1|grow|grow-0|shrink|shrink-0|basis-\S+)$/.test(token));
-}
-
 function loadFile(gaps: readonly string[], resolved: ResolvedMapping | null) {
     importDraftStore.dispatch({ sourceId: "csv", type: "sourceSelected" });
     importDraftStore.dispatch({
@@ -105,26 +79,6 @@ describe("fileStep", () => {
         expect(mockChoose).toHaveBeenCalledTimes(1);
     });
 
-    it("previews the loaded shape as a ghost measure strip, not an illustration", async () => {
-        const { getAllByText, getByText, queryByTestId } = await render(<FileStep onChoose={mockChoose} />);
-        expect(getByText("import.fileRowsLabel")).toBeTruthy();
-        expect(getByText("import.fileColumnsLabel")).toBeTruthy();
-        expect(getByText("import.fileDatesLabel")).toBeTruthy();
-        expect(getAllByText("—").length).toBeGreaterThanOrEqual(3);
-        expect(queryByTestId("import-file-empty-mark")).toBeNull();
-    });
-
-    it("draws ruled rows, never card washes", async () => {
-        loadFile([], RESOLVED_MAPPING);
-        const { toJSON } = await render(<FileStep onChoose={mockChoose} />);
-        const washed = classNames(toJSON() as unknown as JsonNode).filter(
-            (className) =>
-                /\bbg-(background|surface|card|foreground\/\d+)\b/.test(className) ||
-                /\brounded-(xl|2xl)\b/.test(className)
-        );
-        expect(washed).toStrictEqual([]);
-    });
-
     it("shows the error block with the Choose CSV pill as the retry", async () => {
         importDraftStore.setFileError({ cause: "empty" });
         const { getByText } = await render(<FileStep onChoose={mockChoose} />);
@@ -133,14 +87,6 @@ describe("fileStep", () => {
 
         fireEvent.press(getByText("import.chooseCsv"));
         expect(mockChoose).toHaveBeenCalledTimes(1);
-    });
-
-    it("spaces the error retry with a fixed margin, not an inert flex spacer", async () => {
-        importDraftStore.setFileError({ cause: "empty" });
-        const { toJSON } = await render(<FileStep onChoose={mockChoose} />);
-        const classes = classNames(toJSON() as unknown as JsonNode);
-        expect(classes.some(isPureFlexFill)).toBe(false);
-        expect(classes.some((c) => /\bmt-6\b/.test(c))).toBe(true);
     });
 
     it("shows the io error body from the thrown key", async () => {

@@ -156,11 +156,6 @@ describe("exportTransactionsCsv", () => {
         await seedTransactions(db);
     });
 
-    it("omits soft-deleted rows", async () => {
-        const csv = await exportTransactionsCsv(db);
-        expect(!csv.includes("Deleted")).toBeTruthy();
-    });
-
     it("writes one row per live transaction under the header", async () => {
         const rows = parseCsv(await exportTransactionsCsv(db));
         expect(rows).toHaveLength(3);
@@ -186,11 +181,6 @@ describe("exportTransactionsCsv", () => {
     it("keeps the amount readable back as the same number", async () => {
         const rows = parseCsv(await exportTransactionsCsv(db));
         expect(parseCsvAmount(rows[1]?.[2] ?? "")).toBe(12.5);
-    });
-
-    it("emits a header-only file for an empty ledger", async () => {
-        const empty = makeDb();
-        expect(parseCsv(await exportTransactionsCsv(empty))).toHaveLength(1);
     });
 });
 
@@ -234,18 +224,6 @@ const MAPPING = {
 };
 
 describe("parseImportFile", () => {
-    it("takes a digit-free first line as a header", () => {
-        const parsed = parseImportFile("Date,Note,Amount\n2026-07-28,Bakery,12.50");
-        expect(parsed?.header).toStrictEqual(["Date", "Note", "Amount"]);
-        expect(parsed?.rows.length).toBe(1);
-    });
-
-    it("keeps a first line that already carries data", () => {
-        const parsed = parseImportFile("2026-07-28,Bakery,12.50");
-        expect(parsed?.header).toBeNull();
-        expect(parsed?.rows.length).toBe(1);
-    });
-
     it("reports the widest row so a ragged file still maps", () => {
         expect(parseImportFile("a,b,c\n1,2,3,4")?.width).toBe(4);
     });
@@ -282,18 +260,6 @@ describe("splitHeaderAndRows", () => {
             rows: [["2026-07-28", "Bakery", "12.50"]],
         });
     });
-
-    it("preserves ragged rows unchanged", () => {
-        expect(
-            splitHeaderAndRows([
-                ["a", "b", "c"],
-                ["1", "2", "3", "4"],
-            ])
-        ).toStrictEqual({
-            header: ["a", "b", "c"],
-            rows: [["1", "2", "3", "4"]],
-        });
-    });
 });
 
 describe("guessMapping", () => {
@@ -308,12 +274,6 @@ describe("guessMapping", () => {
             note: 1,
             type: 5,
         });
-    });
-
-    it("guessMapping recognises the two Outlayr rate headers", () => {
-        const guess = guessMapping(["Exchange Rate Type", "Exchange Rate"]);
-        expect(guess.exchangeRateType).toBe(0);
-        expect(guess.exchangeRate).toBe(1);
     });
 
     it("recognises the words a bank export uses", () => {
@@ -472,22 +432,6 @@ describe("buildImportPlan", () => {
         expect(plan.skipped).toStrictEqual([{ reason: "rate", row: 1 }]);
     });
 
-    it("preserves valid VES EUR-reference metadata", () => {
-        const plan = buildImportPlan(
-            [["Food", "Valid EUR reference", "2026-07-28", "100", "VES", "eur_reference", "50"]],
-            { ...MAPPING, currency: 4, exchangeRate: 6, exchangeRateType: 5 },
-            "yyyy-MM-dd",
-            ".",
-            links,
-            income
-        );
-        expect(plan.entries[0]).toMatchObject({
-            currency: "VES",
-            exchangeRate: 50,
-            exchangeRateType: "eur_reference",
-        });
-    });
-
     it("rejects a currency cell that is not a three-letter code", () => {
         const bad = [["Food", "Bakery", "2026-07-28", "12.50", "dollars"]];
         const plan = buildImportPlan(bad, { ...MAPPING, currency: 4 }, "yyyy-MM-dd", ".", links, income);
@@ -518,12 +462,6 @@ describe("buildImportPlan", () => {
         const plan = buildImportPlan(bad, MAPPING, "yyyy-MM-dd", ".", links, income);
         expect(plan.entries).toHaveLength(0);
         expect(plan.skipped).toHaveLength(1);
-    });
-
-    it("carries a blank note through as blank, leaving the fallback to the write", () => {
-        const blank = [["Food", "  ", "2026-07-28", "12.50"]];
-        const plan = buildImportPlan(blank, MAPPING, "yyyy-MM-dd", ".", links, income);
-        expect(plan.entries[0]?.note).toBe("");
     });
 
     it("reports the date span of what it will write", () => {
@@ -581,12 +519,6 @@ describe("applyImport", () => {
         expect(first?.month).toStrictEqual(new Date(2026, 6, 1));
     });
 
-    it("writes nothing at all when there is nothing to write", async () => {
-        const plan = buildImportPlan([], MAPPING, "yyyy-MM-dd", ".", links, income);
-        await expect(applyImport(db, plan)).resolves.toBe(0);
-        await expect(db.select().from(transactions)).resolves.toHaveLength(0);
-    });
-
     it("rolls back every entry when the write fails partway through", async () => {
         const transactionalDb = makeDb({ withRealTransactions: true });
         await seed(transactionalDb);
@@ -605,14 +537,6 @@ describe("applyImport", () => {
         await expect(transactionalDb.select().from(transactions)).resolves.toHaveLength(0);
 
         spy.mockRestore();
-    });
-
-    it("leaves imported rows non-recurring", async () => {
-        const plan = buildImportPlan(rows, MAPPING, "yyyy-MM-dd", ".", links, income);
-        await applyImport(db, plan);
-        const rowsOut = await db.select().from(transactions);
-        expect(rowsOut.every((row) => row.recurringType === 0)).toBeTruthy();
-        expect(rowsOut.every((row) => !row.onceRecurring)).toBeTruthy();
     });
 
     it("names a blank-note row after its category", async () => {

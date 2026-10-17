@@ -1,21 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { CATEGORY_EMOJI_GROUPS, CATEGORY_ICON_GROUPS, iconKeysMatching } from "./category-icon-catalog";
+import { CATEGORY_ICON_GROUPS, iconKeysMatching } from "./category-icon-catalog";
 
 const ALL_KEYS = CATEGORY_ICON_GROUPS.flatMap((group) => group.keys);
-
-describe("category icon catalog", () => {
-    it("carries 8 groups totalling 163 icon keys", () => {
-        expect(CATEGORY_ICON_GROUPS).toHaveLength(8);
-        expect(ALL_KEYS).toHaveLength(163);
-    });
-
-    it("curates 112 emoji across 8 groups", () => {
-        expect(CATEGORY_EMOJI_GROUPS).toHaveLength(8);
-        const emojiCount = CATEGORY_EMOJI_GROUPS.reduce((total, group) => total + group.emoji.length, 0);
-        expect(emojiCount).toBe(112);
-    });
-});
 
 describe("iconKeysMatching", () => {
     it("returns every key in group order for an empty or blank query", () => {
@@ -39,10 +26,6 @@ describe("iconKeysMatching", () => {
         const keys = iconKeysMatching("CAFÉ");
         expect(keys).toContain("Coffee02");
         expect(keys).not.toContain("Bus01");
-    });
-
-    it("narrows rather than reordering the whole catalog", () => {
-        expect(iconKeysMatching("coffee").length).toBeLessThan(ALL_KEYS.length);
     });
 
     it("answers nothing for a query no icon carries", () => {

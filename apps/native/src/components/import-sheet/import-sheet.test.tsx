@@ -12,7 +12,6 @@ import type { ImportSheetHandle } from "./import-sheet";
 const mockPush = jest.fn();
 const mockDismiss = jest.fn();
 const mockSnapToIndex = jest.fn();
-const mockSheetProps: Record<string, unknown>[] = [];
 const mockDismissHolder: { current?: () => void } = {};
 
 jest.mock<Partial<typeof import("@/i18n/context")>>("@/i18n/context", () => ({
@@ -45,13 +44,11 @@ jest.mock("@expo/ui/community/bottom-sheet", () => {
             children,
             ref,
             onDismiss,
-            ...rest
         }: {
             children: ReactNode;
             ref?: React.Ref<unknown>;
             onDismiss?: () => void;
         }) => {
-            mockSheetProps.push(rest as Record<string, unknown>);
             mockDismissHolder.current = onDismiss;
             useImperativeHandle(ref, () => ({
                 dismiss: mockDismiss,
@@ -167,34 +164,9 @@ describe("resolveLegalStep", () => {
 describe("importSheet", () => {
     beforeEach(() => {
         importDraftStore.clear();
-        mockSheetProps.length = 0;
         mockPush.mockClear();
         mockDismiss.mockClear();
         mockSnapToIndex.mockClear();
-    });
-
-    it("configures the modal: dynamic sizing, pan-down close, near-opaque paper background", async () => {
-        await presentSheet();
-        const props = mockSheetProps.at(-1) as Record<string, unknown>;
-        expect(props.snapPoints).toBeUndefined();
-        expect(props.enableDynamicSizing).toBe(true);
-        expect(props.enablePanDownToClose).toBe(true);
-        expect(props.backgroundStyle).toStrictEqual({
-            backgroundColor: "#F2F0EAFA",
-        });
-    });
-
-    it("mounts no step content before it is presented", async () => {
-        const ref = createRef<ImportSheetHandle>();
-        const { queryByText } = await render(<ImportSheet ref={ref} />);
-        expect(queryByText("step:source")).toBeNull();
-    });
-
-    it("presents the source step with its title and no back chevron", async () => {
-        const { findByText, queryByTestId } = await presentSheet();
-        await expect(findByText("step:source")).resolves.toBeTruthy();
-        await expect(findByText("import.titleSource")).resolves.toBeTruthy();
-        expect(queryByTestId("import-sheet-back")).toBeNull();
     });
 
     it("guards an illegal stored step back to the earliest legal one", async () => {

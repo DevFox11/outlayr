@@ -11,16 +11,6 @@ jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
 }));
 
 describe("inlineFailure", () => {
-    it("renders nothing while the form is clean", async () => {
-        const { toJSON } = await render(<InlineFailure message={null} />);
-        expect(toJSON()).toBeNull();
-    });
-
-    it("renders the message", async () => {
-        const { getByText } = await render(<InlineFailure message="Couldn't save this account. Try again." />);
-        expect(getByText("Couldn't save this account. Try again.")).toBeTruthy();
-    });
-
     it("announces the message, which nothing else moves focus to", async () => {
         const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility").mockImplementation(() => {});
 

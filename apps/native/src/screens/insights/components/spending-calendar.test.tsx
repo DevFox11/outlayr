@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 
 import type { SpendingCalendarEntry } from "@/domain/spending-calendar";
-import { CHART_DRAW } from "@/theme/chart";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { SpendingCalendar } from "./spending-calendar";
@@ -196,15 +195,4 @@ describe("spendingCalendar", () => {
             );
         }
     );
-
-    it("uses the shared reveal duration when both motion controls allow animation", async () => {
-        mockAnimatedCharts.mockReturnValue(true);
-        mockReduceMotion.mockReturnValue(false);
-
-        await renderCalendar();
-
-        expect(mockHeatmapChart.mock.calls[0]?.[0]).toStrictEqual(
-            expect.objectContaining({ animationDuration: CHART_DRAW.durationMs })
-        );
-    });
 });

@@ -85,11 +85,6 @@ describe("dayCardContent", () => {
         const card = dayCardContent(SECTION, { ...OPTIONS, swapTimeLabel: true }, DAY);
         expect(card.rows[0]?.meta).toBe("Groceries");
     });
-
-    it("keeps the rows in the order the list painted them", () => {
-        const card = dayCardContent(SECTION, OPTIONS, DAY);
-        expect(card.rows.map((row) => row.note)).toStrictEqual(["Bakery", "Refund"]);
-    });
 });
 
 describe("dayCardFileName", () => {

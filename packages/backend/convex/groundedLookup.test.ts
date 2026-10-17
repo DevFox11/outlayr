@@ -10,7 +10,6 @@ import { z } from "zod";
 
 import { GROUNDED_REQUEST_TIMEOUT_MS, rateLimiter } from "./enrichment";
 import { runGroundedLookup, runGroundedLookupCall } from "./groundedLookup";
-import { budgetConfig, DEFAULT_BUDGET_CEILING_MICROS } from "./lib/spend";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.ts");
@@ -76,24 +75,6 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
         await runGroundedLookupCall({ grounding, groundingTools: { web_search: fakeWebSearchTool } }, BASE_ARGS);
 
         expect(grounding.doGenerateCalls[0]?.tools).toStrictEqual([expect.objectContaining({ name: "web_search" })]);
-    });
-
-    it("parses a clean JSON response with no fence or prose", async () => {
-        const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
-            sourceUrl: "https://farmatodo.com/about",
-        });
-
-        const outcome = await runGroundedLookupCall(
-            { grounding, groundingTools: { web_search: fakeWebSearchTool } },
-            BASE_ARGS
-        );
-
-        expect(outcome.candidate).toMatchObject({
-            categoryName: "Healthcare",
-            domain: "farmatodo.com",
-            key: "farmatodo",
-            tags: ["pharmacy"],
-        });
     });
 
     it("parses JSON wrapped in a ```json fence", async () => {
@@ -173,38 +154,6 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
         expect(calls).toBe(1);
     });
 
-    it("permits up to 4 tool-calling rounds before stopping (isStepCount(4))", async () => {
-        // A CLIENT-executed tool (not `providerExecuted`) is used here purely to
-        // force the SDK's step loop to continue — proving the configured cap is
-        // 4, not the SDK default of 1. Production's real `web_search` tool is
-        // provider-executed and asserted separately (tool-set-presence test
-        // above); this test's only target is the `stopWhen` value itself.
-        const loopingSearch = tool({
-            description: "always requests another round",
-            execute: async () => ({ query: "farmatodo", sources: [] }),
-            inputSchema: z.object({}),
-        });
-        const grounding = new MockLanguageModelV3({
-            doGenerate: async () => ({
-                content: [
-                    {
-                        input: "{}",
-                        toolCallId: "call-1",
-                        toolName: "web_search",
-                        type: "tool-call",
-                    },
-                ],
-                finishReason: { raw: undefined, unified: "tool-calls" },
-                usage: usageStub(10, 5),
-                warnings: [],
-            }),
-        });
-
-        await runGroundedLookupCall({ grounding, groundingTools: { web_search: loopingSearch } }, BASE_ARGS);
-
-        expect(grounding.doGenerateCalls).toHaveLength(4);
-    });
-
     it("a confident, corroborated result reports usage and sources from the one call", async () => {
         const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
             input: 5489,
@@ -255,20 +204,6 @@ describe("runGroundedLookupCall (single-call collapse, measured 2026-08-03)", ()
         const sent = JSON.stringify(grounding.doGenerateCalls[0]?.prompt);
         expect(sent).toContain("charged in EUR");
         expect(sent).toContain("card-terminal or bank-statement descriptor");
-    });
-
-    it("licenses a global fallback when no business operates in the region", async () => {
-        const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
-            sourceUrl: "https://farmatodo.com/about",
-        });
-
-        await runGroundedLookupCall(
-            { grounding, groundingTools: { web_search: fakeWebSearchTool } },
-            { ...BASE_ARGS, regionCode: "VE" }
-        );
-
-        const sent = JSON.stringify(grounding.doGenerateCalls[0]?.prompt);
-        expect(sent).toContain("fall back to the best globally known match");
     });
 
     it("drops a non-url source rather than widening the candidate's source shape", async () => {
@@ -442,33 +377,19 @@ describe("runGroundedLookup guards (ADR-11 order)", () => {
 });
 
 describe("runGroundedLookupCall domain guard (model-hallucinated denylisted domain)", () => {
-    it.each([
-        ["img.logo.dev", "https://img.logo.dev/about"],
-        ["itunes.apple.com", "https://itunes.apple.com/about"],
-        ["is1-ssl.mzstatic.com", "https://is1-ssl.mzstatic.com/about"],
-    ])("nulls a corroborated but denylisted domain %s", async (domain, sourceUrl) => {
-        const grounding = mockTextModel(JSON.stringify({ ...CONFIDENT_PAYLOAD, domain }), { sourceUrl });
+    it.each([["img.logo.dev", "https://img.logo.dev/about"]])(
+        "nulls a corroborated but denylisted domain %s",
+        async (domain, sourceUrl) => {
+            const grounding = mockTextModel(JSON.stringify({ ...CONFIDENT_PAYLOAD, domain }), { sourceUrl });
 
-        const outcome = await runGroundedLookupCall(
-            { grounding, groundingTools: { web_search: fakeWebSearchTool } },
-            BASE_ARGS
-        );
+            const outcome = await runGroundedLookupCall(
+                { grounding, groundingTools: { web_search: fakeWebSearchTool } },
+                BASE_ARGS
+            );
 
-        expect(outcome.candidate.domain).toBeNull();
-    });
-
-    it("keeps an ordinary corroborated domain untouched", async () => {
-        const grounding = mockTextModel(JSON.stringify(CONFIDENT_PAYLOAD), {
-            sourceUrl: "https://farmatodo.com/about",
-        });
-
-        const outcome = await runGroundedLookupCall(
-            { grounding, groundingTools: { web_search: fakeWebSearchTool } },
-            BASE_ARGS
-        );
-
-        expect(outcome.candidate.domain).toBe("farmatodo.com");
-    });
+            expect(outcome.candidate.domain).toBeNull();
+        }
+    );
 });
 
 describe("runGroundedLookupCall for a queued row", () => {
@@ -533,14 +454,5 @@ describe("runGroundedLookupCall for a queued row", () => {
 describe("grounded abort budget", () => {
     it("stays generous: a live grounded search measures ~3.75s+, and the old 3.5s budget aborted nearly every scheduled run", () => {
         expect(GROUNDED_REQUEST_TIMEOUT_MS).toBeGreaterThanOrEqual(10_000);
-    });
-});
-
-describe("budgetConfig integration", () => {
-    it("groundedBudgetMicros is checked with the live-configured ceiling, not a static registration", () => {
-        vi.stubEnv("GROUNDED_BUDGET_MICROS", "0");
-        expect(budgetConfig().rate).toBe(0);
-        vi.unstubAllEnvs();
-        expect(budgetConfig().rate).toBe(DEFAULT_BUDGET_CEILING_MICROS);
     });
 });

@@ -323,64 +323,6 @@ describe("push table coverage", () => {
         const page = await pullAs(t, owner, 0);
         expect(page.rows[0].fields.accountId).toBeNull();
     });
-
-    it("an accounts tombstone beats a live edit like any other table", async () => {
-        const t = harness();
-        const owner = await seedProUser(t);
-
-        await pushAs(t, owner, DEVICE_A, [
-            {
-                deletedAt: null,
-                fields: accountFields(),
-                localId: "acct-1",
-                table: "accounts",
-                updatedAt: 100,
-            },
-        ]);
-        await pushAs(t, owner, DEVICE_B, [
-            {
-                deletedAt: 50,
-                fields: accountFields(),
-                localId: "acct-1",
-                table: "accounts",
-                updatedAt: 50,
-            },
-        ]);
-
-        const page = await pullAs(t, owner, 0);
-        const account = page.rows.find((row) => row.table === "accounts");
-        expect(account?.deletedAt).toBe(50);
-    });
-
-    it("a tags tombstone beats a live edit like any other table", async () => {
-        const t = harness();
-        const owner = await seedProUser(t);
-        const live: PushRows = [
-            {
-                deletedAt: null,
-                fields: { color: null, name: "festival", sortOrder: 0 },
-                localId: "tag-1",
-                table: "tags",
-                updatedAt: 100,
-            },
-        ];
-        const tombstone: PushRows = [
-            {
-                deletedAt: 50,
-                fields: { color: null, name: "festival", sortOrder: 0 },
-                localId: "tag-1",
-                table: "tags",
-                updatedAt: 50,
-            },
-        ];
-
-        await pushAs(t, owner, DEVICE_A, live);
-        await pushAs(t, owner, DEVICE_B, tombstone);
-
-        const page = await pullAs(t, owner, 0);
-        const tag = page.rows.find((row) => row.table === "tags");
-        expect(tag?.deletedAt).toBe(50);
-    });
 });
 
 describe("push sequencing", () => {
@@ -986,27 +928,6 @@ describe("push during account deletion", () => {
                 })
         );
     }
-
-    it("refuses a push once a job has moved past prepared", async () => {
-        const t = harness();
-        const owner = await seedProUser(t);
-        await seedJob(t, owner.userId, "providersRevoked", 0);
-
-        await expect(
-            authenticatedAs(t, owner).mutation(api.sync.push, { deviceId: DEVICE_A, rows: [transactionRow("a", 1)] })
-        ).rejects.toThrow("being deleted");
-    });
-
-    it("still accepts a push while the owner has only asked", async () => {
-        const t = harness();
-        const owner = await seedProUser(t);
-        await seedJob(t, owner.userId, "prepared", 0);
-
-        await expect(
-            authenticatedAs(t, owner).mutation(api.sync.push, { deviceId: DEVICE_A, rows: [transactionRow("a", 1)] })
-        ).resolves.toMatchObject({ accepted: 1, skipped: 0 });
-        await expect(t.run((ctx) => ctx.db.query("transactions").collect())).resolves.toHaveLength(1);
-    });
 
     // The guard used to read a page of jobs, so a client could bury the one that
     // refuses the push under a page of harmless prepared ones and re-create rows

@@ -1,8 +1,7 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react-native";
-import { Text } from "react-native";
 
-import { StepRate, StepRateField } from "./step-rate";
+import { StepRate } from "./step-rate";
 import type { StepRateOption } from "./step-rate";
 
 const options: StepRateOption[] = [
@@ -49,46 +48,5 @@ describe("stepRate", () => {
         await fireEvent.press(getByRole("radio", { name: "EUR (BCV)" }));
 
         expect(onSelect).toHaveBeenCalledWith("eur_reference");
-    });
-});
-
-describe("stepRateField", () => {
-    it("shows the typed rate, its unit and how it compares, with no error until one is given", async () => {
-        const { getByText, queryByText, rerender } = await render(
-            <StepRateField error={null} note="0.2% above official" placeholder={false} unit="Bs. per $" value="850">
-                <Text>keys</Text>
-            </StepRateField>
-        );
-
-        expect(getByText("850")).toBeTruthy();
-        expect(getByText("Bs. per $")).toBeTruthy();
-        expect(getByText("0.2% above official")).toBeTruthy();
-        expect(queryByText("Type a rate first")).toBeNull();
-
-        await rerender(
-            <StepRateField error="Type a rate first" note={null} placeholder unit="Bs. per $" value="Type">
-                <Text>keys</Text>
-            </StepRateField>
-        );
-        expect(getByText("Type a rate first")).toBeTruthy();
-    });
-
-    it("applies a reference rate when it is pressed", async () => {
-        const onPress = jest.fn();
-        const { getByRole } = await render(
-            <StepRateField
-                error={null}
-                note={null}
-                placeholder
-                references={[{ figure: "848.55", label: "Official", onPress }]}
-                value="Type"
-            >
-                <Text>keys</Text>
-            </StepRateField>
-        );
-
-        await fireEvent.press(getByRole("button", { name: "Official" }));
-
-        expect(onPress).toHaveBeenCalledTimes(1);
     });
 });

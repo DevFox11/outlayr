@@ -109,18 +109,6 @@ describe("app icon catalogue", () => {
         }
     });
 
-    it("draws a preview source for every choice and nothing else", () => {
-        const drawn = readdirSync(join(nativeRoot, "assets/app-icon-previews"))
-            .filter((entry) => entry.endsWith(".svg"))
-            .map((entry) => entry.slice(0, -".svg".length));
-        expect(drawn.sort()).toStrictEqual(APP_ICONS.map((icon) => icon.slug).sort());
-    });
-
-    it("names the primary exactly once, and first", () => {
-        expect(APP_ICONS[0].name).toBeNull();
-        expect(APP_ICONS.filter((icon) => icon.name === null)).toHaveLength(1);
-    });
-
     it("tells the JS runtime the same primary each build stamps", () => {
         const { icon, extra } = primaryIconBranches();
         expect(extra).toStrictEqual(icon);
@@ -159,13 +147,6 @@ describe("describing the Default row", () => {
 
     it("does not claim it where the build named no primary at all", () => {
         expect(defaultRowDetail(null)).toBe("appIcon.default.detailDev");
-    });
-
-    it("resolves both details, and they describe different artwork", () => {
-        const release = EN[defaultRowDetail(RELEASE_PRIMARY_ICON)];
-        const development = EN[defaultRowDetail(null)];
-        expect(release).toMatch(/Outlayr mark/);
-        expect(development).toMatch(/blueprint/);
     });
 });
 
@@ -219,15 +200,6 @@ describe("choosing an icon", () => {
             reported: "OutlayrMono",
         });
         expect(refused).toStrictEqual({ active: "OutlayrMono", pending: null });
-    });
-
-    it("falls back to the default when iOS reports no alternate", () => {
-        const refused = appIconTransition(tap(ON_MONO, "OutlayrInk"), {
-            kind: "rejected",
-            reported: null,
-        });
-        expect(refused).toStrictEqual({ active: null, pending: null });
-        expect(EN[appIconLabel(refused.active)]).toBe("Default");
     });
 
     it("ignores a landing for a name that is no longer pending", () => {

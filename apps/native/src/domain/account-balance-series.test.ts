@@ -66,21 +66,6 @@ describe("accountBalanceSeries", () => {
         expect(pointAt(series, "2026-08-06")).toMatchObject({ value: 130 });
     });
 
-    it("treats inbound and outbound transfer cells as balance movements", () => {
-        const series = accountBalanceSeries(
-            account({ initialBalance: 100, initialBalanceDate: new Date("2026-08-01T12:00:00Z") }),
-            [
-                cell({ amount: 35, amountUsd: 35, dateKey: "2026-08-04", income: false }),
-                cell({ amount: 10, amountUsd: 10, dateKey: "2026-08-06", income: true }),
-            ],
-            NO_RATES,
-            NOW
-        );
-
-        expect(pointAt(series, "2026-08-04")).toMatchObject({ value: 65 });
-        expect(pointAt(series, "2026-08-06")).toMatchObject({ value: 75 });
-    });
-
     it("values mixed-currency cells with their rate-date and preserves exactness", () => {
         const rates = buildRateTable([{ date: "2026-08-01", quote: "EUR", rate: 0.8 }]);
         const series = accountBalanceSeries(

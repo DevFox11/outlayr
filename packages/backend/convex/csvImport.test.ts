@@ -1,6 +1,5 @@
 /// <reference types="vite/client" />
 
-import { HOUR } from "@convex-dev/rate-limiter";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { MockLanguageModelV3 } from "ai/test";
 import revenuecatTest from "convex-revenuecat/test";
@@ -224,12 +223,6 @@ describe("csvImport guard ladder", () => {
 });
 
 describe(perUserBurst, () => {
-    it("defaults to a ten-import burst when CSV_IMPORT_CAPACITY is unset", () => {
-        vi.stubEnv("CSV_IMPORT_CAPACITY", undefined);
-
-        expect(perUserBurst("csvImport", true).capacity).toBe(10);
-    });
-
     it("honours a positive integer CSV_IMPORT_CAPACITY", () => {
         vi.stubEnv("CSV_IMPORT_CAPACITY", "25");
 
@@ -244,17 +237,6 @@ describe(perUserBurst, () => {
             expect(perUserBurst("csvImport", true).capacity).toBe(10);
         }
     );
-
-    it("leaves the refill rate alone, so only the burst is tunable", () => {
-        vi.stubEnv("CSV_IMPORT_CAPACITY", "25");
-
-        expect(perUserBurst("csvImport", true)).toStrictEqual({
-            capacity: 25,
-            kind: "token bucket",
-            period: HOUR,
-            rate: 30,
-        });
-    });
 
     it("reaches the per-user limit on every call, not once at module load", async () => {
         vi.stubEnv("XAI_API_KEY", "test-xai-key");

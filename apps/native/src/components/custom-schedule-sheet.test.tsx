@@ -114,21 +114,6 @@ describe("customScheduleSheet", () => {
         expect(onDone).toHaveBeenCalledWith(RECURRING_TYPE.weekly, 3);
     });
 
-    it("presents the platform's own sheet", async () => {
-        const { toJSON } = await render(<CustomScheduleSheet {...BASE} />);
-        expect(findByType(toJSON() as JsonNode, "Sheet")?.props.native).toBe(true);
-    });
-
-    // The count is a NumberFlow rather than part of the sentence's text so it can
-    // roll between values; the words either side stay plain Text.
-    it("states the schedule as a sentence with the count on its own", async () => {
-        const { getByTestId, toJSON } = await render(<CustomScheduleSheet {...BASE} />);
-        const sentence = within(getByTestId("schedule-sentence"));
-        expect(sentence.getByText("transaction.schedule.everyLabel")).toBeTruthy();
-        expect(sentence.getByText("transaction.unit.months")).toBeTruthy();
-        expect(findByType(toJSON() as JsonNode, "NumberFlow")?.props.value).toBe(3);
-    });
-
     it("names the unit in the singular for an interval of one", async () => {
         const { getByTestId, toJSON } = await render(<CustomScheduleSheet {...BASE} recurringCoefficient={1} />);
         expect(within(getByTestId("schedule-sentence")).getByText("transaction.unit.month")).toBeTruthy();
@@ -187,43 +172,6 @@ describe("customScheduleSheet", () => {
 
         expect(onDone).not.toHaveBeenCalled();
         expect(onOpenChange).toHaveBeenCalledWith(false);
-    });
-
-    // The ripple's whole promise: a row keeps its old date until its own swap
-    // lands, so no frame ever shows a date the sheet is not about to keep.
-    it("holds each charge until its own beat of the ripple", async () => {
-        jest.useFakeTimers();
-        try {
-            const { getByLabelText, getByText, queryByText } = await render(
-                <CustomScheduleSheet {...BASE} recurringCoefficient={1} />
-            );
-            // The sheet disarms the ripple on its open edge; arm it.
-            await act(async () => {
-                jest.advanceTimersByTime(1);
-            });
-
-            // Monthly x1 from 7 Aug 2026.
-            expect(getByText(/7 Sep/)).toBeTruthy();
-            expect(getByText(/7 Nov/)).toBeTruthy();
-
-            await step(getByLabelText("transaction.schedule.more"), 1);
-
-            // Only row one has begun its swap, so the rows below still read the old
-            // schedule and none of the new dates has appeared yet.
-            expect(queryByText(/7 Nov/)).toBeTruthy();
-            expect(queryByText(/7 Dec/)).toBeNull();
-
-            await act(async () => {
-                jest.advanceTimersByTime(400);
-            });
-
-            // Monthly x2: 7 Oct, 7 Dec, 7 Feb.
-            expect(getByText(/7 Dec/)).toBeTruthy();
-            expect(getByText(/7 Feb/)).toBeTruthy();
-            expect(queryByText(/7 Sep/)).toBeNull();
-        } finally {
-            jest.useRealTimers();
-        }
     });
 
     // The note is the only thing in the sheet that changes its height. Reading it

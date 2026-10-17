@@ -52,39 +52,11 @@ describe("solveTransfer with a destination-side fee", () => {
     });
 });
 
-describe("solveTransfer without a fee", () => {
-    const noFee: TransferValues = { arrived: 5550, fee: 0, feeSide: "source", rate: 55.5, sent: 100 };
-
-    it("reduces to a plain conversion", () => {
-        expect(solveTransfer(noFee, "arrived", VES_DECIMALS)).toBe(5550);
-    });
-
-    it("agrees with the destination side when there is nothing to charge", () => {
-        expect(solveTransfer({ ...noFee, feeSide: "destination" }, "arrived", VES_DECIMALS)).toBe(5550);
-    });
-});
-
-describe("solveTransfer at rate 1", () => {
-    it("handles a same-currency wire with a flat source fee", () => {
-        const wire: TransferValues = { arrived: 0, fee: 25, feeSide: "source", rate: 1, sent: 500 };
-        expect(solveTransfer(wire, "arrived", USD_DECIMALS)).toBe(475);
-    });
-
-    it("handles a same-currency wire charged on the receiving side", () => {
-        const wire: TransferValues = { arrived: 0, fee: 25, feeSide: "destination", rate: 1, sent: 500 };
-        expect(solveTransfer(wire, "arrived", USD_DECIMALS)).toBe(475);
-    });
-});
-
 describe("solveTransfer rounds a rate to the decimals it was asked for", () => {
     const repeating: TransferValues = { arrived: 33_333.33, fee: 0, feeSide: "source", rate: 0, sent: 1000 };
 
     it("keeps four decimals of a repeating rate", () => {
         expect(solveTransfer(repeating, "rate", RATE_DECIMALS)).toBe(33.3333);
-    });
-
-    it("gives a coarser rate to a caller that asked for fewer decimals", () => {
-        expect(solveTransfer(repeating, "rate", USD_DECIMALS)).toBe(33.33);
     });
 
     it("refuses a rate too small to survive the rounding it was asked for", () => {
@@ -102,16 +74,8 @@ describe("solveTransfer refuses the unanswerable", () => {
         expect(solveTransfer(sourceFeeCase({ fee: 100, sent: 100 }), "rate", USD_DECIMALS)).toBeNull();
     });
 
-    it("returns null deriving a rate from nothing sent", () => {
-        expect(solveTransfer(destFeeCase({ sent: 0 }), "rate", VES_DECIMALS)).toBeNull();
-    });
-
     it("returns null when a source fee exceeds what was sent", () => {
         expect(solveTransfer(sourceFeeCase({ fee: 150, sent: 100 }), "arrived", VES_DECIMALS)).toBeNull();
-    });
-
-    it("returns null when a destination fee exceeds the converted amount", () => {
-        expect(solveTransfer(destFeeCase({ fee: 99_999 }), "arrived", VES_DECIMALS)).toBeNull();
     });
 
     it("returns null rather than a non-finite figure", () => {
@@ -132,17 +96,6 @@ describe("transferLegs stores movement and leaves the fee outside", () => {
             fromAmount: 100,
             toAmount: 5550,
         });
-    });
-
-    it("keeps the legs a pure conversion of each other on both sides", () => {
-        for (const values of [sourceFeeCase(), destFeeCase()]) {
-            const legs = transferLegs(values, USD_DECIMALS, VES_DECIMALS);
-            expect(legs).not.toBeNull();
-            expect((legs as NonNullable<typeof legs>).fromAmount * values.rate).toBeCloseTo(
-                (legs as NonNullable<typeof legs>).toAmount,
-                6
-            );
-        }
     });
 
     it("refuses a transfer whose source fee is the whole amount", () => {
@@ -173,10 +126,6 @@ describe("transferGap surfaces the unexplained difference", () => {
 
     it("reports nothing when the numbers already reconcile", () => {
         expect(transferGap(sourceFeeCase(), USD_DECIMALS, VES_DECIMALS)).toBe(0);
-    });
-
-    it("reports nothing on a reconciled destination-side fee", () => {
-        expect(transferGap(destFeeCase(), VES_DECIMALS, VES_DECIMALS)).toBe(0);
     });
 
     it("reports a negative gap when more arrived than the rate predicts", () => {

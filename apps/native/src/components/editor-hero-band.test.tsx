@@ -2,7 +2,6 @@ import { describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render } from "@testing-library/react-native";
 import { useSharedValue } from "react-native-reanimated";
 
-import { HEADER_HEIGHT, HERO_BOTTOM_PADDING, HERO_TOP_PADDING } from "@/components/editor-style";
 import { IdentityDraftProvider } from "@/contexts/identity-draft-context";
 import { testLocalData as mockTestLocalData } from "@/contexts/test-local-data";
 import { testColors as mockTestColors } from "@/theme/test-colors";
@@ -47,42 +46,7 @@ jest.mock<typeof import("@/theme/use-colors")>("@/theme/use-colors", () => ({
         }),
 }));
 
-interface JsonNode {
-    children: (JsonNode | string)[] | null;
-    props: Record<string, unknown>;
-    type: string;
-}
-
-function findByProp(node: JsonNode | JsonNode[] | null, key: string, value: unknown): JsonNode | null {
-    if (node == null) {
-        return null;
-    }
-    if (Array.isArray(node)) {
-        for (const child of node) {
-            const found = findByProp(child, key, value);
-            if (found) {
-                return found;
-            }
-        }
-        return null;
-    }
-    if (node.props?.[key] === value) {
-        return node;
-    }
-    for (const child of node.children ?? []) {
-        if (typeof child === "string") {
-            continue;
-        }
-        const found = findByProp(child, key, value);
-        if (found) {
-            return found;
-        }
-    }
-    return null;
-}
-
 interface HarnessProps {
-    captionClearance?: number;
     color?: string;
     emoji?: string | null;
     icon?: string | null;
@@ -95,7 +59,6 @@ interface HarnessProps {
 const noop = () => {};
 
 function Harness({
-    captionClearance = 0,
     color = "#3D7A5C",
     emoji = null,
     icon = null,
@@ -108,7 +71,7 @@ function Harness({
     return (
         <IdentityDraftProvider>
             <EditorHeroBand
-                captionClearance={captionClearance}
+                captionClearance={0}
                 color={color}
                 emoji={emoji}
                 floatProgress={floatProgress}
@@ -125,43 +88,6 @@ function Harness({
 }
 
 describe("categoryEditorHeroBand", () => {
-    it("renders without crashing in the empty state", async () => {
-        const { toJSON } = await render(<Harness />);
-        expect(toJSON()).toBeTruthy();
-    });
-
-    it("draws the emoji once one is picked", async () => {
-        const { getByText } = await render(<Harness emoji="🎯" />);
-        expect(getByText("🎯")).toBeTruthy();
-    });
-
-    it("carries captionClearance into the wrapping view's bottom padding", async () => {
-        const empty = await render(<Harness captionClearance={0} />);
-        const filled = await render(<Harness captionClearance={24} />);
-
-        const emptyRoot = findByProp(empty.toJSON() as JsonNode, "pointerEvents", "box-none");
-        const filledRoot = findByProp(filled.toJSON() as JsonNode, "pointerEvents", "box-none");
-        expect(emptyRoot).not.toBeNull();
-        expect(filledRoot).not.toBeNull();
-
-        const emptyStyle = (emptyRoot as JsonNode).props.style as {
-            paddingBottom: number;
-        };
-        const filledStyle = (filledRoot as JsonNode).props.style as {
-            paddingBottom: number;
-        };
-        expect(emptyStyle.paddingBottom).toBe(HERO_BOTTOM_PADDING);
-        expect(filledStyle.paddingBottom).toBe(HERO_BOTTOM_PADDING + 24);
-    });
-
-    it("carries the header/top padding constants into the wrapping view", async () => {
-        const { toJSON } = await render(<Harness />);
-        const root = findByProp(toJSON() as JsonNode, "pointerEvents", "box-none");
-        expect(root).not.toBeNull();
-        const style = (root as JsonNode).props.style as { paddingTop: number };
-        expect(style.paddingTop).toBe(HEADER_HEIGHT + HERO_TOP_PADDING);
-    });
-
     it("fires onPress when the tile is tapped", async () => {
         const onPress = jest.fn();
         const { getByLabelText } = await render(<Harness onPress={onPress} />);

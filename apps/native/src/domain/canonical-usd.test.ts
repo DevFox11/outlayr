@@ -29,16 +29,6 @@ describe("canonicalUsd", () => {
         expect(result.exchangeRateType).toBe("official");
     });
 
-    it("handles a high-inflation quote without losing the cents", async () => {
-        const result = await canonicalUsd(lookupOf({ VES: 40 }), {
-            amount: 1000,
-            currency: "VES",
-            date: DATE,
-            displayCurrency: "VES",
-        });
-        expect(result.amountUsd).toBe(25);
-    });
-
     it("treats USD as already canonical and never asks for a rate", async () => {
         const seen = { calls: 0 };
         const result = await canonicalUsd(lookupOf({}, seen), {

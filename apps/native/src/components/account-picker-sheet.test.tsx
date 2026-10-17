@@ -50,10 +50,4 @@ describe("accountPickerSheet", () => {
         const { queryByText } = await presented(false);
         expect(queryByText("transaction.account.none")).toBeNull();
     });
-
-    it("still lists every account when None is withheld", async () => {
-        const { queryByText } = await presented(false);
-        expect(queryByText("Chequing")).not.toBeNull();
-        expect(queryByText("Efectivo")).not.toBeNull();
-    });
 });

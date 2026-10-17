@@ -308,10 +308,6 @@ describe("bucketRanges boundaries", () => {
 });
 
 describe("monthPeriodStart", () => {
-    it("is the first of the month by default", () => {
-        expect(monthPeriodStart(NOW)).toStrictEqual(at(2025, 7, 1));
-    });
-
     it("rolls back when the anchor has not been reached", () => {
         expect(monthPeriodStart(at(2025, 7, 24), 25)).toStrictEqual(at(2025, 6, 25));
         expect(monthPeriodStart(at(2025, 7, 25), 25)).toStrictEqual(at(2025, 7, 25));
@@ -412,14 +408,6 @@ describe("categoryBreakdown", () => {
         const spent = categoryBreakdown(contributions, categoriesById, "month", "spent", NOW);
         const net = categoryBreakdown(contributions, categoriesById, "month", "net", NOW);
         expect(net.map((r) => [r.id, r.amount])).toStrictEqual(spent.map((r) => [r.id, r.amount]));
-    });
-
-    it("resolves top-level display fields from the category map", () => {
-        const rows = categoryBreakdown(contributions, categoriesById, "year", "spent", NOW);
-        const food = rows.find((r) => r.id === "food");
-        expect(food?.name).toBe("Food");
-        expect(food?.color).toBe("#EC7A58");
-        expect(food?.icon).toBe("Restaurant02");
     });
 });
 

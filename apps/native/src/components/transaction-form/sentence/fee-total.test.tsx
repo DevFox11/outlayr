@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from "@jest/globals";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { render, screen } from "@testing-library/react-native";
 
 import type { TranslationParams } from "@/i18n/translate";
 import { testColors as mockTestColors } from "@/theme/test-colors";
@@ -39,13 +39,5 @@ describe("feeTotal", () => {
         await renderTotal(null);
 
         expect(screen.getByRole("button", { name: "Total with fee $24.91" })).toBeOnTheScreen();
-    });
-
-    it("opens the fee step when pressed", async () => {
-        const onPress = jest.fn();
-        await renderTotal("Payoneer", onPress);
-
-        fireEvent.press(screen.getByRole("button", { name: "Payoneer pays $24.91" }));
-        expect(onPress).toHaveBeenCalledTimes(1);
     });
 });

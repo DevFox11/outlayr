@@ -1,17 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { filterDetail, filterHasMenu, filterPeriodUnit } from "./log-filter";
+import { filterDetail, filterHasMenu } from "./log-filter";
 
 const CURSOR = new Date("2026-07-22T15:30:00");
 const SCOPE = { cursor: CURSOR, income: false };
-
-describe("filterPeriodUnit", () => {
-    it("names a unit only for the filters that scope to a stretch of time", () => {
-        expect(filterPeriodUnit("week")).toBe("week");
-        expect(filterPeriodUnit("category")).toBeNull();
-        expect(filterPeriodUnit("all")).toBeNull();
-    });
-});
 
 describe("filterHasMenu", () => {
     it("gives a menu to the filters with something to choose", () => {
@@ -49,10 +41,5 @@ describe("filterDetail", () => {
     it("names which side a type filter shows", () => {
         expect(filterDetail("type", SCOPE)).toBe("Expense");
         expect(filterDetail("type", { ...SCOPE, income: true })).toBe("Income");
-    });
-
-    it("names the filters that scope to neither a span nor a thing", () => {
-        expect(filterDetail("recurring", SCOPE)).toBe("recurring");
-        expect(filterDetail("upcoming", SCOPE)).toBe("upcoming");
     });
 });

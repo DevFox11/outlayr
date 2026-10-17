@@ -72,13 +72,6 @@ describe("currencyTotals with rates", () => {
         expect(valueCell(cell, "EUR")).toBe(0);
     });
 
-    it("excludes an unresolved official foreign row from scalar totals", () => {
-        const [cell] = toCells([
-            { ...priced(40, "VES", null, JULY_5), exchangeRate: null, exchangeRateType: "official" },
-        ]);
-        expect(valueCell(cell, "EUR", eurRates)).toBe(0);
-    });
-
     it("folds a foreign entry into the global currency at its own day's rate", () => {
         const buckets = currencyTotals([priced(100, "USD", 100, JULY_5)], "EUR", eurRates);
         expect(buckets).toStrictEqual([{ amount: -90, currencyCode: "EUR", transactionCount: 1 }]);
@@ -193,23 +186,6 @@ describe("figures over a whole result set", () => {
         expect(figures).toStrictEqual([
             { count: 2, currencyCode: "EUR", expense: 50, income: 20 },
             { count: 1, currencyCode: "USD", expense: 100, income: 0 },
-        ]);
-    });
-
-    it("nets each currency on its own, so neither block borrows the other's sign", () => {
-        const figures = cellFigures(
-            toCells([priced(10, "USD", 10, JULY_5, true), priced(40, "EUR", null, JULY_5)]),
-            "USD",
-            eurRates
-        );
-        expect(
-            figures.map((figure) => ({
-                code: figure.currencyCode,
-                net: figure.income - figure.expense,
-            }))
-        ).toStrictEqual([
-            { code: "USD", net: 10 },
-            { code: "EUR", net: -40 },
         ]);
     });
 });

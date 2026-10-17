@@ -84,45 +84,6 @@ describe("setCachedEnrichment eviction", () => {
     });
 });
 
-describe("grounding field on RemoteEnrichmentResult", () => {
-    it("round-trips a cache hit carrying grounding", () => {
-        const value: RemoteEnrichmentResult = {
-            categoryName: "Healthcare",
-            domain: "farmatodo.com",
-            grounding: false,
-            isNewCategory: false,
-            tags: ["pharmacy"],
-        };
-        setCachedEnrichment("farmatodo", value);
-        expect(getCachedEnrichment("farmatodo")).toStrictEqual({
-            hit: true,
-            value,
-        });
-    });
-
-    it("omits grounding without a type error", () => {
-        const value: RemoteEnrichmentResult = {
-            categoryName: "Entertainment",
-            domain: null,
-            isNewCategory: false,
-            tags: [],
-        };
-        setCachedEnrichment("netflix", value);
-        expect(getCachedEnrichment("netflix")).toStrictEqual({
-            hit: true,
-            value,
-        });
-    });
-});
-
-describe("clearEnrichmentCache", () => {
-    it("empties every cached entry", () => {
-        setCachedEnrichment("spotify", null);
-        clearEnrichmentCache();
-        expect(getCachedEnrichment("spotify")).toStrictEqual({ hit: false });
-    });
-});
-
 describe("currency scope", () => {
     it("keeps a name's answers apart per currency and leaves the bare partition alone", () => {
         const eur: RemoteEnrichmentResult = {

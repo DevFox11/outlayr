@@ -25,28 +25,12 @@ describe("sparklineTrendKey", () => {
         expect(sparklineTrendKey([30, 90, 5, 30])).toBe("insights.trend.flat");
     });
 
-    it("reads a series that never moved as flat", () => {
-        expect(sparklineTrendKey([0, 0, 0])).toBe("insights.trend.flat");
-    });
-
     it("has no direction to report for an empty series", () => {
         expect(sparklineTrendKey([])).toBe("insights.trend.flat");
     });
 
-    it("has no direction to report for a single sample", () => {
-        expect(sparklineTrendKey([12])).toBe("insights.trend.flat");
-    });
-
-    it("judges the ends, not the peak: a series that spiked and fell back is falling", () => {
-        expect(sparklineTrendKey([50, 400, 20])).toBe("insights.trend.falling");
-    });
-
     it("reads a running balance climbing out of the red as rising", () => {
         expect(sparklineTrendKey([-120, -40, 15])).toBe("insights.trend.rising");
-    });
-
-    it("reads a running balance sinking further into the red as falling", () => {
-        expect(sparklineTrendKey([-40, -120])).toBe("insights.trend.falling");
     });
 });
 

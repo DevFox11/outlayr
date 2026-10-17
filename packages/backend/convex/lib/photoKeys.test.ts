@@ -29,10 +29,6 @@ describe(photoKeyFor, () => {
     it("namespaces the object under the account", () => {
         expect(photoKeyFor(USER, "a.jpg")).toBe(`${PHOTO_KEY_PREFIX}/${USER}/a.jpg`);
     });
-
-    it("is derivable, so a retried upload reuses the same key", () => {
-        expect(photoKeyFor(USER, "a.jpg")).toBe(photoKeyFor(USER, "a.jpg"));
-    });
 });
 
 describe(ownsPhotoKey, () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { CHART_DASH, compactMagnitude, dashArray } from "./chart";
+import { compactMagnitude } from "./chart";
 
 describe("compactMagnitude", () => {
     it("leaves values under a thousand whole", () => {
@@ -26,19 +26,5 @@ describe("compactMagnitude", () => {
 
     it("survives a negative without emitting a stray sign inside the unit", () => {
         expect(compactMagnitude(-1500)).toBe("-1.5k");
-    });
-});
-
-describe("dashArray", () => {
-    it("renders the intervals in the form react-native-svg parses", () => {
-        expect(dashArray(CHART_DASH.reference)).toBe("1.5 4");
-        expect(dashArray(CHART_DASH.projection)).toBe("3.5 3.5");
-    });
-
-    it("keeps reference and projection visually distinguishable", () => {
-        const [refOn, refOff] = CHART_DASH.reference;
-        const [projOn, projOff] = CHART_DASH.projection;
-        expect(refOff / refOn > 2).toBeTruthy();
-        expect(projOn).toBe(projOff);
     });
 });

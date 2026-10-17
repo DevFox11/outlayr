@@ -1,7 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 
-import { MonoLabel } from "@/components/mono-label";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { SettingsSection } from "./list-row";
@@ -15,11 +14,5 @@ describe("settingsSection", () => {
         await render(<SettingsSection title="Data" />);
 
         expect(screen.getByRole("header", { name: "Data" })).toBeOnTheScreen();
-    });
-
-    it("leaves a plain eyebrow without the role", async () => {
-        await render(<MonoLabel>SPENT · THIS MONTH</MonoLabel>);
-
-        expect(screen.queryByRole("header")).toBeNull();
     });
 });

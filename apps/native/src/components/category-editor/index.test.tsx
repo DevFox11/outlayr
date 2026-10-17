@@ -179,25 +179,6 @@ beforeEach(() => {
 });
 
 describe("categoryEditor", () => {
-    it("renders create mode without crashing", async () => {
-        const { toJSON } = await render(
-            <IdentityDraftProvider>
-                <CategoryEditor income={false} mode="create" />
-            </IdentityDraftProvider>
-        );
-        expect(toJSON()).toBeTruthy();
-    });
-
-    it("renders edit mode without crashing once the row loads", async () => {
-        const id = await seedCategory(dbHolder.current as Database);
-        const { toJSON } = await render(
-            <IdentityDraftProvider>
-                <CategoryEditor id={id} mode="edit" />
-            </IdentityDraftProvider>
-        );
-        expect(toJSON()).toBeTruthy();
-    });
-
     it("plumbs the loaded row's identity into the hero band", async () => {
         const id = await seedCategory(dbHolder.current as Database, {
             emoji: "🎯",

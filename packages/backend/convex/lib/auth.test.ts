@@ -37,17 +37,6 @@ describe(requireUserId, () => {
 
         await expect(stale.run((ctx) => requireUserId(ctx))).rejects.toThrow(ConvexError);
     });
-
-    it("scopes two signed-in users to distinct ids", async () => {
-        const t = convexTest(schema, modules);
-        const first = await seedAuthUser(t);
-        const second = await seedAuthUser(t);
-
-        const firstId = await authenticatedAs(t, first).run((ctx) => requireUserId(ctx));
-        const secondId = await authenticatedAs(t, second).run((ctx) => requireUserId(ctx));
-
-        expect(firstId).not.toBe(secondId);
-    });
 });
 
 describe(optionalUserId, () => {

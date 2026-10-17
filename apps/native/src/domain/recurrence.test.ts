@@ -96,10 +96,6 @@ describe("the next landing after today", () => {
         expect(ymd(nextLanding(at(2026, 1, 28), RECURRING_TYPE.monthly, 1, null, now))).toStrictEqual([2026, 3, 28]);
     });
 
-    it("returns a charge still ahead of today rather than stepping past it", () => {
-        expect(ymd(nextLanding(at(2026, 4, 1), RECURRING_TYPE.monthly, 1, null, now))).toStrictEqual([2026, 4, 1]);
-    });
-
     it("returns a charge ahead of today even on the very next day", () => {
         expect(ymd(nextLanding(at(2026, 3, 21), RECURRING_TYPE.monthly, 1, null, now))).toStrictEqual([2026, 3, 21]);
     });

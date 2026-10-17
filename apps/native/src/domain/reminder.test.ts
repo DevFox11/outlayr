@@ -48,13 +48,6 @@ describe("reminder time", () => {
             minute: 0,
         });
     });
-
-    it("carries a clamped custom time through", () => {
-        expect(reminderTime(REMINDER_CUSTOM, clampTimeOfDay(99, 99))).toStrictEqual({
-            hour: 23,
-            minute: 59,
-        });
-    });
 });
 
 describe("time of day label", () => {

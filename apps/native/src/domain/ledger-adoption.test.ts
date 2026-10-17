@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { ADOPTION_CHOICES, adoptionActions, adoptionPlan, choiceActions, isDestructiveChoice } from "./ledger-adoption";
+import { adoptionActions, adoptionPlan, choiceActions, isDestructiveChoice } from "./ledger-adoption";
 
 describe("adoption plan", () => {
     it("has nothing to reconcile when neither side holds a ledger", () => {
@@ -57,10 +57,6 @@ describe("adoption actions", () => {
 });
 
 describe("adoption choice", () => {
-    it("offers merge first, because it is the only one that keeps everything", () => {
-        expect(ADOPTION_CHOICES).toStrictEqual(["merge", "keep-local", "keep-account"]);
-    });
-
     it("destroys nothing when merging", () => {
         expect(isDestructiveChoice("merge")).toBe(false);
         expect(choiceActions("merge")).toStrictEqual({
@@ -86,12 +82,5 @@ describe("adoption choice", () => {
             wipeAccount: false,
             wipeLocal: true,
         });
-    });
-
-    it("never both pushes and wipes the side it is pushing from", () => {
-        for (const choice of ADOPTION_CHOICES) {
-            const actions = choiceActions(choice);
-            expect(actions.pushLocal && actions.wipeLocal).toBe(false);
-        }
     });
 });

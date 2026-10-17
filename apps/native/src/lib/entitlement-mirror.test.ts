@@ -18,13 +18,6 @@ beforeEach(() => {
 });
 
 describe("mirrorEntitlement", () => {
-    it("asks the backend to copy the store's entitlement onto the account", async () => {
-        mockCloudAction.mockResolvedValue(true);
-
-        await expect(mirrorEntitlement()).resolves.toBe(true);
-        expect(mockCloudAction).toHaveBeenCalledWith("revenuecat:syncFromStore", {});
-    });
-
     it("reports the mirror behind when the backend says so", async () => {
         mockCloudAction.mockResolvedValue(false);
 

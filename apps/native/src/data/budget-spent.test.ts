@@ -188,13 +188,6 @@ describe("expenseContributionQuery", () => {
         expect(rows.map((row) => row.amount).sort((a, b) => a - b)).toStrictEqual([5, 10]);
     });
 
-    it("carries the currency columns the valuation needs", async () => {
-        const rows = await expenseContributionQuery(db, NOW);
-        for (const row of rows) {
-            expect("currency" in row && "amountUsd" in row).toBeTruthy();
-        }
-    });
-
     it("keeps a pending custom contribution at face value in its native budget currency", async () => {
         const pendingDb = makeDb();
         await pendingDb.insert(transactions).values({

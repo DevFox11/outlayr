@@ -221,46 +221,6 @@ describe("useImportReview", () => {
         expect(second.result.current.excluded.has(0)).toBe(false);
     });
 
-    it("exposes the ledger currency for rows whose entry states none", async () => {
-        await seedCategories(dbHolder.current as Database);
-        withReview();
-
-        const { result } = await renderHook(() => useImportReview());
-        await waitFor(() => expect(result.current.plan.entries).toHaveLength(2));
-        expect(result.current.currency).toBe("USD");
-    });
-
-    it("exposes each category's tile identity for the row fallback tile", async () => {
-        await seedCategories(dbHolder.current as Database);
-        withReview();
-
-        const { result } = await renderHook(() => useImportReview());
-        await waitFor(() => expect(result.current.plan.entries).toHaveLength(2));
-
-        expect(result.current.categoryTile.get("cat-food")).toStrictEqual({
-            color: "#3D8A4E",
-            emoji: null,
-            icon: "basket",
-        });
-        expect(result.current.categoryTile.get("cat-pay")).toStrictEqual({
-            color: "#2E5AAC",
-            emoji: "💰",
-            icon: null,
-        });
-    });
-
-    it("onToggle keeps a stable identity across renders", async () => {
-        await seedCategories(dbHolder.current as Database);
-        withReview();
-
-        const { result, rerender } = await renderHook(() => useImportReview());
-        const first = result.current.onToggle;
-        await act(async () => {
-            rerender(undefined);
-        });
-        expect(result.current.onToggle).toBe(first);
-    });
-
     it("writes nothing to the database before commit is invoked", async () => {
         const db = dbHolder.current as Database;
         await seedCategories(db);

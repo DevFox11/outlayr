@@ -1,14 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import {
-    findTagByName,
-    isUsableTagName,
-    normalizeTagName,
-    sortTags,
-    TAG_NAME_LIMIT,
-    tagKey,
-    tagLinkDiff,
-} from "./tags";
+import { findTagByName, isUsableTagName, normalizeTagName, sortTags, TAG_NAME_LIMIT, tagLinkDiff } from "./tags";
 
 describe("normalizing a tag name", () => {
     it("trims the edges", () => {
@@ -32,23 +24,9 @@ describe("normalizing a tag name", () => {
 });
 
 describe("comparing two names", () => {
-    it("matches regardless of case", () => {
-        expect(tagKey("Work")).toBe(tagKey("work"));
-    });
-
     it("finds an existing tag rather than making a near-duplicate", () => {
         const tags = [{ id: "1", name: "Work" }];
         expect(findTagByName(tags, " work ")?.id).toBe("1");
-    });
-
-    it("answers null when nothing matches", () => {
-        expect(findTagByName([{ id: "1", name: "Work" }], "travel")).toBeNull();
-    });
-
-    it("keeps the casing the owner typed", () => {
-        // Matching case-insensitively must not rewrite what they wrote.
-        const tags = [{ id: "1", name: "WFH" }];
-        expect(findTagByName(tags, "wfh")?.name).toBe("WFH");
     });
 });
 
@@ -60,15 +38,6 @@ describe("ordering a tag list", () => {
             { id: "3", name: "work" },
         ]);
         expect(sorted.map((tag) => tag.name)).toStrictEqual(["Admin", "travel", "work"]);
-    });
-
-    it("does not mutate the list it was given", () => {
-        const tags = [
-            { id: "1", name: "b" },
-            { id: "2", name: "a" },
-        ];
-        sortTags(tags);
-        expect(tags.map((tag) => tag.id)).toStrictEqual(["1", "2"]);
     });
 });
 
@@ -95,10 +64,5 @@ describe("diffing a row's tags", () => {
             attach: [],
             detach: [],
         });
-    });
-
-    it("handles a row going from none to some and back", () => {
-        expect(tagLinkDiff([], ["a"])).toStrictEqual({ attach: ["a"], detach: [] });
-        expect(tagLinkDiff(["a"], [])).toStrictEqual({ attach: [], detach: ["a"] });
     });
 });

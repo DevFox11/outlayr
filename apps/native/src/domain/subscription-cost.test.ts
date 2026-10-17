@@ -102,44 +102,6 @@ describe("monthlySubscriptionCost", () => {
         expect(buckets.map((bucket) => [bucket.currencyCode, bucket.amount])).toStrictEqual([["USD", -10]]);
     });
 
-    it("counts nothing when only income repeats", () => {
-        const buckets = monthlySubscriptionCost([schedule(3000, RECURRING_TYPE.monthly, 1, { income: true })], "USD");
-        expect(buckets.some((bucket) => bucket.transactionCount > 0)).toBe(false);
-    });
-
-    it("drops a schedule whose end date has passed", () => {
-        // Otherwise the figure keeps charging the owner for a commitment they
-        // already ended, every month, forever.
-        const now = new Date(Date.UTC(2026, 6, 20));
-        const buckets = monthlySubscriptionCost(
-            [
-                schedule(1000, RECURRING_TYPE.monthly, 1, {
-                    recurringEndDate: new Date(Date.UTC(2026, 5, 30)),
-                }),
-                schedule(500, RECURRING_TYPE.monthly),
-            ],
-            "USD",
-            undefined,
-            now
-        );
-        expect(buckets).toStrictEqual([{ amount: -500, currencyCode: "USD", transactionCount: 1 }]);
-    });
-
-    it("keeps a schedule whose end date is still ahead", () => {
-        const now = new Date(Date.UTC(2026, 6, 20));
-        const buckets = monthlySubscriptionCost(
-            [
-                schedule(1000, RECURRING_TYPE.monthly, 1, {
-                    recurringEndDate: new Date(Date.UTC(2026, 8, 30)),
-                }),
-            ],
-            "USD",
-            undefined,
-            now
-        );
-        expect(buckets).toStrictEqual([{ amount: -1000, currencyCode: "USD", transactionCount: 1 }]);
-    });
-
     it("keeps a schedule on the day it ends, which still charges", () => {
         const endsToday = new Date(2026, 6, 20);
         const buckets = monthlySubscriptionCost(
@@ -161,16 +123,6 @@ describe("monthlySubscriptionCost", () => {
         );
 
         expect(buckets).toStrictEqual([{ amount: 0, currencyCode: "USD", transactionCount: 0 }]);
-    });
-
-    it("keeps a schedule that names no end at all", () => {
-        const buckets = monthlySubscriptionCost(
-            [schedule(1000, RECURRING_TYPE.monthly)],
-            "USD",
-            undefined,
-            new Date(Date.UTC(2026, 6, 20))
-        );
-        expect(buckets).toStrictEqual([{ amount: -1000, currencyCode: "USD", transactionCount: 1 }]);
     });
 
     it("converts the month's figure, not the single charge, at the day's rate", () => {

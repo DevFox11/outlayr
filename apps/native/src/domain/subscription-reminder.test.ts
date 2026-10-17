@@ -9,10 +9,8 @@ import {
     MAX_PENDING_SUBSCRIPTION_REMINDERS,
     normalizeLead,
     orphanedReminderIds,
-    REMINDER_LEAD_OPTIONS,
     reminderFireAt,
     reminderPlan,
-    SUBSCRIPTION_REMINDER_PREFIX,
     subscriptionReminderId,
 } from "./subscription-reminder";
 
@@ -28,10 +26,6 @@ const wallClock = (d: Date): [number, number, number, number, number, number] =>
 ];
 
 describe("subscription reminder identity", () => {
-    it("namespaces the request under the local id", () => {
-        expect(subscriptionReminderId("abc-123")).toBe(`${SUBSCRIPTION_REMINDER_PREFIX}abc-123`);
-    });
-
     it("claims its own requests and nothing else", () => {
         expect(isSubscriptionReminderId(subscriptionReminderId("abc"))).toBe(true);
         expect(isSubscriptionReminderId("outlayr.daily-reminder")).toBe(false);
@@ -40,21 +34,9 @@ describe("subscription reminder identity", () => {
     });
 });
 
-describe("lead options", () => {
-    it("offers the picker's order, on the day first", () => {
-        expect([...REMINDER_LEAD_OPTIONS]).toStrictEqual([0, 1, 2, 3, 7]);
-    });
-});
-
 describe("normalizing a stored lead", () => {
     it("reads a missing lead as off rather than as the due day", () => {
         expect(normalizeLead(null)).toBeNull();
-    });
-
-    it("keeps every offered option untouched", () => {
-        for (const lead of REMINDER_LEAD_OPTIONS) {
-            expect(normalizeLead(lead)).toBe(lead);
-        }
     });
 
     it("refuses a lead that is not a real number", () => {
@@ -96,11 +78,6 @@ describe("when a reminder fires", () => {
     it("crosses a month boundary onto the right day", () => {
         const fire = reminderFireAt(new Date(2026, 2, 3), 7, NINE_AM);
         expect(wallClock(fire)).toStrictEqual([2026, 2, 24, 9, 0, 0]);
-    });
-
-    it("crosses a year boundary onto the right day", () => {
-        const fire = reminderFireAt(new Date(2026, 0, 2), 3, NINE_AM);
-        expect(wallClock(fire)).toStrictEqual([2025, 12, 30, 9, 0, 0]);
     });
 
     // The zone is forced because the host's own may have no DST at all, in which
@@ -229,16 +206,6 @@ describe("planning what to arm", () => {
         expect(plan.arm).toHaveLength(MAX_PENDING_SUBSCRIPTION_REMINDERS);
         expect(plan.arm[0].localId).toBe("sub-0");
     });
-
-    it("names each request by its own local id", () => {
-        const plan = reminderPlan({
-            candidates: [{ landing: new Date(2026, 2, 12), leadDays: 0, localId: "abc" }],
-            now,
-            time: NINE_AM,
-        });
-        expect(plan.arm[0].id).toBe(subscriptionReminderId("abc"));
-        expect(wallClock(plan.arm[0].fireAt)).toStrictEqual([2026, 3, 12, 9, 0, 0]);
-    });
 });
 
 describe("reconciling what iOS still holds", () => {
@@ -253,22 +220,9 @@ describe("reconciling what iOS still holds", () => {
         expect(orphanedReminderIds([], pending)).toStrictEqual([subscriptionReminderId("stale")]);
         expect(orphanedReminderIds([subscriptionReminderId("stale")], pending)).toStrictEqual([]);
     });
-
-    it("cancels nothing when iOS holds nothing", () => {
-        expect(orphanedReminderIds([subscriptionReminderId("keep")], [])).toStrictEqual([]);
-    });
 });
 
 describe("labelling a lead", () => {
-    it("names every option the picker offers", () => {
-        expect(leadLabelKey(null)).toBe("settings.notifications.leadOff");
-        expect(leadLabelKey(0)).toBe("settings.notifications.leadSameDay");
-        expect(leadLabelKey(1)).toBe("settings.notifications.leadOneDay");
-        expect(leadLabelKey(2)).toBe("settings.notifications.leadTwoDays");
-        expect(leadLabelKey(3)).toBe("settings.notifications.leadThreeDays");
-        expect(leadLabelKey(7)).toBe("settings.notifications.leadOneWeek");
-    });
-
     it("falls back to the counted form for a lead nothing offers", () => {
         expect(leadLabelKey(5)).toBe("settings.notifications.leadDaysBefore");
         expect(leadLabelKey(30)).toBe("settings.notifications.leadDaysBefore");

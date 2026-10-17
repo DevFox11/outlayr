@@ -50,14 +50,6 @@ function layout(name: string): string {
 }
 
 describe("widget declarations", () => {
-    it("parses every widget out of app.config.ts", () => {
-        expect(
-            declarations()
-                .map((widget) => widget.name)
-                .sort((a, b) => a.localeCompare(b))
-        ).toStrictEqual(["Budget", "Insights", "Ledger", "Log"]);
-    });
-
     /**
      * A Lock Screen family is a different rendering context, not a smaller tile:
      * the system flattens it to one tint and gives it a couple of lines. A layout
@@ -80,13 +72,6 @@ describe("widget declarations", () => {
         for (const widget of declarations()) {
             expect(widget.initialLayout).toBe(`src/widgets/${widget.name.toLowerCase()}.tsx`);
         }
-    });
-
-    // Its Swift counterpart, `RecentTransactionsWidget`, offered both.
-    it("gives the ledger the Lock Screen families Swift had", () => {
-        const ledger = declarations().find((widget) => widget.name === "Ledger");
-        expect(ledger?.families.includes("accessoryRectangular")).toBeTruthy();
-        expect(ledger?.families.includes("accessoryInline")).toBeTruthy();
     });
 
     /**

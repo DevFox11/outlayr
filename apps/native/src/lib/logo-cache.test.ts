@@ -42,10 +42,6 @@ const { __existing, __writtenAt } = jest.requireMock("expo-file-system") as {
 };
 
 describe("logoCacheKey", () => {
-    it("is stable for the same name and domain", () => {
-        expect(logoCacheKey("Netflix", "netflix.com")).toBe(logoCacheKey("Netflix", "netflix.com"));
-    });
-
     it("folds case, diacritics and punctuation to the same key", () => {
         expect(logoCacheKey("NETFLIX", "netflix.com")).toBe(logoCacheKey("netflix", "netflix.com"));
     });
@@ -58,10 +54,6 @@ describe("logoCacheKey", () => {
 describe("cachedLogoUri", () => {
     beforeEach(() => {
         __existing.clear();
-    });
-
-    it("returns null for an empty key", () => {
-        expect(cachedLogoUri("")).toBeNull();
     });
 
     it("returns null for a merchant the cache has never seen", () => {

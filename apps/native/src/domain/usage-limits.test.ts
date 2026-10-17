@@ -51,18 +51,11 @@ describe("projectLimit", () => {
         });
         expect(projectLimit(bucket, start + 30 * DAY)).toMatchObject({ fullAt: null, left: 500 });
     });
-
-    it("reads a never-written window as full", () => {
-        const bucket = { capacity: 20, kind: "fixed window", period: 30 * DAY, rate: 20, ts: 0, value: 20 } as const;
-
-        expect(projectLimit(bucket, NOW)).toStrictEqual({ capacity: 20, fullAt: null, left: 20, nextAt: null });
-    });
 });
 
 describe("formatWait", () => {
     it.each([
         [400, "1 s"],
-        [18_000, "18 s"],
         [60_000, "1 min"],
         [241_000, "5 min"],
         [2 * HOUR, "2 h"],

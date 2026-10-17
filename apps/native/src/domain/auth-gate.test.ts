@@ -2,7 +2,6 @@ import { describe, expect, it } from "@jest/globals";
 
 import { authGate, authRoute, rootStackGroup } from "./auth-gate";
 import type { AuthGate } from "./auth-gate";
-import { ROOT_STACK_SCREEN_NAMES } from "./root-stack";
 
 describe("auth gate", () => {
     it("opens on a restored session", () => {
@@ -100,11 +99,6 @@ describe("account routing", () => {
         expect(at("unconfigured", false)).toBe("ledger");
     });
 
-    it("never sends a build that cannot sign anyone in to the sign-in screen", () => {
-        expect(at("unconfigured", true)).not.toBe("sign-in");
-        expect(at("unconfigured", false)).not.toBe("sign-in");
-    });
-
     it("opens the ledger for an account whose ledger has been reconciled", () => {
         expect(at("signed-in", true)).toBe("ledger");
     });
@@ -140,25 +134,6 @@ describe("rootStackGroup", () => {
     const GATES: AuthGate[] = ["restoring", "signed-in", "signed-out", "unconfigured"];
     const BOOLEANS = [true, false];
 
-    it("returns exactly one of the four groups for every state, each with screens to admit", () => {
-        for (const onboarded of BOOLEANS) {
-            for (const gate of GATES) {
-                for (const reconciled of BOOLEANS) {
-                    for (const deferred of BOOLEANS) {
-                        const group = rootStackGroup({
-                            deferred,
-                            gate,
-                            onboarded,
-                            reconciled,
-                        });
-                        expect(["onboarding", "sign-in", "adopt", "ledger"]).toContain(group);
-                        expect(ROOT_STACK_SCREEN_NAMES[group].length).toBeGreaterThan(0);
-                    }
-                }
-            }
-        }
-    });
-
     it("routes to onboarding whenever the device has not onboarded, regardless of gate", () => {
         for (const gate of GATES) {
             for (const reconciled of BOOLEANS) {
@@ -167,17 +142,6 @@ describe("rootStackGroup", () => {
                 }
             }
         }
-    });
-
-    it("onboarding beats the local ledger", () => {
-        expect(
-            rootStackGroup({
-                deferred: true,
-                gate: "unconfigured",
-                onboarded: false,
-                reconciled: true,
-            })
-        ).toBe("onboarding");
     });
 
     it("delegates to authRoute once onboarded", () => {

@@ -64,14 +64,6 @@ function containsText(node: JsonNode | JsonNode[] | null, text: string): boolean
 }
 
 describe("tagPickerSheet", () => {
-    it("lands ref on the BottomSheetModal", async () => {
-        const ref = createRef<BottomSheetModal>();
-        await render(
-            <TagPickerSheet onCreate={async () => null} onToggle={() => {}} ref={ref} selected={[]} tags={[]} />
-        );
-        expect(ref.current).toBeTruthy();
-    });
-
     it("offers a + Add affordance for each pending tag name not already a real tag", async () => {
         const ref = createRef<BottomSheetModal>();
         const { toJSON } = await render(

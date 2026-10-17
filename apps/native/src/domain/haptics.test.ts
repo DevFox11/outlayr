@@ -32,41 +32,6 @@ describe("haptics setting", () => {
         }
     });
 
-    it("keeps each landing's declared strength", () => {
-        expect(hapticPlay(HAPTICS_SUBTLE, "light")).toStrictEqual({
-            kind: "impact",
-            style: "light",
-        });
-        expect(hapticPlay(HAPTICS_SUBTLE, "medium")).toStrictEqual({
-            kind: "impact",
-            style: "medium",
-        });
-        expect(hapticPlay(HAPTICS_SUBTLE, "heavy")).toStrictEqual({
-            kind: "impact",
-            style: "heavy",
-        });
-        expect(hapticPlay(HAPTICS_SUBTLE, "success")).toStrictEqual({
-            kind: "notification",
-            type: "success",
-        });
-        expect(hapticPlay(HAPTICS_SUBTLE, "warning")).toStrictEqual({
-            kind: "notification",
-            type: "warning",
-        });
-        expect(hapticPlay(HAPTICS_SUBTLE, "error")).toStrictEqual({
-            kind: "notification",
-            type: "error",
-        });
-    });
-
-    it("plays both ticks as a selection tap", () => {
-        for (const event of TICKS) {
-            expect(hapticPlay(HAPTICS_EXCESSIVE, event)).toStrictEqual({
-                kind: "selection",
-            });
-        }
-    });
-
     it("treats a value outside the three options as its nearest neighbour", () => {
         expect(hapticPlay(-1, "success")).toBeNull();
         expect(hapticPlay(9, "keyTap")).toStrictEqual({ kind: "selection" });

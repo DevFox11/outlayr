@@ -58,13 +58,6 @@ const BASE = {
 };
 
 describe("the budget editor", () => {
-    it("shows the limit as set, and the category's own name standing in", async () => {
-        const { getByText } = await render(<BudgetEditor {...BASE} onChange={jest.fn()} onChangeLimit={jest.fn()} />);
-
-        expect(getByText("$400")).toBeTruthy();
-        expect(getByText("Groceries")).toBeTruthy();
-    });
-
     it("states the window a carry made, rather than only the limit that was set", async () => {
         const { getByText } = await render(
             <BudgetEditor {...BASE} amount={452} carry={52} onChange={jest.fn()} onChangeLimit={jest.fn()} />

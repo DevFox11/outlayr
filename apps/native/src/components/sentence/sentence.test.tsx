@@ -35,10 +35,6 @@ const renderSentence = async (template: string) => {
 };
 
 describe("sentence", () => {
-    it("lays the template's own words out in order", async () => {
-        await expect(renderSentence("spent {amount} today")).resolves.toStrictEqual(["spent", "$12", "today"]);
-    });
-
     // The whole reason the template drives layout rather than the tree: the JSX
     // below is in a fixed order and English is not the order it is written in.
     it("places each slot where the template puts it, not where the child sits", async () => {
@@ -48,16 +44,6 @@ describe("sentence", () => {
             "Netflix",
             "from",
             "Chase",
-        ]);
-    });
-
-    it("follows a translation that reorders the slots", async () => {
-        await expect(renderSentence("{account} pagó {amount} en {merchant}")).resolves.toStrictEqual([
-            "Chase",
-            "pagó",
-            "$12",
-            "en",
-            "Netflix",
         ]);
     });
 

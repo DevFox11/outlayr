@@ -20,12 +20,6 @@ describe("useRegionCode", () => {
         expect(result.current).toBe("VE");
     });
 
-    it("returns undefined, never null, when the device reports no region", async () => {
-        mockGetLocales.mockReturnValue([mockTestLocale({ regionCode: null })]);
-        const { result } = await renderHook(() => useRegionCode());
-        expect(result.current).toBeUndefined();
-    });
-
     it("returns undefined, never an empty string, when the region is empty", async () => {
         mockGetLocales.mockReturnValue([mockTestLocale({ regionCode: "" })]);
         const { result } = await renderHook(() => useRegionCode());
@@ -37,14 +31,6 @@ describe("useRegionCode", () => {
         // type says cannot happen — `useRegionCode` still reads index 0, and a
         // native module that returns nothing must not crash the first render.
         mockGetLocales.mockReturnValue([] as unknown as ReturnType<typeof getLocales>);
-        const { result } = await renderHook(() => useRegionCode());
-        expect(result.current).toBeUndefined();
-    });
-
-    it("returns undefined rather than throwing when the underlying call throws", async () => {
-        mockGetLocales.mockImplementation(() => {
-            throw new Error("boom");
-        });
         const { result } = await renderHook(() => useRegionCode());
         expect(result.current).toBeUndefined();
     });

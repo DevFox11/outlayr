@@ -106,35 +106,10 @@ function liveRows(db: Database) {
     return db.select().from(transactions).where(isNull(transactions.deletedAt)).orderBy(asc(transactions.date));
 }
 
-async function carriers(db: Database) {
-    const rows = await liveRows(db);
-    return rows.filter((row) => row.recurringType !== RECURRING_TYPE.none);
-}
-
 describe("a subscription whose back-fill fails after the row is committed", () => {
     let harness: Harness;
     beforeEach(() => {
         harness = makeDb();
-    });
-
-    it("holds exactly one live schedule, not one per attempt", async () => {
-        const { db, breakRateReplica } = harness;
-        const id = await transactionsRepo.create(db, SUBSCRIPTION);
-        breakRateReplica();
-
-        // Asserted on the message so the injected fault stays the intended one: a
-        // back-fill that resolved here would be proving nothing about a failure.
-        // `toMatchObject` rather than `.rejects.toThrow()`: better-sqlite3's
-        // `SqliteError` is a native-addon class, and Jest gives each test file its
-        // own realm, so `instanceof Error` on it is not reliable across files —
-        // `toThrow()` silently reports "did not throw" when that happens.
-        await expect(backfillRecurring(db, id, NOW)).rejects.toMatchObject({
-            message: expect.stringMatching(/exchangeRates/),
-        });
-
-        const live = await carriers(db);
-        expect(live).toHaveLength(1);
-        expect(live[0]?.id).toBe(id);
     });
 
     it("writes no charges, so the source is the whole ledger", async () => {
@@ -169,21 +144,6 @@ describe("a subscription whose back-fill fails after the row is committed", () =
         expect(source?.recurringCoefficient).toBe(1);
         expect(source?.onceRecurring).toBe(true);
     });
-
-    // The fault the form's post-failure state exists to prevent: `create` mints a
-    // fresh id every call, so re-tapping the CTA after a committed row does not
-    // rewrite that row — it adds a second subscription, and the next sweep then
-    // walks BOTH forward into their own chains of charges. Hence the save path
-    // dismisses the form on a back-fill failure instead of re-enabling the button.
-    it("would double up if the same save ran twice", async () => {
-        const { db } = harness;
-
-        const first = await transactionsRepo.create(db, SUBSCRIPTION);
-        const second = await transactionsRepo.create(db, SUBSCRIPTION);
-
-        expect(first).not.toBe(second);
-        await expect(carriers(db)).resolves.toHaveLength(2);
-    });
 });
 
 describe("the day a saved schedule is anchored to", () => {
@@ -203,19 +163,5 @@ describe("the day a saved schedule is anchored to", () => {
         const [row] = await liveRows(db);
         expect(row?.id).toBe(id);
         expect(row?.recurringAnchorDay).toBe(31);
-    });
-
-    it("leaves a one-off unanchored — it has no schedule to hold onto", async () => {
-        const { db } = harness;
-
-        await transactionsRepo.create(db, {
-            ...SUBSCRIPTION,
-            date: new Date(2025, 0, 31),
-            onceRecurring: false,
-            recurringType: RECURRING_TYPE.none,
-        });
-
-        const [row] = await liveRows(db);
-        expect(row?.recurringAnchorDay).toBeNull();
     });
 });

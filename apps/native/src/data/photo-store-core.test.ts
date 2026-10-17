@@ -152,16 +152,8 @@ class FakeFiles implements PhotoFiles {
 }
 
 describe("photoFileName", () => {
-    it("takes the last path segment", () => {
-        expect(photoFileName(`${DIRECTORY}/abc.jpg`)).toBe("abc.jpg");
-    });
-
     it("drops a query string", () => {
         expect(photoFileName("file:///tmp/abc.jpg?width=100")).toBe("abc.jpg");
-    });
-
-    it("is empty for a uri with no final segment", () => {
-        expect(photoFileName("file:///tmp/")).toBe("");
     });
 });
 
@@ -172,20 +164,12 @@ describe("photoUriFor", () => {
 });
 
 describe("photoExtension", () => {
-    it("lowercases what it finds", () => {
-        expect(photoExtension("PHOTO.JPEG")).toBe(".jpeg");
-    });
-
     it("falls back when there is no extension", () => {
         expect(photoExtension("photo")).toBe(".jpg");
     });
 
     it("falls back when a dotted name has no plausible extension", () => {
         expect(photoExtension("2026.07.29-groceries")).toBe(".jpg");
-    });
-
-    it("ignores a leading dot", () => {
-        expect(photoExtension(".hidden")).toBe(".jpg");
     });
 });
 

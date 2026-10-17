@@ -13,10 +13,6 @@ const INPUT: DayCardInput = {
 };
 
 describe("layoutDayCard", () => {
-    it("is as wide as the card", () => {
-        expect(layoutDayCard(INPUT).width).toBe(DAY_CARD_WIDTH);
-    });
-
     it("grows by a fixed height per transaction", () => {
         const [row] = INPUT.rows;
         expect(row).toBeTruthy();
@@ -59,20 +55,6 @@ describe("layoutDayCard", () => {
         expect(printed.indexOf("Bakery") < printed.indexOf("Coffee")).toBeTruthy();
         expect(printed.includes("9:30 am")).toBeTruthy();
         expect(printed.includes("-$30.00")).toBeTruthy();
-    });
-
-    it("signs the card", () => {
-        expect(layoutDayCard(INPUT).texts.some((text) => text.text === "OUTLAYR")).toBeTruthy();
-    });
-
-    it("draws a rule under the header and above the signature", () => {
-        expect(layoutDayCard(INPUT).rules.length >= 2).toBeTruthy();
-    });
-
-    it("still lays out a day with no rows", () => {
-        const layout = layoutDayCard({ ...INPUT, rows: [] });
-        expect(layout.height > 0).toBeTruthy();
-        expect(layout.texts.length > 0).toBeTruthy();
     });
 
     it("truncates a note long enough to collide with its amount", () => {

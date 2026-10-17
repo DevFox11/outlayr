@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { render, waitFor } from "@testing-library/react-native";
-import { Component } from "react";
-import type { ReactNode } from "react";
 import { Text } from "react-native";
 
 import { AppSettingsProvider } from "@/contexts/display-settings-context";
@@ -53,27 +51,6 @@ function ProbeA() {
 function ProbeB() {
     captured.b = useCsvImportContext();
     return <Text testID="probe-b">{String(captured.b.running)}</Text>;
-}
-
-function OutsideProbe() {
-    useCsvImportContext();
-    return null;
-}
-
-class CatchBoundary extends Component<{ children: ReactNode; onError: (error: Error) => void }, { hasError: boolean }> {
-    state = { hasError: false };
-
-    static getDerivedStateFromError() {
-        return { hasError: true };
-    }
-
-    componentDidCatch(error: Error) {
-        this.props.onError(error);
-    }
-
-    render() {
-        return this.state.hasError ? null : this.props.children;
-    }
 }
 
 describe("csvImportProvider", () => {
@@ -146,21 +123,5 @@ describe("csvImportProvider", () => {
 
         expect(importDraftStore.getSnapshot().flow.resolution).toBe(resolutionBefore);
         expect(captured.a?.outcome).toBeNull();
-    });
-
-    it("throws when consumed outside CsvImportProvider instead of silently returning undefined", async () => {
-        const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
-        const caught: Error[] = [];
-
-        render(
-            <CatchBoundary onError={(error) => caught.push(error)}>
-                <OutsideProbe />
-            </CatchBoundary>
-        );
-
-        await waitFor(() => expect(caught).toHaveLength(1));
-        expect(caught[0].message).toBe("useCsvImportContext must be used within CsvImportProvider");
-
-        consoleError.mockRestore();
     });
 });

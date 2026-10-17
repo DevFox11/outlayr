@@ -79,10 +79,4 @@ describe("stepWhen", () => {
 
         expect(onPick).toHaveBeenCalledTimes(1);
     });
-
-    it("labels the picker with the host's word where it has one", async () => {
-        await render(<StepWhen {...baseProps} pickLabel="Earlier" />);
-
-        expect(screen.getByRole("button", { name: "Earlier" })).toBeTruthy();
-    });
 });

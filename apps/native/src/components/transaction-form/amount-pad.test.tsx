@@ -85,18 +85,6 @@ describe("transactionFormAmountPad", () => {
         expect(pad?.props.showDisplay).toBe(false);
     });
 
-    it("forwards the entry state to the keypad", async () => {
-        const onChange = jest.fn();
-        const { toJSON } = await render(
-            <TransactionFormAmountPad {...BASE} code="JPY" minorUnits={0} onChange={onChange} value="1234" />
-        );
-        const pad = findByType(toJSON() as JsonNode, "AmountNumpad");
-        expect(pad?.props.value).toBe("1234");
-        expect(pad?.props.minorUnits).toBe(0);
-        expect(pad?.props.code).toBe("JPY");
-        expect(pad?.props.onChange).toBe(onChange);
-    });
-
     // Docked, the pad has no sheet chrome to say what it is entering, and the
     // transfer shows three of them: what is sent, what arrives and the fee.
     it("names what it is entering", async () => {
@@ -121,16 +109,6 @@ describe("transactionFormAmountPad", () => {
         await render(<TransactionFormAmountPad {...BASE} code="VES" label="Arrives" />);
 
         expect(screen.queryByLabelText("transaction.amount.changeCurrency")).toBeNull();
-    });
-
-    // The sentence directly above already states the amount, so naming the field
-    // again is the one redundant word on the surface.
-    it("drops the field name once the code is a control", async () => {
-        const { toJSON } = await render(<TransactionFormAmountPad {...BASE} onCodePress={() => {}} />);
-        const rendered = texts(toJSON() as JsonNode);
-
-        expect(rendered).not.toStrictEqual(expect.arrayContaining(["Amount"]));
-        expect(rendered).toStrictEqual(expect.arrayContaining(["USD"]));
     });
 
     it("names the field again at accessibility text sizes", async () => {

@@ -4,13 +4,7 @@ import { EN } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";
 
-import {
-    accountLabel,
-    accountRowValue,
-    isSignInCancellation,
-    signInFailureDetail,
-    signInFailureMessage,
-} from "./account";
+import { accountLabel, accountRowValue, isSignInCancellation, signInFailureMessage } from "./account";
 
 const t: TranslateFn = (key, params) => translate(key, { catalog: EN, fallback: EN, params });
 
@@ -80,11 +74,6 @@ describe("sign-in failure message", () => {
         const shown = signInFailureMessage({ message: raw }, t);
         expect(shown).not.toBe(raw);
         expect(shown).not.toMatch(/Exception|\.swift|at Expo/);
-    });
-
-    it("keeps the provider's wording available for a log line", () => {
-        expect(signInFailureDetail({ message: "Account already linked" })).toBe("Account already linked");
-        expect(signInFailureDetail({})).toBeNull();
     });
 
     it("never renders an empty or undefined string", () => {

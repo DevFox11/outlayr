@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import { testMaterialColors as mockTestMaterialColors } from "@/theme/test-colors";
 
-import { ChoiceRow, LinkRow, ToggleRow } from "./list-row";
+import { ChoiceRow, ToggleRow } from "./list-row";
 
 // Compose views have no jest renderer. These stand-ins act like the real
 // controls: each runs its own handler, if the row gave it one, when tapped.
@@ -41,12 +41,6 @@ jest.mock<typeof import("@/theme/use-material-colors")>("@/theme/use-material-co
 }));
 
 describe("list rows on Android", () => {
-    it("puts a link row's value under its title", async () => {
-        await render(<LinkRow icon="Currency" onPress={jest.fn()} title="Currency" value="USD" />);
-
-        expect(screen.getByRole("button")).toHaveTextContent("CurrencyUSD");
-    });
-
     it("toggles from anywhere on the row, and announces itself as the switch", async () => {
         const onValueChange = jest.fn();
         await render(<ToggleRow icon="BadgeCent" onValueChange={onValueChange} title="Show cents" value={false} />);

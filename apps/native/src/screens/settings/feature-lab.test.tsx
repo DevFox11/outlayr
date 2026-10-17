@@ -46,13 +46,4 @@ describe("featureLab — grounded lookup row", () => {
 
         expect(mockSetBoolSetting).toHaveBeenCalledWith(expect.anything(), "groundedLookup", true);
     });
-
-    it("turns it back off from on", async () => {
-        mockBool.mockImplementation((key: string) => key === "groundedLookup");
-        const { getByLabelText } = await render(<FeatureLab />);
-
-        fireEvent(getByLabelText("settings.featureLab.groundedLookup"), "valueChange", false);
-
-        expect(mockSetBoolSetting).toHaveBeenCalledWith(expect.anything(), "groundedLookup", false);
-    });
 });

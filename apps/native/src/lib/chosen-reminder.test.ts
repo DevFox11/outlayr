@@ -46,15 +46,6 @@ describe("armChosenReminder", () => {
         await expect(getMeta(db, META_KEYS.reminderAsked)).resolves.toBe("true");
     });
 
-    it("has nothing to ask once the switch is already on", async () => {
-        await setBoolSetting(db, "showNotifications", true);
-
-        await armChosenReminder(db);
-
-        expect(mockPermission).not.toHaveBeenCalled();
-        await expect(readBoolSetting(db, "showNotifications")).resolves.toBe(true);
-    });
-
     it("keeps the ask for the next save when the permission read fails", async () => {
         mockPermission.mockResolvedValueOnce("unknown");
 

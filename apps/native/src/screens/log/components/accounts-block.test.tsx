@@ -65,25 +65,6 @@ describe("accountsBlock", () => {
         expect(toJSON()).toBeNull();
     });
 
-    it("lists every account with its balance under the count and the total", async () => {
-        const { getByText } = await render(
-            <AccountsBlock
-                accounts={[account("Zinli"), account("Cash")]}
-                currency="USD"
-                onOpen={noop}
-                onOpenAll={noop}
-                overview={overview([row("Zinli", 3412.4), row("Cash", 220)])}
-                showCents
-            />
-        );
-        getByText("accounts.overview.heading · 2  ›");
-        getByText("$3,632.40");
-        getByText("Zinli");
-        getByText("$3,412.40");
-        getByText("Cash");
-        getByText("$220.00");
-    });
-
     it("covers the total and every balance while amounts are hidden", async () => {
         const { getAllByText, queryByText } = await render(
             <AmountsHiddenContext value>

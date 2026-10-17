@@ -107,6 +107,20 @@ Write code that is **accessible, performant, type-safe, and maintainable**. Focu
 
 ## Testing
 
+Only write a test if it would actually fail when the code is broken in a way that matters. Everything else is slop.
+
+Before writing one, name the bug it catches. If you cannot, skip it. Slop looks like:
+
+- Restating the source: a constant, config value, cron schedule, or copy string asserted equal to what the code already says
+- Testing React, Intl, zod, Convex, or anything TypeScript already enforces
+- Pinning implementation details (internal component types, modifier arrays, mock call counts) instead of what a user or caller sees
+- Smoke tests: renders without crashing, `toBeDefined()`, `toBeTruthy()` and nothing else
+- Regression tests for removed features ("no longer shows X")
+- Duplicates: another test walking the same branch with different numbers
+- Mocks doing the work, so the assertion only checks the mock
+
+What earns a test: money math, dates and time zones, sync and conflict resolution, parsers and imports, auth, data deletion, accessibility contracts, and bugs that actually shipped.
+
 - Write assertions inside `it()` or `test()` blocks
 - Avoid done callbacks in async tests - use async/await instead
 - Don't use `.only` or `.skip` in committed code

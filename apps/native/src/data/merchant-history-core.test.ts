@@ -70,11 +70,6 @@ describe("reading a merchant's category back out of the ledger", () => {
         await expect(remembered("Panaderia La Mejor")).resolves.toBe("food");
     });
 
-    it("matches an unaccented merchant typed with accents", async () => {
-        log("Panaderia La Mejor", "food");
-        await expect(remembered("Panadería La Mejor")).resolves.toBe("food");
-    });
-
     it("does not answer with a category from the other side of the ledger", async () => {
         log("Acme", "salary", { income: true });
         await expect(remembered("Acme", false)).resolves.toBeNull();

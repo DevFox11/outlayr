@@ -82,11 +82,6 @@ describe("standing against the line the date demands", () => {
         expect(progress.standing?.against).toBe(600);
     });
 
-    it("is behind when it does not", () => {
-        const progress = goalProgress(1000, 4000, SPAN);
-        expect(progress.standing?.against).toBe(-1400);
-    });
-
     it("measures from the balance the account already held, not from zero", () => {
         // Opening at 1000 on a 1000 → 4000 line wants 2800 held at three fifths.
         const progress = goalProgress(2800, 4000, { ...SPAN, startAmount: 1000 });

@@ -115,18 +115,6 @@ describe("toTransferLogRow", () => {
     it("is excluded from day totals", () => {
         expect(toTransferLogRow(TRANSFER, ACCOUNTS).excludedFromTotals).toBe(true);
     });
-
-    it("is marked a transfer so the row can be drawn unsigned and in transfer blue", () => {
-        expect(toTransferLogRow(TRANSFER, ACCOUNTS).transferId).toBe("t1");
-    });
-
-    it("reads as an expense so nothing downstream has to learn a third direction", () => {
-        expect(toTransferLogRow(TRANSFER, ACCOUNTS).income).toBe(false);
-    });
-
-    it("keeps an unknown account readable rather than blank", () => {
-        expect(toTransferLogRow(TRANSFER, new Map()).note).toContain("→");
-    });
 });
 
 describe("toAccountTransferRow", () => {
@@ -192,10 +180,5 @@ describe("mergeByRecency", () => {
     it("keeps day order ahead of time order", () => {
         const lateOnOlderDay = { date: new Date(2026, 7, 8, 23), day: new Date(2026, 7, 8), id: "late" };
         expect(mergeByRecency([newer], [lateOnOlderDay]).map((row) => row.id)).toStrictEqual(["y", "late"]);
-    });
-
-    it("returns the other list untouched when one is empty", () => {
-        expect(mergeByRecency([], [newer]).map((row) => row.id)).toStrictEqual(["y"]);
-        expect(mergeByRecency([newer], []).map((row) => row.id)).toStrictEqual(["y"]);
     });
 });

@@ -175,19 +175,6 @@ describe("transactionForm regionCode wiring", () => {
     });
 });
 
-describe("transactionForm groundedLookup wiring", () => {
-    it("passes the groundedLookup setting into useTransactionEnrichment", async () => {
-        const db = dbHolder.current as Database;
-        await render(
-            <Providers>
-                <TransactionForm db={db} mode="create" onDone={() => {}} />
-            </Providers>
-        );
-
-        expect(mockUseTransactionEnrichment).toHaveBeenCalledWith(expect.objectContaining({ groundedLookup: true }));
-    });
-});
-
 describe("transactionForm merchant logo wiring", () => {
     it("passes a remote suggestion's domain into fetchMerchantImage", async () => {
         const db = dbHolder.current as Database;
@@ -209,27 +196,5 @@ describe("transactionForm merchant logo wiring", () => {
         });
 
         expect(mockFetchMerchantImage).toHaveBeenCalledWith(expect.objectContaining({ domain: "example.com" }));
-    });
-
-    it("fetches nothing for a curated suggestion with no domain", async () => {
-        const db = dbHolder.current as Database;
-        await render(
-            <Providers>
-                <TransactionForm db={db} mode="create" onDone={() => {}} />
-            </Providers>
-        );
-
-        await act(async () => {
-            latestOnSuggest()({
-                categoryId: null,
-                domain: null,
-                pendingCategory: null,
-                pendingTagNames: [],
-                source: "curated",
-                tagIds: [],
-            });
-        });
-
-        expect(mockFetchMerchantImage).not.toHaveBeenCalled();
     });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { DEFAULT_LANGUAGE, languageFromTag, languageLabel, resolveLanguage } from "./languages";
+import { DEFAULT_LANGUAGE, languageFromTag, resolveLanguage } from "./languages";
 
 describe("languageFromTag", () => {
     it("matches a bare language code", () => {
@@ -36,16 +36,5 @@ describe("resolveLanguage", () => {
 
     it("falls back to the default when the device speaks an unsupported language", () => {
         expect(resolveLanguage("fr-FR")).toBe(DEFAULT_LANGUAGE);
-    });
-
-    it("falls back to the default when the device tag is unknown", () => {
-        expect(resolveLanguage(null)).toBe(DEFAULT_LANGUAGE);
-    });
-});
-
-describe("languageLabel", () => {
-    it("names each language in that language, so it is legible to its own speakers", () => {
-        expect(languageLabel("en")).toBe("English");
-        expect(languageLabel("es")).toBe("Español");
     });
 });

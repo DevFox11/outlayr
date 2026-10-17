@@ -60,25 +60,6 @@ describe("spendingCalendarEntries", () => {
         expect(result).toStrictEqual([{ date: "2026-08-10", exact: true, value: 42 }]);
     });
 
-    it("omits empty days and returns an empty array when there is no spending", () => {
-        const valuation = { displayCurrency: "USD", rates: buildRateTable([]) };
-
-        expect(
-            spendingCalendarEntries(
-                [
-                    row({ amount: 10, amountUsd: 10, date: at(2026, 8, 8, 12) }),
-                    row({ amount: 20, amountUsd: 20, date: at(2026, 8, 10, 12) }),
-                ],
-                valuation,
-                NOW
-            )
-        ).toStrictEqual([
-            { date: "2026-08-08", exact: true, value: 10 },
-            { date: "2026-08-10", exact: true, value: 20 },
-        ]);
-        expect(spendingCalendarEntries([], valuation, NOW)).toStrictEqual([]);
-    });
-
     it("values mixed currencies at the rate for each row's date", () => {
         const rates = buildRateTable([
             { date: "2026-08-09", quote: "EUR", rate: 0.5 },

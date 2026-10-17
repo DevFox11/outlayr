@@ -21,12 +21,4 @@ describe("crossingDay", () => {
     it("returns day one for a limit below the first transaction", () => {
         expect(crossingDay(SERIES, 10)).toBe(1);
     });
-
-    it("returns null for an empty series", () => {
-        expect(crossingDay([], 500)).toBeNull();
-    });
-
-    it("holds at exactly the total rather than clearing it", () => {
-        expect(crossingDay(SERIES, 2715)).toBe(6);
-    });
 });

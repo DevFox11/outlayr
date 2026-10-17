@@ -6,7 +6,6 @@ import { asc, eq } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { accounts, categories, transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
-import { reminderNotices } from "@/domain/subscription-reminder-copy";
 
 import { setMeta } from "./app-meta-core";
 import { backfillRecurring, occurrenceId } from "./recurrence-backfill";
@@ -76,21 +75,6 @@ describe("reminderCandidates", () => {
         db = makeDb();
     });
 
-    it("names the charge after today once today's notice has passed, never one already taken", async () => {
-        await seedCarrier(db, {
-            date: at(2025, 3, 15, 14, 30),
-            reminderLeadDays: 2,
-        });
-
-        const candidates = await reminderCandidates(db, NOW, NINE_AM);
-
-        expect(candidates).toHaveLength(1);
-        expect(candidates[0]?.localId).toBe("src");
-        expect(candidates[0]?.leadDays).toBe(2);
-        expect(candidates[0]?.landing.getTime()).toBe(at(2025, 7, 15).getTime());
-        expect((candidates[0]?.landing.getTime() ?? 0) > NOW.getTime()).toBeTruthy();
-    });
-
     // Reading the landing off `date` would carry the last charge's clock time onto
     // every future one, so the announced day would drift by hours per hop.
     it("dates the landing from the ledger day, not the last charge's clock time", async () => {
@@ -138,22 +122,6 @@ describe("reminderCandidates", () => {
 
         expect(candidate?.landing.getTime()).toBe(at(2025, 7, 15).getTime());
         expect(candidate?.chargeId).toBe("src");
-    });
-
-    it("carries the copy a notice has to print", async () => {
-        await seedCarrier(db, {
-            amount: 11.99,
-            currency: "EUR",
-            date: at(2025, 3, 15),
-            note: "Spotify",
-            reminderLeadDays: 1,
-        });
-
-        const [candidate] = await reminderCandidates(db, NOW, NINE_AM);
-
-        expect(candidate?.note).toBe("Spotify");
-        expect(candidate?.amount).toBe(11.99);
-        expect(candidate?.currency).toBe("EUR");
     });
 
     it("names the category and the live account, and reads a deleted account as none", async () => {
@@ -321,24 +289,6 @@ describe("pendingReminderPlan", () => {
         await expect(pendingReminderPlan(db, NOW, NINE_AM)).resolves.toStrictEqual([]);
     });
 
-    it("keeps the soonest notices when the cap truncates", async () => {
-        await seedCarrier(db, {
-            date: at(2025, 3, 15),
-            id: "netflix",
-            reminderLeadDays: 2,
-        });
-        await seedCarrier(db, {
-            date: at(2025, 6, 10),
-            id: "gym",
-            recurringType: RECURRING_TYPE.weekly,
-            reminderLeadDays: 1,
-        });
-
-        const arm = await pendingReminderPlan(db, NOW, NINE_AM, 1);
-
-        expect(arm.map((armed) => armed.localId)).toStrictEqual(["gym"]);
-    });
-
     it("writes nothing", async () => {
         await seedCarrier(db, { date: at(2025, 3, 15), reminderLeadDays: 2 });
         const before = await everyRow(db);
@@ -406,30 +356,6 @@ describe("pendingReminderPlan", () => {
         expect(before?.fireAt).toStrictEqual(at(2025, 7, 15, 9, 0));
         expect(after?.fireAt).toStrictEqual(at(2025, 7, 15, 9, 0));
         expect(after?.chargeId).toBe(occurrenceId(after?.localId ?? "", at(2025, 7, 15, 21, 30)));
-    });
-
-    it("folds two charges due this morning into one digest", async () => {
-        await seedCarrier(db, { date: at(2025, 5, 15), id: "netflix", reminderLeadDays: 0 });
-        await seedCarrier(db, { date: at(2025, 5, 15), id: "gym", note: "Gym", reminderLeadDays: 0 });
-
-        const plan = await pendingReminderPlan(db, at(2025, 6, 15, 7, 0), NINE_AM);
-
-        expect(reminderNotices(plan, "en")).toStrictEqual([
-            expect.objectContaining({ fireAt: at(2025, 6, 15, 9, 0), title: "2 charges today" }),
-        ]);
-    });
-
-    it("resolves a row with no currency of its own against the ledger's", async () => {
-        await setMeta(db, "currency", "MXN");
-        await seedCarrier(db, {
-            currency: null,
-            date: at(2025, 3, 15),
-            reminderLeadDays: 2,
-        });
-
-        const [reminder] = await pendingReminderPlan(db, NOW, NINE_AM);
-
-        expect(reminder?.currency).toBe("MXN");
     });
 
     // Two carriers, one truncated away: the surviving request has to keep ITS own

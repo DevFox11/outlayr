@@ -19,11 +19,6 @@ describe("firstAvailableColor", () => {
         expect(firstAvailableColor(used)).toBe(CATEGORY_PALETTE[0]);
     });
 
-    it("wraps back into the palette once every color is used", () => {
-        const used = new Set<string>(CATEGORY_PALETTE);
-        expect(firstAvailableColor(used)).toBe(CATEGORY_PALETTE[used.size % CATEGORY_PALETTE.length]);
-    });
-
     // The old fallback was literal white, which a category tile draws as an
     // invisible wash on paper. Nothing this returns may leave the palette.
     it("never returns a color the palette does not hold", () => {

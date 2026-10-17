@@ -1,17 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
 import { render } from "@testing-library/react-native";
-import { createRef } from "react";
-import type { TextInstance } from "react-native";
 
 import { FontScaleCapContext, Text } from "./text";
 
 describe("text", () => {
-    it("lands ref on the underlying RNText child", async () => {
-        const ref = createRef<TextInstance>();
-        await render(<Text ref={ref}>hello</Text>);
-        expect(ref.current).toBeTruthy();
-    });
-
     it("stops scaling at the cap its surroundings set, unless the caller sets its own", async () => {
         const { getByText } = await render(
             <FontScaleCapContext value={1.35}>

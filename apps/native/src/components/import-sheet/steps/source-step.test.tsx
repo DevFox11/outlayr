@@ -50,12 +50,6 @@ describe("sourceStep", () => {
         mockSetStep.mockClear();
     });
 
-    it("renders the eyebrow with the available-source count", async () => {
-        const { getByText } = await render(<SourceStep />);
-        expect(getByText("import.sourceEyebrow")).toBeTruthy();
-        expect(getByText('import.sourceCount:{"count":1,"total":2}')).toBeTruthy();
-    });
-
     it("selects the source and advances to the file step on tap", async () => {
         const { getByTestId } = await render(<SourceStep />);
 
@@ -75,10 +69,5 @@ describe("sourceStep", () => {
         fireEvent.press(getByTestId("import-source-clipboard"));
         expect(mockDispatch).not.toHaveBeenCalled();
         expect(mockSetStep).not.toHaveBeenCalled();
-    });
-
-    it("renders the device-privacy footnote", async () => {
-        const { getByText } = await render(<SourceStep />);
-        expect(getByText("import.sourceLede")).toBeTruthy();
     });
 });

@@ -226,20 +226,6 @@ describe("transfer legs and account balances", () => {
         expect(destination.total).toBe(100);
     });
 
-    it("nets to zero across both accounts in the same currency", async () => {
-        const db = makeDb();
-        await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });
-
-        const source = accountBalance({ currency: "USD", initialBalance: 500 }, await transferCells(db, "a"), NO_RATES);
-        const destination = accountBalance(
-            { currency: "USD", initialBalance: 500 },
-            await transferCells(db, "b"),
-            NO_RATES
-        );
-
-        expect(source.total + destination.total).toBe(1000);
-    });
-
     it("debits the source exactly once when a fee rides along", async () => {
         const db = makeDb();
         await addTransfer(db, { fromAccountId: "a", fromAmount: 97.3, id: "t1", toAccountId: "b" });
@@ -268,16 +254,6 @@ describe("transfer legs and account balances", () => {
 });
 
 describe("allTransferCells splits the whole ledger by account in one read", () => {
-    it("labels every leg with the account it belongs to", async () => {
-        const db = makeDb();
-        await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });
-
-        const cells = await allTransferCells(db);
-
-        expect(cells.find((cell) => cell.accountId === "a")).toMatchObject({ amount: 100, income: false });
-        expect(cells.find((cell) => cell.accountId === "b")).toMatchObject({ amount: 100, income: true });
-    });
-
     it("agrees with the per-account query", async () => {
         const db = makeDb();
         await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });

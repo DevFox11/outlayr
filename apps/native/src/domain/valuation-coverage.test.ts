@@ -112,8 +112,4 @@ describe("coverageOf", () => {
             pending: 1,
         });
     });
-
-    it("says nothing for an empty window", () => {
-        expect(coverageNote(coverageOf([], "USD", RATES), t)).toBeNull();
-    });
 });

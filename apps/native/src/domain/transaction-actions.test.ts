@@ -32,17 +32,6 @@ describe("transactionRowActions", () => {
         expect(actions.canDelete).toBe(true);
     });
 
-    it("offers Log again on a settled carrier, whose charge did happen", () => {
-        const actions = transactionRowActions({
-            date: at(2025, 5, 15),
-            future: false,
-            now: NOW,
-            recurringType: RECURRING_TYPE.monthly,
-        });
-
-        expect(actions.canLogAgain).toBe(true);
-    });
-
     it("withholds Delete from a carrier Upcoming is projecting forward", () => {
         const actions = transactionRowActions({
             date: at(2025, 5, 15),
@@ -66,17 +55,6 @@ describe("transactionRowActions", () => {
 
         expect(actions.canStopRecurring).toBe(true);
         expect(actions.canDelete).toBe(true);
-    });
-
-    it("withholds Log again from a charge that has not landed yet", () => {
-        const actions = transactionRowActions({
-            date: at(2025, 7, 15),
-            future: true,
-            now: NOW,
-            recurringType: RECURRING_TYPE.monthly,
-        });
-
-        expect(actions.canLogAgain).toBe(false);
     });
 
     it("keeps Delete on an inert row shown under Upcoming", () => {
@@ -131,72 +109,9 @@ describe("logAgainDraft", () => {
         });
     });
 
-    it("copies exactly these fields and no others", () => {
-        expect(Object.keys(logAgainDraft(row)).sort()).toStrictEqual([
-            "amount",
-            "categoryId",
-            "currency",
-            "customColor",
-            "details",
-            "emoji",
-            "icon",
-            "income",
-            "note",
-        ]);
-    });
-
-    it("leaves the schedule and its reminder behind", () => {
-        const copied = Object.keys(logAgainDraft(row));
-
-        for (const field of [
-            "recurringType",
-            "recurringCoefficient",
-            "recurringEndDate",
-            "reminderLeadDays",
-            "onceRecurring",
-        ]) {
-            expect(copied).not.toContain(field);
-        }
-    });
-
-    it("carries no date, so the copy can only land today", () => {
-        expect(Object.keys(logAgainDraft(row))).not.toContain("date");
-    });
-
-    it("carries no photo, whose stored bytes belong to the row it came from", () => {
-        const copied = Object.keys(logAgainDraft(row));
-
-        expect(copied).not.toContain("imageUri");
-        expect(copied).not.toContain("imageColor");
-    });
-
     it("keeps an income row income", () => {
         const earned = { ...row, income: true };
 
         expect(logAgainDraft(earned).income).toBe(true);
-    });
-
-    it("carries an absent note, category and detail through as they are", () => {
-        const bare = {
-            ...row,
-            categoryId: null,
-            currency: null,
-            customColor: null,
-            details: null,
-            emoji: null,
-            note: "",
-        };
-
-        expect(logAgainDraft(bare)).toStrictEqual({
-            amount: 4.75,
-            categoryId: null,
-            currency: null,
-            customColor: null,
-            details: null,
-            emoji: null,
-            icon: null,
-            income: false,
-            note: "",
-        });
     });
 });

@@ -143,9 +143,4 @@ describe("the cluster a new ledger starts with", () => {
         // catalogue has never heard of reaches a row with no name or symbol to draw.
         expect(seedFavourites("XXX")).toStrictEqual(["USD", "EUR"]);
     });
-
-    it("stays inside the limit, so nothing it seeds is dropped on read", () => {
-        expect(seedFavourites("JPY").length <= FAVOURITE_CURRENCY_LIMIT).toBeTruthy();
-        expect(parseFavourites(serialiseFavourites(seedFavourites("JPY")))).toStrictEqual(["USD", "EUR", "JPY"]);
-    });
 });

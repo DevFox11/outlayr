@@ -198,19 +198,6 @@ describe("pruneStale", () => {
         );
     });
 
-    it("collapses several rows in one month down to that month's newest", async () => {
-        vi.useFakeTimers();
-        vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
-        const t = convexTest(schema, modules);
-        await seedOfficialRate(t, "VES", "2026-01-04");
-        await seedOfficialRate(t, "VES", "2026-01-17");
-        await seedOfficialRate(t, "VES", "2026-01-29");
-
-        await runPruneToCompletion(t);
-
-        await expect(allRateDates(t, "VES")).resolves.toStrictEqual(["2026-01-29"]);
-    });
-
     it("keeps the monthly anchors of non-catalog pairs too", async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date("2026-07-03T12:00:00Z"));
@@ -379,15 +366,6 @@ describe(nextPruneStep, () => {
             cursor: "page-4",
             retries: 0,
         });
-    });
-
-    it("waits between successful batches rather than dispatching back to back", () => {
-        const step = nextPruneStep({ cursor: "page-4", failed: false, isDone: false }, midPass);
-        expect(step?.delayMs).toBeGreaterThan(0);
-    });
-
-    it("ends the pass once the last page is drained", () => {
-        expect(nextPruneStep({ cursor: "page-4", failed: false, isDone: true }, midPass)).toBeNull();
     });
 
     it("a failed batch keeps the pass alive at the same cursor", () => {

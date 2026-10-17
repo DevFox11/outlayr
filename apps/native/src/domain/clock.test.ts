@@ -104,10 +104,6 @@ describe("clock advance rule", () => {
         expect(clockAdvances(1000, 1000)).toBe(false);
     });
 
-    it("refuses a small step backwards, which would flicker listed rows", () => {
-        expect(clockAdvances(1000, 999)).toBe(false);
-    });
-
     it("refuses a regression right up to the tolerance", () => {
         const now = 10 * HOUR_MS;
         expect(clockAdvances(now, now - 60_000)).toBe(false);

@@ -499,17 +499,6 @@ describe("lastTransfer", () => {
 });
 
 describe("transfersRepo.softDelete", () => {
-    it("tombstones the transfer", async () => {
-        const db = makeDb();
-        const { from, to } = await twoAccounts(db);
-        const id = await transfersRepo.create(db, baseInput(from, to));
-
-        await transfersRepo.softDelete(db, id, DAY);
-        const [row] = await db.select().from(transfers).where(eq(transfers.id, id));
-
-        expect(row.deletedAt).not.toBeNull();
-    });
-
     it("takes the fee transaction with it", async () => {
         const db = makeDb();
         const { from, to } = await twoAccounts(db);

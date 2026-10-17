@@ -3,23 +3,6 @@ import { describe, expect, it } from "@jest/globals";
 import { bumpRatesRevision, ratesRevision, subscribeRatesRevision } from "./rates-revision";
 
 describe("rates revision", () => {
-    it("advances on every bump", () => {
-        const before = ratesRevision();
-        bumpRatesRevision();
-        bumpRatesRevision();
-        expect(ratesRevision()).toBe(before + 2);
-    });
-
-    it("notifies a subscriber", () => {
-        let seen = 0;
-        const unsubscribe = subscribeRatesRevision(() => {
-            seen += 1;
-        });
-        bumpRatesRevision();
-        unsubscribe();
-        expect(seen).toBe(1);
-    });
-
     it("stops notifying once unsubscribed", () => {
         let seen = 0;
         const unsubscribe = subscribeRatesRevision(() => {

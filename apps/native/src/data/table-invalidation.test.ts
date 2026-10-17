@@ -40,10 +40,6 @@ describe("table invalidation", () => {
         expect(hits).toBe(1);
     });
 
-    it("is a no-op for a table nobody is watching", () => {
-        expect(() => invalidate("nobody-here")).not.toThrow();
-    });
-
     it("still reaches the later subscriber when an earlier one unsubscribes itself", () => {
         let reached = false;
         let off1 = () => {};

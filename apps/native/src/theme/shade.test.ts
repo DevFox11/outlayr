@@ -69,16 +69,6 @@ describe("withAlpha", () => {
 });
 
 describe("curtainShade", () => {
-    it("mixes halfway to white in light mode", () => {
-        // #000000 halfway to white is #808080 (255 * 0.5 rounds to 128).
-        expect(curtainShade("#000000", false)).toBe("#808080");
-    });
-
-    it("keeps 55% of the channel in dark mode", () => {
-        // 255 * 0.55 = 140.25 -> 140 -> 0x8c
-        expect(curtainShade("#FFFFFF", true)).toBe("#8c8c8c");
-    });
-
     it("always lightens in light mode and darkens in dark mode", () => {
         for (const hex of PALETTE) {
             const light = contrast(curtainShade(hex, false), "#ffffff");
@@ -105,15 +95,6 @@ describe("glyphShade", () => {
                 expect(ratio >= 3.4).toBeTruthy();
             }
         }
-    });
-
-    it("darkens a bright tint that would otherwise vanish on its own wash", () => {
-        // A saturated yellow over a pale yellow wash is the case this exists for.
-        const shaded = glyphShade("#FFC400", false);
-        expect(shaded).not.toBe("#FFC400");
-        expect(
-            contrast(shaded, washOver("#FFC400", false)) > contrast("#FFC400", washOver("#FFC400", false))
-        ).toBeTruthy();
     });
 
     it("leaves a tint that already contrasts untouched", () => {

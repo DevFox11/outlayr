@@ -218,10 +218,6 @@ function fakeTransport(
 }
 
 describe("photoNameFromKey", () => {
-    it("takes the name half the key was minted from", () => {
-        expect(photoNameFromKey(`transaction-photos/${USER}/abc.jpg`)).toBe("abc.jpg");
-    });
-
     it("answers null for something that is not a key", () => {
         expect(photoNameFromKey("abc.jpg")).toBeNull();
         expect(photoNameFromKey("a/")).toBeNull();
@@ -343,21 +339,6 @@ describe("uploadPhotos", () => {
         expect((await uploadPhotos(db, files, transport, NOW)).uploaded).toBe(0);
         expect(bucket.confirmed).toHaveLength(0);
         expect((await readRow(db, "t1")).imageKey).toBeNull();
-    });
-
-    it("stops at the batch size", async () => {
-        const db = makeDb();
-        const seeded: [string, string][] = [];
-        for (let i = 0; i < PHOTO_SYNC_BATCH + 3; i += 1) {
-            seeded.push([`p${i}.jpg`, `BODY${i}`]);
-        }
-        const files = new FakeFiles(DIRECTORY, seeded);
-        const { transport } = fakeTransport();
-        for (let i = 0; i < PHOTO_SYNC_BATCH + 3; i += 1) {
-            await insert(db, `t${i}`, { imageUri: `${DIRECTORY}/p${i}.jpg` });
-        }
-
-        expect((await uploadPhotos(db, files, transport, NOW)).uploaded).toBe(PHOTO_SYNC_BATCH);
     });
 
     it("sends an account logo and records its key", async () => {

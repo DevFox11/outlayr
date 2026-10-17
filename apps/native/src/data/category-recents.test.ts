@@ -60,10 +60,6 @@ beforeEach(() => {
 });
 
 describe("recentCategoryIdsQuery", () => {
-    it("returns nothing on an empty ledger", () => {
-        expect(ids(migratedDatabase(), false)).toStrictEqual([]);
-    });
-
     it("orders by the most recent transaction, newest first", () => {
         const db = migratedDatabase();
         log(db, "rent");
@@ -84,13 +80,6 @@ describe("recentCategoryIdsQuery", () => {
         const db = migratedDatabase();
         log(db, "rent");
         log(db, "groceries", { deleted: true });
-        expect(ids(db, false)).toStrictEqual(["rent"]);
-    });
-
-    it("ignores uncategorised transactions", () => {
-        const db = migratedDatabase();
-        log(db, null);
-        log(db, "rent");
         expect(ids(db, false)).toStrictEqual(["rent"]);
     });
 

@@ -74,38 +74,11 @@ function doneReview(overrides: Partial<ImportReviewResult> = {}): ImportReviewRe
     } as ImportReviewResult;
 }
 
-interface JsonNode {
-    children?: (JsonNode | string)[] | null;
-    props?: Record<string, unknown>;
-}
-
-function classNames(node: JsonNode | JsonNode[] | null): string[] {
-    if (node == null) {
-        return [];
-    }
-    if (Array.isArray(node)) {
-        return node.flatMap(classNames);
-    }
-    const own = node.props?.className;
-    return [
-        ...(typeof own === "string" ? [own] : []),
-        ...(node.children ?? []).flatMap((child) => (typeof child === "string" ? [] : classNames(child))),
-    ];
-}
-
 describe("doneStep", () => {
     it("renders the ink stamp with the committed count", async () => {
         const { getByTestId, getByText } = await render(<DoneStep onDone={jest.fn()} review={doneReview()} />);
         expect(getByTestId("import-done-stamp")).toBeTruthy();
         expect(getByText('import.doneStamp:{"count":12}')).toBeTruthy();
-    });
-
-    it("rotates the stamp slightly with an income-coloured border", async () => {
-        const { getByTestId } = await render(<DoneStep onDone={jest.fn()} review={doneReview()} />);
-        const { style } = getByTestId("import-done-stamp").props;
-        const flat = Array.isArray(style) ? Object.assign({}, ...style.filter(Boolean)) : style;
-        expect(flat.borderWidth).toBe(1.5);
-        expect(flat.transform).toStrictEqual([{ rotate: "-2deg" }]);
     });
 
     it("names the skipped duplicates and the month now on the Log", async () => {
@@ -148,18 +121,5 @@ describe("doneStep", () => {
         const { getByTestId } = await render(<DoneStep onDone={onDone} review={doneReview()} />);
         fireEvent.press(getByTestId("import-done-cta"));
         expect(onDone).toHaveBeenCalledTimes(1);
-    });
-
-    it("centers the stamp block inside an explicit min height, not an inert flex fill", async () => {
-        const { toJSON } = await render(<DoneStep onDone={jest.fn()} review={doneReview()} />);
-        const classes = classNames(toJSON() as unknown as JsonNode);
-        expect(classes.some((c) => /\bmin-h-\d+\b/.test(c) && /\bjustify-center\b/.test(c))).toBe(true);
-        expect(classes.some((c) => /\bflex-1\b/.test(c) && /\bjustify-center\b/.test(c))).toBe(false);
-    });
-
-    it("renders nothing before a commit succeeded", async () => {
-        const review = doneReview({ commit: { phase: "idle" } });
-        const { toJSON } = await render(<DoneStep onDone={jest.fn()} review={review} />);
-        expect(toJSON()).toBeNull();
     });
 });

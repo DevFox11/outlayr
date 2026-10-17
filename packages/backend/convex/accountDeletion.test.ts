@@ -21,8 +21,6 @@ import { authenticatedAs, grantPro, seedAuthUser } from "./test.helpers";
 
 const modules = import.meta.glob("./**/*.ts");
 
-const secret = "a".repeat(43);
-
 /**
  * Relative to the run, not an absolute instant. This fixture is the *unexpired*
  * job — the two tests that exercise expiry opt in with `expiresAt: 0` — so a
@@ -43,10 +41,6 @@ const job: DeletionJob = {
 };
 
 describe("resumable account deletion", () => {
-    it("hashes the raw secret", async () => {
-        await expect(sha256Hex(secret)).resolves.not.toBe(secret);
-    });
-
     it("rejects a Google local receipt bound to another deletion job", async () => {
         const receipt = "receipt-for-job-a";
         const jobA: DeletionJob = {

@@ -36,12 +36,6 @@ describe("useGlobalCurrency", () => {
         await setMeta(db, META_KEYS.currency, "EUR");
     });
 
-    it("reads the stored currency", async () => {
-        const { result } = await renderHook(() => useGlobalCurrency(db));
-
-        expect(result.current).toBe("EUR");
-    });
-
     it("does not re-render its callers when an unrelated setting is written", async () => {
         let renders = 0;
         const { result } = await renderHook(() => {

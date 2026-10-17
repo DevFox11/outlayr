@@ -8,10 +8,6 @@ function row(day: string, amount: number, income = false) {
 }
 
 describe("groupByDay", () => {
-    it("returns no sections for no rows", () => {
-        expect(groupByDay([])).toStrictEqual([]);
-    });
-
     it("collects a day's rows under one section in input order", () => {
         const rows = [row("2026-07-24", 12), row("2026-07-24", 30)];
         const sections = groupByDay(rows);

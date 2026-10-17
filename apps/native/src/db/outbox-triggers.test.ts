@@ -162,14 +162,6 @@ describe("outbox triggers", () => {
         expect(outbox(sqlite)).toHaveLength(5);
     });
 
-    it("never enqueues the onboarding gate migration marker", () => {
-        enableSync(sqlite);
-
-        setMeta(sqlite, META_KEYS.onboardingGateMigrated, "true");
-
-        expect(outbox(sqlite)).toStrictEqual([]);
-    });
-
     it("enqueues only the appMeta keys the allow-list names", () => {
         enableSync(sqlite);
 
@@ -196,14 +188,6 @@ describe("outbox triggers", () => {
         expect(upgrading.prepare("SELECT key FROM appMeta WHERE key = 'showExpenseOrIncomeSign'").all()).toStrictEqual(
             []
         );
-    });
-
-    it("never enqueues the retired display-sign key", () => {
-        enableSync(sqlite);
-
-        setMeta(sqlite, "showExpenseOrIncomeSign", "true");
-
-        expect(outbox(sqlite)).toStrictEqual([]);
     });
 
     it("covers every table the sync layer claims to replicate", () => {

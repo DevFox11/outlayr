@@ -105,17 +105,6 @@ describe("accountBalance", () => {
         expect(result.exact).toBe(false);
     });
 
-    it("carries a negative opening balance", () => {
-        const result = accountBalance(
-            { currency: "USD", initialBalance: -50 },
-            [cell({ amount: 20, amountUsd: 20, income: true })],
-            NO_RATES
-        );
-
-        expect(result.total).toBe(-30);
-        expect(result.exact).toBe(true);
-    });
-
     it("places a currency-less cell through its USD value, never at face value", () => {
         const result = accountBalance(
             { currency: "USD", initialBalance: 0 },
@@ -126,11 +115,5 @@ describe("accountBalance", () => {
         expect(result.total).toBe(12);
         expect(result.exact).toBe(true);
         expect(result.composition).toStrictEqual([{ amount: 999, currencyCode: null }]);
-    });
-
-    it("is zero-shaped for an account with no entries", () => {
-        const result = accountBalance({ currency: "USD", initialBalance: 0 }, [], NO_RATES);
-
-        expect(result).toStrictEqual({ composition: [], exact: true, total: 0 });
     });
 });

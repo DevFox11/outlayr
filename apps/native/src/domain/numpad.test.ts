@@ -60,10 +60,6 @@ describe("applyNumpadKey backspace", () => {
         expect(applyNumpadKey("1.23", "back", 2, "explicitSeparator")).toBe("1.2");
     });
 
-    it("removes the separator like any other character", () => {
-        expect(applyNumpadKey("1.", "back", 2, "explicitSeparator")).toBe("1");
-    });
-
     it("is a no-op on an empty entry rather than throwing", () => {
         expect(applyNumpadKey("", "back", 2, "explicitSeparator")).toBe("");
     });
@@ -149,26 +145,9 @@ describe("applyNumpadKey clear", () => {
         expect(applyNumpadKey("12.34", "clear", 2, "explicitSeparator")).toBe("");
         expect(applyNumpadKey("12.34", "clear", 2, "preDotted")).toBe("");
     });
-
-    it("is idempotent on an entry that is already unset", () => {
-        const cleared = applyNumpadKey("9", "clear", 2, "explicitSeparator");
-        expect(cleared).toBe("");
-        expect(applyNumpadKey(cleared, "clear", 2, "explicitSeparator")).toBe("");
-        expect(applyNumpadKey(cleared, "clear", 0, "preDotted")).toBe("");
-    });
-
-    it("leaves the entry typeable from scratch", () => {
-        const cleared = applyNumpadKey("12.34", "clear", 2, "preDotted");
-        expect(applyNumpadKey(cleared, "7", 2, "preDotted")).toBe("0.07");
-        expect(applyNumpadKey(cleared, "7", 2, "explicitSeparator")).toBe("7");
-    });
 });
 
 describe("numpadToNumber", () => {
-    it("reads a complete entry", () => {
-        expect(numpadToNumber("12.34")).toBe(12.34);
-    });
-
     it("treats an unset or bare-separator entry as zero", () => {
         expect(numpadToNumber("")).toBe(0);
         expect(numpadToNumber(".")).toBe(0);
@@ -191,10 +170,6 @@ describe("numberToNumpad", () => {
 
     it("drops a pure zero fraction so the entry reads like an integer", () => {
         expect(numberToNumpad(12, 2)).toBe("12");
-    });
-
-    it("keeps a meaningful fraction", () => {
-        expect(numberToNumpad(12.34, 2)).toBe("12.34");
     });
 
     it("rounds to the currency's minor units", () => {

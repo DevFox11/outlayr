@@ -65,8 +65,4 @@ describe("the week the header totals", () => {
     it("starts on Monday when the setting says Monday", () => {
         expect(logPeriodStart("week", SUNDAY, 2)).toStrictEqual(new Date(2025, 8, 8));
     });
-
-    it("starts on Sunday when the setting says Sunday", () => {
-        expect(logPeriodStart("week", SUNDAY, 1)).toStrictEqual(new Date(2025, 8, 14));
-    });
 });

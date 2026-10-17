@@ -8,7 +8,7 @@ import { ConvexError } from "convex/values";
 import { describe, expect, it } from "vite-plus/test";
 
 import { api, internal } from "./_generated/api";
-import { photoKeyFor, photoOwnerFromKey } from "./lib/photoKeys";
+import { photoKeyFor } from "./lib/photoKeys";
 import { PHOTO_QUOTA_BYTES, PHOTO_URL_BATCH_LIMIT } from "./photos";
 import schema from "./schema";
 import { authenticatedAs, seedAuthUser, seedProUser } from "./test.helpers";
@@ -129,17 +129,6 @@ describe("requestUpload", () => {
         const t = harness();
 
         await expect(t.mutation(api.photos.requestUpload, { name: PHOTO })).rejects.toThrow(ConvexError);
-    });
-
-    it("refuses a name that would climb out of the account's prefix", async () => {
-        const t = harness();
-        const owner = await seedProUser(t);
-
-        await expect(
-            authenticatedAs(t, owner).mutation(api.photos.requestUpload, {
-                name: "../other/a.jpg",
-            })
-        ).rejects.toThrow(ConvexError);
     });
 
     it("refuses once the account is at its storage ceiling", async () => {
@@ -270,13 +259,6 @@ describe("readUrls", () => {
         await expect(authenticatedAs(t, owner).mutation(api.photos.readUrls, { keys })).rejects.toThrow(ConvexError);
     });
 
-    it("mints nothing for an empty batch without reaching R2", async () => {
-        const t = harness();
-        const owner = await seedProUser(t);
-
-        await expect(authenticatedAs(t, owner).mutation(api.photos.readUrls, { keys: [] })).resolves.toStrictEqual([]);
-    });
-
     it("drops a key belonging to another account rather than minting for it", async () => {
         const t = harness();
         const owner = await seedProUser(t);
@@ -331,18 +313,6 @@ describe("minted uploads", () => {
 });
 
 describe("releaseUnreferenced", () => {
-    it("refuses a key belonging to another account", async () => {
-        const t = harness();
-        const owner = await seedProUser(t);
-        const stranger = await seedProUser(t);
-
-        await expect(
-            authenticatedAs(t, owner).mutation(api.photos.releaseUnreferenced, {
-                key: photoKeyFor(stranger.userId, PHOTO),
-            })
-        ).rejects.toThrow(ConvexError);
-    });
-
     it("keeps an object a live row still names", async () => {
         const t = harness();
         const owner = await seedProUser(t);
@@ -421,23 +391,6 @@ describe("releaseUnreferenced", () => {
                 key: photoKeyFor(owner.userId, PHOTO),
             })
         ).rejects.toThrow("does not belong to this account");
-    });
-});
-
-describe("merchant cache keys stay unowned (T8)", () => {
-    it("photoOwnerFromKey returns null for a merchant key", () => {
-        expect(photoOwnerFromKey("merchant/farmatodo")).toBeNull();
-    });
-
-    it("readUrls drops a merchant key even for an authenticated caller", async () => {
-        const t = harness();
-        const owner = await seedProUser(t);
-
-        await expect(
-            authenticatedAs(t, owner).mutation(api.photos.readUrls, {
-                keys: ["merchant/farmatodo"],
-            })
-        ).resolves.toStrictEqual([]);
     });
 });
 

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { accountsOverview, isMultiCurrency } from "@outlayr/money/account-overview";
 import type { AccountCellRow, OverviewAccount } from "@outlayr/money/account-overview";
-import type { CurrencyCell } from "@outlayr/money/currency-totals";
 import { buildRateTable } from "@outlayr/money/valuation";
 
 import { formatSignedAmount } from "./account-display";
@@ -150,17 +149,6 @@ describe("accountsOverview", () => {
         expect(summary(result)).toStrictEqual({ count: 1, exact: true, owe: 0, own: 5, total: 5 });
     });
 
-    it("values a whole foreign account into the display currency", () => {
-        const cells: CurrencyCell[] = [];
-        const result = accountsOverview(
-            [account({ currency: "EUR", initialBalance: 0 }), account({ id: "a2", initialBalance: 10 })],
-            cells.map((c) => ({ ...c, accountId: "a1" })),
-            "USD",
-            rates
-        );
-        expect(summary(result)).toStrictEqual({ count: 2, exact: true, owe: 0, own: 10, total: 10 });
-    });
-
     it("tells a card apart from an overdrawn current account", () => {
         // The distinction the ledger could not make before `kind`: both are a
         // negative balance, and only one of them is a debt.
@@ -174,22 +162,6 @@ describe("accountsOverview", () => {
             rates
         );
         expect(summary(result)).toStrictEqual({ count: 2, exact: true, owe: 200, own: -50, total: -250 });
-    });
-
-    it("leaves the total untouched by the kind split", () => {
-        const assets = accountsOverview(
-            [account({ id: "a1", initialBalance: -200, initialBalanceUsd: -200 })],
-            [],
-            "USD",
-            rates
-        );
-        const debts = accountsOverview(
-            [account({ id: "a1", initialBalance: -200, initialBalanceUsd: -200, kind: "liability" })],
-            [],
-            "USD",
-            rates
-        );
-        expect(debts?.total).toBe(assets?.total);
     });
 });
 

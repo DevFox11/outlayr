@@ -74,44 +74,10 @@ const renderWith = async (template: string) => {
  * in force. Reading the catalog would make both tests restate the same fact.
  */
 const EN = "{kind} {amount} at {merchant} for {category} from {account} {when}.";
-const ES = "{kind} {amount} en {merchant} para {category} con {account} {when}.";
 
 describe("transactionSentence", () => {
-    it("reads as an English sentence under the English template", async () => {
-        await expect(renderWith(EN)).resolves.toStrictEqual([
-            "Spent",
-            "$10.00",
-            "USD",
-            "at",
-            "Netflix",
-            "for",
-            "Streaming",
-            "from",
-            "Chase",
-            "today",
-            ".",
-        ]);
-    });
-
-    it("reads as a Spanish sentence under the Spanish template", async () => {
-        await expect(renderWith(ES)).resolves.toStrictEqual([
-            "Spent",
-            "$10.00",
-            "USD",
-            "en",
-            "Netflix",
-            "para",
-            "Streaming",
-            "con",
-            "Chase",
-            "today",
-            ".",
-        ]);
-    });
-
-    // Nothing about the component tree changed between those two renders. If this
-    // ever fails, layout has stopped following the template and gone back to
-    // following the code.
+    // If this ever fails, layout has stopped following the template and gone back
+    // to following the code.
     it("puts the account before the category when a language asks for it", async () => {
         await expect(
             renderWith("{kind} {account} pagó {amount} por {category} en {merchant} {when}.")

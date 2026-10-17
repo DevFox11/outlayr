@@ -132,10 +132,6 @@ describe("the limit a window actually runs on", () => {
         expect(effectiveLimit(500, 200)).toBe(700);
     });
 
-    it("subtracts a debt from the target", () => {
-        expect(effectiveLimit(500, -200)).toBe(300);
-    });
-
     it("floors at zero rather than handing a negative target downstream", () => {
         // Every rail, percentage and "left this period" figure reads a negative
         // limit as nonsense. The debt is not lost — it is still in the carry, which

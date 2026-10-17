@@ -9,14 +9,6 @@ describe("openStoreReview on Android", () => {
         jest.restoreAllMocks();
     });
 
-    it("opens the listing in the Play Store app", async () => {
-        const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
-
-        await openStoreReview();
-
-        expect(openURL.mock.calls).toStrictEqual([["market://details?id=com.tryoutlayr.app"]]);
-    });
-
     it("falls back to the web listing when nothing takes market://", async () => {
         const openURL = jest
             .spyOn(Linking, "openURL")

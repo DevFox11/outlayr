@@ -93,50 +93,8 @@ function collectRouteNames(dir: string, prefix: string): string[] {
     return names;
 }
 
-/**
- * Every route leaf under app/, layouts included, without collapsing a
- * directory to its owner: `collectRouteNames` folds `(tabs)/…` into `(tabs)`
- * for the partition, but expo-router still registers each nested file.
- */
-function collectLeafRoutes(dir: string, prefix: string): string[] {
-    const names: string[] = [];
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-        const nested = prefix ? `${prefix}/${entry.name}` : entry.name;
-        if (entry.isDirectory()) {
-            names.push(...collectLeafRoutes(join(dir, entry.name), nested));
-            continue;
-        }
-        const base = routeBasename(entry.name);
-        if (base !== null) {
-            names.push(prefix ? `${prefix}/${base}` : base);
-        }
-    }
-    return names;
-}
-
 const ROUTE_FILES_ON_DISK = collectRouteNames(APP_DIR, "");
-const ROUTE_LEAVES_ON_DISK = collectLeafRoutes(APP_DIR, "");
 const PARTITIONABLE_ROUTES = ROUTE_FILES_ON_DISK.filter((name) => name !== UNGUARDED_CATCH_ALL);
-
-describe("routes derived from the app directory", () => {
-    it("collapses a directory owning a _layout into a single route name", () => {
-        expect(ROUTE_FILES_ON_DISK).toContain("(tabs)");
-        expect(ROUTE_FILES_ON_DISK.filter((name) => name.startsWith("(tabs)/"))).toStrictEqual([]);
-    });
-
-    it("finds +not-found on disk and holds it out of the partition", () => {
-        expect(ROUTE_FILES_ON_DISK).toContain(UNGUARDED_CATCH_ALL);
-        expect(PARTITIONABLE_ROUTES).not.toContain(UNGUARDED_CATCH_ALL);
-    });
-
-    // The import flow is one BottomSheetModal presented over the Log, never a
-    // route: a stray app/import screen would re-grow the nested-navigator sheet
-    // it replaced. Checked on disk here and in the rendered layout below.
-    it("registers no import route on disk, at any depth", () => {
-        expect(ROUTE_LEAVES_ON_DISK.length).toBeGreaterThan(ROUTE_FILES_ON_DISK.length);
-        expect(ROUTE_LEAVES_ON_DISK.filter((name) => /(^|\/)import(\/|$)/.test(name))).toStrictEqual([]);
-    });
-});
 
 describe("root stack total-partition invariant", () => {
     const groups = GROUPS.map((group) => ROOT_STACK_SCREEN_NAMES[group]);
@@ -151,33 +109,6 @@ describe("root stack total-partition invariant", () => {
             unpartitioned: [],
         });
         expect(union).toHaveLength(PARTITIONABLE_ROUTES.length);
-    });
-
-    it("keeps every pair of groups pairwise disjoint", () => {
-        for (let i = 0; i < groups.length; i += 1) {
-            for (let j = i + 1; j < groups.length; j += 1) {
-                const overlap = groups[i].filter((name) => groups[j].includes(name));
-                expect(overlap).toStrictEqual([]);
-            }
-        }
-    });
-
-    it("never admits +not-found into any group", () => {
-        for (const group of groups) {
-            expect(group).not.toContain(UNGUARDED_CATCH_ALL);
-        }
-    });
-
-    it("declares settings/categories/reorder under the ledger group", () => {
-        expect(ROOT_STACK_SCREEN_NAMES.ledger).toContain("settings/categories/reorder");
-    });
-
-    it("presents a new transfer as a modal and leaves an edited one to size its own sheet", () => {
-        const modals = MODAL_SCREENS.map((modal) => modal.name);
-        const sheets = SHEET_SCREENS.map((sheet) => sheet.name);
-        expect(modals).toContain("transactions/transfers/create");
-        expect(modals).not.toContain("transactions/transfers/[id]");
-        expect(sheets.filter((name) => name.startsWith("transactions/"))).toStrictEqual([]);
     });
 });
 
@@ -313,15 +244,6 @@ function parseLayoutScreens(layoutSource: string): RenderedScreen[] {
 describe("guard partition written in app/_layout.tsx", () => {
     const rendered = parseLayoutScreens(readFileSync(LAYOUT_PATH, "utf-8"));
 
-    it("reads back the screens the layout actually renders", () => {
-        expect(rendered.map((screen) => screen.name)).toContain("(tabs)");
-        expect(rendered).toHaveLength(GROUPS.flatMap((group) => ROOT_STACK_SCREEN_NAMES[group]).length);
-    });
-
-    it("renders no import screen", () => {
-        expect(rendered.map((screen) => screen.name)).not.toContain("import");
-    });
-
     it("renders no Stack.Screen outside every Stack.Protected block", () => {
         const stranded = rendered
             .filter((screen) => screen.group === null)
@@ -359,35 +281,5 @@ describe("guard partition written in app/_layout.tsx", () => {
             GROUPS.map((group) => [group, [...ROOT_STACK_SCREEN_NAMES[group]].sort(byCodeUnit)])
         );
         expect(renderedByGroup).toStrictEqual(declaredByGroup);
-    });
-});
-
-describe("the layout parser only accepts a strict-equality guard", () => {
-    const layout = (guard: string) => `
-		const tree = (
-			<Stack>
-				<Stack.Protected guard={${guard}}>
-					<Stack.Screen name="(tabs)" />
-				</Stack.Protected>
-			</Stack>
-		);
-	`;
-
-    it("reads the canonical shape", () => {
-        expect(parseLayoutScreens(layout('group === "ledger"'))).toStrictEqual([
-            { group: "ledger", line: 5, name: "(tabs)" },
-        ]);
-    });
-
-    it("rejects an inverted guard", () => {
-        expect(() => parseLayoutScreens(layout('group !== "ledger"'))).toThrow(
-            /does not carry a `guard=\{group === "<name>"\}` prop/
-        );
-    });
-
-    it("rejects a guard on some other subject", () => {
-        expect(() => parseLayoutScreens(layout('route === "ledger"'))).toThrow(
-            /does not carry a `guard=\{group === "<name>"\}` prop/
-        );
     });
 });

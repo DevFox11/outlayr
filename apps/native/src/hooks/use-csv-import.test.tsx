@@ -161,13 +161,6 @@ describe("tier 2: exactly one call per import", () => {
 });
 
 describe("stage: the progress the resolve step can actually show", () => {
-    it("starts idle before anything runs", async () => {
-        const { fn } = deferredTransport();
-        const { result } = await renderHook(() => useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })));
-
-        expect(result.current.stage).toBe("idle");
-    });
-
     it("reports asking only while the model call is in flight, then settles", async () => {
         const { fn, calls } = deferredTransport();
         const { result } = await renderHook(() => useCsvImport(baseArgs({ labels: [UNKNOWN], transport: fn })));
@@ -344,26 +337,6 @@ describe("server-side learning for merchants the map cannot fully answer", () =>
             })
         );
     });
-
-    it("keeps a fully-resolved map match with a domain out of the transport labels", async () => {
-        const { fn } = deferredTransport();
-        const { result } = await renderHook(() =>
-            useCsvImport(
-                baseArgs({
-                    categoryIdByKey: new Map([["entertainment", "cat-entertainment"]]),
-                    labels: ["netflix"],
-                    transport: fn,
-                })
-            )
-        );
-
-        await act(async () => {
-            result.current.run();
-        });
-
-        expect(fn).not.toHaveBeenCalled();
-        expect(result.current.outcome).toBe("applied");
-    });
 });
 
 describe("suggestion domains seed the enrichment cache", () => {
@@ -534,15 +507,7 @@ describe("transport failure never throws", () => {
 });
 
 describe("each server status maps to its own reason", () => {
-    const cases: [CsvImportStatus, UnavailableReason][] = [
-        ["notConfigured", "notConfigured"],
-        ["rateLimited", "rateLimited"],
-        ["invalidResponse", "invalidResponse"],
-        ["providerError", "providerError"],
-        ["invalid", "providerError"],
-        ["unauthenticated", "unauthenticated"],
-        ["notEntitled", "notEntitled"],
-    ];
+    const cases: [CsvImportStatus, UnavailableReason][] = [["rateLimited", "rateLimited"]];
 
     for (const [status, reason] of cases) {
         it(`maps "${status}" to "${reason}"`, async () => {

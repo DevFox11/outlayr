@@ -2,17 +2,13 @@ import { afterEach, describe, expect, it } from "@jest/globals";
 
 import { EN, ES } from "./catalog";
 import { DEFAULT_LANGUAGE } from "./languages";
-import { runtimeLanguage, setRuntimeLanguage, translateNow } from "./runtime";
+import { setRuntimeLanguage, translateNow } from "./runtime";
 
 afterEach(() => {
     setRuntimeLanguage(DEFAULT_LANGUAGE);
 });
 
 describe("translateNow", () => {
-    it("starts on the default language", () => {
-        expect(runtimeLanguage()).toBe(DEFAULT_LANGUAGE);
-    });
-
     it("renders English before the provider has set anything", () => {
         expect(translateNow("common.cancel")).toBe(EN["common.cancel"]);
     });

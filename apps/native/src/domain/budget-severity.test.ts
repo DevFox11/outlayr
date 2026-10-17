@@ -52,14 +52,4 @@ describe("compareBudgetSeverity", () => {
         const deeper = budget(1000, 1100, "deeper");
         expect(rank([healthy, zero, deeper])).toStrictEqual(["deeper", "zero-limit-spent", "healthy"]);
     });
-
-    it("sorts a mixed list worst-first in one pass", () => {
-        const list = [
-            budget(500, 100, "under-20"),
-            budget(300, 600, "over-300"),
-            budget(900, 800, "under-89"),
-            budget(1000, 1050, "over-50"),
-        ];
-        expect(rank(list)).toStrictEqual(["over-300", "over-50", "under-89", "under-20"]);
-    });
 });

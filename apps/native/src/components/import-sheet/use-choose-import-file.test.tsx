@@ -50,22 +50,6 @@ describe("useChooseImportFile", () => {
         await findByText("choose");
     });
 
-    it("reports loading while the picker is open", async () => {
-        let resolvePick!: (value: null) => void;
-        mockPickCsvFile.mockReturnValue(
-            new Promise((resolve) => {
-                resolvePick = resolve;
-            })
-        );
-        const { getByText, findByText } = await render(<Harness />);
-
-        fireEvent.press(getByText("choose"));
-        await findByText("picking");
-
-        resolvePick(null);
-        await findByText("choose");
-    });
-
     it("leaves the draft untouched when the user cancels the picker", async () => {
         mockPickCsvFile.mockResolvedValue(null);
         const { getByText } = await render(<Harness />);

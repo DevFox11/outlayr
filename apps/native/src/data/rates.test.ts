@@ -18,18 +18,10 @@ describe("chunkRows", () => {
     it("returns nothing for an empty input", () => {
         expect(chunkRows([], 10)).toStrictEqual([]);
     });
-
-    it("keeps a chunk under SQLite's bound-parameter cap", () => {
-        expect(RATE_ROWS_PER_CHUNK * 6).toBeLessThan(32_766);
-    });
 });
 
 describe("isThrottled", () => {
     const now = 1_700_000_000_000;
-
-    it("lets the first ever pull through", () => {
-        expect(isThrottled(null, now)).toBe(false);
-    });
 
     it("holds inside the window and opens on its edge", () => {
         expect(isThrottled(now - 1, now)).toBe(true);
@@ -128,18 +120,6 @@ describe("pullRatesIfDue", () => {
         expect(asked).toBe(0);
     });
 
-    it("pulls once the stamp has aged out", async () => {
-        const db = makeDb();
-        await db.insert(appMeta).values({
-            key: "lastRatesPullAt",
-            value: String(NOW - RATES_THROTTLE_MS),
-        });
-        const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
-
-        await expect(pullRatesIfDue(db, pull, { now: NOW })).resolves.toBe(true);
-        await expect(storedRates(db)).resolves.toStrictEqual([{ date: "2026-07-28", quote: "EUR" }]);
-    });
-
     it("force ignores a stamp that has not aged out", async () => {
         const db = makeDb();
         await db.insert(appMeta).values({ key: "lastRatesPullAt", value: String(NOW - 1000) });
@@ -215,25 +195,6 @@ describe("pullRatesIfDue", () => {
 
         await pullRatesIfDue(db, pull, { now: NOW });
         expect(ratesRevision()).toBe(before + 1);
-    });
-
-    it("leaves the revision alone when throttled", async () => {
-        const db = makeDb();
-        await db.insert(appMeta).values({ key: "lastRatesPullAt", value: String(NOW - 1000) });
-        const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
-        const before = ratesRevision();
-
-        await pullRatesIfDue(db, pull, { now: NOW });
-        expect(ratesRevision()).toBe(before);
-    });
-
-    it("leaves the revision alone when the snapshot is empty", async () => {
-        const db = makeDb();
-        const { pull } = pagedPuller([[]]);
-        const before = ratesRevision();
-
-        await pullRatesIfDue(db, pull, { now: NOW });
-        expect(ratesRevision()).toBe(before);
     });
 
     it("rolls the wipe back when the replacement fails part-way", async () => {

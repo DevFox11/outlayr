@@ -25,16 +25,6 @@ async function rootStyle(ui: ReactElement): Promise<ViewStyle> {
 }
 
 describe("arrive", () => {
-    it("renders what is arriving", async () => {
-        const { getByText } = await render(
-            <Arrive>
-                <Text>row</Text>
-            </Arrive>
-        );
-
-        expect(getByText("row")).toBeTruthy();
-    });
-
     it("renders the settled frame and no travel when Reduce Motion is on", async () => {
         mockStill.mockReturnValue(true);
 

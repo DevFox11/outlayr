@@ -78,15 +78,6 @@ const ENTRY = {
     note: "Bakery",
 };
 
-const OTHER_DAY_ENTRY = {
-    ...ENTRY,
-    amount: 2400,
-    categoryId: "cat-pay",
-    date: new Date(2026, 6, 27),
-    income: true,
-    note: "Salary",
-};
-
 const TILE = { color: "#3D8A4E", emoji: null, icon: "basket" };
 
 function entryRowProps(overrides: Partial<Parameters<typeof EntryRow>[0]> = {}) {
@@ -103,26 +94,6 @@ function entryRowProps(overrides: Partial<Parameters<typeof EntryRow>[0]> = {}) 
         tile: TILE,
         ...overrides,
     };
-}
-
-interface JsonNode {
-    children?: (JsonNode | string)[] | null;
-    props?: Record<string, unknown>;
-    type?: string;
-}
-
-function classNames(node: JsonNode | JsonNode[] | null): string[] {
-    if (node == null) {
-        return [];
-    }
-    if (Array.isArray(node)) {
-        return node.flatMap(classNames);
-    }
-    const own = node.props?.className;
-    return [
-        ...(typeof own === "string" ? [own] : []),
-        ...(node.children ?? []).flatMap((child) => (typeof child === "string" ? [] : classNames(child))),
-    ];
 }
 
 describe("entryRow", () => {
@@ -157,19 +128,6 @@ describe("entryRow", () => {
         const { getByTestId } = await render(<EntryRow {...entryRowProps({ index: 3, onToggle })} />);
         fireEvent.press(getByTestId("review-row-3"));
         expect(onToggle).toHaveBeenCalledWith(3);
-    });
-
-    it("dims and strikes the excluded state", async () => {
-        const screen = await render(<EntryRow {...entryRowProps({ checked: false })} />);
-        const names = classNames(screen.toJSON() as unknown as JsonNode);
-        expect(names.some((name) => /\bopacity-40\b/.test(name))).toBe(true);
-        expect(names.some((name) => /\bline-through\b/.test(name))).toBe(true);
-    });
-
-    it("keeps the included state unstruck", async () => {
-        const screen = await render(<EntryRow {...entryRowProps()} />);
-        const names = classNames(screen.toJSON() as unknown as JsonNode);
-        expect(names.some((name) => /\bline-through\b/.test(name))).toBe(false);
     });
 });
 
@@ -271,40 +229,6 @@ describe("reviewStep", () => {
         expect(serialized.indexOf("clean:Newer")).toBeLessThan(serialized.indexOf("clean:Older"));
     });
 
-    it("groups entries under day headers with live included totals", async () => {
-        const review = baseReview({
-            plan: {
-                earliest: null,
-                entries: [ENTRY, OTHER_DAY_ENTRY],
-                latest: null,
-                skipped: [],
-            },
-            rows: [
-                {
-                    duplicate: false,
-                    entry: ENTRY,
-                    index: 0,
-                    key: "entry-0",
-                    kind: "entry",
-                },
-                {
-                    duplicate: false,
-                    entry: OTHER_DAY_ENTRY,
-                    index: 1,
-                    key: "entry-1",
-                    kind: "entry",
-                },
-            ],
-            selectedCount: 2,
-        });
-        const screen = await render(<ReviewStep review={review} />);
-        const serialized = JSON.stringify(screen.toJSON());
-        expect(serialized).toContain("-$12.50");
-        expect(serialized).toContain("+$2,400.00");
-        const dayRules = classNames(screen.toJSON() as unknown as JsonNode).filter((name) => name === "bg-border");
-        expect(dayRules.length).toBeGreaterThanOrEqual(2);
-    });
-
     it("collapses skipped rows behind the footnote toggle", async () => {
         const review = baseReview({
             plan: {
@@ -353,12 +277,6 @@ describe("reviewStep", () => {
         expect(getByTestId("review-row-0").props.accessibilityState.checked).toBe(false);
     });
 
-    it("renders the empty state when there is nothing to import", async () => {
-        const review = baseReview({ rows: [], selectedCount: 0 });
-        const { getByText } = await render(<ReviewStep review={review} />);
-        expect(getByText("import.reviewEmptyTitle")).toBeTruthy();
-    });
-
     it("keeps the inline two-tap commit CTA", async () => {
         const onCommit = jest.fn();
         const review = baseReview({ onCommit });
@@ -381,13 +299,5 @@ describe("reviewStep", () => {
         expect(getByText("import.reviewCommitFailedTitle")).toBeTruthy();
         expect(getByText("disk full")).toBeTruthy();
         expect(getByText("import.tryAgain")).toBeTruthy();
-    });
-
-    it("draws no card washes anywhere", async () => {
-        const screen = await render(<ReviewStep review={baseReview()} />);
-        const washed = classNames(screen.toJSON() as unknown as JsonNode).filter(
-            (name) => /\bbg-(background|surface|card|foreground\/\d+)\b/.test(name) || /\brounded-(xl|2xl)\b/.test(name)
-        );
-        expect(washed).toStrictEqual([]);
     });
 });

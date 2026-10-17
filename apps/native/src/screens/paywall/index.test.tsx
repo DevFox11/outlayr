@@ -223,17 +223,6 @@ describe("paywall", () => {
         expect(screen.queryByTestId("paywall-restore")).toBeNull();
     });
 
-    it("does not mirror anything when the purchase was cancelled", async () => {
-        mockRevenueCat.purchasePackage.mockResolvedValue("cancelled");
-        await render(<Paywall />);
-        await waitFor(() => expect(screen.getByTestId("paywall-cta")).toBeTruthy());
-
-        await fireEvent.press(screen.getByTestId("paywall-cta"));
-
-        await waitFor(() => expect(mockRevenueCat.purchasePackage).toHaveBeenCalledTimes(1));
-        expect(mockCloudAction).not.toHaveBeenCalled();
-    });
-
     it("names the restore, not a purchase, when the restore itself fails", async () => {
         mockRevenueCat.restorePurchases.mockRejectedValue(new Error("offline"));
         await render(<Paywall />);

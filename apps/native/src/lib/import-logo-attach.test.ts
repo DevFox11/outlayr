@@ -52,10 +52,4 @@ describe("attachImportLogos", () => {
         expect(result[2]?.imageUri).toBeUndefined();
         expect(mockPersist).toHaveBeenCalledTimes(2);
     });
-
-    it("leaves entries untouched when the cache has no logo", async () => {
-        const result = await attachImportLogos([entry("Corner Bakery")]);
-        expect(result[0]).toStrictEqual(entry("Corner Bakery"));
-        expect(mockPersist).not.toHaveBeenCalled();
-    });
 });

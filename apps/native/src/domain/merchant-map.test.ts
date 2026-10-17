@@ -36,64 +36,6 @@ describe("seeding the curated merchant map", () => {
         const keys = MERCHANTS.flatMap((entry) => entry.patterns.map((pattern) => merchantKey(pattern)));
         expect(new Set(keys).size).toBe(keys.length);
     });
-
-    it("keeps the seed inside the curated size budget", () => {
-        expect(MERCHANTS.length).toBeGreaterThanOrEqual(140);
-        expect(MERCHANTS.length).toBeLessThanOrEqual(160);
-    });
-
-    it("includes the required named merchants verbatim", () => {
-        const byId = new Map(MERCHANTS.map((entry) => [entry.id, entry]));
-
-        expect(byId.get("duolingo")).toStrictEqual({
-            categoryName: "Education",
-            domain: "duolingo.com",
-            id: "duolingo",
-            label: "Duolingo",
-            patterns: ["duolingo", "duolingo super", "duolingo plus"],
-            tags: ["Learning", "Subscription"],
-        });
-        expect(byId.get("netflix")).toStrictEqual({
-            categoryName: "Entertainment",
-            domain: "netflix.com",
-            id: "netflix",
-            label: "Netflix",
-            patterns: ["netflix"],
-            tags: ["Streaming", "Subscription"],
-        });
-        expect(byId.get("apple")).toStrictEqual({
-            categoryName: "Shopping",
-            domain: "apple.com",
-            id: "apple",
-            label: "Apple",
-            patterns: ["apple", "apple store", "apple com bill"],
-            tags: ["Apple"],
-        });
-        expect(byId.get("apple-music")).toStrictEqual({
-            categoryName: "Entertainment",
-            domain: "music.apple.com",
-            id: "apple-music",
-            label: "Apple Music",
-            patterns: ["apple music", "itunes music"],
-            tags: ["Music", "Streaming", "Subscription"],
-        });
-        expect(byId.get("youtube")).toStrictEqual({
-            categoryName: "Entertainment",
-            domain: "youtube.com",
-            id: "youtube",
-            label: "YouTube",
-            patterns: ["youtube", "youtube premium"],
-            tags: ["Streaming", "Subscription"],
-        });
-        expect(byId.get("youtube-music")).toStrictEqual({
-            categoryName: "Entertainment",
-            domain: "music.youtube.com",
-            id: "youtube-music",
-            label: "YouTube Music",
-            patterns: ["youtube music", "yt music"],
-            tags: ["Music", "Streaming", "Subscription"],
-        });
-    });
 });
 
 describe("regional merchant coverage", () => {
@@ -112,25 +54,6 @@ describe("regional merchant coverage", () => {
 });
 
 describe("logo.dev domain backfill", () => {
-    it("resolves a verified logo.dev domain for each backfilled merchant", () => {
-        const verified: Record<string, string> = {
-            "central madeirense": "tucentralonline.com",
-            digitel: "digitel.com.ve",
-            farmahorro: "farmahorro.com.ve",
-            locatel: "locatel.com.ve",
-            mcdonalds: "mcdonalds.com",
-            traki: "traki.com",
-        };
-        for (const [name, domain] of Object.entries(verified)) {
-            expect(resolveMerchant(name)?.domain).toBe(domain);
-        }
-    });
-
-    it("leaves the merchants logo.dev cannot serve without a domain", () => {
-        expect(resolveMerchant("automercados plazas")?.domain).toBeNull();
-        expect(resolveMerchant("cantv")?.domain).toBeNull();
-    });
-
     it("resolves every spelling of mcdonalds to the same entry", () => {
         for (const name of ["McDonald's", "mc donalds", "mcdonalds", "McDonalds"]) {
             expect(resolveMerchant(name)?.domain).toBe("mcdonalds.com");
@@ -146,15 +69,5 @@ describe("the module-load merchant index", () => {
                 expect(MERCHANT_INDEX.get(pattern)?.id).toBe(entry.id);
             }
         }
-    });
-
-    it("orders apple music before the bare apple pattern", () => {
-        const keys = [...MERCHANT_INDEX.keys()];
-        expect(keys.indexOf("apple music")).toBeLessThan(keys.indexOf("apple"));
-    });
-
-    it("orders youtube music before the bare youtube pattern", () => {
-        const keys = [...MERCHANT_INDEX.keys()];
-        expect(keys.indexOf("youtube music")).toBeLessThan(keys.indexOf("youtube"));
     });
 });

@@ -49,9 +49,4 @@ describe("transactionFormRowIcon", () => {
             width: ROW_ICON_SIZE,
         });
     });
-
-    it("carries the tint down to the glyph", async () => {
-        const { toJSON } = await render(<TransactionFormRowIcon color="#123456" icon={Tag01Icon} />);
-        expect(JSON.stringify(toJSON())).toContain("#123456");
-    });
 });

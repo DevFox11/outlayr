@@ -104,10 +104,6 @@ describe("how many recent windows went over a limit", () => {
         expect(windowsOver([500, 400, 300, 0, 0, 0], 400)).toBe(1);
     });
 
-    it("counts an empty window as one that stayed under", () => {
-        expect(windowsOver([0, 0], 100)).toBe(0);
-    });
-
     it("does not count a window that landed exactly on the limit", () => {
         expect(windowsOver([400], 400)).toBe(0);
     });

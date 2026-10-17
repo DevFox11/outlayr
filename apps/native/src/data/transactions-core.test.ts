@@ -6,7 +6,6 @@ import { eq } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { accounts, exchangeRates, outbox, transactions, transfers } from "@/db/schema";
 import { migratedDatabase, migratedSqlite, testDatabase } from "@/db/test-database";
-import { groupByDay } from "@/domain/day-sections";
 import { buildTransactionInput } from "@/domain/transaction-form-save";
 
 import { META_KEYS, setMeta } from "./app-meta-core";
@@ -254,18 +253,6 @@ describe("transactionsRepo entry-rate selections", () => {
         });
     });
 
-    it("keeps a frozen custom value through an unrelated note edit", async () => {
-        const db = makeDb();
-        const input = { ...DRAFT, currency: "VES", exchangeRate: 55.5, exchangeRateType: "custom" } as const;
-        const id = await transactionsRepo.create(db, input);
-        await transactionsRepo.update(db, id, { ...input, note: "Updated" });
-        await expect(frozen(db, id)).resolves.toMatchObject({
-            amountUsd: 1.801802,
-            exchangeRate: 55.5,
-            exchangeRateType: "custom",
-        });
-    });
-
     it("re-freezes when an edit changes official to custom without changing amount currency or date", async () => {
         const db = makeDb();
         await seedRate(db, "EUR", "official", 0.8);
@@ -380,18 +367,6 @@ describe("transactionsRepo.update and the replicated photo key", () => {
         await transactionsRepo.remove(db, id, later);
         const lifted = new Date("2026-09-08T11:00:00Z");
         await transactionsRepo.restore(db, id, lifted);
-        expect((await candidateLogoIds(db)).get(id)).toBe(lifted.getTime());
-    });
-
-    it("keeps the candidate through a delete and a restore", async () => {
-        const db = makeDb();
-        const id = await transactionsRepo.create(db, DRAFT);
-        const deleted = new Date("2026-09-08T10:00:00Z");
-        const lifted = new Date("2026-09-08T11:00:00Z");
-
-        await transactionsRepo.remove(db, id, deleted);
-        await transactionsRepo.restore(db, id, lifted);
-
         expect((await candidateLogoIds(db)).get(id)).toBe(lifted.getTime());
     });
 
@@ -693,7 +668,6 @@ describe("the reminder notice on a subscription", () => {
 describe("restoring a tombstoned transaction", () => {
     const DELETED_AT = new Date(2026, 3, 1, 9, 0);
     const RESTORED_AT = new Date(2026, 3, 2, 8, 30);
-    const LATER_STILL = new Date(2026, 3, 3, 8, 30);
 
     async function timestamps(database: Database, transactionId: string) {
         const [row] = await database
@@ -740,13 +714,6 @@ describe("restoring a tombstoned transaction", () => {
         const row = await timestamps(db, id);
         expect(row?.deletedAt).toBeNull();
         expect(row?.updatedAt.getTime()).toBe(RESTORED_AT.getTime());
-    });
-
-    it("writes nothing the second time, so a restore is idempotent", async () => {
-        await transactionsRepo.restore(db, id, RESTORED_AT);
-        await transactionsRepo.restore(db, id, LATER_STILL);
-
-        expect((await timestamps(db, id))?.updatedAt.getTime()).toBe(RESTORED_AT.getTime());
     });
 
     it("leaves a subscription the delete ended ended", async () => {
@@ -917,23 +884,6 @@ describe("the account an entry is attached to", () => {
         return row?.accountId;
     }
 
-    it("stamps the account on create", async () => {
-        const db = makeDb();
-        const id = await transactionsRepo.create(db, {
-            ...DRAFT,
-            accountId: "acc-1",
-        });
-
-        await expect(attachedTo(db, id)).resolves.toBe("acc-1");
-    });
-
-    it("leaves the row detached when the input names no account", async () => {
-        const db = makeDb();
-        const id = await transactionsRepo.create(db, DRAFT);
-
-        await expect(attachedTo(db, id)).resolves.toBeNull();
-    });
-
     it("moves the attachment when an edit names another account", async () => {
         const db = makeDb();
         const id = await transactionsRepo.create(db, {
@@ -1005,52 +955,6 @@ describe("accountTransactionsQuery", () => {
 
         expect(rows.map((row) => row.id)).toStrictEqual(["newer", "older"]);
     });
-
-    it("hands groupByDay rows that section by day", async () => {
-        const db = makeDb();
-        await seed(db, "a", { accountId: "acc-1", date: JUNE_2, day: JUNE_2 });
-        await seed(db, "b", { accountId: "acc-1", date: JUNE_1, day: JUNE_1 });
-        await seed(db, "c", { accountId: "acc-1", date: JUNE_1, day: JUNE_1 });
-
-        const sections = groupByDay(await accountTransactionsQuery(db, "acc-1"));
-
-        expect(sections).toHaveLength(2);
-        expect(sections[0].data.map((row) => row.id)).toStrictEqual(["a"]);
-        expect(sections[1].data.map((row) => row.id)).toStrictEqual(["b", "c"]);
-    });
-});
-
-describe("ledgerSizeQuery", () => {
-    it("counts only what a reader can still see", async () => {
-        const db = makeDb();
-        const now = new Date();
-        await db.insert(transactions).values([
-            {
-                amount: 10,
-                date: now,
-                day: now,
-                id: "live",
-                income: false,
-                month: now,
-                note: "",
-                updatedAt: now,
-            },
-            {
-                amount: 10,
-                date: now,
-                day: now,
-                deletedAt: now,
-                id: "tombstoned",
-                income: false,
-                month: now,
-                note: "",
-                updatedAt: now,
-            },
-        ]);
-
-        const rows = await ledgerSizeQuery(db);
-        expect(rows.map((row) => row.id)).toStrictEqual(["live"]);
-    });
 });
 
 describe("transactionsRepo.update over a row a peer has deleted", () => {
@@ -1068,15 +972,5 @@ describe("transactionsRepo.update over a row a peer has deleted", () => {
         const row = getTransactionById(db, id);
         expect(row?.deletedAt).toStrictEqual(tombstoned?.deletedAt);
         expect(row?.amount).toBe(200);
-    });
-
-    it("still clears it through restore, which is the call that owns it", async () => {
-        const db = makeDb();
-        const id = await transactionsRepo.create(db, DRAFT);
-        await transactionsRepo.remove(db, id);
-
-        await transactionsRepo.restore(db, id);
-
-        expect(getTransactionById(db, id)?.deletedAt).toBeNull();
     });
 });

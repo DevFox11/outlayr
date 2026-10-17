@@ -23,7 +23,7 @@ jest.mock("react-native-purchases", () => ({
 
 import Purchases from "react-native-purchases";
 
-import { logOutUser, setCustomerProfile } from "./revenuecat";
+import { logOutUser } from "./revenuecat";
 
 const purchases = jest.mocked(Purchases);
 
@@ -45,14 +45,5 @@ describe("logOutUser", () => {
         purchases.logOut.mockResolvedValue(loggedOut);
         await expect(logOutUser()).resolves.toBe(false);
         expect(purchases.logOut).toHaveBeenCalledTimes(1);
-    });
-});
-
-describe("setCustomerProfile", () => {
-    it("clears the display name instead of storing a blank one", async () => {
-        await setCustomerProfile({ email: "ana@example.com", name: "  " });
-
-        expect(purchases.setEmail).toHaveBeenCalledWith("ana@example.com");
-        expect(purchases.setDisplayName).toHaveBeenCalledWith(null);
     });
 });

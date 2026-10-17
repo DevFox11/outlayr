@@ -29,22 +29,6 @@ const BASE: TransactionSaveDraft = {
 };
 
 describe("buildTransactionInput", () => {
-    it("carries the plain fields through untouched", () => {
-        const input = buildTransactionInput(BASE);
-        expect(input.amount).toBe(1250);
-        expect(input.income).toBe(false);
-        expect(input.categoryId).toBe("cat-1");
-        expect(input.note).toBe("Coffee");
-        expect(input.details).toBe("");
-        expect(input.date).toBe(BASE.date);
-        expect(input.currency).toBe("USD");
-        expect(input.icon).toBe("cup.and.saucer");
-        expect(input.emoji).toBeNull();
-        expect(input.customColor).toBeNull();
-        expect(input.imageUri).toBeNull();
-        expect(input.imageColor).toBeNull();
-    });
-
     it("strips every schedule field for a one-off, regardless of the leftover cadence state", () => {
         const input = buildTransactionInput(BASE);
         expect(input.onceRecurring).toBe(false);
@@ -75,20 +59,6 @@ describe("buildTransactionInput", () => {
     it("clamps the coefficient to at least 1", () => {
         expect(buildTransactionInput({ ...BASE, coefficient: 0, isSubscription: true }).recurringCoefficient).toBe(1);
         expect(buildTransactionInput({ ...BASE, coefficient: -5, isSubscription: true }).recurringCoefficient).toBe(1);
-    });
-
-    it("carries the account attachment through, an explicit detach included", () => {
-        expect(buildTransactionInput(BASE).accountId).toBe("acc-1");
-        expect(buildTransactionInput({ ...BASE, accountId: null }).accountId).toBeNull();
-    });
-
-    it("passes a null lead through for a subscription with reminders off", () => {
-        const input = buildTransactionInput({
-            ...BASE,
-            isSubscription: true,
-            leadDays: null,
-        });
-        expect(input.reminderLeadDays).toBeNull();
     });
 
     it("carries the selected rate type and actual rate into the transaction input", () => {

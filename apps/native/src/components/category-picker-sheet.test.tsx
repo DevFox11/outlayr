@@ -140,14 +140,6 @@ describe("categoryPickerSheet", () => {
         expect(screen.getByText("Organic")).toBeTruthy();
     });
 
-    it("leaves parents collapsed when the selection is top-level", async () => {
-        const db = await seededDb();
-        addChild(db, "organic", "Organic", GROCERIES);
-        await mount({ db, selectedId: GROCERIES });
-
-        expect(screen.queryByText("Organic")).toBeNull();
-    });
-
     it("drops an excluded category from the list", async () => {
         const db = await seededDb();
         await mount({ db, excludeIds: [GROCERIES] });
@@ -193,16 +185,6 @@ describe("categoryPickerSheet", () => {
         expect(screen.queryByText("Groceries")).toBeNull();
     });
 
-    it("surfaces a matching subcategory with its parent as a breadcrumb", async () => {
-        const db = await seededDb();
-        addChild(db, "organic", "Organic", GROCERIES);
-        await mount({ db });
-        await type("organic");
-
-        expect(screen.getByText("Organic")).toBeTruthy();
-        expect(screen.getByTestId("category-crumb-organic")).toBeTruthy();
-    });
-
     it("selects a subcategory straight from the results, without expanding its parent", async () => {
         const db = await seededDb();
         addChild(db, "organic", "Organic", GROCERIES);
@@ -240,19 +222,5 @@ describe("categoryPickerSheet", () => {
         await mount({ db });
 
         expect(screen.getByTestId("category-recents")).toBeTruthy();
-    });
-
-    it("hides the recents rail on a ledger with no history", async () => {
-        await mount({ db: await seededDb() });
-        expect(screen.queryByTestId("category-recents")).toBeNull();
-    });
-
-    it("hides the recents rail while searching", async () => {
-        const db = await seededDb();
-        addTransaction(db, seededCategoryId("Rent", false), 2000);
-        await mount({ db });
-        await type("rent");
-
-        expect(screen.queryByTestId("category-recents")).toBeNull();
     });
 });

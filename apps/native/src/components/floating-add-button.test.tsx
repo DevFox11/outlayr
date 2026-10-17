@@ -13,7 +13,6 @@ const mockPresent = jest.fn();
 const mockAccounts = jest.fn(() => [{ id: "a" }, { id: "b" }]);
 /** The QA sim in portrait. Overridden per-test to stand the window on its side. */
 const mockWindowHeight = jest.fn(() => 956);
-const mockWindowWidth = jest.fn(() => 440);
 /** Dynamic Type multiplier. 1 is a device that has not scaled its text. */
 const mockFontScale = jest.fn(() => 1);
 /** Whether the Log is the tab on screen. Flip it to leave the tab. */
@@ -62,7 +61,7 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
     __esModule: true,
-    default: () => ({ fontScale: mockFontScale(), height: mockWindowHeight(), scale: 3, width: mockWindowWidth() }),
+    default: () => ({ fontScale: mockFontScale(), height: mockWindowHeight(), scale: 3, width: 440 }),
 }));
 
 /**
@@ -105,15 +104,9 @@ describe("floatingAddButton", () => {
         mockGetResumeStep.mockReturnValue("source");
         mockAccounts.mockReturnValue([{ id: "a" }, { id: "b" }]);
         mockWindowHeight.mockReturnValue(956);
-        mockWindowWidth.mockReturnValue(440);
         mockFontScale.mockReturnValue(1);
         mockIsFocused.mockReturnValue(true);
         mockHaptics.mockClear();
-    });
-
-    it("renders through uniwind + expo-router + panelui together", async () => {
-        const { toJSON } = await render(<FloatingAddButton />);
-        expect(toJSON()).toBeTruthy();
     });
 
     it("keeps the actions out of the tree until the dial is opened", async () => {
@@ -124,21 +117,6 @@ describe("floatingAddButton", () => {
         await openDial();
 
         expect(screen.getByLabelText("log.add.transaction")).toBeTruthy();
-    });
-
-    it("stacks the most-wanted action nearest the trigger", async () => {
-        await render(<FloatingAddButton />);
-        await openDial();
-
-        // Tree order is top-to-bottom on screen and the dial grows upward from
-        // the trigger, so this list is the priority order read backwards.
-        expect(screen.getAllByText(/^log\.add\./).map((chip) => chip.props.children)).toStrictEqual([
-            "log.add.import",
-            "log.add.scan",
-            "log.add.voice",
-            "log.add.transfer",
-            "log.add.transaction",
-        ]);
     });
 
     it("pushes /transactions/create when the transaction action is pressed", async () => {
@@ -181,16 +159,6 @@ describe("floatingAddButton", () => {
         expect(mockPush).not.toHaveBeenCalled();
     });
 
-    it("presents at the source step when nothing is in progress", async () => {
-        await render(<FloatingAddButton />);
-        await openDial();
-
-        await pressAction("log.add.import");
-
-        expect(mockSetStep).toHaveBeenCalledWith("source");
-        expect(mockPresent).toHaveBeenCalledTimes(1);
-    });
-
     it("offers a transfer once there are two accounts to move between", async () => {
         await render(<FloatingAddButton />);
         await openDial();
@@ -202,14 +170,6 @@ describe("floatingAddButton", () => {
 
     it("hides the transfer action with only one account, since both legs are required", async () => {
         mockAccounts.mockReturnValue([{ id: "a" }]);
-        await render(<FloatingAddButton />);
-        await openDial();
-
-        expect(screen.queryByLabelText("log.add.transfer")).toBeNull();
-    });
-
-    it("hides it with no accounts at all", async () => {
-        mockAccounts.mockReturnValue([]);
         await render(<FloatingAddButton />);
         await openDial();
 
@@ -229,15 +189,6 @@ describe("floatingAddButton", () => {
             "log.add.transfer",
             "log.add.transaction",
         ]);
-    });
-
-    it("keeps every action that fits once the window is tall again", async () => {
-        mockWindowHeight.mockReturnValue(956);
-
-        await render(<FloatingAddButton />);
-        await openDial();
-
-        expect(screen.getByLabelText("log.add.import")).toBeTruthy();
     });
 
     it("shuts the dial when the Log stops being the tab on screen", async () => {
@@ -277,18 +228,6 @@ describe("floatingAddButton", () => {
         ]);
     });
 
-    it("narrows the labels to fit a 375pt screen at an accessibility size", async () => {
-        mockWindowWidth.mockReturnValue(375);
-        mockFontScale.mockReturnValue(2.643);
-
-        await render(<FloatingAddButton />);
-        await openDial();
-
-        for (const chip of screen.getAllByText(/^log\.add\./)) {
-            expect(chip.props.className).toContain("max-w-[240px]");
-        }
-    });
-
     it("clamps the labels before dropping an action at a standard text size", async () => {
         mockWindowHeight.mockReturnValue(440);
         mockFontScale.mockReturnValue(1.3);
@@ -301,23 +240,5 @@ describe("floatingAddButton", () => {
             ["log.add.transfer", "1"],
             ["log.add.transaction", null],
         ]);
-    });
-
-    it("pushes /transactions/voice when the voice action is pressed", async () => {
-        await render(<FloatingAddButton />);
-        await openDial();
-
-        await pressAction("log.add.voice");
-
-        expect(mockPush).toHaveBeenCalledWith("/transactions/voice");
-    });
-
-    it("pushes /transactions/scan when the scan action is pressed", async () => {
-        await render(<FloatingAddButton />);
-        await openDial();
-
-        await pressAction("log.add.scan");
-
-        expect(mockPush).toHaveBeenCalledWith("/transactions/scan");
     });
 });

@@ -115,32 +115,6 @@ function loadFile() {
     });
 }
 
-interface JsonNode {
-    children?: (JsonNode | string)[] | null;
-    props?: Record<string, unknown>;
-}
-
-function classNames(node: JsonNode | JsonNode[] | null): string[] {
-    if (node == null) {
-        return [];
-    }
-    if (Array.isArray(node)) {
-        return node.flatMap(classNames);
-    }
-    const own = node.props?.className;
-    return [
-        ...(typeof own === "string" ? [own] : []),
-        ...(node.children ?? []).flatMap((child) => (typeof child === "string" ? [] : classNames(child))),
-    ];
-}
-
-function isPureFlexFill(className: string): boolean {
-    return className
-        .trim()
-        .split(/\s+/)
-        .every((token) => /^(flex-1|grow|grow-0|shrink|shrink-0|basis-\S+)$/.test(token));
-}
-
 describe("stage → task status", () => {
     it("keeps the on-device step running until the pipeline moves past it", () => {
         expect(matchedStatus("idle")).toBe("running");
@@ -168,20 +142,6 @@ describe("resolveStep", () => {
         mockSeePro.mockClear();
         importDraftStore.clear();
         mockContext = baseContext();
-    });
-
-    it("names the file once, on the step that read it, with the checklist and the privacy footnote", async () => {
-        loadFile();
-        const { getAllByText, getByText } = await render(
-            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([])} />
-        );
-
-        expect(getAllByText("bank.csv")).toHaveLength(1);
-        expect(getByText('import.resolveDetailRows:{"count":2}')).toBeTruthy();
-        expect(getByText("import.resolveRunningReadFile")).toBeTruthy();
-        expect(getByText("import.resolveRunningMatched")).toBeTruthy();
-        expect(getByText("import.resolveRunningAsked")).toBeTruthy();
-        expect(getByText("import.resolveFootnote")).toBeTruthy();
     });
 
     it("auto-runs the resolution when idle", async () => {
@@ -297,18 +257,6 @@ describe("resolveStep", () => {
         expect(importDraftStore.getSnapshot().ui.step).toBe("resolve");
     });
 
-    it("spaces the review CTA with a fixed margin, not an inert flex spacer", async () => {
-        loadFile();
-        importDraftStore.setStep("resolve");
-        mockContext = baseContext({ outcome: "applied" });
-        const { toJSON } = await render(
-            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([ENTRY])} />
-        );
-        const classes = classNames(toJSON() as unknown as JsonNode);
-        expect(classes.some(isPureFlexFill)).toBe(false);
-        expect(classes.some((c) => /\bmt-6\b/.test(c))).toBe(true);
-    });
-
     it("reports how many merchant names were sent once a run settles", async () => {
         loadFile();
         mockContext = baseContext({
@@ -335,17 +283,6 @@ describe("resolveStep", () => {
         );
 
         expect(getByText("import.resolveDetailNothingSent")).toBeTruthy();
-    });
-
-    it("never fills the filename chip with the muted text colour", async () => {
-        loadFile();
-        mockContext = baseContext({ outcome: "applied", stage: "settled" });
-        const { toJSON } = await render(
-            <ResolveStep onOpenFeatureLab={mockOpenFeatureLab} onSeePro={mockSeePro} review={reviewWith([])} />
-        );
-        const chip = classNames(toJSON() as unknown as JsonNode).find((c) => /\bbg-transparent\b/.test(c));
-        expect(chip).toBeDefined();
-        expect(chip).not.toMatch(/\bbg-muted\b/);
     });
 
     it("routes the declined branch through onOpenFeatureLab", async () => {

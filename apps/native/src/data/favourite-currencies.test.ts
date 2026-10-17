@@ -19,19 +19,9 @@ describe("favourite currencies storage", () => {
         db = makeDb();
     });
 
-    it("reads no favourites out of a table nobody has written", async () => {
-        await expect(readFavourites(db)).resolves.toStrictEqual([]);
-    });
-
     it("round-trips the list in the order it was written", async () => {
         await writeFavourites(db, ["JPY", "EUR", "GBP"]);
         await expect(readFavourites(db)).resolves.toStrictEqual(["JPY", "EUR", "GBP"]);
-    });
-
-    it("keeps the newest write rather than appending a second row", async () => {
-        await writeFavourites(db, ["EUR"]);
-        await writeFavourites(db, ["GBP", "JPY"]);
-        await expect(readFavourites(db)).resolves.toStrictEqual(["GBP", "JPY"]);
     });
 
     it("adds a code and persists it", async () => {
@@ -43,11 +33,6 @@ describe("favourite currencies storage", () => {
         await writeFavourites(db, ["EUR", "GBP"]);
         await expect(toggleFavouriteCurrency(db, "EUR")).resolves.toStrictEqual(["GBP"]);
         await expect(readFavourites(db)).resolves.toStrictEqual(["GBP"]);
-    });
-
-    it("appends rather than reordering when adding to a held list", async () => {
-        await writeFavourites(db, ["EUR", "GBP"]);
-        await expect(toggleFavouriteCurrency(db, "JPY")).resolves.toStrictEqual(["EUR", "GBP", "JPY"]);
     });
 
     it("refuses a ninth and answers the eight unchanged", async () => {

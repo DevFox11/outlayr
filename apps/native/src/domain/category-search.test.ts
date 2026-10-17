@@ -97,10 +97,6 @@ describe("searchCategoryTree", () => {
         const [match] = searchCategoryTree(decomposed, "bar");
         expect(match?.category.name?.slice(match.matchStart, match.matchStart + match.matchLength)).toBe("Bar");
     });
-
-    it("returns nothing when no name contains the query", () => {
-        expect(searchCategoryTree(SAMPLE, "veterinary")).toStrictEqual([]);
-    });
 });
 
 describe("expandedForSelectedCategory", () => {

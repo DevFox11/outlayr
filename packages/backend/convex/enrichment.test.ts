@@ -12,7 +12,6 @@ import {
     GROUNDED_REQUEST_TIMEOUT_MS,
     maybeScheduleGrounded,
     needsGroundedLookup,
-    REQUEST_TIMEOUT_MS,
     rateLimiter,
     runSuggest,
     sanitizeDomain,
@@ -343,25 +342,9 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
         ).resolves.toStrictEqual(EMPTY);
         expect(limitSpy).not.toHaveBeenCalled();
     });
-
-    it("a cache miss falls through to the existing guard ladder unchanged", async () => {
-        const t = convexTest(schema, modules);
-        const identity = await seedAuthUser(t);
-
-        await expect(
-            authenticatedAs(t, identity).action(api.enrichment.suggest, {
-                ...BASE_ARGS,
-                name: "totally unknown merchant xyz",
-            })
-        ).resolves.toStrictEqual(EMPTY);
-    });
 });
 
 describe("latency/retry regression guard (task 3.13)", () => {
-    it("REQUEST_TIMEOUT_MS stays at 8000ms, inside the client's 9s wait", () => {
-        expect(REQUEST_TIMEOUT_MS).toBe(8000);
-    });
-
     it("runSuggest never retries a thrown provider error (maxRetries: 0)", async () => {
         let calls = 0;
         const throwing = new MockLanguageModelV4({
@@ -383,10 +366,6 @@ describe(needsGroundedLookup, () => {
 
     it("a missing category needs one", () => {
         expect(needsGroundedLookup({ categoryName: null, domain: "gama.com" })).toBeTruthy();
-    });
-
-    it("both missing needs one", () => {
-        expect(needsGroundedLookup({ categoryName: null, domain: null })).toBeTruthy();
     });
 
     it("a complete answer needs none", () => {
@@ -878,24 +857,6 @@ describe("runSuggest regionCode", () => {
         expect(sent).toContain("VE");
     });
 
-    it("licenses a global fallback when no business operates in the region", async () => {
-        const model = mockModel({
-            categoryName: null,
-            domain: null,
-            isNewCategory: false,
-            tags: [],
-        });
-
-        await runSuggest(model, {
-            ...BASE_ARGS,
-            categoryTree: [],
-            regionCode: "VE",
-        });
-
-        const sent = JSON.stringify(model.doGenerateCalls[0]?.prompt);
-        expect(sent).toContain("fall back to the best globally known match");
-    });
-
     it("threads the purchase currency into the prompt", async () => {
         const model = mockModel({
             categoryName: null,
@@ -909,50 +870,11 @@ describe("runSuggest regionCode", () => {
         const sent = JSON.stringify(model.doGenerateCalls[0]?.prompt);
         expect(sent).toContain("charged in EUR");
     });
-
-    it("asks for a best-guess domain and a confidence, and says what the name looks like", async () => {
-        const model = mockModel({
-            categoryName: null,
-            domain: null,
-            isNewCategory: false,
-            tags: [],
-        });
-
-        await runSuggest(model, { ...BASE_ARGS, categoryTree: [] });
-
-        const sent = JSON.stringify(model.doGenerateCalls[0]?.prompt);
-        expect(sent).toContain("domainConfidence");
-        expect(sent).toContain("Set brand to the clean display name of the business or place");
-        expect(sent).toContain("museum, landmark, attraction, venue, park or public body");
-        expect(sent).toContain("keeping hyphens, digits, dots and country suffixes");
-        expect(sent).toContain("card-terminal or bank-statement descriptor");
-        expect(sent).toContain("booking or reference code");
-        expect(sent).toContain("legal-entity suffix (AE, ABEE, ABEET");
-        expect(sent).not.toContain("only if you are confident");
-    });
-
-    it("omits any region line from the prompt when regionCode is absent", async () => {
-        const model = mockModel({
-            categoryName: null,
-            domain: null,
-            isNewCategory: false,
-            tags: [],
-        });
-
-        await runSuggest(model, { ...BASE_ARGS, categoryTree: [] });
-
-        const sent = JSON.stringify(model.doGenerateCalls[0]?.prompt);
-        expect(sent).not.toContain("located in region");
-    });
 });
 
 describe(sanitizeDomain, () => {
     it("strips a leading www. so logo.dev's apex-only lookup still matches", () => {
         expect(sanitizeDomain("www.unicasa.com.ve")).toBe("unicasa.com.ve");
-    });
-
-    it("leaves an already-apex domain unchanged", () => {
-        expect(sanitizeDomain("unicasa.com.ve")).toBe("unicasa.com.ve");
     });
 
     it("does not strip a host that merely starts with the letters www", () => {
@@ -987,24 +909,12 @@ describe(sanitizeRegionCode, () => {
         expect(sanitizeRegionCode("ve")).toBe("VE");
     });
 
-    it("leaves an already-uppercase code unchanged", () => {
-        expect(sanitizeRegionCode("VE")).toBe("VE");
-    });
-
     it("rejects a three-letter code", () => {
         expect(sanitizeRegionCode("VEN")).toBeUndefined();
     });
 
     it("rejects a code containing a digit", () => {
         expect(sanitizeRegionCode("1E")).toBeUndefined();
-    });
-
-    it("rejects an empty string", () => {
-        expect(sanitizeRegionCode("")).toBeUndefined();
-    });
-
-    it("rejects a 400-character string", () => {
-        expect(sanitizeRegionCode("a".repeat(400))).toBeUndefined();
     });
 
     it("passes undefined through unchanged", () => {

@@ -5,10 +5,6 @@ import { AMOUNT_HERO_MAX_SIZE, AMOUNT_HERO_MIN_SIZE, amountHeroFontSize, amountH
 const IPHONE_CONTENT_WIDTH = 353;
 
 describe("amountHeroLength", () => {
-    it("counts the decimal point and the fraction", () => {
-        expect(amountHeroLength(0, 2)).toBe(4);
-    });
-
     it("omits the fraction for a zero-minor-unit currency", () => {
         expect(amountHeroLength(1234, 0)).toBe(5);
     });

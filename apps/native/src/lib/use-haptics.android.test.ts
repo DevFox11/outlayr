@@ -36,28 +36,11 @@ const mockApi = jest.spyOn(Platform, "Version", "get");
 
 beforeEach(() => {
     mockPerform.mockClear();
-    mockIos.mockClear();
     mockLevel.value = HAPTICS_EXCESSIVE;
     mockApi.mockReturnValue(36);
 });
 
 describe("useHaptics on Android", () => {
-    it.each([
-        ["selection", "segment-tick"],
-        ["keyTap", "keyboard-tap"],
-        ["light", "virtual-key"],
-        ["medium", "context-click"],
-        ["heavy", "long-press"],
-        ["success", "confirm"],
-        ["warning", "reject"],
-        ["error", "reject"],
-    ] as const)("plays %s as the system's %s", async (event, expected) => {
-        await play(event);
-
-        expect(mockPerform.mock.calls).toStrictEqual([[expected]]);
-        expect(mockIos).not.toHaveBeenCalled();
-    });
-
     // expo-haptics rejects a constant newer than the device, which would leave it silent.
     it.each([
         [33, "selection", "clock-tick"],

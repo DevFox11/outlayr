@@ -229,18 +229,6 @@ describe("attachMissingLogos", () => {
         expect(deps.fetched).toStrictEqual(["ubereats.com"]);
     });
 
-    it("sends the row's currency as the locator", async () => {
-        await seedRow(db, "a", "Sushi Way Les Ha", { currency: "EUR" });
-        const enrich = jest.fn<NonNullable<LogoBackfillDeps["enrich"]>>(async () => ({
-            groundedLookup: true,
-            result: REMOTE,
-        }));
-
-        await attachMissingLogos(db, makeDeps({ enrich }));
-
-        expect(enrich).toHaveBeenCalledWith({ currency: "EUR", income: false, name: "Sushi Way Les Ha" });
-    });
-
     it("leaves a row that already has an identity alone", async () => {
         await seedRow(db, "icon", "Intermarche", { icon: "cart" });
         await seedRow(db, "emoji", "Intermarche", { emoji: "🛒" });
@@ -273,21 +261,6 @@ describe("attachMissingLogos", () => {
         await expect(rowImage(db, "before")).resolves.toMatchObject({ imageUri: null });
         await expect(rowImage(db, "during")).resolves.toMatchObject({ imageUri: null });
         await expect(rowImage(db, "still")).resolves.toMatchObject({ imageUri: "file:///photos/logo.jpg" });
-    });
-
-    it("does not ask again about a name that answered nothing", async () => {
-        await seedRow(db, "a", "Iolanda");
-        const enrich = jest.fn<NonNullable<LogoBackfillDeps["enrich"]>>(async () => ({
-            groundedLookup: true,
-            result: NOTHING,
-        }));
-        const deps = makeDeps({ enrich });
-
-        await attachMissingLogos(db, deps);
-        await attachMissingLogos(db, deps);
-
-        expect(enrich).toHaveBeenCalledTimes(1);
-        await expect(rowImage(db, "a")).resolves.toStrictEqual({ imageColor: null, imageUri: null });
     });
 
     it("asks again once a grounded search has had time to land", async () => {

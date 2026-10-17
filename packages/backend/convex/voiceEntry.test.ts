@@ -21,7 +21,6 @@ import {
     PROPOSE_DRAFT_TOOL,
     rateLimiter,
     transcribeClip,
-    voiceEntryArgs,
 } from "./voiceEntry";
 
 const modules = import.meta.glob("./**/*.ts");
@@ -71,14 +70,6 @@ const MODEL_ANSWER = {
     recurrence: null,
     toAccountName: null,
 };
-
-describe("voice entry args validation", () => {
-    it("carries exactly the privacy-boundary fields — clip, names, currency, language, today, thread", () => {
-        expect(Object.keys(voiceEntryArgs).sort()).toStrictEqual(
-            ["accounts", "audio", "categoryTree", "currency", "language", "threadId", "today"].sort()
-        );
-    });
-});
 
 describe("namesWithinBudget", () => {
     it("bounds each name's length, a branch's children, and the total, not just the counts the args allow", () => {

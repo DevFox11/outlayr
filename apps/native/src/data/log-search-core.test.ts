@@ -6,7 +6,6 @@ import { transactions } from "@/db/schema";
 import * as schema from "@/db/schema";
 
 import { searchedTransactionsQuery } from "./log-search-core";
-import { logWindowRowsQuery } from "./transactions-core";
 
 type TestDb = ReturnType<typeof makeDb>;
 
@@ -292,15 +291,5 @@ describe("the search projection", () => {
         });
 
         expect(rows.map((found) => found.details)).toStrictEqual(["Quarterly dentist deposit"]);
-    });
-
-    it("leaves the free text out of the Log's own read", async () => {
-        const db = makeDb();
-        await seed(db, [row]);
-
-        const rows = await logWindowRowsQuery(db, NOW, null);
-
-        expect(rows).toHaveLength(1);
-        expect(rows.flatMap((found) => Object.keys(found))).not.toContain("details");
     });
 });

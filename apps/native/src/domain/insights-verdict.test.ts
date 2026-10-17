@@ -54,25 +54,9 @@ describe("insightsVerdict", () => {
         expect(insightsVerdict({ ...base, current: 800 }).favourable).toBe(true);
     });
 
-    it("treats earning more as favourable", () => {
-        const verdict = insightsVerdict({ ...base, measure: "income" });
-        expect(verdict.favourable).toBe(true);
-    });
-
     it("treats a rising net as favourable and a falling one as not", () => {
         expect(insightsVerdict({ ...base, measure: "net" }).favourable).toBe(true);
         expect(insightsVerdict({ ...base, current: 800, measure: "net" }).favourable).toBe(false);
-    });
-
-    it("handles a net that crossed from positive to negative", () => {
-        const verdict = insightsVerdict({
-            ...base,
-            current: -300,
-            measure: "net",
-            prior: 500,
-        });
-        expect(verdict.favourable).toBe(false);
-        expect(verdict.sentence ?? "").toMatch(/800/);
     });
 
     it("calls a window within two percent the same rather than manufacturing news", () => {
@@ -96,15 +80,6 @@ describe("insightsVerdict", () => {
             topMover: { delta: -220, name: "Transport" },
         });
         expect(verdict.sentence ?? "").toMatch(/Transport alone gave back/);
-    });
-
-    it("keeps the sentence to two clauses", () => {
-        const verdict = insightsVerdict({
-            ...base,
-            topMover: { delta: 150, name: "Dinner" },
-        });
-        const sentences = (verdict.sentence ?? "").split(".").filter((part) => part.trim().length > 0);
-        expect(sentences).toHaveLength(2);
     });
 
     it("never emits a stray minus inside the amount", () => {

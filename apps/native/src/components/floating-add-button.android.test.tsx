@@ -91,21 +91,6 @@ describe("floatingAddButton on Android", () => {
         mockIsFocused.mockReturnValue(true);
     });
 
-    it("stacks the most-wanted action nearest the FAB", async () => {
-        await render(<FloatingAddButton />);
-        expect(screen.queryByLabelText("log.add.transaction")).toBeNull();
-
-        await openMenu();
-
-        expect(menuLabels()).toStrictEqual([
-            "log.add.import",
-            "log.add.scan",
-            "log.add.voice",
-            "log.add.transfer",
-            "log.add.transaction",
-        ]);
-    });
-
     it("pushes the entry once and closes the menu behind it", async () => {
         await render(<FloatingAddButton />);
         await openMenu();

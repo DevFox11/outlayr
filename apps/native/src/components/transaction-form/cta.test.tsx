@@ -50,26 +50,10 @@ describe("transactionFormCtaActions", () => {
         expect(onLookup).toHaveBeenCalledTimes(1);
         expect(onDelete).toHaveBeenCalledTimes(1);
     });
-
-    it("carries the destructive tint onto delete alone", () => {
-        const [lookup, remove] = transactionFormCtaActions({
-            deleteTint: "#DA0F01",
-            onDelete: () => {},
-            onLookup: () => {},
-        });
-        expect(remove?.tintColor).toBe("#DA0F01");
-        expect(lookup?.tintColor).toBeUndefined();
-    });
 });
 
 describe("save while typing", () => {
     const SAVE = { busy: false, label: "Add Transaction", onPress: () => {}, ready: true };
-
-    it("stays out of the bar while the footer is in reach", async () => {
-        mockKeyboardShown.mockReturnValue(false);
-        const view = await render(<TransactionFormCta save={SAVE} />);
-        expect(view.toJSON()).toBeNull();
-    });
 
     it("joins the bar, after delete, while the keyboard covers the footer", async () => {
         mockKeyboardShown.mockReturnValue(true);

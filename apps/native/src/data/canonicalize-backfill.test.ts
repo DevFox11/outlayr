@@ -155,16 +155,6 @@ describe("stampLedgerCurrency", () => {
         expect(rows.map((row) => row.currency).sort()).toStrictEqual(["EUR", "JPY"]);
     });
 
-    it("leaves a row that already named one alone", async () => {
-        const db = makeDb();
-        await db.insert(appMeta).values({ key: "currency", value: "EUR" });
-        await add(db, { amount: 100, currency: "JPY" });
-
-        await expect(stampLedgerCurrency(db)).resolves.toBe(0);
-        const [row] = await db.select({ currency: transactions.currency }).from(transactions);
-        expect(row.currency).toBe("JPY");
-    });
-
     it("refuses when the ledger never set one", async () => {
         const db = makeDb();
         await add(db, { amount: 10, currency: null });

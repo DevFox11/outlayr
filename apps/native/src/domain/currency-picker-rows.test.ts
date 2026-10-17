@@ -48,12 +48,6 @@ describe("the currency picker's rows", () => {
         expect(listed.filter((code) => code === "VES")).toHaveLength(1);
     });
 
-    it("still offers every currency exactly once", () => {
-        const listed = codes(currencyPickerRows(["JPY", "USD"], ""));
-        expect(listed).toHaveLength(PICKABLE_CURRENCY_CODES.length);
-        expect(new Set(listed).size).toBe(PICKABLE_CURRENCY_CODES.length);
-    });
-
     it("keeps every key distinct, which is what the list is keyed on", () => {
         const rows = currencyPickerRows(["USD", "VES"], "");
         expect(new Set(rows.map((row) => row.key)).size).toBe(rows.length);
@@ -88,10 +82,6 @@ describe("the currency picker's rows", () => {
     it("searches by code and by name, ignoring case and padding", () => {
         expect(codes(currencyPickerRows([], "  JpY ")).includes("JPY")).toBeTruthy();
         expect(codes(currencyPickerRows([], "yen")).includes("JPY")).toBeTruthy();
-    });
-
-    it("answers nothing for a search that matches nothing", () => {
-        expect(currencyPickerRows([], "zzzzzz")).toStrictEqual([]);
     });
 });
 

@@ -68,39 +68,6 @@ afterEach(() => {
     jest.useRealTimers();
 });
 
-describe("latency contract", () => {
-    it("rEMOTE_TIMEOUT_MS stays at 9000ms, past the server's 8s budget", () => {
-        expect(REMOTE_TIMEOUT_MS).toBe(9000);
-    });
-});
-
-describe("debouncing", () => {
-    it("collapses 20 rapid keystrokes into exactly one suggestion at 600ms", async () => {
-        const onSuggest = jest.fn();
-        const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest })));
-
-        const target = "netflix";
-        const keystrokes = [
-            ...[...target].map((_, i) => target.slice(0, i + 1)),
-            ...Array.from({ length: 13 }, () => target),
-        ];
-        expect(keystrokes).toHaveLength(20);
-
-        for (const partial of keystrokes) {
-            result.current.onNameChange(partial);
-        }
-
-        jest.advanceTimersByTime(DEBOUNCE_MS - 1);
-        expect(onSuggest).not.toHaveBeenCalled();
-
-        jest.advanceTimersByTime(1);
-        expect(onSuggest).toHaveBeenCalledTimes(1);
-
-        jest.advanceTimersByTime(DEBOUNCE_MS * 2);
-        expect(onSuggest).toHaveBeenCalledTimes(1);
-    });
-});
-
 describe("tier 1: curated match", () => {
     it("emits a curated suggestion synchronously with zero pending flags", async () => {
         const onSuggest = jest.fn();
@@ -147,16 +114,6 @@ describe("tier 1: curated match", () => {
             source: "curated",
             tagIds: [],
         });
-    });
-
-    it("does not emit for a merchant name with no curated or remote match", async () => {
-        const onSuggest = jest.fn();
-        const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest })));
-
-        result.current.onNameChange("a wholly made up merchant name");
-        jest.advanceTimersByTime(DEBOUNCE_MS);
-
-        expect(onSuggest).not.toHaveBeenCalled();
     });
 
     it("passes the raw curated candidate through resolveLocal before emitting", async () => {
@@ -318,20 +275,6 @@ describe("tier 1.75: the caller's own on-device domain tier", () => {
 
         expect(onSuggest).toHaveBeenLastCalledWith(expect.objectContaining({ domain: "example.com" }));
         expect(fn).not.toHaveBeenCalled();
-    });
-
-    // The transaction form passes no `resolveDomain`, so its tiers must be
-    // exactly what they were before the account editor needed one.
-    it("is absent by default, leaving the remote tier to answer", async () => {
-        const { fn } = deferredTransport();
-        const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
-
-        result.current.onNameChange(UNKNOWN);
-        await act(async () => {
-            jest.advanceTimersByTime(DEBOUNCE_MS);
-        });
-
-        expect(fn).toHaveBeenCalledTimes(1);
     });
 });
 
@@ -554,18 +497,6 @@ describe("tier 2: remote fallback", () => {
         expect(calls).toHaveLength(1);
     });
 
-    it("the fast 600ms pass always sends groundedLookup false", async () => {
-        const { fn, calls } = deferredTransport();
-        const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
-
-        result.current.onNameChange(UNKNOWN);
-        await act(async () => {
-            jest.advanceTimersByTime(DEBOUNCE_MS);
-        });
-
-        expect(calls[0].args.groundedLookup).toBe(false);
-    });
-
     it("typing then settling issues exactly one grounded-enabled follow-up call", async () => {
         const { fn, calls } = deferredTransport();
         const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
@@ -608,24 +539,6 @@ describe("tier 2: remote fallback", () => {
         });
 
         expect(calls.every((call) => call.args.groundedLookup === false)).toBe(true);
-    });
-
-    it("a fast result with a domain issues no follow-up", async () => {
-        const { fn, calls } = deferredTransport();
-        const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ transport: fn })));
-
-        result.current.onNameChange(UNKNOWN);
-        await act(async () => {
-            jest.advanceTimersByTime(DEBOUNCE_MS);
-        });
-        await act(async () => {
-            calls[0].settle(REMOTE_RESULT);
-        });
-        await act(async () => {
-            jest.advanceTimersByTime(GROUNDED_IDLE_MS - DEBOUNCE_MS);
-        });
-
-        expect(fn).toHaveBeenCalledTimes(1);
     });
 
     it("never issues a grounded-enabled follow-up when the setting is off", async () => {
@@ -1232,14 +1145,6 @@ describe("the ledger as a source", () => {
 
         expect(onSuggest).toHaveBeenLastCalledWith(
             expect.objectContaining({ categoryId: "cat-remembered", source: "history" })
-        );
-    });
-
-    it("works when no history resolver is supplied at all", async () => {
-        const onSuggest = await typeName("Netflix", {});
-
-        expect(onSuggest).toHaveBeenLastCalledWith(
-            expect.objectContaining({ domain: "netflix.com", source: "curated" })
         );
     });
 });

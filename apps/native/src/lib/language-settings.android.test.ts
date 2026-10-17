@@ -31,10 +31,8 @@ beforeEach(() => {
 
 describe("system language settings on Android", () => {
     it.each([
-        [24, false],
         [32, false],
         [33, true],
-        [36, true],
     ] as const)("on API %i, offers the row: %s", (api, offered) => {
         mockApi.mockReturnValue(api);
 

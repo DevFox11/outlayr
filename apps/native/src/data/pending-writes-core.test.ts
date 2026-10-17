@@ -516,15 +516,6 @@ describe("applyPendingWrites", () => {
         ]);
     });
 
-    it("commits a queued entry through the repo", async () => {
-        const applied = await applyPendingWrites(db, [walletWrite("a")], NOW);
-
-        expect(applied).toBe(1);
-        const rows = await liveRows(db);
-        expect(rows).toHaveLength(1);
-        expect(rows[0]?.note).toBe("Blue Bottle");
-    });
-
     it("collapses the authorize and settle runs of one purchase", async () => {
         await applyPendingWrites(db, [walletWrite("auth")], NOW);
         const settled = NOW.getTime() + WALLET_DEDUPE_WINDOW_MS - 1;
@@ -633,13 +624,6 @@ describe("applyPendingWrites", () => {
             .from(transactions)
             .where(ne(transactions.id, "old"));
         expect(row?.categoryId).toBe("cat-eating-out");
-    });
-
-    it("reads the card's currency out of the formatted amount", async () => {
-        await applyPendingWrites(db, [walletWrite("a", { amountText: "12,40 zł", dedupeKey: null })], NOW);
-
-        const [row] = await db.select({ currency: transactions.currency }).from(transactions);
-        expect(row?.currency).toBe("PLN");
     });
 
     it("files a Wallet purchase under the account its card matches", async () => {

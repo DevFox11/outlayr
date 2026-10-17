@@ -3,7 +3,6 @@ import type { CurrencyCell } from "@outlayr/money/currency-totals";
 import { buildRateTable } from "@outlayr/money/valuation";
 import { render, screen } from "@testing-library/react-native";
 
-import { CHART_DRAW } from "@/theme/chart";
 import { testColors as mockTestColors } from "@/theme/test-colors";
 
 import { AccountBalanceChart } from "./account-balance-chart";
@@ -129,15 +128,6 @@ beforeEach(() => {
 });
 
 describe("accountBalanceChart", () => {
-    it("renders an accessible flat history for an account without attached entries", async () => {
-        await renderChart();
-
-        expect(screen.getByLabelText(/balance history/i)).toBeOnTheScreen();
-        expect(mockLineChart.mock.calls[0]?.[0]).toStrictEqual(
-            expect.objectContaining({ data: expect.arrayContaining([expect.objectContaining({ value: 0 })]) })
-        );
-    });
-
     it("centers a bounded domain around a non-zero flat balance", async () => {
         await renderChart([], 20, "USD", new Date("2026-01-01T12:00:00Z"));
 
@@ -228,15 +218,4 @@ describe("accountBalanceChart", () => {
             );
         }
     );
-
-    it("uses the shared reveal duration when both motion controls allow animation", async () => {
-        mockAnimatedCharts.mockReturnValue(true);
-        mockReduceMotion.mockReturnValue(false);
-
-        await renderChart();
-
-        const props = mockLineChart.mock.calls[0]?.[0] as { animationDuration: number; domainDuration: number };
-        expect(props.animationDuration).toBe(CHART_DRAW.durationMs);
-        expect(props.domainDuration).toBe(CHART_DRAW.durationMs);
-    });
 });

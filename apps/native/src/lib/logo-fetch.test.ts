@@ -87,22 +87,6 @@ describe("fetchMerchantImage", () => {
         expect(result).toStrictEqual({ kind: "none" });
     });
 
-    it("returns none without calling out when there is no name or domain", async () => {
-        const fetchImpl = jest.fn();
-        const result = await fetchMerchantImage({ domain: null, name: "" }, fetchImpl as unknown as typeof fetch);
-
-        expect(result).toStrictEqual({ kind: "none" });
-        expect(fetchImpl).not.toHaveBeenCalled();
-    });
-
-    it("survives a thrown request", async () => {
-        const result = await fetchMerchantImage({ domain: "netflix.com", name: "Netflix" }, (async () => {
-            throw new Error("offline");
-        }) as unknown as typeof fetch);
-
-        expect(result).toStrictEqual({ kind: "none" });
-    });
-
     it("skips straight to the favicon when no logo.dev token is configured", async () => {
         jest.resetModules();
         jest.doMock<Partial<typeof import("@outlayr/env/native")>>("@outlayr/env/native", () => ({

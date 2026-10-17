@@ -228,21 +228,6 @@ describe("useAccountsOverviewIn", () => {
         expect(result.current?.rows.map((row) => row.id)).toStrictEqual(["keep"]);
     });
 
-    it("keeps every account when nothing is pending", async () => {
-        mockUseLiveQuery
-            .mockReturnValueOnce([account("keep", 100), account("going", 50)])
-            .mockReturnValueOnce([])
-            .mockReturnValueOnce([])
-            .mockReturnValueOnce([]);
-
-        const { result } = await renderHook(() =>
-            useAccountsOverviewIn({} as Database, valuation, JUNE_1.getTime(), null)
-        );
-
-        expect(result.current?.count).toBe(2);
-        expect(result.current?.total).toBe(150);
-    });
-
     it("leaves a future-dated row out of the total until its date", async () => {
         mockUseLiveQuery.mockImplementation(useLiveQuery);
         const db = makeDb();

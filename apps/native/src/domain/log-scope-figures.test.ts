@@ -123,8 +123,4 @@ describe("a transfer never reaches the scope header", () => {
         expect(scopeHasFigures([scopeEntry(500, { excludedFromTotals: true })])).toBe(false);
         expect(scopeHasFigures([scopeEntry(40), scopeEntry(500, { excludedFromTotals: true })])).toBe(true);
     });
-
-    it("says an empty scope has no figures to print", () => {
-        expect(scopeHasFigures([])).toBe(false);
-    });
 });

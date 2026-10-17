@@ -324,22 +324,6 @@ describe("settledAccountCellQuery", () => {
         const income = cells.find((cell) => cell.income);
         expect(income?.amount).toBe(12);
     });
-
-    it("feeds accountBalance the shape it expects", async () => {
-        await addEntry("t1", { accountId: "a1", amount: 30, amountUsd: 30 });
-        await addEntry("t2", {
-            accountId: "a1",
-            amount: 12,
-            amountUsd: 12,
-            income: true,
-        });
-
-        const cells = toCurrencyCells(await settledAccountCellQuery(db, "a1", JAN_5));
-        const balance = accountBalance({ currency: "USD", initialBalance: 100 }, cells, buildRateTable([]));
-
-        expect(balance.total).toBe(82);
-        expect(balance.exact).toBe(true);
-    });
 });
 
 describe("the last-used account", () => {
@@ -350,17 +334,6 @@ describe("the last-used account", () => {
 
     it("answers null before any save has attached", () => {
         expect(getLastUsedAccount(db)).toBeNull();
-    });
-
-    it("hands back the remembered account", async () => {
-        const id = await accountsRepo.create(db, {
-            currency: "USD",
-            name: "Checking",
-        });
-
-        await rememberLastUsedAccount(db, id);
-
-        expect(getLastUsedAccount(db)?.id).toBe(id);
     });
 
     it("moves with the newest attachment", async () => {

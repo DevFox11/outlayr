@@ -5,12 +5,9 @@ import { descriptorKey, knowledgeKeys } from "./merchantKey";
 describe(descriptorKey, () => {
     it.each([
         ["AIRBNB * HMASFW2JP2", "airbnb"],
-        ["AIRBNB * ZX81KQ7", "airbnb"],
         ["NYX*VenetisABEET", "venetis"],
         ["CARE4BAG AE", "care4bag"],
         ["SQ *BLUE BOTTLE COFFEE", "blue bottle coffee"],
-        ["PAYPAL *STEAM GAMES", "steam games"],
-        ["TST* SUSHI WAY LES HA", "sushi way les ha"],
         ["BLUE BOTTLE COFFEE #08761", "blue bottle coffee"],
         ["FIUMICINO AEROPORTO SS", "fiumicino aeroporto ss"],
         ["UBER *EATS PENDING", "uber eats pending"],

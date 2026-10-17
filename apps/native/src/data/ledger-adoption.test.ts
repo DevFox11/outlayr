@@ -132,15 +132,6 @@ describe("local ledger state", () => {
 });
 
 describe("adoption marker", () => {
-    it("is absent before any account has been reconciled", async () => {
-        await expect(adoptedAccount(db)).resolves.toBeNull();
-    });
-
-    it("holds the account it was resolved for", async () => {
-        await markAdopted(db, "user_a");
-        await expect(adoptedAccount(db)).resolves.toBe("user_a");
-    });
-
     it("account-switch-clears-metadata-before-enable", async () => {
         await markAdopted(db, "account-a");
         await runAdoption(db, null, { pushLocal: false, wipeAccount: false, wipeLocal: false });

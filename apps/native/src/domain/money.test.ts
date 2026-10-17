@@ -7,19 +7,12 @@ import {
     formatFixed,
     latinAmericanLocale,
     minorUnitsFor,
-    numberLocale,
     roundToMinorUnits,
     symbolIsShared,
 } from "./money";
 
 const ARGENTINA = { decimalSeparator: ",", digitGroupingSeparator: ".", regionCode: "AR" };
 const MEXICO = { decimalSeparator: ".", digitGroupingSeparator: ",", regionCode: "MX" };
-
-describe("numberLocale", () => {
-    it("gives English a dot decimal", () => {
-        expect(numberLocale("en")).toStrictEqual({ decimal: ".", group: ",", tag: "en-US" });
-    });
-});
 
 describe("latinAmericanLocale", () => {
     it("takes the marks from the device's region", () => {
@@ -29,13 +22,6 @@ describe("latinAmericanLocale", () => {
 
     it("falls back to Latin American Spanish when the device cannot be read", () => {
         expect(latinAmericanLocale(null)).toStrictEqual({ decimal: ".", group: ",", tag: "es-419" });
-    });
-
-    it.each([MEXICO, ARGENTINA])("names a tag whose Intl marks match the device's ($regionCode)", (device) => {
-        const locale = latinAmericanLocale(device);
-        const parts = new Intl.NumberFormat(locale.tag).formatToParts(12_345.6);
-        expect(parts.find((part) => part.type === "decimal")?.value).toBe(locale.decimal);
-        expect(parts.find((part) => part.type === "group")?.value).toBe(locale.group);
     });
 });
 

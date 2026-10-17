@@ -7,7 +7,6 @@ import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.ts");
 
-const COTIZAVE_URL = "https://api.cotizave.com/v1/fx/rates";
 const MISSING_KEY_PATTERN = /COTIZAVE_API_KEY/;
 
 function liveRatesPayload() {
@@ -249,22 +248,6 @@ describe("cotizave.fetchRates", () => {
         expect(fetchMock).not.toHaveBeenCalled();
         const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
         expect(rows).toHaveLength(0);
-    });
-
-    it("authenticates with the X-API-Key header", async () => {
-        const t = convexTest(schema, modules);
-        const fetchMock = stubFetch(liveRatesPayload());
-
-        await t.action(internal.cotizave.fetchRates, {});
-
-        expect(fetchMock).toHaveBeenCalledOnce();
-        const [firstCall] = fetchMock.mock.calls;
-        if (!firstCall) {
-            throw new Error("Expected fetch to have been called once");
-        }
-        const [url, init] = firstCall;
-        expect(url).toBe(COTIZAVE_URL);
-        expect(init?.headers).toMatchObject({ "X-API-Key": "test-cotizave-key" });
     });
 
     it("pins the row date to the UTC fetch day, ignoring local offset", async () => {

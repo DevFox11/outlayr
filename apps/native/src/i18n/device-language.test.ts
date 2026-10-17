@@ -28,7 +28,7 @@ const realAddEventListener = AppState.addEventListener;
 
 /**
  * Captures every listener the hook registers so a test can drive AppState
- * transitions directly, and reports whether each was later removed.
+ * transitions directly.
  */
 function watchAppState() {
     const listeners: ((status: AppStateStatus) => void)[] = [];
@@ -52,7 +52,6 @@ function watchAppState() {
                 }
             });
         },
-        remove,
     };
 }
 
@@ -82,17 +81,6 @@ describe("useDeviceLanguageTag", () => {
         expect(result.current).toBe("es-MX");
     });
 
-    it("does not re-read while the app is heading to the background", async () => {
-        const appState = watchAppState();
-        mockDeviceLanguageTag.mockReturnValue("en-US");
-        const { result } = await renderHook(() => useDeviceLanguageTag());
-
-        mockDeviceLanguageTag.mockReturnValue("es-MX");
-        await appState.emit("background");
-
-        expect(result.current).toBe("en-US");
-    });
-
     it("notifies every mounted consumer, not just the first", async () => {
         const appState = watchAppState();
         mockDeviceLanguageTag.mockReturnValue("en-US");
@@ -115,17 +103,5 @@ describe("useDeviceLanguageTag", () => {
         const { result } = await renderHook(() => useDeviceLanguageTag());
 
         expect(result.current).toBeNull();
-    });
-
-    it("removes its AppState subscription on unmount", async () => {
-        const appState = watchAppState();
-        mockDeviceLanguageTag.mockReturnValue("en-US");
-
-        const { unmount } = await renderHook(() => useDeviceLanguageTag());
-        await act(async () => {
-            unmount();
-        });
-
-        expect(appState.remove).toHaveBeenCalledWith();
     });
 });

@@ -11,12 +11,4 @@ describe("createDraftStash", () => {
         expect(stash.take("t1")).toStrictEqual({ amount: "12" });
         expect(stash.take("t1")).toBeUndefined();
     });
-
-    it("keeps the latest draft for a key", () => {
-        const stash = createDraftStash<string>();
-        stash.put("t1", "first");
-        stash.put("t1", "second");
-
-        expect(stash.take("t1")).toBe("second");
-    });
 });

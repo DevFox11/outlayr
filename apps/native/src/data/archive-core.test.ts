@@ -260,19 +260,6 @@ describe("archiving a ledger", () => {
         expect(written).toBe(251);
         await expect(fresh.select().from(transactions)).resolves.toHaveLength(250);
     });
-
-    it("writes categories before the rows that point at them", async () => {
-        // Reversing the order fails the foreign key, which better-sqlite3 enforces.
-        await db.insert(categories).values(CATEGORY);
-        await db.insert(transactions).values(transactionRow("t1"));
-        const parsed = parseArchive(serializeArchive(await buildArchive(db, new Date())));
-        if (!parsed) {
-            throw new Error("expected the archive to parse");
-        }
-
-        const fresh = migratedDatabase();
-        await restoreArchive(fresh, parsed);
-    });
 });
 
 describe("archive and the device's own state", () => {

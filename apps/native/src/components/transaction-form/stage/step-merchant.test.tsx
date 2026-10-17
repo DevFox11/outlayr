@@ -26,34 +26,12 @@ const labelsIn = (testID: string) =>
         .map((node) => String(node.props.accessibilityLabel));
 
 describe("stepMerchant", () => {
-    it("shows the name being typed and reports every keystroke", async () => {
-        const onChange = jest.fn();
-        await render(<StepMerchant {...baseProps} onChange={onChange} value="Netfl" />);
-
-        const field = screen.getByLabelText("Merchant name");
-        expect(field.props.value).toBe("Netfl");
-
-        fireEvent.changeText(field, "Netflix");
-
-        expect(onChange).toHaveBeenCalledWith("Netflix");
-    });
-
     it("offers what was typed against, and what was filed before", async () => {
         await render(<StepMerchant {...baseProps} recent={["Panaderia"]} suggestions={["Netflix"]} value="net" />);
 
         expect(labelsIn("stage-merchant-suggestions")).toStrictEqual(["Netflix"]);
         expect(labelsIn("stage-merchant-recent")).toStrictEqual(["Panaderia"]);
         expect(screen.getByText("Recently")).toBeTruthy();
-    });
-
-    // A row with nothing in it is a heading over a blank, which reads as
-    // something failing to load rather than as a ledger with no history yet.
-    it("draws neither row while it has nothing to put in it", async () => {
-        await render(<StepMerchant {...baseProps} value="net" />);
-
-        expect(screen.queryByTestId("stage-merchant-suggestions")).toBeNull();
-        expect(screen.queryByTestId("stage-merchant-recent")).toBeNull();
-        expect(screen.queryByText("Recently")).toBeNull();
     });
 
     it("hands back the whole name a row was pressed for", async () => {

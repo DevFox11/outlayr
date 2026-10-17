@@ -4,7 +4,6 @@ import type { Database } from "@/db/client";
 import { migratedDatabase } from "@/db/test-database";
 import { amountParts, formatAmount } from "@/domain/money";
 
-import { getMeta } from "./app-meta-core";
 import {
     ordinalDay,
     parseBoolSetting,
@@ -13,66 +12,15 @@ import {
     readNumberSetting,
     seedClockPreference,
     setBoolSetting,
-    setCurrency,
     setNumberSetting,
 } from "./settings-core";
 
 const makeDb = migratedDatabase;
 
-describe("settings defaults", () => {
-    let db: Database;
-    beforeEach(() => {
-        db = makeDb();
-    });
-
-    it("returns the faithful defaults on a fresh store", async () => {
-        await expect(readBoolSetting(db, "showCents")).resolves.toBe(true);
-        await expect(readNumberSetting(db, "firstWeekday")).resolves.toBe(1);
-        await expect(readNumberSetting(db, "firstDayOfMonth")).resolves.toBe(1);
-    });
-
-    it("keeps the celebration off until it is asked for", async () => {
-        await expect(readBoolSetting(db, "confetti")).resolves.toBe(false);
-        await setBoolSetting(db, "confetti", true);
-        await expect(readBoolSetting(db, "confetti")).resolves.toBe(true);
-    });
-
-    it("keeps the subscription notices off until they are asked for", async () => {
-        await expect(readBoolSetting(db, "subscriptionReminders")).resolves.toBe(false);
-        await setBoolSetting(db, "subscriptionReminders", true);
-        await expect(readBoolSetting(db, "subscriptionReminders")).resolves.toBe(true);
-    });
-
-    it("lists the budgets as rows until the grid is asked for", async () => {
-        // Inverted against Swift's `budgetViewStyle`, which defaulted to the grid:
-        // rows are the shipped budget list here, so the default must not flip it.
-        await expect(readBoolSetting(db, "budgetViewStyle")).resolves.toBe(true);
-        await setBoolSetting(db, "budgetViewStyle", false);
-        await expect(readBoolSetting(db, "budgetViewStyle")).resolves.toBe(false);
-    });
-
-    it("defaults grounded-lookup consent on for a device that never wrote it", async () => {
-        await expect(readBoolSetting(db, "groundedLookup")).resolves.toBe(true);
-        await setBoolSetting(db, "groundedLookup", false);
-        await expect(readBoolSetting(db, "groundedLookup")).resolves.toBe(false);
-    });
-});
-
 describe("the 12/24-hour clock", () => {
     let db: Database;
     beforeEach(() => {
         db = makeDb();
-    });
-
-    it("reads as a 12-hour clock before anything is stored", async () => {
-        await expect(readBoolSetting(db, "use24HourClock")).resolves.toBe(false);
-    });
-
-    it("persists and reads back the user's own choice", async () => {
-        await setBoolSetting(db, "use24HourClock", true);
-        await expect(readBoolSetting(db, "use24HourClock")).resolves.toBe(true);
-        await setBoolSetting(db, "use24HourClock", false);
-        await expect(readBoolSetting(db, "use24HourClock")).resolves.toBe(false);
     });
 
     it("seeds the device's convention when the user has never chosen", async () => {
@@ -102,13 +50,6 @@ describe("settings read/write round-trip", () => {
         db = makeDb();
     });
 
-    it("persists and reads back a boolean setting", async () => {
-        await setBoolSetting(db, "showCents", false);
-        await expect(readBoolSetting(db, "showCents")).resolves.toBe(false);
-        await setBoolSetting(db, "showCents", true);
-        await expect(readBoolSetting(db, "showCents")).resolves.toBe(true);
-    });
-
     it("persists and reads back integer settings", async () => {
         await setNumberSetting(db, "firstWeekday", 2);
         await setNumberSetting(db, "firstDayOfMonth", 15);
@@ -129,11 +70,6 @@ describe("settings read/write round-trip", () => {
         await setBoolSetting(db, "showNotifications", false);
         await expect(readBoolSetting(db, "subscriptionReminders")).resolves.toBe(true);
         await expect(readBoolSetting(db, "showNotifications")).resolves.toBe(false);
-    });
-
-    it("writes the global currency under the shared meta key", async () => {
-        await setCurrency(db, "EUR");
-        await expect(getMeta(db, "currency")).resolves.toBe("EUR");
     });
 });
 

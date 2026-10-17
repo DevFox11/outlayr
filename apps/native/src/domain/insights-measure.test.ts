@@ -79,18 +79,6 @@ describe("favourable direction", () => {
         expect(breakdownRiseIsFavourable("spent")).toBe(false);
         expect(breakdownRiseIsFavourable("net")).toBe(false);
     });
-
-    it("pARTS COMPANY on net, which is the whole reason both exist", () => {
-        // Under `net` the hero rising is good news while a category rising is not:
-        // `categoryBreakdown` reads outflow for net, so they are not measuring the
-        // same money.
-        expect(measureRiseIsFavourable("net")).not.toBe(breakdownRiseIsFavourable("net"));
-    });
-
-    it("agrees on spent and income, where they do measure the same money", () => {
-        expect(measureRiseIsFavourable("income")).toBe(breakdownRiseIsFavourable("income"));
-        expect(measureRiseIsFavourable("spent")).toBe(breakdownRiseIsFavourable("spent"));
-    });
 });
 
 describe("insightsMeasureAlternatives", () => {
@@ -98,13 +86,5 @@ describe("insightsMeasureAlternatives", () => {
         expect(insightsMeasureAlternatives("spent")).toStrictEqual(["income", "net"]);
         expect(insightsMeasureAlternatives("income")).toStrictEqual(["spent", "net"]);
         expect(insightsMeasureAlternatives("net")).toStrictEqual(["spent", "income"]);
-    });
-
-    it("keeps declaration order so the pair never reshuffles under a thumb", () => {
-        for (const measure of INSIGHTS_MEASURE_ORDER) {
-            const alternatives = insightsMeasureAlternatives(measure);
-            const positions = alternatives.map((m) => INSIGHTS_MEASURE_ORDER.indexOf(m));
-            expect(positions).toStrictEqual([...positions].sort((a, b) => a - b));
-        }
     });
 });

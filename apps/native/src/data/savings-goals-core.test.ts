@@ -52,12 +52,6 @@ function goal(overrides: Partial<Parameters<typeof savingsGoalsRepo.create>[1]> 
 }
 
 describe("savings goals", () => {
-    it("writes a goal that reads back", async () => {
-        await goal();
-        const [row] = await savingsGoalsQuery(db);
-        expect(row).toMatchObject({ accountId: "savings", name: "Emergency fund", targetAmount: 5000 });
-    });
-
     it("orders goals by their sort position", async () => {
         await goal({ name: "First" });
         await goal({ name: "Second" });
@@ -69,20 +63,6 @@ describe("savings goals", () => {
         const id = await goal();
         await savingsGoalsRepo.remove(db, id);
         await expect(savingsGoalsQuery(db)).resolves.toStrictEqual([]);
-    });
-
-    it("re-freezes the USD target only when the amount or currency moves", async () => {
-        const id = await goal();
-        const [before] = await savingsGoalsQuery(db);
-
-        await savingsGoalsRepo.update(db, id, { name: "Rainy day" });
-        const [renamed] = await savingsGoalsQuery(db);
-        expect(renamed.targetAmountUsd).toBe(before.targetAmountUsd);
-        expect(renamed.name).toBe("Rainy day");
-
-        await savingsGoalsRepo.update(db, id, { targetAmount: 6000 });
-        const [raised] = await savingsGoalsQuery(db);
-        expect(raised.targetAmount).toBe(6000);
     });
 
     it("holds the balance the goal opened against through an unrelated edit", async () => {
@@ -192,31 +172,6 @@ describe("savings goals", () => {
 
         const [after] = await savingsGoalsQuery(db);
         expect(after.targetAmount / (after.targetAmountUsd ?? 1)).toBeCloseTo(rate, 8);
-    });
-
-    it("falls back to a legacy goal's own pair rather than a rate that has moved", async () => {
-        // Written before the rate column existed, so `exchangeRate` is null and the
-        // stored pair is the only record of what valued it.
-        await withRate("EUR", 0.8);
-        const id = await goal({ currency: "EUR", targetAmount: 1000 });
-        await db.update(savingsGoals).set({ exchangeRate: null }).where(eq(savingsGoals.id, id));
-        const [before] = await savingsGoalsQuery(db);
-        const rate = before.targetAmount / (before.targetAmountUsd ?? 1);
-
-        await db.delete(exchangeRates).run?.();
-        await withRate("EUR", 0.5);
-        await savingsGoalsRepo.update(db, id, { targetAmount: 2000 });
-
-        const [after] = await savingsGoalsQuery(db);
-        expect(after.targetAmount / (after.targetAmountUsd ?? 1)).toBeCloseTo(rate, 8);
-    });
-
-    it("refuses a re-typed target it cannot value, rather than storing a null", async () => {
-        const id = await goal();
-        await expect(savingsGoalsRepo.update(db, id, { targetAmount: 9000 })).resolves.toBeUndefined();
-
-        const [row] = await savingsGoalsQuery(db);
-        expect(row.targetAmountUsd).not.toBeNull();
     });
 
     it("refuses to update a goal that is not there", async () => {

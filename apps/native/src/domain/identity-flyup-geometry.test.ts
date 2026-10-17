@@ -17,17 +17,6 @@ describe("floatTargetY", () => {
         ).toBe(224);
     });
 
-    it("centres against a shorter screen's smaller sheet", () => {
-        // iPhone SE: 667pt tall, whose half detent is only 333pt.
-        expect(
-            floatTargetY({
-                containerHeight: 667,
-                heroHalf: HERO_HALF,
-                sheetHeight: 333,
-            })
-        ).toBe(167);
-    });
-
     it("floors the hero below the top edge when the sheet leaves no room", () => {
         // Dragging the sheet to its large detent shrinks the free area to nothing;
         // the centre would go negative and clip the tile off the top.
@@ -36,18 +25,6 @@ describe("floatTargetY", () => {
                 containerHeight: 874,
                 heroHalf: HERO_HALF,
                 sheetHeight: 800,
-            })
-        ).toBe(98);
-    });
-
-    it("floors rather than centres exactly at the crossover", () => {
-        // Free area == the floored hero band: both branches agree, so neither can
-        // drift past the other unnoticed.
-        expect(
-            floatTargetY({
-                containerHeight: 596,
-                heroHalf: HERO_HALF,
-                sheetHeight: 400,
             })
         ).toBe(98);
     });

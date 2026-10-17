@@ -25,10 +25,6 @@ describe("what a blocked transfer says", () => {
     it("says nothing would arrive when the fee takes precisely all of it", () => {
         expect(blockMessage(drafted({ kind: "fee", shortfall: 0 }), t, "en")).toBe("transfers.block.nothingArrives");
     });
-
-    it("says the same when the fee overruns it entirely", () => {
-        expect(blockMessage(drafted({ kind: "fee", shortfall: -12 }), t, "en")).toBe("transfers.block.nothingArrives");
-    });
 });
 
 function gapped(draft: Partial<Parameters<typeof gapPrompt>[0]>) {

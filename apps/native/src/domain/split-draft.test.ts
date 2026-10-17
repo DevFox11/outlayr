@@ -24,11 +24,6 @@ describe("adding a category", () => {
         ]);
     });
 
-    it("keeps the draft balanced, so adding never makes it unsaveable", () => {
-        const draft = addPart(openDraft(TOTAL, "groceries", 2), "home");
-        expect(isBalanced(TOTAL, draft, 2)).toBe(true);
-    });
-
     it("counts as a split once there are two parts", () => {
         expect(isRealSplit(addPart(openDraft(TOTAL, "groceries", 2), "home"))).toBe(true);
     });
@@ -81,11 +76,6 @@ describe("removing a category", () => {
         expect(isBalanced(TOTAL, without, 2)).toBe(true);
     });
 
-    it("stops being a split when it is back to one part", () => {
-        const draft = addPart(openDraft(TOTAL, "groceries", 2), "home");
-        expect(isRealSplit(removePart(draft, 1, 2))).toBe(false);
-    });
-
     it("ignores an index that is not there", () => {
         const draft = openDraft(TOTAL, "groceries", 2);
         expect(removePart(draft, 4, 2)).toStrictEqual(draft);
@@ -99,14 +89,5 @@ describe("changing a part's category", () => {
             { amount: 50, categoryId: "groceries" },
             { amount: 34, categoryId: "pets" },
         ]);
-    });
-});
-
-describe("when the entry's own amount changes under a split", () => {
-    it("goes unbalanced, which is the state the save has to refuse", () => {
-        const draft = setPartAmount(TOTAL, addPart(openDraft(TOTAL, "groceries", 2), "home"), 1, 34, 2);
-        // The user goes back and makes it $100.
-        expect(isBalanced(100, draft, 2)).toBe(false);
-        expect(unallocated(100, draft, 2)).toBe(16);
     });
 });

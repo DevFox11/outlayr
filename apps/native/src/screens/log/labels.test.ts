@@ -24,11 +24,4 @@ describe("scopeMeasureLabel", () => {
         expect(label).toBe(`${t("log.measure.out")} · COP`);
         expect(label).toMatch(/COP/);
     });
-
-    it("names the fallback for every measure, not just the promoted one", () => {
-        for (const measure of ["net", "in", "out"] as const) {
-            expect(scopeMeasureLabel(t, measure, "JPY", "EUR")).toMatch(/· JPY$/);
-            expect(scopeMeasureLabel(t, measure, "EUR", "EUR")).not.toMatch(/·/);
-        }
-    });
 });

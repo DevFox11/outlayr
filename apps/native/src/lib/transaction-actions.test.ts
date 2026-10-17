@@ -37,11 +37,6 @@ describe("transactionMenuItems", () => {
         expect(items(guarded).map((item) => item.id)).toStrictEqual(["edit"]);
     });
 
-    it("marks Delete destructive and nothing else", () => {
-        const destructive = items(ALL_ALLOWED).filter((item) => item.destructive);
-        expect(destructive.map((item) => item.id)).toStrictEqual(["delete"]);
-    });
-
     it("deletes outright, because the undo window is the confirmation", () => {
         const onDelete = jest.fn();
         const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});

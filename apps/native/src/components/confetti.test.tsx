@@ -28,12 +28,6 @@ describe("celebrationConfetti", () => {
         mockReduced.mockReturnValue(false);
     });
 
-    it("draws nothing until a burst fires", async () => {
-        await render(<CelebrationConfetti />);
-
-        expect(burst()).toBeNull();
-    });
-
     it("plays a fresh burst for every fire", async () => {
         await render(<CelebrationConfetti />);
 

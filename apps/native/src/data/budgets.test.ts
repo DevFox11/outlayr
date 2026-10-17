@@ -148,23 +148,6 @@ describe("budgetsRepo.createMainBudget", () => {
         );
     });
 
-    it("re-points the singleton on a second first-run-shaped call", async () => {
-        const first = await budgetsRepo.createMainBudget(db, {
-            amount: 2400,
-            startDate: null,
-            type: BUDGET_TYPE.month,
-        });
-        const second = await budgetsRepo.createMainBudget(db, {
-            amount: 3000,
-            startDate: null,
-            type: BUDGET_TYPE.month,
-        });
-        const rows = await db.select().from(mainBudget);
-        expect(second).toBe(first);
-        expect(rows).toHaveLength(1);
-        expect(rows[0]?.amount).toBe(3000);
-    });
-
     it("re-points the singleton rather than inserting a second", async () => {
         const first = await budgetsRepo.createMainBudget(db, {
             amount: 1000,
@@ -212,29 +195,6 @@ describe("budgetsRepo.createMainBudget", () => {
         });
         const rows = await db.select().from(mainBudget);
         expect(rows[0]?.name).toBeNull();
-    });
-});
-
-describe("getBudgetById", () => {
-    it("hands back the stored row so an edit opens on what was saved", async () => {
-        const db = makeDb();
-        const id = await budgetsRepo.createBudget(db, {
-            amount: 250,
-            categoryId: "cat-1",
-            name: "Coffee run",
-            startDate: BACKDATE,
-            type: BUDGET_TYPE.month,
-        });
-        const row = getBudgetById(db, id);
-        expect(row?.name).toBe("Coffee run");
-        expect(row?.amount).toBe(250);
-        expect(row?.categoryId).toBe("cat-1");
-        expect(row?.type).toBe(BUDGET_TYPE.month);
-        expect(row?.startDate?.getTime()).toBe(BACKDATE.getTime());
-    });
-
-    it("declines an id that names nothing", () => {
-        expect(getBudgetById(makeDb(), "gone")).toBeNull();
     });
 });
 

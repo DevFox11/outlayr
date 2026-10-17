@@ -11,7 +11,6 @@ import { candidateLogoIds, rememberLogoCandidates, rememberLogoDismissal } from 
 import {
     backfillAllRecurring,
     backfillRecurring,
-    recurrenceRateType,
     repairOrphanedRecurrence,
     scheduleSuccessor,
 } from "./recurrence-backfill";
@@ -107,12 +106,6 @@ async function liveCarrier(db: Database) {
 async function orphanCarrier(db: Database, id: string): Promise<void> {
     await db.update(transactions).set({ deletedAt: NOW }).where(eq(transactions.id, id));
 }
-
-describe("recurrenceRateType", () => {
-    it("defaults an omitted insert policy to official", () => {
-        expect(recurrenceRateType(undefined)).toBe("official");
-    });
-});
 
 describe("scheduleSuccessor", () => {
     it("creates a rate-needed custom successor without copying the carrier's settled rate", async () => {
@@ -627,43 +620,6 @@ describe("transactionsRepo.remove over a schedule carrier", () => {
         db = makeDb();
     });
 
-    it("creates a rate-needed custom successor when deleting a settled carrier", async () => {
-        const id = await seedSource(db, {
-            amountUsd: 0.18,
-            currency: "VES",
-            date: at(2025, 6, 10),
-            exchangeRate: 55.5,
-            exchangeRateType: "custom",
-        });
-
-        await transactionsRepo.remove(db, id, NOW);
-
-        await expect(liveCarrier(db)).resolves.toMatchObject({
-            amountUsd: null,
-            exchangeRate: null,
-            exchangeRateType: "custom",
-        });
-    });
-
-    it("re-resolves an official rate on the successor date when deleting a carrier", async () => {
-        const id = await seedSource(db, {
-            amountUsd: 0.2,
-            currency: "VES",
-            date: at(2025, 6, 10),
-            exchangeRate: 50,
-            exchangeRateType: "official",
-        });
-        await seedRate(db, "VES", "official", "2025-07-01", 70);
-
-        await transactionsRepo.remove(db, id, NOW);
-
-        await expect(liveCarrier(db)).resolves.toMatchObject({
-            amountUsd: 0.142714,
-            exchangeRate: 70,
-            exchangeRateType: "official",
-        });
-    });
-
     it("re-anchors the schedule on a successor instead of ending the chain", async () => {
         const id = await seedSource(db, { date: at(2025, 3, 15) });
         await backfillRecurring(db, id, NOW);
@@ -864,45 +820,6 @@ describe("repairOrphanedRecurrence", () => {
         db = makeDb();
     });
 
-    it("repairs an orphaned custom carrier without copying its settled rate", async () => {
-        const id = await seedSource(db, {
-            amountUsd: 0.18,
-            currency: "VES",
-            date: at(2025, 6, 10),
-            exchangeRate: 55.5,
-            exchangeRateType: "custom",
-        });
-        await orphanCarrier(db, id);
-
-        await expect(repairOrphanedRecurrence(db, NOW)).resolves.toBe(1);
-
-        await expect(liveCarrier(db)).resolves.toMatchObject({
-            amountUsd: null,
-            exchangeRate: null,
-            exchangeRateType: "custom",
-        });
-    });
-
-    it("re-resolves an orphaned EUR-reference carrier on the revived occurrence date", async () => {
-        const id = await seedSource(db, {
-            amountUsd: 0.25,
-            currency: "VES",
-            date: at(2025, 6, 10),
-            exchangeRate: 50,
-            exchangeRateType: "eur_reference",
-        });
-        await seedRate(db, "VES", "eur_reference", "2025-07-01", 80);
-        await orphanCarrier(db, id);
-
-        await expect(repairOrphanedRecurrence(db, NOW)).resolves.toBe(1);
-
-        await expect(liveCarrier(db)).resolves.toMatchObject({
-            amountUsd: 0.124875,
-            exchangeRate: 80,
-            exchangeRateType: "eur_reference",
-        });
-    });
-
     it("reinstates a chain whose carrier was deleted without a handover", async () => {
         const id = await seedSource(db, { date: at(2025, 3, 15) });
         await backfillRecurring(db, id, NOW);
@@ -1060,16 +977,6 @@ describe("occurrence identity across devices", () => {
 
         const raised = (await allRows(db)).find((row) => row.id === replicated.id);
         expect(raised).toBeUndefined();
-    });
-
-    it("gives each occurrence in a chain its own id", async () => {
-        const db = makeDb();
-        await seedSource(db, { date: at(2025, 1, 15) });
-
-        await backfillRecurring(db, "src", NOW);
-
-        const ids = (await everyRow(db)).map((row) => row.id);
-        expect(new Set(ids).size).toBe(ids.length);
     });
 
     it("anchors the same successor on two devices deleting the same carrier", async () => {

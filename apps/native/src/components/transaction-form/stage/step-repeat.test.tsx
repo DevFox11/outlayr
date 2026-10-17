@@ -24,32 +24,9 @@ const baseProps: ComponentProps<typeof StepRepeat> = {
     startDate: new Date(2026, 6, 15),
 };
 
-const names = () => screen.getAllByRole("button").map((node) => node.props.accessibilityLabel);
-
 const isSelected = (name: string) => screen.getByRole("button", { name }).props.accessibilityState.selected;
 
 describe("stepRepeat", () => {
-    // Every target on the step, in reading order: the cadences, the two values on
-    // the schedule line, then the leads. No grouped rows, no chevrons, no toggle.
-    it("reads as cadences, then the schedule line, then the leads", async () => {
-        await render(<StepRepeat {...baseProps} />);
-
-        expect(names()).toStrictEqual([
-            "transaction.cadence.daily",
-            "transaction.cadence.weekly",
-            "transaction.cadence.monthly",
-            "transaction.cadence.yearly",
-            "transaction.schedule.customOption",
-            "15 Jul",
-            "never",
-            "transaction.remind.off",
-            "transaction.remind.sameDay",
-            "transaction.remind.dayBefore",
-            "transaction.remind.daysBefore",
-            "transaction.remind.weekBefore",
-        ]);
-    });
-
     it("marks the stored cadence and the off lead", async () => {
         await render(<StepRepeat {...baseProps} />);
 
@@ -98,26 +75,6 @@ describe("stepRepeat", () => {
 
         expect(screen.getByRole("button", { name: "1 Dec" })).toBeTruthy();
         expect(screen.queryByRole("button", { name: "never" })).toBeNull();
-    });
-
-    // One press per test: two in the same one leave React mid-flush, and the next
-    // test's `render` then resolves before its tree commits.
-    it("opens the host's picker from the start date", async () => {
-        const onStartDatePress = jest.fn();
-        await render(<StepRepeat {...baseProps} onStartDatePress={onStartDatePress} />);
-
-        fireEvent.press(screen.getByRole("button", { name: "15 Jul" }));
-
-        expect(onStartDatePress).toHaveBeenCalledTimes(1);
-    });
-
-    it("opens the host's picker from the end value", async () => {
-        const onEndDatePress = jest.fn();
-        await render(<StepRepeat {...baseProps} onEndDatePress={onEndDatePress} />);
-
-        fireEvent.press(screen.getByRole("button", { name: "never" }));
-
-        expect(onEndDatePress).toHaveBeenCalledTimes(1);
     });
 
     it("reports a picked lead", async () => {

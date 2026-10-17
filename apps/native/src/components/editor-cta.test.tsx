@@ -9,11 +9,6 @@ import { EditorCta } from "./editor-cta";
  * — rather than a modifier list.
  */
 describe("editorCta", () => {
-    it("renders the label passed in", async () => {
-        await render(<EditorCta canSave label="Add Category" onPress={() => {}} />);
-        expect(screen.getByText("Add Category")).toBeTruthy();
-    });
-
     it("fires onPress when it can save", async () => {
         const onPress = jest.fn();
         await render(<EditorCta canSave label="Add Category" onPress={onPress} />);
@@ -37,11 +32,6 @@ describe("editorCta", () => {
     it("dims itself when it cannot save", async () => {
         await render(<EditorCta canSave={false} label="Add Category" onPress={() => {}} />);
         expect(screen.getByTestId("editor-cta")).toHaveStyle({ opacity: 0.4 });
-    });
-
-    it("stays at full ink while saving", async () => {
-        await render(<EditorCta busy canSave={false} label="Add Category" onPress={() => {}} />);
-        expect(screen.getByTestId("editor-cta")).toHaveStyle({ opacity: 1 });
     });
 
     it("is disabled while saving", async () => {

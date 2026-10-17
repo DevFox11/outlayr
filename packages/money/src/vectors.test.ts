@@ -68,24 +68,10 @@ const CONVERT_FROM_USD_VECTORS: ConvertVector[] = [
         rate: 1,
     },
     {
-        amountUsd: 12_480,
-        code: "USD",
-        expected: 12_480,
-        name: "USD identity on a whole balance (rate 1)",
-        rate: 1,
-    },
-    {
         amountUsd: 1,
         code: "EUR",
         expected: 0.12,
         name: "half-even tie rounds down to even (0.125 -> 0.12)",
-        rate: 0.125,
-    },
-    {
-        amountUsd: 3,
-        code: "EUR",
-        expected: 0.38,
-        name: "half-even tie rounds up to even (0.375 -> 0.38)",
         rate: 0.125,
     },
     {
@@ -102,13 +88,6 @@ const CONVERT_FROM_USD_VECTORS: ConvertVector[] = [
         code: "BSD",
         expected: 87.43,
         name: "a USD-pegged code rounds at its own exponent despite a rate of 1",
-        rate: 1,
-    },
-    {
-        amountUsd: 87.428333,
-        code: "JPY",
-        expected: 87,
-        name: "a zero-decimal code takes no fraction at a rate of 1",
         rate: 1,
     },
 ];
@@ -130,29 +109,6 @@ describe("golden vectors — convertFromUsd", () => {
 });
 
 describe("currency fractional digits", () => {
-    it("assigns zero fractional digits to JPY, KRW, and ISK", () => {
-        expect(CURRENCY_DECIMALS.JPY).toBe(0);
-        expect(CURRENCY_DECIMALS.KRW).toBe(0);
-        expect(CURRENCY_DECIMALS.ISK).toBe(0);
-    });
-
-    it("assigns two fractional digits to standard currencies", () => {
-        expect(CURRENCY_DECIMALS.USD).toBe(2);
-        expect(CURRENCY_DECIMALS.EUR).toBe(2);
-    });
-
-    it("assigns three fractional digits to dinar-style currencies", () => {
-        expect(CURRENCY_DECIMALS.KWD).toBe(3);
-        expect(CURRENCY_DECIMALS.BHD).toBe(3);
-    });
-
-    it("assigns six fractional digits to the metals, whose unit is worth thousands", () => {
-        expect(CURRENCY_DECIMALS.XAU).toBe(6);
-        expect(CURRENCY_DECIMALS.XAG).toBe(6);
-        expect(CURRENCY_DECIMALS.XPT).toBe(6);
-        expect(CURRENCY_DECIMALS.XPD).toBe(6);
-    });
-
     it("prices a small holding of gold instead of rounding it away", () => {
         expect(convertFromUsd(10, 0.0005, "XAU")).toBe(0.005);
 

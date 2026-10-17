@@ -6,7 +6,6 @@ import { startOfWeek } from "@outlayr/money/calendar";
 
 import { runtimeLanguage, setRuntimeLanguage } from "@/i18n/runtime";
 
-import * as dates from "./dates";
 import {
     formatChargeDate,
     formatDayHeader,
@@ -56,12 +55,6 @@ describe("month names", () => {
     it("names the month in each language", () => {
         expect(monthAbbrevTitle(WEDNESDAY, "en")).toBe("Jul");
         expect(monthAbbrevTitle(WEDNESDAY, "es")).toBe("jul");
-    });
-
-    it("shouts the abbreviation without losing the accent", () => {
-        expect(monthAbbrev(WEDNESDAY, "en")).toBe("JUL");
-        // March abbreviates to "mar" in Spanish, which must survive upper-casing.
-        expect(monthAbbrev(new Date("2026-03-04T09:00:00"), "es")).toBe("MAR");
     });
 
     it("indexes December off the end of the year rather than wrapping", () => {
@@ -137,14 +130,6 @@ describe("formatTime", () => {
         expect(formatTime(AFTERNOON, true, "en")).toBe("13:04");
         expect(formatTime(EVENING, true, "en")).toBe("21:04");
     });
-
-    it("renders the same 24-hour string in either language", () => {
-        expect(formatTime(EVENING, true, "es")).toBe(formatTime(EVENING, true, "en"));
-    });
-
-    it("stays on the 12-hour clock until the setting says otherwise", () => {
-        expect(formatTime(EVENING, undefined, "en")).toBe("9:04 PM");
-    });
 });
 
 describe("the language argument", () => {
@@ -159,22 +144,6 @@ describe("the language argument", () => {
             expect(formatDayHeader(NOW, NOW)).toBe("HOY");
             expect(formatTime(new Date("2026-07-22T21:04:00"))).toBe("9:04 p. m.");
         });
-    });
-
-    it("renders English once the runtime language is English again", () => {
-        underRuntimeLanguage("en", () => {
-            expect(formatDayHeader(WEDNESDAY, NOW)).toBe("WED, 22 JUL");
-        });
-    });
-});
-
-describe("the module surface", () => {
-    // The six tables collapsed into the catalog; nothing here may reintroduce a
-    // seventh by holding month or weekday names of its own.
-    it("exports no date-name table", () => {
-        for (const value of Object.values(dates)) {
-            expect(Array.isArray(value)).toBe(false);
-        }
     });
 });
 

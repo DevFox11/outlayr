@@ -80,27 +80,16 @@ jest.mock<Partial<typeof import("@/contexts/display-settings-context")>>("@/cont
 
 const mockTransactions = jest.fn();
 const mockTransfers = jest.fn();
-const mockUseAccountBalance = jest.fn((_db: unknown, _account: unknown) => ({ exact: true, total: 40 }));
 const mockUseAccountBalanceDetails = jest.fn((_db: unknown, _account: unknown) => ({
     balance: { exact: true, total: 40 },
     cells: [...mockTransactionCells, ...mockTransferCells],
-    rates: undefined,
-}));
-const mockUseSettledAccountCells = jest.fn((_db: unknown, _accountId: string) => [
-    ...mockTransactionCells,
-    ...mockTransferCells,
-]);
-const mockUseValuationIn = jest.fn((_db: unknown, _currency: string) => ({
-    displayCurrency: "USD",
     rates: undefined,
 }));
 let mockTransactionCells: CurrencyCell[] = [];
 let mockTransferCells: CurrencyCell[] = [];
 
 jest.mock("@/data/accounts", () => ({
-    useAccountBalance: (db: unknown, account: unknown) => mockUseAccountBalance(db, account),
     useAccountBalanceDetails: (db: unknown, account: unknown) => mockUseAccountBalanceDetails(db, account),
-    useSettledAccountCells: (db: unknown, accountId: string) => mockUseSettledAccountCells(db, accountId),
     useAccountTransactions: () => mockTransactions(),
     useAccounts: () => [
         {
@@ -119,10 +108,6 @@ jest.mock("@/data/use-deferred-delete", () => ({
 
 jest.mock("@/data/account-transfers", () => ({
     useAccountTransfers: () => mockTransfers(),
-}));
-
-jest.mock("@/data/use-valuation", () => ({
-    useValuationIn: (db: unknown, currency: string) => mockUseValuationIn(db, currency),
 }));
 
 function transaction(id: string, note: string, amount = 12): TransactionWithCategory {
@@ -215,38 +200,17 @@ function setTransfers(rows: ReturnType<typeof transfer>[], income: boolean) {
 
 beforeEach(() => {
     mockPush.mockClear();
-    mockUseAccountBalance.mockClear();
-    mockUseAccountBalanceDetails.mockClear();
-    mockUseSettledAccountCells.mockClear();
-    mockUseValuationIn.mockClear();
     setTransactions([]);
     setTransfers([], false);
 });
 
 describe("an account's history", () => {
-    it("shares one cells-and-rates snapshot between the balance and chart", async () => {
-        await render(<AccountDetail id="savings" />);
-
-        expect(mockUseAccountBalanceDetails).toHaveBeenCalledTimes(1);
-        expect(mockUseAccountBalance).not.toHaveBeenCalled();
-        expect(mockUseSettledAccountCells).not.toHaveBeenCalled();
-        expect(mockUseValuationIn).not.toHaveBeenCalled();
-    });
-
     it("lists a transfer that moved money into the account", async () => {
         setTransfers([transfer("tr1", "Checking → Savings")], true);
 
         const { getByText } = await render(<AccountDetail id="savings" />);
 
         getByText("Checking → Savings");
-    });
-
-    it("lists a transfer that moved money out of the account", async () => {
-        setTransfers([transfer("tr1", "Savings → Checking")], false);
-
-        const { getByText } = await render(<AccountDetail id="savings" />);
-
-        getByText("Savings → Checking");
     });
 
     it("stands the empty state down when the only history is a transfer", async () => {

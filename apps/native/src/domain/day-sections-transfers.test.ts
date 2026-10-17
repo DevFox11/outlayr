@@ -57,10 +57,4 @@ describe("a transfer sits in the day's list without touching its total", () => {
         expect(section.data).toStrictEqual([{ ...transfer, fee }]);
         expect(section.total).toBe(-2.7);
     });
-
-    it("is unchanged for a day with no transfers at all", () => {
-        const [section] = groupByDay([row(6.4, false), row(40, false)], "USD");
-
-        expect(section.total).toBe(-46.4);
-    });
 });

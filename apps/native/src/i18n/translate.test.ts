@@ -19,20 +19,12 @@ const ES = {
 } as const;
 
 describe("interpolate", () => {
-    it("leaves a template without placeholders untouched", () => {
-        expect(interpolate("Hello", undefined)).toBe("Hello");
-    });
-
     it("substitutes a named placeholder", () => {
         expect(interpolate("Welcome, {name}", { name: "Ada" })).toBe("Welcome, Ada");
     });
 
     it("substitutes every occurrence of the same placeholder", () => {
         expect(interpolate("{a}-{a}", { a: "x" })).toBe("x-x");
-    });
-
-    it("stringifies numbers", () => {
-        expect(interpolate("{count} left", { count: 3 })).toBe("3 left");
     });
 
     it("leaves an unmatched placeholder in place rather than printing undefined", () => {
@@ -42,17 +34,9 @@ describe("interpolate", () => {
     it("renders an explicit null as empty rather than leaking the token", () => {
         expect(interpolate("Delete '{name}'?", { name: null })).toBe("Delete ''?");
     });
-
-    it("never prints the string 'null' or 'undefined'", () => {
-        expect(interpolate("{a} {b}", { a: null, b: undefined })).not.toMatch(/null|undefined/);
-    });
 });
 
 describe("translate", () => {
-    it("returns the catalog value", () => {
-        expect(translate("greeting", { catalog: ES, fallback: EN })).toBe("Hola");
-    });
-
     it("interpolates params into the catalog value", () => {
         expect(
             translate("welcome", {
@@ -77,14 +61,6 @@ describe("translate", () => {
 
     it("picks the plural form for zero", () => {
         expect(translate("entry", { catalog: ES, fallback: EN, params: { count: 0 } })).toBe("0 registros");
-    });
-
-    it("picks the plural form for counts above one", () => {
-        expect(translate("entry", { catalog: ES, fallback: EN, params: { count: 5 } })).toBe("5 registros");
-    });
-
-    it("treats a negative count as plural", () => {
-        expect(translate("entry", { catalog: ES, fallback: EN, params: { count: -2 } })).toBe("-2 registros");
     });
 
     it("ignores count when the key has no plural forms", () => {

@@ -65,21 +65,6 @@ beforeEach(() => {
 });
 
 describe("settings screen: data and about rows", () => {
-    it.each([
-        ["settings.row.export", "/settings/export"],
-        ["settings.row.restore", "/settings/restore"],
-        ["settings.row.deleted", "/settings/deleted"],
-        ["settings.row.erase", "/settings/erase"],
-        ["settings.row.about", "/settings/about"],
-    ])("pushes %s to %s", async (title, href) => {
-        const { getByText } = await render(<Settings />);
-
-        fireEvent.press(getByText(title));
-
-        expect(mockPush).toHaveBeenCalledTimes(1);
-        expect(mockPush).toHaveBeenCalledWith(href);
-    });
-
     it("presents the import sheet from the import row, seeded with the resume step, without routing", async () => {
         mockGetResumeStep.mockReturnValue("mapping");
         const { getByText } = await render(<Settings />);

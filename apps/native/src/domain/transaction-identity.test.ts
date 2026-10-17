@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { FALLBACK_IDENTITY_COLOR, resolveTransactionIdentity } from "./transaction-identity";
+import { resolveTransactionIdentity } from "./transaction-identity";
 import type { TransactionIdentitySource } from "./transaction-identity";
 
 const NONE: TransactionIdentitySource = {
@@ -31,12 +31,6 @@ describe("resolveTransactionIdentity symbol", () => {
         expect(identity.emoji).toBeNull();
     });
 
-    it("uses the transaction's own emoji when it names no icon", () => {
-        const identity = resolveTransactionIdentity(source({ emoji: "🍕" }));
-        expect(identity.icon).toBeNull();
-        expect(identity.emoji).toBe("🍕");
-    });
-
     it("lets a legacy row carrying both fall to its icon", () => {
         const identity = resolveTransactionIdentity(source({ emoji: "🍕", icon: "Coffee02" }));
         expect(identity.icon).toBe("Coffee02");
@@ -61,12 +55,6 @@ describe("resolveTransactionIdentity symbol", () => {
         expect(identity.emoji).toBe("🍕");
     });
 
-    it("reports no symbol when neither names one", () => {
-        const identity = resolveTransactionIdentity(NONE);
-        expect(identity.icon).toBeNull();
-        expect(identity.emoji).toBeNull();
-    });
-
     it("treats an empty stored symbol as absent", () => {
         const identity = resolveTransactionIdentity(source({ categoryIcon: "Restaurant01", emoji: "", icon: "" }));
         expect(identity.icon).toBe("Restaurant01");
@@ -89,15 +77,6 @@ describe("resolveTransactionIdentity colour", () => {
     it("uses the photo colour next", () => {
         const identity = resolveTransactionIdentity(source({ categoryColor: "#0000FF", imageColor: "#00FF00" }));
         expect(identity.color).toBe("#00FF00");
-    });
-
-    it("uses the category colour next", () => {
-        const identity = resolveTransactionIdentity(source({ categoryColor: "#0000FF" }));
-        expect(identity.color).toBe("#0000FF");
-    });
-
-    it("falls back when nothing names a colour", () => {
-        expect(resolveTransactionIdentity(NONE).color).toBe(FALLBACK_IDENTITY_COLOR);
     });
 
     it("treats an empty stored colour as absent", () => {

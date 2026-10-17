@@ -31,14 +31,6 @@ describe("transaction sentence templates", () => {
     }
 
     for (const language of SUPPORTED_LANGUAGES) {
-        for (const key of TRANSACTION_SENTENCE_KEYS) {
-            it(`closes the ${language} ${key} sentence`, () => {
-                expect(CATALOGS[language][key]?.trim().endsWith(".")).toBe(true);
-            });
-        }
-    }
-
-    for (const language of SUPPORTED_LANGUAGES) {
         for (const key of TRANSACTION_RATE_SENTENCE_KEYS) {
             it(`continues the sentence with the dollars and the source in ${language} ${key}`, () => {
                 const clause = CATALOGS[language][key] ?? "";
