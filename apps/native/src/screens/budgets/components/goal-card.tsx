@@ -81,15 +81,22 @@ export function GoalCard({ currency, entry, onPress, width }: GoalCardProps) {
             <View className="flex-row items-start justify-between">
                 <GoalArc fraction={exact ? progress.fraction : 0} tone={tone} />
                 {exact ? (
-                    <Text
-                        className={cn(
-                            "text-micro font-mono tabular-nums",
-                            reached ? "text-background/65" : "text-muted"
+                    <View className="items-end gap-0.5">
+                        <Text
+                            className={cn(
+                                "text-micro font-mono tabular-nums",
+                                reached ? "text-background/65" : "text-muted"
+                            )}
+                            numberOfLines={1}
+                        >
+                            {`${percent}%`}
+                        </Text>
+                        {reached ? null : (
+                            <Text className="text-micro text-muted font-mono uppercase tabular-nums" numberOfLines={1}>
+                                {formatTargetMonth(goal.targetDate, language)}
+                            </Text>
                         )}
-                        numberOfLines={1}
-                    >
-                        {`${percent}%`}
-                    </Text>
+                    </View>
                 ) : null}
             </View>
 
@@ -120,24 +127,27 @@ export function GoalCard({ currency, entry, onPress, width }: GoalCardProps) {
                     {reached ? money(saved) : money(progress.remaining)}
                 </Text>
                 <MonoLabel className={reached ? "text-background/65" : undefined} numberOfLines={1}>
-                    {reached
-                        ? t("goals.reached")
-                        : `${t("goals.toGo")} · ${formatTargetMonth(goal.targetDate, language)}`}
+                    {reached ? t("goals.reached") : t("goals.toGo")}
                 </MonoLabel>
             </View>
 
             {exact && progress.pace ? (
-                <MonoLabel className={paceTone(word != null, onPace, ahead)} numberOfLines={1}>
-                    {word
-                        ? `${t("goals.pace", { amount: money(progress.pace.perMonth) })} · ${word}`
-                        : t("goals.pace", { amount: money(progress.pace.perMonth) })}
-                </MonoLabel>
+                <View>
+                    <MonoLabel numberOfLines={1}>
+                        {t("goals.pace", { amount: money(progress.pace.perMonth) })}
+                    </MonoLabel>
+                    {word ? (
+                        <MonoLabel className={paceTone(onPace, ahead)} numberOfLines={1}>
+                            {word}
+                        </MonoLabel>
+                    ) : null}
+                </View>
             ) : null}
         </Pressable>
     );
 }
 
-/** The one word under the figure: reached, on pace, ahead, or behind. */
+/** The one word under the pace: reached, on pace, ahead, or behind. */
 function standingWord(
     reached: boolean,
     measured: boolean,
@@ -159,8 +169,8 @@ function standingWord(
 }
 
 /** On pace is stated, not praised: only a real lead or a real shortfall takes colour. */
-function paceTone(measured: boolean, onPace: boolean, ahead: boolean): string {
-    if (onPace || !measured) {
+function paceTone(onPace: boolean, ahead: boolean): string {
+    if (onPace) {
         return "text-muted";
     }
     return ahead ? "text-income" : "text-over-budget";
