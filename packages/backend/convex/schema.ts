@@ -73,7 +73,12 @@ export default defineSchema({
             v.literal("authDeleting"),
             v.literal("complete")
         ),
-        provider: v.union(v.literal("appleServerRevoked"), v.literal("googleLocalReceipt"), v.null()),
+        provider: v.union(
+            v.literal("appleServerRevoked"),
+            v.literal("credentialOnly"),
+            v.literal("googleLocalReceipt"),
+            v.null()
+        ),
         secretHash: v.string(),
         tokenIdentifier: v.optional(v.string()),
         userId: v.union(v.string(), v.null()),

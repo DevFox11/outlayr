@@ -1,12 +1,26 @@
 import { expoClient } from "@better-auth/expo/client";
 import { convexClient } from "@convex-dev/better-auth/client/plugins";
 import { cloudConfiguration, env } from "@outlayr/env/native";
+import type { BetterAuthClientPlugin } from "better-auth/client";
+import type { emailOTP } from "better-auth/plugins/email-otp";
 import { createAuthClient } from "better-auth/react";
 import { ConvexReactClient } from "convex/react";
 import Constants from "expo-constants";
 import { AFTER_FIRST_UNLOCK, getItem, setItem } from "expo-secure-store";
 
 const keychain = { keychainAccessible: AFTER_FIRST_UNLOCK };
+
+/**
+ * better-auth's `emailOTPClient`, rebuilt: the package only exports it from a
+ * barrel of every client plugin, which Metro would ship whole. The listener is
+ * what makes a verified code refresh the session like a sign-in does.
+ */
+const emailCodes = {
+    // SAFETY: a type carrier, as in better-auth's own client plugins.
+    $InferServerPlugin: {} as ReturnType<typeof emailOTP>,
+    atomListeners: [{ matcher: (path) => path === "/email-otp/verify-email", signal: "$sessionSignal" }],
+    id: "email-otp",
+} satisfies BetterAuthClientPlugin;
 
 function readKeychain(key: string): string | null {
     try {
@@ -38,6 +52,7 @@ function createCloudRuntime() {
             baseURL: siteUrl,
             plugins: [
                 convexClient(),
+                emailCodes,
                 expoClient({
                     scheme,
                     storage: {

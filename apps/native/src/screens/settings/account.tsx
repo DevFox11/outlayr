@@ -210,11 +210,7 @@ function AccountContent({ client, db }: { client: AuthClient; db: Database }) {
                     title={t("settings.account.signInSection")}
                 >
                     <View className="py-4">
-                        <ProviderSignInButtons
-                            busy={signingIn}
-                            fallbackClassName="text-muted text-subtitle leading-snug"
-                            start={start}
-                        />
+                        <ProviderSignInButtons busy={signingIn} emailRoute="/settings/email" start={start} />
                     </View>
                 </SettingsSection>
 

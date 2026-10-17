@@ -7,6 +7,7 @@ import { authClient } from "./auth-client";
 import { cloudAction, cloudMutation, cloudQuery, convex } from "./convex";
 import { posthog } from "./posthog";
 import { revokeGoogleProviderSubject } from "./provider-revocation";
+import type { ProviderBinding } from "./provider-revocation";
 
 export const deletionResumeSecretKey = "outlayr.account-deletion-resume";
 
@@ -18,7 +19,7 @@ interface DeletionStatus {
 }
 
 export interface StoredDeletionPreparation extends DeletionPreparation {
-    provider: "apple" | "google";
+    provider: ProviderBinding["provider"];
     providerSubject: string;
 }
 
@@ -35,7 +36,7 @@ function recoveryError(): Error {
  * survive.
  */
 const storedPreparation = z.looseObject({
-    provider: z.enum(["apple", "google"]),
+    provider: z.enum(["apple", "google", "password"]),
     providerSubject: z.string(),
     receiptChallenge: z.string(),
     resumeSecret: z.string(),
@@ -53,6 +54,10 @@ function parsePreparation(raw: string): StoredDeletionPreparation | null {
 export async function resumeProviderRevocation(preparation: StoredDeletionPreparation): Promise<void> {
     if (convex === null) {
         throw recoveryError();
+    }
+    if (preparation.provider === "password") {
+        await cloudMutation("accountDeletion:recordCredentialOnly", { resumeSecret: preparation.resumeSecret });
+        return;
     }
     if (preparation.provider === "google") {
         await revokeGoogleProviderSubject(preparation.providerSubject);

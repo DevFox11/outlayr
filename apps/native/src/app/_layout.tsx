@@ -296,6 +296,7 @@ function RootStack() {
 			    not after an account has handed it one. */}
             <Stack.Protected guard={group === "sign-in"}>
                 <Stack.Screen name="auth/sign-in" options={{ headerShown: false }} />
+                <Stack.Screen name="auth/email" options={chrome.firstRunStep} />
             </Stack.Protected>
 
             <Stack.Protected guard={group === "adopt"}>
@@ -330,6 +331,7 @@ function RootStack() {
                     />
                 ))}
                 <Stack.Screen name="settings/category-symbol" options={chrome.pickerSheet(pickerDetent)} />
+                <Stack.Screen name="settings/email" options={chrome.firstRunStep} />
 
                 {MODAL_SCREENS.map((modal) => (
                     <Stack.Screen key={modal.name} name={modal.name} options={chrome.modal(t(modal.titleKey))} />

@@ -6,7 +6,10 @@ export default defineConfig({
         // instead, which matches what CI would do anyway.
         allowOnly: false,
         env: {
+            CLOUDFLARE_ACCOUNT_ID: "test-cloudflare-account",
+            CLOUDFLARE_EMAIL_TOKEN: "test-cloudflare-email-token",
             COTIZAVE_API_KEY: "test-cotizave-key",
+            EMAIL_FROM: "no-reply@tryoutlayr.com",
             NATIVE_APP_URL: "outlayr://",
             POSTHOG_PERSONAL_API_KEY: "test-posthog-personal-api-key",
             POSTHOG_PROJECT_ID: "12345",

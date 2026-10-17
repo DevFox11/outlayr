@@ -60,6 +60,24 @@ describe("resumePersistedCloudDeletion", () => {
         expect(deleteItemAsync).not.toHaveBeenCalled();
     });
 
+    it("resumes a password account without revoking a provider", async () => {
+        jest.mocked(getItemAsync).mockResolvedValue(
+            JSON.stringify({
+                provider: "password",
+                providerSubject: "ana@example.com",
+                receiptChallenge: "challenge",
+                resumeSecret: "secret",
+            })
+        );
+
+        await resumePersistedCloudDeletion({ clearOnComplete: false, required: true });
+
+        expect(mockRevokeGoogleProviderSubject).not.toHaveBeenCalled();
+        expect(cloudMocks().cloudMutation).toHaveBeenCalledWith("accountDeletion:recordCredentialOnly", {
+            resumeSecret: "secret",
+        });
+    });
+
     it("fails closed when a cloud marker has no usable resume secret", async () => {
         jest.mocked(getItemAsync).mockResolvedValue(null);
 

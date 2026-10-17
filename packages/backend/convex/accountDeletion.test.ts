@@ -135,6 +135,10 @@ describe("sweeping abandoned jobs", () => {
         await expect(sweepWith("providersRevoked", "googleLocalReceipt")).resolves.toBe(0);
     });
 
+    it("reclaims one abandoned on the password path, which had nothing to revoke", async () => {
+        await expect(sweepWith("providersRevoked", "credentialOnly")).resolves.toBe(0);
+    });
+
     it("keeps one that already revoked the user's Apple credential", async () => {
         await expect(sweepWith("providersRevoked", "appleServerRevoked")).resolves.toBe(1);
     });
@@ -293,6 +297,37 @@ async function linkAppleAccount(t: TestConvex<typeof schema>, userId: string) {
         })
     );
 }
+
+describe("deleting a password account", () => {
+    async function preparedFor(link?: (t: TestConvex<typeof schema>, userId: string) => Promise<void>) {
+        const t = convexTest(schema, modules);
+        rateLimiterTest.register(t);
+        revenuecatTest.register(t);
+        const owner = await seedAuthUser(t);
+        await link?.(t, owner.userId);
+        const { resumeSecret } = await authenticatedAs(t, owner).mutation(api.accountDeletion.prepare, {});
+        return { resumeSecret, t };
+    }
+
+    it("goes on to the purge with no provider to revoke", async () => {
+        const { resumeSecret, t } = await preparedFor();
+
+        await expect(t.mutation(api.accountDeletion.recordCredentialOnly, { resumeSecret })).resolves.toMatchObject({
+            phase: "providersRevoked",
+        });
+        await expect(t.mutation(api.accountDeletion.advance, { resumeSecret })).resolves.toMatchObject({
+            phase: "purged",
+        });
+    });
+
+    it("refuses an account that also signs in with Apple", async () => {
+        const { resumeSecret, t } = await preparedFor(linkAppleAccount);
+
+        await expect(t.mutation(api.accountDeletion.recordCredentialOnly, { resumeSecret })).rejects.toThrow(
+            "has to be revoked first"
+        );
+    });
+});
 
 async function grantAssistant(t: TestConvex<typeof schema>, userId: string) {
     const now = Date.now();

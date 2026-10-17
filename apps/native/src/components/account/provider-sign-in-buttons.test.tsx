@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react-native";
+import { router } from "expo-router";
 import { Platform } from "react-native";
 
 import { appleCredential } from "@/lib/apple-sign-in";
@@ -40,6 +41,22 @@ jest.mock<Partial<typeof import("@/components/account/apple-sign-in-button")>>(
     }
 );
 
+jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
+
+jest.mock<Partial<typeof import("@/components/account/email-sign-in-button")>>(
+    "@/components/account/email-sign-in-button",
+    () => {
+        const { Pressable, Text } = require("react-native");
+        return {
+            EmailSignInButton: ({ disabled, onPress }: Omit<ButtonProps, "pending">) => (
+                <Pressable accessibilityState={{ disabled }} onPress={onPress} testID="email-sign-in-button">
+                    <Text>email</Text>
+                </Pressable>
+            ),
+        };
+    }
+);
+
 jest.mock<Partial<typeof import("@/components/account/google-sign-in-button")>>(
     "@/components/account/google-sign-in-button",
     () => {
@@ -74,7 +91,7 @@ describe("providerSignInButtons availability", () => {
         Platform.OS = "ios";
         googleSignInMock.isGoogleSignInAvailable = false;
         const { queryByTestId } = await render(
-            <ProviderSignInButtons busy={null} fallbackClassName="fallback" start={jest.fn()} />
+            <ProviderSignInButtons busy={null} emailRoute="/auth/email" start={jest.fn()} />
         );
         expect(queryByTestId("apple-sign-in-button")).not.toBeNull();
         expect(queryByTestId("google-sign-in-button")).toBeNull();
@@ -84,7 +101,7 @@ describe("providerSignInButtons availability", () => {
         Platform.OS = "android";
         googleSignInMock.isGoogleSignInAvailable = true;
         const { queryByTestId } = await render(
-            <ProviderSignInButtons busy={null} fallbackClassName="fallback" start={jest.fn()} />
+            <ProviderSignInButtons busy={null} emailRoute="/auth/email" start={jest.fn()} />
         );
         expect(queryByTestId("apple-sign-in-button")).toBeNull();
         expect(queryByTestId("google-sign-in-button")).not.toBeNull();
@@ -94,26 +111,24 @@ describe("providerSignInButtons availability", () => {
         Platform.OS = "ios";
         googleSignInMock.isGoogleSignInAvailable = true;
         const { queryByTestId } = await render(
-            <ProviderSignInButtons busy={null} fallbackClassName="fallback" start={jest.fn()} />
+            <ProviderSignInButtons busy={null} emailRoute="/auth/email" start={jest.fn()} />
         );
         expect(queryByTestId("apple-sign-in-button")).not.toBeNull();
         expect(queryByTestId("google-sign-in-button")).not.toBeNull();
     });
 
-    it("shows the noProvider fallback styled with the caller class when neither is available", async () => {
+    it("still offers email when neither provider is available", async () => {
         Platform.OS = "android";
         googleSignInMock.isGoogleSignInAvailable = false;
-        const { queryByTestId, getByText } = await render(
-            <ProviderSignInButtons
-                busy={null}
-                fallbackClassName="text-fr-muted text-subtitle leading-snug"
-                start={jest.fn()}
-            />
+        const { getByTestId, queryByTestId } = await render(
+            <ProviderSignInButtons busy={null} emailRoute="/settings/email" start={jest.fn()} />
         );
         expect(queryByTestId("apple-sign-in-button")).toBeNull();
         expect(queryByTestId("google-sign-in-button")).toBeNull();
-        const fallback = getByText("settings.account.noProvider");
-        expect(fallback.props.className).toBe("text-fr-muted text-subtitle leading-snug");
+
+        fireEvent.press(getByTestId("email-sign-in-button"));
+
+        expect(jest.mocked(router.push)).toHaveBeenCalledWith("/settings/email");
     });
 });
 
@@ -131,7 +146,7 @@ describe("providerSignInButtons busy state", () => {
 
     it("shows neither control as pending or disabled while idle", async () => {
         const { getByTestId } = await render(
-            <ProviderSignInButtons busy={null} fallbackClassName="fallback" start={jest.fn()} />
+            <ProviderSignInButtons busy={null} emailRoute="/auth/email" start={jest.fn()} />
         );
         expect(getByTestId("apple-sign-in-button").props.accessibilityState).toMatchObject({
             busy: false,
@@ -145,7 +160,7 @@ describe("providerSignInButtons busy state", () => {
 
     it("marks Apple pending and Google disabled while Apple is busy", async () => {
         const { getByTestId } = await render(
-            <ProviderSignInButtons busy="apple" fallbackClassName="fallback" start={jest.fn()} />
+            <ProviderSignInButtons busy="apple" emailRoute="/auth/email" start={jest.fn()} />
         );
         expect(getByTestId("apple-sign-in-button").props.accessibilityState).toMatchObject({
             busy: true,
@@ -173,7 +188,7 @@ describe("providerSignInButtons start wiring", () => {
     it("starts Apple with the apple id token getter", async () => {
         const start = jest.fn();
         const { getByTestId } = await render(
-            <ProviderSignInButtons busy={null} fallbackClassName="fallback" start={start} />
+            <ProviderSignInButtons busy={null} emailRoute="/auth/email" start={start} />
         );
         fireEvent.press(getByTestId("apple-sign-in-button"));
         expect(start).toHaveBeenCalledWith({ getCredential: appleCredential, provider: "apple" });
@@ -182,7 +197,7 @@ describe("providerSignInButtons start wiring", () => {
     it("starts Google with the google id token getter", async () => {
         const start = jest.fn();
         const { getByTestId } = await render(
-            <ProviderSignInButtons busy={null} fallbackClassName="fallback" start={start} />
+            <ProviderSignInButtons busy={null} emailRoute="/auth/email" start={start} />
         );
         fireEvent.press(getByTestId("google-sign-in-button"));
         expect(start).toHaveBeenCalledWith({ getCredential: googleIdToken, provider: "google" });

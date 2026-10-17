@@ -1,13 +1,13 @@
 ---
 title: "Privacy Policy"
-description: "What Outlayr stores on your device, what reaches our servers, AI provider, and analytics service, how long it is kept, and how to delete it. Updated 16 October 2026."
+description: "What Outlayr stores on your device, what reaches our servers, AI provider, and analytics service, how long it is kept, and how to delete it. Updated 17 October 2026."
 intro: "This policy explains what Outlayr collects, where it goes, how long it stays, and what you can do about it."
 ---
 
 ## The short version
 
 - Your ledger is stored on your device. You can use Outlayr without an account, and then your entries, amounts, and notes never leave the phone.
-- An account (Sign in with Apple or Google) turns on merchant suggestions, voice entry, and receipt scans. With Outlayr Pro it also turns on sync, which keeps a copy of your ledger and photos on our servers until you delete your account.
+- An account (Sign in with Apple, Google, or an email and password) turns on merchant suggestions, voice entry, and receipt scans. With Outlayr Pro it also turns on sync, which keeps a copy of your ledger and photos on our servers until you delete your account.
 - Voice entries, receipt scans, and merchant suggestions are processed by xAI. We don’t store your recordings or scanned photos, and we never send xAI your name, email, or account ID.
 - Nothing goes to xAI until you allow it. The app asks during setup, or after you sign in, and Speak an entry and Scan a receipt ask again until you do. Withdraw it any time in **Settings › Send data to xAI**. Once allowed, merchant suggestions and web lookups are on, and each can be turned off in **Settings › Feature lab**.
 - The app sends usage analytics and crash reports to PostHog: which screens you open, when you save something, and errors. Never amounts, merchants, notes, or names. It starts off if your device’s region is in the EEA or UK, and on everywhere else. Change it in **Settings › Share analytics**.
@@ -30,7 +30,8 @@ Every kind of data Outlayr handles, in one place. The sections below explain eac
 | --- | --- | --- | --- |
 | Your ledger and its photos | Always | Your device | Until you erase it |
 | Synced ledger, deleted entries, photos | Sync on (Pro) | Our servers | Until account deletion |
-| Email, name, provider ID | Sign-in | Our servers | Until account deletion |
+| Email, name, provider ID, password hash | Sign-in | Our servers | Until account deletion |
+| Email address, 6-digit code | Email sign-in | Our servers, Cloudflare | Code: 10 minutes. Email: Cloudflare’s policy |
 | Sessions, IP address, device type | Sign-in | Our servers | Until sign-out or account deletion |
 | Merchant and category names | Smart fill | Our servers, xAI | Until answered |
 | Voice recording | Voice entry | Our servers, xAI | Not kept |
@@ -71,10 +72,11 @@ You don’t need an account to use Outlayr. Without one, none of your ledger is 
 
 ## Your account
 
-You can sign in with Apple or with Google. We receive:
+You can sign in with Apple, with Google, or with an email and password. We receive:
 
 - **With Apple:** your email address, or a private relay address if you choose Hide My Email, and an identifier for your Apple account. The app doesn’t send us your name.
 - **With Google:** your name, email address, a link to your Google profile photo, and an identifier for your Google account.
+- **With email:** your email address and a password. We keep only a one-way hash of the password, never the password itself. To confirm the address or reset the password, we email you a 6-digit code through Cloudflare. A code expires after 10 minutes.
 
 We create an Outlayr account ID, a random string, and link it to that identity. We also store the tokens needed to keep you signed in and to revoke access when you delete your account. Each sign-in creates a session, which can record your IP address and your device’s user agent. A session stops working after seven days without use, and signing out deletes it.
 
@@ -184,7 +186,7 @@ Outlayr doesn’t ask for your location or contacts, or for permission to track 
 These companies help run Outlayr. Each receives only what its job needs.
 
 - **[Hetzner](https://www.hetzner.com/legal/privacy-policy)** hosts the servers in Helsinki, Finland, that run our database and server functions. They hold your account and synced data, and handle every request to our server.
-- **[Cloudflare](https://www.cloudflare.com/privacypolicy/)** stores the photos you attach to entries and accounts (Cloudflare R2), when photo backup is on.
+- **[Cloudflare](https://www.cloudflare.com/privacypolicy/)** stores the photos you attach to entries and accounts (Cloudflare R2), when photo backup is on, and sends the emails with sign-in codes, for which it receives your email address and the email’s contents.
 - **xAI** provides the Grok AI models behind suggestions, voice entry, receipt scans, CSV import, and web lookups. It receives the content described in [Suggestions, voice, and receipts](#suggestions-voice-and-receipts).
 - **[RevenueCat](https://www.revenuecat.com/privacy)** tracks subscription status. It receives an anonymous ID, or your account ID, name, and email once you sign in, and your purchase records.
 - **[Apple](https://www.apple.com/legal/privacy/)** provides Sign in with Apple, App Store payments, and iOS features such as Siri and Shortcuts, under its own policy.
@@ -294,7 +296,7 @@ If you live in California or another US state with a privacy law, this is what w
 
 | Category and examples | Received by |
 | --- | --- |
-| **Identifiers:** name, email, account ID, install ID, IP address | Hetzner, RevenueCat, Expo, PostHog, Logo.dev, Google |
+| **Identifiers:** name, email, account ID, install ID, IP address | Hetzner, RevenueCat, Expo, PostHog, Logo.dev, Google, Cloudflare (email) |
 | **Commercial information:** subscription and purchase records | Apple, Google, RevenueCat, Hetzner |
 | **Audio and visual information:** voice clips, receipt scans, attached photos | xAI (clips and scans), Cloudflare (photos) |
 | **Internet or network activity:** IP address, user agent, request logs, app and website usage, crash reports | Hetzner, Expo, PostHog, our website host |

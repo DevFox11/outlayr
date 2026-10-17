@@ -67,6 +67,122 @@ const auth = {
             en: "Reconciling…",
             es: "Conciliando…",
         }),
+        "auth.email.code": t({
+            en: "Code",
+            es: "Código",
+        }),
+        "auth.email.continue": t({
+            en: "Continue with email",
+            es: "Continuar con correo",
+        }),
+        "auth.email.create": t({
+            en: "New here? Create an account",
+            es: "¿Eres nuevo? Crea una cuenta",
+        }),
+        "auth.email.create.action": t({
+            en: "Create account",
+            es: "Crear cuenta",
+        }),
+        "auth.email.create.title": t({
+            en: "Create an account",
+            es: "Crea una cuenta",
+        }),
+        "auth.email.email": t({
+            en: "Email",
+            es: "Correo",
+        }),
+        "auth.email.error.attempts": t({
+            en: "Too many tries with that code. Send a new one.",
+            es: "Demasiados intentos con ese código. Pide uno nuevo.",
+        }),
+        "auth.email.error.code": t({
+            en: "That code is wrong or expired.",
+            es: "Ese código no es válido o ya caducó.",
+        }),
+        "auth.email.error.credentials": t({
+            en: "That email and password don't match.",
+            es: "El correo y la contraseña no coinciden.",
+        }),
+        "auth.email.error.email": t({
+            en: "Enter a valid email.",
+            es: "Escribe un correo válido.",
+        }),
+        "auth.email.error.rateLimited": t({
+            en: "Too many tries. Wait a bit and try again.",
+            es: "Demasiados intentos. Espera un poco y vuelve a intentarlo.",
+        }),
+        "auth.email.forgot": t({
+            en: "Forgot password?",
+            es: "¿Olvidaste tu contraseña?",
+        }),
+        "auth.email.forgot.action": t({
+            en: "Send code",
+            es: "Enviar código",
+        }),
+        "auth.email.forgot.body": t({
+            en: "We'll email you a code to set a new one.",
+            es: "Te enviaremos un código para crear una nueva.",
+        }),
+        "auth.email.forgot.title": t({
+            en: "Reset your password",
+            es: "Restablece tu contraseña",
+        }),
+        "auth.email.hidePassword": t({
+            en: "Hide password",
+            es: "Ocultar contraseña",
+        }),
+        "auth.email.newPassword": t({
+            en: "New password",
+            es: "Contraseña nueva",
+        }),
+        "auth.email.password": t({
+            en: "Password",
+            es: "Contraseña",
+        }),
+        "auth.email.passwordHint": t({
+            en: "8 or more characters",
+            es: "8 caracteres o más",
+        }),
+        "auth.email.resend": t({
+            en: "Send a new code",
+            es: "Enviar un código nuevo",
+        }),
+        "auth.email.resent": t({
+            en: "New code sent.",
+            es: "Código nuevo enviado.",
+        }),
+        "auth.email.reset.action": t({
+            en: "Set password",
+            es: "Guardar contraseña",
+        }),
+        "auth.email.reset.body": t({
+            en: "Enter the code we sent to {email} and choose a new password.",
+            es: "Escribe el código que enviamos a {email} y elige una contraseña nueva.",
+        }),
+        "auth.email.showPassword": t({
+            en: "Show password",
+            es: "Mostrar contraseña",
+        }),
+        "auth.email.signIn.action": t({
+            en: "Sign in",
+            es: "Iniciar sesión",
+        }),
+        "auth.email.signIn.title": t({
+            en: "Sign in with email",
+            es: "Inicia sesión con tu correo",
+        }),
+        "auth.email.verify.action": t({
+            en: "Verify",
+            es: "Verificar",
+        }),
+        "auth.email.verify.body": t({
+            en: "Enter the code we sent to {email}.",
+            es: "Escribe el código que enviamos a {email}.",
+        }),
+        "auth.email.verify.title": t({
+            en: "Check your email",
+            es: "Revisa tu correo",
+        }),
         "auth.google.continue": t({
             en: "Continue with Google",
             es: "Continuar con Google",

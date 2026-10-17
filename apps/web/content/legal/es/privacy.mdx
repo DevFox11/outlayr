@@ -1,13 +1,13 @@
 ---
 title: "Política de privacidad"
-description: "Qué guarda Outlayr en tu dispositivo, qué llega a nuestros servidores, a nuestro proveedor de IA y a nuestro servicio de analíticas, cuánto tiempo se conserva y cómo eliminarlo. Actualizado el 16 de octubre de 2026."
+description: "Qué guarda Outlayr en tu dispositivo, qué llega a nuestros servidores, a nuestro proveedor de IA y a nuestro servicio de analíticas, cuánto tiempo se conserva y cómo eliminarlo. Actualizado el 17 de octubre de 2026."
 intro: "Esta política explica qué recopila Outlayr, adónde va, cuánto tiempo se conserva y qué puedes hacer al respecto. Esta traducción se ofrece para tu comodidad. Si hay alguna diferencia con la versión en inglés, prevalece la versión en inglés."
 ---
 
 ## En resumen
 
 - Tu registro se guarda en tu dispositivo. Puedes usar Outlayr sin una cuenta y, en ese caso, tus entradas, montos y notas nunca salen de tu celular.
-- Una cuenta (Iniciar sesión con Apple o Acceder con Google) activa las sugerencias de comercios, la entrada por voz y el escaneo de recibos. Con Outlayr Pro también activa la sincronización, que guarda una copia de tu registro y tus fotos en nuestros servidores hasta que elimines tu cuenta.
+- Una cuenta (Iniciar sesión con Apple, Acceder con Google, o un correo y una contraseña) activa las sugerencias de comercios, la entrada por voz y el escaneo de recibos. Con Outlayr Pro también activa la sincronización, que guarda una copia de tu registro y tus fotos en nuestros servidores hasta que elimines tu cuenta.
 - Las entradas por voz, los escaneos de recibos y las sugerencias de comercios los procesa xAI. No guardamos tus grabaciones ni las fotos escaneadas, y nunca le enviamos a xAI tu nombre, tu correo electrónico ni tu ID de cuenta.
 - Nada va a xAI hasta que lo permitas. La app lo pregunta durante la configuración inicial, o después de que inicias sesión, y Dictar un registro y Escanear un recibo vuelven a preguntar hasta que lo permitas. Retira tu permiso cuando quieras en **Configuración › Enviar datos a xAI**. Una vez permitido, las sugerencias de comercios y las búsquedas web quedan activadas, y cada una se puede desactivar en **Configuración › Laboratorio de funciones**.
 - La app envía analíticas de uso y reportes de fallas a PostHog: qué pantallas abres, cuándo guardas algo y los errores. Nunca montos, comercios, notas ni nombres. Empieza desactivado si la región de tu dispositivo está en el EEE o el Reino Unido, y activado en el resto del mundo. Cámbialo en **Configuración › Compartir analíticas**.
@@ -30,7 +30,8 @@ Todos los tipos de datos que maneja Outlayr, en un solo lugar. Las secciones sig
 | --- | --- | --- | --- |
 | Tu registro y sus fotos | Siempre | Tu dispositivo | Hasta que los borres |
 | Registro sincronizado, entradas eliminadas, fotos | Sincronización activada (Pro) | Nuestros servidores | Hasta la eliminación de la cuenta |
-| Correo electrónico, nombre, ID del proveedor | Inicio de sesión | Nuestros servidores | Hasta la eliminación de la cuenta |
+| Correo electrónico, nombre, ID del proveedor, hash de la contraseña | Inicio de sesión | Nuestros servidores | Hasta la eliminación de la cuenta |
+| Correo electrónico, código de 6 dígitos | Inicio de sesión con correo | Nuestros servidores, Cloudflare | Código: 10 minutos. Correo: política de Cloudflare |
 | Sesiones, dirección IP, tipo de dispositivo | Inicio de sesión | Nuestros servidores | Hasta el cierre de sesión o la eliminación de la cuenta |
 | Nombres de comercios y categorías | Autocompletado | Nuestros servidores, xAI | Hasta obtener respuesta |
 | Grabación de voz | Entrada por voz | Nuestros servidores, xAI | No se conserva |
@@ -71,10 +72,11 @@ No necesitas una cuenta para usar Outlayr. Sin una, no se nos envía nada de tu 
 
 ## Tu cuenta
 
-Puedes iniciar sesión con Apple o con Google. Recibimos:
+Puedes iniciar sesión con Apple, con Google, o con un correo electrónico y una contraseña. Recibimos:
 
 - **Con Apple:** tu correo electrónico, o una dirección de reenvío privada si eliges Ocultar mi correo electrónico, y un identificador de tu cuenta de Apple. La app no nos envía tu nombre.
 - **Con Google:** tu nombre, tu correo electrónico, un enlace a tu foto de perfil de Google y un identificador de tu cuenta de Google.
+- **Con correo electrónico:** tu correo electrónico y una contraseña. Solo guardamos un hash de un solo sentido de la contraseña, nunca la contraseña en sí. Para confirmar el correo o restablecer la contraseña, te enviamos un código de 6 dígitos a través de Cloudflare. Un código caduca a los 10 minutos.
 
 Creamos un ID de cuenta de Outlayr, una cadena aleatoria, y lo vinculamos a esa identidad. También guardamos los tokens necesarios para mantener tu sesión iniciada y para revocar el acceso cuando elimines tu cuenta. Cada inicio de sesión crea una sesión, que puede registrar tu dirección IP y el agente de usuario (user agent) de tu dispositivo. Una sesión deja de funcionar tras siete días sin uso, y cerrar sesión la elimina.
 
@@ -184,7 +186,7 @@ Outlayr no pide tu ubicación ni tus contactos, ni permiso para rastrearte.
 Estas empresas nos ayudan a operar Outlayr. Cada una recibe solo lo que su función requiere.
 
 - **[Hetzner](https://www.hetzner.com/legal/privacy-policy)** aloja en Helsinki, Finlandia, los servidores que ejecutan nuestra base de datos y las funciones de nuestro servidor. Esos servidores guardan tu cuenta y tus datos sincronizados, y atienden cada solicitud a nuestro servidor.
-- **[Cloudflare](https://www.cloudflare.com/privacypolicy/)** almacena las fotos que adjuntas a entradas y cuentas (Cloudflare R2), cuando el respaldo de fotos está activado.
+- **[Cloudflare](https://www.cloudflare.com/privacypolicy/)** almacena las fotos que adjuntas a entradas y cuentas (Cloudflare R2), cuando el respaldo de fotos está activado, y envía los correos con los códigos de inicio de sesión, para lo cual recibe tu correo electrónico y el contenido del mensaje.
 - **xAI** proporciona los modelos de IA Grok detrás de las sugerencias, la entrada por voz, el escaneo de recibos, la importación de CSV y las búsquedas web. Recibe el contenido descrito en [Sugerencias, voz y recibos](#sugerencias-voz-y-recibos).
 - **[RevenueCat](https://www.revenuecat.com/privacy)** lleva el control del estado de las suscripciones. Recibe un ID anónimo, o tu ID de cuenta, nombre y correo electrónico una vez que inicias sesión, y tus registros de compra.
 - **[Apple](https://www.apple.com/legal/privacy/)** proporciona Iniciar sesión con Apple, los pagos del App Store y funciones de iOS como Siri y Atajos, según su propia política.
@@ -294,7 +296,7 @@ Si vives en California o en otro estado de EE. UU. con una ley de privacidad, es
 
 | Categoría y ejemplos | Recibida por |
 | --- | --- |
-| **Identificadores:** nombre, correo electrónico, ID de cuenta, ID de instalación, dirección IP | Hetzner, RevenueCat, Expo, PostHog, Logo.dev, Google |
+| **Identificadores:** nombre, correo electrónico, ID de cuenta, ID de instalación, dirección IP | Hetzner, RevenueCat, Expo, PostHog, Logo.dev, Google, Cloudflare (correo) |
 | **Información comercial:** registros de suscripciones y compras | Apple, Google, RevenueCat, Hetzner |
 | **Información de audio y visual:** clips de voz, escaneos de recibos, fotos adjuntas | xAI (clips y escaneos), Cloudflare (fotos) |
 | **Actividad en internet u otras redes:** dirección IP, agente de usuario, registros de solicitudes, uso de la app y del sitio web, reportes de fallas | Hetzner, Expo, PostHog, el proveedor que aloja nuestro sitio web |

@@ -5,13 +5,13 @@ export const PROVIDER_BINDING_KEY = "outlayr.provider-binding";
 
 export interface ProviderBinding {
     betterAuthUserId: string;
-    provider: "apple" | "google";
+    provider: "apple" | "google" | "password";
     providerSubject: string;
 }
 
 const providerBinding = z.object({
     betterAuthUserId: z.string().min(1),
-    provider: z.enum(["apple", "google"]),
+    provider: z.enum(["apple", "google", "password"]),
     providerSubject: z.string().min(1),
 });
 

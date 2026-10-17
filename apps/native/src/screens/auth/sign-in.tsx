@@ -147,11 +147,7 @@ function SignInContent({ client }: { client: AuthClient }) {
             }}
             title={t("auth.signIn.title")}
         >
-            <ProviderSignInButtons
-                busy={busy}
-                fallbackClassName="text-fr-muted text-subtitle leading-snug"
-                start={start}
-            />
+            <ProviderSignInButtons busy={busy} emailRoute="/auth/email" start={start} />
         </FirstRun>
     );
 }

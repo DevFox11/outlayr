@@ -2,15 +2,27 @@ import { expo } from "@better-auth/expo";
 import { createClient } from "@convex-dev/better-auth";
 import type { GenericCtx } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
+import { requireRunMutationCtx } from "@convex-dev/better-auth/utils";
+import { HOUR, RateLimiter } from "@convex-dev/rate-limiter";
 import { env } from "@outlayr/env/backend";
-import { createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { betterAuth } from "better-auth/minimal";
-import { mcp } from "better-auth/plugins";
+import { emailOTP, mcp } from "better-auth/plugins";
 import { importPKCS8, SignJWT } from "jose";
+import { z } from "zod";
 
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import authConfig from "./auth.config";
+import {
+    accountExistsEmail,
+    codeEmail,
+    EMAIL_CODE_TTL_SECONDS,
+    emailConfigured,
+    emailLanguage,
+    sendEmail,
+} from "./lib/email";
+import { sha256Hex } from "./lib/sha256Hex";
 import { appleCredentialLifecycle } from "./providerLifecycle";
 
 /**
@@ -32,6 +44,24 @@ function resolveNativeAppUrl() {
 }
 
 const LONGEST_COOKIE_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
+
+/**
+ * Better Auth's own limiter is per IP. These are the endpoints that try a
+ * password or send mail, limited per address, so one inbox can neither be
+ * guessed at nor flooded from many IPs.
+ */
+const EMAIL_LIMITED_PATHS = new Set([
+    "/email-otp/request-password-reset",
+    "/email-otp/send-verification-otp",
+    "/sign-in/email",
+    "/sign-up/email",
+]);
+
+const emailLimiter = new RateLimiter(components.rateLimiter, {
+    emailAuth: { capacity: 10, kind: "token bucket", period: HOUR, rate: 10 },
+});
+
+const emailBody = z.object({ email: z.string() });
 
 export const authComponent = createClient<DataModel>(components.betterAuth);
 
@@ -87,13 +117,32 @@ function createAuth(ctx: GenericCtx<DataModel>) {
         account: { encryptOAuthTokens: true, updateAccountOnSignIn: false },
         baseURL: siteUrl,
         database: authComponent.adapter(ctx),
+        // The app uses neither: codes only confirm an address or reset a password.
+        disabledPaths: ["/forget-password/email-otp", "/send-verification-email", "/sign-in/email-otp"],
         emailAndPassword: {
-            enabled: false,
+            enabled: emailConfigured,
+            onExistingUserSignUp: async ({ user }, request) => {
+                await sendEmail(user.email, accountExistsEmail(emailLanguage(request?.headers)));
+            },
+            requireEmailVerification: true,
+            revokeSessionsOnPasswordReset: true,
+        },
+        emailVerification: {
+            autoSignInAfterVerification: true,
+            sendOnSignIn: true,
         },
         hooks: {
             before: createAuthMiddleware(async (endpoint) => {
                 if (endpoint.path === "/mcp/authorize") {
                     return { context: { query: { ...endpoint.query, prompt: "consent" } } };
+                }
+                const body = emailBody.safeParse(endpoint.body);
+                if (EMAIL_LIMITED_PATHS.has(endpoint.path) && body.success) {
+                    const key = await sha256Hex(body.data.email.trim().toLowerCase());
+                    const { ok } = await emailLimiter.limit(requireRunMutationCtx(ctx), "emailAuth", { key });
+                    if (!ok) {
+                        throw new APIError("TOO_MANY_REQUESTS", { message: "Too many attempts for this email" });
+                    }
                 }
             }),
         },
@@ -120,6 +169,19 @@ function createAuth(ctx: GenericCtx<DataModel>) {
                     },
                 }
             ),
+            emailOTP({
+                expiresIn: EMAIL_CODE_TTL_SECONDS,
+                overrideDefaultEmailVerification: true,
+                sendVerificationOTP: async ({ email, otp, type }, endpoint) => {
+                    if (type !== "email-verification" && type !== "forget-password") {
+                        return;
+                    }
+                    const purpose = type === "forget-password" ? "reset" : "verify";
+                    const language = emailLanguage(endpoint?.request?.headers ?? endpoint?.headers);
+                    await sendEmail(email, codeEmail(otp, purpose, language));
+                },
+                storeOTP: "hashed",
+            }),
             expo(),
             crossDomain({ siteUrl }),
             convex({

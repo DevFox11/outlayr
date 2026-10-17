@@ -67,10 +67,6 @@ const settingsAccount = {
             en: "Sign-in didn't complete. Your ledger on this device is untouched.",
             es: "El inicio de sesi\u00F3n no se complet\u00F3. Tu registro en este dispositivo est\u00E1 intacto.",
         }),
-        "settings.account.noProvider": t({
-            en: "No sign-in provider is configured for this platform.",
-            es: "No hay ning\u00FAn proveedor de inicio de sesi\u00F3n configurado para esta plataforma.",
-        }),
         "settings.account.notSignedIn": t({
             en: "Not signed in",
             es: "No has iniciado sesión",

@@ -1,10 +1,12 @@
+import type { ProviderBinding } from "./provider-revocation";
+
 export type AccountLifecycleAction = "deleteAll" | "deleteCloud" | "signOut";
 type AccountLifecycleStage = "deleteAccount" | "resetDevice" | "revokeProvider" | "signOut";
 
 type DeletionPhase = "authDeleting" | "billingErased" | "complete" | "prepared" | "providersRevoked" | "purged";
 
 export interface DeletionPreparation {
-    provider?: "apple" | "google";
+    provider?: ProviderBinding["provider"];
     providerSubject?: string;
     receiptChallenge: string;
     resumeSecret: string;

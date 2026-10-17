@@ -30,7 +30,7 @@ const USAGE_BY_TOKEN = [
     "voiceThreadPerUser",
 ] as const;
 
-type DeletionProvider = "appleServerRevoked" | "googleLocalReceipt" | null;
+type DeletionProvider = "appleServerRevoked" | "credentialOnly" | "googleLocalReceipt" | null;
 export type DeletionPhase = "prepared" | "providersRevoked" | "purged" | "billingErased" | "authDeleting" | "complete";
 
 export interface DeletionJob {
@@ -194,6 +194,35 @@ export const recordAppleRevocation = mutation({
         }
         requireUnexpiredPreparedJob(job);
         await ctx.db.patch(job._id, { phase: "providersRevoked", provider: "appleServerRevoked" });
+        return publicStatus({ ...job, phase: "providersRevoked" });
+    },
+});
+
+/** A password account has no provider to revoke, so this only checks that it really has none. */
+export const recordCredentialOnly = mutation({
+    args: { resumeSecret: v.string() },
+    handler: async (ctx, args) => {
+        const job = await jobForSecret(ctx, args.resumeSecret);
+        if (!job) {
+            throw new ConvexError("Deletion job not found");
+        }
+        requireUnexpiredDeletionJob(job);
+        if (job.phase === "providersRevoked" && job.provider === "credentialOnly") {
+            return publicStatus(job);
+        }
+        requireUnexpiredPreparedJob(job);
+        if (!job.userId) {
+            throw new ConvexError("Deletion job is missing its private user linkage");
+        }
+        const accounts = await ctx.runQuery(components.betterAuth.adapter.findMany, {
+            model: "account",
+            paginationOpts: { cursor: null, numItems: AUTH_DELETE_PAGE },
+            where: [{ field: "userId", operator: "eq", value: job.userId }],
+        });
+        if (accounts.page.some((account: { providerId: string }) => account.providerId !== "credential")) {
+            throw new ConvexError("This account is linked to a provider that has to be revoked first");
+        }
+        await ctx.db.patch(job._id, { phase: "providersRevoked", provider: "credentialOnly" });
         return publicStatus({ ...job, phase: "providersRevoked" });
     },
 });
@@ -386,7 +415,11 @@ export const cleanupExpired = internalMutation({
             expired("complete"),
             expired("providersRevoked"),
         ]);
-        const jobs = [...prepared, ...complete, ...revoked.filter((job) => job.provider === "googleLocalReceipt")];
+        const jobs = [
+            ...prepared,
+            ...complete,
+            ...revoked.filter((job) => job.provider === "googleLocalReceipt" || job.provider === "credentialOnly"),
+        ];
         await Promise.all(jobs.map(async (job) => await ctx.db.delete(job._id)));
     },
 });

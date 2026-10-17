@@ -1,5 +1,7 @@
 /// <reference types="vite/client" />
 
+import betterAuthTest from "@convex-dev/better-auth/test";
+import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { apple as appleProvider } from "better-auth/social-providers";
 import { convexTest } from "convex-test";
 import { decodeJwt, exportJWK, generateKeyPair, SignJWT } from "jose";
@@ -129,5 +131,95 @@ describe("auth", () => {
         const enabled = await t.run(async (ctx) => createAuth(ctx).options.user?.deleteUser?.enabled);
 
         expect(enabled).toBeFalsy();
+    });
+});
+
+interface SentEmail {
+    subject: string;
+    text: string;
+    to: string;
+}
+
+function stubEmail(): SentEmail[] {
+    const sent: SentEmail[] = [];
+    vi.stubGlobal(
+        "fetch",
+        vi.fn(async (_url: string, init?: RequestInit) => {
+            sent.push(JSON.parse(String(init?.body)));
+            return Response.json({ errors: [], success: true });
+        })
+    );
+    return sent;
+}
+
+function emailAuth() {
+    const t = convexTest(schema, modules);
+    betterAuthTest.register(t);
+    rateLimiterTest.register(t);
+    return async (path: string, body: Record<string, string>, language = "en") =>
+        await t.run(async (ctx) => {
+            const response = await createAuth(ctx).handler(
+                new Request(`http://localhost:3000/api/auth${path}`, {
+                    body: JSON.stringify(body),
+                    headers: {
+                        "accept-language": language,
+                        "content-type": "application/json",
+                        origin: "http://localhost:3000",
+                    },
+                    method: "POST",
+                })
+            );
+            const json: { code?: string; token?: string | null } = await response.json();
+            return { ...json, status: response.status };
+        });
+}
+
+const codeIn = (email: SentEmail | undefined) => email?.text.match(/\d{6}/)?.[0] ?? "";
+
+describe("email sign-in", () => {
+    const credentials = { email: "ana@example.com", name: "", password: "correct horse" };
+
+    it("confirms the address with a code before it opens a session", async () => {
+        const sent = stubEmail();
+        const post = emailAuth();
+
+        await expect(post("/sign-up/email", credentials)).resolves.toMatchObject({ status: 200, token: null });
+        await expect(post("/sign-in/email", credentials)).resolves.toMatchObject({
+            code: "EMAIL_NOT_VERIFIED",
+            status: 403,
+        });
+        const verified = await post("/email-otp/verify-email", { email: credentials.email, otp: codeIn(sent.at(-1)) });
+
+        expect(sent).toHaveLength(2);
+        expect(sent[0]).toMatchObject({
+            subject: expect.stringContaining("Your Outlayr code"),
+            to: credentials.email,
+        });
+        expect(verified).toMatchObject({ status: 200, token: expect.any(String) });
+    });
+
+    it("answers a taken address like a new one and tells its owner instead", async () => {
+        const sent = stubEmail();
+        const post = emailAuth();
+
+        await post("/sign-up/email", credentials);
+        const again = await post("/sign-up/email", { ...credentials, password: "another password" }, "es-419");
+
+        expect(again).toMatchObject({ status: 200, token: null });
+        expect(sent.at(-1)?.subject).toBe("Ya tienes una cuenta de Outlayr");
+    });
+
+    it("stops trying passwords for one address after ten attempts", async () => {
+        stubEmail();
+        const post = emailAuth();
+        const statuses: number[] = [];
+
+        for (let attempt = 0; attempt < 11; attempt += 1) {
+            // oxlint-disable-next-line no-await-in-loop -- each attempt has to spend the bucket before the next
+            statuses.push((await post("/sign-in/email", credentials)).status);
+        }
+
+        expect(statuses.slice(0, 10)).toStrictEqual(Array.from({ length: 10 }, () => 401));
+        expect(statuses.at(-1)).toBe(429);
     });
 });
