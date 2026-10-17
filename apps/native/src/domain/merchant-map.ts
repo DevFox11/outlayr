@@ -1,4 +1,11 @@
+import type { TranslationKey } from "@/i18n/catalog";
+
 import { buildPatternIndex } from "./pattern-index";
+
+type TagName<Key> = Key extends `merchantTag.${infer Tag}` ? Tag : never;
+
+/** Stored in English; each one is translated under `merchantTag.<name>` when suggested. */
+export type MerchantTag = TagName<TranslationKey>;
 
 export interface MerchantEntry {
     readonly categoryName: string;
@@ -7,7 +14,7 @@ export interface MerchantEntry {
     /** The brand's own name, spelled and cased the way the brand spells it. */
     readonly label: string;
     readonly patterns: readonly string[];
-    readonly tags: readonly string[];
+    readonly tags: readonly MerchantTag[];
 }
 
 export const MERCHANTS: readonly MerchantEntry[] = [

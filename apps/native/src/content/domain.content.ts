@@ -212,6 +212,194 @@ const domain = {
             en: "Could not check. Try again.",
             es: "No se pudo verificar. Inténtalo de nuevo.",
         }),
+        "merchantTag.AI": t({
+            en: "AI",
+            es: "IA",
+        }),
+        "merchantTag.Airline": t({
+            en: "Airline",
+            es: "Aerolínea",
+        }),
+        "merchantTag.Apparel": t({
+            en: "Apparel",
+            es: "Ropa",
+        }),
+        "merchantTag.Apple": t({
+            en: "Apple",
+            es: "Apple",
+        }),
+        "merchantTag.Audiobooks": t({
+            en: "Audiobooks",
+            es: "Audiolibros",
+        }),
+        "merchantTag.Beauty": t({
+            en: "Beauty",
+            es: "Belleza",
+        }),
+        "merchantTag.Cable": t({
+            en: "Cable",
+            es: "Cable",
+        }),
+        "merchantTag.Car Share": t({
+            en: "Car Share",
+            es: "Carro compartido",
+        }),
+        "merchantTag.Convenience": t({
+            en: "Convenience",
+            es: "Tienda de conveniencia",
+        }),
+        "merchantTag.Delivery": t({
+            en: "Delivery",
+            es: "A domicilio",
+        }),
+        "merchantTag.Design": t({
+            en: "Design",
+            es: "Diseño",
+        }),
+        "merchantTag.Development": t({
+            en: "Development",
+            es: "Desarrollo",
+        }),
+        "merchantTag.Education": t({
+            en: "Education",
+            es: "Educación",
+        }),
+        "merchantTag.Electricity": t({
+            en: "Electricity",
+            es: "Electricidad",
+        }),
+        "merchantTag.Electronics": t({
+            en: "Electronics",
+            es: "Electrónica",
+        }),
+        "merchantTag.Fast Food": t({
+            en: "Fast Food",
+            es: "Comida rápida",
+        }),
+        "merchantTag.Fitness": t({
+            en: "Fitness",
+            es: "Ejercicio",
+        }),
+        "merchantTag.Food": t({
+            en: "Food",
+            es: "Comida",
+        }),
+        "merchantTag.Furniture": t({
+            en: "Furniture",
+            es: "Muebles",
+        }),
+        "merchantTag.Gaming": t({
+            en: "Gaming",
+            es: "Videojuegos",
+        }),
+        "merchantTag.Gas": t({
+            en: "Gas",
+            es: "Gas",
+        }),
+        "merchantTag.Groceries": t({
+            en: "Groceries",
+            es: "Supermercado",
+        }),
+        "merchantTag.Home Improvement": t({
+            en: "Home Improvement",
+            es: "Ferretería",
+        }),
+        "merchantTag.Internet": t({
+            en: "Internet",
+            es: "Internet",
+        }),
+        "merchantTag.Learning": t({
+            en: "Learning",
+            es: "Aprendizaje",
+        }),
+        "merchantTag.Marketplace": t({
+            en: "Marketplace",
+            es: "Tienda en línea",
+        }),
+        "merchantTag.Micromobility": t({
+            en: "Micromobility",
+            es: "Micromovilidad",
+        }),
+        "merchantTag.Music": t({
+            en: "Music",
+            es: "Música",
+        }),
+        "merchantTag.News": t({
+            en: "News",
+            es: "Noticias",
+        }),
+        "merchantTag.Pharmacy": t({
+            en: "Pharmacy",
+            es: "Farmacia",
+        }),
+        "merchantTag.Phone": t({
+            en: "Phone",
+            es: "Teléfono",
+        }),
+        "merchantTag.Productivity": t({
+            en: "Productivity",
+            es: "Productividad",
+        }),
+        "merchantTag.Professional": t({
+            en: "Professional",
+            es: "Profesional",
+        }),
+        "merchantTag.Rideshare": t({
+            en: "Rideshare",
+            es: "Transporte por app",
+        }),
+        "merchantTag.Security": t({
+            en: "Security",
+            es: "Seguridad",
+        }),
+        "merchantTag.Sports": t({
+            en: "Sports",
+            es: "Deportes",
+        }),
+        "merchantTag.Storage": t({
+            en: "Storage",
+            es: "Almacenamiento",
+        }),
+        "merchantTag.Streaming": t({
+            en: "Streaming",
+            es: "Streaming",
+        }),
+        "merchantTag.Subscription": t({
+            en: "Subscription",
+            es: "Suscripción",
+        }),
+        "merchantTag.Transit": t({
+            en: "Transit",
+            es: "Transporte público",
+        }),
+        "merchantTag.Travel": t({
+            en: "Travel",
+            es: "Viajes",
+        }),
+        "merchantTag.Warehouse": t({
+            en: "Warehouse",
+            es: "Mayorista",
+        }),
+        "merchantTag.Waste": t({
+            en: "Waste",
+            es: "Basura",
+        }),
+        "merchantTag.Water": t({
+            en: "Water",
+            es: "Agua",
+        }),
+        "merchantTag.Wellness": t({
+            en: "Wellness",
+            es: "Bienestar",
+        }),
+        "merchantTag.Wholesale": t({
+            en: "Wholesale",
+            es: "Mayorista",
+        }),
+        "merchantTag.Writing": t({
+            en: "Writing",
+            es: "Escritura",
+        }),
         "verdict.inLine": t({
             en: "In line with {prior}.",
             es: "Similar a {prior}.",

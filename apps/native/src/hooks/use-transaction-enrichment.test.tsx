@@ -4,6 +4,7 @@ import { act, renderHook } from "@testing-library/react-native";
 import { clearEnrichmentCache, getCachedEnrichment, setCachedEnrichment } from "@/domain/enrichment-cache";
 import type { RemoteEnrichmentResult } from "@/domain/enrichment-cache";
 import { merchantKey } from "@/domain/merchant-resolver";
+import { setRuntimeLanguage } from "@/i18n/runtime";
 import type { EnrichmentFn, EnrichmentRequest } from "@/lib/convex";
 
 import { REMOTE_TIMEOUT_MS, useTransactionEnrichment } from "./use-transaction-enrichment";
@@ -92,6 +93,21 @@ describe("tier 1: curated match", () => {
             parentName: null,
         });
         expect(result.current.pending).toBe(false);
+    });
+
+    it("names curated tags in the app's language", async () => {
+        const onSuggest = jest.fn();
+        const { result } = await renderHook(() => useTransactionEnrichment(baseArgs({ onSuggest })));
+        setRuntimeLanguage("es");
+        try {
+            result.current.onNameChange("costco");
+            jest.advanceTimersByTime(DEBOUNCE_MS);
+        } finally {
+            setRuntimeLanguage("en");
+        }
+
+        const suggestion = onSuggest.mock.calls[0][0] as EnrichmentSuggestion;
+        expect(suggestion.pendingTagNames).toStrictEqual(["Mayorista"]);
     });
 
     it("reports an empty suggestion below the 3-character floor so stale fields clear", async () => {

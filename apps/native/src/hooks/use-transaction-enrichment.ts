@@ -5,6 +5,7 @@ import { getCachedEnrichment, setCachedEnrichment } from "@/domain/enrichment-ca
 import type { RemoteEnrichmentResult } from "@/domain/enrichment-cache";
 import { merchantKey, resolveMerchant } from "@/domain/merchant-resolver";
 import type { MerchantMatch } from "@/domain/merchant-resolver";
+import { translateNow } from "@/i18n/runtime";
 import { enrichmentTransport } from "@/lib/convex";
 import type { CategoryBranch, EnrichmentFn } from "@/lib/convex";
 import { withTimeout } from "@/lib/with-timeout";
@@ -141,7 +142,7 @@ function toCuratedSuggestion(match: MerchantMatch): EnrichmentSuggestion {
                   parentName: null,
               }
             : null,
-        pendingTagNames: match.tags,
+        pendingTagNames: match.tags.map((tag) => translateNow(`merchantTag.${tag}`)),
         source: "curated",
         tagIds: [],
     };

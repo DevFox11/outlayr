@@ -1,11 +1,11 @@
 import { MERCHANT_INDEX } from "./merchant-map";
-import type { MerchantEntry } from "./merchant-map";
+import type { MerchantEntry, MerchantTag } from "./merchant-map";
 import { containsTokenSequence } from "./pattern-index";
 
 export interface MerchantMatch {
     readonly categoryName: string;
     readonly domain: string | null;
-    readonly tags: readonly string[];
+    readonly tags: readonly MerchantTag[];
 }
 
 export function merchantKey(raw: string): string {
