@@ -1,6 +1,6 @@
 // oxlint-disable unicorn/filename-case -- the Convex module name is the function path — clients call this action as api.csvImport.csvImport
 
-import { createXai } from "@ai-sdk/xai";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { HOUR, RateLimiter } from "@convex-dev/rate-limiter";
 import { generateText, NoObjectGeneratedError, Output, TypeValidationError } from "ai";
 import type { LanguageModel } from "ai";
@@ -16,7 +16,7 @@ import { describeTree } from "./lib/ledgerPrompt";
 import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
 import { knowledgeKeys, merchantKey } from "./lib/merchantKey";
-import { GROK_MODEL_ID } from "./lib/models";
+import { AI_CONSENT_VERSION, CLAUDE_MODEL_ID } from "./lib/models";
 import { isPro } from "./revenuecat";
 
 const MAX_LABELS = 200;
@@ -30,6 +30,8 @@ const REQUEST_TIMEOUT_MS = 12_000;
  * date value, and no per-row data of any kind may reach here.
  */
 export const csvImportArgs = {
+    /** The AI consent the person gave — see `enrichment.ts:suggestArgs`. */
+    aiConsent: v.optional(v.number()),
     categoryTree: v.array(v.object({ children: v.array(v.string()), name: v.string() })),
     /** One side of the dual-authority consent gate — see `enrichment.ts:suggestArgs`. */
     groundedLookup: v.optional(v.boolean()),
@@ -119,7 +121,7 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 /**
  * Model call, sanitisation, and failure classification only — no auth, no env
  * check, no rate limit. Exported so tests can inject a fake `LanguageModel`
- * directly, since the real xAI provider cannot be substituted through the
+ * directly, since the real Anthropic provider cannot be substituted through the
  * wrapped `csvImport` action.
  */
 export async function classify(model: LanguageModel, args: RunClassifyArgs): Promise<CsvImportResult> {
@@ -226,7 +228,7 @@ export async function scheduleImportGrounded(
 
 /**
  * Read live rather than through a frozen snapshot, so that
- * `npx convex env set XAI_API_KEY=""` takes effect on the very next call.
+ * `npx convex env set ANTHROPIC_API_KEY=""` takes effect on the very next call.
  */
 export const csvImport = action({
     args: csvImportArgs,
@@ -236,8 +238,8 @@ export const csvImport = action({
             return failure("unauthenticated");
         }
 
-        const apiKey = process.env.XAI_API_KEY;
-        if (!apiKey) {
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        if (!apiKey || args.aiConsent !== AI_CONSENT_VERSION) {
             return failure("notConfigured");
         }
 
@@ -300,9 +302,8 @@ export const csvImport = action({
             return { status: "ok", suggestions: known };
         }
 
-        const xaiProvider = createXai({ apiKey });
-        const modelId = process.env.XAI_MODEL_ID || GROK_MODEL_ID;
-        const classified = await classify(xaiProvider(modelId), {
+        const modelId = process.env.CLAUDE_MODEL_ID || CLAUDE_MODEL_ID;
+        const classified = await classify(createAnthropic({ apiKey })(modelId), {
             categoryTree: args.categoryTree,
             labels: remaining,
         });

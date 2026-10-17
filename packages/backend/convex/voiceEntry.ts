@@ -1,6 +1,7 @@
 // oxlint-disable unicorn/filename-case -- the Convex module name is the function path — clients call these as api.voiceEntry.*
 
-import { createXai } from "@ai-sdk/xai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createElevenLabs } from "@ai-sdk/elevenlabs";
 import {
     Agent,
     createThread,
@@ -13,7 +14,7 @@ import {
     vStreamArgs,
 } from "@convex-dev/agent";
 import { HOUR, isRateLimitError, RateLimiter } from "@convex-dev/rate-limiter";
-import { experimental_transcribe as transcribe, NoTranscriptGeneratedError } from "ai";
+import { NoTranscriptGeneratedError, transcribe } from "ai";
 import type { LanguageModel, TranscriptionModel } from "ai";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
@@ -38,7 +39,7 @@ import {
 } from "./lib/ledgerPrompt";
 import type { LedgerContext } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
-import { GROK_MODEL_ID } from "./lib/models";
+import { AI_CONSENT_VERSION, CLAUDE_MODEL_ID, ELEVENLABS_TRANSCRIPTION_MODEL_ID } from "./lib/models";
 import { isPro } from "./revenuecat";
 
 /**
@@ -94,6 +95,8 @@ type AgentModel = Extract<LanguageModel, { specificationVersion: "v4" }>;
  */
 export const voiceEntryArgs = {
     accounts: v.array(v.string()),
+    /** The AI consent the person gave — see `enrichment.ts:suggestArgs`. */
+    aiConsent: v.optional(v.number()),
     /** AAC in an MP4 container, as the client records it. */
     audio: v.bytes(),
     categoryTree: v.array(v.object({ children: v.array(v.string()), name: v.string() })),
@@ -349,7 +352,12 @@ export async function transcribeClip(
             maxRetries: 0,
             model,
             providerOptions: {
-                xai: language ? { format: true, language: language.split("-")[0] } : {},
+                elevenlabs: {
+                    diarize: false,
+                    languageCode: language?.split("-")[0],
+                    tagAudioEvents: false,
+                    timestampsGranularity: "none",
+                },
             },
         });
         const text = result.text.trim();
@@ -482,7 +490,7 @@ export const endThread = mutation({
  * one path for the first draft and every correction after it.
  *
  * Read live rather than through a frozen snapshot, so that
- * `npx convex env set XAI_API_KEY=""` takes effect on the very next call.
+ * `npx convex env set ANTHROPIC_API_KEY=""` or `ELEVENLABS_API_KEY=""` takes effect on the very next call.
  */
 export const admit = internalMutation({
     args: {},
@@ -503,8 +511,9 @@ export const speak = action({
             return failure("unauthenticated");
         }
 
-        const apiKey = process.env.XAI_API_KEY;
-        if (!apiKey) {
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        const transcriptionKey = process.env.ELEVENLABS_API_KEY;
+        if (!apiKey || !transcriptionKey || args.aiConsent !== AI_CONSENT_VERSION) {
             return failure("notConfigured");
         }
 
@@ -542,8 +551,11 @@ export const speak = action({
             return failure(admitted);
         }
 
-        const xaiProvider = createXai({ apiKey });
-        const heard = await transcribeClip(xaiProvider.transcription(), args.audio, args.language);
+        const heard = await transcribeClip(
+            createElevenLabs({ apiKey: transcriptionKey }).transcription(ELEVENLABS_TRANSCRIPTION_MODEL_ID),
+            args.audio,
+            args.language
+        );
         if ("error" in heard) {
             return failure(heard.error === "empty" ? "unclear" : "providerError");
         }
@@ -555,8 +567,8 @@ export const speak = action({
             language: args.language,
             today: args.today,
         };
-        const modelId = process.env.XAI_MODEL_ID || GROK_MODEL_ID;
-        const agent = voiceAgent(xaiProvider(modelId), context);
+        const modelId = process.env.CLAUDE_MODEL_ID || CLAUDE_MODEL_ID;
+        const agent = voiceAgent(createAnthropic({ apiKey })(modelId), context);
         const { message, messageId } = await saveMessage(ctx, components.agent, {
             prompt: heard.text,
             threadId: args.threadId,
@@ -572,7 +584,6 @@ export const speak = action({
                     promptMessageId: messageId,
                     reasoning: "low",
                     system: buildPrompt(context),
-                    toolChoice: "required",
                 },
                 {
                     contextOptions: { recentMessages: CONTEXT_TURNS * 2 },

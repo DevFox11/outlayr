@@ -1,19 +1,19 @@
 import type { RateLimitConfig } from "@convex-dev/rate-limiter";
 import { DAY } from "@convex-dev/rate-limiter";
 
-/** $0.005 per xAI web-search call — https://docs.x.ai/docs/pricing (verified). */
-const DEFAULT_SEARCH_PRICE_MICROS = 5000;
-/** $1.25 per 1M input tokens on `grok-4.3`. */
-const DEFAULT_INPUT_PRICE_MICROS_PER_TOKEN = 1.25;
-/** $2.50 per 1M output tokens on `grok-4.3`. */
-const DEFAULT_OUTPUT_PRICE_MICROS_PER_TOKEN = 2.5;
+/** $10 per 1,000 Claude web searches — https://platform.claude.com/docs/en/about-claude/pricing. */
+const DEFAULT_SEARCH_PRICE_MICROS = 10_000;
+/** $2 per 1M input tokens on `claude-sonnet-5-5`. */
+const DEFAULT_INPUT_PRICE_MICROS_PER_TOKEN = 2;
+/** $10 per 1M output tokens on `claude-sonnet-5-5`. */
+const DEFAULT_OUTPUT_PRICE_MICROS_PER_TOKEN = 10;
 /** The monthly ceiling, in micro-dollars. */
 export const DEFAULT_BUDGET_CEILING_MICROS = 200_000_000;
 const BUDGET_PERIOD_MS = 30 * DAY;
 /** Cost-model worst case: up to 3 search rounds per lookup. */
-const WORST_CASE_SEARCH_CALLS = 3;
-/** Rough two-pass token estimate backing the pessimistic pre-charge. */
-const ESTIMATED_INPUT_TOKENS = 5600;
+export const WORST_CASE_SEARCH_CALLS = 3;
+/** Backs the pessimistic pre-charge. Search results bill as input: one-search lookups measured 14k to 17.5k tokens. */
+const ESTIMATED_INPUT_TOKENS = 18_000;
 const ESTIMATED_OUTPUT_TOKENS = 420;
 
 function envNumber(name: string, fallback: number): number {

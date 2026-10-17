@@ -9,6 +9,7 @@ import { api } from "./_generated/api";
 import { captureLimiter, FREE_CAPTURE_CONFIG } from "./lib/captures";
 import { LANGUAGE_PATTERN } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
+import { AI_CONSENT_VERSION } from "./lib/models";
 import {
     buildPrompt,
     looksLikeJpeg,
@@ -34,6 +35,7 @@ const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x4
 
 const BASE_ARGS = {
     accounts: ["Visa", "Cash"],
+    aiConsent: AI_CONSENT_VERSION,
     categoryTree: [
         { children: ["Coffee"], name: "Food" },
         { children: [], name: "Groceries" },
@@ -220,8 +222,8 @@ describe("scan guard ladder", () => {
         });
     });
 
-    it("returns notConfigured when XAI_API_KEY is unset, never throws", async () => {
-        vi.stubEnv("XAI_API_KEY", "");
+    it("returns notConfigured when ANTHROPIC_API_KEY is unset, never throws", async () => {
+        vi.stubEnv("ANTHROPIC_API_KEY", "");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -231,8 +233,19 @@ describe("scan guard ladder", () => {
         });
     });
 
+    it("never sends a photo from a build that asked about other AI providers", async () => {
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        const t = convexTest(schema, modules);
+        const identity = await seedAuthUser(t);
+        const { aiConsent: _consent, ...oldBuild } = BASE_ARGS;
+
+        await expect(authenticatedAs(t, identity).action(api.receiptScan.scan, oldBuild)).resolves.toMatchObject({
+            status: "notConfigured",
+        });
+    });
+
     it("returns invalid for an oversized, empty or non-JPEG image and for a malformed date, currency or region", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         const asUser = authenticatedAs(t, await seedAuthUser(t));
         const invalid = { receipt: null, status: "invalid" };
@@ -261,7 +274,7 @@ describe("scan guard ladder", () => {
     });
 
     it("a global reject spends none of the caller's captures", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -288,7 +301,7 @@ describe("scan guard ladder", () => {
     });
 
     it("returns notEntitled once a free user's capture pool is spent, before any model call", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -314,7 +327,7 @@ describe("scan guard ladder", () => {
     });
 
     it("returns rateLimited once the per-user bucket is exhausted, before any model call", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);

@@ -25,14 +25,14 @@ beforeEach(() => {
 });
 
 describe("onboarding smart features screen", () => {
-    it("records the consent and moves on when xAI is allowed", async () => {
+    it("records the consent and moves on when the AI providers are allowed", async () => {
         const { getByText } = await render(<OnboardingSmartFeatures />);
 
         fireEvent.press(getByText("aiConsent.allow"));
 
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/onboarding/rhythm"));
         expect(mockSetBoolSetting).toHaveBeenCalledTimes(1);
-        expect(mockSetBoolSetting).toHaveBeenCalledWith(expect.anything(), "aiConsent", true);
+        expect(mockSetBoolSetting).toHaveBeenCalledWith(expect.anything(), "aiConsentV2", true);
     });
 
     it("records Not now as an answer, so the launch sheet does not ask again", async () => {
@@ -42,6 +42,6 @@ describe("onboarding smart features screen", () => {
 
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/onboarding/rhythm"));
         expect(mockSetBoolSetting).toHaveBeenCalledTimes(1);
-        expect(mockSetBoolSetting).toHaveBeenCalledWith(expect.anything(), "aiConsent", false);
+        expect(mockSetBoolSetting).toHaveBeenCalledWith(expect.anything(), "aiConsentV2", false);
     });
 });

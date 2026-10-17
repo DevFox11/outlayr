@@ -8,6 +8,7 @@ import type { AnsweredJob, EnrichmentJobRequest } from "@/data/enrichment-queue-
 import type { PhotoTransport } from "@/data/photo-sync-core";
 import type { PullRatesFn, RateWireRow } from "@/data/rates";
 import type { PullFn, PushFn } from "@/data/sync-engine-core";
+import { AI_CONSENT_VERSION } from "@/domain/ai-consent";
 import type { RemoteEnrichmentResult } from "@/domain/enrichment-cache";
 import type { UsageLimits } from "@/domain/usage-limits";
 
@@ -209,7 +210,7 @@ export function enrichmentTransport(): EnrichmentFn | null {
     if (!authenticated) {
         return null;
     }
-    return async (args) => cloudAction("enrichment:suggest", args);
+    return async (args) => cloudAction("enrichment:suggest", { ...args, aiConsent: AI_CONSENT_VERSION });
 }
 
 const answeredJobs = z.array(
@@ -238,7 +239,8 @@ export interface EnrichmentQueueTransport {
 export function enrichmentQueueTransport(): EnrichmentQueueTransport {
     return {
         ack: async (localIds) => cloudMutation("enrichmentQueue:ack", { localIds }),
-        enqueue: async (request) => cloudMutation("enrichmentQueue:enqueue", request),
+        enqueue: async (request) =>
+            cloudMutation("enrichmentQueue:enqueue", { ...request, aiConsent: AI_CONSENT_VERSION }),
     };
 }
 
@@ -301,7 +303,7 @@ export type CsvImportFn = (args: CsvImportRequest) => Promise<CsvImportResult>;
  * itself, exactly as it does for `enrichmentTransport`.
  */
 export function csvImportTransport(): CsvImportFn {
-    return async (args) => cloudAction("csvImport:csvImport", args);
+    return async (args) => cloudAction("csvImport:csvImport", { ...args, aiConsent: AI_CONSENT_VERSION });
 }
 
 interface VoiceDraftBase {
@@ -411,7 +413,7 @@ export interface VoiceThreadTransport {
 export function voiceThreadTransport(): VoiceThreadTransport {
     return {
         end: async (threadId) => cloudMutation("voiceEntry:endThread", { threadId }),
-        speak: async (args) => cloudAction("voiceEntry:speak", args),
+        speak: async (args) => cloudAction("voiceEntry:speak", { ...args, aiConsent: AI_CONSENT_VERSION }),
         start: async () => cloudMutation("voiceEntry:startThread", {}),
     };
 }
@@ -543,5 +545,5 @@ export type ReceiptScanFn = (args: ScanRequest) => Promise<ScanResult>;
  * `convex` itself, exactly as it does for `voiceThreadTransport`.
  */
 export function receiptScanTransport(): ReceiptScanFn {
-    return async (args) => cloudAction("receiptScan:scan", args);
+    return async (args) => cloudAction("receiptScan:scan", { ...args, aiConsent: AI_CONSENT_VERSION });
 }

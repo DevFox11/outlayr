@@ -291,9 +291,9 @@ const settings = {
             en: "Restore data",
             es: "Restaurar datos",
         }),
-        "settings.row.sendToXai": t({
-            en: "Send data to xAI",
-            es: "Enviar datos a xAI",
+        "settings.row.sendToAi": t({
+            en: "Send data to AI providers",
+            es: "Enviar datos a proveedores de IA",
         }),
         "settings.row.share": t({
             en: "Share Outlayr",

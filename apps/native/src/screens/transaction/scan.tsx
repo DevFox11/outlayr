@@ -898,8 +898,8 @@ function ScanFlowScreen() {
  * The scan screen. The picker, the request and the review only exist for a
  * signed-in session, because the action they call authenticates on the Convex
  * client the root layout mounts only then; every other gate gets the same
- * frame with the reason. Signed in, xAI has to be allowed before the camera
- * is: the photo is sent the moment it is taken.
+ * frame with the reason. Signed in, the AI providers have to be allowed before
+ * the camera is: the photo is sent the moment it is taken.
  */
 export function ReceiptScanScreen() {
     const { gate } = useAuthSession();

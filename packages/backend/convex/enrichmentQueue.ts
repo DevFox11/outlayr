@@ -1,6 +1,6 @@
 // oxlint-disable unicorn/filename-case -- the Convex module name is the function path: clients address these as enrichmentQueue:enqueue, enrichmentQueue:results and enrichmentQueue:ack
 
-import { createXai } from "@ai-sdk/xai";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { vOnCompleteValidator, Workpool } from "@convex-dev/workpool";
 import { v } from "convex/values";
 import type { Infer } from "convex/values";
@@ -23,7 +23,7 @@ import type { GroundedCallDeps } from "./groundedLookup";
 import { optionalUserId, requireUserId } from "./lib/auth";
 import { knowledgeKey, knowledgeKeys } from "./lib/merchantKey";
 import { CANONICAL_CATEGORY_NAMES, KEY_PATTERN } from "./lib/merchantTrust";
-import { GROK_FAST_MODEL_ID, GROK_MODEL_ID } from "./lib/models";
+import { AI_CONSENT_VERSION, CLAUDE_FAST_MODEL_ID, CLAUDE_MODEL_ID } from "./lib/models";
 import { isPro } from "./revenuecat";
 import { enrichmentResult } from "./schema";
 
@@ -41,6 +41,8 @@ type EnrichmentResult = Infer<typeof enrichmentResult>;
 
 export const enqueue = mutation({
     args: {
+        /** The AI consent the person gave — see `enrichment.ts:suggestArgs`. */
+        aiConsent: v.optional(v.number()),
         categoryTree: v.array(v.object({ children: v.array(v.string()), name: v.string() })),
         currency: v.optional(v.string()),
         groundedLookup: v.boolean(),
@@ -53,7 +55,7 @@ export const enqueue = mutation({
     handler: async (ctx, args) => {
         const userId = await requireUserId(ctx);
         const name = args.name.trim();
-        if (name.length < MIN_NAME_LENGTH || name.length > MAX_NAME_LENGTH) {
+        if (args.aiConsent !== AI_CONSENT_VERSION || name.length < MIN_NAME_LENGTH || name.length > MAX_NAME_LENGTH) {
             return false;
         }
         const gate = await rateLimiter.limit(ctx, "enrichmentQueue", { key: userId });
@@ -170,18 +172,18 @@ export async function resolveJob(
                 ctx,
                 row,
                 applyToTree(row.categoryTree, { ...deep, parentCategoryName: null }),
-                process.env.XAI_GROUNDED_MODEL_ID || GROK_MODEL_ID
+                process.env.CLAUDE_GROUNDED_MODEL_ID || CLAUDE_MODEL_ID
             );
         }
     }
-    const fastModelId = process.env.XAI_MODEL_ID || GROK_FAST_MODEL_ID;
+    const fastModelId = process.env.CLAUDE_FAST_MODEL_ID || CLAUDE_FAST_MODEL_ID;
     let model = deps.fast;
     if (model === undefined) {
-        const apiKey = process.env.XAI_API_KEY;
+        const apiKey = process.env.ANTHROPIC_API_KEY;
         if (!apiKey) {
             return null;
         }
-        model = createXai({ apiKey })(fastModelId);
+        model = createAnthropic({ apiKey })(fastModelId);
     }
     const { grounding: _grounding, ...fast } = await runSuggest(model, {
         categoryTree: row.categoryTree,

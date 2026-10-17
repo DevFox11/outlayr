@@ -1,4 +1,4 @@
-import { createXai } from "@ai-sdk/xai";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { DAY, HOUR, RateLimiter } from "@convex-dev/rate-limiter";
 import { generateText, Output } from "ai";
 import type { LanguageModel } from "ai";
@@ -14,7 +14,7 @@ import { describeTree } from "./lib/ledgerPrompt";
 import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
 import { knowledgeKey, knowledgeKeys } from "./lib/merchantKey";
-import { GROK_FAST_MODEL_ID } from "./lib/models";
+import { AI_CONSENT_VERSION, CLAUDE_FAST_MODEL_ID } from "./lib/models";
 import { DOMAIN_PATTERN, MAX_DOMAIN_LENGTH, MAX_TAG_LENGTH, MAX_TAGS, PICTOGRAPHIC } from "./lib/sanitizeLimits";
 import { isPro } from "./revenuecat";
 
@@ -37,6 +37,11 @@ export const GROUNDED_REQUEST_TIMEOUT_MS = 120_000;
  * directly rather than re-deriving it from the wrapped action.
  */
 export const suggestArgs = {
+    /**
+     * The AI consent the person gave (`AI_CONSENT_VERSION`). Anything else
+     * still reads the shared merchant list but never reaches a provider.
+     */
+    aiConsent: v.optional(v.number()),
     background: v.optional(v.boolean()),
     categoryTree: v.array(v.object({ children: v.array(v.string()), name: v.string() })),
     /**
@@ -398,6 +403,7 @@ export async function runSuggest(model: LanguageModel, args: RunSuggestArgs): Pr
         model,
         output: Output.object({ schema: modelOutputSchema }),
         prompt: buildPrompt(args.name, args.income, args.locale, args.regionCode, args.currency, tree),
+        reasoning: "none",
     });
 
     return {
@@ -518,7 +524,7 @@ export async function maybeScheduleGrounded(
 
 /**
  * Read live rather than through `@outlayr/env/backend`'s frozen snapshot, so
- * that `npx convex env set XAI_API_KEY=""` (design rollback lever 2) takes
+ * that `npx convex env set ANTHROPIC_API_KEY=""` (design rollback lever 2) takes
  * effect on the very next call — matching `auth.ts`'s `resolveSiteUrl`.
  */
 export const suggest = action({
@@ -538,7 +544,7 @@ export const suggest = action({
         const currency = sanitizeCurrencyCode(args.currency);
 
         // Tier 1.5: an indexed read that costs nothing and consumes neither rate
-        // limit bucket below — checked before `XAI_API_KEY` so a hit still works
+        // limit bucket below — checked before `ANTHROPIC_API_KEY` so a hit still works
         // even when that key is unset (design's degradation matrix).
         const cached = await ctx.runQuery(internal.merchantKnowledge.lookup, {
             keys: knowledgeKeys(trimmedName, currency),
@@ -555,8 +561,8 @@ export const suggest = action({
             return EMPTY;
         }
 
-        const apiKey = process.env.XAI_API_KEY;
-        if (!apiKey) {
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        if (!apiKey || args.aiConsent !== AI_CONSENT_VERSION) {
             return EMPTY;
         }
 
@@ -573,9 +579,8 @@ export const suggest = action({
         }
 
         try {
-            const xaiProvider = createXai({ apiKey });
-            const modelId = process.env.XAI_MODEL_ID || GROK_FAST_MODEL_ID;
-            const result = await runSuggest(xaiProvider(modelId), {
+            const modelId = process.env.CLAUDE_FAST_MODEL_ID || CLAUDE_FAST_MODEL_ID;
+            const result = await runSuggest(createAnthropic({ apiKey })(modelId), {
                 categoryTree: args.categoryTree,
                 currency,
                 income: args.income,
@@ -608,7 +613,7 @@ export const suggest = action({
             return result;
         } catch (error) {
             console.warn(
-                `[enrichment] xAI call threw for "${trimmedName}":`,
+                `[enrichment] model call threw for "${trimmedName}":`,
                 error instanceof Error ? `${error.name}: ${error.message}` : String(error)
             );
             const scheduled =
@@ -622,7 +627,7 @@ export const suggest = action({
                     name: trimmedName,
                     regionCode,
                 }));
-            // A rejected xAI call surfaces here as a normal degradation, not a
+            // A rejected model call surfaces here as a normal degradation, not a
             // thrown ConvexError — throwing would fill function logs with stack
             // traces for an entirely ordinary timeout or provider outage.
             return { ...EMPTY, grounding: scheduled };

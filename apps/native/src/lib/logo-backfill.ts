@@ -12,8 +12,8 @@ import { fetchMerchantImage } from "./logo-fetch";
 
 /**
  * The production wiring for `attachMissingLogos`: the same consent gates the
- * form honours (`readRemoteEnrichment` keeps every lookup on-device until xAI
- * is allowed and suggestions are on, `groundedLookup` is passed through for the
+ * form honours (`readRemoteEnrichment` keeps every lookup on-device until the AI
+ * providers are allowed and suggestions are on, `groundedLookup` is passed through for the
  * server to re-check), the device locale, and the real image and photo pipelines.
  */
 /**

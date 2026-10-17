@@ -1,14 +1,15 @@
 /// <reference types="vite/client" />
 
 /**
- * The voice thread against the real xAI endpoints, end to end through the
+ * The voice thread against the real ElevenLabs and Anthropic endpoints, end to end through the
  * deployed functions: a clip becomes a draft, and a second sentence corrects
  * it on the same thread. Opt-in for the same reasons as `csvImport.live.test.ts`:
  *
  *   say -o /tmp/voice-clip.m4a --data-format=aac "Twelve fifty at Starbucks yesterday on the Amex"
  *   say -o /tmp/voice-fix.m4a --data-format=aac "No, that was today, and put it under groceries"
  *   RUN_LIVE_MODEL_TESTS=1 \
- *   XAI_API_KEY="$(npx convex env get XAI_API_KEY)" \
+ *   ANTHROPIC_API_KEY="$(npx convex env get ANTHROPIC_API_KEY)" \
+ *   ELEVENLABS_API_KEY="$(npx convex env get ELEVENLABS_API_KEY)" \
  *   pnpm exec vitest run convex/voiceEntry.live.test.ts
  *
  * The assertions are the contract, not the answer: a draft comes back with a
@@ -20,18 +21,23 @@ import { readFile } from "node:fs/promises";
 
 import agentTest from "@convex-dev/agent/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
+import revenuecatTest from "convex-revenuecat/test";
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vite-plus/test";
 
 import { api } from "./_generated/api";
+import { AI_CONSENT_VERSION } from "./lib/models";
 import schema from "./schema";
-import { authenticatedAs, seedAuthUser } from "./test.helpers";
+import { authenticatedAs, seedProUser } from "./test.helpers";
 import { PROPOSE_DRAFT_TOOL } from "./voiceEntry";
 import type { ProposedDraft } from "./voiceEntry";
 
 const modules = import.meta.glob("./**/*.ts");
 
-const live = process.env.RUN_LIVE_MODEL_TESTS === "1" && Boolean(process.env.XAI_API_KEY);
+const live =
+    process.env.RUN_LIVE_MODEL_TESTS === "1" &&
+    Boolean(process.env.ANTHROPIC_API_KEY) &&
+    Boolean(process.env.ELEVENLABS_API_KEY);
 const CLIP_PATH = process.env.VOICE_CLIP_PATH ?? "/tmp/voice-clip.m4a";
 const FIX_PATH = process.env.VOICE_FIX_PATH ?? "/tmp/voice-fix.m4a";
 
@@ -59,13 +65,15 @@ describe.skipIf(!live)("voice thread, live", () => {
         const t = convexTest(schema, modules);
         agentTest.register(t);
         rateLimiterTest.register(t);
-        const asUser = authenticatedAs(t, await seedAuthUser(t));
+        revenuecatTest.register(t);
+        const asUser = authenticatedAs(t, await seedProUser(t));
         const { threadId } = await asUser.mutation(api.voiceEntry.startThread, {});
         if (threadId === null) {
             throw new Error("Expected a thread");
         }
         const context = {
             accounts: ["Amex", "Checking"],
+            aiConsent: AI_CONSENT_VERSION,
             categoryTree: [
                 { children: ["Coffee"], name: "Food" },
                 { children: [], name: "Groceries" },

@@ -262,9 +262,9 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
         [
             "expo-image-picker",
             {
-                cameraPermission: "Outlayr uses the camera to scan a receipt. The photo goes to xAI to read it.",
+                cameraPermission: "Outlayr uses the camera to scan a receipt. The photo goes to Anthropic to read it.",
                 photosPermission:
-                    "Outlayr uses your photos to set a custom logo for a transaction or to scan a receipt, which sends that photo to xAI to read it.",
+                    "Outlayr uses your photos to set a custom logo for a transaction or to scan a receipt, which sends that photo to Anthropic to read it.",
             },
         ],
         [
@@ -281,7 +281,7 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
                 // foreground, and App Review rejects the unused mode (2.5.4).
                 enableBackgroundPlayback: false,
                 microphonePermission:
-                    "Outlayr listens while you speak an entry. The recording goes to xAI to write it down for you.",
+                    "Outlayr listens while you speak an entry. The recording goes to ElevenLabs to write it down for you.",
                 recordAudioAndroid: true,
             },
         ],

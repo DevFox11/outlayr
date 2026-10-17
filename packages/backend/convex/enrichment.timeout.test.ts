@@ -8,14 +8,15 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { api } from "./_generated/api";
 import { EMPTY } from "./enrichment";
+import { AI_CONSENT_VERSION } from "./lib/models";
 import schema from "./schema";
 import { authenticatedAs, seedProUser } from "./test.helpers";
 
-vi.mock(import("@ai-sdk/xai"), async (importOriginal) => {
+vi.mock(import("@ai-sdk/anthropic"), async (importOriginal) => {
     const original = await importOriginal();
     return {
         ...original,
-        createXai: (options) =>
+        createAnthropic: (options) =>
             Object.assign(
                 () =>
                     new MockLanguageModelV4({
@@ -26,7 +27,7 @@ vi.mock(import("@ai-sdk/xai"), async (importOriginal) => {
                                 })
                             ),
                     }),
-                original.createXai(options)
+                original.createAnthropic(options)
             ),
     };
 });
@@ -34,6 +35,7 @@ vi.mock(import("@ai-sdk/xai"), async (importOriginal) => {
 const modules = import.meta.glob("./**/*.ts");
 
 const BASE_ARGS = {
+    aiConsent: AI_CONSENT_VERSION,
     categoryTree: [{ children: [], name: "Travel" }],
     groundedLookup: true,
     income: false,
@@ -46,7 +48,7 @@ async function scheduledGroundedRuns(t: ReturnType<typeof convexTest>) {
 }
 
 beforeEach(() => {
-    vi.stubEnv("XAI_API_KEY", "test-xai-key");
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
 });
 
 describe("an inline call that timed out", () => {

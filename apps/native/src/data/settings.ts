@@ -60,11 +60,11 @@ export function useBoolSetting(db: Database | null, key: BoolSettingKey): boolea
     );
 }
 
-/** The `aiConsent` row with an unasked question kept apart from Not now. */
+/** The `aiConsentV2` row with an unasked question kept apart from Not now. */
 export function useAiConsent(db: Database | null): AiConsent {
     return useLiveValue(
         appMeta,
-        () => selectSetting(db, "aiConsent"),
+        () => selectSetting(db, "aiConsentV2"),
         (rows) => parseAiConsent(rows[0]?.value ?? null),
         [db]
     );

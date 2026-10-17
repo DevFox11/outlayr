@@ -11,12 +11,14 @@ import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { resolveJob } from "./enrichmentQueue";
 import { knowledgeKeys } from "./lib/merchantKey";
+import { AI_CONSENT_VERSION } from "./lib/models";
 import schema from "./schema";
 import { authenticatedAs, seedAuthUser, seedProUser } from "./test.helpers";
 
 const modules = import.meta.glob("./**/*.ts");
 
 const ENQUEUE_ARGS = {
+    aiConsent: AI_CONSENT_VERSION,
     categoryTree: [{ children: [], name: "Travel" }],
     currency: "EUR",
     groundedLookup: true,
@@ -85,6 +87,15 @@ describe("enqueue", () => {
 
         const [job] = await t.run((ctx) => ctx.db.query("enrichmentJobs").collect());
         expect(job?.grounded).toBeFalsy();
+    });
+
+    it("queues nothing from a build that asked about other AI providers", async () => {
+        const t = setup();
+        const asUser = authenticatedAs(t, await seedProUser(t));
+        const { aiConsent: _consent, ...oldBuild } = ENQUEUE_ARGS;
+
+        await expect(asUser.mutation(api.enrichmentQueue.enqueue, oldBuild)).resolves.toBeFalsy();
+        await expect(t.run((ctx) => ctx.db.query("enrichmentJobs").collect())).resolves.toHaveLength(0);
     });
 
     it("refuses a caller with no session", async () => {

@@ -19,7 +19,7 @@ export type BoolSettingKey =
     | "showNotifications"
     | "subscriptionReminders"
     | "categorySuggestions"
-    | "aiConsent"
+    | "aiConsentV2"
     | "aiEnrichment"
     | "groundedLookup"
     | "hideAmounts"
@@ -45,7 +45,7 @@ export type NumberSettingKey =
 
 export const SETTING_DEFAULTS = {
     accentColor: DEFAULT_ACCENT_VALUE,
-    aiConsent: false,
+    aiConsentV2: false,
     aiEnrichment: true,
     animatedCharts: true,
     biometricLock: false,
@@ -111,9 +111,9 @@ export const NUMBER_ENTRY_OPTIONS: readonly ChoiceOption[] = [
 ];
 
 /**
- * The answer to "Send data to xAI?". No stored row is a question not yet asked,
- * which a parsed bool cannot tell apart from Not now; the launch sheet asks only
- * the first. Nothing reaches xAI until it is `allowed`.
+ * The answer to "Send data to Anthropic and ElevenLabs?". No stored row is a
+ * question not yet asked, which a parsed bool cannot tell apart from Not now;
+ * the launch sheet asks only the first. Nothing reaches them until it is `allowed`.
  */
 export type AiConsent = "unanswered" | "allowed" | "declined";
 
@@ -125,11 +125,11 @@ export function parseAiConsent(raw: string | null): AiConsent {
 }
 
 /**
- * Whether a merchant name may go to xAI for a category: the person allowed
- * sending data to xAI and kept Suggest category and tags on.
+ * Whether a merchant name may go to Anthropic for a category: the person allowed
+ * sending data to AI providers and kept Suggest category and tags on.
  */
 export function remoteEnrichmentOn(bool: (key: BoolSettingKey) => boolean): boolean {
-    return bool("aiConsent") && bool("aiEnrichment");
+    return bool("aiConsentV2") && bool("aiEnrichment");
 }
 
 export function onOffLabel(value: boolean): TranslationKey {
@@ -166,7 +166,7 @@ export async function readNumberSetting(db: Database, key: NumberSettingKey): Pr
 /** `remoteEnrichmentOn` for a background pass, read at the moment it would send. */
 export async function readRemoteEnrichment(db: Database): Promise<boolean> {
     const [consent, enrichment] = await Promise.all([
-        readBoolSetting(db, "aiConsent"),
+        readBoolSetting(db, "aiConsentV2"),
         readBoolSetting(db, "aiEnrichment"),
     ]);
     return consent && enrichment;

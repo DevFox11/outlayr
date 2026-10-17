@@ -21,6 +21,7 @@ import {
 } from "./enrichment";
 import { perUserBurst } from "./lib/limits";
 import { knowledgeKey, merchantKey } from "./lib/merchantKey";
+import { AI_CONSENT_VERSION } from "./lib/models";
 import schema from "./schema";
 import { authenticatedAs, seedAuthUser } from "./test.helpers";
 
@@ -29,6 +30,7 @@ const modules = import.meta.glob("./**/*.ts");
 afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
     // Without this, `rateLimiter.limit`'s `mockImplementation` from the
     // "global window exhausted" test below stayed wrapped onto the shared
     // module-level `rateLimiter` singleton for every later test in this file.
@@ -64,6 +66,7 @@ function mockModel(payload: unknown) {
 }
 
 const BASE_ARGS = {
+    aiConsent: AI_CONSENT_VERSION,
     categoryTree: [
         { children: [], name: "Entertainment" },
         { children: ["Supermarket"], name: "Groceries" },
@@ -74,12 +77,13 @@ const BASE_ARGS = {
 };
 
 describe("suggest args validation", () => {
-    it("carries exactly the eight privacy-boundary fields", () => {
+    it("carries exactly the privacy-boundary fields", () => {
         // Amounts, dates, accounts, balances, and identity must never leave the
         // device — this is a threat-matrix assertion, not a shape convenience.
         // `currency` is a code, never a figure.
         expect(Object.keys(suggestArgs).sort()).toStrictEqual(
             [
+                "aiConsent",
                 "background",
                 "categoryTree",
                 "currency",
@@ -101,8 +105,8 @@ describe("suggest guard ladder", () => {
         await expect(t.action(api.enrichment.suggest, BASE_ARGS)).resolves.toStrictEqual(EMPTY);
     });
 
-    it("returns EMPTY when XAI_API_KEY is unset", async () => {
-        vi.stubEnv("XAI_API_KEY", "");
+    it("returns EMPTY when ANTHROPIC_API_KEY is unset", async () => {
+        vi.stubEnv("ANTHROPIC_API_KEY", "");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -111,8 +115,22 @@ describe("suggest guard ladder", () => {
         );
     });
 
+    it("never sends a name from a build that asked about other AI providers", async () => {
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        const outbound = vi.fn<typeof fetch>();
+        vi.stubGlobal("fetch", outbound);
+        const t = convexTest(schema, modules);
+        const identity = await seedAuthUser(t);
+        const { aiConsent: _consent, ...oldBuild } = BASE_ARGS;
+
+        await expect(authenticatedAs(t, identity).action(api.enrichment.suggest, oldBuild)).resolves.toStrictEqual(
+            EMPTY
+        );
+        expect(outbound).not.toHaveBeenCalled();
+    });
+
     it("returns EMPTY for a name shorter than 3 trimmed characters", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -125,7 +143,7 @@ describe("suggest guard ladder", () => {
     });
 
     it("returns EMPTY for a name longer than 64 trimmed characters", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -138,7 +156,7 @@ describe("suggest guard ladder", () => {
     });
 
     it("returns EMPTY and never throws once the per-user bucket is exhausted", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -160,7 +178,7 @@ describe("suggest guard ladder", () => {
     });
 
     it("returns EMPTY and never throws once the global window is exhausted", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -183,7 +201,7 @@ describe("suggest guard ladder", () => {
     });
 
     it("a background lookup draws its own bucket, not the form's", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
         const limitSpy = vi.spyOn(rateLimiter, "limit").mockResolvedValue({ ok: false, retryAfter: 1000 });
@@ -212,7 +230,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
     }
 
     it("a currency-scoped request reads its own partition, never the bare one", async () => {
-        vi.stubEnv("XAI_API_KEY", "");
+        vi.stubEnv("ANTHROPIC_API_KEY", "");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
         await seedKnowledge(t, "Sushi Way");
@@ -248,7 +266,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
     });
 
     it("a new descriptor for a known merchant is answered from the cache, with no model configured", async () => {
-        vi.stubEnv("XAI_API_KEY", "");
+        vi.stubEnv("ANTHROPIC_API_KEY", "");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
         await t.run((ctx) =>
@@ -328,7 +346,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
     });
 
     it("a knowledgeOnly miss returns EMPTY without consuming a rate limit or the model", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
         const limitSpy = vi.spyOn(rateLimiter, "limit");

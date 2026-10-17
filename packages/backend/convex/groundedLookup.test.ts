@@ -15,7 +15,7 @@ import schema from "./schema";
 const modules = import.meta.glob("./**/*.ts");
 
 const fakeWebSearchTool = tool({
-    description: "test double for xai's provider-executed web search",
+    description: "test double for the provider-executed web search",
     execute: async () => ({ query: "", sources: [] }),
     inputSchema: z.object({}),
 });

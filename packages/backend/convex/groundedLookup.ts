@@ -1,6 +1,6 @@
 // oxlint-disable unicorn/filename-case -- the Convex module name is the function path — this file is addressed as internal.groundedLookup.run by callers and by jobs already queued in _scheduled_functions
 
-import { createXai } from "@ai-sdk/xai";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText, isStepCount } from "ai";
 import type { LanguageModel, ToolSet } from "ai";
 import { v } from "convex/values";
@@ -25,8 +25,8 @@ import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { knowledgeKeys } from "./lib/merchantKey";
 import { CANONICAL_CATEGORY_NAMES, KEY_PATTERN, shouldPublish } from "./lib/merchantTrust";
 import type { KnowledgeCandidate } from "./lib/merchantTrust";
-import { GROK_MODEL_ID } from "./lib/models";
-import { budgetConfig, estimateMicros, measureMicros } from "./lib/spend";
+import { CLAUDE_MODEL_ID } from "./lib/models";
+import { budgetConfig, estimateMicros, measureMicros, WORST_CASE_SEARCH_CALLS } from "./lib/spend";
 
 const CANONICAL_NAMES_LIST = [...CANONICAL_CATEGORY_NAMES].join(", ");
 
@@ -244,8 +244,8 @@ export type GroundedLookupCtx = Pick<ActionCtx, "runQuery" | "runMutation">;
 
 /**
  * `overrideDeps` is a test-only seam — production never passes it, so the
- * real xAI provider is always constructed fresh per call
- * (`XAI_GROUNDED_MODEL_ID`/`XAI_API_KEY` read live, matching `enrichment.ts`'s
+ * real Anthropic provider is always constructed fresh per call
+ * (`CLAUDE_GROUNDED_MODEL_ID`/`ANTHROPIC_API_KEY` read live, matching `enrichment.ts`'s
  * own rollback-lever pattern).
  */
 export async function groundedAnswer(
@@ -263,18 +263,17 @@ export async function groundedAnswer(
     }
 
     let deps = overrideDeps;
-    let modelId: string = GROK_MODEL_ID;
+    let modelId: string = CLAUDE_MODEL_ID;
     if (!deps) {
-        const apiKey = process.env.XAI_API_KEY;
+        const apiKey = process.env.ANTHROPIC_API_KEY;
         if (!apiKey) {
             return null;
         }
-        const xaiProvider = createXai({ apiKey });
-        modelId = process.env.XAI_GROUNDED_MODEL_ID || GROK_MODEL_ID;
-        const model = xaiProvider(modelId);
+        const anthropic = createAnthropic({ apiKey });
+        modelId = process.env.CLAUDE_GROUNDED_MODEL_ID || CLAUDE_MODEL_ID;
         deps = {
-            grounding: model,
-            groundingTools: { web_search: xaiProvider.tools.webSearch() },
+            grounding: anthropic(modelId),
+            groundingTools: { web_search: anthropic.tools.webSearch_20250305({ maxUses: WORST_CASE_SEARCH_CALLS }) },
         };
     }
 

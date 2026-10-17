@@ -1,6 +1,6 @@
 ---
 title: "Privacy Policy"
-description: "What Outlayr stores on your device, what reaches our servers, AI provider, and analytics service, how long it is kept, and how to delete it. Updated 17 October 2026."
+description: "What Outlayr stores on your device, what reaches our servers, AI providers, and analytics service, how long it is kept, and how to delete it. Updated 17 October 2026."
 intro: "This policy explains what Outlayr collects, where it goes, how long it stays, and what you can do about it."
 ---
 
@@ -8,8 +8,8 @@ intro: "This policy explains what Outlayr collects, where it goes, how long it s
 
 - Your ledger is stored on your device. You can use Outlayr without an account, and then your entries, amounts, and notes never leave the phone.
 - An account (Sign in with Apple, Google, or an email and password) turns on merchant suggestions, voice entry, and receipt scans. With Outlayr Pro it also turns on sync, which keeps a copy of your ledger and photos on our servers until you delete your account.
-- Voice entries, receipt scans, and merchant suggestions are processed by xAI. We don’t store your recordings or scanned photos, and we never send xAI your name, email, or account ID.
-- Nothing goes to xAI until you allow it. The app asks during setup, or after you sign in, and Speak an entry and Scan a receipt ask again until you do. Withdraw it any time in **Settings › Send data to xAI**. Once allowed, merchant suggestions and web lookups are on, and each can be turned off in **Settings › Feature lab**.
+- Voice entries, receipt scans, and merchant suggestions are processed by Anthropic, and ElevenLabs turns voice recordings into text. We don’t store your recordings or scanned photos, and we never send either company your name, email, or account ID.
+- Nothing goes to Anthropic or ElevenLabs until you allow it. The app asks during setup, or after you sign in, and Speak an entry and Scan a receipt ask again until you do. Withdraw it any time in **Settings › Send data to AI providers**. Once allowed, merchant suggestions and web lookups are on, and each can be turned off in **Settings › Feature lab**.
 - The app sends usage analytics and crash reports to PostHog: which screens you open, when you save something, and errors. Never amounts, merchants, notes, or names. It starts off if your device’s region is in the EEA or UK, and on everywhere else. Change it in **Settings › Share analytics**.
 - This website uses PostHog too, with a cookie. If you’re in the EEA or UK, it asks first. Change your answer in the footer under **Cookies**.
 - You can connect an AI assistant such as Claude to your account. Once you approve it, it can read what your devices synced, and with Outlayr Pro add entries. What it reads is handled under that assistant’s privacy policy.
@@ -33,11 +33,11 @@ Every kind of data Outlayr handles, in one place. The sections below explain eac
 | Email, name, provider ID, password hash | Sign-in | Our servers | Until account deletion |
 | Email address, 6-digit code | Email sign-in | Our servers, Cloudflare | Code: 10 minutes. Email: Cloudflare’s policy |
 | Sessions, IP address, device type | Sign-in | Our servers | Until sign-out or account deletion |
-| Merchant and category names | Smart fill | Our servers, xAI | Until answered |
-| Voice recording | Voice entry | Our servers, xAI | Not kept |
-| Transcript and draft | Voice entry | Our servers, xAI | Until closed, or 1 hour idle |
-| Receipt photo | Receipt scan | Our servers, xAI | Not kept |
-| File descriptions | CSV import | Our servers, xAI (Pro) | Not kept |
+| Merchant and category names | Smart fill | Our servers, Anthropic | Until answered |
+| Voice recording | Voice entry | Our servers, ElevenLabs | Not kept |
+| Transcript and draft | Voice entry | Our servers, ElevenLabs, Anthropic | Until closed, or 1 hour idle |
+| Receipt photo | Receipt scan | Our servers, Anthropic | Not kept |
+| File descriptions | CSV import | Our servers, Anthropic (Pro) | Not kept |
 | Web address, IP address | Logos | Logo.dev, Google | Their policies |
 | Purchase records, user ID, name, email | App opens, Pro | RevenueCat, Apple or Google, our servers | Until account deletion |
 | Install ID, app version, errors | Update checks | Expo | Expo’s policy |
@@ -105,21 +105,21 @@ Turning sync off stops that device from sending changes. It doesn’t remove wha
 
 ## Suggestions, voice, and receipts
 
-These features need an account, and none of them run until you allow sending data to xAI when the app asks. Turning off **Settings › Send data to xAI** stops all of them. Each request goes to our server first, which checks your account and limits, then forwards only the content listed below to xAI. None of them send xAI your name, email, or account ID.
+These features need an account, and none of them run until you allow sending data to Anthropic and ElevenLabs when the app asks. Turning off **Settings › Send data to AI providers** stops all of them. Each request goes to our server first, which checks your account and limits, then forwards only the content listed below. None of them send Anthropic or ElevenLabs your name, email, or account ID.
 
 ### Merchant suggestions (Smart fill)
 
 When you type, speak, scan, or log from Apple Pay a merchant Outlayr doesn’t recognize on the device, the app sends our server the merchant name, whether the entry is an expense or income, its currency code, your language and device region, and the names of your categories. Never the amount, date, notes, or account.
 
-Our server first checks a shared list of known merchants (below). If the merchant isn’t there, it asks xAI’s Grok model, and the answer (a category, tags, an emoji, and the merchant’s web address) comes back to your device. Saved entries that still have no logo may be looked up again in the background. Those requests wait on our server only until your device collects the answer.
+Our server first checks a shared list of known merchants (below). If the merchant isn’t there, it asks Anthropic’s Claude model, and the answer (a category, tags, an emoji, and the merchant’s web address) comes back to your device. Saved entries that still have no logo may be looked up again in the background. Those requests wait on our server only until your device collects the answer.
 
-On once you allow sending data to xAI. Turn it off in **Settings › Feature lab › Suggest category and tags**.
+On once you allow sending data to AI providers. Turn it off in **Settings › Feature lab › Suggest category and tags**.
 
 ### Web lookup of new merchants
 
-If the model can’t place a merchant and you have Pro, our server may ask xAI to search the web for it. xAI’s model runs the searches, using the merchant name and sometimes a country or city. It receives the merchant name, expense or income, currency code, language, and region, and for background lookups, your category names too. A web lookup usually improves the answer for the next entry with that merchant rather than the one you’re typing.
+If the model can’t place a merchant and you have Pro, our server may ask Anthropic to search the web for it. Anthropic’s model runs the searches, using the merchant name and sometimes a country or city. It receives the merchant name, expense or income, currency code, language, and region, and for background lookups, your category names too. A web lookup usually improves the answer for the next entry with that merchant rather than the one you’re typing.
 
-On once you allow sending data to xAI. Turn it off in **Settings › Feature lab › Look up new merchants**. The app sends your choice with every request, and our server also honors the synced setting, so no web lookup runs for you while it’s off.
+On once you allow sending data to AI providers. Turn it off in **Settings › Feature lab › Look up new merchants**. The app sends your choice with every request, and our server also honors the synced setting, so no web lookup runs for you while it’s off.
 
 ### The shared merchant list
 
@@ -127,23 +127,23 @@ When an answer names a clear business with a web address and a general category,
 
 ### Voice entry
 
-When you speak an entry, the app records the clip on your device and sends it to our server with your account names, category names, your ledger’s currency, your language, and today’s date. xAI transcribes the clip, and xAI’s Grok model turns the text into a draft entry for you to review.
+When you speak an entry, the app records the clip on your device and sends it to our server with your account names, category names, your ledger’s currency, your language, and today’s date. ElevenLabs transcribes the clip, receiving only the audio and your language, and Anthropic’s Claude model turns the text into a draft entry for you to review.
 
 We never save the audio. The transcript and the draft are kept on our server as a short conversation so you can correct the entry by speaking again. It’s deleted when you close the voice screen, or one hour after your last message if the app closes first.
 
 ### Receipt scan
 
-When you scan a receipt, the app compresses the photo on your device and sends it to our server with your account names, category names, ledger currency, language, region, and today’s date. xAI’s Grok model reads the merchant, total, date, and line items. We don’t store the photo, and the scan doesn’t attach it to the entry. The entry it creates holds the merchant, amount, date, and the items as notes.
+When you scan a receipt, the app compresses the photo on your device and sends it to our server with your account names, category names, ledger currency, language, region, and today’s date. Anthropic’s Claude model reads the merchant, total, date, and line items. We don’t store the photo, and the scan doesn’t attach it to the entry. The entry it creates holds the merchant, amount, date, and the items as notes.
 
 ### CSV import
 
-The file is read on your device. With Suggest category and tags on, descriptions Outlayr can’t match on the device are sent to our server, and with Pro, on to xAI to suggest categories: at most 200 at a time, with any run of four or more digits removed, together with your category names and device region. Amounts, dates, and the rest of the file stay on your device. With web lookup on, some descriptions may also be looked up on the web as described above.
+The file is read on your device. With Suggest category and tags on, descriptions Outlayr can’t match on the device are sent to our server, and with Pro, on to Anthropic to suggest categories: at most 200 at a time, with any run of four or more digits removed, together with your category names and device region. Amounts, dates, and the rest of the file stay on your device. With web lookup on, some descriptions may also be looked up on the web as described above.
 
-### Who xAI is
+### Who Anthropic and ElevenLabs are
 
-xAI is the US company that makes the Grok AI models. It processes these requests for us as a service provider under its API terms. xAI is bound by its API terms to protect this data at least as well as this policy does, and to use it only to answer our requests. We don’t use your data to train AI models.
+Anthropic is the US company that makes the Claude AI models. ElevenLabs makes the speech-to-text models that write down voice entries. Both process these requests for us as service providers under their API terms. Anthropic doesn’t train its models on this data, and we’ve turned off ElevenLabs’ use of it for training. We don’t use your data to train AI models either.
 
-If a request to xAI fails, our server’s error log can include the merchant name involved, so we can find the problem.
+If a request to Anthropic fails, our server’s error log can include the merchant name involved, so we can find the problem.
 
 ## Apple Pay and Shortcuts
 
@@ -187,7 +187,8 @@ These companies help run Outlayr. Each receives only what its job needs.
 
 - **[Hetzner](https://www.hetzner.com/legal/privacy-policy)** hosts the servers in Helsinki, Finland, that run our database and server functions. They hold your account and synced data, and handle every request to our server.
 - **[Cloudflare](https://www.cloudflare.com/privacypolicy/)** stores the photos you attach to entries and accounts (Cloudflare R2), when photo backup is on, and sends the emails with sign-in codes, for which it receives your email address and the email’s contents.
-- **xAI** provides the Grok AI models behind suggestions, voice entry, receipt scans, CSV import, and web lookups. It receives the content described in [Suggestions, voice, and receipts](#suggestions-voice-and-receipts).
+- **[Anthropic](https://www.anthropic.com/legal/privacy)** provides the Claude AI models behind suggestions, voice entry, receipt scans, CSV import, and web lookups. It receives the content described in [Suggestions, voice, and receipts](#suggestions-voice-and-receipts).
+- **[ElevenLabs](https://elevenlabs.io/privacy-policy)** turns voice recordings into text. It receives the recording and your language.
 - **[RevenueCat](https://www.revenuecat.com/privacy)** tracks subscription status. It receives an anonymous ID, or your account ID, name, and email once you sign in, and your purchase records.
 - **[Apple](https://www.apple.com/legal/privacy/)** provides Sign in with Apple, App Store payments, and iOS features such as Siri and Shortcuts, under its own policy.
 - **[Google](https://policies.google.com/privacy)** provides Sign in with Google and Google Play payments, under its own policy, and is a fallback source for logos, for which it receives a web address and your IP address.
@@ -220,8 +221,8 @@ If you’re in the European Economic Area or the United Kingdom, we rely on thes
 | Purpose | Legal basis |
 | --- | --- |
 | Your account, sync, photo storage, voice entry, receipt scans, CSV import, Pro, and AI assistant connections | Contract: we need this data to provide what you ask for. |
-| Sending voice entries, receipt photos, CSV descriptions, and merchant names to xAI | Your consent, given with Allow when the app asks and withdrawn in **Settings › Send data to xAI**. |
-| Merchant suggestions, web lookups, the shared merchant list, and logos | Legitimate interests: making entries faster to file. Suggestions and web lookups reach xAI only once you allow it, and turning either off in Feature lab is how you object. |
+| Sending voice entries, receipt photos, CSV descriptions, and merchant names to Anthropic and ElevenLabs | Your consent, given with Allow when the app asks and withdrawn in **Settings › Send data to AI providers**. |
+| Merchant suggestions, web lookups, the shared merchant list, and logos | Legitimate interests: making entries faster to file. Suggestions and web lookups reach Anthropic only once you allow it, and turning either off in Feature lab is how you object. |
 | Sessions, usage limits, error logs, assistant tool logs, and update checks | Legitimate interests: keeping Outlayr secure, working, and free of abuse. |
 | Usage analytics and crash reports | Your consent. Share analytics starts off when your device’s region is in the EEA or UK. Turning it on gives consent, and turning it off withdraws it. |
 | Website analytics | Your consent for the cookie and visit recordings, asked on your first visit. Declining withdraws it. A declined visit is still counted without a cookie, under our legitimate interest in knowing how many people visit. |
@@ -236,14 +237,14 @@ The [table above](#data-at-a-glance) lists how long each kind of data is kept. A
 
 - Synced data, including deletion records for entries you deleted, and backed-up photos are kept until you delete your account.
 - Voice conversations are deleted when you close the voice screen, or one hour after your last message.
-- Recordings and receipt photos pass through our server to xAI and are not stored by us.
+- Recordings pass through our server to ElevenLabs, and receipt photos to Anthropic. We don’t store either.
 - AI assistant connections (the assistant’s name and address, your approval, and its access keys) are kept until you delete your account. Access keys stop working after an hour, or after seven days without renewal. The log of which assistant tool ran, and when, is kept for 30 days.
 - Merchant suggestion requests aren’t kept once answered. Ones queued in the background wait on our server until your device collects the answer.
 - Usage counters that enforce limits on scans, voice entries, and suggestions hold counts only, keyed to your account ID, and are deleted with your account.
 - Items in the shared merchant list aren’t linked to anyone. They’re refreshed after 30 or 90 days.
 - Analytics events linked to your account are deleted with it. Events from an install that never signed in carry only a random install ID and are kept under PostHog’s retention policy.
 - Website events carry a random browser ID, or a code that changes daily if you declined cookies, and are kept under PostHog’s retention policy.
-- Our providers, including xAI, Apple, Google, and Expo, keep the data they receive under their own retention policies.
+- Our providers, including Anthropic, ElevenLabs, Apple, Google, and Expo, keep the data they receive under their own retention policies.
 
 ## Deleting and exporting
 
@@ -298,9 +299,9 @@ If you live in California or another US state with a privacy law, this is what w
 | --- | --- |
 | **Identifiers:** name, email, account ID, install ID, IP address | Hetzner, RevenueCat, Expo, PostHog, Logo.dev, Google, Cloudflare (email) |
 | **Commercial information:** subscription and purchase records | Apple, Google, RevenueCat, Hetzner |
-| **Audio and visual information:** voice clips, receipt scans, attached photos | xAI (clips and scans), Cloudflare (photos) |
+| **Audio and visual information:** voice clips, receipt scans, attached photos | ElevenLabs (clips), Anthropic (scans), Cloudflare (photos) |
 | **Internet or network activity:** IP address, user agent, request logs, app and website usage, crash reports | Hetzner, Expo, PostHog, our website host |
-| **Records you create:** synced entries, amounts, merchants, notes, budgets | Hetzner; merchant, category, and account names to xAI |
+| **Records you create:** synced entries, amounts, merchants, notes, budgets | Hetzner; merchant, category, and account names to Anthropic |
 
 It comes from you, your device, Apple, and Google, and we use it for the purposes described in this policy. We keep it for the periods in [Data at a glance](#data-at-a-glance).
 
@@ -315,14 +316,14 @@ Because we don’t sell or share, there is nothing for a Global Privacy Control 
 - Traffic between the app, our servers, and our providers travels over encrypted HTTPS connections.
 - Every request for your data is tied to your signed-in session, and our server decides whose data a request can touch. One account can’t read or write another’s ledger or photos.
 - Sign-in refresh tokens are encrypted before we store them.
-- Requests to xAI carry no name, email, or account ID.
+- Requests to Anthropic and ElevenLabs carry no name, email, or account ID.
 - You can lock Outlayr behind your device’s biometric lock (Face ID or Touch ID on iPhone).
 
 No system is perfectly secure. If you find a security problem, write to [support@tryoutlayr.com](mailto:support@tryoutlayr.com), and if a breach affects your data we’ll tell you as the law requires.
 
 ## International transfers
 
-Our servers are in Helsinki, Finland, in the European Union. danestves LLC is a US company, and xAI, RevenueCat, Expo, PostHog, Cloudflare, Logo.dev, Apple, and Google process the data they receive mainly in the United States, whose laws may protect it differently from your own. Write to [support@tryoutlayr.com](mailto:support@tryoutlayr.com) for details of the safeguards that apply.
+Our servers are in Helsinki, Finland, in the European Union. danestves LLC is a US company, and Anthropic, ElevenLabs, RevenueCat, Expo, PostHog, Cloudflare, Logo.dev, Apple, and Google process the data they receive mainly in the United States, whose laws may protect it differently from your own. Write to [support@tryoutlayr.com](mailto:support@tryoutlayr.com) for details of the safeguards that apply.
 
 ## Children
 

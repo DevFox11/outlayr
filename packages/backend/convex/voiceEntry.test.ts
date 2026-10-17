@@ -12,6 +12,7 @@ import { api, components } from "./_generated/api";
 import { captureLimiter, FREE_CAPTURE_CONFIG } from "./lib/captures";
 import { namesWithinBudget } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
+import { AI_CONSENT_VERSION } from "./lib/models";
 import schema from "./schema";
 import { authenticatedAs, seedAuthUser } from "./test.helpers";
 import {
@@ -204,7 +205,7 @@ describe("transcribeClip", () => {
         });
     });
 
-    it("passes the language to the provider and asks for number formatting", async () => {
+    it("passes the language to the provider as a bare language code", async () => {
         const seen: unknown[] = [];
         const model = new MockTranscriptionModelV4({
             doGenerate: async (options) => {
@@ -220,13 +221,23 @@ describe("transcribeClip", () => {
             },
         });
         await transcribeClip(model, CLIP, "es-VE");
-        expect(seen).toStrictEqual([{ xai: { format: true, language: "es" } }]);
+        expect(seen).toStrictEqual([
+            {
+                elevenlabs: {
+                    diarize: false,
+                    languageCode: "es",
+                    tagAudioEvents: false,
+                    timestampsGranularity: "none",
+                },
+            },
+        ]);
     });
 });
 
 describe("voice thread + speak guard ladder", () => {
     const ACTION_ARGS = {
         accounts: BASE_ARGS.accounts,
+        aiConsent: AI_CONSENT_VERSION,
         audio: CLIP,
         categoryTree: BASE_ARGS.categoryTree,
         currency: "USD",
@@ -256,8 +267,8 @@ describe("voice thread + speak guard ladder", () => {
         });
     });
 
-    it("returns notConfigured when XAI_API_KEY is unset, never throws", async () => {
-        vi.stubEnv("XAI_API_KEY", "");
+    it("returns notConfigured when ANTHROPIC_API_KEY is unset, never throws", async () => {
+        vi.stubEnv("ANTHROPIC_API_KEY", "");
         const t = harness();
         const identity = await seedAuthUser(t);
         await expect(authenticatedAs(t, identity).action(api.voiceEntry.speak, ACTION_ARGS)).resolves.toMatchObject({
@@ -265,8 +276,21 @@ describe("voice thread + speak guard ladder", () => {
         });
     });
 
+    it("never sends a clip from a build that asked about other AI providers", async () => {
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("ELEVENLABS_API_KEY", "test-elevenlabs-key");
+        const t = harness();
+        const identity = await seedAuthUser(t);
+        const { aiConsent: _consent, ...oldBuild } = ACTION_ARGS;
+
+        await expect(authenticatedAs(t, identity).action(api.voiceEntry.speak, oldBuild)).resolves.toMatchObject({
+            status: "notConfigured",
+        });
+    });
+
     it("returns invalid for an empty clip, an oversized clip, a malformed today, or a thread that is not the caller's", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("ELEVENLABS_API_KEY", "test-elevenlabs-key");
         const t = harness();
         const identity = await seedAuthUser(t);
         const asUser = authenticatedAs(t, identity);
@@ -379,7 +403,8 @@ describe("voice thread + speak guard ladder", () => {
     });
 
     it("returns notEntitled once a free user's capture pool is spent", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("ELEVENLABS_API_KEY", "test-elevenlabs-key");
         const t = harness();
         const identity = await seedAuthUser(t);
         const asUser = authenticatedAs(t, identity);
@@ -403,7 +428,8 @@ describe("voice thread + speak guard ladder", () => {
     });
 
     it("returns rateLimited once the per-user bucket is exhausted", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("ELEVENLABS_API_KEY", "test-elevenlabs-key");
         const t = harness();
         const identity = await seedAuthUser(t);
         const asUser = authenticatedAs(t, identity);

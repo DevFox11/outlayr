@@ -10,6 +10,7 @@ import { api } from "./_generated/api";
 import { classify, csvImportArgs, GROUNDED_IMPORT_MAX, rateLimiter, scheduleImportGrounded } from "./csvImport";
 import { perUserBurst } from "./lib/limits";
 import { merchantKey } from "./lib/merchantKey";
+import { AI_CONSENT_VERSION } from "./lib/models";
 import schema from "./schema";
 import { authenticatedAs, grantPro, seedAuthUser } from "./test.helpers";
 
@@ -53,6 +54,7 @@ function rejectingModel(error: Error) {
 }
 
 const BASE_ARGS = {
+    aiConsent: AI_CONSENT_VERSION,
     categoryTree: [
         { children: ["Coffee"], name: "Food" },
         { children: [], name: "Groceries" },
@@ -63,7 +65,7 @@ const BASE_ARGS = {
 describe("csv import args validation", () => {
     it("carries exactly the privacy-boundary fields — labels, tree, consent, region", () => {
         expect(Object.keys(csvImportArgs).sort()).toStrictEqual(
-            ["categoryTree", "groundedLookup", "labels", "regionCode"].sort()
+            ["aiConsent", "categoryTree", "groundedLookup", "labels", "regionCode"].sort()
         );
     });
 });
@@ -78,8 +80,8 @@ describe("csvImport guard ladder", () => {
         });
     });
 
-    it("returns notConfigured when XAI_API_KEY is unset, never throws", async () => {
-        vi.stubEnv("XAI_API_KEY", "");
+    it("returns notConfigured when ANTHROPIC_API_KEY is unset, never throws", async () => {
+        vi.stubEnv("ANTHROPIC_API_KEY", "");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -89,8 +91,19 @@ describe("csvImport guard ladder", () => {
         });
     });
 
+    it("never sends labels from a build that asked about other AI providers", async () => {
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        const t = convexTest(schema, modules);
+        const identity = await seedAuthUser(t);
+        const { aiConsent: _consent, ...oldBuild } = BASE_ARGS;
+
+        await expect(authenticatedAs(t, identity).action(api.csvImport.csvImport, oldBuild)).resolves.toMatchObject({
+            status: "notConfigured",
+        });
+    });
+
     it("returns invalid when there are no labels to classify", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -103,7 +116,7 @@ describe("csvImport guard ladder", () => {
     });
 
     it("returns invalid when labels exceed the 200-label cap", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -116,7 +129,7 @@ describe("csvImport guard ladder", () => {
     });
 
     it("returns notEntitled for a free user before either bucket is spent", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -131,7 +144,7 @@ describe("csvImport guard ladder", () => {
     });
 
     it("returns rateLimited and never throws once the per-user bucket is exhausted", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -158,7 +171,7 @@ describe("csvImport guard ladder", () => {
     });
 
     it("returns rateLimited and never throws once the global window is exhausted", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
@@ -178,7 +191,7 @@ describe("csvImport guard ladder", () => {
     });
 
     it("a revoked session skips the grounded tier and never rejects the action", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -204,6 +217,7 @@ describe("csvImport guard ladder", () => {
 
         await expect(
             stale.action(api.csvImport.csvImport, {
+                aiConsent: AI_CONSENT_VERSION,
                 categoryTree: [{ children: [], name: "Healthcare" }],
                 groundedLookup: true,
                 labels: ["FARMACIA SAAS"],
@@ -239,7 +253,7 @@ describe(perUserBurst, () => {
     );
 
     it("reaches the per-user limit on every call, not once at module load", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         vi.stubEnv("CSV_IMPORT_CAPACITY", "25");
         const t = convexTest(schema, modules);
         revenuecatTest.register(t);
@@ -398,7 +412,7 @@ describe(scheduleImportGrounded, () => {
 
 describe("merchantKnowledge tier", () => {
     it("answers a known label from merchantKnowledge with its stored domain, without the model", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -419,6 +433,7 @@ describe("merchantKnowledge tier", () => {
 
         await expect(
             authenticatedAs(t, identity).action(api.csvImport.csvImport, {
+                aiConsent: AI_CONSENT_VERSION,
                 categoryTree: [{ children: [], name: "Healthcare" }],
                 labels: ["FARMACIA SAAS"],
             })
@@ -436,7 +451,7 @@ describe("merchantKnowledge tier", () => {
     });
 
     it("an unknown label schedules a grounded lookup even when the model tier fails", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         vi.stubGlobal(
             "fetch",
             vi.fn(
@@ -454,6 +469,7 @@ describe("merchantKnowledge tier", () => {
         await grantPro(t, identity);
 
         const result = await authenticatedAs(t, identity).action(api.csvImport.csvImport, {
+            aiConsent: AI_CONSENT_VERSION,
             categoryTree: [{ children: [], name: "Utilities" }],
             groundedLookup: true,
             labels: ["Corpoelec"],
@@ -467,7 +483,7 @@ describe("merchantKnowledge tier", () => {
     });
 
     it("keeps knowledge-tier suggestions when the model tier fails on a mixed batch", async () => {
-        vi.stubEnv("XAI_API_KEY", "test-xai-key");
+        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
         vi.stubGlobal(
             "fetch",
             vi.fn(
@@ -498,6 +514,7 @@ describe("merchantKnowledge tier", () => {
 
         await expect(
             authenticatedAs(t, identity).action(api.csvImport.csvImport, {
+                aiConsent: AI_CONSENT_VERSION,
                 categoryTree: [{ children: [], name: "Healthcare" }],
                 labels: ["FARMACIA SAAS", "Unknown Store"],
             })

@@ -18,7 +18,7 @@ import { useAuthSession } from "@/lib/auth-session";
 import { legalUrl } from "@/lib/legal-url";
 import { useColors } from "@/theme/use-colors";
 
-/** Every feature that sends data to xAI, with what it sends. */
+/** Every feature that sends data to the AI providers, with what it sends. */
 const FEATURES = [
     { sends: "aiConsent.voiceSends", title: "aiConsent.voice" },
     { sends: "aiConsent.scanSends", title: "aiConsent.scan" },
@@ -27,12 +27,12 @@ const FEATURES = [
 ] as const satisfies readonly { sends: TranslationKey; title: TranslationKey }[];
 
 export function recordAiConsent(db: Database, allowed: boolean): void {
-    setBoolSetting(db, "aiConsent", allowed).catch((cause: unknown) => {
-        console.error("Saving the xAI consent failed", cause);
+    setBoolSetting(db, "aiConsentV2", allowed).catch((cause: unknown) => {
+        console.error("Saving the AI consent failed", cause);
     });
 }
 
-/** The features, what each sends to xAI, and the privacy policy. Shared by every place that asks. */
+/** The features, what each sends to the AI providers, and the privacy policy. Shared by every place that asks. */
 export function AiConsentDetails() {
     const t = useTranslation();
     const { language } = useLanguage();
@@ -81,7 +81,7 @@ function AiConsentPrompt({ onAnswer }: { onAnswer: (allowed: boolean) => void })
 }
 
 /**
- * Stands in for voice entry and receipt scan until xAI is allowed. It has to
+ * Stands in for voice entry and receipt scan until the AI providers are allowed. It has to
  * come before either screen mounts: voice starts recording on open, and both
  * send on their own once they have a clip or a photo. Not now leaves.
  */

@@ -74,7 +74,7 @@ export interface UseTransactionEnrichmentArgs {
      * user may run an English UI on a device set to a different region.
      */
     regionCode?: string;
-    /** `remoteEnrichmentOn`: xAI allowed and suggestions on. False keeps every lookup on-device. */
+    /** `remoteEnrichmentOn`: AI providers allowed and suggestions on. False keeps every lookup on-device. */
     remoteEnabled?: boolean;
     /**
      * What the ledger already knows about this merchant. Omitted in tests that

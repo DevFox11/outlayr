@@ -915,7 +915,7 @@ function VoiceThreadScreen() {
  * The voice screen. The thread, the recorder and the turns subscription only
  * exist for a signed-in session, because the Convex provider they need is
  * mounted only then; every other gate gets the same frame with the reason.
- * Signed in, xAI has to be allowed first: the recorder starts as it mounts.
+ * Signed in, the AI providers have to be allowed first: the recorder starts as it mounts.
  */
 export function VoiceEntryScreen() {
     const { gate } = useAuthSession();

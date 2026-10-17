@@ -8,7 +8,7 @@ import { setBoolSetting } from "@/data/settings-core";
 import { useTranslation } from "@/i18n/context";
 
 /**
- * Asks before anything goes to xAI, on the first launch and before an account
+ * Asks before anything goes to the AI providers, on the first launch and before an account
  * exists, so the answer is in place by the time a feature could send. Either
  * answer moves on; Not now is asked again when Speak or Scan is opened.
  */
@@ -18,10 +18,10 @@ export function OnboardingSmartFeatures() {
     const t = useTranslation();
 
     const answer = (allowed: boolean) => {
-        setBoolSetting(db, "aiConsent", allowed)
+        setBoolSetting(db, "aiConsentV2", allowed)
             .then(() => router.push("/onboarding/rhythm"))
             .catch((cause: unknown) => {
-                console.error("Saving the xAI consent failed", cause);
+                console.error("Saving the AI consent failed", cause);
                 router.push("/onboarding/rhythm");
             });
     };

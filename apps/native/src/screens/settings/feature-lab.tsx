@@ -19,7 +19,7 @@ export function FeatureLab() {
     return (
         <SettingsScreen>
             <SettingsSection
-                footer={`${t("settings.featureLab.aiEnrichmentNote")}\n\n${t("settings.featureLab.groundedLookupNote")}\n\n${t("settings.featureLab.xaiNote")}`}
+                footer={`${t("settings.featureLab.aiEnrichmentNote")}\n\n${t("settings.featureLab.groundedLookupNote")}\n\n${t("settings.featureLab.aiProvidersNote")}`}
                 title={t("settings.featureLab.aiSection")}
             >
                 <ToggleRow

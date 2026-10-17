@@ -1628,8 +1628,8 @@ describe("transactionForm after a save", () => {
 describe("transactionForm enrichment", () => {
     beforeEach(async () => {
         jest.useFakeTimers();
-        // Lookups leave the device only for someone who allowed xAI.
-        await setBoolSetting(dbHolder.current as Database, "aiConsent", true);
+        // Lookups leave the device only for someone who allowed the AI providers.
+        await setBoolSetting(dbHolder.current as Database, "aiConsentV2", true);
     });
 
     afterEach(() => {
@@ -2388,8 +2388,8 @@ describe("transactionForm logo attachment", () => {
 describe("transactionForm pending category and tag materialization", () => {
     beforeEach(async () => {
         jest.useFakeTimers();
-        // Lookups leave the device only for someone who allowed xAI.
-        await setBoolSetting(dbHolder.current as Database, "aiConsent", true);
+        // Lookups leave the device only for someone who allowed the AI providers.
+        await setBoolSetting(dbHolder.current as Database, "aiConsentV2", true);
     });
 
     afterEach(() => {

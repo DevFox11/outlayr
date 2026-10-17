@@ -93,7 +93,7 @@ describe("aiConsentSheet", () => {
     it("records a swipe away as Not now, and not a close the answer caused", async () => {
         const tree = await render(<AiConsentSheet />);
         mockSheet?.onOpenChange(false);
-        expect(mockSetBoolSetting).toHaveBeenCalledWith(expect.anything(), "aiConsent", false);
+        expect(mockSetBoolSetting).toHaveBeenCalledWith(expect.anything(), "aiConsentV2", false);
 
         mockSetBoolSetting.mockClear();
         mockConsent = "allowed";
@@ -110,7 +110,7 @@ describe("aiConsentGate", () => {
 
         fireEvent.press(getByText("aiConsent.allow"));
 
-        expect(mockSetBoolSetting).toHaveBeenCalledWith(expect.anything(), "aiConsent", true);
+        expect(mockSetBoolSetting).toHaveBeenCalledWith(expect.anything(), "aiConsentV2", true);
         expect(mockBack).not.toHaveBeenCalled();
     });
 
@@ -119,7 +119,7 @@ describe("aiConsentGate", () => {
 
         fireEvent.press(getByText("aiConsent.notNow"));
 
-        expect(mockSetBoolSetting).toHaveBeenCalledWith(expect.anything(), "aiConsent", false);
+        expect(mockSetBoolSetting).toHaveBeenCalledWith(expect.anything(), "aiConsentV2", false);
         expect(mockBack).toHaveBeenCalledTimes(1);
     });
 });

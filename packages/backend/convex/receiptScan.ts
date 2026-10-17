@@ -1,6 +1,6 @@
 // oxlint-disable unicorn/filename-case -- the Convex module name is the function path — clients call this action as api.receiptScan.scan
 
-import { createXai } from "@ai-sdk/xai";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { HOUR, isRateLimitError, RateLimiter } from "@convex-dev/rate-limiter";
 import { generateText, NoObjectGeneratedError, Output, TypeValidationError } from "ai";
 import type { LanguageModel } from "ai";
@@ -25,7 +25,7 @@ import {
 } from "./lib/ledgerPrompt";
 import type { LedgerContext } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
-import { GROK_MODEL_ID } from "./lib/models";
+import { AI_CONSENT_VERSION, CLAUDE_MODEL_ID } from "./lib/models";
 import { isPro } from "./revenuecat";
 
 /**
@@ -60,6 +60,8 @@ const REQUEST_TIMEOUT_MS = 22_000;
  */
 export const receiptScanArgs = {
     accounts: v.array(v.string()),
+    /** The AI consent the person gave — see `enrichment.ts:suggestArgs`. */
+    aiConsent: v.optional(v.number()),
     categoryTree: v.array(v.object({ children: v.array(v.string()), name: v.string() })),
     currency: v.string(),
     /** JPEG, as the client re-encodes it. */
@@ -362,7 +364,7 @@ export async function readReceipt(
 
 /**
  * Read live rather than through a frozen snapshot, so that
- * `npx convex env set XAI_API_KEY=""` takes effect on the very next call.
+ * `npx convex env set ANTHROPIC_API_KEY=""` takes effect on the very next call.
  */
 export const admit = internalMutation({
     args: {},
@@ -383,8 +385,8 @@ export const scan = action({
             return failure("unauthenticated");
         }
 
-        const apiKey = process.env.XAI_API_KEY;
-        if (!apiKey) {
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        if (!apiKey || args.aiConsent !== AI_CONSENT_VERSION) {
             return failure("notConfigured");
         }
 
@@ -419,9 +421,8 @@ export const scan = action({
             return failure(admitted);
         }
 
-        const xaiProvider = createXai({ apiKey });
-        const modelId = process.env.XAI_VISION_MODEL_ID || process.env.XAI_MODEL_ID || GROK_MODEL_ID;
-        return readReceipt(xaiProvider(modelId), args.image, {
+        const modelId = process.env.CLAUDE_MODEL_ID || CLAUDE_MODEL_ID;
+        return readReceipt(createAnthropic({ apiKey })(modelId), args.image, {
             accounts: args.accounts,
             categoryTree: args.categoryTree,
             currency: args.currency,
