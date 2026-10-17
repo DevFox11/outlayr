@@ -22,6 +22,7 @@ import {
     pickCardAccount,
     WALLET_DEDUPE_WINDOW_MS,
 } from "./pending-writes-core";
+import { backfillRecurring, occurrenceId } from "./recurrence-backfill";
 import { setBoolSetting } from "./settings-core";
 import { transactionsRepo } from "./transactions-core";
 
@@ -386,6 +387,45 @@ describe("applyPendingWrites", () => {
         const occurrence = rows.find((row) => row.id !== "sub-netflix");
         expect(occurrence).toMatchObject({ amount: 12.99, recurringType: 3 });
         expect(parseLastWalletEntry(await getMeta(db, META_KEYS.lastWalletEntry))?.txId).toBe(occurrence?.id);
+    });
+
+    it("dates a subscription's charge at its push, so it shows at once and the chain keeps the time", async () => {
+        const written = new Date(2026, 2, 5, 12, 0);
+        const charged = new Date(2026, 2, 4, 18, 42);
+        await db.insert(transactions).values({
+            amount: 9.99,
+            categoryId: "cat-expense",
+            currency: DEFAULT_CURRENCY,
+            date: written,
+            day: new Date(2026, 2, 5),
+            id: "sub-netflix",
+            income: false,
+            month: new Date(2026, 2, 1),
+            note: "Netflix",
+            onceRecurring: true,
+            recurringType: 3,
+            updatedAt: NOW,
+        });
+        const job = walletWrite("march", {
+            amount: 0,
+            amountText: null,
+            date: charged.getTime(),
+            dedupeKey: "notification:expense:march",
+            note: "",
+            text: "Paid $9.99 to Netflix",
+        });
+
+        await applyPendingWrites(db, [job], charged);
+        await backfillRecurring(db, "sub-netflix", new Date(2026, 3, 5, 8, 0));
+
+        const rows = await db
+            .select({ date: transactions.date, id: transactions.id })
+            .from(transactions)
+            .orderBy(transactions.date);
+        expect(rows).toStrictEqual([
+            { date: charged, id: "sub-netflix" },
+            { date: new Date(2026, 3, 5, 18, 42), id: occurrenceId("sub-netflix", new Date(2026, 3, 5, 18, 42)) },
+        ]);
     });
 
     it("adopts a subscription's new price by name within the band, and not a one-off", async () => {

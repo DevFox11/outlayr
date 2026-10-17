@@ -1,3 +1,4 @@
+import { firstOfMonth, startOfDay } from "@outlayr/money/calendar";
 import { anchorDayOf, nextDate, RECURRING_TYPE } from "@outlayr/money/recurrence";
 import { and, between, desc, eq, gt, inArray, isNull, like, or, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -460,6 +461,20 @@ export async function applyPendingWrites(db: Database, jobs: PendingWrite[], now
             fromAutomation(job) && !twin ? await settledOccurrence(db, job, account, currency, ledger, now) : null;
         // oxlint-disable-next-line no-loop-func -- awaited in place, so nothing outlives the iteration whose `job` and `categoryId` it reads
         await withTransaction(db, async () => {
+            if (settled && settled.date.getTime() !== job.date) {
+                const date = new Date(job.date);
+                await db
+                    .update(transactions)
+                    .set({
+                        amountUsd: null,
+                        date,
+                        day: startOfDay(date),
+                        month: firstOfMonth(date),
+                        recurringAnchorDay: anchorDayOf(settled),
+                        updatedAt: now,
+                    })
+                    .where(eq(transactions.id, settled.id));
+            }
             if (settled && Math.abs(settled.amount - job.amount) > AMOUNT_EPSILON) {
                 await db
                     .update(transactions)
@@ -585,7 +600,14 @@ async function settledOccurrence(
     currency: string | null,
     ledger: readonly LedgerEntry[],
     now: Date
-): Promise<{ amount: number; currency: string; id: string; note: string } | null> {
+): Promise<{
+    amount: number;
+    currency: string;
+    date: Date;
+    id: string;
+    note: string;
+    recurringAnchorDay: number | null;
+} | null> {
     const code = currency ?? (await getMeta(db, META_KEYS.currency)) ?? DEFAULT_CURRENCY;
     const taken = new Set(ledger.map((entry) => entry.txId));
     const lo = job.date - SUBSCRIPTION_SETTLE_WINDOW_MS;
@@ -653,16 +675,28 @@ async function settledOccurrence(
         return null;
     }
     if (!match.landing) {
-        return { amount: match.amount, currency: code, id: match.id, note: match.note };
+        return {
+            amount: match.amount,
+            currency: code,
+            date: match.date,
+            id: match.id,
+            note: match.note,
+            recurringAnchorDay: match.recurringAnchorDay,
+        };
     }
     await backfillRecurring(db, match.id, new Date(Math.max(now.getTime(), match.landing.getTime())));
     const id = occurrenceId(match.id, match.landing);
     const [written] = await db
-        .select({ amount: transactions.amount, note: transactions.note })
+        .select({
+            amount: transactions.amount,
+            date: transactions.date,
+            note: transactions.note,
+            recurringAnchorDay: transactions.recurringAnchorDay,
+        })
         .from(transactions)
         .where(and(eq(transactions.id, id), isNull(transactions.deletedAt)))
         .limit(1);
-    return written ? { amount: written.amount, currency: code, id, note: written.note } : null;
+    return written ? { ...written, currency: code, id } : null;
 }
 
 /**
