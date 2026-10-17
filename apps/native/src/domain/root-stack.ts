@@ -1,3 +1,5 @@
+import type { Href } from "expo-router";
+
 import type { RootStackGroup } from "@/domain/auth-gate";
 import type { TranslationKey } from "@/i18n/catalog";
 import { ACCOUNT_DETENT, CATEGORY_DETENT, SUBCATEGORY_DETENT } from "@/lib/sheet-detents";
@@ -102,3 +104,11 @@ export const ROOT_STACK_SCREEN_NAMES = {
     onboarding: ["onboarding/index", "onboarding/currency", "onboarding/smart-features", "onboarding/rhythm"],
     "sign-in": ["auth/sign-in", "auth/email"],
 } satisfies Readonly<Record<RootStackGroup, readonly string[]>>;
+
+/** Where a guard flip lands. expo-router's own fallback goes by file order, not declaration order. */
+export const GROUP_ENTRY = {
+    adopt: "/auth/adopt",
+    ledger: "/",
+    onboarding: "/onboarding",
+    "sign-in": "/auth/sign-in",
+} as const satisfies Record<RootStackGroup, Href>;

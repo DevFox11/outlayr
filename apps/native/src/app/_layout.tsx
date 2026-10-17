@@ -31,7 +31,7 @@ import { useAccountDeferred, useOnboardingSettled } from "@/data/onboarding";
 import { useSeededClockPreference } from "@/data/settings";
 import { DeferredDeleteProvider } from "@/data/use-deferred-delete";
 import { rootStackGroup } from "@/domain/auth-gate";
-import { MODAL_SCREENS, SHEET_SCREENS, TITLED_SCREENS } from "@/domain/root-stack";
+import { GROUP_ENTRY, MODAL_SCREENS, SHEET_SCREENS, TITLED_SCREENS } from "@/domain/root-stack";
 import { localShellReady, routeSettled } from "@/domain/splash-gate";
 import { LanguageProvider, useTranslation } from "@/i18n/context";
 import { translateNow } from "@/i18n/runtime";
@@ -276,9 +276,7 @@ function RootStack() {
 
     return (
         <Stack>
-            {/* Declared before `(tabs)`: with the anchor guarded away on a first run,
-			    the stack opens on whatever screen is left first. */}
-            <Stack.Protected guard={group === "onboarding"}>
+            <Stack.Protected guard={group === "onboarding"} redirectTo={GROUP_ENTRY[group]}>
                 <Stack.Screen name="onboarding/index" options={{ headerShown: false }} />
                 {/* The steps carry the OS back button rather than a drawn one, which
 				    brings the matching hit target with it. Transparent, because the
@@ -294,12 +292,12 @@ function RootStack() {
 			    every row on a ledger that lacks it (`docs/convex-sync-design.md`
 			    §1.7). A device has to state its currency before it holds a ledger,
 			    not after an account has handed it one. */}
-            <Stack.Protected guard={group === "sign-in"}>
+            <Stack.Protected guard={group === "sign-in"} redirectTo={GROUP_ENTRY[group]}>
                 <Stack.Screen name="auth/sign-in" options={{ headerShown: false }} />
                 <Stack.Screen name="auth/email" options={chrome.firstRunStep} />
             </Stack.Protected>
 
-            <Stack.Protected guard={group === "adopt"}>
+            <Stack.Protected guard={group === "adopt"} redirectTo={GROUP_ENTRY[group]}>
                 <Stack.Screen name="auth/adopt" options={{ gestureEnabled: false, headerShown: false }} />
             </Stack.Protected>
 
@@ -308,7 +306,7 @@ function RootStack() {
 			    exactly one of these four groups — an aux screen declared outside all
 			    of them would survive a guard flip and strand the stack on it, with no
 			    tab bar and no way back. */}
-            <Stack.Protected guard={group === "ledger"}>
+            <Stack.Protected guard={group === "ledger"} redirectTo={GROUP_ENTRY[group]}>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
                 {/* Header chrome per group comes from `useStackChrome`, which has an
