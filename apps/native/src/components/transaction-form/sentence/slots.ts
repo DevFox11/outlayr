@@ -12,7 +12,7 @@ export const TRANSACTION_RATE_SLOTS = ["converted", "rateSource"] as const;
 
 export type TransactionRateSlot = (typeof TRANSACTION_RATE_SLOTS)[number];
 
-export type TransactionSentenceMark = TransactionRateSlot | TransactionSentenceSlot | "fee";
+export type TransactionSentenceMark = TransactionRateSlot | TransactionSentenceSlot | "fee" | "paidVia";
 
 export const TRANSACTION_SENTENCE_KEYS = ["transaction.sentence.expense", "transaction.sentence.income"] as const;
 

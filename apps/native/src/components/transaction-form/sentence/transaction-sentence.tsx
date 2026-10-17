@@ -35,6 +35,15 @@ export interface TransactionRateClause {
     template: string;
 }
 
+/** How a bolívar expense was paid, stated after the sentence. */
+export interface TransactionPaidViaClause {
+    blank: string;
+    field: string;
+    onPress: () => void;
+    template: string;
+    value: string | null;
+}
+
 interface TransactionSentenceProps {
     account: string | null;
     accountTile?: ReactNode;
@@ -71,6 +80,7 @@ interface TransactionSentenceProps {
     onKindPress: () => void;
     onMerchantPress: () => void;
     onWhenPress: () => void;
+    paidVia?: TransactionPaidViaClause;
     rate?: TransactionRateClause;
     when: string;
 }
@@ -105,6 +115,7 @@ export function TransactionSentence({
     onKindPress,
     onMerchantPress,
     onWhenPress,
+    paidVia,
     rate,
     when,
 }: TransactionSentenceProps) {
@@ -112,9 +123,32 @@ export function TransactionSentence({
     if (rate !== undefined) {
         template = rate.missing ? `${template} ${rate.template}` : continueSentence(template, rate.template);
     }
+    let paidViaSlot: ReactNode = null;
+    if (paidVia !== undefined) {
+        template = `${template} ${paidVia.template}`;
+        paidViaSlot =
+            paidVia.value === null ? (
+                <SentenceBlank
+                    accessibilityLabel={paidVia.field}
+                    active={activeSlot === "paidVia"}
+                    label={paidVia.blank}
+                    onPress={paidVia.onPress}
+                    optional
+                    optionalHint={labels.optional}
+                />
+            ) : (
+                <SentenceValue
+                    accessibilityLabel={paidVia.field}
+                    active={activeSlot === "paidVia"}
+                    onPress={paidVia.onPress}
+                    swapKey="paidVia"
+                    value={paidVia.value}
+                />
+            );
+    }
 
     return (
-        <Sentence<TransactionRateSlot | TransactionSentenceSlot | "rate">
+        <Sentence<TransactionRateSlot | TransactionSentenceSlot | "paidVia" | "rate">
             slots={{
                 account:
                     account === null ? (
@@ -243,6 +277,7 @@ export function TransactionSentence({
                             {merchantTile}
                         </SentenceValue>
                     ),
+                paidVia: paidViaSlot,
                 rate:
                     rate === undefined ? null : (
                         <SentenceBlank

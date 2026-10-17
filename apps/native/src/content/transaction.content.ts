@@ -115,6 +115,10 @@ const transaction = {
             en: "Amount",
             es: "Monto",
         }),
+        "transaction.fee.bankTitle": t({
+            en: "Bank fee",
+            es: "Comisión del banco",
+        }),
         "transaction.fee.comesTo": t({
             en: "a {amount} fee",
             es: "una comisión de {amount}",
@@ -382,6 +386,50 @@ const transaction = {
             en: "Delete",
             es: "Borrar",
         }),
+        "transaction.paidVia.option.card": t({
+            en: "Card",
+            es: "Punto",
+        }),
+        "transaction.paidVia.option.cash": t({
+            en: "Cash",
+            es: "Efectivo",
+        }),
+        "transaction.paidVia.option.pagoMovil": t({
+            en: "Pago Móvil",
+            es: "Pago Móvil",
+        }),
+        "transaction.paidVia.option.sameBankTransfer": t({
+            en: "Transfer within the bank",
+            es: "Transferencia en el mismo banco",
+        }),
+        "transaction.paidVia.option.transfer": t({
+            en: "Transfer to another bank",
+            es: "Transferencia a otro banco",
+        }),
+        "transaction.paidVia.title": t({
+            en: "How you paid",
+            es: "Cómo pagaste",
+        }),
+        "transaction.paidVia.value.card": t({
+            en: "card",
+            es: "punto",
+        }),
+        "transaction.paidVia.value.cash": t({
+            en: "cash",
+            es: "efectivo",
+        }),
+        "transaction.paidVia.value.pagoMovil": t({
+            en: "Pago Móvil",
+            es: "Pago Móvil",
+        }),
+        "transaction.paidVia.value.sameBankTransfer": t({
+            en: "transfer within the bank",
+            es: "transferencia en el mismo banco",
+        }),
+        "transaction.paidVia.value.transfer": t({
+            en: "transfer to another bank",
+            es: "transferencia a otro banco",
+        }),
         "transaction.rate.asOf": t({
             en: "As of {date}",
             es: "Al {date}",
@@ -634,6 +682,10 @@ const transaction = {
             en: "a merchant",
             es: "un comercio",
         }),
+        "transaction.sentence.blank.paidVia": t({
+            en: "a payment method",
+            es: "un medio de pago",
+        }),
         "transaction.sentence.blank.payer": t({
             en: "a payer",
             es: "un pagador",
@@ -706,6 +758,14 @@ const transaction = {
         "transaction.sentence.optional": t({
             en: "Optional",
             es: "Opcional",
+        }),
+        "transaction.sentence.paidVia": t({
+            en: "By {paidVia}.",
+            es: "Por {paidVia}.",
+        }),
+        "transaction.sentence.paidViaCash": t({
+            en: "In {paidVia}.",
+            es: "En {paidVia}.",
         }),
         "transaction.sentence.rate.custom": t({
             en: ", {converted} at {rateSource} rate.",

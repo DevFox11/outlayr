@@ -40,6 +40,7 @@ const TRANSACTIONS_DDL = `
 		transferId text,
 		feeForId text,
 		feeRate real,
+		paidVia text,
 		updatedAt integer NOT NULL,
 		deletedAt integer
 	);

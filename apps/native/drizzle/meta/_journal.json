@@ -218,6 +218,13 @@
       "when": 1789431072127,
       "tag": "0030_card_fees",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1789431072128,
+      "tag": "0031_paid_via",
+      "breakpoints": true
     }
   ]
 }

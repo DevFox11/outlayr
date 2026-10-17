@@ -12,6 +12,7 @@ import { withTransaction } from "@/db/transaction";
 import { newId } from "@/domain/ids";
 import { merchantKey } from "@/domain/merchant-resolver";
 import { DEFAULT_CURRENCY } from "@/domain/money";
+import type { PaidVia } from "@/domain/paid-via";
 import type { LastEntry } from "@/domain/reminder";
 import { normalizeLead } from "@/domain/subscription-reminder";
 
@@ -189,6 +190,7 @@ export interface TransactionInput {
     note: string;
     /** Marks the transaction as recurring. */
     onceRecurring?: boolean;
+    paidVia?: PaidVia | null;
     /** Interval multiplier for the cadence (e.g. "every 2 weeks"). */
     recurringCoefficient?: number;
     recurringEndDate?: Date | null;
@@ -271,6 +273,7 @@ async function toRow(db: Database, id: string, input: TransactionInput): Promise
         month: firstOfMonth(input.date),
         note,
         onceRecurring: recurring,
+        paidVia: input.paidVia,
         // Derived, never chosen: the schedule is anchored to the day the first
         // payment falls on, and re-deriving it on every write is what keeps an
         // edited first payment from leaving the chain anchored to the old day.

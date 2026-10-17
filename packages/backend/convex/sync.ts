@@ -179,6 +179,7 @@ const TRANSACTION_LEGACY_OPTIONAL_NULLABLE_FIELDS = new Set<keyof typeof transac
     "transferId",
     "feeForId",
     "feeRate",
+    "paidVia",
 ]);
 
 function transactionFieldsEqual(

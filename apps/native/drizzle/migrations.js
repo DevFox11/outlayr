@@ -32,6 +32,7 @@ import m0027 from './0027_index_the_recurring_scan.sql';
 import m0028 from './0028_queue_the_backfilled_photos.sql';
 import m0029 from './0029_tag_pair_index_partial.sql';
 import m0030 from './0030_card_fees.sql';
+import m0031 from './0031_paid_via.sql';
 
   export default {
     journal,
@@ -66,7 +67,8 @@ m0026,
 m0027,
 m0028,
 m0029,
-m0030
+m0030,
+m0031
     }
   }
   

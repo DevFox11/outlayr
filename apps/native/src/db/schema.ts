@@ -156,6 +156,7 @@ export const transactions = sqliteTable(
         month: integer("month", { mode: "timestamp_ms" }).notNull(),
         note: text("note").notNull().default(""),
         onceRecurring: integer("onceRecurring", { mode: "boolean" }).notNull().default(false),
+        paidVia: text("paidVia"),
         /**
          * The day of the month the schedule was written for, which a short month
          * can pull an individual occurrence off. Without it the clamp is lossy:

@@ -3,7 +3,9 @@ import type { Language } from "@/i18n/languages";
 import { numberLocale, roundToMinorUnits } from "./money";
 import { numpadToNumber } from "./numpad";
 
-export type CardFee = { amount: number; currency: string; kind: "amount" } | { kind: "percent"; rate: number };
+export type CardFee =
+    | { amount: number; currency: string; kind: "amount" }
+    | { kind: "percent"; min?: number; rate: number };
 
 export type FeeDraft =
     | { kind: "none" }
@@ -32,7 +34,7 @@ export function cardFeeOf(draft: FeeDraft): CardFee | null {
 export function cardFeeAmount(fee: CardFee, base: number, currency: string): number {
     return fee.kind === "amount"
         ? roundToMinorUnits(fee.amount, fee.currency)
-        : roundToMinorUnits(base * fee.rate, currency);
+        : Math.max(roundToMinorUnits(base * fee.rate, currency), fee.min ?? 0);
 }
 
 export function cardFeeBase(

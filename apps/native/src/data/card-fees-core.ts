@@ -4,6 +4,8 @@ import { and, desc, eq, gte, isNotNull, isNull, max, ne } from "drizzle-orm";
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { cardFeeAmount, cardFeeBase } from "@/domain/card-fee";
+import { paidViaMemory } from "@/domain/paid-via";
+import type { PaidViaMemory } from "@/domain/paid-via";
 import { translateNow } from "@/i18n/runtime";
 
 import { getMetaSync, META_KEYS, setMeta } from "./app-meta-core";
@@ -31,6 +33,8 @@ interface FeePurchase {
 
 const FEE_RATE_CHOICES = 3;
 
+const PAID_VIA_WINDOW = 200;
+
 const SETTLE_WINDOW_MS = 120 * 24 * 60 * 60 * 1000;
 
 export function cardFeeFor(db: Database, purchaseId: string): Row | null {
@@ -55,6 +59,24 @@ export function feeRatesOn(db: Database, accountId: string): number[] {
         .limit(FEE_RATE_CHOICES)
         .all();
     return rows.flatMap((row) => (row.rate === null ? [] : [row.rate])).sort((a, b) => a - b);
+}
+
+export function recentPaidVia(db: Database, accountId: string): PaidViaMemory {
+    const rows = db
+        .select({ note: transactions.note, paidVia: transactions.paidVia })
+        .from(transactions)
+        .where(
+            and(
+                eq(transactions.accountId, accountId),
+                eq(transactions.income, false),
+                isNotNull(transactions.paidVia),
+                isNull(transactions.deletedAt)
+            )
+        )
+        .orderBy(desc(transactions.date))
+        .limit(PAID_VIA_WINDOW)
+        .all();
+    return paidViaMemory(rows);
 }
 
 export function lastForeignFeeRate(db: Database, accountId: string, accountCurrency: string): number | null {

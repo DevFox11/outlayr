@@ -67,6 +67,7 @@ export const transactionFields = {
     month: v.number(),
     note: v.string(),
     onceRecurring: v.boolean(),
+    paidVia: v.optional(v.union(v.string(), v.null())),
     /**
      * Optional, not just nullable: a handset still on the previous build pushes
      * rows without the key at all, and a required field would reject the whole

@@ -8,7 +8,11 @@ import { FactChips } from "./fact-chips";
 import type { SentenceFactKey, SentenceVerb } from "./fact-glyphs";
 import type { TransactionSentenceMark } from "./slots";
 import { TransactionSentence } from "./transaction-sentence";
-import type { TransactionRateClause, TransactionSentenceLabels } from "./transaction-sentence";
+import type {
+    TransactionPaidViaClause,
+    TransactionRateClause,
+    TransactionSentenceLabels,
+} from "./transaction-sentence";
 
 const REST_FACTS: ReadonlySet<SentenceFactKey> = new Set(["repeat", "tags"]);
 
@@ -54,6 +58,7 @@ interface SentenceBodyProps {
     onLayout?: (height: number) => void;
     onMerchantPress: () => void;
     onWhenPress: () => void;
+    paidVia?: TransactionPaidViaClause;
     rate?: TransactionRateClause;
     rest?: { addAccessibilityLabel: string; addLabel: string; onWake: () => void };
     verbs: readonly SentenceVerb[];
@@ -90,6 +95,7 @@ export function TransactionSentenceBody({
     onLayout,
     onMerchantPress,
     onWhenPress,
+    paidVia,
     rate,
     rest,
     verbs,
@@ -152,6 +158,7 @@ export function TransactionSentenceBody({
                 onKindPress={onKindPress}
                 onMerchantPress={onMerchantPress}
                 onWhenPress={onWhenPress}
+                paidVia={paidVia}
                 rate={rate}
                 when={when}
             />

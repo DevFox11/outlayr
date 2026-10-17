@@ -54,6 +54,7 @@ export const ERASED_TRANSACTION = {
     month: ERASED_DATE,
     note: "",
     onceRecurring: false,
+    paidVia: null,
     recurringAnchorDay: null,
     recurringCoefficient: 1,
     recurringEndDate: null,

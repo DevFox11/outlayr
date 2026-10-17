@@ -32,6 +32,7 @@ import {
     feeRatesOn,
     lastFeeCategoryId,
     lastForeignFeeRate,
+    recentPaidVia,
     rememberFeeCategory,
 } from "@/data/card-fees-core";
 import type { CardFeeInput } from "@/data/card-fees-core";
@@ -63,6 +64,8 @@ import { merchantKey } from "@/domain/merchant-resolver";
 import { suggestMerchants } from "@/domain/merchant-suggest";
 import { formatAmount, minorUnitsFor, numberLocale, roundToMinorUnits, symbolIsShared } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
+import { isPaidVia, PAID_VIA, paidViaCharge, paidViaFee, rememberedPaidVia } from "@/domain/paid-via";
+import type { PaidVia } from "@/domain/paid-via";
 import { rateAge } from "@/domain/rate-age";
 import type { RateAge } from "@/domain/rate-age";
 import { enableReminderStep } from "@/domain/reminder";
@@ -138,6 +141,7 @@ import type { TransactionRateClause } from "./sentence/transaction-sentence";
 import { MetaLine } from "./stage/meta-line";
 import { StagePartContext, TransactionStage } from "./stage/stage";
 import type { StageAction, StageFooter } from "./stage/stage";
+import { StageOptionRow } from "./stage/stage-options";
 import type { StageOptionItem } from "./stage/stage-options";
 import { StepAccount } from "./stage/step-account";
 import { StepCategory } from "./stage/step-category";
@@ -184,6 +188,7 @@ type StageStep =
     | "fee"
     | "feeCategory"
     | "merchant"
+    | "paidVia"
     | "rate"
     | "rateCustom"
     | "rateUsd"
@@ -244,6 +249,7 @@ const STEP_SLOTS = {
     fee: "fee",
     feeCategory: "fee",
     merchant: "merchant",
+    paidVia: "paidVia",
     rate: "rateSource",
     rateCustom: "rateSource",
     rateUsd: "converted",
@@ -251,7 +257,7 @@ const STEP_SLOTS = {
     when: "when",
 } as const satisfies Record<StageStep, TransactionSentenceMark>;
 
-type FeeOptionId = "amount" | "none" | "percent" | `rate:${number}`;
+type FeeOptionId = "amount" | "none" | "paidVia" | "percent" | `rate:${number}`;
 
 /** One step's body and the header it sits under, before the stage draws them. */
 interface StageStepContent {
@@ -708,7 +714,8 @@ export function TransactionForm({
             });
             const input: TransactionInput = {
                 ...baseInput,
-                fee: feeInputFor(value.merchant.trim() || (value.category?.name ?? ""), categoryId),
+                fee: feeInputFor(value.merchant.trim() || (value.category?.name ?? ""), categoryId, amount),
+                paidVia: paysBolivares ? (value.paidVia ?? suggestedPaidVia) : null,
             };
             let savedId: string;
             try {
@@ -868,6 +875,7 @@ export function TransactionForm({
         exchangeRateType,
         fee,
         feeCategoryId,
+        paidVia,
     } = useSelector(
         form.store,
         (s) => ({
@@ -883,6 +891,7 @@ export function TransactionForm({
             income: s.values.income,
             isSubscription: s.values.isSubscription,
             leadDays: s.values.leadDays,
+            paidVia: s.values.paidVia,
             pendingCategory: s.values.pendingCategory,
             rateEntry: s.values.rateEntry,
             recurringType: s.values.recurringType,
@@ -947,9 +956,23 @@ export function TransactionForm({
                 : null,
         [db, mode, foreignCharge, account]
     );
+    const paysBolivares = feeable && currency === "VES" && account?.currency === "VES";
+    const paidViaHistory = useMemo(
+        () => (mode === "create" && account?.currency === "VES" ? recentPaidVia(db, account.id) : null),
+        [db, mode, account]
+    );
+    const suggestedPaidVia = useSelector(form.store, (s) =>
+        paidViaHistory === null ? null : rememberedPaidVia(paidViaHistory, s.values.merchant)
+    );
+    const paidViaNow: PaidVia | null = paysBolivares ? (paidVia ?? suggestedPaidVia) : null;
+    const followsPaidVia = paysBolivares && fee === null;
+    const feeTitle = t(paysBolivares ? "transaction.fee.bankTitle" : "transaction.fee.title");
     const feeDraft: FeeDraft =
         fee ?? (suggestedFeeRate === null ? NO_FEE : { kind: "percent", rate: suggestedFeeRate });
-    const cardFee = feeable ? cardFeeOf(feeDraft) : null;
+    let cardFee = null;
+    if (feeable) {
+        cardFee = followsPaidVia ? paidViaFee(paidViaNow) : cardFeeOf(feeDraft);
+    }
     const feeShown = (): boolean =>
         feeable &&
         (cardFee !== null || (feeDraft.kind === "typed" && (stageStep === "fee" || stageStep === "feeCategory")));
@@ -963,10 +986,18 @@ export function TransactionForm({
         if (cardFee === null || (cardFee.kind === "amount" && cardFee.currency !== feeCurrency)) {
             return null;
         }
-        const charged = cardFeeAmount(cardFee, feeBase(amount) ?? 0, feeCurrency);
+        const base = feeBase(amount);
+        if (cardFee.kind === "percent" && base === null) {
+            return null;
+        }
+        const charged = cardFeeAmount(cardFee, base ?? 0, feeCurrency);
         return charged > 0 ? charged : null;
     };
-    const feeInputFor = (merchant: string, purchaseCategoryId: string | null): CardFeeInput | null | undefined => {
+    const feeInputFor = (
+        merchant: string,
+        purchaseCategoryId: string | null,
+        amount: number
+    ): CardFeeInput | null | undefined => {
         if (initial?.transferId != null || initial?.feeForId != null) {
             return undefined;
         }
@@ -977,13 +1008,21 @@ export function TransactionForm({
             categoryId: feeCategory?.id ?? purchaseCategoryId,
             note: t("transaction.fee.note", { merchant }),
         };
+        if (followsPaidVia) {
+            const charged = feeAmountFor(amount);
+            return charged === null ? null : { ...shared, amount: charged, currency: feeCurrency, rate: null };
+        }
         return cardFee.kind === "percent"
             ? { ...shared, amount: null, currency: feeCurrency, rate: cardFee.rate }
             : { ...shared, amount: cardFee.amount, currency: cardFee.currency, rate: null };
     };
-    const feeLabel = (): string | null => {
+    const feeLabel = (amount: number): string | null => {
         if (!feeShown()) {
             return null;
+        }
+        if (followsPaidVia) {
+            const charged = feeAmountFor(amount);
+            return charged === null ? null : `+ ${formatAmount(charged, feeCurrency, true, language)}`;
         }
         if (feeDraft.kind === "percent") {
             return `+ ${formatFeeRate(feeDraft.rate, language)}`;
@@ -1007,7 +1046,7 @@ export function TransactionForm({
                           template: t("transaction.fee.comesTo"),
                       }
                     : null,
-            label: t("transaction.fee.title"),
+            label: feeTitle,
             placeholder: feeDraft.text === "",
             unit: feeDraft.unit === "percent" ? "%" : feeDraft.currency,
             value: feeDraft.text === "" ? "0" : feeDraft.text.replace(".", numberLocale(language).decimal),
@@ -1018,6 +1057,9 @@ export function TransactionForm({
             ? [...feeRates, feeDraft.rate].sort((a, b) => a - b)
             : feeRates;
     const feeSelectedId = (): FeeOptionId => {
+        if (followsPaidVia && cardFee !== null) {
+            return "paidVia";
+        }
         if (feeDraft.kind === "typed") {
             return feeDraft.unit;
         }
@@ -2033,7 +2075,7 @@ export function TransactionForm({
         amount: { blank: formatAmount(0, currency, true, language), field: t("transaction.field.amount") },
         category: { blank: t("transaction.sentence.blank.category"), field: t("transaction.field.category") },
         currency: { code: symbolIsShared(currency) ? currency : null, field: t("transaction.sentence.currency") },
-        fee: { field: t("transaction.fee.title") },
+        fee: { field: feeTitle },
         kind: {
             switchLabel: t("transaction.sentence.kind.switch"),
             verb: t(income ? "transaction.sentence.kind.income" : "transaction.sentence.kind.expense"),
@@ -2103,7 +2145,22 @@ export function TransactionForm({
         if (stageStep === "fee") {
             const base = feeBase(amountNumber);
             const charged = feeAmountFor(amountNumber) ?? 0;
+            const paidViaCharged = paidViaCharge(paidViaNow, amountNumber);
             const options: StageOptionItem<FeeOptionId>[] = [
+                ...(paidViaNow === null || paidViaFee(paidViaNow) === null
+                    ? []
+                    : [
+                          {
+                              id: "paidVia" as const,
+                              label: t(`transaction.paidVia.option.${paidViaNow}`),
+                              trailing:
+                                  paidViaCharged === null ? undefined : (
+                                      <Text className="text-label text-muted font-mono tabular-nums">
+                                          {formatAmount(paidViaCharged, "VES", true, language)}
+                                      </Text>
+                                  ),
+                          },
+                      ]),
                 { id: "none", label: t("transaction.fee.none") },
                 ...feeRateChoices.map((rate) => {
                     const percent = formatFeeRate(rate, language);
@@ -2143,6 +2200,11 @@ export function TransactionForm({
                         loggedAs={feeCategory?.name ?? t("transaction.sentence.blank.category")}
                         onLoggedAsPress={() => enterStep("feeCategory")}
                         onSelect={(id) => {
+                            if (id === "paidVia") {
+                                form.setFieldValue("fee", null);
+                                leaveTo("amount");
+                                return;
+                            }
                             if (id === "percent") {
                                 form.setFieldValue("fee", { kind: "typed", text: "", unit: "percent" });
                                 return;
@@ -2178,7 +2240,36 @@ export function TransactionForm({
                         ) : null}
                     </StepFee>
                 ),
-                title: t("transaction.fee.title"),
+                title: feeTitle,
+            };
+        }
+        if (stageStep === "paidVia") {
+            const options = PAID_VIA.map((via) => {
+                const charged = paidViaCharge(via, amountNumber);
+                return {
+                    id: via,
+                    label: t(`transaction.paidVia.option.${via}`),
+                    trailing:
+                        charged === null ? undefined : (
+                            <Text className="text-label text-muted font-mono tabular-nums">
+                                {formatAmount(charged, "VES", true, language)}
+                            </Text>
+                        ),
+                };
+            });
+            return {
+                body: (
+                    <StageOptionRow
+                        onSelect={(via) => {
+                            form.setFieldValue("paidVia", via);
+                            form.setFieldValue("fee", null);
+                            leaveTo("amount");
+                        }}
+                        options={options}
+                        selectedId={paidViaNow}
+                    />
+                ),
+                title: t("transaction.paidVia.title"),
             };
         }
         if (stageStep === "feeCategory") {
@@ -2645,11 +2736,29 @@ export function TransactionForm({
                                                 />
                                             )
                                         }
+                                        paidVia={
+                                            paysBolivares
+                                                ? {
+                                                      blank: t("transaction.sentence.blank.paidVia"),
+                                                      field: t("transaction.paidVia.title"),
+                                                      onPress: () => enterStep("paidVia"),
+                                                      template: t(
+                                                          paidViaNow === "cash"
+                                                              ? "transaction.sentence.paidViaCash"
+                                                              : "transaction.sentence.paidVia"
+                                                      ),
+                                                      value:
+                                                          paidViaNow === null
+                                                              ? null
+                                                              : t(`transaction.paidVia.value.${paidViaNow}`),
+                                                  }
+                                                : undefined
+                                        }
                                         rate={converts && amountNumber > 0 ? rateClause(amountNumber) : undefined}
                                         amountFlagged={amountError}
                                         amountShake={amountShake}
                                         extras={[rateLine, splitLine, noteLine].filter((line) => line !== null)}
-                                        fee={feeLabel()}
+                                        fee={feeLabel(amountNumber)}
                                         labels={sentenceLabels}
                                         merchant={merchantSeed.length === 0 ? null : merchantSeed}
                                         merchantTile={merchantTile}
@@ -2922,7 +3031,13 @@ function initialFormValues({ copyOf, db, globalCurrency, initial, nameSeed, seed
     const amountSeed = initial?.amount ?? copyOf?.amount ?? seed?.amount;
     const effectiveCurrency = currencySeed ?? globalCurrency;
     const savedFee = initial ? cardFeeFor(db, initial.id) : null;
-    const feeSeed: FeeDraft | null = initial ? feeDraftOf(savedFee) : null;
+    const paidVia = initial && isPaidVia(initial.paidVia) ? initial.paidVia : null;
+    const feeFollowsPaidVia =
+        initial != null &&
+        paidVia !== null &&
+        savedFee?.feeRate == null &&
+        (savedFee?.amount ?? null) === paidViaCharge(paidVia, initial.amount);
+    const feeSeed: FeeDraft | null = initial && !feeFollowsPaidVia ? feeDraftOf(savedFee) : null;
     // SAFETY: three of the fields below start empty and are filled as the form
     // is used, so each initial literal has to carry the type the field will end
     // up holding rather than the empty one it starts as.
@@ -2954,6 +3069,7 @@ function initialFormValues({ copyOf, db, globalCurrency, initial, nameSeed, seed
         // only way the stage's merchant step can move it is to re-seed it,
         // and only the stage ever writes this.
         merchantSeed: nameSeed,
+        paidVia,
         pendingCategory: null as PendingCategory | null,
         pendingTagNames: [] as readonly string[],
         rateEntry: seededRate(effectiveCurrency, initial?.exchangeRate),
