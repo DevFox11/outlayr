@@ -35,6 +35,18 @@ const settingsNotifications = {
             en: "Only on days with nothing logged. From this device, never a server.",
             es: "Solo los días sin nada registrado. Desde este dispositivo, nunca desde un servidor.",
         }),
+        "settings.notifications.installmentFooter": t({
+            en: "At your reminder time, the day before each installment you still owe.",
+            es: "A la hora de tus recordatorios, el día antes de cada cuota que aún debes.",
+        }),
+        "settings.notifications.installmentSection": t({
+            en: "Installments",
+            es: "Cuotas",
+        }),
+        "settings.notifications.installmentToggle": t({
+            en: "Remind me the day before",
+            es: "Avísame el día antes",
+        }),
         "settings.notifications.morning": t({
             en: "Every morning",
             es: "Cada mañana",

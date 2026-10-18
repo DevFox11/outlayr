@@ -18,6 +18,7 @@ import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { useMergedRef } from "@/hooks/use-merged-ref";
 import { useSheetSurface } from "@/hooks/use-sheet-surface";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { rearmInstallmentReminders } from "@/lib/installment-reminder-sync";
 import { notifyFailure } from "@/lib/notify";
 import { useHaptics } from "@/lib/use-haptics";
 import { CompactDatePicker } from "@/screens/budgets/components/compact-date-picker";
@@ -99,6 +100,7 @@ function CuotaBody({
     const write = async (patch: { amount?: number; dueDate?: Date }) => {
         try {
             await installmentsRepo.updateInstallment(db, row.id, patch);
+            rearmInstallmentReminders(db);
             haptics("success");
         } catch (error) {
             console.error("Failed to update the installment", error);
@@ -118,6 +120,7 @@ function CuotaBody({
     const remove = async () => {
         try {
             await installmentsRepo.deleteInstallment(db, row.id);
+            rearmInstallmentReminders(db);
             haptics("warning");
             onClose();
         } catch (error) {

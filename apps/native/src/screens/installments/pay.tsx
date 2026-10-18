@@ -29,17 +29,17 @@ import type { PlanWithStanding } from "@/data/installments-core";
 import { useNow } from "@/data/use-now";
 import { formatTargetDate } from "@/domain/dates";
 import { paymentSource } from "@/domain/installment-payment";
+import { orderName } from "@/domain/installments";
 import { formatAmount, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { formatRateFigure, pairQuotedInverse, quotePairRate } from "@/domain/transaction-entry-rate";
 import { quotedByBcv } from "@/domain/transaction-form-labels";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { rearmInstallmentReminders } from "@/lib/installment-reminder-sync";
 import { useHaptics } from "@/lib/use-haptics";
 import { CompactDatePicker } from "@/screens/budgets/components/compact-date-picker";
 import { EditorRow } from "@/screens/budgets/components/editor-row";
 import { useColors } from "@/theme/use-colors";
-
-import { orderName } from "./labels";
 
 /**
  * Paying an order, confirmed by hand: installments never post themselves. The
@@ -138,6 +138,7 @@ function PayForm({ account, amount: owed, entry, forNext, sources }: PayFormProp
         setFailure(null);
         try {
             await installmentsRepo.recordPayment(db, { amount, date, planId: plan.id, source });
+            rearmInstallmentReminders(db);
             haptics("success");
             router.back();
         } catch (error) {

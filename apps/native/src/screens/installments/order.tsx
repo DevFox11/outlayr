@@ -17,14 +17,16 @@ import { installmentsRepo } from "@/data/installments-core";
 import type { InstallmentRow, PlanWithStanding } from "@/data/installments-core";
 import { useNow } from "@/data/use-now";
 import { formatSentenceDate } from "@/domain/dates";
+import { orderName } from "@/domain/installments";
 import type { InstallmentStanding } from "@/domain/installments";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { rearmInstallmentReminders } from "@/lib/installment-reminder-sync";
 import { notifyFailure } from "@/lib/notify";
 import { useHaptics } from "@/lib/use-haptics";
 
 import { CuotaSheet } from "./cuota-sheet";
-import { dueIn, installmentTitle, orderName } from "./labels";
+import { dueIn, installmentTitle } from "./labels";
 
 /**
  * One order: what is left, what it was bought for, and every row of its
@@ -77,6 +79,7 @@ function OrderLoaded({ entry, nowMs }: { entry: PlanWithStanding; nowMs: number 
                 onPress: async () => {
                     try {
                         await installmentsRepo.deletePlan(db, plan.id);
+                        rearmInstallmentReminders(db);
                         haptics("warning");
                     } catch (error) {
                         console.error("Failed to delete the order", error);

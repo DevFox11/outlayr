@@ -16,6 +16,7 @@ import { paymentSource } from "@/domain/installment-payment";
 import { formatAmount } from "@/domain/money";
 import { transactionRateError } from "@/domain/transaction-entry-rate";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { rearmInstallmentReminders } from "@/lib/installment-reminder-sync";
 
 import { InstallmentsSheet } from "./installments-sheet";
 import type { SentenceVerb } from "./sentence/fact-glyphs";
@@ -177,7 +178,10 @@ export function useInstallmentOrder({
                 schedule,
                 upfront: hasUpfront ? upfrontSource(plan) : undefined,
             })
-            .then(({ transactionId }) => transactionId);
+            .then(({ transactionId }) => {
+                rearmInstallmentReminders(db);
+                return transactionId;
+            });
     };
 
     const sheet = (price: number) => {

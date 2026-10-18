@@ -20,6 +20,7 @@ import type { TimeOfDay } from "@/domain/reminder";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { translateNow } from "@/i18n/runtime";
+import { syncInstallmentReminders } from "@/lib/installment-reminder-sync";
 import { openNotificationSettings, reminderPermission, requestReminderPermission } from "@/lib/reminders";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 
@@ -78,11 +79,16 @@ async function disableReminders(db: Database): Promise<void> {
 }
 
 /**
- * The same permission ladder, its own key: the daily reminder and the due-date
- * notices are separate promises, and the revoke reconcile writes each back off
- * on its own.
+ * The same permission ladder, its own key: the daily reminder and each kind of
+ * due-date notice are separate promises, and the revoke reconcile writes each
+ * back off on its own. The sync runs at once, so turning one on arms it now.
  */
-async function setSubscriptionReminders(db: Database, next: boolean): Promise<void> {
+async function setDueReminders(
+    db: Database,
+    key: "installmentReminders" | "subscriptionReminders",
+    next: boolean,
+    sync: (db: Database) => Promise<void>
+): Promise<void> {
     if (next) {
         const existing = await reminderPermission();
         if (enableReminderStep(existing) === "open-settings") {
@@ -107,8 +113,8 @@ async function setSubscriptionReminders(db: Database, next: boolean): Promise<vo
             return;
         }
     }
-    await setBoolSetting(db, "subscriptionReminders", next);
-    await syncSubscriptionReminders(db);
+    await setBoolSetting(db, key, next);
+    await sync(db);
 }
 
 export function Notifications() {
@@ -120,6 +126,7 @@ export function Notifications() {
     const { state: settings } = useAppSettings();
     const enabled = settings.bool("showNotifications");
     const subscriptionsEnabled = settings.bool("subscriptionReminders");
+    const installmentsEnabled = settings.bool("installmentReminders");
     const option = settings.number("notificationOption");
     const custom = clampTimeOfDay(settings.number("notificationHour"), settings.number("notificationMinute"));
     const scheduled = reminderTime(option, custom);
@@ -185,10 +192,28 @@ export function Notifications() {
                 <ToggleRow
                     icon="CalendarClock"
                     onValueChange={(next) => {
-                        setSubscriptionReminders(db, next).catch(reportReminderFailure);
+                        setDueReminders(db, "subscriptionReminders", next, syncSubscriptionReminders).catch(
+                            reportReminderFailure
+                        );
                     }}
                     title={t("settings.notifications.subscriptionToggle")}
                     value={subscriptionsEnabled}
+                />
+            </SettingsSection>
+
+            <SettingsSection
+                footer={t("settings.notifications.installmentFooter")}
+                title={t("settings.notifications.installmentSection")}
+            >
+                <ToggleRow
+                    icon="CreditCard"
+                    onValueChange={(next) => {
+                        setDueReminders(db, "installmentReminders", next, syncInstallmentReminders).catch(
+                            reportReminderFailure
+                        );
+                    }}
+                    title={t("settings.notifications.installmentToggle")}
+                    value={installmentsEnabled}
                 />
             </SettingsSection>
         </SettingsScreen>

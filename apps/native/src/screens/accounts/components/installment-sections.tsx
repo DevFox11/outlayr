@@ -11,10 +11,11 @@ import { upcomingInstallments } from "@/data/installments-core";
 import type { PlanWithStanding, UpcomingInstallment } from "@/data/installments-core";
 import type { Database } from "@/db/client";
 import { formatSentenceDate } from "@/domain/dates";
+import { orderName } from "@/domain/installments";
 import { addLocalDays } from "@/domain/local-day";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
-import { dueIn, orderName } from "@/screens/installments/labels";
+import { dueIn } from "@/screens/installments/labels";
 
 /** How far ahead "Coming up" looks: a monthly plan's next cuota is always inside it. */
 const COMING_UP_DAYS = 31;

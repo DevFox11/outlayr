@@ -9,16 +9,23 @@ import type { Database } from "@/db/client";
 import { useProEntitled } from "@/hooks/use-pro-locked";
 import { useCloudAuthenticated } from "@/lib/convex";
 import { useEnrichmentQueue } from "@/lib/enrichment-queue";
+import { syncInstallmentReminders } from "@/lib/installment-reminder-sync";
 import { useDailyReminderSync } from "@/lib/reminder-sync";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useSystemSync } from "@/lib/use-system-sync";
 
 const IDLE_TIMEOUT_MS = 1000;
 
-const reconcileSubscriptionReminders = (db: Database) => {
-    syncSubscriptionReminders(db).catch((error) => {
-        console.error("Subscription reminder sync failed", error);
-    });
+/** Cuotas take the headroom the subscription notices leave, so they wait for that pass, failed or not. */
+const reconcileDueReminders = (db: Database) => {
+    syncSubscriptionReminders(db)
+        .catch((error) => {
+            console.error("Subscription reminder sync failed", error);
+        })
+        .then(() => syncInstallmentReminders(db))
+        .catch((error) => {
+            console.error("Installment reminder sync failed", error);
+        });
 };
 
 export function BackgroundWork() {
@@ -44,8 +51,9 @@ export function BackgroundWork() {
     useDailyReminderSync(ready);
     // The sweep moves the very landing the notices are dated from, so the
     // subscription reminders reconcile from its callback: once per launch and
-    // foreground, after the walk when there is one.
-    useRecurrenceSweep(ready, reconcileSubscriptionReminders);
+    // foreground, after the walk when there is one. The cuota notices follow
+    // them in the same callback rather than a listener of their own.
+    useRecurrenceSweep(ready, reconcileDueReminders);
     // Ordered after the sweep so a subscription that advanced on this foreground
     // is already in the table when the widgets are rebuilt from it.
     useSystemSync(ready);

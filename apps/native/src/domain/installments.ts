@@ -1,5 +1,7 @@
 import { decimalsFor } from "@outlayr/money/currency";
 
+import type { TranslateFn } from "@/i18n/context";
+
 import { addLocalDays, addLocalMonths, startOfLocalDay } from "./local-day";
 
 /** A fixed day of the month, or the month's last day whatever its length. */
@@ -266,4 +268,9 @@ export function planStanding<Row extends InstallmentLike>(
         rows: standings,
         scheduled: fromMinor(scheduledMinor, currency),
     };
+}
+
+/** What an order is called: its purchase's merchant, else plain "Order". */
+export function orderName(t: TranslateFn, purchase: { note: string } | null): string {
+    return purchase?.note.trim() || t("installments.order");
 }

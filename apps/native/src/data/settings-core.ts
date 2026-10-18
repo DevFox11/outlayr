@@ -1,6 +1,7 @@
 import type { Database } from "@/db/client";
 import { DEFAULT_ACCENT_VALUE } from "@/domain/accent-options";
 import { analyticsOnByDefault } from "@/domain/analytics-consent";
+import { INSTALLMENT_REMINDERS_DEFAULT } from "@/domain/installment-reminder";
 import type { TranslationKey } from "@/i18n/catalog";
 import { firstLocale } from "@/i18n/device-language";
 import type { Language } from "@/i18n/languages";
@@ -18,6 +19,7 @@ export type BoolSettingKey =
     | "shareAnalytics"
     | "showNotifications"
     | "subscriptionReminders"
+    | "installmentReminders"
     | "categorySuggestions"
     | "aiConsentV2"
     | "aiEnrichment"
@@ -59,6 +61,7 @@ export const SETTING_DEFAULTS = {
     haptics: 1,
     hideAmounts: false,
     incomeTracking: true,
+    installmentReminders: INSTALLMENT_REMINDERS_DEFAULT,
     insightsMeasure: 1,
     insightsTimeFrame: 1,
     logInsightsTimeFrame: 2,

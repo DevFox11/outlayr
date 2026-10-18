@@ -10,6 +10,7 @@ import type { Href } from "expo-router";
 import { useEffect } from "react";
 import { z } from "zod";
 
+import { readPlans } from "@/data/installments-core";
 import { backfillRecurring } from "@/data/recurrence-backfill";
 import { getTransactionById } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
@@ -19,6 +20,7 @@ const reminderTapSchema = z.union([
     subscriptionTapSchema,
     z.object({ open: z.literal("log") }),
     z.object({ date: z.string().optional(), open: z.literal("create") }),
+    z.object({ open: z.literal("installment"), plan: z.string() }),
 ]);
 
 function announcedRowId(db: Database, { charge, subscription }: z.infer<typeof subscriptionTapSchema>): string | null {
@@ -29,6 +31,17 @@ function announcedRowId(db: Database, { charge, subscription }: z.infer<typeof s
     const carrier = getTransactionById(db, subscription);
     const pending = carrier !== null && carrier.deletedAt === null && carrier.recurringType > RECURRING_TYPE.none;
     return pending ? subscription : null;
+}
+
+/** The pay sheet for an order still owed, the order once it is paid off, nothing once it is deleted. */
+function installmentTarget(db: Database, planId: string): Href | null {
+    const entry = readPlans(db, new Date()).find(({ plan }) => plan.id === planId);
+    if (entry === undefined) {
+        return null;
+    }
+    return entry.standing.next === null
+        ? { params: { planId }, pathname: "/installments/[planId]" }
+        : { params: { all: "0", planId }, pathname: "/installments/pay" };
 }
 
 let handled: string | null = null;
@@ -52,6 +65,8 @@ export function useSubscriptionReminderTaps(db: Database, ready: boolean): void 
                 await backfillRecurring(db, parsed.data.subscription);
                 const id = announcedRowId(db, parsed.data);
                 target = id === null ? null : `/transactions/${id}`;
+            } else if (parsed.data.open === "installment") {
+                target = installmentTarget(db, parsed.data.plan);
             } else if (parsed.data.open === "create") {
                 const { date } = parsed.data;
                 target = date === undefined ? "/transactions/create" : `/transactions/create?date=${date}`;
