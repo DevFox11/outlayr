@@ -1,5 +1,7 @@
 import { text } from "node:stream/consumers";
 
+import { startOfDay } from "@outlayr/money/calendar";
+
 import { buildBurndown } from "./budget-burndown";
 import { budgetPace, daysLeftInWindow, hoursLeftInDay } from "./budget-math";
 import { nextClockTick } from "./clock";
@@ -52,6 +54,48 @@ async function answer(): Promise<string> {
             return JSON.stringify(
                 buildBurndown(rows, { limit: 100, now: localDate(10), window }).points.map((p) => p.spent)
             );
+        }
+        case "burndown-grid": {
+            const DAY_MS = 86_400_000;
+            const window = { end: localDate(5), start: localDate(0) };
+            const now = localDate(10);
+            const dayOffset = (date: Date) =>
+                Math.round((startOfDay(date).getTime() - startOfDay(window.start).getTime()) / DAY_MS);
+            const rows = [];
+            for (let day = -10; day < 45; day += 1) {
+                for (const hour of [0, 1, 2, 3, 12, 23]) {
+                    const date = new Date(
+                        window.start.getFullYear(),
+                        window.start.getMonth(),
+                        window.start.getDate() + day,
+                        hour,
+                        59,
+                        59,
+                        999
+                    );
+                    rows.push({ amount: day + 11, categoryId: null, date, parentId: null });
+                }
+            }
+            const totalDays = Math.max(1, dayOffset(window.end));
+            const elapsed = Math.min(totalDays, Math.max(1, dayOffset(now) + 1));
+            const perDay = Array.from({ length: elapsed }, () => 0);
+            const rowsInside = rows.filter((row) => {
+                const index = dayOffset(row.date);
+                return index >= 0 && index < elapsed;
+            });
+            for (const row of rowsInside) {
+                perDay[dayOffset(row.date)] += row.amount;
+            }
+            let sum = 0;
+            const options = { limit: 1_000_000, now, window };
+            const result = buildBurndown(rows, options);
+            return JSON.stringify({
+                actual: { projected: result.projectedBalance, spent: result.points.map((p) => p.spent) },
+                expected: {
+                    projected: buildBurndown(rowsInside, options).projectedBalance,
+                    spent: perDay.map((amount) => (sum += amount)),
+                },
+            });
         }
         case "clock": {
             const dateArgs: [number, number, number, number][] = JSON.parse(await text(process.stdin));

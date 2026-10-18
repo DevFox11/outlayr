@@ -82,15 +82,18 @@ export function buildBurndown(rows: readonly ExpenseContribution[], options: Bur
     const elapsedDays = Math.min(totalDays, Math.max(1, dayOffset(now, window.start) + 1));
 
     const perDay: number[] = Array.from({ length: elapsedDays }, () => 0);
+    const firstMs = startOfDay(window.start).getTime();
+    const endMs = new Date(
+        window.start.getFullYear(),
+        window.start.getMonth(),
+        window.start.getDate() + elapsedDays
+    ).getTime();
     for (const row of rows) {
-        if (!contributesTo(row, categoryId)) {
+        const ms = row.date.getTime();
+        if (ms < firstMs || ms >= endMs || !contributesTo(row, categoryId)) {
             continue;
         }
-        const index = dayOffset(row.date, window.start);
-        if (index < 0 || index >= elapsedDays) {
-            continue;
-        }
-        perDay[index] += row.amount;
+        perDay[dayOffset(row.date, window.start)] += row.amount;
     }
 
     const points: BurndownPoint[] = [];

@@ -179,4 +179,27 @@ describe("buildBurndown", () => {
             "[10,10,30,30,30]"
         );
     });
+
+    it("counts rows from the window start through the last millisecond of today, and no others", () => {
+        const row = (date: Date): ExpenseContribution => ({ amount: 1, categoryId: null, date, parentId: null });
+        const justBefore = new Date(JULY.start.getTime() - 1);
+        const lastMs = new Date(at(2026, 7, 11).getTime() - 1);
+        const nextDay = at(2026, 7, 11);
+
+        const options = { limit: 10, now: at(2026, 7, 10), window: JULY };
+
+        const result = buildBurndown([row(justBefore), row(JULY.start), row(lastMs), row(nextDay)], options);
+
+        expect(result.points.at(-1)?.spent).toBe(2);
+        expect(result).toStrictEqual(buildBurndown([row(JULY.start), row(lastMs)], options));
+    });
+
+    it.each([
+        ["fall back (25h day)", [2026, 10, 1, 0, 0, 2026, 11, 1, 0, 0, 2026, 10, 20, 9, 30]],
+        ["spring forward (23h day)", [2026, 2, 1, 0, 0, 2026, 3, 1, 0, 0, 2026, 2, 25, 9, 30]],
+    ])("buckets rows at every hour of the day like per-row day offsets across %s", (_name, args) => {
+        const { actual, expected } = JSON.parse(inNewYork("burndown-grid", ...args));
+
+        expect(actual).toStrictEqual(expected);
+    });
 });
