@@ -7,7 +7,7 @@ import { unusedDatabase as mockUnusedDatabase } from "@/db/test-database";
 const mockDatabase = mockUnusedDatabase();
 jest.mock("@/contexts/local-data-context", () => ({ useDatabase: () => mockDatabase }));
 jest.mock("@/lib/auth-session", () => ({ useAuthSession: () => ({ accountId: "acct-1" }) }));
-jest.mock("@/data/live-query", () => ({ useLiveQuery: () => [] }));
+jest.mock("@/data/live-query", () => ({ useLiveValue: () => null }));
 const mockPro = { locked: false, pending: false };
 jest.mock("@/hooks/use-pro-locked", () => ({
     useProLocked: () => mockPro.locked,

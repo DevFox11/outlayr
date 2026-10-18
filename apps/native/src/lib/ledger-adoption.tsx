@@ -7,7 +7,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { createSingleAdoptionRetry } from "@/data/adoption-retry";
 import { META_KEYS } from "@/data/app-meta-core";
 import { completeAdoption, localLedgerState, prepareAccountAdoption } from "@/data/ledger-adoption";
-import { useLiveQuery } from "@/data/live-query";
+import { useLiveValue } from "@/data/live-query";
 import { appMeta } from "@/db/schema";
 import { adoptionActions, adoptionPlan, choiceActions } from "@/domain/ledger-adoption";
 import type { AdoptionChoice } from "@/domain/ledger-adoption";
@@ -61,10 +61,12 @@ export function LedgerAdoptionProvider({ children }: { children: ReactNode }) {
     const { accountId } = useAuthSession();
     // Read during render rather than awaited, so a device that has already
     // reconciled never shows a frame of the cover on its way to the ledger.
-    const rows = useLiveQuery(appMeta, () =>
-        db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.ledgerAdoption))
+    const adoptedAccount = useLiveValue(
+        appMeta,
+        () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.ledgerAdoption)),
+        (rows) => rows[0]?.value ?? null
     );
-    const settled = accountId != null && (rows[0]?.value ?? null) === accountId;
+    const settled = accountId != null && adoptedAccount === accountId;
 
     const [reconciled, setReconciled] = useState<AdoptionStatus>("resolving");
     const [failed, setFailed] = useState(false);
