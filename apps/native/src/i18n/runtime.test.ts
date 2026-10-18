@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "@jest/globals";
 
-import { EN, ES } from "./catalog";
+import { CATALOGS, EN } from "./catalog";
 import { DEFAULT_LANGUAGE } from "./languages";
 import { setRuntimeLanguage, translateNow } from "./runtime";
 
@@ -15,7 +15,7 @@ describe("translateNow", () => {
 
     it("follows the language the provider set", () => {
         setRuntimeLanguage("es");
-        expect(translateNow("common.cancel")).toBe(ES["common.cancel"]);
+        expect(translateNow("common.cancel")).toBe(CATALOGS.es["common.cancel"]);
     });
 
     it("interpolates params", () => {

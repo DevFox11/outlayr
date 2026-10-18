@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { EN, ES } from "@/i18n/catalog";
+import { CATALOGS, EN } from "@/i18n/catalog";
 import type { TranslateFn } from "@/i18n/context";
 import { translate } from "@/i18n/translate";
 
@@ -8,7 +8,7 @@ import { rowAmountLabel } from "./amount-label";
 
 const en: TranslateFn = (key, params) => translate(key, { catalog: EN, fallback: EN, params });
 
-const es: TranslateFn = (key, params) => translate(key, { catalog: ES, fallback: EN, params });
+const es: TranslateFn = (key, params) => translate(key, { catalog: CATALOGS.es, fallback: EN, params });
 
 const USD = { amount: 1240.5, code: "USD" };
 

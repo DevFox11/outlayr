@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import { getIntlayer } from "intlayer";
 
-import { CATALOGS, DICTIONARY_KEYS, EN, ES } from "./catalog";
+import { CATALOGS, DICTIONARY_KEYS, EN } from "./catalog";
 import { SUPPORTED_LANGUAGES } from "./languages";
 
 const PLACEHOLDER = /\{(\w+)\}/g;
@@ -27,7 +27,7 @@ describe("catalog parity", () => {
     });
 
     it("translates every English key into Spanish", () => {
-        const missing = Object.keys(EN).filter((key) => !(key in ES));
+        const missing = Object.keys(EN).filter((key) => !(key in CATALOGS.es));
         expect(missing).toStrictEqual([]);
     });
 
@@ -44,7 +44,7 @@ describe("catalog parity", () => {
 
     it("uses the same placeholders in both languages", () => {
         for (const [key, english] of Object.entries(EN)) {
-            const spanish = ES[key as keyof typeof ES];
+            const spanish = CATALOGS.es[key];
             if (!spanish) {
                 continue;
             }

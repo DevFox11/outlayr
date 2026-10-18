@@ -140,6 +140,13 @@ function catalogFor(locale: Language): Catalog {
 }
 
 export const EN = catalogFor("en");
-export const ES = catalogFor("es");
 
-export const CATALOGS = { en: EN, es: ES } satisfies Record<Language, Catalog>;
+let spanish: Catalog | undefined;
+
+export const CATALOGS = {
+    en: EN,
+    get es() {
+        spanish ??= catalogFor("es");
+        return spanish;
+    },
+} satisfies Record<Language, Catalog>;
