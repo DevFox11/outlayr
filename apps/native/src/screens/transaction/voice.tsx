@@ -596,6 +596,33 @@ function failedActions(
     };
 }
 
+type CreateArgs = Parameters<typeof transactionsRepo.create>;
+
+/** The transaction a resolved voice entry saves as. */
+function voiceEntry(db: CreateArgs[0], draft: ResolvedVoiceEntry, categoryId: string): CreateArgs[1] {
+    return {
+        accountId: draft.accountId,
+        amount: draft.amount,
+        categoryId,
+        currency: draft.currency,
+        date: draft.date,
+        details: draft.details,
+        fee: draft.income
+            ? null
+            : suggestedCardFee(db, {
+                  account: draft.accountId ? getAccountById(db, draft.accountId) : null,
+                  categoryId,
+                  currency: draft.currency,
+                  merchant: draft.merchant,
+              }),
+        income: draft.income,
+        note: draft.merchant,
+        onceRecurring: draft.recurrence !== null,
+        recurringCoefficient: draft.recurrence?.coefficient,
+        recurringType: draft.recurrence?.type,
+    };
+}
+
 function VoiceThreadScreen() {
     const router = useRouter();
     const db = useDatabase();
@@ -751,27 +778,7 @@ function VoiceThreadScreen() {
             const write = async () => {
                 let id: string;
                 try {
-                    id = await transactionsRepo.create(db, {
-                        accountId: draft.accountId,
-                        amount: draft.amount,
-                        categoryId,
-                        currency: draft.currency,
-                        date: draft.date,
-                        details: draft.details,
-                        fee: draft.income
-                            ? null
-                            : suggestedCardFee(db, {
-                                  account: draft.accountId ? getAccountById(db, draft.accountId) : null,
-                                  categoryId,
-                                  currency: draft.currency,
-                                  merchant: draft.merchant,
-                              }),
-                        income: draft.income,
-                        note: draft.merchant,
-                        onceRecurring: draft.recurrence !== null,
-                        recurringCoefficient: draft.recurrence?.coefficient,
-                        recurringType: draft.recurrence?.type,
-                    });
+                    id = await transactionsRepo.create(db, voiceEntry(db, draft, categoryId));
                 } catch {
                     // The row did not land; the form has the failure strip this screen lacks.
                     setSaving(false);
@@ -823,6 +830,7 @@ function VoiceThreadScreen() {
     const saveTransfer = useCallback(
         (draft: ResolvedVoiceTransfer, from: { id: string }, to: { id: string }) => {
             setSaving(true);
+            const note = draft.details ?? "";
             const write = async () => {
                 try {
                     const transferId = await transfersRepo.create(db, {
@@ -832,7 +840,7 @@ function VoiceThreadScreen() {
                         fromAccountId: from.id,
                         fromAmount: draft.amount,
                         fromCurrency: draft.currency,
-                        note: draft.details ?? "",
+                        note,
                         toAccountId: to.id,
                         toAmount: draft.amount,
                         toCurrency: draft.currency,
