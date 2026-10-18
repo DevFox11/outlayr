@@ -2,7 +2,14 @@ import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 import type { RecurringType } from "@outlayr/money/recurrence";
 import { roundMoney } from "@outlayr/money/round";
 
-import type { ProposedDraft, VoiceDraft, VoiceRecurrence, VoiceRecurrenceUnit } from "@/lib/convex";
+import type {
+    ProposedDraft,
+    VoiceDraft,
+    VoiceQuote,
+    VoiceQuoteField,
+    VoiceRecurrence,
+    VoiceRecurrenceUnit,
+} from "@/lib/convex";
 import { PROPOSE_DRAFT_TOOL } from "@/lib/convex";
 
 import { minorUnitsFor } from "./money";
@@ -272,10 +279,12 @@ export function meterToLevel(metering: number | undefined): number {
     return Math.min(1, Math.max(0, level));
 }
 
-/** A level this loud is the person, not the room. */
-const SPEECH_LEVEL = 0.22;
-/** How long after the last word the entry is taken as finished. */
-export const TRAILING_SILENCE_MS = 1400;
+const SPEECH_OVER_ROOM = 0.14;
+const SPEECH_FLOOR = 0.1;
+const SOUND_OVER_ROOM = 0.07;
+const SOUND_MS = 300;
+const ROOM_WINDOW_MS = 3000;
+export const TRAILING_SILENCE_MS = 2000;
 /** A listener with nothing said into it stops asking after this. */
 export const NO_SPEECH_TIMEOUT_MS = 9000;
 /** One entry is a sentence; the server caps the bytes, this caps the wait. */
@@ -284,7 +293,14 @@ export const MAX_RECORDING_MS = 45_000;
 export interface SilenceWatch {
     /** When speech was last heard; null until the first word. */
     lastSpeechAt: number | null;
+    recent: readonly { at: number; level: number }[];
+    sampledAt: number;
+    soundMs: number;
     startedAt: number;
+}
+
+export function startSilenceWatch(at: number): SilenceWatch {
+    return { lastSpeechAt: null, recent: [], sampledAt: at, soundMs: 0, startedAt: at };
 }
 
 type SilenceVerdict = "keep" | "finished" | "nothingSaid" | "tooLong";
@@ -296,15 +312,30 @@ export interface SilenceJudgement {
 
 /**
  * Decides, from one meter sample, whether the recorder should keep going.
- * Pure so the three thresholds above can be proven rather than tuned by ear.
+ * Pure so the thresholds above can be proven rather than tuned by ear.
  */
 export function judgeSilence(watch: SilenceWatch, level: number, at: number): SilenceJudgement {
-    const next: SilenceWatch = level >= SPEECH_LEVEL ? { ...watch, lastSpeechAt: at } : watch;
+    const elapsed = Math.max(0, at - watch.sampledAt);
+    const recent = [...watch.recent.filter((sample) => at - sample.at < ROOM_WINDOW_MS), { at, level }];
+    const room = Math.min(...recent.map((sample) => sample.level));
+    const speech = level >= Math.max(SPEECH_FLOOR, room + SPEECH_OVER_ROOM);
+    const murmur = !speech && level >= room + SOUND_OVER_ROOM;
+    const next: SilenceWatch = {
+        lastSpeechAt: speech ? at : watch.lastSpeechAt,
+        recent,
+        sampledAt: at,
+        soundMs: murmur ? watch.soundMs + elapsed : watch.soundMs,
+        startedAt: watch.startedAt,
+    };
+    const heardSomething = next.lastSpeechAt !== null || next.soundMs >= SOUND_MS;
     if (at - next.startedAt >= MAX_RECORDING_MS) {
-        return { verdict: next.lastSpeechAt === null ? "nothingSaid" : "tooLong", watch: next };
+        return { verdict: heardSomething ? "tooLong" : "nothingSaid", watch: next };
     }
     if (next.lastSpeechAt === null) {
-        return { verdict: at - next.startedAt >= NO_SPEECH_TIMEOUT_MS ? "nothingSaid" : "keep", watch: next };
+        if (at - next.startedAt < NO_SPEECH_TIMEOUT_MS) {
+            return { verdict: "keep", watch: next };
+        }
+        return { verdict: heardSomething ? "finished" : "nothingSaid", watch: next };
     }
     return { verdict: at - next.lastSpeechAt >= TRAILING_SILENCE_MS ? "finished" : "keep", watch: next };
 }
@@ -325,7 +356,7 @@ export interface VoiceTurnMessage {
     text: string;
 }
 
-/** One line of the thread strip: what was said, or what an answer proposed. */
+/** One turn of the thread: what was said, or what an answer proposed. */
 export type VoiceTurn =
     | { kind: "said"; order: number; text: string }
     | { draft: VoiceDraft | null; kind: "proposed"; order: number };
@@ -352,7 +383,7 @@ export function proposedDraftOf(message: VoiceTurnMessage): ProposedDraft | null
     return part.output as ProposedDraft;
 }
 
-/** The thread as the strip shows it: every sentence, and every answer that reached a draft. */
+/** The thread in turns: every sentence, and every answer that reached a draft. */
 export function voiceTurnsOf(messages: readonly VoiceTurnMessage[]): VoiceTurn[] {
     const turns: VoiceTurn[] = [];
     for (const message of messages) {
@@ -371,8 +402,8 @@ export function voiceTurnsOf(messages: readonly VoiceTurnMessage[]): VoiceTurn[]
 export type VoiceDraftField = "amount" | "merchant" | "category" | "account" | "date" | "kind" | "schedule" | "details";
 
 /**
- * What a correction changed, for the strip's "Updated · date" line. Compared
- * on the names the model answered, not on resolved ids: the strip narrates the
+ * What a correction changed, for the "Updated · date" line. Compared on the
+ * names the model answered, not on resolved ids: the line narrates the
  * conversation, and the conversation is in names.
  */
 export function draftDelta(previous: VoiceDraft, next: VoiceDraft): VoiceDraftField[] {
@@ -413,4 +444,46 @@ export function draftDelta(previous: VoiceDraft, next: VoiceDraft): VoiceDraftFi
         changed.push("account");
     }
     return changed;
+}
+
+export interface HeardSegment {
+    field: VoiceQuoteField | null;
+    start: number;
+    text: string;
+}
+
+export function heardSegments(sentence: string, quotes: readonly VoiceQuote[]): HeardSegment[] {
+    // Lower-casing can change a string's length (İ); then only exact matches are safe to slice.
+    const folded = sentence.toLowerCase();
+    const caseless = folded.length === sentence.length;
+    const haystack = caseless ? folded : sentence;
+    const spans: { end: number; field: VoiceQuoteField; start: number }[] = [];
+    for (const quote of quotes) {
+        const needle = caseless ? quote.text.trim().toLowerCase() : quote.text.trim();
+        if (needle.length === 0) {
+            continue;
+        }
+        const overlaps = (at: number) => spans.some((span) => at < span.end && at + needle.length > span.start);
+        let start = haystack.indexOf(needle);
+        while (start !== -1 && overlaps(start)) {
+            start = haystack.indexOf(needle, start + 1);
+        }
+        if (start !== -1) {
+            spans.push({ end: start + needle.length, field: quote.field, start });
+        }
+    }
+    spans.sort((a, b) => a.start - b.start);
+    const segments: HeardSegment[] = [];
+    let cursor = 0;
+    for (const span of spans) {
+        if (span.start > cursor) {
+            segments.push({ field: null, start: cursor, text: sentence.slice(cursor, span.start) });
+        }
+        segments.push({ field: span.field, start: span.start, text: sentence.slice(span.start, span.end) });
+        cursor = span.end;
+    }
+    if (cursor < sentence.length) {
+        segments.push({ field: null, start: cursor, text: sentence.slice(cursor) });
+    }
+    return segments;
 }

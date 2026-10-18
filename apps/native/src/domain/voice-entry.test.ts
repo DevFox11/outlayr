@@ -9,11 +9,13 @@ import {
     meterToLevel,
     NO_SPEECH_TIMEOUT_MS,
     draftDelta,
+    heardSegments,
     proposedDraftOf,
     resolveVoiceDraft,
     savableEntry,
     savableTransfer,
     spokenDateToLocal,
+    startSilenceWatch,
     voiceTurnsOf,
     TRAILING_SILENCE_MS,
 } from "./voice-entry";
@@ -239,25 +241,96 @@ describe("meterToLevel", () => {
 });
 
 describe("judgeSilence", () => {
-    const start = { lastSpeechAt: null, startedAt: 1000 };
+    const TICK_MS = 50;
 
-    it("keeps listening through the room until the first word", () => {
-        expect(judgeSilence(start, 0.05, 1000 + NO_SPEECH_TIMEOUT_MS - 1).verdict).toBe("keep");
-        expect(judgeSilence(start, 0.05, 1000 + NO_SPEECH_TIMEOUT_MS).verdict).toBe("nothingSaid");
+    function play(stretches: [number, number][]) {
+        let judged = { verdict: "keep", watch: startSilenceWatch(0) };
+        let at = 0;
+        for (const [level, ms] of stretches) {
+            for (const end = at + ms; at < end && judged.verdict === "keep";) {
+                at += TICK_MS;
+                judged = judgeSilence(judged.watch, level, at);
+            }
+        }
+        return { at, verdict: judged.verdict };
+    }
+
+    function words(level: number, dip: number, ms: number): [number, number][] {
+        return Array.from({ length: Math.round(ms / 350) }, () => [
+            [level, 250],
+            [dip, 100],
+        ]).flat() as [number, number][];
+    }
+
+    it("a soft voice in a quiet room is speech, and the pause after it ends the entry", () => {
+        const take = play([[0, 1000], ...words(0.16, 0.02, 2100), [0, 10_000]]);
+        expect(take.verdict).toBe("finished");
+        expect(take.at).toBe(3000 + TRAILING_SILENCE_MS);
     });
 
-    it("a word resets the clock; a trailing silence after it finishes the entry", () => {
-        const spoken = judgeSilence(start, 0.6, 5000);
-        expect(spoken.verdict).toBe("keep");
-        expect(spoken.watch.lastSpeechAt).toBe(5000);
-        expect(judgeSilence(spoken.watch, 0.05, 5000 + TRAILING_SILENCE_MS - 1).verdict).toBe("keep");
-        expect(judgeSilence(spoken.watch, 0.05, 5000 + TRAILING_SILENCE_MS).verdict).toBe("finished");
+    it("a steady café is the room, not a voice; a voice over it keeps the take open until it stops", () => {
+        expect(play([[0.35, MAX_RECORDING_MS]])).toStrictEqual({ at: NO_SPEECH_TIMEOUT_MS, verdict: "nothingSaid" });
+
+        const talking = play([[0.35, 1000], ...words(0.75, 0.38, 6300), [0.35, MAX_RECORDING_MS]]);
+        expect(talking).toStrictEqual({ at: 7200 + TRAILING_SILENCE_MS, verdict: "finished" });
     });
 
-    it("the hard cap ends a monologue, and names silence when nothing was ever said", () => {
-        const talking = { lastSpeechAt: 1000 + MAX_RECORDING_MS - 10, startedAt: 1000 };
-        expect(judgeSilence(talking, 0.8, 1000 + MAX_RECORDING_MS).verdict).toBe("tooLong");
-        expect(judgeSilence(start, 0, 1000 + MAX_RECORDING_MS).verdict).toBe("nothingSaid");
+    it("a murmur that never reads as speech is sent at the timeout; a lone bump is not", () => {
+        const murmur: [number, number][] = Array.from({ length: 10 }, (_, i) => [i % 2 === 0 ? 0 : 0.09, 500]);
+        expect(play([...murmur, [0, NO_SPEECH_TIMEOUT_MS]])).toStrictEqual({
+            at: NO_SPEECH_TIMEOUT_MS,
+            verdict: "finished",
+        });
+        expect(
+            play([
+                [0, 1000],
+                [0.09, 100],
+                [0, NO_SPEECH_TIMEOUT_MS],
+            ])
+        ).toStrictEqual({ at: NO_SPEECH_TIMEOUT_MS, verdict: "nothingSaid" });
+    });
+
+    it("the hard cap ends a monologue", () => {
+        const syllables: [number, number][] = Array.from({ length: MAX_RECORDING_MS / 300 }, (_, i) => [
+            i % 2 === 0 ? 0.7 : 0.05,
+            300,
+        ]);
+        expect(play(syllables)).toStrictEqual({ at: MAX_RECORDING_MS, verdict: "tooLong" });
+    });
+});
+
+describe("heardSegments", () => {
+    const sentence = "Gasté doce cincuenta en Starbucks ayer con la Visa";
+
+    it("cuts the sentence around the quoted words, in reading order, whatever the case", () => {
+        expect(
+            heardSegments(sentence, [
+                { field: "account", text: "la visa" },
+                { field: "amount", text: "doce cincuenta" },
+                { field: "merchant", text: "Starbucks" },
+                { field: "date", text: "mañana" },
+            ])
+        ).toStrictEqual([
+            { field: null, start: 0, text: "Gasté " },
+            { field: "amount", start: 6, text: "doce cincuenta" },
+            { field: null, start: 20, text: " en " },
+            { field: "merchant", start: 24, text: "Starbucks" },
+            { field: null, start: 33, text: " ayer con " },
+            { field: "account", start: 43, text: "la Visa" },
+        ]);
+    });
+
+    it("a phrase said twice lights the next free one instead of overlapping", () => {
+        expect(
+            heardSegments("diez y diez", [
+                { field: "amount", text: "diez" },
+                { field: "date", text: "diez" },
+            ])
+        ).toStrictEqual([
+            { field: "amount", start: 0, text: "diez" },
+            { field: null, start: 4, text: " y " },
+            { field: "date", start: 7, text: "diez" },
+        ]);
     });
 });
 

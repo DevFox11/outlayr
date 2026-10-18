@@ -58,6 +58,8 @@ const MAX_DETAILS_LENGTH = 200;
 const MAX_PAST_DAYS = 366;
 /** "Every 99 months" is already nonsense; past it the number is a mishearing. */
 const MAX_RECURRENCE_EVERY = 99;
+const MAX_QUOTE_LENGTH = 60;
+const MAX_QUOTES = 8;
 /**
  * The ledger's own ceiling, thirteen integer digits (`apps/native/src/domain/
  * numpad.ts`): what keeps cent arithmetic inside float64's safe range. A
@@ -179,9 +181,17 @@ export interface VoiceTransferDraft extends VoiceDraftBase {
  */
 export type VoiceDraft = VoiceEntryDraft | VoiceTransferDraft;
 
+const QUOTE_FIELDS = ["amount", "merchant", "category", "account", "date", "schedule"] as const;
+
+export interface VoiceQuote {
+    field: (typeof QUOTE_FIELDS)[number];
+    text: string;
+}
+
 /** What the `proposeDraft` tool hands back; null is "no transaction in those words". */
 export interface ProposedDraft {
     draft: VoiceDraft | null;
+    quotes?: VoiceQuote[];
 }
 
 function failure(status: Exclude<SpeakStatus, "ok">, transcript: string | null = null): SpeakResult {
@@ -202,6 +212,8 @@ export const modelOutputSchema = z.object({
     found: z.boolean(),
     kind: z.enum(["expense", "income", "transfer"]),
     merchant: z.string().nullable(),
+    // Optional: a required field the model skips would fail the whole tool call.
+    quotes: z.array(z.object({ field: z.enum(QUOTE_FIELDS), text: z.string() })).optional(),
     /** Set only when the words say the charge repeats. */
     recurrence: z.object({ every: z.number(), unit: z.enum(["day", "week", "month", "year"]) }).nullable(),
     /** The receiving account of a transfer; null for the other kinds. */
@@ -256,6 +268,7 @@ export function buildPrompt(args: LedgerContext): string {
             ? `Their accounts are: ${args.accounts.join(", ")}. Set accountName verbatim when one is said or clearly implied ("on the Amex"); otherwise null. For a transfer, accountName is the account the money left and toAccountName the one it reached; toAccountName is null for the other kinds.`
             : "They have no accounts; accountName and toAccountName are null.",
         "found is false when the words carry no amount and correct nothing (a greeting, a question, noise); then every other field may be null.",
+        'quotes lists, for each field the latest sentence actually says, the words it was read from, copied character for character from that sentence, e.g. {"field": "amount", "text": "doce cincuenta"}. Leave out fields the sentence does not say, including ones a correction carries over.',
         args.language ? `The speaker's language is ${args.language}.` : "",
     ]
         .filter((line) => line.length > 0)
@@ -316,15 +329,31 @@ export function normalizeDraft(output: ModelOutput, args: LedgerContext): VoiceD
     };
 }
 
+export function normalizeQuotes(quotes: ModelOutput["quotes"], sentence: string): VoiceQuote[] {
+    const folded = sentence.toLowerCase();
+    return (quotes ?? [])
+        .map((quote) => ({ field: quote.field, text: quote.text.trim() }))
+        .filter(
+            (quote) =>
+                quote.text.length > 0 &&
+                quote.text.length <= MAX_QUOTE_LENGTH &&
+                folded.includes(quote.text.toLowerCase())
+        )
+        .slice(0, MAX_QUOTES);
+}
+
 /**
  * The agent for one turn. The ledger context rides in the tool's closure and
  * in the per-call system prompt rather than in a table: it is the caller's to
  * send with each clip, exactly as before the thread existed.
  */
-function voiceAgent(model: AgentModel, context: LedgerContext) {
+function voiceAgent(model: AgentModel, context: LedgerContext, sentence: string) {
     const proposeDraft = createTool({
         description: "Propose the transaction the person just described, or the corrected version of the last draft.",
-        execute: (_ctx, input): Promise<ProposedDraft> => Promise.resolve({ draft: normalizeDraft(input, context) }),
+        execute: (_ctx, input): Promise<ProposedDraft> => {
+            const draft = normalizeDraft(input, context);
+            return Promise.resolve({ draft, quotes: draft === null ? [] : normalizeQuotes(input.quotes, sentence) });
+        },
         inputSchema: modelOutputSchema,
     });
     return new Agent(components.agent, {
@@ -568,7 +597,7 @@ export const speak = action({
             today: args.today,
         };
         const modelId = process.env.CLAUDE_MODEL_ID || CLAUDE_MODEL_ID;
-        const agent = voiceAgent(createAnthropic({ apiKey })(modelId), context);
+        const agent = voiceAgent(createAnthropic({ apiKey })(modelId), context, heard.text);
         const { message, messageId } = await saveMessage(ctx, components.agent, {
             prompt: heard.text,
             threadId: args.threadId,

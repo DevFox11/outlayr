@@ -357,9 +357,17 @@ interface VoiceTransferDraft extends VoiceDraftBase {
 
 export type VoiceDraft = VoiceEntryDraft | VoiceTransferDraft;
 
+export type VoiceQuoteField = "amount" | "merchant" | "category" | "account" | "date" | "schedule";
+
+export interface VoiceQuote {
+    field: VoiceQuoteField;
+    text: string;
+}
+
 /** What the agent's `proposeDraft` tool answered; a null draft is "no transaction in those words". */
 export interface ProposedDraft {
     draft: VoiceDraft | null;
+    quotes?: VoiceQuote[];
 }
 
 type SpeakStatus =

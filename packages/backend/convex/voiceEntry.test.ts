@@ -19,6 +19,7 @@ import {
     buildPrompt,
     MAX_AUDIO_BYTES,
     normalizeDraft,
+    normalizeQuotes,
     PROPOSE_DRAFT_TOOL,
     rateLimiter,
     transcribeClip,
@@ -92,6 +93,28 @@ describe("buildPrompt", () => {
         expect(prompt).toContain("Today is 2026-09-03 (Thursday)");
         expect(prompt).toContain("Food (containing Coffee); Groceries");
         expect(prompt).toContain("Amex, Checking");
+    });
+});
+
+describe("normalizeQuotes", () => {
+    it("keeps only phrases that are in the sentence, whatever their case, trimmed", () => {
+        const sentence = "Gasté doce cincuenta en Starbucks ayer con la Visa";
+        expect(
+            normalizeQuotes(
+                [
+                    { field: "amount", text: " Doce cincuenta " },
+                    { field: "merchant", text: "Starbucks Coffee" },
+                    { field: "account", text: "la Visa" },
+                    { field: "date", text: "" },
+                    { field: "category", text: sentence.repeat(2) },
+                ],
+                sentence
+            )
+        ).toStrictEqual([
+            { field: "amount", text: "Doce cincuenta" },
+            { field: "account", text: "la Visa" },
+        ]);
+        expect(normalizeQuotes(undefined, sentence)).toStrictEqual([]);
     });
 });
 

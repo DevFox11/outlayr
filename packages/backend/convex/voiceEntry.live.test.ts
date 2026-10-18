@@ -99,6 +99,9 @@ describe.skipIf(!live)("voice thread, live", () => {
             domain: "starbucks.com",
             kind: "entry",
         });
+        expect(draftAt(afterFirst.page, first.order)?.quotes).toContainEqual(
+            expect.objectContaining({ field: "amount" })
+        );
 
         const second = await asUser.action(api.voiceEntry.speak, { ...context, audio: await clipBytes(FIX_PATH) });
         expect(second.status).toBe("ok");

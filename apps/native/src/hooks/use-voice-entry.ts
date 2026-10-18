@@ -13,11 +13,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSharedValue } from "react-native-reanimated";
 import type { SharedValue } from "react-native-reanimated";
 
-import { judgeSilence, localIsoDate, meterToLevel, proposedDraftOf, voiceTurnsOf } from "@/domain/voice-entry";
-import type { SilenceWatch, VoiceTurn } from "@/domain/voice-entry";
+import {
+    judgeSilence,
+    localIsoDate,
+    meterToLevel,
+    proposedDraftOf,
+    startSilenceWatch,
+    voiceTurnsOf,
+} from "@/domain/voice-entry";
+import type { VoiceTurn } from "@/domain/voice-entry";
 import { duringHandoff } from "@/lib/app-handoff";
 import { VOICE_TURNS_QUERY, voiceThreadTransport } from "@/lib/convex";
-import type { SpeakRequest, StartThreadResult, VoiceDraft, VoiceThreadTransport } from "@/lib/convex";
+import type { SpeakRequest, StartThreadResult, VoiceDraft, VoiceQuote, VoiceThreadTransport } from "@/lib/convex";
 import { withTimeout } from "@/lib/with-timeout";
 
 /**
@@ -46,7 +53,7 @@ const RECORDING_OPTIONS: RecordingOptions = {
 const METER_INTERVAL_MS = 50;
 /** Transcription plus the agent's turn behind one request; past this the network, not the model, is the problem. */
 const REQUEST_TIMEOUT_MS = 25_000;
-/** A screen holds a handful of turns; the strip shows the last few of them. */
+/** A screen holds a handful of turns; corrections only ever look at the last few. */
 const TURNS_PAGE = 40;
 
 export type VoiceFailure =
@@ -71,11 +78,10 @@ export type VoiceFailure =
 export type VoicePhase<Context = unknown> =
     | { kind: "starting" }
     | { kind: "listening" }
-    /** The clip is read and on its way; the thread may still be opening. */
-    | { clip: ArrayBuffer; kind: "sending" }
+    | { after: number; clip: ArrayBuffer; kind: "sending" }
     /** The words landed at `order`; the agent's answer at the same order is the draft. */
     | { context: Context; kind: "thinking"; order: number }
-    | { context: Context; draft: VoiceDraft; kind: "review"; order: number }
+    | { context: Context; draft: VoiceDraft; kind: "review"; order: number; quotes: readonly VoiceQuote[] }
     | { kind: "failed"; reason: VoiceFailure; transcript: string | null };
 
 interface UseVoiceEntryArgs<Context> {
@@ -96,6 +102,7 @@ export interface UseVoiceEntryResult<Context> {
     cancel: () => void;
     /** Ends the clip now and sends it, instead of waiting for the trailing silence. */
     finish: () => void;
+    heard: string | null;
     /** Input level 0–1, written on the meter interval and read by the orb on the UI thread. */
     level: SharedValue<number>;
     /**
@@ -104,7 +111,8 @@ export interface UseVoiceEntryResult<Context> {
      */
     listenAgain: () => void;
     phase: VoicePhase<Context>;
-    /** The thread so far, for the strip under the draft. */
+    spoke: boolean;
+    /** The thread so far: every sentence and every draft it produced. */
     turns: VoiceTurn[];
 }
 
@@ -175,6 +183,7 @@ export function useVoiceEntry<Context>({
     const level = useSharedValue(0);
     const [phase, setPhase] = useState<VoicePhase<Context>>({ kind: "starting" });
     const [threadId, setThreadId] = useState<string | null>(null);
+    const [spoke, setSpoke] = useState(false);
     /** Bumped by every cancel/listenAgain so a stop racing a start cannot land on the wrong take. */
     const takeRef = useRef(0);
     const meterRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -185,12 +194,17 @@ export function useVoiceEntry<Context>({
     /** The clip already resent once on a fresh thread; a second `invalid` is a real failure. */
     const resentRef = useRef<ArrayBuffer | null>(null);
     const disposedRef = useRef(false);
+    const lastOrderRef = useRef(-1);
     const [api] = useState(() => transport ?? voiceThreadTransport());
 
     const { results: messages } = useUIMessages(VOICE_TURNS_QUERY, threadId === null ? "skip" : { threadId }, {
         initialNumItems: TURNS_PAGE,
         stream: true,
     });
+
+    useEffect(() => {
+        lastOrderRef.current = messages.reduce((last, message) => Math.max(last, message.order), -1);
+    }, [messages]);
 
     const stopMeter = useCallback(() => {
         if (meterRef.current !== null) {
@@ -237,7 +251,7 @@ export function useVoiceEntry<Context>({
             try {
                 const clip = await readAndDiscard(uri);
                 if (take === takeRef.current) {
-                    setPhase({ clip, kind: "sending" });
+                    setPhase({ after: lastOrderRef.current, clip, kind: "sending" });
                 }
             } catch {
                 if (take === takeRef.current) {
@@ -350,13 +364,17 @@ export function useVoiceEntry<Context>({
             return;
         }
         setPhase({ kind: "listening" });
+        setSpoke(false);
 
-        let watch: SilenceWatch = { lastSpeechAt: null, startedAt: Date.now() };
+        let watch = startSilenceWatch(Date.now());
         meterRef.current = setInterval(() => {
             const status = recorder.getStatus();
             const sample = meterToLevel(status.metering);
             level.set(sample);
             const judged = judgeSilence(watch, sample, Date.now());
+            if (watch.lastSpeechAt === null && judged.watch.lastSpeechAt !== null) {
+                setSpoke(true);
+            }
             ({ watch } = judged);
             if (judged.verdict === "keep") {
                 return;
@@ -419,6 +437,7 @@ export function useVoiceEntry<Context>({
                     // read as a new sentence, which is the honest outcome.
                     resentRef.current = clip;
                     sentRef.current = null;
+                    setPhase({ after: -1, clip, kind: "sending" });
                     dropThread();
                     void openThread();
                     return;
@@ -449,12 +468,38 @@ export function useVoiceEntry<Context>({
                 const said = messages.find((message) => message.role === "user" && message.order === phase.order);
                 return { kind: "failed", reason: "unclear", transcript: said?.text ?? null };
             }
-            return { context: phase.context, draft: proposed.draft, kind: "review", order: phase.order };
+            return {
+                context: phase.context,
+                draft: proposed.draft,
+                kind: "review",
+                order: phase.order,
+                quotes: proposed.quotes ?? [],
+            };
         }
         return answer.status === "failed" ? { kind: "failed", reason: "provider", transcript: null } : phase;
     }, [messages, phase]);
 
     const turns = useMemo(() => voiceTurnsOf(messages), [messages]);
+
+    const heard = useMemo(() => {
+        const said = (matches: (order: number) => boolean) =>
+            messages.find((message) => message.role === "user" && matches(message.order))?.text ?? null;
+        switch (settledPhase.kind) {
+            case "sending": {
+                return said((order) => order > settledPhase.after);
+            }
+            case "thinking":
+            case "review": {
+                return said((order) => order === settledPhase.order);
+            }
+            case "failed": {
+                return settledPhase.transcript;
+            }
+            default: {
+                return null;
+            }
+        }
+    }, [messages, settledPhase]);
 
     const finish = useCallback(() => {
         if (phase.kind === "listening") {
@@ -477,5 +522,5 @@ export function useVoiceEntry<Context>({
         void startTake();
     }, [openThread, startTake]);
 
-    return { cancel, finish, level, listenAgain, phase: settledPhase, turns };
+    return { cancel, finish, heard, level, listenAgain, phase: settledPhase, spoke, turns };
 }

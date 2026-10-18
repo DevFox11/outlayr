@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Button } from "panelui-native/components/button";
 import { Shimmer } from "panelui-native/components/shimmer";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import type React from "react";
 import { Linking, Pressable, Text, View } from "react-native";
 import Animated, {
@@ -19,7 +19,7 @@ import type { SharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AiConsentGate } from "@/components/ai-consent";
-import { FlowAmount } from "@/components/amount-text";
+import { AmountsHiddenContext, FlowAmount } from "@/components/amount-text";
 import { intervalPhrase } from "@/components/custom-schedule-sheet";
 import { LimitToast } from "@/components/limit-toast";
 import { ModalClose } from "@/components/modal-close";
@@ -27,31 +27,34 @@ import { VoiceOrb } from "@/components/voice/voice-orb";
 import type { VoiceOrbState } from "@/components/voice/voice-orb";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccounts } from "@/data/accounts";
-import { getAccountById, rememberLastUsedAccount } from "@/data/accounts-core";
+import { getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { suggestedCardFee } from "@/data/card-fees-core";
 import { useCategoriesByNamespace } from "@/data/categories";
 import { getCategoryById } from "@/data/categories-core";
 import { backfillRecurring } from "@/data/recurrence-backfill";
 import { useAiConsent } from "@/data/settings";
-import { transactionsRepo } from "@/data/transactions-core";
+import { lastLoggedEntry, transactionsRepo } from "@/data/transactions-core";
 import { transfersRepo } from "@/data/transfers-core";
 import type { AuthGate } from "@/domain/auth-gate";
 import { formatChargeDate } from "@/domain/dates";
+import type { HapticEvent } from "@/domain/haptics";
 import { amountParts, formatAmount, symbolPrefix } from "@/domain/money";
 import { boundedPromptNames } from "@/domain/prompt-budget";
+import type { LastEntry } from "@/domain/reminder";
 import {
     draftDelta,
-    resolveRecurrence,
+    heardSegments,
     resolveVoiceDraft,
     savableEntry,
     savableTransfer,
-    spokenDateToLocal,
     stillCurrent,
     transferStillCurrent,
 } from "@/domain/voice-entry";
 import type {
+    AccountCandidate,
     CategoryCandidate,
+    ResolvedVoiceDraft,
     ResolvedVoiceEntry,
     ResolvedVoiceTransfer,
     VoiceDraftField,
@@ -67,7 +70,7 @@ import { useLanguage, useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
 import type { Language } from "@/i18n/languages";
 import { useAuthSession } from "@/lib/auth-session";
-import type { VoiceDraft } from "@/lib/convex";
+import type { VoiceDraft, VoiceQuote } from "@/lib/convex";
 import { freshEntries } from "@/lib/fresh-entries";
 import { posthog } from "@/lib/posthog";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
@@ -75,16 +78,16 @@ import { useHaptics } from "@/lib/use-haptics";
 import { useColors } from "@/theme/use-colors";
 
 const ORB_SIZE = 180;
+const ORB_SIZE_HEARD = 120;
 /** Once a draft is on screen the orb is a badge above it, not the subject. */
-const ORB_SIZE_SETTLED = 120;
+const ORB_SIZE_SETTLED = 80;
 /** The orb's own press: a small give, never a bounce, so the tap reads as a touch on glass. */
 const ORB_PRESS_SCALE = 0.96;
 const ORB_SPRING = { damping: 18, mass: 0.9, stiffness: 170 };
 /** The merchant's mark sits in the sentence at the title's cap height, a small squircle. */
 const MARK_SIZE = 28;
 const MARK_RADIUS = 8;
-/** The strip shows the tail of the thread; earlier turns are still in it. */
-const STRIP_TURNS = 4;
+const HINT_MERCHANT_MAX = 24;
 
 const FAILURE_KEY = {
     denied: "voice.failed.denied",
@@ -101,6 +104,15 @@ const FAILURE_KEY = {
 } as const satisfies Record<VoiceFailure, string>;
 
 const NO_RETRY_REASONS: ReadonlySet<VoiceFailure> = new Set(["notEntitled", "quotaExceeded"]);
+
+const HANDOFF_HAPTIC: Partial<Record<VoicePhase["kind"], HapticEvent>> = {
+    failed: "error",
+    listening: "light",
+    review: "light",
+    sending: "selection",
+};
+
+const NO_QUOTES: readonly VoiceQuote[] = [];
 
 const FIELD_KEY = {
     account: "voice.turn.field.account",
@@ -238,7 +250,15 @@ function OrbControl({
  * it went, then the category and the day. A draft with no category says so in
  * the category's place rather than hiding the gap.
  */
-function ReviewLine({ draft, categoryName }: { draft: ResolvedVoiceEntry; categoryName: string | null }) {
+function ReviewLine({
+    accountName,
+    categoryName,
+    draft,
+}: {
+    accountName: string | null;
+    categoryName: string | null;
+    draft: ResolvedVoiceEntry;
+}) {
     const t = useTranslation();
     const { language } = useLanguage();
     const amount = formatAmount(draft.amount, draft.currency, true, language);
@@ -280,6 +300,12 @@ function ReviewLine({ draft, categoryName }: { draft: ResolvedVoiceEntry; catego
                         {t("transaction.schedule.every", {
                             interval: intervalPhrase(t, draft.recurrence.type, draft.recurrence.coefficient),
                         })}
+                    </>
+                ) : null}
+                {accountName ? (
+                    <>
+                        <Text className="text-subtle"> · </Text>
+                        {accountName}
                     </>
                 ) : null}
                 <Text className="text-subtle"> · </Text>
@@ -342,93 +368,153 @@ function StatusLine({ children, waiting = false }: { children: string; waiting?:
     );
 }
 
-/** What an answer proposed, in the strip's words: the first as a draft, the rest as what moved. */
-function proposedLabel(
-    turn: Extract<VoiceTurn, { kind: "proposed" }>,
-    previous: VoiceDraft | null,
-    t: TranslateFn,
-    language: Language
-) {
-    if (turn.draft === null) {
-        return { detail: "", label: t("voice.turn.unclear") };
-    }
-    if (previous !== null) {
-        const moved = draftDelta(previous, turn.draft);
-        return {
-            detail:
-                moved.length === 0 ? t("voice.turn.unchanged") : moved.map((field) => t(FIELD_KEY[field])).join(", "),
-            label: t("voice.turn.updated"),
-        };
-    }
-    const now = new Date();
-    const day = spokenDayLabel(spokenDateToLocal(turn.draft.date, now), now, t, language);
-    const parts = [
-        turn.draft.kind === "transfer"
-            ? t("voice.review.transfer", {
-                  from: turn.draft.fromAccountName ?? t("voice.review.noAccount"),
-                  to: turn.draft.toAccountName ?? t("voice.review.noAccount"),
-              })
-            : (turn.draft.categoryName ?? t("voice.review.noCategory")),
-    ];
-    if (turn.draft.kind === "entry" && turn.draft.recurrence) {
-        const schedule = resolveRecurrence(turn.draft.recurrence);
-        if (schedule) {
-            parts.push(
-                t("transaction.schedule.every", { interval: intervalPhrase(t, schedule.type, schedule.coefficient) })
-            );
-        }
-    }
-    parts.push(day);
-    return { detail: parts.join(" · "), label: t("voice.turn.draft") };
-}
-
-type StripRow =
-    | { key: string; kind: "said"; text: string }
-    | { detail: string; key: string; kind: "proposed"; label: string };
-
-/** Each answer is labelled against the draft before it, so the walk is in order. */
-function stripRows(turns: VoiceTurn[], t: TranslateFn, language: Language): StripRow[] {
-    const rows: StripRow[] = [];
-    let previous: VoiceDraft | null = null;
-    for (const turn of turns) {
-        if (turn.kind === "said") {
-            rows.push({ key: `said-${turn.order}`, kind: "said", text: turn.text });
-            continue;
-        }
-        rows.push({ key: `proposed-${turn.order}`, kind: "proposed", ...proposedLabel(turn, previous, t, language) });
-        previous = turn.draft ?? previous;
-    }
-    return rows;
-}
-
-/** The tail of the thread: what was said, and what each answer made of it. */
-function ThreadStrip({ turns }: { turns: VoiceTurn[] }) {
-    const t = useTranslation();
-    const { language } = useLanguage();
-    const rows = useMemo(() => stripRows(turns, t, language).slice(-STRIP_TURNS), [language, t, turns]);
-
-    if (rows.length === 0) {
-        return null;
-    }
-    return (
-        <Animated.View className="w-full gap-1.5" entering={FadeIn.duration(220)}>
-            {rows.map((row) =>
-                row.kind === "said" ? (
-                    <View className="bg-foreground/8 max-w-[86%] self-end rounded-2xl px-3 py-1.5" key={row.key}>
-                        <Text className="text-foreground font-sans text-sm" numberOfLines={2}>
-                            {row.text}
-                        </Text>
-                    </View>
+function HeardSentence({ quotes, text, under }: { quotes: readonly VoiceQuote[]; text: string; under: boolean }) {
+    const words = useMemo(
+        () =>
+            heardSegments(text, quotes).map((segment) =>
+                segment.field === null ? (
+                    segment.text
                 ) : (
-                    <Text className="text-muted self-start font-sans text-sm" key={row.key} numberOfLines={1}>
-                        {row.label}
-                        {row.detail ? <Text className="text-subtle"> · </Text> : null}
-                        <Text className="font-sans-medium text-foreground">{row.detail}</Text>
+                    <Text
+                        className={`font-sans-medium ${segment.field === "amount" ? "text-tint" : "text-foreground"}`}
+                        key={segment.start}
+                    >
+                        {segment.text}
                     </Text>
                 )
-            )}
+            ),
+        [quotes, text]
+    );
+    return (
+        <Animated.View className="px-4" entering={FadeIn.duration(220)}>
+            <Text
+                className={
+                    under
+                        ? "text-subtle text-callout text-center font-sans"
+                        : "text-foreground text-title font-sans-medium text-center"
+                }
+                numberOfLines={4}
+            >
+                “{words}”
+            </Text>
         </Animated.View>
     );
+}
+
+function correctionOf(turns: VoiceTurn[], order: number): VoiceDraftField[] | null {
+    let previous: VoiceDraft | null = null;
+    let current: VoiceDraft | null = null;
+    for (const turn of turns) {
+        if (turn.kind !== "proposed" || turn.draft === null) {
+            continue;
+        }
+        if (turn.order < order) {
+            previous = turn.draft;
+        } else if (turn.order === order) {
+            current = turn.draft;
+        }
+    }
+    return previous && current ? draftDelta(previous, current) : null;
+}
+
+function CorrectionLine({ fields }: { fields: VoiceDraftField[] }) {
+    const t = useTranslation();
+    return (
+        <Animated.View entering={FadeIn.duration(220)}>
+            <Text className="text-muted text-caption text-center font-sans">
+                {t("voice.turn.updated")}
+                <Text className="text-subtle"> · </Text>
+                <Text className="font-sans-medium text-foreground">
+                    {fields.length === 0
+                        ? t("voice.turn.unchanged")
+                        : fields.map((field) => t(FIELD_KEY[field])).join(", ")}
+                </Text>
+            </Text>
+        </Animated.View>
+    );
+}
+
+function latestDraft(turns: VoiceTurn[]): VoiceDraft | null {
+    for (let index = turns.length - 1; index >= 0; index -= 1) {
+        const turn = turns[index];
+        if (turn?.kind === "proposed" && turn.draft !== null) {
+            return turn.draft;
+        }
+    }
+    return null;
+}
+
+function DraftLine({ accounts, draft }: { accounts: readonly AccountCandidate[]; draft: ResolvedVoiceDraft }) {
+    const db = useDatabase();
+    if (draft.kind === "transfer") {
+        return <TransferReviewLine draft={draft} />;
+    }
+    const categoryName = draft.categoryId ? (getCategoryById(db, draft.categoryId)?.name ?? null) : null;
+    const accountName = accounts.find((account) => account.id === draft.accountId)?.name ?? null;
+    return <ReviewLine accountName={accountName} categoryName={categoryName} draft={draft} />;
+}
+
+const SAYING: ReadonlySet<VoicePhase["kind"]> = new Set(["starting", "listening", "sending", "thinking"]);
+
+function orbSizeOf(phase: VoicePhase, resolved: boolean, company: boolean): number {
+    if (resolved) {
+        return ORB_SIZE_SETTLED;
+    }
+    return company || phase.kind === "failed" ? ORB_SIZE_HEARD : ORB_SIZE;
+}
+
+function hintShown(phase: VoicePhase, spoke: boolean, turns: VoiceTurn[]): boolean {
+    return phase.kind === "listening" && !spoke && turns.length === 0;
+}
+
+function useHandoffHaptics(kind: VoicePhase["kind"]) {
+    const haptics = useHaptics();
+    useEffect(() => {
+        const cue = HANDOFF_HAPTIC[kind];
+        if (cue) {
+            haptics(cue);
+        }
+    }, [haptics, kind]);
+}
+
+function useVoiceHint(): string | null {
+    const db = useDatabase();
+    const t = useTranslation();
+    const amountsHidden = use(AmountsHiddenContext);
+    const [seed, setSeed] = useState<{ account: string | null; last: LastEntry | null } | null>(null);
+
+    useEffect(() => {
+        let live = true;
+        lastLoggedEntry(db, new Date())
+            .catch(() => null)
+            .then((last) => {
+                if (live) {
+                    setSeed({ account: getLastUsedAccount(db)?.name ?? null, last });
+                }
+            });
+        return () => {
+            live = false;
+        };
+    }, [db]);
+
+    if (seed === null) {
+        return null;
+    }
+    const merchant = seed.last?.note.trim() ?? "";
+    const usable =
+        !amountsHidden &&
+        seed.last !== null &&
+        !seed.last.income &&
+        merchant.length > 0 &&
+        merchant.length <= HINT_MERCHANT_MAX;
+    let example = t("voice.hint.fallback");
+    if (usable && seed.last) {
+        const amount = String(Math.max(1, Math.round(seed.last.amount)));
+        example = seed.account
+            ? t("voice.hint.exampleAccount", { account: seed.account, amount, merchant })
+            : t("voice.hint.example", { amount, merchant });
+    }
+    return t("voice.hint", { example });
 }
 
 /**
@@ -573,7 +659,8 @@ function VoiceThreadScreen() {
         [accounts, bounded.accountsOmitted, bounded.categoriesOmitted, candidates, currency]
     );
 
-    const { phase, level, finish, listenAgain, cancel, turns } = useVoiceEntry({ context, request });
+    const { cancel, finish, heard, level, listenAgain, phase, spoke, turns } = useVoiceEntry({ context, request });
+    const hint = useVoiceHint();
     const refusal = phase.kind === "failed" && isLimitRefusal(phase.reason) ? phase.reason : null;
     const limit = useLimitNotice("voiceEntry", refusal);
 
@@ -586,6 +673,13 @@ function VoiceThreadScreen() {
     );
     const entry = resolved?.kind === "entry" ? resolved : null;
     const transfer = resolved?.kind === "transfer" ? resolved : null;
+    const saying = SAYING.has(phase.kind);
+    const earlier = useMemo(() => {
+        const draft = saying ? latestDraft(turns) : null;
+        return draft ? resolveVoiceDraft({ ...context, draft, now: new Date() }) : null;
+    }, [context, saying, turns]);
+    const shown = resolved ?? earlier;
+    useHandoffHaptics(phase.kind);
     const live = useMemo(
         () => ({
             accountIds: new Set(accounts.map((account) => account.id)),
@@ -594,7 +688,6 @@ function VoiceThreadScreen() {
         [accounts, candidates]
     );
     const savableCategoryId = entry && stillCurrent(entry, live) ? (savableEntry(entry)?.categoryId ?? null) : null;
-    const categoryName = entry?.categoryId ? (getCategoryById(db, entry.categoryId)?.name ?? null) : null;
 
     const close = useCallback(() => {
         cancel();
@@ -804,22 +897,7 @@ function VoiceThreadScreen() {
     const settled = resolved !== null || phase.kind === "failed";
     const transferLegs = transfer && transferStillCurrent(transfer, live) ? savableTransfer(transfer) : null;
 
-    let caption: React.ReactNode = null;
-    if (entry) {
-        caption = (
-            <Animated.View entering={FadeIn.duration(260)}>
-                <ReviewLine categoryName={categoryName} draft={entry} />
-            </Animated.View>
-        );
-    } else if (transfer) {
-        caption = (
-            <Animated.View entering={FadeIn.duration(260)}>
-                <TransferReviewLine draft={transfer} />
-            </Animated.View>
-        );
-    } else if (status && refusal === null) {
-        caption = <StatusLine waiting={phase.kind !== "failed"}>{status}</StatusLine>;
-    }
+    const moved = phase.kind === "review" ? correctionOf(turns, phase.order) : null;
 
     // The bottom axis: Edit and Save at equal width (the weight, not the width,
     // says which is primary), or "Finish in the form" when the draft cannot be
@@ -898,16 +976,28 @@ function VoiceThreadScreen() {
                 label={orb.label}
                 level={level}
                 onPress={orb.onPress}
-                size={settled ? ORB_SIZE_SETTLED : ORB_SIZE}
+                size={orbSizeOf(phase, resolved !== null, shown !== null || heard !== null)}
                 state={orbStateOf(phase)}
             />
-            {caption}
-            {phase.kind === "failed" && phase.transcript ? (
-                <Text className="text-subtle px-8 text-center font-sans text-base" numberOfLines={3}>
-                    “{phase.transcript}”
-                </Text>
+            {shown ? (
+                <Animated.View entering={FadeIn.duration(260)}>
+                    <DraftLine accounts={accounts} draft={shown} />
+                </Animated.View>
             ) : null}
-            {settled ? <ThreadStrip turns={turns} /> : null}
+            {heard ? (
+                <HeardSentence
+                    quotes={phase.kind === "review" ? phase.quotes : NO_QUOTES}
+                    text={heard}
+                    under={shown !== null}
+                />
+            ) : null}
+            {status && refusal === null ? <StatusLine waiting={phase.kind !== "failed"}>{status}</StatusLine> : null}
+            {hint && hintShown(phase, spoke, turns) ? (
+                <Animated.View entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)}>
+                    <Text className="text-grammar text-caption text-center font-sans">{hint}</Text>
+                </Animated.View>
+            ) : null}
+            {moved ? <CorrectionLine fields={moved} /> : null}
         </VoiceShell>
     );
 }

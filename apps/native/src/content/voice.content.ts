@@ -76,6 +76,22 @@ const voice = {
             en: "Didn't catch a transaction in that.",
             es: "No detecté ninguna transacción ahí.",
         }),
+        "voice.hint": t({
+            en: "Try “{example}”",
+            es: "Prueba “{example}”",
+        }),
+        "voice.hint.example": t({
+            en: "{amount} at {merchant} today",
+            es: "{amount} en {merchant} hoy",
+        }),
+        "voice.hint.exampleAccount": t({
+            en: "{amount} at {merchant} today on {account}",
+            es: "{amount} en {merchant} hoy con {account}",
+        }),
+        "voice.hint.fallback": t({
+            en: "12 for lunch today",
+            es: "12 de almuerzo hoy",
+        }),
         "voice.limit.last": t({
             en: "Last clip for now",
             es: "Última grabación por ahora",
@@ -134,11 +150,6 @@ const voice = {
             en: "Writing it down…",
             es: "Anotando…",
         }),
-        // The thread strip: what was said, and what each answer changed.
-        "voice.turn.draft": t({
-            en: "Draft",
-            es: "Borrador",
-        }),
         "voice.turn.field.account": t({
             en: "account",
             es: "cuenta",
@@ -174,10 +185,6 @@ const voice = {
         "voice.turn.unchanged": t({
             en: "Same as before",
             es: "Igual que antes",
-        }),
-        "voice.turn.unclear": t({
-            en: "Not a transaction",
-            es: "No es una transacción",
         }),
         "voice.turn.updated": t({
             en: "Updated",
