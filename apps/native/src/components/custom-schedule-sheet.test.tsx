@@ -13,9 +13,11 @@ jest.mock("number-flow-react-native", () => {
 
 // Only the sheet is stubbed — it presents through a native host that renders to
 // nothing here. Tabs is the real component, so the cadence row is under test.
-jest.mock("panelui-native", () => {
+jest.mock("panelui-native/components/bottom-sheet", () => {
     const react = require("react") as typeof import("react");
-    const actual = jest.requireActual("panelui-native") as typeof import("panelui-native");
+    const actual = jest.requireActual(
+        "panelui-native/components/bottom-sheet"
+    ) as typeof import("panelui-native/components/bottom-sheet");
     const Content = ({ children, ...rest }: Record<string, unknown>) =>
         react.createElement("SheetContent", rest, children as never);
     const Root = ({ children, ...rest }: Record<string, unknown>) =>

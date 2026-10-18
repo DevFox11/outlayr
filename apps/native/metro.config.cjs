@@ -1,5 +1,6 @@
 "use strict";
 
+const { existsSync } = require("node:fs");
 const path = require("node:path");
 
 const { getPostHogExpoConfig } = require("posthog-react-native/metro");
@@ -35,6 +36,33 @@ const finalConfig = configMetroIntlayerSync(
         dtsFile: "./uniwind-types.d.ts",
     })
 );
+
+// `react-native-purchases` requires RevenueCat's ~1 MB web SDK at the top level,
+// but only its browser mode (Expo Go, Rork, web) ever calls into it. Our native
+// builds always carry `RNPurchases`, so iOS and Android get an empty module.
+// zod ships every module twice, `.js` (ESM) beside `.cjs`, and the AI SDK's
+// `zod/v4` subpaths resolve to the `.cjs` files while the app's `zod` gets the
+// `.js` ones: a second ~500 KB zod. Pointing each zod `.cjs` at its `.js` twin
+// leaves one copy.
+const BROWSER_ONLY_MODULES = new Set(["@revenuecat/purchases-js-hybrid-mappings"]);
+const upstreamResolveRequest = finalConfig.resolver.resolveRequest;
+finalConfig.resolver = {
+    ...finalConfig.resolver,
+    resolveRequest: (context, moduleName, platform) => {
+        const resolve = upstreamResolveRequest ?? context.resolveRequest;
+        if (platform !== "web" && BROWSER_ONLY_MODULES.has(moduleName)) {
+            return { type: "empty" };
+        }
+        const resolution = resolve(context, moduleName, platform);
+        if ((moduleName === "zod" || moduleName.startsWith("zod/")) && resolution.filePath?.endsWith(".cjs")) {
+            const esmTwin = resolution.filePath.replace(/\.cjs$/, ".js");
+            if (existsSync(esmTwin)) {
+                return { ...resolution, filePath: esmTwin };
+            }
+        }
+        return resolution;
+    },
+};
 
 const SIM_PREVIEW_PATH = "/.sim";
 

@@ -3,7 +3,7 @@ import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
 import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
 import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { InputGroup } from "panelui-native";
+import { InputGroup } from "panelui-native/components/input-group";
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { ReactNode, Ref } from "react";
 import { Pressable, View } from "react-native";

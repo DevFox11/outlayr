@@ -1,4 +1,4 @@
-import { useTheme } from "panelui-native";
+import { useTheme } from "panelui-native/theme";
 import { Pressable, View } from "react-native";
 
 import { CategoryIcon } from "@/components/category-icon";

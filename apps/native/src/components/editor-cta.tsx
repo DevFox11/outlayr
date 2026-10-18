@@ -1,4 +1,4 @@
-import { Button } from "panelui-native";
+import { Button } from "panelui-native/components/button";
 import { View } from "react-native";
 
 import { CTA_HEIGHT } from "@/components/editor-style";

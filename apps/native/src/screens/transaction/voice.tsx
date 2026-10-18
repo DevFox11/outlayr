@@ -1,7 +1,8 @@
 import { startOfDay } from "@outlayr/money/calendar";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { Button, Shimmer } from "panelui-native";
+import { Button } from "panelui-native/components/button";
+import { Shimmer } from "panelui-native/components/shimmer";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type React from "react";
 import { Linking, Pressable, Text, View } from "react-native";

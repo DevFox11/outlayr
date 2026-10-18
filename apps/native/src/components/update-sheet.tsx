@@ -1,6 +1,8 @@
 import { useSegments } from "expo-router";
 import { checkForUpdateAsync, fetchUpdateAsync, isEnabled, reloadAsync, useUpdates } from "expo-updates";
-import { BottomSheet, Button, cn } from "panelui-native";
+import { BottomSheet } from "panelui-native/components/bottom-sheet";
+import { Button } from "panelui-native/components/button";
+import { cn } from "panelui-native/utils/cn";
 import { useEffect, useMemo, useState } from "react";
 import { AppState, View } from "react-native";
 import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -74,9 +76,10 @@ export function UpdateSheet() {
     };
 
     const apply = async () => {
+        const downloaded = downloadedUpdate?.updateId === shown.id;
         setState("busy");
         try {
-            if (downloadedUpdate?.updateId !== shown.id) {
+            if (!downloaded) {
                 await fetchUpdateAsync();
             }
             await flushDeletes();

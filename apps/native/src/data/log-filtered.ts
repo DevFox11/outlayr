@@ -141,14 +141,14 @@ export function useUpcomingTransactions(db: Database, nowMs: number, limited: bo
                 .select(LOG_COLUMNS)
                 .from(transactions)
                 .where(
-                    and(
-                        isNull(transactions.deletedAt),
-                        or(
-                            // A scheduled entry is upcoming even when its stored date is
-                            // past: what is upcoming is its next occurrence.
-                            gt(transactions.recurringType, 0),
-                            gt(transactions.date, now)
-                        )
+                    // `deletedAt` inside each branch, not hoisted: SQLite only walks the
+                    // recurring and date indexes as a MULTI-INDEX OR when every branch
+                    // carries it, and scans the table otherwise.
+                    or(
+                        // A scheduled entry is upcoming even when its stored date is
+                        // past: what is upcoming is its next occurrence.
+                        and(isNull(transactions.deletedAt), gt(transactions.recurringType, 0)),
+                        and(isNull(transactions.deletedAt), gt(transactions.date, now))
                     )
                 ),
         [nowMs]

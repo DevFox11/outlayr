@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals
 import { BUDGET_TYPE } from "@outlayr/money/budget-window";
 import { firstOfMonth, startOfDay } from "@outlayr/money/calendar";
 import { eq } from "drizzle-orm";
-import { toast } from "panelui-native";
-import type { ToastOptions } from "panelui-native";
+import { toast } from "panelui-native/components/toast";
+import type { ToastOptions } from "panelui-native/components/toast";
 import { isValidElement } from "react";
 
 import type { NoticeSlipProps } from "@/components/notice-slip";

@@ -333,7 +333,7 @@ export default function TransferEditor({
             toAmount: legs.toAmount,
             toCurrency: draft.toCurrency,
         };
-        try {
+        const persist = async () => {
             if (saved) {
                 await transfersRepo.update(db, saved.id, input);
             } else {
@@ -359,14 +359,15 @@ export default function TransferEditor({
             });
             haptics("success");
             onDone();
-        } catch (error) {
+        };
+        await persist().catch((error) => {
             console.error("Failed to save the transfer", error);
             haptics("error");
             savingRef.current = false;
             setSaving(false);
             setSavingLedger(null);
             setSaveFailure(t("transfers.save.failed"));
-        }
+        });
     };
 
     const onFooter = () => {

@@ -4,7 +4,7 @@ import type { EntryRateType } from "@outlayr/money/rates";
 import { ensureRecurringType, RECURRING_TYPE } from "@outlayr/money/recurrence";
 import { useField, useForm, useSelector } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
-import { PortalHost, PortalProvider } from "panelui-native";
+import { PortalHost, PortalProvider } from "panelui-native/primitives/portal";
 import type { ReactNode, RefObject } from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
@@ -1387,7 +1387,7 @@ export function TransactionForm({
         };
     });
 
-    const resolveLocal = useCallback((suggestion: EnrichmentSuggestion): EnrichmentSuggestion => {
+    const resolveLocal = (suggestion: EnrichmentSuggestion): EnrichmentSuggestion => {
         let { categoryId, pendingCategory: suggestedCategory } = suggestion;
         if (categoryId == null && suggestedCategory != null) {
             const matchedCategory = latest.current.categories.find(
@@ -1415,7 +1415,7 @@ export function TransactionForm({
             pendingTagNames,
             tagIds: resolvedTagIds,
         };
-    }, []);
+    };
 
     /**
      * The user asked for this merchant to be looked up, on this row, and has
@@ -1470,106 +1470,103 @@ export function TransactionForm({
      * open picker stops it. Each run takes a ticket, and a result that settles
      * after a newer one started is dropped rather than painted over it.
      */
-    const attachLogo = useCallback(
-        async (domain: string | null): Promise<boolean> => {
-            const blocked = () =>
-                latest.current.pickerOpen ||
-                // A lookup the user asked for is a choice made now, over whatever
-                // the well holds; only an open picker outranks it.
-                ((!forcedLookupRef.current || touchedSinceLookupRef.current.has("identity")) &&
-                    (latest.current.identitySource === "user" ||
-                        // An emoji or photo carried in from `initial`/`copyOf` is a choice
-                        // already made; only an empty well or an earlier suggestion moves.
-                        (latest.current.identitySource === "initial" && latest.current.hasIdentity)));
-            if (blocked()) {
-                return false;
+    const attachLogo = async (domain: string | null): Promise<boolean> => {
+        const blocked = () =>
+            latest.current.pickerOpen ||
+            // A lookup the user asked for is a choice made now, over whatever
+            // the well holds; only an open picker outranks it.
+            ((!forcedLookupRef.current || touchedSinceLookupRef.current.has("identity")) &&
+                (latest.current.identitySource === "user" ||
+                    // An emoji or photo carried in from `initial`/`copyOf` is a choice
+                    // already made; only an empty well or an earlier suggestion moves.
+                    (latest.current.identitySource === "initial" && latest.current.hasIdentity)));
+        if (blocked()) {
+            return false;
+        }
+        logoRequestRef.current += 1;
+        const ticket = logoRequestRef.current;
+        // The name the domain was found for. The transport rejects an answer
+        // for a name the field has left, but this pipeline is awaited on its
+        // own, and a rename during the next debounce would otherwise take
+        // the previous merchant's logo.
+        const askedFor = merchantKey(form.store.state.values.merchant);
+        const stale = () =>
+            ticket !== logoRequestRef.current ||
+            merchantKey(form.store.state.values.merchant) !== askedFor ||
+            blocked();
+        // The new merchant resolved to nothing, so the previous merchant's
+        // logo has to go with it — keeping it would caption this entry with
+        // the wrong brand.
+        const dropSuggested = () => {
+            if (latest.current.identitySource === "suggested") {
+                setIdentitySource("initial");
+                setIdentity((previous) => ({
+                    ...previous,
+                    photoColor: null,
+                    photoUri: null,
+                }));
             }
-            logoRequestRef.current += 1;
-            const ticket = logoRequestRef.current;
-            // The name the domain was found for. The transport rejects an answer
-            // for a name the field has left, but this pipeline is awaited on its
-            // own, and a rename during the next debounce would otherwise take
-            // the previous merchant's logo.
-            const askedFor = merchantKey(form.store.state.values.merchant);
-            const stale = () =>
-                ticket !== logoRequestRef.current ||
-                merchantKey(form.store.state.values.merchant) !== askedFor ||
-                blocked();
-            // The new merchant resolved to nothing, so the previous merchant's
-            // logo has to go with it — keeping it would caption this entry with
-            // the wrong brand.
-            const dropSuggested = () => {
-                if (latest.current.identitySource === "suggested") {
-                    setIdentitySource("initial");
-                    setIdentity((previous) => ({
-                        ...previous,
-                        photoColor: null,
-                        photoUri: null,
-                    }));
-                }
-            };
+        };
 
-            // A withdrawn domain (a currency change, a name with no answer) is
-            // known now, and the drop must not wait on a fetch that has nothing
-            // to fetch: a save in that gap would keep the wrong brand on the row.
-            if (domain == null) {
-                dropSuggested();
-                return false;
-            }
-            const outcome = await fetchMerchantImage({
-                domain,
-                name: form.store.state.values.merchant,
-                refresh: forcedLookupRef.current,
-            });
-            if (stale()) {
-                return false;
-            }
-            if (outcome.kind !== "logo") {
-                dropSuggested();
-                return false;
-            }
-            // Required lazily so rendering this form does not pull Skia's downscaler
-            // into the module graph, matching `domain/ids.ts`.
-            // SAFETY: `require` is untyped; the path is a first-party module and the
-            // asserted type is that same module's own.
-            const photoStorage = require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
-            let photoUri: string;
+        // A withdrawn domain (a currency change, a name with no answer) is
+        // known now, and the drop must not wait on a fetch that has nothing
+        // to fetch: a save in that gap would keep the wrong brand on the row.
+        if (domain == null) {
+            dropSuggested();
+            return false;
+        }
+        const outcome = await fetchMerchantImage({
+            domain,
+            name: form.store.state.values.merchant,
+            refresh: forcedLookupRef.current,
+        });
+        if (stale()) {
+            return false;
+        }
+        if (outcome.kind !== "logo") {
+            dropSuggested();
+            return false;
+        }
+        // Required lazily so rendering this form does not pull Skia's downscaler
+        // into the module graph, matching `domain/ids.ts`.
+        // SAFETY: `require` is untyped; the path is a first-party module and the
+        // asserted type is that same module's own.
+        const photoStorage = require("@/lib/photo-storage") as typeof import("@/lib/photo-storage");
+        let photoUri: string;
+        try {
+            photoUri = await photoStorage.persistLogoBytes(outcome.bytes);
+        } catch {
+            return false;
+        }
+        // Same tint the picker extracts for a chosen photo, so an auto-attached
+        // logo colours the well and the curtain behind it rather than sitting on
+        // the neutral fallback. An unreadable image costs the tint alone.
+        const hues = await glowFromImage(photoUri);
+        if (stale()) {
+            // Nothing will name this file: the row moved on, or the form is
+            // gone (the unmount bumps the ticket).
             try {
-                photoUri = await photoStorage.persistLogoBytes(outcome.bytes);
+                photoStorage.photoFiles.remove(photoUri.slice(photoUri.lastIndexOf("/") + 1));
             } catch {
-                return false;
+                // A file already gone is the outcome wanted.
             }
-            // Same tint the picker extracts for a chosen photo, so an auto-attached
-            // logo colours the well and the curtain behind it rather than sitting on
-            // the neutral fallback. An unreadable image costs the tint alone.
-            const hues = await glowFromImage(photoUri);
-            if (stale()) {
-                // Nothing will name this file: the row moved on, or the form is
-                // gone (the unmount bumps the ticket).
-                try {
-                    photoStorage.photoFiles.remove(photoUri.slice(photoUri.lastIndexOf("/") + 1));
-                } catch {
-                    // A file already gone is the outcome wanted.
-                }
-                return false;
-            }
-            suggestedDomainRef.current = domain;
-            setIdentitySource("suggested");
-            // A requested lookup puts the logo in place of an emoji or glyph, not
-            // behind one; a lookup the form ran on its own only ever fills an
-            // empty well, so there is nothing there to clear.
-            const replacesChoice = forcedLookupRef.current && !touchedSinceLookupRef.current.has("identity");
-            setIdentity((previous) => ({
-                ...previous,
-                emoji: replacesChoice ? null : previous.emoji,
-                icon: replacesChoice ? null : previous.icon,
-                photoColor: hues[0] ?? null,
-                photoUri,
-            }));
-            return true;
-        },
-        [form, setIdentity]
-    );
+            return false;
+        }
+        suggestedDomainRef.current = domain;
+        setIdentitySource("suggested");
+        // A requested lookup puts the logo in place of an emoji or glyph, not
+        // behind one; a lookup the form ran on its own only ever fills an
+        // empty well, so there is nothing there to clear.
+        const replacesChoice = forcedLookupRef.current && !touchedSinceLookupRef.current.has("identity");
+        setIdentity((previous) => ({
+            ...previous,
+            emoji: replacesChoice ? null : previous.emoji,
+            icon: replacesChoice ? null : previous.icon,
+            photoColor: hues[0] ?? null,
+            photoUri,
+        }));
+        return true;
+    };
     // A logo still being fetched when the form closes has no row to land on.
     useEffect(
         () => () => {
@@ -2929,19 +2926,23 @@ export function TransactionForm({
                     </KeyboardAvoidingView>
                 )}
 
-                <SplitSheet
-                    allocations={splitAllocations}
-                    code={currency}
-                    db={db}
-                    income={income}
-                    minorUnits={minorUnitsFor(currency)}
-                    onChange={(next) => {
-                        setEdited(true);
-                        setSplitAllocations(next);
-                    }}
-                    ref={splitSheetRef}
-                    total={numpadToNumber(form.store.state.values.amount)}
-                />
+                <SubscribeFields selector={(s) => ({ amount: s.values.amount })} store={form.store}>
+                    {({ amount }) => (
+                        <SplitSheet
+                            allocations={splitAllocations}
+                            code={currency}
+                            db={db}
+                            income={income}
+                            minorUnits={minorUnitsFor(currency)}
+                            onChange={(next) => {
+                                setEdited(true);
+                                setSplitAllocations(next);
+                            }}
+                            ref={splitSheetRef}
+                            total={numpadToNumber(amount)}
+                        />
+                    )}
+                </SubscribeFields>
                 <SubscribeFields
                     selector={(s) => ({
                         pendingTagNames: s.values.pendingTagNames,

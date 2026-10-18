@@ -26,12 +26,18 @@ jest.mock("expo-sqlite", () => ({
     },
 }));
 
-async function fireAppMetaChange() {
+async function fireAppMetaChange(rows = 1) {
     await act(async () => {
-        // oxlint-disable-next-line unicorn/no-useless-spread -- mirrors the copy the real listener list is iterated over
-        for (const listener of [...mockChangeListeners]) {
-            listener({ tableName: "appMeta" });
+        for (let row = 0; row < rows; row += 1) {
+            // oxlint-disable-next-line unicorn/no-useless-spread -- mirrors the copy the real listener list is iterated over
+            for (const listener of [...mockChangeListeners]) {
+                listener({ tableName: "appMeta" });
+            }
         }
+        // Change events reach live reads on the next tick, coalesced.
+        await new Promise((resolve) => {
+            setTimeout(resolve, 0);
+        });
     });
 }
 
@@ -87,6 +93,27 @@ describe("useLiveValue", () => {
 
         await waitFor(() => expect(getByTestId("probe").props.children).toBe("one"));
         expect(renders).toBeGreaterThan(before);
+    });
+
+    it("re-reads once for a write's burst of row events, not once per row", async () => {
+        let reads = 0;
+        const { result } = await renderHook(() =>
+            useLiveValue(
+                appMeta,
+                () => {
+                    reads += 1;
+                    return db.select().from(appMeta);
+                },
+                (rows) => rows.length
+            )
+        );
+        const before = reads;
+
+        write(db, "alpha", "one");
+        await fireAppMetaChange(300);
+
+        expect(reads - before).toBe(1);
+        expect(result.current).toBe(1);
     });
 });
 

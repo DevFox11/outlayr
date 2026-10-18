@@ -1,4 +1,4 @@
-import { RadioGroup } from "panelui-native";
+import { RadioGroup } from "panelui-native/components/radio-group";
 import { View } from "react-native";
 
 import { MonoLabel } from "@/components/mono-label";

@@ -166,7 +166,9 @@ describe("attachMissingLogos", () => {
 
     it("paints every row of a merchant from one lookup, each with its own file", async () => {
         await seedRow(db, "a", "Intermarche");
-        await seedRow(db, "b", "INTERMARCHÉ");
+        // An hour older, so the newest-first scan names the group by "a" without
+        // leaning on how SQLite breaks a tie.
+        await seedRow(db, "b", "INTERMARCHÉ", { date: new Date(NOW.getTime() - 3_600_000) });
         let persisted = 0;
         const deps = makeDeps({
             persist: async () => {

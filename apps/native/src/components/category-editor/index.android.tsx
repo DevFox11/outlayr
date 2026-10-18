@@ -156,7 +156,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: Database }) {
         defaultValues: initialValues,
         onSubmit: async ({ value }) => {
             setFailure(null);
-            try {
+            const persist = async () => {
                 if (mode === "create") {
                     return await addCategory(value);
                 }
@@ -177,9 +177,8 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: Database }) {
                 haptics("success");
                 router.back();
                 return await holdSubmitting();
-            } catch (error) {
-                reportSaveFailure(error);
-            }
+            };
+            return await persist().catch(reportSaveFailure);
         },
     });
     const { name, income: formIncome } = useSelector(form.store, (s) => s.values);

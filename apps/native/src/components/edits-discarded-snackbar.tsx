@@ -1,4 +1,4 @@
-import { toast } from "panelui-native";
+import { toast } from "panelui-native/components/toast";
 import { AccessibilityInfo, Pressable, View } from "react-native";
 
 import { Text } from "@/components/text";

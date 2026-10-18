@@ -1,6 +1,6 @@
 import { addDays, startOfDay } from "@outlayr/money/calendar";
-import { buildHeatmapCalendar, HeatmapChart } from "panelui-native";
-import type { HeatmapCell } from "panelui-native";
+import { buildHeatmapCalendar, HeatmapChart } from "panelui-native/components/heatmap-chart";
+import type { HeatmapCell } from "panelui-native/components/heatmap-chart";
 import { useMemo } from "react";
 import { View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";

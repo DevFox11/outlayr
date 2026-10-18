@@ -1,6 +1,6 @@
 import { Canvas, createPicture, PaintStyle, Picture, Skia } from "@shopify/react-native-skia";
 import type { SkPicture } from "@shopify/react-native-skia";
-import { useTheme } from "panelui-native";
+import { useTheme } from "panelui-native/theme";
 import { useEffect, useMemo, useState } from "react";
 import { AppState, View } from "react-native";
 import { useReducedMotion, useSharedValue } from "react-native-reanimated";

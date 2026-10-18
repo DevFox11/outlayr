@@ -8,7 +8,7 @@ import { useApplyThemePreference } from "./use-theme-preference";
 const mockSetTheme = jest.fn();
 const stored = { colorScheme: 0 };
 
-jest.mock<Partial<typeof import("panelui-native")>>("panelui-native", () => ({
+jest.mock<Partial<typeof import("panelui-native/theme")>>("panelui-native/theme", () => ({
     useTheme: () => ({ setTheme: mockSetTheme, theme: "light" }),
 }));
 

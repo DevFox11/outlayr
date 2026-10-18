@@ -1,6 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { Image } from "expo-image";
-import { Button, Carousel } from "panelui-native";
+import { Button } from "panelui-native/components/button";
+import { Carousel } from "panelui-native/components/carousel";
 import { useState } from "react";
 import { Linking, Platform, Pressable, View } from "react-native";
 import type { ImageRequireSource } from "react-native";

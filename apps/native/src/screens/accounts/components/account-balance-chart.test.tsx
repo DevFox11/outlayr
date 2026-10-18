@@ -24,7 +24,7 @@ const mockTranslations = {
 
 let mockLanguage: "en" | "es" = "en";
 
-jest.mock("panelui-native", () => {
+jest.mock("panelui-native/components/line-chart", () => {
     const Tooltip = jest.fn(() => null);
     const XAxis = jest.fn(() => null);
     const mockYAxis = jest.fn(() => null);

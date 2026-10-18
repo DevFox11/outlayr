@@ -252,7 +252,7 @@ export function Budgets() {
             return;
         }
         limitSheetRef.current?.dismiss();
-        try {
+        const save = async () => {
             if (target.categoryId === null) {
                 await budgetsRepo.createMainBudget(db, { amount: limit, type });
                 haptics("success");
@@ -275,10 +275,11 @@ export function Budgets() {
                 ? budgetsRepo.patchBudget(db, existing.id, { ...(limitChanged && { amount: limit }), type })
                 : budgetsRepo.createBudget(db, { amount: limit, categoryId: target.categoryId, type }));
             haptics("success");
-        } catch (error) {
+        };
+        await save().catch((error) => {
             console.error("Failed to save the budget", error);
             notifyFailure({ body: t("budgets.save.failedBody"), title: t("budgets.save.failedTitle") });
-        }
+        });
     };
 
     // Half the grid less its 12pt gutter. Null until the first layout, which is

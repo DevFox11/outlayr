@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { Chip } from "panelui-native";
+import { Chip } from "panelui-native/components/chip";
 import Animated, { LinearTransition } from "react-native-reanimated";
 
 import { useColors } from "@/theme/use-colors";

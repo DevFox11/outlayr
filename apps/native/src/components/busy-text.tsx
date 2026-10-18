@@ -1,4 +1,4 @@
-import { Shimmer } from "panelui-native";
+import { Shimmer } from "panelui-native/components/shimmer";
 
 import { withAlpha } from "@/theme/shade";
 

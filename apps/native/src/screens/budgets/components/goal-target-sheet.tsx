@@ -184,7 +184,7 @@ function GoalTargetBody({ target, onCommit }: { onCommit: GoalTargetSheetProps["
             return;
         }
         inFlight.current = true;
-        try {
+        const write = async () => {
             // Re-clamped here, not only where it is picked: the sheet can sit open
             // across midnight, at which point yesterday's "tomorrow" is today and
             // the change handler that would have caught it never runs again.
@@ -200,9 +200,10 @@ function GoalTargetBody({ target, onCommit }: { onCommit: GoalTargetSheetProps["
                 targetChanged: edited,
                 targetDate: dateEdited ? notBefore(date, tomorrowLocal(nowMs)) : date,
             });
-        } finally {
+        };
+        await write().finally(() => {
             inFlight.current = false;
-        }
+        });
     };
 
     // The same measure the goal will report once it exists, asked here of the

@@ -21,10 +21,14 @@ jest.mock("expo-sqlite", () => ({
 import { useGlobalCurrency } from "./app-meta";
 import { META_KEYS, setMeta } from "./app-meta-core";
 
-function announceMetaWrite(): void {
+async function announceMetaWrite(): Promise<void> {
     for (const listener of mockListeners) {
         listener({ tableName: "appMeta" });
     }
+    // Change events reach live reads on the next tick, coalesced.
+    await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+    });
 }
 
 describe("useGlobalCurrency", () => {
@@ -46,7 +50,7 @@ describe("useGlobalCurrency", () => {
 
         await setMeta(db, META_KEYS.syncedAt, "1700000000000");
         await act(async () => {
-            announceMetaWrite();
+            await announceMetaWrite();
         });
 
         expect(renders).toBe(before);
@@ -58,7 +62,7 @@ describe("useGlobalCurrency", () => {
 
         await setMeta(db, META_KEYS.currency, "JPY");
         await act(async () => {
-            announceMetaWrite();
+            await announceMetaWrite();
         });
 
         expect(result.current).toBe("JPY");

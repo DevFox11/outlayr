@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
-import { toast } from "panelui-native";
-import type { ToastOptions } from "panelui-native";
+import { toast } from "panelui-native/components/toast";
+import type { ToastOptions } from "panelui-native/components/toast";
 import { isValidElement } from "react";
 
 import type { NoticeSlipProps } from "@/components/notice-slip";

@@ -2,7 +2,7 @@ import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Ico
 import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
 import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { Button } from "panelui-native";
+import { Button } from "panelui-native/components/button";
 import { memo } from "react";
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";

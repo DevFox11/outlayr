@@ -1,4 +1,5 @@
 import type { StreamArgs, SyncStreamsReturnValue, UIMessage } from "@convex-dev/agent";
+import { utcDateString } from "@outlayr/money/dates";
 import { makeFunctionReference } from "convex/server";
 import type { PaginationOptions, PaginationResult } from "convex/server";
 import { useSyncExternalStore } from "react";
@@ -80,8 +81,17 @@ export function cloudAction<Args, Result>(path: string, args: Args): Promise<Res
     return cloudClient().action(path as never, args as never) as Promise<Result>;
 }
 
+/**
+ * Both rate queries read only the date out of `at`, so the instant is rounded to
+ * the UTC day: identical arguments let Convex answer every page, and every
+ * device, from its query cache until the next cron write.
+ */
+function rateWindowAt(): number {
+    return Date.parse(utcDateString(Date.now()));
+}
+
 export function ratesPuller(): PullRatesFn {
-    return async (args) => cloudQuery("exchangeRates:pullRates", { ...args, at: Date.now() });
+    return async (args) => cloudQuery("exchangeRates:pullRates", { ...args, at: rateWindowAt() });
 }
 
 const rateWireRows = z.array(
@@ -100,7 +110,10 @@ export function watchRecentRates(onRows: (rows: RateWireRow[]) => void): () => v
         return () => undefined;
     }
     // SAFETY: addressed by path for the reason given on `cloudQuery`.
-    const watch = cloudRuntime.convex.watchQuery("exchangeRates:pullRecentRates" as never, { at: Date.now() } as never);
+    const watch = cloudRuntime.convex.watchQuery(
+        "exchangeRates:pullRecentRates" as never,
+        { at: rateWindowAt() } as never
+    );
     return watch.onUpdate(() => {
         let rows: ReturnType<typeof rateWireRows.safeParse> | null = null;
         try {

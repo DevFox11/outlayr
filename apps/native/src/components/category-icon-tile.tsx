@@ -1,4 +1,4 @@
-import { useTheme } from "panelui-native";
+import { useTheme } from "panelui-native/theme";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { Image, Text, View } from "react-native";

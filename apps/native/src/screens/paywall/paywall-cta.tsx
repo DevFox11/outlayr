@@ -1,4 +1,4 @@
-import { Button } from "panelui-native";
+import { Button } from "panelui-native/components/button";
 
 import { BusyText } from "@/components/busy-text";
 import { useColors } from "@/theme/use-colors";

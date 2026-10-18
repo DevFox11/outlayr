@@ -1,5 +1,7 @@
 import { useRouter, useSegments } from "expo-router";
-import { BottomSheet, Button, cn } from "panelui-native";
+import { BottomSheet } from "panelui-native/components/bottom-sheet";
+import { Button } from "panelui-native/components/button";
+import { cn } from "panelui-native/utils/cn";
 import { useMemo } from "react";
 import { ScrollView, View } from "react-native";
 import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";

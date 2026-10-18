@@ -259,11 +259,7 @@ export function Settings() {
                     icon="BiometricAccess"
                     onValueChange={async (next) => {
                         setLockPending(next);
-                        try {
-                            await toggleAppLock(db, next);
-                        } finally {
-                            setLockPending(null);
-                        }
+                        await toggleAppLock(db, next).finally(() => setLockPending(null));
                     }}
                     title={t("settings.row.authentication")}
                     value={lockPending ?? biometricLock}

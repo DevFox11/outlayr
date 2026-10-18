@@ -50,6 +50,10 @@ function createCloudRuntime() {
     return {
         authClient: createAuthClient({
             baseURL: siteUrl,
+            // Every app switch would otherwise ask the backend for the session,
+            // signed out or not. Launch still restores it and the Convex token
+            // refresh still catches a revoked one.
+            sessionOptions: { refetchOnWindowFocus: false },
             plugins: [
                 convexClient(),
                 emailCodes,

@@ -29,6 +29,10 @@ async function fireAppMetaChange() {
         for (const listener of mockChangeListeners) {
             listener({ tableName: "appMeta" });
         }
+        // Change events reach live reads on the next tick, coalesced.
+        await new Promise((resolve) => {
+            setTimeout(resolve, 0);
+        });
     });
 }
 

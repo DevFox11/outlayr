@@ -636,15 +636,14 @@ export function useTransactionEnrichment(args: UseTransactionEnrichmentArgs): Us
         setForcing(true);
         clearTimers();
         forceRef.current = true;
-        try {
-            // `run` awaits the fast pass, so by here its outcome is recorded and
-            // the follow-up can judge it without the idle timer's guesswork.
-            await run();
-            await runGroundedFollowUp();
-        } finally {
-            forcingRef.current = false;
-            setForcing(false);
-        }
+        // `run` awaits the fast pass, so by then its outcome is recorded and the
+        // follow-up can judge it without the idle timer's guesswork.
+        await run()
+            .then(() => runGroundedFollowUp())
+            .finally(() => {
+                forcingRef.current = false;
+                setForcing(false);
+            });
     }, [clearTimers, run, runGroundedFollowUp]);
 
     const cancel = useCallback(() => {

@@ -1,9 +1,7 @@
-import {
-    GoogleSansFlex_400Regular,
-    GoogleSansFlex_500Medium,
-    GoogleSansFlex_600SemiBold,
-    GoogleSansFlex_700Bold,
-} from "@expo-google-fonts/google-sans-flex";
+import { GoogleSansFlex_400Regular } from "@expo-google-fonts/google-sans-flex/400Regular";
+import { GoogleSansFlex_500Medium } from "@expo-google-fonts/google-sans-flex/500Medium";
+import { GoogleSansFlex_600SemiBold } from "@expo-google-fonts/google-sans-flex/600SemiBold";
+import { GoogleSansFlex_700Bold } from "@expo-google-fonts/google-sans-flex/700Bold";
 
 import type { BodyFonts, SansWeight } from "./body-fonts";
 

@@ -225,6 +225,13 @@
       "when": 1789431072128,
       "tag": "0031_paid_via",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1792287101861,
+      "tag": "0032_stop_null_indexes_hijacking_the_planner",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,6 @@
 import Mail01Icon from "@hugeicons-pro/core-stroke-rounded/Mail01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { useTheme } from "panelui-native";
+import { useTheme } from "panelui-native/theme";
 import { Pressable } from "react-native";
 
 import { SIGN_IN_BUTTON_HEIGHT } from "@/components/account/apple-sign-in-button";

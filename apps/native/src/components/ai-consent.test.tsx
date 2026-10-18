@@ -17,9 +17,11 @@ interface SheetProps {
 let mockSheet: SheetProps | null = null;
 
 // The sheet presents through a native host that renders to nothing here.
-jest.mock("panelui-native", () => {
+jest.mock("panelui-native/components/bottom-sheet", () => {
     const react = require("react") as typeof import("react");
-    const actual = jest.requireActual("panelui-native") as typeof import("panelui-native");
+    const actual = jest.requireActual(
+        "panelui-native/components/bottom-sheet"
+    ) as typeof import("panelui-native/components/bottom-sheet");
     const Content = ({ children }: { children?: ReactNode }) => children;
     const Root = ({ children, ...props }: SheetProps & { children?: ReactNode }) => {
         mockSheet = props;

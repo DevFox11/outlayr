@@ -1,4 +1,5 @@
 diff --git a/lib/module/components/heatmap-chart/index.js b/lib/module/components/heatmap-chart/index.js
+index 94ac6cce8fbd1e77c62bd9c341716c6196111844..682d1b231712932afa39604282252780743127ab 100644
 --- a/lib/module/components/heatmap-chart/index.js
 +++ b/lib/module/components/heatmap-chart/index.js
 @@ -71,6 +71,8 @@ function isToken(value) {
@@ -27,6 +28,7 @@ diff --git a/lib/module/components/heatmap-chart/index.js b/lib/module/component
          // Centred on the cell rather than aligned to its top edge, so a
          // label reads as belonging to the row it sits beside.
 diff --git a/lib/module/components/line-chart/index.js b/lib/module/components/line-chart/index.js
+index 1db0ea87dd33b794bd7ecfc3ee2eda7b79dbe5b9..1b63a7a64b4d4154b913a09fd3fccc98f37d8c1d 100644
 --- a/lib/module/components/line-chart/index.js
 +++ b/lib/module/components/line-chart/index.js
 @@ -72,6 +72,8 @@ const Y_AXIS_WIDTH = 44;
@@ -55,6 +57,7 @@ diff --git a/lib/module/components/line-chart/index.js b/lib/module/components/l
      }, label.key))
    });
 diff --git a/lib/module/components/toast/index.js b/lib/module/components/toast/index.js
+index 7f3723be6df90d2424a895bc7fec25b7b226dbaa..e537c11818546dae2f828f420bf96351f999dccc 100644
 --- a/lib/module/components/toast/index.js
 +++ b/lib/module/components/toast/index.js
 @@ -97,7 +97,7 @@ const exitKeyframe = offset => new Keyframe({
@@ -79,7 +82,29 @@ diff --git a/lib/module/components/toast/index.js b/lib/module/components/toast/
  const toastVariants = tv({
    slots: {
      root: 'w-full flex-row items-start gap-3 rounded-2xl border px-4 py-3.5 shadow-lg',
+diff --git a/package.json b/package.json
+index c284900ea4d014cdb10a29fb40c9ecf1d935d78f..dabec4ca1d6601c63c0b1653f374518edb27d5bf 100644
+--- a/package.json
++++ b/package.json
+@@ -42,6 +42,16 @@
+       "react-native": "./src/primitives/text.tsx",
+       "default": "./lib/module/primitives/text.js"
+     },
++    "./primitives/glass": {
++      "types": "./lib/typescript/src/primitives/glass.d.ts",
++      "react-native": "./src/primitives/glass.tsx",
++      "default": "./lib/module/primitives/glass.js"
++    },
++    "./primitives/portal": {
++      "types": "./lib/typescript/src/primitives/portal.d.ts",
++      "react-native": "./src/primitives/portal.tsx",
++      "default": "./lib/module/primitives/portal.js"
++    },
+     "./primitives/animated-pressable": {
+       "types": "./lib/typescript/src/primitives/animated-pressable.d.ts",
+       "react-native": "./src/primitives/animated-pressable.tsx",
 diff --git a/src/components/heatmap-chart/index.tsx b/src/components/heatmap-chart/index.tsx
+index 1f55533ae99ba4a7de14f8472fe72f1d442ec02c..87eb1e6f1d80b31f134575d90161c022ed085994 100644
 --- a/src/components/heatmap-chart/index.tsx
 +++ b/src/components/heatmap-chart/index.tsx
 @@ -89,6 +89,8 @@ function isToken(value: string | undefined): value is string {
@@ -108,6 +133,7 @@ diff --git a/src/components/heatmap-chart/index.tsx b/src/components/heatmap-cha
              // Centred on the cell rather than aligned to its top edge, so a
              // label reads as belonging to the row it sits beside.
 diff --git a/src/components/line-chart/index.tsx b/src/components/line-chart/index.tsx
+index 741a9ae669956ca57d1b2b70508ae7429592ead2..0bab75df83e8c255883d598a1ed30038e289b3ca 100644
 --- a/src/components/line-chart/index.tsx
 +++ b/src/components/line-chart/index.tsx
 @@ -106,6 +106,8 @@ const Y_AXIS_WIDTH = 44;
@@ -137,6 +163,7 @@ diff --git a/src/components/line-chart/index.tsx b/src/components/line-chart/ind
          </Text>
        ))}
 diff --git a/src/components/toast/index.tsx b/src/components/toast/index.tsx
+index 1b1fe41e5b9d0a2e55b1de3773c1dc40b89d825e..320544bd53e0be001f80f8c3f9c110ce820b6fba 100644
 --- a/src/components/toast/index.tsx
 +++ b/src/components/toast/index.tsx
 @@ -115,14 +115,14 @@ const exitKeyframe = (offset: number) =>

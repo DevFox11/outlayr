@@ -1,6 +1,7 @@
-import { GeistMono_500Medium } from "@expo-google-fonts/geist-mono";
-import { GoogleSansFlex_400Regular, GoogleSansFlex_500Medium } from "@expo-google-fonts/google-sans-flex";
-import { InstrumentSerif_400Regular } from "@expo-google-fonts/instrument-serif";
+import { GeistMono_500Medium } from "@expo-google-fonts/geist-mono/500Medium";
+import { GoogleSansFlex_400Regular } from "@expo-google-fonts/google-sans-flex/400Regular";
+import { GoogleSansFlex_500Medium } from "@expo-google-fonts/google-sans-flex/500Medium";
+import { InstrumentSerif_400Regular } from "@expo-google-fonts/instrument-serif/400Regular";
 import { Skia } from "@shopify/react-native-skia";
 import type { SkTypeface } from "@shopify/react-native-skia";
 import { Image } from "react-native";

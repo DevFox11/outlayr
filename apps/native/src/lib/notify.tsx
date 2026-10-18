@@ -1,5 +1,5 @@
-import { toast } from "panelui-native";
-import type { ToastHandle } from "panelui-native";
+import { toast } from "panelui-native/components/toast";
+import type { ToastHandle } from "panelui-native/components/toast";
 
 import { NoticeSlip } from "@/components/notice-slip";
 import type { NoticeSlipProps, NoticeTone } from "@/components/notice-slip";

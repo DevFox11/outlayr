@@ -1,4 +1,4 @@
-import { useTheme } from "panelui-native";
+import { useTheme } from "panelui-native/theme";
 
 /**
  * Whether the app is painting dark right now.

@@ -145,7 +145,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: Database }) {
                 kind: value.liability ? ("liability" as const) : ("asset" as const),
                 name: value.name.trim(),
             };
-            try {
+            const persist = async () => {
                 if (mode === "create") {
                     await accountsRepo.create(db, { ...input, initialBalance: balance });
                 } else {
@@ -163,11 +163,12 @@ function AccountEditorReady(props: AccountEditorProps & { db: Database }) {
                 haptics("success");
                 router.back();
                 return await holdSubmitting();
-            } catch (error) {
+            };
+            return await persist().catch((error) => {
                 console.error("Failed to save the account", error);
                 haptics("error");
                 setFailure(t("accounts.error.saveFailed"));
-            }
+            });
         },
     });
     const { name, currency, balanceText, negative, liability } = useSelector(form.store, (s) => s.values);

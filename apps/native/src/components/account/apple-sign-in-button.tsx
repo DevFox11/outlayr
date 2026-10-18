@@ -3,7 +3,7 @@ import {
     AppleAuthenticationButtonStyle,
     AppleAuthenticationButtonType,
 } from "expo-apple-authentication";
-import { useTheme } from "panelui-native";
+import { useTheme } from "panelui-native/theme";
 import { View } from "react-native";
 
 import { BusyText } from "@/components/busy-text";

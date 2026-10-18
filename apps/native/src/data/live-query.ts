@@ -1,10 +1,9 @@
 import { getTableName } from "drizzle-orm";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
-import { addDatabaseChangeListener } from "expo-sqlite";
 import { useCallback, useRef, useSyncExternalStore } from "react";
 
+import { subscribeToTableChanges } from "./database-changes";
 import { subscribeRatesRevision } from "./rates-revision";
-import { subscribeToTable } from "./table-invalidation";
 
 /**
  * A Drizzle query the expo-sqlite driver can run on the JS thread: the driver is
@@ -44,7 +43,8 @@ function sameDeps(a: readonly unknown[], b: readonly unknown[]): boolean {
  * an `error` field.
  *
  * Only writes to `table` invalidate the read, since
- * `addDatabaseChangeListener` reports one table per event. A query whose *rows*
+ * `addDatabaseChangeListener` reports one table per event, and a burst of them
+ * re-reads once (see `subscribeToTableChanges`). A query whose *rows*
  * depend on another table (a join, or an `inArray` over ids read elsewhere) must
  * resolve that table through its own subscription and pass the result in through
  * `deps`; see `useCategoryMeta`.
@@ -81,24 +81,7 @@ export function useLiveValue<TRow, TValue>(
 
 function useLiveRead<TValue>(table: SQLiteTable, read: () => TValue, deps: readonly unknown[]): TValue {
     const tableName = getTableName(table);
-    const subscribeTable = useCallback(
-        (bump: () => void) => {
-            const listener = addDatabaseChangeListener((event) => {
-                if (event.tableName === tableName) {
-                    bump();
-                }
-            });
-            // A batch writer that does not go row by row — the sync applier — says so
-            // once for the whole batch rather than leaving the repaint to the order
-            // of a few thousand native events.
-            const unsubscribe = subscribeToTable(tableName, bump);
-            return () => {
-                listener.remove();
-                unsubscribe();
-            };
-        },
-        [tableName]
-    );
+    const subscribeTable = useCallback((bump: () => void) => subscribeToTableChanges(tableName, bump), [tableName]);
     return useRead(subscribeTable, read, deps);
 }
 

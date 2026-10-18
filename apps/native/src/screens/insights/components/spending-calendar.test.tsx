@@ -31,7 +31,7 @@ const translations = {
 
 let mockLanguage: "en" | "es" = "en";
 
-jest.mock("panelui-native", () => {
+jest.mock("panelui-native/components/heatmap-chart", () => {
     const Cells = jest.fn(() => null);
     const Legend = jest.fn(() => null);
     const Tooltip = jest.fn(() => null);

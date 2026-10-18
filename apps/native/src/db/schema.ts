@@ -98,7 +98,6 @@ export const transfers = sqliteTable(
         index("transfers_day_idx").on(table.day),
         index("transfers_fromAccountId_idx").on(table.fromAccountId),
         index("transfers_toAccountId_idx").on(table.toAccountId),
-        index("transfers_deletedAt_idx").on(table.deletedAt),
         index("transfers_day_date_idx").on(table.day, table.date),
     ]
 );
@@ -204,13 +203,22 @@ export const transactions = sqliteTable(
         updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
     },
     (table) => [
-        index("transactions_transferId_idx").on(table.transferId),
-        index("transactions_feeForId_idx").on(table.feeForId),
+        // Partial, here and on `deletedAt` below: without ANALYZE, SQLite takes
+        // `col IS NULL` for a selective probe, so a full index on a mostly-null
+        // column wins every live-row query over the `date` indexes.
+        index("transactions_transferId_idx")
+            .on(table.transferId)
+            .where(sql`${table.transferId} IS NOT NULL`),
+        index("transactions_feeForId_idx")
+            .on(table.feeForId)
+            .where(sql`${table.feeForId} IS NOT NULL`),
         index("transactions_day_idx").on(table.day),
         index("transactions_month_idx").on(table.month),
         index("transactions_categoryId_idx").on(table.categoryId),
         index("transactions_accountId_idx").on(table.accountId),
-        index("transactions_deletedAt_idx").on(table.deletedAt),
+        index("transactions_tombstone_idx")
+            .on(table.deletedAt)
+            .where(sql`${table.deletedAt} IS NOT NULL`),
         index("transactions_recurring_idx")
             .on(table.recurringType)
             .where(sql`${table.deletedAt} IS NULL AND ${table.recurringType} > 0`),
@@ -310,7 +318,6 @@ export const transactionSplits = sqliteTable(
     (table) => [
         index("transactionSplits_transactionId_idx").on(table.transactionId),
         index("transactionSplits_categoryId_idx").on(table.categoryId),
-        index("transactionSplits_deletedAt_idx").on(table.deletedAt),
     ]
 );
 
@@ -340,10 +347,7 @@ export const transactionPhotos = sqliteTable(
             .references(() => transactions.id),
         updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
     },
-    (table) => [
-        index("transactionPhotos_transactionId_idx").on(table.transactionId),
-        index("transactionPhotos_deletedAt_idx").on(table.deletedAt),
-    ]
+    (table) => [index("transactionPhotos_transactionId_idx").on(table.transactionId)]
 );
 
 /**
@@ -439,7 +443,6 @@ export const transactionTags = sqliteTable(
     (table) => [
         index("transactionTags_transactionId_idx").on(table.transactionId),
         index("transactionTags_tagId_idx").on(table.tagId),
-        index("transactionTags_deletedAt_idx").on(table.deletedAt),
         uniqueIndex("transactionTags_pair_idx")
             .on(table.transactionId, table.tagId)
             .where(sql`${table.deletedAt} IS NULL`),

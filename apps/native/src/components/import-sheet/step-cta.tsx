@@ -1,4 +1,4 @@
-import { Button } from "panelui-native";
+import { Button } from "panelui-native/components/button";
 import { useState } from "react";
 import { AccessibilityInfo } from "react-native";
 

@@ -1,14 +1,14 @@
 import { getTableName } from "drizzle-orm";
-import { addDatabaseChangeListener } from "expo-sqlite";
 import { useSyncExternalStore } from "react";
 import { AppState } from "react-native";
 
 import { transactions, transfers } from "@/db/schema";
 import { clockAdvances, nextClockTick } from "@/domain/clock";
 
-import { subscribeToTable } from "./table-invalidation";
+import { subscribeToTableChanges } from "./database-changes";
 
 const BOUNDED_TABLES: string[] = [getTableName(transactions), getTableName(transfers)];
+const MOUNT_RESTATE_AFTER_MS = 60_000;
 
 let readingMs = Date.now();
 let midnightTimer: ReturnType<typeof setTimeout> | null = null;
@@ -50,20 +50,13 @@ function start(): void {
             armMidnight();
         }
     });
-    const changes = addDatabaseChangeListener((event) => {
-        if (BOUNDED_TABLES.includes(event.tableName)) {
-            publish(Date.now());
-        }
-    });
-    // A batch writer — the sync applier — says so once for the whole batch instead
-    // of leaving it to the order of a few thousand native events.
-    const invalidations = [transactions, transfers].map((table) =>
-        subscribeToTable(getTableName(table), () => {
+    const changes = BOUNDED_TABLES.map((tableName) =>
+        subscribeToTableChanges(tableName, () => {
             publish(Date.now());
         })
     );
 
-    teardown = [() => phase.remove(), () => changes.remove(), ...invalidations];
+    teardown = [() => phase.remove(), ...changes];
 }
 
 function stop(): void {
@@ -79,8 +72,12 @@ function stop(): void {
 
 function subscribe(notify: () => void): () => void {
     // A screen mounting is itself a reason to restate the reading: it is about to
-    // read the ledger, and the standing one can be an hour old.
-    publish(Date.now());
+    // read the ledger, and the standing one can be an hour old. Not a fresher one
+    // than that, though: each restatement re-renders every screen bounded by it.
+    const nowMs = Date.now();
+    if (nowMs - readingMs > MOUNT_RESTATE_AFTER_MS) {
+        publish(nowMs);
+    }
     subscribers.add(notify);
     if (subscribers.size === 1) {
         start();

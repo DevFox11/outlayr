@@ -1,6 +1,6 @@
 import type { CurrencyCell } from "@outlayr/money/currency-totals";
 import type { RateTable } from "@outlayr/money/valuation";
-import { LineChart } from "panelui-native";
+import { LineChart } from "panelui-native/components/line-chart";
 import { useMemo } from "react";
 import { View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";

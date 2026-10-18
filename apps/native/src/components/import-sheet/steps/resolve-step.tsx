@@ -1,5 +1,5 @@
-import { Task } from "panelui-native";
-import type { TaskStatus } from "panelui-native";
+import { Task } from "panelui-native/components/task";
+import type { TaskStatus } from "panelui-native/components/task";
 import { useEffect, useRef } from "react";
 import { Pressable, View } from "react-native";
 

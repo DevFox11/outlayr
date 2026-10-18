@@ -1,4 +1,4 @@
-import { useTheme } from "panelui-native";
+import { useTheme } from "panelui-native/theme";
 import { useLayoutEffect } from "react";
 
 import { useSettingNumber } from "@/contexts/display-settings-context";

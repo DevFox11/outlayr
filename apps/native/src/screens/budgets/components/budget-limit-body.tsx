@@ -184,11 +184,10 @@ export function BudgetLimitBody({
             return;
         }
         inFlight.current = true;
-        try {
-            await onCommit({ limit, limitChanged: limit !== target.limit, type });
-        } finally {
+        const write = async () => onCommit({ limit, limitChanged: limit !== target.limit, type });
+        await write().finally(() => {
             inFlight.current = false;
-        }
+        });
     };
 
     const typeLimit = (next: string) => {
