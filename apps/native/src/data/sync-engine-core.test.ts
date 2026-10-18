@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import { eq, getTableColumns } from "drizzle-orm";
+import { eq, getTableColumns, sql } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import {
@@ -678,6 +678,61 @@ describe("applyPulledRows", () => {
         });
 
         expect(result.tables.sort((a, b) => a.localeCompare(b))).toStrictEqual(["appMeta", "transactions"]);
+    });
+});
+
+describe("the echo of this device's own push", () => {
+    let db: Database;
+    let server: ReturnType<typeof makeServer>;
+    beforeEach(async () => {
+        db = makeDb();
+        server = makeServer();
+        await setSyncEnabled(db, true);
+    });
+
+    /** Pushes the outbox and returns the page the same cycle's pull would apply. */
+    async function pushAndEcho() {
+        await drainOutbox(db, server.push);
+        return await server.pull({ cursor: await getSyncCursor(db), limit: 100 });
+    }
+
+    const totalChanges = async () => (await db.all<{ n: number }>(sql`SELECT total_changes() AS n`))[0]?.n;
+
+    it("writes nothing but the cursor when every row comes back as it left", async () => {
+        await addTransaction(db, "t1", { amountUsd: 0.1 + 0.2, onceRecurring: true, recurringEndDate: AT(4321) });
+        await setMeta(db, META_KEYS.currency, "JPY");
+        const echo = await pushAndEcho();
+        const before = await totalChanges();
+
+        const result = await applyPulledRows(db, echo);
+
+        expect(result.tables).toStrictEqual([]);
+        await expect(totalChanges()).resolves.toBe((before ?? 0) + 1);
+        await expect(outboxPendingCount(db)).resolves.toBe(0);
+    });
+
+    it("still writes a row that differs in a single field", async () => {
+        await addTransaction(db, "t1", { note: "mine" });
+        const { cursor, rows } = await pushAndEcho();
+
+        const result = await applyPulledRows(db, {
+            cursor,
+            rows: rows.map((row) => ({ ...row, fields: { ...row.fields, note: "theirs" } })),
+        });
+
+        const [row] = await db.select().from(transactions);
+        expect(result.tables).toStrictEqual(["transactions"]);
+        expect(row.note).toBe("theirs");
+    });
+
+    it("still clears the notice on an echoed row with no live schedule", async () => {
+        await addTransaction(db, "t1", { recurringType: 0, reminderLeadDays: 3 });
+
+        const result = await applyPulledRows(db, await pushAndEcho());
+
+        const [row] = await db.select().from(transactions);
+        expect(result.tables).toStrictEqual(["transactions"]);
+        expect(row.reminderLeadDays).toBeNull();
     });
 });
 

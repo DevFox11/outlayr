@@ -615,9 +615,13 @@ async function applyInTransaction(
         const replicatedVerbatim: PulledRow[] = [];
         /* oxlint-disable no-await-in-loop -- R3 resolution inside writeRow reads the budgets an earlier winner left live, so the winners must be written one at a time */
         for (const row of winners) {
+            const outcome = await writeRow(db, row, existing.get(row.table)?.get(row.localId), now);
+            if (outcome === "unchanged") {
+                continue;
+            }
             // A row R3 rewrote is NOT what the server holds, so it stays queued and
             // this device pushes its correction rather than silently diverging.
-            if (await writeRow(db, row, now)) {
+            if (outcome === "verbatim") {
                 replicatedVerbatim.push(row);
             }
             touched.add(row.table);
@@ -740,8 +744,24 @@ function retiresSchedule(values: Row): boolean {
     return values.deletedAt != null || values.recurringType === 0;
 }
 
-/** Answers whether the row landed verbatim, or was rewritten by R3. */
-async function writeRow(db: Database, row: PulledRow, now: Date): Promise<boolean> {
+/** Whether upserting `values` over `local` would leave every column it sets as it is. */
+function changesNothing(local: Row | undefined, values: Row): boolean {
+    return (
+        local !== undefined &&
+        Object.entries(values).every(([name, value]) => Object.is(toWireValue(value), toWireValue(local[name])))
+    );
+}
+
+/**
+ * Answers whether the row landed verbatim, was rewritten by R3, or already
+ * matched `local` and was left alone.
+ */
+async function writeRow(
+    db: Database,
+    row: PulledRow,
+    local: Row | undefined,
+    now: Date
+): Promise<"verbatim" | "rewritten" | "unchanged"> {
     const spec = SPECS[row.table];
 
     if (row.table === "appMeta") {
@@ -751,11 +771,14 @@ async function writeRow(db: Database, row: PulledRow, now: Date): Promise<boolea
         // SAFETY: `appMeta` declares its single column as a nullable string in
         // `syncTables.ts`, and the wire union is narrower than the column.
         const value = (row.fields.value ?? null) as string | null;
+        if (changesNothing(local, { key: row.localId, value })) {
+            return "unchanged";
+        }
         await db
             .insert(appMeta)
             .values({ key: row.localId, value })
             .onConflictDoUpdate({ set: { value }, target: appMeta.key });
-        return true;
+        return "verbatim";
     }
 
     const lostCategory = row.table === "budgets" && (await resolveBudgetCategory(db, row, now));
@@ -787,9 +810,12 @@ async function writeRow(db: Database, row: PulledRow, now: Date): Promise<boolea
         // what matters is that it cannot outlive its schedule.
         values.reminderLeadDays = null;
     }
+    if (!rewritten && changesNothing(local, values)) {
+        return "unchanged";
+    }
 
     await anyWriter(db).insert(spec.table).values(values).onConflictDoUpdate({ set: values, target: spec.id });
-    return !rewritten;
+    return rewritten ? "rewritten" : "verbatim";
 }
 
 /**
