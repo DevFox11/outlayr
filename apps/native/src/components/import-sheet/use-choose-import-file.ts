@@ -7,6 +7,59 @@ import { resolveImportMapping } from "@/domain/import-mapping";
 import { pickCsvFile, TransferError } from "@/lib/data-transfer";
 import { importDraftStore } from "@/lib/import-draft-store";
 
+async function readChosenFile(setStatus: (status: "idle" | "loading") => void) {
+    try {
+        const picked = await pickCsvFile();
+        if (picked == null) {
+            setStatus("idle");
+            return;
+        }
+        if (picked.text.length > HARD_PARSE_REJECT_CHARS) {
+            setStatus("idle");
+            importDraftStore.setFileError({ cause: "tooLarge" });
+            return;
+        }
+        const parsed: ParsedImportFile | null = parseImportFile(picked.text);
+        if (parsed == null) {
+            setStatus("idle");
+            importDraftStore.setFileError({
+                cause: classifyParseFailure(picked.text),
+            });
+            return;
+        }
+        const draft =
+            parsed.header == null
+                ? {
+                      amount: null,
+                      category: null,
+                      currency: null,
+                      date: null,
+                      exchangeRate: null,
+                      exchangeRateType: null,
+                      note: null,
+                      type: null,
+                  }
+                : guessMapping(parsed.header);
+        const resolution = resolveImportMapping(draft);
+        importDraftStore.dispatch({
+            draft,
+            file: { chars: picked.text.length, name: picked.name },
+            gaps: resolution.ok ? [] : resolution.gaps,
+            parsed,
+            resolved: resolution.ok ? resolution.value : null,
+            type: "fileParsed",
+        });
+        setStatus("idle");
+    } catch (thrown) {
+        setStatus("idle");
+        importDraftStore.setFileError(
+            thrown instanceof TransferError
+                ? { cause: "io", key: thrown.key }
+                : { cause: "io", key: "alerts.transfer.unreadableFile" }
+        );
+    }
+}
+
 export function useChooseImportFile() {
     const [status, setStatus] = useState<"idle" | "loading">("idle");
     const picking = useRef(false);
@@ -18,58 +71,9 @@ export function useChooseImportFile() {
         picking.current = true;
         setStatus("loading");
         importDraftStore.setFileError(null);
-        try {
-            const picked = await pickCsvFile();
-            if (picked == null) {
-                setStatus("idle");
-                return;
-            }
-            if (picked.text.length > HARD_PARSE_REJECT_CHARS) {
-                setStatus("idle");
-                importDraftStore.setFileError({ cause: "tooLarge" });
-                return;
-            }
-            const parsed: ParsedImportFile | null = parseImportFile(picked.text);
-            if (parsed == null) {
-                setStatus("idle");
-                importDraftStore.setFileError({
-                    cause: classifyParseFailure(picked.text),
-                });
-                return;
-            }
-            const draft =
-                parsed.header == null
-                    ? {
-                          amount: null,
-                          category: null,
-                          currency: null,
-                          date: null,
-                          exchangeRate: null,
-                          exchangeRateType: null,
-                          note: null,
-                          type: null,
-                      }
-                    : guessMapping(parsed.header);
-            const resolution = resolveImportMapping(draft);
-            importDraftStore.dispatch({
-                draft,
-                file: { chars: picked.text.length, name: picked.name },
-                gaps: resolution.ok ? [] : resolution.gaps,
-                parsed,
-                resolved: resolution.ok ? resolution.value : null,
-                type: "fileParsed",
-            });
-            setStatus("idle");
-        } catch (thrown) {
-            setStatus("idle");
-            importDraftStore.setFileError(
-                thrown instanceof TransferError
-                    ? { cause: "io", key: thrown.key }
-                    : { cause: "io", key: "alerts.transfer.unreadableFile" }
-            );
-        } finally {
+        await readChosenFile(setStatus).finally(() => {
             picking.current = false;
-        }
+        });
     };
 
     return { choose, status };
