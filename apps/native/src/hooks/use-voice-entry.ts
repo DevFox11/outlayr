@@ -426,21 +426,27 @@ export function useVoiceEntry<Context>({
                     setPhase({ kind: "failed", reason: "timeout", transcript: null });
                     return;
                 }
-                if (settled.status === "ok" && settled.order !== null) {
-                    setPhase({ context, kind: "thinking", order: settled.order });
-                    return;
+                if (settled.status === "ok") {
+                    const { order } = settled;
+                    if (order !== null) {
+                        setPhase({ context, kind: "thinking", order });
+                        return;
+                    }
                 }
-                if (settled.status === "invalid" && resentRef.current !== clip) {
-                    // The thread expired under the screen (the server sweeps one
-                    // idle for an hour). Open another and let this effect send the
-                    // same clip again when its id lands; a correction on it will
-                    // read as a new sentence, which is the honest outcome.
-                    resentRef.current = clip;
-                    sentRef.current = null;
-                    setPhase({ after: -1, clip, kind: "sending" });
-                    dropThread();
-                    void openThread();
-                    return;
+                if (settled.status === "invalid") {
+                    const resent = resentRef.current === clip;
+                    if (!resent) {
+                        // The thread expired under the screen (the server sweeps one
+                        // idle for an hour). Open another and let this effect send the
+                        // same clip again when its id lands; a correction on it will
+                        // read as a new sentence, which is the honest outcome.
+                        resentRef.current = clip;
+                        sentRef.current = null;
+                        setPhase({ after: -1, clip, kind: "sending" });
+                        dropThread();
+                        void openThread();
+                        return;
+                    }
                 }
                 setPhase({ kind: "failed", reason: failureFor(settled.status), transcript: settled.transcript });
             } catch {
