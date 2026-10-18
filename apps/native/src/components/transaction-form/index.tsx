@@ -5,7 +5,7 @@ import { ensureRecurringType, RECURRING_TYPE } from "@outlayr/money/recurrence";
 import { useField, useForm, useSelector } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
 import { PortalHost, PortalProvider } from "panelui-native/primitives/portal";
-import type { ReactNode, RefObject } from "react";
+import type { ComponentProps, ReactNode, RefObject } from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
     AccessibilityInfo,
@@ -876,6 +876,8 @@ export function TransactionForm({
         fee,
         feeCategoryId,
         paidVia,
+        pendingTagNamesNow,
+        tagIdsNow,
     } = useSelector(
         form.store,
         (s) => ({
@@ -893,12 +895,15 @@ export function TransactionForm({
             leadDays: s.values.leadDays,
             paidVia: s.values.paidVia,
             pendingCategory: s.values.pendingCategory,
+            pendingTagNamesNow: s.values.pendingTagNames,
             rateEntry: s.values.rateEntry,
             recurringType: s.values.recurringType,
+            tagIdsNow: s.values.tagIds,
             txCurrency: s.values.txCurrency,
         }),
         { compare: shallowEqual }
     );
+    const hasAmount = useSelector(form.store, (s) => numpadToNumber(s.values.amount) > 0);
 
     const currency = txCurrency ?? globalCurrency;
     const minorUnits = minorUnitsFor(currency);
@@ -2596,6 +2601,157 @@ export function TransactionForm({
         setIdentity(EMPTY_DRAFT);
     };
 
+    const tagLabels = tagLabelsOf(tagIdsNow, pendingTagNamesNow);
+    const splitLine =
+        splitAllocations.length === 0
+            ? null
+            : t("transaction.sentence.extra.split", {
+                  parts: t("transaction.split.count", {
+                      count: splitAllocations.length,
+                  }),
+              });
+    const noteLine = noteSummary.length === 0 ? null : t("transaction.sentence.extra.note", { note: noteSummary });
+    const rateLine =
+        mode === "edit" && converts && rateInForce !== null
+            ? t("transaction.sentence.extra.rate", {
+                  ...pairUnitSymbols("USD", currency),
+                  rate: rateFigure(rateInForce),
+              })
+            : null;
+    const addLabel = (fact: string) => t("transaction.sentence.add.label", { fact });
+    const sentenceProps = {
+        coach: showCoach ? (
+            <Pressable
+                accessibilityLabel={t("transaction.sentence.coachDismiss")}
+                accessibilityRole="button"
+                onPress={dismissCoach}
+            >
+                <MetaLine
+                    qualifier={t("transaction.sentence.coachDismiss")}
+                    qualifierIsAction
+                    statement={t("transaction.sentence.coach")}
+                />
+            </Pressable>
+        ) : undefined,
+        extras: [rateLine, splitLine, noteLine].filter((line) => line !== null),
+        onAccountPress: () => enterStep("account"),
+        onAmountPress: () => leaveTo("amount"),
+        onCategoryPress: () => enterStep("category"),
+        onCurrencyPress: () => enterStep("currency"),
+        onFeePress: () => enterStep("fee"),
+        onKindPress: () => {
+            if (rest !== undefined) {
+                rest.onWake();
+                return;
+            }
+            handleTypeChange(income ? "expense" : "income");
+        },
+        // The word is a way into its step as much as the other facts are, and the step
+        // is what carries the names this ledger already knows.
+        onMerchantPress: () => enterStep("merchant"),
+        onWhenPress: () => enterStep("when"),
+        paidVia: paysBolivares
+            ? {
+                  blank: t("transaction.sentence.blank.paidVia"),
+                  field: t("transaction.paidVia.title"),
+                  onPress: () => enterStep("paidVia"),
+                  template: t(
+                      paidViaNow === "cash" ? "transaction.sentence.paidViaCash" : "transaction.sentence.paidVia"
+                  ),
+                  value: paidViaNow === null ? null : t(`transaction.paidVia.value.${paidViaNow}`),
+              }
+            : undefined,
+        rest:
+            rest === undefined
+                ? undefined
+                : {
+                      addAccessibilityLabel: t("transaction.sentence.add.moreLabel"),
+                      addLabel: t("transaction.sentence.add.more"),
+                      onWake: rest.onWake,
+                  },
+        verbs: [
+            {
+                accessibilityLabel: hasIdentityMark
+                    ? t("transaction.sentence.set.icon")
+                    : addLabel(t("transaction.sentence.add.icon")),
+                active: hasIdentityMark,
+                key: "icon",
+                label: t("transaction.sentence.add.icon"),
+                onPress: openPicker,
+                onRemove: clearIdentity,
+                removeAccessibilityLabel: t("transaction.identity.hero.removeLogo"),
+            },
+            {
+                accessibilityLabel:
+                    tagLabels.length === 0
+                        ? addLabel(t("transaction.sentence.add.tags"))
+                        : t("transaction.sentence.extra.tags", {
+                              tags: tagLabels.join(", "),
+                          }),
+                active: tagLabels.length > 0,
+                key: "tags",
+                label: tagLabels.length === 0 ? t("transaction.sentence.add.tags") : namedWithCount(tagLabels),
+                onPress: () => {
+                    Keyboard.dismiss();
+                    tagSheetRef.current?.present();
+                },
+            },
+            {
+                accessibilityLabel: splitLine ?? undefined,
+                active: splitAllocations.length > 0,
+                disabled: !hasAmount,
+                key: "split",
+                label:
+                    splitAllocations.length === 0
+                        ? t("transaction.sentence.add.split")
+                        : splitLabel(splitAllocations.length),
+                onPress: () => {
+                    // A sheet presents over the note's keyboard rather than under it, and the
+                    // field it belongs to is gone from the screen by then.
+                    Keyboard.dismiss();
+                    openSplit(numpadToNumber(form.state.values.amount), category?.id ?? null, minorUnits);
+                    splitSheetRef.current?.present();
+                },
+            },
+            {
+                accessibilityLabel: isSubscription
+                    ? t("transaction.schedule.every", {
+                          interval: intervalPhrase(t, recurringType, coefficient),
+                      })
+                    : undefined,
+                active: isSubscription,
+                key: "repeat",
+                label: isSubscription ? repeatChipLabel() : t("transaction.sentence.add.repeat"),
+                onPress: () => enterStep("repeat"),
+                // The step names cadences, not "never": the way back off a schedule is the
+                // chip's own ✕, which only a set chip draws.
+                onRemove: () => handleKindChange("once"),
+                removeAccessibilityLabel: t("transaction.schedule.stopRepeat"),
+            },
+            {
+                accessibilityLabel: noteLine ?? addLabel(t("transaction.sentence.add.note")),
+                active: noteOpen || noteSummary.length > 0,
+                key: "note",
+                label: t("transaction.sentence.add.note"),
+                onPress: () => {
+                    setNoteOpen((open) => !open);
+                    setNoteAsked(true);
+                },
+            },
+            ...(feeable && !feeShown()
+                ? [
+                      {
+                          accessibilityLabel: addLabel(t("transaction.sentence.add.fee")),
+                          active: false,
+                          key: "fee" as const,
+                          label: t("transaction.sentence.add.fee"),
+                          onPress: () => enterStep("fee"),
+                      },
+                  ]
+                : []),
+        ],
+    } satisfies Partial<ComponentProps<typeof TransactionSentenceBody>>;
+
     return (
         /**
          * Its own PortalProvider, not the app's: PanelUI hosts portalled content at
@@ -2654,42 +2810,17 @@ export function TransactionForm({
                     sheet={mode === "edit"}
                 >
                     <SubscribeFields
-                        selector={(s) => ({
-                            amount: s.values.amount,
-                            merchantSeed: s.values.merchantSeed,
-                            pendingTagNames: s.values.pendingTagNames,
-                            tagIds: s.values.tagIds,
-                        })}
+                        selector={(s) => ({ amount: s.values.amount, merchantSeed: s.values.merchantSeed })}
                         store={form.store}
                     >
-                        {({ amount, merchantSeed, pendingTagNames, tagIds }) => {
+                        {({ amount, merchantSeed }) => {
                             const amountNumber = numpadToNumber(amount);
                             const feeBaseNow = feeBase(amountNumber);
                             const feeNow = feeAmountFor(amountNumber);
-                            const tagLabels = tagLabelsOf(tagIds, pendingTagNames);
-                            const splitLine =
-                                splitAllocations.length === 0
-                                    ? null
-                                    : t("transaction.sentence.extra.split", {
-                                          parts: t("transaction.split.count", {
-                                              count: splitAllocations.length,
-                                          }),
-                                      });
-                            const noteLine =
-                                noteSummary.length === 0
-                                    ? null
-                                    : t("transaction.sentence.extra.note", { note: noteSummary });
-                            const rateLine =
-                                mode === "edit" && converts && rateInForce !== null
-                                    ? t("transaction.sentence.extra.rate", {
-                                          ...pairUnitSymbols("USD", currency),
-                                          rate: rateFigure(rateInForce),
-                                      })
-                                    : null;
-                            const addLabel = (fact: string) => t("transaction.sentence.add.label", { fact });
                             return (
                                 <FormScrollItem>
                                     <TransactionSentenceBody
+                                        {...sentenceProps}
                                         account={account?.name ?? null}
                                         accountTile={accountTile}
                                         amount={
@@ -2703,21 +2834,6 @@ export function TransactionForm({
                                         categoryPending={categoryEnriching}
                                         categoryShake={categoryShake}
                                         categoryTile={categoryTile}
-                                        coach={
-                                            showCoach ? (
-                                                <Pressable
-                                                    accessibilityLabel={t("transaction.sentence.coachDismiss")}
-                                                    accessibilityRole="button"
-                                                    onPress={dismissCoach}
-                                                >
-                                                    <MetaLine
-                                                        qualifier={t("transaction.sentence.coachDismiss")}
-                                                        qualifierIsAction
-                                                        statement={t("transaction.sentence.coach")}
-                                                    />
-                                                </Pressable>
-                                            ) : undefined
-                                        }
                                         contentWidth={contentWidth}
                                         activeSlot={resting ? null : activeSlot}
                                         onLayout={rest?.onHeight}
@@ -2733,149 +2849,13 @@ export function TransactionForm({
                                                 />
                                             )
                                         }
-                                        paidVia={
-                                            paysBolivares
-                                                ? {
-                                                      blank: t("transaction.sentence.blank.paidVia"),
-                                                      field: t("transaction.paidVia.title"),
-                                                      onPress: () => enterStep("paidVia"),
-                                                      template: t(
-                                                          paidViaNow === "cash"
-                                                              ? "transaction.sentence.paidViaCash"
-                                                              : "transaction.sentence.paidVia"
-                                                      ),
-                                                      value:
-                                                          paidViaNow === null
-                                                              ? null
-                                                              : t(`transaction.paidVia.value.${paidViaNow}`),
-                                                  }
-                                                : undefined
-                                        }
                                         rate={converts && amountNumber > 0 ? rateClause(amountNumber) : undefined}
                                         amountFlagged={amountError}
                                         amountShake={amountShake}
-                                        extras={[rateLine, splitLine, noteLine].filter((line) => line !== null)}
                                         fee={feeLabel(amountNumber)}
                                         labels={sentenceLabels}
                                         merchant={merchantSeed.length === 0 ? null : merchantSeed}
                                         merchantTile={merchantTile}
-                                        onAccountPress={() => enterStep("account")}
-                                        onAmountPress={() => leaveTo("amount")}
-                                        onCategoryPress={() => enterStep("category")}
-                                        onCurrencyPress={() => enterStep("currency")}
-                                        onFeePress={() => enterStep("fee")}
-                                        onKindPress={() => {
-                                            if (rest !== undefined) {
-                                                rest.onWake();
-                                                return;
-                                            }
-                                            handleTypeChange(income ? "expense" : "income");
-                                        }}
-                                        // The word is a way into its step as much as the
-                                        // other facts are, and the step is what carries the
-                                        // names this ledger already knows.
-                                        onMerchantPress={() => enterStep("merchant")}
-                                        onWhenPress={() => enterStep("when")}
-                                        rest={
-                                            rest === undefined
-                                                ? undefined
-                                                : {
-                                                      addAccessibilityLabel: t("transaction.sentence.add.moreLabel"),
-                                                      addLabel: t("transaction.sentence.add.more"),
-                                                      onWake: rest.onWake,
-                                                  }
-                                        }
-                                        verbs={[
-                                            {
-                                                accessibilityLabel: hasIdentityMark
-                                                    ? t("transaction.sentence.set.icon")
-                                                    : addLabel(t("transaction.sentence.add.icon")),
-                                                active: hasIdentityMark,
-                                                key: "icon",
-                                                label: t("transaction.sentence.add.icon"),
-                                                onPress: openPicker,
-                                                onRemove: clearIdentity,
-                                                removeAccessibilityLabel: t("transaction.identity.hero.removeLogo"),
-                                            },
-                                            {
-                                                accessibilityLabel:
-                                                    tagLabels.length === 0
-                                                        ? addLabel(t("transaction.sentence.add.tags"))
-                                                        : t("transaction.sentence.extra.tags", {
-                                                              tags: tagLabels.join(", "),
-                                                          }),
-                                                active: tagLabels.length > 0,
-                                                key: "tags",
-                                                label:
-                                                    tagLabels.length === 0
-                                                        ? t("transaction.sentence.add.tags")
-                                                        : namedWithCount(tagLabels),
-                                                onPress: () => {
-                                                    Keyboard.dismiss();
-                                                    tagSheetRef.current?.present();
-                                                },
-                                            },
-                                            {
-                                                accessibilityLabel: splitLine ?? undefined,
-                                                active: splitAllocations.length > 0,
-                                                disabled: amountNumber <= 0,
-                                                key: "split",
-                                                label:
-                                                    splitAllocations.length === 0
-                                                        ? t("transaction.sentence.add.split")
-                                                        : splitLabel(splitAllocations.length),
-                                                onPress: () => {
-                                                    // A sheet presents over the note's keyboard rather
-                                                    // than under it, and the field it belongs to is gone
-                                                    // from the screen by then.
-                                                    Keyboard.dismiss();
-                                                    openSplit(amountNumber, category?.id ?? null, minorUnits);
-                                                    splitSheetRef.current?.present();
-                                                },
-                                            },
-                                            {
-                                                accessibilityLabel: isSubscription
-                                                    ? t("transaction.schedule.every", {
-                                                          interval: intervalPhrase(t, recurringType, coefficient),
-                                                      })
-                                                    : undefined,
-                                                active: isSubscription,
-                                                key: "repeat",
-                                                label: isSubscription
-                                                    ? repeatChipLabel()
-                                                    : t("transaction.sentence.add.repeat"),
-                                                onPress: () => enterStep("repeat"),
-                                                // The step names cadences, not "never": the
-                                                // way back off a schedule is the chip's own
-                                                // ✕, which only a set chip draws.
-                                                onRemove: () => handleKindChange("once"),
-                                                removeAccessibilityLabel: t("transaction.schedule.stopRepeat"),
-                                            },
-                                            {
-                                                accessibilityLabel:
-                                                    noteLine ?? addLabel(t("transaction.sentence.add.note")),
-                                                active: noteOpen || noteSummary.length > 0,
-                                                key: "note",
-                                                label: t("transaction.sentence.add.note"),
-                                                onPress: () => {
-                                                    setNoteOpen((open) => !open);
-                                                    setNoteAsked(true);
-                                                },
-                                            },
-                                            ...(feeable && !feeShown()
-                                                ? [
-                                                      {
-                                                          accessibilityLabel: addLabel(
-                                                              t("transaction.sentence.add.fee")
-                                                          ),
-                                                          active: false,
-                                                          key: "fee" as const,
-                                                          label: t("transaction.sentence.add.fee"),
-                                                          onPress: () => enterStep("fee"),
-                                                      },
-                                                  ]
-                                                : []),
-                                        ]}
                                         when={whenLabel}
                                     />
                                 </FormScrollItem>
