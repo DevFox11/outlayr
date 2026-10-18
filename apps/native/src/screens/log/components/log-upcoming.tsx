@@ -44,7 +44,20 @@ export function LogUpcoming({ transactions, schedules, currency, rates, onPress,
     const t = useTranslation();
     const largeText = useAccessibilityTextSize();
     const headerRow = cn("flex-row items-baseline justify-between gap-2", largeText && "flex-wrap");
-    const totals = useMemo(() => currencyTotals(transactions, currency, rates), [transactions, currency, rates]);
+    // Valued at the charge still to come, not at the date the schedule was first
+    // saved: a yearly renewal's can predate every rate the app holds.
+    const charges = useMemo(
+        () => transactions.map((transaction) => ({ ...transaction, date: landingDate(transaction, new Date(nowMs)) })),
+        [transactions, nowMs]
+    );
+    const totals = useMemo(() => currencyTotals(charges, currency, rates), [charges, currency, rates]);
+    // The rows keep their stored date, which the menu reads, and only borrow the value.
+    const rows = useMemo(() => {
+        const valued = valueRows(charges, currency, rates);
+        return foldFees(
+            transactions.map((transaction, index) => ({ ...transaction, valued: valued[index]?.valued ?? null }))
+        );
+    }, [transactions, charges, currency, rates]);
     // A second figure rather than a correction of the first: the heading total is
     // genuinely what leaves the account next, but each schedule contributes one
     // charge to it whatever its cadence, so alone it reads like a monthly cost
@@ -74,7 +87,7 @@ export function LogUpcoming({ transactions, schedules, currency, rates, onPress,
                     </View>
                 ) : null}
             </View>
-            {foldFees(valueRows(transactions, currency, rates)).map((transaction) => (
+            {rows.map((transaction) => (
                 <TransactionRow
                     currency={currency}
                     future

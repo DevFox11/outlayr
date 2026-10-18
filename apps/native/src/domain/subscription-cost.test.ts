@@ -125,8 +125,8 @@ describe("monthlySubscriptionCost", () => {
         expect(buckets).toStrictEqual([{ amount: 0, currencyCode: "USD", transactionCount: 0 }]);
     });
 
-    it("converts the month's figure, not the single charge, at the day's rate", () => {
-        // $1200/year is $100/month, which is €90 at the 5th's rate. Converting the
+    it("converts the month's figure, not the single charge, at today's rate", () => {
+        // $1200/year is $100/month, which is €90 at today's rate. Converting the
         // $1200 first would print €1080 and then divide to €90 only by luck — a
         // schedule whose rate moved between charges would not land there.
         const rates = buildRateTable([{ date: "2026-07-01", quote: "EUR", rate: 0.9 }]);
@@ -139,6 +139,24 @@ describe("monthlySubscriptionCost", () => {
             ],
             "EUR",
             rates
+        );
+        expect(buckets).toStrictEqual([{ amount: -90, currencyCode: "EUR", transactionCount: 1 }]);
+    });
+
+    it("converts a schedule first saved before the oldest rate held", () => {
+        // A yearly renewal saved last November predates a rate window that opens in
+        // July; valued at its saved date it would stay in dollars under a euro view.
+        const rates = buildRateTable([{ date: "2026-07-01", quote: "EUR", rate: 0.9 }]);
+        const buckets = monthlySubscriptionCost(
+            [
+                schedule(1200, RECURRING_TYPE.yearly, 1, {
+                    amountUsd: 1200,
+                    date: new Date(Date.UTC(2025, 10, 20, 12)),
+                }),
+            ],
+            "EUR",
+            rates,
+            new Date(Date.UTC(2026, 9, 18, 12))
         );
         expect(buckets).toStrictEqual([{ amount: -90, currencyCode: "EUR", transactionCount: 1 }]);
     });

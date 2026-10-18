@@ -78,7 +78,9 @@ export function monthlySubscriptionCost(
             // month of the schedule in one currency and a single charge in another.
             amountUsd: schedule.amountUsd == null ? null : schedule.amountUsd * charges,
             currency: schedule.currency,
-            date: schedule.date,
+            // What a month of it costs now, at today's rate. The schedule's own date
+            // is when it was first saved, which can predate every rate held.
+            date: now,
             income: schedule.income,
         });
     }
