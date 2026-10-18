@@ -6,7 +6,7 @@ import { appMeta } from "@/db/schema";
 import { parseFavourites } from "@/domain/favourite-currencies";
 
 import { META_KEYS } from "./app-meta-core";
-import { useLiveQuery } from "./live-query";
+import { useLiveValue } from "./live-query";
 
 /**
  * `db` is nullable because the currency picker sheet is mounted by forms whose
@@ -14,7 +14,7 @@ import { useLiveQuery } from "./live-query";
  * open database resolves to no favourites — never to an error.
  */
 export function useFavouriteCurrencies(db: Database | null): string[] {
-    const rows = useLiveQuery(
+    const stored = useLiveValue(
         appMeta,
         () =>
             db === null
@@ -23,9 +23,9 @@ export function useFavouriteCurrencies(db: Database | null): string[] {
                       .select({ value: appMeta.value })
                       .from(appMeta)
                       .where(eq(appMeta.key, META_KEYS.favouriteCurrencies)),
+        (rows) => rows[0]?.value ?? null,
         [db]
     );
-    const stored = rows[0]?.value ?? null;
     // Keyed on the stored string so the parsed array keeps its identity across
     // renders the row did not change in — a picker memoised on it would otherwise
     // rebuild its cluster on every keystroke in the search field.
