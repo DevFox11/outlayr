@@ -4,6 +4,7 @@ import { useCallback, useRef, useSyncExternalStore } from "react";
 
 import { subscribeToTableChanges } from "./database-changes";
 import { subscribeRatesRevision } from "./rates-revision";
+import { sameRows } from "./same-rows";
 
 /**
  * A Drizzle query the expo-sqlite driver can run on the JS thread: the driver is
@@ -48,24 +49,27 @@ function sameDeps(a: readonly unknown[], b: readonly unknown[]): boolean {
  * depend on another table (a join, or an `inArray` over ids read elsewhere) must
  * resolve that table through its own subscription and pass the result in through
  * `deps`; see `useCategoryMeta`.
+ *
+ * A re-read that finds the same rows, column by column, hands back the previous
+ * array, so a write that leaves this query's rows alone re-renders nothing.
  */
-export function useLiveQuery<TRow>(
+export function useLiveQuery<TRow extends object>(
     table: SQLiteTable,
     build: () => SyncQuery<TRow>,
     deps: readonly unknown[] = []
 ): TRow[] {
-    return useLiveRead(table, () => build().all(), deps);
+    return useLiveRead(table, () => build().all(), deps, sameRows);
 }
 
 /**
  * {@link useLiveQuery} narrowed to what the caller actually reads.
  *
  * `select` runs on the rows inside the snapshot, so the value React compares is
- * the derived one. A consumer watching a single setting therefore sits still
- * through every `appMeta` write that leaves its own key alone, where
- * `useLiveQuery` would hand back a fresh array and re-render it — the whole
- * table is one invalidation channel (see the note above), so an unrelated write
- * is the common case, not the rare one.
+ * the derived one. A consumer watching a count or a single field therefore sits
+ * still through every write that leaves that value alone, even one that changes
+ * the rows it was derived from — the whole table is one invalidation channel
+ * (see the note above), so an unrelated write is the common case, not the rare
+ * one.
  *
  * `select` must be pure and must derive something comparable by `Object.is` —
  * a primitive, or a value it returns identically for identical rows.
@@ -79,10 +83,15 @@ export function useLiveValue<TRow, TValue>(
     return useLiveRead(table, () => select(build().all()), deps);
 }
 
-function useLiveRead<TValue>(table: SQLiteTable, read: () => TValue, deps: readonly unknown[]): TValue {
+function useLiveRead<TValue>(
+    table: SQLiteTable,
+    read: () => TValue,
+    deps: readonly unknown[],
+    equal?: (cached: TValue, next: TValue) => boolean
+): TValue {
     const tableName = getTableName(table);
     const subscribeTable = useCallback((bump: () => void) => subscribeToTableChanges(tableName, bump), [tableName]);
-    return useRead(subscribeTable, read, deps);
+    return useRead(subscribeTable, read, deps, equal);
 }
 
 export function useRatesRead<TValue>(read: () => TValue, deps: readonly unknown[] = []): TValue {
@@ -92,7 +101,8 @@ export function useRatesRead<TValue>(read: () => TValue, deps: readonly unknown[
 function useRead<TValue>(
     subscribeChanges: (bump: () => void) => () => void,
     read: () => TValue,
-    deps: readonly unknown[]
+    deps: readonly unknown[],
+    equal?: (cached: TValue, next: TValue) => boolean
 ): TValue {
     const revision = useRef(0);
     const snapshot = useRef<Snapshot<TValue> | null>(null);
@@ -114,7 +124,8 @@ function useRead<TValue>(
         if (cached !== null && cached.revision === revision.current && sameDeps(cached.deps, deps)) {
             return cached.value;
         }
-        const value = read();
+        const next = read();
+        const value = cached !== null && equal?.(cached.value, next) ? cached.value : next;
         snapshot.current = { deps, revision: revision.current, value };
         return value;
     };
