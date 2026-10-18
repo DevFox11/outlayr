@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react-native";
 import { Dimensions, StyleSheet } from "react-native";
 
 import { AMOUNT_HERO_MAX_SIZE, amountHeroFontSize } from "@/domain/amount-hero-size";
-import { amountParts, currencySymbol, formatAmount } from "@/domain/money";
+import { amountParts, currencySymbol, formatAmount, symbolPrefix } from "@/domain/money";
 import type { Language } from "@/i18n/languages";
 
 import {
@@ -92,7 +92,7 @@ describe("flowAmount", () => {
                 <FlowAmount
                     amount={Math.abs(amount)}
                     code={code}
-                    prefix={`+${currencySymbol(code)}`}
+                    prefix={`+${symbolPrefix(currencySymbol(code))}`}
                     showCents={showCents}
                 />
             );

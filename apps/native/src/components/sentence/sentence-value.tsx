@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Pressable } from "react-native";
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 
-import { currencySymbol } from "@/domain/money";
+import { currencySymbol, symbolPrefix } from "@/domain/money";
 import { useColors } from "@/theme/use-colors";
 
 import { FlowAmount } from "../amount-text";
@@ -117,7 +117,7 @@ export function SentenceValue({
                             amount={figure.amount}
                             className={cn(textClassName, tone())}
                             code={figure.code}
-                            prefix={currencySymbol(figure.code)}
+                            prefix={symbolPrefix(currencySymbol(figure.code))}
                             showCents
                             snapWidth
                         />

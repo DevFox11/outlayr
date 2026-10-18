@@ -200,10 +200,6 @@ const log = {
             en: "{arrived} arrived after a {fee} fee",
             es: "Llegaron {arrived} tras una comisión de {fee}",
         }),
-        "log.row.arrivedFee": t({
-            en: "{arrived} arrived · {fee} fee",
-            es: "Llegaron {arrived} · {fee} de comisión",
-        }),
         "log.row.delete": t({
             en: "Delete",
             es: "Eliminar",
@@ -215,6 +211,10 @@ const log = {
         "log.row.fee": t({
             en: "+{amount} fee",
             es: "+{amount} de comisión",
+        }),
+        "log.row.feeIncluded": t({
+            en: "Fee included",
+            es: "Comisión incluida",
         }),
         "log.row.outside": t({
             en: "{amount} from another account",

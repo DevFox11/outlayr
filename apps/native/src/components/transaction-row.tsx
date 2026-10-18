@@ -38,7 +38,7 @@ function feeGlyph({ color, size }: { color: string; size: number }) {
     return <HugeiconsIcon color={color} icon={PercentCircleSolidIcon} size={size} />;
 }
 
-const UNDER_AMOUNT = "text-eyebrow text-muted font-mono tabular-nums";
+const FEE_MARK_SIZE = 14;
 
 interface Figure {
     amount: number;
@@ -57,54 +57,67 @@ function inListCurrency(
 }
 
 interface UnderAmountProps {
+    /** A fee the amount above could not take in, because it is in another currency. */
     fee: Figure | undefined;
+    future: boolean;
     moved: TransferMove | undefined;
+    /** The amount as it was kept, when the figure above restates it in the list's currency. */
+    original: string | null;
     sentCurrency: string;
     showCents: boolean;
 }
 
-function UnderAmount({ fee, moved, sentCurrency, showCents }: UnderAmountProps) {
+/** The trailing figure's second line, in the type of the time beside it. */
+function UnderAmount({ fee, future, moved, original, sentCurrency, showCents }: UnderAmountProps) {
     const t = useTranslation();
     const { language } = useLanguage();
     if (use(AmountsHiddenContext)) {
         return null;
     }
+    const className = cn(ROW_TYPE.subtitle, "tabular-nums", future ? "text-subtle" : "text-muted");
     if (moved === undefined) {
-        return fee === undefined ? null : (
-            <Text className={UNDER_AMOUNT} numberOfLines={1}>
-                {t("log.row.fee", { amount: formatAmount(fee.amount, fee.currency, showCents, language) })}
-            </Text>
-        );
-    }
-    const arrived = formatAmount(moved.arrived, moved.arrivedCurrency, showCents, language);
-    const outside = moved.outside && (
-        <Text className={UNDER_AMOUNT} numberOfLines={1}>
-            {t("log.row.outside", {
-                amount: formatAmount(moved.outside.amount, moved.outside.currency, showCents, language),
-            })}
-        </Text>
-    );
-    if (moved.fee === null) {
-        return moved.arrivedCurrency === sentCurrency ? null : (
+        return (
             <>
-                <Text className={UNDER_AMOUNT} numberOfLines={1}>
-                    {t("log.row.arrived", { arrived })}
-                </Text>
-                {outside}
+                {original === null ? null : (
+                    <Text className={className} numberOfLines={1}>
+                        {original}
+                    </Text>
+                )}
+                {fee === undefined ? null : (
+                    <Text className={className} numberOfLines={1}>
+                        {t("log.row.fee", { amount: formatAmount(fee.amount, fee.currency, showCents, language) })}
+                    </Text>
+                )}
             </>
         );
     }
-    const charged = formatAmount(moved.fee.amount, moved.fee.currency, showCents, language);
+    if (moved.fee === null && moved.arrivedCurrency === sentCurrency) {
+        return null;
+    }
+    const arrived = formatAmount(moved.arrived, moved.arrivedCurrency, showCents, language);
     return (
         <>
             <Text
-                accessibilityLabel={t("log.row.arrivedAfterFee", { arrived, fee: charged })}
-                className={UNDER_AMOUNT}
+                accessibilityLabel={
+                    moved.fee === null
+                        ? t("log.row.arrived", { arrived })
+                        : t("log.row.arrivedAfterFee", {
+                              arrived,
+                              fee: formatAmount(moved.fee.amount, moved.fee.currency, showCents, language),
+                          })
+                }
+                className={className}
                 numberOfLines={1}
             >
-                {t("log.row.arrivedFee", { arrived, fee: charged })}
+                {`→ ${arrived}`}
             </Text>
-            {outside}
+            {moved.outside ? (
+                <Text className={className} numberOfLines={1}>
+                    {t("log.row.outside", {
+                        amount: formatAmount(moved.outside.amount, moved.outside.currency, showCents, language),
+                    })}
+                </Text>
+            ) : null}
         </>
     );
 }
@@ -112,30 +125,45 @@ function UnderAmount({ fee, moved, sentCurrency, showCents }: UnderAmountProps) 
 interface RowMetaProps {
     currency: string;
     details: string | null | undefined;
+    /** Marks a row whose figure carries a fee. */
+    fee: boolean;
     foreignCode: string | null;
     future: boolean;
-    /** The amount as it was kept, when the trailing figure restates it in the list's currency. */
-    original: string | null;
     rateNeeded: boolean;
+    /** The trailing figure restates the row in the list's currency, with the original under it. */
+    restated: boolean;
     subtitle: string;
     unplaced: boolean;
 }
 
-function RowMeta({ currency, details, foreignCode, future, original, rateNeeded, subtitle, unplaced }: RowMetaProps) {
+function RowMeta({
+    currency,
+    details,
+    fee,
+    foreignCode,
+    future,
+    rateNeeded,
+    restated,
+    subtitle,
+    unplaced,
+}: RowMetaProps) {
     const t = useTranslation();
-    const showOriginal = original !== null && !use(AmountsHiddenContext);
+    const colors = useColors();
+    const showOriginal = restated && !use(AmountsHiddenContext);
     return (
         <>
-            {/* Wraps rather than clips, so a narrow phone drops the original amount to
-                its own line instead of cutting digits off it. */}
             <View className="flex-row flex-wrap items-center gap-1.25">
                 <Text className={cn(ROW_TYPE.subtitle, future ? "text-subtle" : "text-muted")} numberOfLines={1}>
                     {subtitle}
                 </Text>
-                {showOriginal ? (
-                    <Text className={UNDER_AMOUNT} numberOfLines={1}>
-                        {original}
-                    </Text>
+                {fee ? (
+                    <View accessibilityLabel={t("log.row.feeIncluded")}>
+                        <HugeiconsIcon
+                            color={future ? colors.subtle : colors.muted}
+                            icon={PercentCircleSolidIcon}
+                            size={FEE_MARK_SIZE}
+                        />
+                    </View>
                 ) : null}
                 {foreignCode && !showOriginal ? (
                     <View className="border-border rounded-[3px] border px-[3px]">
@@ -166,6 +194,30 @@ function RowMeta({ currency, details, foreignCode, future, original, rateNeeded,
             ) : null}
         </>
     );
+}
+
+interface RowFigure extends Figure {
+    /** A fee the figure could not take in, because it is in another currency. */
+    apart?: Figure;
+    feeIn: boolean;
+    /** `amount` with the fee taken in. */
+    total: number;
+}
+
+/** The row's trailing figure, and the fee it carries. */
+function rowFigure(transaction: TransactionRowProps["transaction"], currency: string, isTransfer: boolean): RowFigure {
+    const fee = transaction.fee && inListCurrency(transaction.fee, currency);
+    if (isTransfer) {
+        // A transfer keeps the currency it left in: what arrived, and in what, is the row's point.
+        const sent = transaction.moved?.sent ?? transaction.amount;
+        return { amount: sent, apart: fee, currency: transaction.currency ?? currency, feeIn: false, total: sent };
+    }
+    const shown = inListCurrency(transaction, currency);
+    if (fee?.currency !== shown.currency) {
+        return { ...shown, apart: fee, feeIn: false, total: shown.amount };
+    }
+    // Taken in, so a day's rows add up to its header.
+    return { ...shown, feeIn: true, total: shown.amount + (transaction.income ? -fee.amount : fee.amount) };
 }
 
 interface TransactionRowProps {
@@ -237,10 +289,10 @@ export function TransactionRow({
     const recurring = transaction.recurringType > 0;
     const rateNeeded = isTransactionRateNeeded(transaction);
     const foreignCode = transaction.currency && transaction.currency !== currency ? transaction.currency : null;
-    // A transfer keeps the currency it left in: what arrived, and in what, is the row's point.
-    const shown = isTransfer
-        ? { amount: transaction.moved?.sent ?? transaction.amount, currency: code }
-        : inListCurrency(transaction, currency);
+    const shown = rowFigure(transaction, currency, isTransfer);
+    const kept = formatAmount(transaction.amount, code, showCents, language);
+    const original =
+        shown.currency === code || formatAmount(shown.amount, code, showCents, language) === kept ? null : kept;
     // A row that stated no currency is printed under the global code. That is a
     // fact only while something can place it; once nothing can, the code is an
     // assumption and the mark says so.
@@ -264,7 +316,7 @@ export function TransactionRow({
     const amount = (
         <View className={stacked ? "items-start" : "items-end"}>
             <RowAmount
-                amount={shown.amount}
+                amount={shown.total}
                 code={shown.currency}
                 income={transaction.income}
                 isFuture={future}
@@ -273,8 +325,10 @@ export function TransactionRow({
                 transferSign={transaction.sign}
             />
             <UnderAmount
-                fee={transaction.fee && inListCurrency(transaction.fee, currency)}
+                fee={shown.apart}
+                future={future}
                 moved={transaction.moved}
+                original={original}
                 sentCurrency={code}
                 showCents={showCents}
             />
@@ -341,12 +395,11 @@ export function TransactionRow({
                 <RowMeta
                     currency={currency}
                     details={transaction.details}
+                    fee={shown.feeIn || transaction.moved?.fee != null}
                     foreignCode={foreignCode}
                     future={future}
-                    original={
-                        shown.currency === code ? null : formatAmount(transaction.amount, code, showCents, language)
-                    }
                     rateNeeded={rateNeeded}
+                    restated={original !== null}
                     subtitle={subtitle}
                     unplaced={unplaced}
                 />

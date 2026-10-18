@@ -2,7 +2,7 @@ import type { EntryRateType } from "@outlayr/money/rates";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
-import { currencySymbol } from "@/domain/money";
+import { currencySymbol, symbolPrefix } from "@/domain/money";
 
 import { FlowAmount } from "../../amount-text";
 import { Text } from "../../text";
@@ -117,7 +117,7 @@ export function StepRateField({
                             amount={figure.amount}
                             className={valueClass}
                             code={figure.code}
-                            prefix={currencySymbol(figure.code)}
+                            prefix={symbolPrefix(currencySymbol(figure.code))}
                             showCents
                         />
                     ) : (

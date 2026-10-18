@@ -37,7 +37,7 @@ import { transactionsRepo } from "@/data/transactions-core";
 import { transfersRepo } from "@/data/transfers-core";
 import type { AuthGate } from "@/domain/auth-gate";
 import { formatChargeDate } from "@/domain/dates";
-import { amountParts, formatAmount } from "@/domain/money";
+import { amountParts, formatAmount, symbolPrefix } from "@/domain/money";
 import { boundedPromptNames } from "@/domain/prompt-budget";
 import {
     draftDelta,
@@ -252,7 +252,7 @@ function ReviewLine({ draft, categoryName }: { draft: ResolvedVoiceEntry; catego
                     amount={draft.amount}
                     className={`font-sans-semibold text-hero tabular-nums ${draft.income ? "text-income" : "text-foreground"}`}
                     code={draft.currency}
-                    prefix={amountParts(draft.amount, draft.currency, true, language).symbol}
+                    prefix={symbolPrefix(amountParts(draft.amount, draft.currency, true, language).symbol)}
                     showCents
                 />
             </View>

@@ -62,7 +62,7 @@ const PENDING_CUSTOM = {
 };
 
 describe("transactionRow", () => {
-    it("covers the amount and drops the fee line while amounts are hidden", async () => {
+    it("covers the amount, fee and all, while amounts are hidden", async () => {
         const { getByLabelText, getByText, queryByText } = await render(
             <AmountsHiddenContext value>
                 <TransactionRow
@@ -82,8 +82,7 @@ describe("transactionRow", () => {
 
         expect(getByText("-$••••")).toBeTruthy();
         expect(getByLabelText("log.amounts.hidden")).toBeTruthy();
-        expect(queryByText("-$100.00")).toBeNull();
-        expect(queryByText("log.row.fee")).toBeNull();
+        expect(queryByText("-$102.00")).toBeNull();
     });
 
     it("shows an accessible Rate needed badge for the derived pending custom triple", async () => {
@@ -117,13 +116,13 @@ describe("transactionRow", () => {
         valued: 25.98,
     };
 
-    it("leads with the list's currency and keeps what was paid beside the time", async () => {
+    it("leads with the list's currency and keeps what was paid under it", async () => {
         const { getByText, queryByText } = await render(
             <TransactionRow currency="USD" onPress={() => {}} transaction={PAID_IN_BOLIVARES as never} />
         );
 
         expect(getByText("-$25.98")).toBeTruthy();
-        expect(getByText("Bs.22,000.00")).toBeTruthy();
+        expect(getByText("Bs.\u00A022,000.00")).toBeTruthy();
         expect(queryByText("VES")).toBeNull();
     });
 
@@ -135,7 +134,29 @@ describe("transactionRow", () => {
         );
 
         expect(getByText("VES")).toBeTruthy();
-        expect(queryByText("Bs.22,000.00")).toBeNull();
+        expect(queryByText("Bs.\u00A022,000.00")).toBeNull();
+    });
+
+    it("adds a fee into the amount it heads, so the rows sum to the day", async () => {
+        const fee = { amount: 66, currency: "VES", valued: 0.08 };
+        const { getByLabelText, getByText } = await render(
+            <TransactionRow currency="USD" onPress={() => {}} transaction={{ ...PAID_IN_BOLIVARES, fee } as never} />
+        );
+
+        expect(getByText("-$26.06")).toBeTruthy();
+        expect(getByText("Bs.\u00A022,000.00")).toBeTruthy();
+        expect(getByLabelText("log.row.feeIncluded")).toBeTruthy();
+    });
+
+    it("keeps a fee it cannot value apart rather than adding two currencies", async () => {
+        const fee = { amount: 66, currency: "VES", valued: null };
+        const { getByText, queryByLabelText } = await render(
+            <TransactionRow currency="USD" onPress={() => {}} transaction={{ ...PAID_IN_BOLIVARES, fee } as never} />
+        );
+
+        expect(getByText("-$25.98")).toBeTruthy();
+        expect(getByText("log.row.fee")).toBeTruthy();
+        expect(queryByLabelText("log.row.feeIncluded")).toBeNull();
     });
 });
 
@@ -168,16 +189,16 @@ describe("a transfer's row", () => {
 
         expect(getByText("$100.00")).toBeTruthy();
         expect(getByLabelText("$100.00 moved")).toBeTruthy();
-        expect(getByText("$98.00 arrived · $2.00 fee")).toBeTruthy();
+        expect(getByText("→ $98.00")).toBeTruthy();
         expect(getByLabelText("$98.00 arrived after a $2.00 fee")).toBeTruthy();
     });
 
     it("states the arrival of a feeless move only when it landed in another currency", async () => {
         const crossed = await drawn({ arrived: 42_427.29, arrivedCurrency: "VES", fee: null, outside: null, sent: 50 });
-        expect(crossed.getByText("Bs.42,427.29 arrived")).toBeTruthy();
+        expect(crossed.getByLabelText("Bs.\u00A042,427.29 arrived")).toBeTruthy();
 
         const level = await drawn({ ...moved, fee: null, sent: 98 });
-        expect(level.queryByText(/arrived/)).toBeNull();
+        expect(level.queryByLabelText(/arrived/)).toBeNull();
     });
 
     it("adds what came from an untracked account on its own line", async () => {
@@ -189,7 +210,7 @@ describe("a transfer's row", () => {
             sent: 160,
         });
 
-        expect(getByText("Bs.157,471.66 arrived · $7.34 fee")).toBeTruthy();
+        expect(getByText("→ Bs.\u00A0157,471.66")).toBeTruthy();
         expect(getByText("$11.87 from another account")).toBeTruthy();
     });
 

@@ -64,6 +64,14 @@ export function currencySymbol(code: string): string {
     return currencyDisplayFor(code).symbol;
 }
 
+/** CLDR's currency spacing, which Hermes' `Intl` cannot apply. */
+const SPACED_SYMBOL = /[^\p{S}]$/u;
+
+/** The symbol as it leads digits: "$" stays tight, while "Bs." and "CHF" keep a no-break space. */
+export function symbolPrefix(symbol: string): string {
+    return SPACED_SYMBOL.test(symbol) ? `${symbol}\u00A0` : symbol;
+}
+
 const SHARED_SYMBOLS: ReadonlySet<string> = new Set(
     PICKABLE_CURRENCY_CODES.map((code) => CURRENCY_META[code].symbol).filter(
         (symbol, index, symbols) => symbols.indexOf(symbol) !== index
@@ -127,12 +135,12 @@ export function amountDigits(parts: AmountParts): string {
 export const AMOUNT_MASK = "••••";
 
 export function maskedAmount(code: string): string {
-    return `${currencySymbol(code)}${AMOUNT_MASK}`;
+    return `${symbolPrefix(currencySymbol(code))}${AMOUNT_MASK}`;
 }
 
 /** Wraps already-built digits in the symbol. */
 export function withCurrencySymbol(parts: AmountParts, digits: string): string {
-    return `${parts.symbol}${digits}`;
+    return `${symbolPrefix(parts.symbol)}${digits}`;
 }
 
 /**

@@ -31,6 +31,11 @@ describe("formatAmount", () => {
         expect(formatAmount(1234.5, "EUR", true, "es")).toBe("€1,234.50");
     });
 
+    it("keeps a symbol that ends in a letter or a mark off the digits", () => {
+        expect(formatAmount(1234.5, "VES", true, "en")).toBe("Bs.\u00A01,234.50");
+        expect(formatAmount(1234.5, "CHF", true, "en")).toBe("CHF\u00A01,234.50");
+    });
+
     it("emits no fraction for a zero-minor-unit currency", () => {
         expect(formatAmount(1234, "JPY", true, "en")).toBe("¥1,234");
     });

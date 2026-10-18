@@ -574,13 +574,13 @@ describe("transfer editor rate step", () => {
 
         await press("USDT (Binance)");
 
-        expect(slotValue("transfers.field.arrives")).toBe("Bs.157,471.66");
+        expect(slotValue("transfers.field.arrives")).toBe("Bs.\u00A0157,471.66");
         expect(screen.getByText("$7.34 less arrived")).toBeTruthy();
         await act(async () => {
             fireEvent.press(screen.getByText("It's a fee"));
         });
         expect(screen.queryByText(/ (less|more) arrived/)).toBeNull();
-        expect(slotValue("transfers.field.arrives")).toBe("Bs.157,471.66");
+        expect(slotValue("transfers.field.arrives")).toBe("Bs.\u00A0157,471.66");
     });
 
     it("lets an arrival opened but never typed follow the amount", async () => {
@@ -592,7 +592,7 @@ describe("transfer editor rate step", () => {
         await press("6");
         await press("0");
 
-        expect(slotValue("transfers.field.arrives")).toBe("Bs.50,913.00");
+        expect(slotValue("transfers.field.arrives")).toBe("Bs.\u00A050,913.00");
     });
 
     it("opens the rate keypad from My rate", async () => {
@@ -626,7 +626,7 @@ describe("transfer editor typed rate", () => {
             await press(key);
         }
 
-        expect(screen.getByText("6.1% above USD (BCV) · Bs.2,572.50 more than at USD (BCV)")).toBeTruthy();
+        expect(screen.getByText("6.1% above USD (BCV) · Bs.\u00A02,572.50 more than at USD (BCV)")).toBeTruthy();
         expect(reference("USD (BCV)")).toBe("848.55");
         expect(reference("USDT (Binance)")).toBe("1,031.52");
         expect(reference("Last used · 27 Sep")).toBe("1,020.00");
@@ -670,7 +670,7 @@ describe("transfer editor typed rate", () => {
         await press("Last used · 27 Sep");
 
         expect(slotValue("transfers.field.rate")).toBe("1,020.1235 Bs. per $");
-        expect(slotValue("transfers.field.arrives")).toBe("Bs.10,201,234.56");
+        expect(slotValue("transfers.field.arrives")).toBe("Bs.\u00A010,201,234.56");
     });
 
     it("applies My rate from the rate list at the same full precision", async () => {
@@ -682,7 +682,7 @@ describe("transfer editor typed rate", () => {
         await press("My rate");
         await press("common.back");
 
-        expect(slotValue("transfers.field.arrives")).toBe("Bs.10,201,234.56");
+        expect(slotValue("transfers.field.arrives")).toBe("Bs.\u00A010,201,234.56");
     });
 
     it("leaves a picked reference in force when the rate step is opened and left untouched", async () => {
@@ -699,7 +699,7 @@ describe("transfer editor typed rate", () => {
         await press("transfers.field.rate");
         await press("common.back");
 
-        expect(slotValue("transfers.field.arrives")).toBe("Bs.42,427.50");
+        expect(slotValue("transfers.field.arrives")).toBe("Bs.\u00A042,427.50");
         await press("common.next");
         await press("transfers.save");
         expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({ exchangeRateType: "official", toAmount: 42_427.5 });
@@ -798,7 +798,7 @@ describe("transfer editor conversion", () => {
 
         expect(mockCreate).not.toHaveBeenCalled();
         expect(screen.getByText("transfers.field.arrives")).toBeTruthy();
-        expect(slotValue("transfers.field.arrives")).toBe("Bs.42,427.50");
+        expect(slotValue("transfers.field.arrives")).toBe("Bs.\u00A042,427.50");
         await press("transfers.save");
         expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({ fromAmount: 50, toAmount: 42_427.5 });
     });
@@ -870,8 +870,8 @@ describe("transfer editor fee on top", () => {
         }
 
         expect(screen.getByTestId("stage-fee-field").props.accessibilityValue.text).toBe("1000.00 VES");
-        expect(slotValue("transfers.field.arrives")).toBe("Bs.42,427.50");
-        expect(screen.getByLabelText("Banesco, Bs.500.00, then Bs.41,927.50")).toBeTruthy();
+        expect(slotValue("transfers.field.arrives")).toBe("Bs.\u00A042,427.50");
+        expect(screen.getByLabelText("Banesco, Bs.\u00A0500.00, then Bs.\u00A041,927.50")).toBeTruthy();
         await press("common.next");
         await press("transfers.save");
         expect(mockCreate.mock.calls[0]?.[1]).toMatchObject({

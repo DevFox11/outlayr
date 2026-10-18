@@ -2,7 +2,7 @@ import { use } from "react";
 import { View } from "react-native";
 
 import { useDisplaySettings } from "@/contexts/display-settings-context";
-import { currencySymbol, formatAmount } from "@/domain/money";
+import { currencySymbol, formatAmount, symbolPrefix } from "@/domain/money";
 import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
@@ -78,7 +78,7 @@ export function LedgerHead({ cells, code }: LedgerHeadProps) {
                                     cell.income ? "text-income" : "text-foreground"
                                 )}
                                 code={code}
-                                prefix={`${cell.positive ? "+" : "-"}${currencySymbol(code)}`}
+                                prefix={`${cell.positive ? "+" : "-"}${symbolPrefix(currencySymbol(code))}`}
                                 showCents={showCents}
                             />
                         </RowPressable>
