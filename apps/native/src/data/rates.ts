@@ -1,5 +1,5 @@
 import type { RateLookup } from "@outlayr/money/rates";
-import { and, desc, eq, lte, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
 
 import { getMeta } from "@/data/app-meta-core";
 import type { SpendDb } from "@/data/budget-spent";
@@ -132,15 +132,36 @@ export async function pullRatesIfDue(
     return true;
 }
 
+function rateKey({ date, quote, rateType }: Pick<RateWireRow, "date" | "quote" | "rateType">): string {
+    return `${quote}:${rateType}:${date}`;
+}
+
+/**
+ * Upserts the delivered rows the cache does not already hold verbatim. Answers
+ * whether any did, and bumps only then.
+ */
 export async function applyRecentRates(db: Database, rows: RateWireRow[]): Promise<boolean> {
     if (rows.length === 0) {
         return false;
     }
 
+    let written = 0;
     await withTransaction(db, async () => {
+        const stored = await db
+            .select()
+            .from(exchangeRates)
+            .where(inArray(exchangeRates.date, [...new Set(rows.map((row) => row.date))]));
+        const storedByKey = new Map(stored.map((row) => [rateKey(row), row]));
+        const changed = rows.filter((row) => {
+            const held = storedByKey.get(rateKey(row));
+            return held?.rate !== row.rate || held.fetchedAt !== row.fetchedAt || held.source !== row.source;
+        });
+        if (changed.length === 0) {
+            return;
+        }
         await db
             .insert(exchangeRates)
-            .values(rows.map(toRateRow))
+            .values(changed.map(toRateRow))
             .onConflictDoUpdate({
                 set: {
                     fetchedAt: sql`excluded.fetchedAt`,
@@ -149,7 +170,12 @@ export async function applyRecentRates(db: Database, rows: RateWireRow[]): Promi
                 },
                 target: [exchangeRates.quote, exchangeRates.rateType, exchangeRates.date],
             });
+        written = changed.length;
     });
+
+    if (written === 0) {
+        return false;
+    }
 
     bumpRatesRevision();
 
