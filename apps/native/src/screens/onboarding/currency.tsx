@@ -130,8 +130,13 @@ export function OnboardingCurrency() {
                     // would race it.
                     await finishOnboarding(db);
                 }
-                posthog?.capture("onboarding_currency_saved", { onboarding_path: meta });
-                return await (meta === "continue" ? untilRefocused() : holdSubmitting());
+                if (posthog) {
+                    posthog.capture("onboarding_currency_saved", { onboarding_path: meta });
+                }
+                if (meta === "continue") {
+                    return await untilRefocused();
+                }
+                return await holdSubmitting();
             } catch (error) {
                 // A toast, unlike its sheet-bound siblings: onboarding is a plain
                 // pushed route, so nothing covers the viewport at the app root.
