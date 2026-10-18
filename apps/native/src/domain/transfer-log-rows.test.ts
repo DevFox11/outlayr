@@ -22,7 +22,7 @@ const TRANSFER = {
     toCurrency: "VES",
 };
 
-const MARK = { customColor: null, emoji: null, icon: null, imageColor: null, imageUri: null };
+const MARK = { customColor: null, emoji: null, icon: null, imageColor: null, imageUri: null, kind: "asset" as const };
 const ZINLI = { ...MARK, name: "Zinli" };
 const BANESCO = { ...MARK, imageUri: "file:///banesco.png", name: "Banesco" };
 const ACCOUNTS = new Map<string, TransferEnd>([

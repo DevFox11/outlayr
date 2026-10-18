@@ -32,8 +32,11 @@ interface AccountsBlockProps {
     accounts: readonly Account[];
     /** The display currency every figure is valued in. */
     currency: string;
+    /** Null hides the Debts row: no liability and no person on the ledger. */
+    debts?: DebtsSummary | null;
     onOpen: (accountId: string) => void;
     onOpenAll: () => void;
+    onOpenDebts?: () => void;
     /** Null hides the block entirely — no accounts, no ghost heading. */
     overview: AccountsOverview | null;
     showCents: boolean;
@@ -52,8 +55,10 @@ export function AccountsBlock({
     overview,
     currency,
     showCents,
+    debts = null,
     onOpen,
     onOpenAll,
+    onOpenDebts,
     trailing,
 }: AccountsBlockProps) {
     const t = useTranslation();
@@ -115,6 +120,9 @@ export function AccountsBlock({
                         {t("accounts.overview.more", { count: overview.rows.length - shown.length })}
                     </MonoLabel>
                 </Pressable>
+            ) : null}
+            {debts !== null && onOpenDebts ? (
+                <DebtsRow debts={debts} onPress={onOpenDebts} showCents={showCents} />
             ) : null}
             <View className="bg-border" style={{ borderRadius: 0.65, height: 1.3 }} />
         </View>
@@ -201,6 +209,63 @@ function AccountRow({ account, row, currency, showCents, language, onPress }: Ac
                 )}
             </View>
             {stacked ? null : balance}
+        </RowPressable>
+    );
+}
+
+export interface DebtsSummary {
+    /** The ledger's own currency, which may not be the one the block is shown in. */
+    currency: string;
+    /** Both positive, in `currency`. */
+    owedToYou: number;
+    youOwe: number;
+}
+
+/** One row for everything owed both ways, opening the Debts screen. Its figure is what you owe, muted like a liability's. */
+function DebtsRow({ debts, onPress, showCents }: { debts: DebtsSummary; onPress: () => void; showCents: boolean }) {
+    const t = useTranslation();
+    const { language } = useLanguage();
+    const colors = useColors();
+    const hidden = use(AmountsHiddenContext);
+    const stacked = useAccessibilityTextSize();
+    const { currency } = debts;
+    const format = (amount: number) =>
+        hidden ? maskedAmount(currency) : formatSignedAmount(amount, currency, showCents, language);
+    const subtitle = debts.owedToYou > 0 ? t("debts.overview.owedToYou", { amount: format(debts.owedToYou) }) : null;
+    const figure = (
+        <Text className={cn(ROW_TYPE.balance, "text-muted tabular-nums")} numberOfLines={1}>
+            {format(debts.youOwe)}
+        </Text>
+    );
+
+    return (
+        <RowPressable
+            accessibilityLabel={[t("debts.title"), subtitle, format(debts.youOwe)]
+                .filter((part) => part !== null)
+                .join(", ")}
+            accessibilityRole="button"
+            className={cn("flex-row gap-3 py-2", stacked ? "items-start" : "items-center")}
+            onPress={onPress}
+        >
+            <CategoryIconTile
+                color={colors.foreground}
+                icon="Agreement01"
+                radius={TILE_RADIUS}
+                size={TILE_SIZE}
+                type="solid"
+            />
+            <View className="flex-1 gap-0.5">
+                <Text className={cn(ROW_TYPE.title, "text-foreground")} numberOfLines={1}>
+                    {t("debts.title")}
+                </Text>
+                {stacked ? figure : null}
+                {subtitle === null ? null : (
+                    <Text className={cn(ROW_TYPE.subtitle, "text-muted")} numberOfLines={1}>
+                        {subtitle}
+                    </Text>
+                )}
+            </View>
+            {stacked ? null : figure}
         </RowPressable>
     );
 }

@@ -1,7 +1,7 @@
 import { accountBalance } from "./account-balance";
 import type { AccountBalanceInput, AccountCompositionEntry } from "./account-balance";
 import { netWorth, toAccountKind } from "./account-kind";
-import type { AccountKind, Balanced } from "./account-kind";
+import type { AccountKind } from "./account-kind";
 import type { CurrencyCell } from "./currency-totals";
 import { utcDateString } from "./dates";
 import { convertUsdSum } from "./valuation";
@@ -76,25 +76,39 @@ export function accountsOverview(
         }
     }
 
-    let exact = true;
-    const balances: Balanced[] = [];
-    const rows: OverviewRow[] = [];
     const today = utcDateString(now.getTime());
-    for (const account of accounts) {
-        const balance = balanceIn(account, byAccount.get(account.id) ?? [], displayCurrency, rates, today);
-        const row: OverviewRow = {
-            balance: balance.value,
-            exact: balance.exact,
-            id: account.id,
-            kind: toAccountKind(account.kind),
-            multiCurrency: isMultiCurrency(balance.composition, account.currency),
-        };
-        rows.push(row);
-        balances.push({ balance: row.balance, kind: row.kind });
-        exact &&= row.exact;
+    return summarizeOverview(
+        accounts.map((account) => {
+            const balance = balanceIn(account, byAccount.get(account.id) ?? [], displayCurrency, rates, today);
+            return {
+                balance: balance.value,
+                exact: balance.exact,
+                id: account.id,
+                kind: toAccountKind(account.kind),
+                multiCurrency: isMultiCurrency(balance.composition, account.currency),
+            };
+        })
+    );
+}
+
+/**
+ * Rows already valued by {@link accountsOverview}, summed again: a screen that
+ * values every account once can total a subset (the banks, say) without a
+ * second pass over the cells. Null with no rows.
+ */
+export function summarizeOverview(rows: OverviewRow[]): AccountsOverview | null {
+    if (rows.length === 0) {
+        return null;
     }
-    const worth = netWorth(balances);
-    return { count: accounts.length, exact, owe: worth.owe, own: worth.own, rows, total: worth.net };
+    const worth = netWorth(rows);
+    return {
+        count: rows.length,
+        exact: rows.every((row) => row.exact),
+        owe: worth.owe,
+        own: worth.own,
+        rows,
+        total: worth.net,
+    };
 }
 
 /** `exact` is false when part of the figure could not be valued. */

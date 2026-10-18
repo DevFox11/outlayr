@@ -1,0 +1,111 @@
+import { Stack, useRouter } from "expo-router";
+import { Button } from "panelui-native/components/button";
+import { Alert, View } from "react-native";
+
+import { HeroNumber } from "@/components/amount-text";
+import { MonoLabel } from "@/components/mono-label";
+import { toolbarIcon } from "@/components/toolbar-icons";
+import { accountsRepo } from "@/data/accounts-core";
+import type { Account } from "@/data/accounts-core";
+import { useDeferredDelete } from "@/data/use-deferred-delete";
+import type { Database } from "@/db/client";
+import { debtChoices, debtStanding } from "@/domain/debt-choices";
+import type { DebtStanding } from "@/domain/debt-choices";
+import type { TranslationKey } from "@/i18n/catalog";
+import { useTranslation } from "@/i18n/context";
+import { notifyFailure } from "@/lib/notify";
+
+const STANDING_LABEL = {
+    owesYou: "debts.person.owesYou",
+    settled: "debts.person.settled",
+    youOwe: "debts.person.youOwe",
+} as const satisfies Record<DebtStanding, TranslationKey>;
+
+interface PersonHeroProps {
+    account: Account;
+    /** The person's balance in their own currency: negative when you owe them. */
+    balance: number;
+    showCents: boolean;
+}
+
+/** "You owe" / "Owes you" / "Settled" over the amount, and the two movements that standing offers. */
+export function PersonHero({ account, balance, showCents }: PersonHeroProps) {
+    const router = useRouter();
+    const t = useTranslation();
+    const standing = debtStanding(balance, account.currency);
+
+    return (
+        <View className="items-center gap-1 pt-6 pb-4">
+            <MonoLabel>{t(STANDING_LABEL[standing])}</MonoLabel>
+            <HeroNumber amount={Math.abs(balance)} code={account.currency} showCents={showCents} sign="" />
+            <View className="w-full flex-row gap-3 pt-5">
+                {debtChoices(standing).map((choice, index) => (
+                    <View className="flex-1" key={choice.verb}>
+                        <Button
+                            className="rounded-full"
+                            fullWidth
+                            onPress={() =>
+                                router.push({
+                                    params: { personId: account.id, verb: choice.verb },
+                                    pathname: "/debts/new",
+                                })
+                            }
+                            size="md"
+                            variant={index === 0 ? "primary" : "secondary"}
+                        >
+                            {t(choice.labelKey)}
+                        </Button>
+                    </View>
+                ))}
+            </View>
+        </View>
+    );
+}
+
+/**
+ * Rename and delete for a person. Rename writes the name alone, so the person
+ * stays a person: the account editor only knows assets and liabilities.
+ */
+export function PersonToolbar({ account, db }: { account: Account; db: Database }) {
+    const t = useTranslation();
+    const { requestDelete } = useDeferredDelete("account");
+
+    const rename = () =>
+        Alert.prompt(
+            t("debts.person.rename"),
+            undefined,
+            [
+                { style: "cancel", text: t("common.cancel") },
+                {
+                    onPress: (next?: string) => {
+                        const name = next?.trim() ?? "";
+                        if (name !== "" && name !== account.name) {
+                            accountsRepo.update(db, account.id, { name }).catch(() => {
+                                notifyFailure({ title: t("accounts.error.saveFailed") });
+                            });
+                        }
+                    },
+                    text: t("common.save"),
+                },
+            ],
+            "plain-text",
+            account.name
+        );
+
+    return (
+        <Stack.Toolbar placement="right">
+            <Stack.Toolbar.Menu {...toolbarIcon("more")} accessibilityLabel={t("debts.a11y.more")}>
+                <Stack.Toolbar.MenuAction icon="pencil" onPress={rename}>
+                    {t("debts.person.rename")}
+                </Stack.Toolbar.MenuAction>
+                <Stack.Toolbar.MenuAction
+                    destructive
+                    icon="trash"
+                    onPress={() => requestDelete(account.id, t("debts.person.deleteBody"))}
+                >
+                    {t("common.delete")}
+                </Stack.Toolbar.MenuAction>
+            </Stack.Toolbar.Menu>
+        </Stack.Toolbar>
+    );
+}

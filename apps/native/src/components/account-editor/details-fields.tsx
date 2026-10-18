@@ -31,7 +31,8 @@ interface AccountDetailsFieldsProps {
     onCurrencyPress: () => void;
     onNameChange: (name: string) => void;
     onSubmitName: () => void;
-    onToggleLiability: (next: boolean) => void;
+    /** Omitted for a person, whose kind is not an asset or a liability, which hides the row. */
+    onToggleLiability?: (next: boolean) => void;
     onToggleSign: () => void;
 }
 
@@ -93,7 +94,7 @@ export function AccountDetailsFields({
 
             {/* A card and an overdrawn current account both read as a negative
 			    balance; this is the only thing that tells them apart. */}
-            <SwitchRow label={kindLabel} onChange={onToggleLiability} value={liability} />
+            {onToggleLiability ? <SwitchRow label={kindLabel} onChange={onToggleLiability} value={liability} /> : null}
 
             <OutlinedSelectField
                 accessibilityHint={balanceEditA11y}

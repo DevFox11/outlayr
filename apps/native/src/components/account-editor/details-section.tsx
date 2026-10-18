@@ -68,7 +68,8 @@ interface AccountEditorDetailsSectionProps {
     onCurrencyPress: () => void;
     onNameChange: (name: string) => void;
     onSubmitName: () => void;
-    onToggleLiability: (next: boolean) => void;
+    /** Omitted for a person, whose kind is not an asset or a liability, which hides the row. */
+    onToggleLiability?: (next: boolean) => void;
     onToggleSign: () => void;
     tintColor: string;
 }
@@ -184,18 +185,22 @@ export function AccountEditorDetailsSection({
 
             {/* A card and an overdrawn current account both read as a negative
 			    balance; this is the only thing that tells them apart. */}
-            <HStack modifiers={ROW}>
-                <SwiftText modifiers={[BODY, rowLabel, accessibilityHidden()]}>{kindLabel}</SwiftText>
-                <Spacer />
-                <Toggle
-                    isOn={liability}
-                    label={kindLabel}
-                    modifiers={[tint(tintColor), labelsHidden()]}
-                    onIsOnChange={onToggleLiability}
-                />
-            </HStack>
+            {onToggleLiability ? (
+                <>
+                    <HStack modifiers={ROW}>
+                        <SwiftText modifiers={[BODY, rowLabel, accessibilityHidden()]}>{kindLabel}</SwiftText>
+                        <Spacer />
+                        <Toggle
+                            isOn={liability}
+                            label={kindLabel}
+                            modifiers={[tint(tintColor), labelsHidden()]}
+                            onIsOnChange={onToggleLiability}
+                        />
+                    </HStack>
 
-            <Divider modifiers={hairline} />
+                    <Divider modifiers={hairline} />
+                </>
+            ) : null}
 
             {stacked ? (
                 <HStack modifiers={ROW}>

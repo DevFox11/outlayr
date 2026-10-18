@@ -3,17 +3,18 @@ import { addDays, addMonths, startOfDay } from "@outlayr/money/calendar";
 import type { RateTable } from "@outlayr/money/valuation";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { ScrollView } from "react-native";
+import { Platform, ScrollView } from "react-native";
 
 import { AmountsHiddenContext } from "@/components/amount-text";
 import { DaySectionHeader } from "@/components/day-section-header";
 import { FloatingAddButton } from "@/components/floating-add-button";
 import { useDisplaySettings, useSettingBool, useSettingNumber } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useBankAccounts, useAccountsOverviewIn } from "@/data/accounts";
+import { useBankAccounts } from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { goesWithPendingDelete } from "@/data/card-fees-core";
 import { useCategoryMeta } from "@/data/categories";
+import { useLogOverviewIn } from "@/data/debts";
 import { useFavouriteCurrencies } from "@/data/favourite-currencies";
 import { useFilteredTransactions, useUpcomingTransactions } from "@/data/log-filtered";
 import { logPeriodFromStored, storedLogPeriod, useLogInsights, useSparklineRows } from "@/data/log-totals";
@@ -114,8 +115,14 @@ export function Log() {
     // it must not linger here as a row that can still be opened.
     const { pendingId: pendingAccountId } = useDeferredDelete("account");
     const nowMs = useNow();
-    const accountsOverview = useAccountsOverviewIn(db, valuation, nowMs, pendingAccountId);
+    const { banks: accountsOverview, debts: debtsOverview } = useLogOverviewIn(db, valuation, nowMs, pendingAccountId);
     const accountRows = useBankAccounts(db);
+    // shortcut: iOS only until the Debts screen gets its Android build.
+    const debts =
+        Platform.OS === "ios" &&
+        debtsOverview.youOwe.length + debtsOverview.owedToYou.length + debtsOverview.settled.length > 0
+            ? { currency, owedToYou: debtsOverview.owedToYouTotal, youOwe: debtsOverview.youOweTotal }
+            : null;
     const valued = useValuedCurrencies(db);
     const { showCents, swapTimeLabel, use24Hour } = useDisplaySettings().state;
     const showUpcoming = useSettingBool("showUpcoming");
@@ -260,8 +267,10 @@ export function Log() {
     const accountsProps = {
         accounts: accountRows,
         currency,
+        debts,
         onOpen: openAccount,
         onOpenAll: () => router.push("/accounts"),
+        onOpenDebts: () => router.push("/debts"),
         overview: accountsOverview,
         showCents,
     };

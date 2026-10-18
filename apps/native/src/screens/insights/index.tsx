@@ -2,7 +2,7 @@ import type { MenuAction } from "@expo/ui/community/menu";
 import { useRouter } from "expo-router";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { useCallback, useMemo, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { Platform, ScrollView, View } from "react-native";
 
 import { HeroNumber } from "@/components/amount-text";
 import { CategoryIconTile } from "@/components/category-icon-tile";
@@ -13,7 +13,7 @@ import { ScopeChip } from "@/components/scope-chip";
 import { Text } from "@/components/text";
 import { useDisplaySettings, useSettingBool, useSettingNumber } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useNetWorthSeries } from "@/data/accounts";
+import { useNetWorth } from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
     bucketDateLabel,
@@ -38,6 +38,7 @@ import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useInsights } from "@/data/use-insights";
 import type { UseInsightsResult } from "@/data/use-insights";
 import { useNow } from "@/data/use-now";
+import { debtsOverview } from "@/domain/debts";
 import {
     insightsMeasureAlternatives,
     insightsMeasureFromStored,
@@ -213,7 +214,17 @@ export function Insights() {
     const currency = useGlobalCurrency(db);
     const { showCents } = useDisplaySettings().state;
     const nowMs = useNow();
-    const netWorth = useNetWorthSeries(db, nowMs);
+    const { overview: ledger, series: netWorth } = useNetWorth(db, nowMs);
+    // shortcut: iOS only until the Debts screen gets its Android build.
+    const debts = useMemo(() => {
+        if (Platform.OS !== "ios" || ledger === null) {
+            return null;
+        }
+        const split = debtsOverview(ledger.rows, currency);
+        return split.youOwe.length + split.owedToYou.length + split.settled.length > 0
+            ? { owedToYou: split.owedToYouTotal, youOwe: split.youOweTotal }
+            : null;
+    }, [ledger, currency]);
 
     const incomeTracking = useSettingBool("incomeTracking");
     const storedPeriod = useSettingNumber("insightsTimeFrame");
@@ -480,7 +491,13 @@ export function Insights() {
                     subEntries={subBreakdown}
                 />
 
-                <NetWorthCard currency={currency} series={netWorth} showCents={showCents} />
+                <NetWorthCard
+                    currency={currency}
+                    debts={debts}
+                    onOpenDebts={() => router.push("/debts")}
+                    series={netWorth}
+                    showCents={showCents}
+                />
 
                 <View className="px-5 pt-6">
                     <SpendingCalendar

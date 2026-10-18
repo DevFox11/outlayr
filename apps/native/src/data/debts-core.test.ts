@@ -5,7 +5,9 @@ import { migratedDatabase } from "@/db/test-database";
 
 import { settledBalanceAt } from "./accounts";
 import { accountsRepo, getAccountById } from "./accounts-core";
-import { createPerson, recordDebtMovement } from "./debts-core";
+import { categoriesRepo } from "./categories-core";
+import { createPerson, recordDebtMovement, recordSoldOnCredit } from "./debts-core";
+import { loadContributions } from "./insights";
 import { transfersRepo } from "./transfers-core";
 
 const OCT_2 = new Date("2026-10-02T12:00:00.000Z");
@@ -57,5 +59,38 @@ describe("recording a debt with a person", () => {
         const stored = await transfersRepo.getById(db, id);
         expect(stored).toMatchObject({ exchangeRateType: "official", fromCurrency: "VES", toCurrency: "USD" });
         expect(stored?.exchangeRate).toBeCloseTo(100 / 3650, 10);
+    });
+
+    it("counts a sale on credit as income once, and being paid back only settles it", async () => {
+        const db = migratedDatabase({ foreignKeys: false });
+        const zinli = await accountsRepo.create(db, { currency: "USD", initialBalance: 0, name: "Zinli" });
+        const ana = await createPerson(db, { currency: "USD", name: "Ana" });
+        const sales = await categoriesRepo.create(db, {
+            color: "#2f855a",
+            icon: "Store01",
+            income: true,
+            name: "Sales",
+        });
+
+        await recordSoldOnCredit(db, {
+            amount: 35,
+            categoryId: sales,
+            date: OCT_2,
+            person: { currency: "USD", id: ana },
+        });
+        await expect(balanceOf(db, ana)).resolves.toBe(35);
+
+        await recordDebtMovement(db, {
+            account: { accountId: zinli, amount: 35, currency: "USD" },
+            date: OCT_2,
+            person: { accountId: ana, amount: 35, currency: "USD" },
+            rateType: null,
+            verb: "gotPaidBack",
+        });
+
+        await expect(balanceOf(db, ana)).resolves.toBe(0);
+        await expect(balanceOf(db, zinli)).resolves.toBe(35);
+        const income = (await loadContributions(db, NOW)).filter((row) => row.income);
+        expect(income).toStrictEqual([expect.objectContaining({ amount: 35, categoryId: sales })]);
     });
 });

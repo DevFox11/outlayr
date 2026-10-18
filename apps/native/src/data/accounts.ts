@@ -2,7 +2,7 @@ import { accountBalance } from "@outlayr/money/account-balance";
 import type { AccountBalance } from "@outlayr/money/account-balance";
 import { isPerson } from "@outlayr/money/account-kind";
 import { accountsOverview, balanceIn } from "@outlayr/money/account-overview";
-import type { DisplayedBalance, AccountsOverview } from "@outlayr/money/account-overview";
+import type { AccountCellRow, DisplayedBalance, AccountsOverview } from "@outlayr/money/account-overview";
 import type { CurrencyCell } from "@outlayr/money/currency-totals";
 import { utcDateString } from "@outlayr/money/dates";
 import type { RateTable } from "@outlayr/money/valuation";
@@ -128,10 +128,26 @@ export function useAccountBalance(
     return useAccountBalanceDetails(db, account, nowMs).balance;
 }
 
+/** Every settled entry, transfer leg and outside payment as one list of cells, read once per caller. */
+function useSettledCells(db: Database, settledAt: Date): AccountCellRow[] {
+    const cellRows = useLiveQuery(transactions, () => settledAccountsCellQuery(db, settledAt), [settledAt]);
+    const outbound = useLiveQuery(transfers, () => settledTransfersOutboundQuery(db, settledAt), [settledAt]);
+    const inbound = useLiveQuery(transfers, () => settledTransfersInboundQuery(db, settledAt), [settledAt]);
+    const outside = useLiveQuery(outsidePayments, () => settledOutsidePaymentsQuery(db, settledAt), [settledAt]);
+    return useMemo(
+        () => [
+            ...cellRows.map((row) => ({ ...toCurrencyCell(row), accountId: row.accountId })),
+            ...outbound.map(({ accountId, ...row }) => ({ ...toTransferCell(row, false), accountId })),
+            ...[...inbound, ...outside].map(({ accountId, ...row }) => ({ ...toTransferCell(row, true), accountId })),
+        ],
+        [cellRows, outbound, inbound, outside]
+    );
+}
+
 /**
  * `rows` valued into `valuation`'s currency, with the per-account rows. The Log
- * passes its banks, the Debts screen its liabilities and people; both read the
- * same cells, so a card's figure agrees on the two screens.
+ * passes every account and splits banks from debts itself, the Debts screen its
+ * liabilities and people; both read the same cells, so a figure agrees on the two.
  */
 export function useOverviewOf(
     db: Database,
@@ -140,77 +156,38 @@ export function useOverviewOf(
     nowMs: number
 ): AccountsOverview | null {
     const settledAt = useMemo(() => new Date(nowMs), [nowMs]);
-    const cellRows = useLiveQuery(transactions, () => settledAccountsCellQuery(db, settledAt), [settledAt]);
-    const outbound = useLiveQuery(transfers, () => settledTransfersOutboundQuery(db, settledAt), [settledAt]);
-    const inbound = useLiveQuery(transfers, () => settledTransfersInboundQuery(db, settledAt), [settledAt]);
-    const outside = useLiveQuery(outsidePayments, () => settledOutsidePaymentsQuery(db, settledAt), [settledAt]);
+    const cells = useSettledCells(db, settledAt);
     const { displayCurrency } = valuation;
     const rates = useBalanceRates(db, displayCurrency, rows);
     return useMemo(
-        () =>
-            accountsOverview(
-                rows,
-                [
-                    ...cellRows.map((row) => ({
-                        ...toCurrencyCell(row),
-                        accountId: row.accountId,
-                    })),
-                    ...outbound.map(({ accountId, ...row }) => ({ ...toTransferCell(row, false), accountId })),
-                    ...[...inbound, ...outside].map(({ accountId, ...row }) => ({
-                        ...toTransferCell(row, true),
-                        accountId,
-                    })),
-                ],
-                displayCurrency,
-                rates,
-                settledAt
-            ),
-        [rows, cellRows, outbound, inbound, outside, displayCurrency, rates, settledAt]
+        () => accountsOverview(rows, cells, displayCurrency, rates, settledAt),
+        [rows, cells, displayCurrency, rates, settledAt]
     );
 }
 
-/**
- * Every bank account valued into `valuation`'s currency, with the per-account
- * rows the Log draws. People are left out: what they owe is on Debts.
- * `excludeId` drops an account whose deletion is pending its undo window: its
- * cells are ignored with it, so the total moves as the row leaves rather than
- * after the write lands.
- */
-export function useAccountsOverviewIn(
-    db: Database,
-    valuation: Valuation,
-    nowMs: number,
-    excludeId: string | null = null
-): AccountsOverview | null {
-    const banks = useBankAccounts(db);
-    const rows = useMemo(
-        () => (excludeId == null ? banks : banks.filter((account) => account.id !== excludeId)),
-        [banks, excludeId]
-    );
-    return useOverviewOf(db, rows, valuation, nowMs);
+export interface NetWorth {
+    /** Every account today, people and liabilities included, for a split such as the debts line. */
+    overview: AccountsOverview | null;
+    series: NetWorthSeriesPoint[];
 }
 
 /**
- * Net worth over the recent window, valued into `valuation`'s currency.
- *
- * Shares the cell set `useAccountsOverviewIn` reads, so the line's last point
- * and the accounts card agree by construction rather than by coincidence, once
- * the people the card leaves out are added back: net worth counts them by sign.
+ * Net worth over the recent window and every account today, valued into
+ * `valuation`'s currency from one read of the cells the Log's block reads, so
+ * the line's last point and the accounts card agree by construction once the
+ * people the card leaves out are added back: net worth counts them by sign.
  */
-function useNetWorthSeriesIn(db: Database, valuation: Valuation, nowMs: number): NetWorthSeriesPoint[] {
+function useNetWorthIn(db: Database, valuation: Valuation, nowMs: number): NetWorth {
     const rows = useAccounts(db);
     const settledAt = useMemo(() => new Date(nowMs), [nowMs]);
-    const cellRows = useLiveQuery(transactions, () => settledAccountsCellQuery(db, settledAt), [settledAt]);
-    const outbound = useLiveQuery(transfers, () => settledTransfersOutboundQuery(db, settledAt), [settledAt]);
-    const inbound = useLiveQuery(transfers, () => settledTransfersInboundQuery(db, settledAt), [settledAt]);
-    const outside = useLiveQuery(outsidePayments, () => settledOutsidePaymentsQuery(db, settledAt), [settledAt]);
+    const cells = useSettledCells(db, settledAt);
     const { displayCurrency } = valuation;
     const rates = useBalanceRates(db, displayCurrency, rows);
-    return useMemo(() => {
+    const series = useMemo(() => {
         const byAccount = new Map<string, CurrencyCell[]>();
-        const push = (accountId: string | null, cell: CurrencyCell) => {
+        for (const { accountId, ...cell } of cells) {
             if (accountId == null) {
-                return;
+                continue;
             }
             const bucket = byAccount.get(accountId);
             if (bucket) {
@@ -218,23 +195,19 @@ function useNetWorthSeriesIn(db: Database, valuation: Valuation, nowMs: number):
             } else {
                 byAccount.set(accountId, [cell]);
             }
-        };
-        for (const row of cellRows) {
-            push(row.accountId, toCurrencyCell(row));
-        }
-        for (const { accountId, ...row } of outbound) {
-            push(accountId, toTransferCell(row, false));
-        }
-        for (const { accountId, ...row } of [...inbound, ...outside]) {
-            push(accountId, toTransferCell(row, true));
         }
         return netWorthSeries(rows, byAccount, rates, settledAt, displayCurrency);
-    }, [rows, cellRows, outbound, inbound, outside, rates, settledAt, displayCurrency]);
+    }, [rows, cells, rates, settledAt, displayCurrency]);
+    const overview = useMemo(
+        () => accountsOverview(rows, cells, displayCurrency, rates, settledAt),
+        [rows, cells, displayCurrency, rates, settledAt]
+    );
+    return useMemo(() => ({ overview, series }), [overview, series]);
 }
 
-/** {@link useNetWorthSeriesIn} for the ledger's own display currency. */
-export function useNetWorthSeries(db: Database, nowMs: number): NetWorthSeriesPoint[] {
-    return useNetWorthSeriesIn(db, useValuation(db), nowMs);
+/** {@link useNetWorthIn} for the ledger's own display currency. */
+export function useNetWorth(db: Database, nowMs: number): NetWorth {
+    return useNetWorthIn(db, useValuation(db), nowMs);
 }
 
 export function useAccountTransactions(db: Database, accountId: string): TransactionWithCategory[] {

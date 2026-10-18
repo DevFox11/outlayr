@@ -26,7 +26,7 @@ export interface TransferLogFee {
     amount: number;
 }
 
-export type TransferEnd = Pick<Account, "customColor" | "emoji" | "icon" | "imageColor" | "imageUri" | "name">;
+export type TransferEnd = Pick<Account, "customColor" | "emoji" | "icon" | "imageColor" | "imageUri" | "kind" | "name">;
 
 export interface TransferMove {
     arrived: number;

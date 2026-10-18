@@ -1,6 +1,6 @@
 import { LineChart } from "panelui-native/components/line-chart";
 import { useMemo } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 
 import { MonoLabel } from "@/components/mono-label";
@@ -16,6 +16,9 @@ import { useColors } from "@/theme/use-colors";
 
 interface NetWorthCardProps {
     currency: string;
+    /** Both positive. Null hides the line: no liability and no person on the ledger. */
+    debts: { owedToYou: number; youOwe: number } | null;
+    onOpenDebts: () => void;
     /** Empty on a ledger with no accounts, which hides the card entirely. */
     series: readonly NetWorthSeriesPoint[];
     showCents: boolean;
@@ -52,7 +55,7 @@ function worthDomain(values: readonly number[]): [number, number] {
  * Lives on Insights rather than the Log: the Log is about this week's money and
  * net worth is a slow number, which belongs with the other slow numbers.
  */
-export function NetWorthCard({ series, currency, showCents }: NetWorthCardProps) {
+export function NetWorthCard({ series, currency, debts, onOpenDebts, showCents }: NetWorthCardProps) {
     const t = useTranslation();
     const { language } = useLanguage();
     const colors = useColors();
@@ -98,6 +101,25 @@ export function NetWorthCard({ series, currency, showCents }: NetWorthCardProps)
                     })}
                 </Text>
             </View>
+            {debts === null ? null : (
+                <Pressable accessibilityRole="button" className="self-start active:opacity-70" onPress={onOpenDebts}>
+                    <Text className="text-footnote text-tint">
+                        {[
+                            t("debts.youOweAmount", {
+                                amount: formatSignedAmount(debts.youOwe, currency, showCents, language),
+                            }),
+                            debts.owedToYou > 0
+                                ? t("debts.overview.owedToYou", {
+                                      amount: formatSignedAmount(debts.owedToYou, currency, showCents, language),
+                                  })
+                                : null,
+                        ]
+                            .filter((part) => part !== null)
+                            .join(" · ")}
+                        {"  ›"}
+                    </Text>
+                </Pressable>
+            )}
             <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID="net-worth-chart">
                 <LineChart
                     animationDuration={animated ? CHART_DRAW.durationMs : 0}

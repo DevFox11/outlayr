@@ -46,7 +46,14 @@ describe("notifySaved", () => {
     it("runs the action, then dismisses the toast it was pressed on", () => {
         const showSpy = jest.spyOn(toast, "show").mockReturnValue("toast-6");
         const onActionPress = jest.fn();
-        const end = { customColor: null, emoji: null, icon: null, imageColor: null, imageUri: null };
+        const end = {
+            customColor: null,
+            emoji: null,
+            icon: null,
+            imageColor: null,
+            imageUri: null,
+            kind: "asset" as const,
+        };
 
         notifySaved({
             actionLabel: "Add another",

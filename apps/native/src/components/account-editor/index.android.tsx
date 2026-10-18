@@ -113,7 +113,8 @@ function AccountEditorReady(props: AccountEditorProps & { db: Database }) {
         return {
             balanceText: numberToNumpad(Math.abs(startingBalance), minorUnitsFor(startingCurrency)),
             currency: startingCurrency,
-            liability: toAccountKind(loaded?.kind) === "liability",
+            liability:
+                toAccountKind(loaded?.kind) === "liability" || (props.mode === "create" && props.liability === true),
             name: loaded?.name ?? "",
             negative: startingBalance < 0,
         };
@@ -327,27 +328,30 @@ function AccountEditorReady(props: AccountEditorProps & { db: Database }) {
                 keyboardDismissMode="on-drag"
                 keyboardShouldPersistTaps="handled"
             >
-                <View className="items-center pb-6" style={{ paddingTop: HERO_TOP }}>
-                    <IdentityHero
-                        color={tint}
-                        emoji={draft.emoji}
-                        icon={draft.icon}
-                        income={false}
-                        onPress={openPicker}
-                        onReset={() => {
-                            setIdentitySource("user");
-                            setDraft({
-                                color: draft.color,
-                                emoji: null,
-                                icon: null,
-                                photoColor: null,
-                                photoUri: null,
-                            });
-                        }}
-                        photoUri={draft.photoUri}
-                        variant="transaction"
-                    />
-                </View>
+                {/* A person is an initials tile, never a logo, emoji or photo. */}
+                {person ? null : (
+                    <View className="items-center pb-6" style={{ paddingTop: HERO_TOP }}>
+                        <IdentityHero
+                            color={tint}
+                            emoji={draft.emoji}
+                            icon={draft.icon}
+                            income={false}
+                            onPress={openPicker}
+                            onReset={() => {
+                                setIdentitySource("user");
+                                setDraft({
+                                    color: draft.color,
+                                    emoji: null,
+                                    icon: null,
+                                    photoColor: null,
+                                    photoUri: null,
+                                });
+                            }}
+                            photoUri={draft.photoUri}
+                            variant="transaction"
+                        />
+                    </View>
+                )}
 
                 <View className="px-4">
                     <InlineFailure message={failure} />
@@ -369,7 +373,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: Database }) {
                         onCurrencyPress={openCurrencyPicker}
                         onNameChange={onNameChange}
                         onSubmitName={() => pressSubmit(form)}
-                        onToggleLiability={(next) => form.setFieldValue("liability", next)}
+                        onToggleLiability={person ? undefined : (next) => form.setFieldValue("liability", next)}
                         onToggleSign={() => form.setFieldValue("negative", !negative)}
                     />
                 </View>

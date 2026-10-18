@@ -474,7 +474,7 @@ export function useTransferDraft(
     restored?: TransferDraftSnapshot
 ): TransferDraft {
     // Every account resolves a leg, so a saved transfer with a person still opens;
-    // only banks are offered to pick until the editor grows a People section.
+    // `accounts` offers the banks, and the editor lists people in their own section.
     const accounts = useAccounts(db);
     const banks = useBankAccounts(db);
     const [opening] = useState(() => startingDraft(db, accounts, seed, saved, restored));

@@ -24,7 +24,7 @@ import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { SubscribeFields } from "@/components/form/subscribe-fields";
 import { useAppSettings, useDisplaySettings, useSettingBool } from "@/contexts/display-settings-context";
 import { EMPTY_DRAFT, useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
-import { useBankAccounts } from "@/data/accounts";
+import { useBankAccounts, usePeople } from "@/data/accounts";
 import { getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
@@ -121,6 +121,7 @@ import { useHaptics } from "@/lib/use-haptics";
 import { glowFromEmoji, glowFromImage } from "@/theme/glow";
 import { useColors } from "@/theme/use-colors";
 
+import { AccountTile } from "../account-tile";
 import { AmountNumpad } from "../amount-numpad";
 import { CategoryIcon } from "../category-icon";
 import { CategoryIconTile } from "../category-icon-tile";
@@ -1310,6 +1311,7 @@ export function TransactionForm({
         setAllocations: setSplitAllocations,
     } = useSplitDraft(db, mode, initial, restore?.splitAllocations);
     const allAccounts = useBankAccounts(db);
+    const people = usePeople(db);
     const [accountDeclined, setAccountDeclined] = useState(
         restore?.accountDeclined ?? (initial != null && initial.accountId == null)
     );
@@ -2115,16 +2117,7 @@ export function TransactionForm({
             <CategoryIcon color={categoryGlyphTint} name={category ? category.icon : pendingCategory?.icon} size={20} />
         );
     }
-    const accountTile = account ? (
-        <CategoryIconTile
-            color={account.imageColor ?? account.customColor ?? colors.foreground}
-            emoji={account.emoji}
-            icon={account.icon}
-            imageUri={account.imageUri}
-            size={20}
-            type="solid"
-        />
-    ) : undefined;
+    const accountTile = account ? <AccountTile account={account} size={20} /> : undefined;
     const hasIdentityMark = Boolean(identity.photoUri ?? identity.emoji ?? identity.icon);
     const merchantTile = hasIdentityMark ? (
         <CategoryIconTile
@@ -2338,6 +2331,7 @@ export function TransactionForm({
                             setAccountDeclined(picked === null);
                             advance("account", amountNumber, merchant);
                         }}
+                        people={people}
                         selectedId={account?.id ?? null}
                     />
                 ),

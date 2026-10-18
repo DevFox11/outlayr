@@ -19,6 +19,7 @@ type Auth = typeof import("@/content/auth.content").default;
 type Budgets = typeof import("@/content/budgets.content").default;
 type Categories = typeof import("@/content/categories.content").default;
 type Common = typeof import("@/content/common.content").default;
+type Debts = typeof import("@/content/debts.content").default;
 type Domain = typeof import("@/content/domain.content").default;
 type Goals = typeof import("@/content/goals.content").default;
 type ImportSheet = typeof import("@/content/import.content").default;
@@ -53,6 +54,7 @@ export const DICTIONARY_KEYS = [
     "budgets",
     "categories",
     "common",
+    "debts",
     "domain",
     "goals",
     "import",
@@ -83,6 +85,7 @@ type Content =
     | Budgets["content"]
     | Categories["content"]
     | Common["content"]
+    | Debts["content"]
     | Domain["content"]
     | Goals["content"]
     | ImportSheet["content"]

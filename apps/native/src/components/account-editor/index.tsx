@@ -57,7 +57,9 @@ import { useColors } from "@/theme/use-colors";
 
 import { AccountEditorDetailsSection } from "./details-section";
 
-export type AccountEditorProps = { mode: "create" } | { mode: "edit"; id: string };
+export type AccountEditorProps =
+    /** `liability` opens a new account as money owed, for the Debts screen's "+". */
+    { mode: "create"; liability?: boolean } | { mode: "edit"; id: string };
 
 type IdentitySource = "initial" | "suggested" | "user";
 
@@ -141,7 +143,8 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
         return {
             balanceText: numberToNumpad(Math.abs(startingBalance), minorUnitsFor(startingCurrency)),
             currency: startingCurrency,
-            liability: toAccountKind(loaded?.kind) === "liability",
+            liability:
+                toAccountKind(loaded?.kind) === "liability" || (props.mode === "create" && props.liability === true),
             name: loaded?.name ?? "",
             negative: startingBalance < 0,
         };
@@ -207,7 +210,10 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
 
     const containerHeight = useSharedValue(0);
     const heroRestTop = useDerivedValue(() => HEADER_HEIGHT + HERO_TOP_PADDING);
-    const [heroBand, setHeroBand] = useState(HEADER_HEIGHT + HERO_TOP_PADDING + HERO_RING + HERO_BOTTOM_PADDING);
+    // A person has no band to measure, so the form starts under the header.
+    const [heroBand, setHeroBand] = useState(() =>
+        person ? HEADER_HEIGHT : HEADER_HEIGHT + HERO_TOP_PADDING + HERO_RING + HERO_BOTTOM_PADDING
+    );
 
     const [identitySource, setIdentitySource] = useState<IdentitySource>("initial");
     /**
@@ -412,7 +418,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                                 onCurrencyPress={openCurrencyPicker}
                                 onNameChange={onNameChange}
                                 onSubmitName={() => pressSubmit(form)}
-                                onToggleLiability={(next) => form.setFieldValue("liability", next)}
+                                onToggleLiability={person ? undefined : (next) => form.setFieldValue("liability", next)}
                                 onToggleSign={() => form.setFieldValue("negative", !negative)}
                                 tintColor={colors.foreground}
                             />
@@ -421,28 +427,31 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                 </Host>
             </View>
 
-            <EditorHeroBand
-                captionClearance={0}
-                income={false}
-                color={tint}
-                emoji={draft.emoji}
-                floatProgress={floatProgress}
-                icon={draft.icon}
-                onLayout={(e) => setHeroBand(e.nativeEvent.layout.height)}
-                onPress={openPicker}
-                onReset={() => {
-                    setIdentitySource("user");
-                    setDraft({
-                        color: draft.color,
-                        emoji: null,
-                        icon: null,
-                        photoColor: null,
-                        photoUri: null,
-                    });
-                }}
-                photoUri={draft.photoUri}
-                variant="transaction"
-            />
+            {/* A person is an initials tile, never a logo, emoji or photo. */}
+            {person ? null : (
+                <EditorHeroBand
+                    captionClearance={0}
+                    income={false}
+                    color={tint}
+                    emoji={draft.emoji}
+                    floatProgress={floatProgress}
+                    icon={draft.icon}
+                    onLayout={(e) => setHeroBand(e.nativeEvent.layout.height)}
+                    onPress={openPicker}
+                    onReset={() => {
+                        setIdentitySource("user");
+                        setDraft({
+                            color: draft.color,
+                            emoji: null,
+                            icon: null,
+                            photoColor: null,
+                            photoUri: null,
+                        });
+                    }}
+                    photoUri={draft.photoUri}
+                    variant="transaction"
+                />
+            )}
 
             {/* The CTA is an RN view now, so the picker's SwiftUI blur/opacity
 			    modifiers cannot reach it — it hides the way the transfer editor's

@@ -21,6 +21,7 @@ import { StepWhen } from "@/components/transaction-form/stage/step-when";
 import { cn } from "@/components/tw";
 import { useDisplaySettings, useSettingNumber } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
+import { usePeople } from "@/data/accounts";
 import { transfersRepo } from "@/data/transfers-core";
 import type { SavedTransfer, TransferInput } from "@/data/transfers-core";
 import { formatSignedAmount } from "@/domain/account-display";
@@ -231,6 +232,7 @@ export default function TransferEditor({
     const entryMode = numpadMode(useSettingNumber("numberEntryType"));
     const { use24Hour } = useDisplaySettings().state;
     const draft = useTransferDraft(db, seed, saved, restore?.draft);
+    const people = usePeople(db);
     const initialNote = openingNote(restore, saved, seed);
     const noteRef = useRef(initialNote);
     const [noteFilled, setNoteFilled] = useState(initialNote !== "");
@@ -539,6 +541,7 @@ export default function TransferEditor({
                             (step === "from" ? draft.chooseFrom : draft.chooseTo)(account);
                             enter("amount");
                         }}
+                        people={people}
                         selectedId={(step === "from" ? draft.from : draft.to)?.id ?? null}
                     />
                 );

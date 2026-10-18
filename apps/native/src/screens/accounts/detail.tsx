@@ -1,4 +1,5 @@
 import { SectionList } from "@legendapp/list/section-list";
+import { isPerson } from "@outlayr/money/account-kind";
 import { Stack, useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import { View } from "react-native";
@@ -25,6 +26,7 @@ import { monthAbbrevTitle } from "@/domain/dates";
 import { groupByDay } from "@/domain/day-sections";
 import { mergeByRecency } from "@/domain/transfer-log-rows";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { PersonHero, PersonToolbar } from "@/screens/debts/person-header";
 
 import { AccountBalanceChart } from "./components/account-balance-chart";
 
@@ -69,6 +71,8 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
         [router, transferIds]
     );
 
+    // A person shares the history, but reads as a debt and keeps out of the account editor.
+    const person = isPerson(account);
     const startedAt = t("accounts.detail.startedAt", {
         amount: formatSignedAmount(account.initialBalance, account.currency, showCents, language),
         month: `${monthAbbrevTitle(account.initialBalanceDate, language)} ${account.initialBalanceDate.getFullYear()}`,
@@ -78,18 +82,22 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
         <>
             <ScreenHeader title={account.name} />
             <Stack.Screen.BackButton displayMode="minimal" />
-            <Stack.Toolbar placement="right">
-                <Stack.Toolbar.Button
-                    {...toolbarIcon("more")}
-                    accessibilityLabel={t("accounts.a11y.edit")}
-                    onPress={() =>
-                        router.push({
-                            params: { accountId: account.id },
-                            pathname: "/accounts/[accountId]/edit",
-                        })
-                    }
-                />
-            </Stack.Toolbar>
+            {person ? (
+                <PersonToolbar account={account} db={db} />
+            ) : (
+                <Stack.Toolbar placement="right">
+                    <Stack.Toolbar.Button
+                        {...toolbarIcon("more")}
+                        accessibilityLabel={t("accounts.a11y.edit")}
+                        onPress={() =>
+                            router.push({
+                                params: { accountId: account.id },
+                                pathname: "/accounts/[accountId]/edit",
+                            })
+                        }
+                    />
+                </Stack.Toolbar>
+            )}
             <SectionList
                 className="bg-background"
                 contentContainerStyle={{
@@ -101,30 +109,34 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
                 keyExtractor={(item) => item.id}
                 ListEmptyComponent={
                     <EmptyState
-                        body={t("accounts.detail.empty")}
+                        body={t(person ? "debts.person.empty" : "accounts.detail.empty")}
                         className="pt-4"
                         mark={<DetailMark />}
                         tier="inFlow"
                     />
                 }
                 ListHeaderComponent={
-                    <View className="items-center gap-1 pt-6 pb-4">
-                        <View className="flex-row items-center gap-2">
-                            <HeroNumber
-                                amount={balance.total}
-                                code={account.currency}
-                                showCents={showCents}
-                                sign={balance.total < 0 ? "-" : ""}
-                            />
-                            {balance.exact ? null : (
-                                <View className="border-border rounded-[3px] border px-[3px]">
-                                    <MonoLabel className="text-subtle">{`${account.currency}?`}</MonoLabel>
-                                </View>
-                            )}
+                    person ? (
+                        <PersonHero account={account} balance={balance.total} showCents={showCents} />
+                    ) : (
+                        <View className="items-center gap-1 pt-6 pb-4">
+                            <View className="flex-row items-center gap-2">
+                                <HeroNumber
+                                    amount={balance.total}
+                                    code={account.currency}
+                                    showCents={showCents}
+                                    sign={balance.total < 0 ? "-" : ""}
+                                />
+                                {balance.exact ? null : (
+                                    <View className="border-border rounded-[3px] border px-[3px]">
+                                        <MonoLabel className="text-subtle">{`${account.currency}?`}</MonoLabel>
+                                    </View>
+                                )}
+                            </View>
+                            <Text className="font-sans-medium text-muted text-subtitle">{startedAt}</Text>
+                            <AccountBalanceChart account={account} cells={cells} rates={rates} showCents={showCents} />
                         </View>
-                        <Text className="font-sans-medium text-muted text-subtitle">{startedAt}</Text>
-                        <AccountBalanceChart account={account} cells={cells} rates={rates} showCents={showCents} />
-                    </View>
+                    )
                 }
                 recycleItems={false}
                 renderItem={({ item }) => (

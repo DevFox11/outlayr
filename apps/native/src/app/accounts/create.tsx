@@ -1,4 +1,4 @@
-import { Redirect } from "expo-router";
+import { Redirect, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 
 import AccountEditor from "@/components/account-editor";
@@ -7,6 +7,8 @@ import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
 
 export default function AccountCreateScreen() {
     const [createRoute] = useState(useAccountCreateRoute());
+    // Set by the Debts screen's "+", for a company, card or loan.
+    const { kind } = useLocalSearchParams<{ kind?: string }>();
 
     // The route is externally addressable through the app's URL scheme, so the
     // cap cannot live only in the callers that push it.
@@ -18,7 +20,7 @@ export default function AccountCreateScreen() {
         <>
             <CloseToolbar placement="right" />
 
-            <AccountEditor mode="create" />
+            <AccountEditor liability={kind === "liability"} mode="create" />
         </>
     );
 }

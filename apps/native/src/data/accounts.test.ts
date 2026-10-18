@@ -7,9 +7,10 @@ import type { Database } from "@/db/client";
 import { accounts, transactions, transfers } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
 
-import { openingForBalance, useAccountBalance, useAccountsOverviewIn, useSettledAccountCells } from "./accounts";
+import { openingForBalance, useAccountBalance, useSettledAccountCells } from "./accounts";
 import { settledAccountsCellQuery, toCurrencyCell } from "./cell-query";
 import type { CellRow } from "./cell-query";
+import { useLogOverviewIn } from "./debts";
 import { backfillRecurring } from "./recurrence-backfill";
 import { transactionsRepo } from "./transactions-core";
 
@@ -198,7 +199,7 @@ describe("useSettledAccountCells", () => {
     });
 });
 
-describe("useAccountsOverviewIn", () => {
+describe("useLogOverviewIn", () => {
     beforeEach(() => {
         mockUseLiveQuery.mockReset();
     });
@@ -221,16 +222,14 @@ describe("useAccountsOverviewIn", () => {
             .mockReturnValueOnce([])
             .mockReturnValueOnce([]);
 
-        const { result } = await renderHook(() =>
-            useAccountsOverviewIn(makeDb(), valuation, JUNE_1.getTime(), "going")
-        );
+        const { result } = await renderHook(() => useLogOverviewIn(makeDb(), valuation, JUNE_1.getTime(), "going"));
 
-        expect(result.current?.count).toBe(1);
-        expect(result.current?.total).toBe(100);
-        expect(result.current?.rows.map((row) => row.id)).toStrictEqual(["keep"]);
+        expect(result.current.banks?.count).toBe(1);
+        expect(result.current.banks?.total).toBe(100);
+        expect(result.current.banks?.rows.map((row) => row.id)).toStrictEqual(["keep"]);
     });
 
-    it("leaves people out of the Log's total", async () => {
+    it("leaves people out of the Log's total and values them for its Debts row", async () => {
         mockUseLiveQuery
             .mockReturnValueOnce([account("zinli", 100), { ...account("pedro", -50), kind: "person" }])
             .mockReturnValueOnce([])
@@ -238,10 +237,11 @@ describe("useAccountsOverviewIn", () => {
             .mockReturnValueOnce([])
             .mockReturnValueOnce([]);
 
-        const { result } = await renderHook(() => useAccountsOverviewIn(makeDb(), valuation, JUNE_1.getTime()));
+        const { result } = await renderHook(() => useLogOverviewIn(makeDb(), valuation, JUNE_1.getTime()));
 
-        expect(result.current?.total).toBe(100);
-        expect(result.current?.rows.map((row) => row.id)).toStrictEqual(["zinli"]);
+        expect(result.current.banks?.total).toBe(100);
+        expect(result.current.banks?.rows.map((row) => row.id)).toStrictEqual(["zinli"]);
+        expect(result.current.debts.youOweTotal).toBe(50);
     });
 
     it("leaves a future-dated row out of the total until its date", async () => {
@@ -252,7 +252,7 @@ describe("useAccountsOverviewIn", () => {
             .values({ ...account("a1", 100), dateCreated: JUNE_1, name: "Checking", updatedAt: JUNE_1 });
         await addTransaction(db, { accountId: "a1", amount: 7, date: JUNE_2, day: JUNE_2, id: "later" });
         const { rerender, result } = await renderHook(
-            (nowMs: number) => useAccountsOverviewIn(db, valuation, nowMs)?.total,
+            (nowMs: number) => useLogOverviewIn(db, valuation, nowMs).banks?.total,
             { initialProps: JUNE_1.getTime() }
         );
         expect(result.current).toBe(100);

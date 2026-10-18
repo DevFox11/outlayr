@@ -6,6 +6,7 @@ import type { DebtVerb } from "@/domain/debts";
 import { roundToMinorUnits } from "@/domain/money";
 
 import { accountsRepo } from "./accounts-core";
+import { transactionsRepo } from "./transactions-core";
 import { transfersRepo } from "./transfers-core";
 import type { TransferInput } from "./transfers-core";
 
@@ -72,4 +73,30 @@ export function debtTransferInput(input: DebtMovementInput): TransferInput {
 /** Borrowing, lending, paying back or being paid back: a transfer with a person. Returns the transfer id. */
 export async function recordDebtMovement(db: Database, input: DebtMovementInput): Promise<string> {
     return await transfersRepo.create(db, debtTransferInput(input));
+}
+
+export interface SoldOnCreditInput {
+    amount: number;
+    categoryId: string;
+    date: Date;
+    note?: string;
+    /** The buyer, whose currency the sale is in. */
+    person: { currency: string; id: string };
+}
+
+/**
+ * Fiado: an income entry on the person's account, so it counts as income once
+ * and leaves them owing you. Being paid back later is a transfer, not income.
+ */
+export async function recordSoldOnCredit(db: Database, input: SoldOnCreditInput): Promise<string> {
+    return await transactionsRepo.create(db, {
+        accountId: input.person.id,
+        amount: input.amount,
+        categoryId: input.categoryId,
+        currency: input.person.currency,
+        date: input.date,
+        details: input.note ?? null,
+        income: true,
+        note: "",
+    });
 }
