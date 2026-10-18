@@ -4,6 +4,7 @@ import { Directory, File, Paths } from "expo-file-system";
 import { PHOTO_DIRECTORY, photoExtension, photoFileName } from "@/data/photo-store-core";
 import type { PhotoFiles } from "@/data/photo-store-core";
 import { newId } from "@/domain/ids";
+import { decodeImage, drawOnPlate } from "@/lib/logo-plating";
 
 /**
  * Matches the Swift ingestion (`TransactionImageIngestion.maxDimension`): the
@@ -120,13 +121,35 @@ export async function persistPickedPhoto(sourceUri: string): Promise<string> {
     return target.uri;
 }
 
+/** The logo on its plate as a JPEG, or null when it is stored as it came or Skia cannot draw it. */
+function platedLogoJpeg(bytes: Uint8Array): Uint8Array | null {
+    try {
+        const image = decodeImage(bytes);
+        const tile = image == null ? null : drawOnPlate(image, MAX_DIMENSION);
+        const encoded = tile?.encodeToBytes(ImageFormat.JPEG, JPEG_QUALITY);
+        return encoded != null && encoded.length > 0 ? encoded : null;
+    } catch {
+        return null;
+    }
+}
+
 /**
- * A fetched logo arrives as bytes while the persist path takes a uri, so the
- * bytes sit in the cache directory just long enough to go through the same
- * downscale every picked photo does. That re-encode is also what neutralises
- * anything hiding behind a valid image header.
+ * A transparent or edge-tight logo is drawn onto its plate first, since the
+ * JPEG it is stored as would turn its see-through pixels black. Any other
+ * logo arrives as bytes while the persist path takes a uri, so the bytes sit
+ * in the cache directory just long enough to go through the same downscale
+ * every picked photo does. Either re-encode is also what neutralises anything
+ * hiding behind a valid image header.
  */
 export async function persistLogoBytes(bytes: Uint8Array): Promise<string> {
+    const plated = platedLogoJpeg(bytes);
+    if (plated != null) {
+        const target = new File(photoDirectory(), `${newId()}.jpg`);
+        target.create({ overwrite: true });
+        target.writeSync(plated);
+        return target.uri;
+    }
+
     const temp = new File(Paths.cache, `${newId()}.img`);
     temp.create({ overwrite: true });
     temp.writeSync(bytes);

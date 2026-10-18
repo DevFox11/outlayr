@@ -70,6 +70,12 @@ export const META_KEYS = {
     logoBackfillRetries: "logoBackfillRetries",
     logoCandidates: "logoCandidates",
     logoDismissals: "logoDismissals",
+    /**
+     * Set once this device has re-stored the logos it saved before they had a
+     * plate. Device-local: each handset repairs its own files, and the new
+     * bytes reach the others through photo sync.
+     */
+    logoPlates: "logoPlates",
     merchantBook: "merchantBook",
     /**
      * Written when the first-run flow finishes. `firstLaunch` cannot stand in for

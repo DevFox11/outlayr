@@ -36,7 +36,7 @@ export const TILE_WASH_OPACITY = 0.22;
 const TARGET_CONTRAST = 3.5;
 
 /** Normalized sRGB triple, each channel 0–1. */
-type Rgb = readonly [number, number, number];
+export type Rgb = readonly [number, number, number];
 
 /**
  * `--background` in each theme, normalized. Restated here rather than read from
@@ -97,7 +97,7 @@ function linearChannel(v: number): number {
     return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
 }
 
-function relativeLuminance(c: Rgb): number {
+export function relativeLuminance(c: Rgb): number {
     return 0.2126 * linearChannel(c[0]) + 0.7152 * linearChannel(c[1]) + 0.0722 * linearChannel(c[2]);
 }
 
@@ -113,7 +113,7 @@ function unitToHex(v: number): string {
         .padStart(2, "0");
 }
 
-function rgbToHex(c: Rgb): string {
+export function rgbToHex(c: Rgb): string {
     return `#${unitToHex(c[0])}${unitToHex(c[1])}${unitToHex(c[2])}`;
 }
 

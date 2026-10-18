@@ -113,3 +113,14 @@ export function writeCachedLogo(key: string, bytes: Uint8Array | null): void {
         // A cache that cannot be written is still a working feature.
     }
 }
+
+/** Every cached logo file; a remembered miss is not a logo and is left out. */
+export function listCachedLogos(): File[] {
+    try {
+        return directory()
+            .list()
+            .filter((entry): entry is File => entry instanceof File && !entry.name.endsWith(MISS_MARKER));
+    } catch {
+        return [];
+    }
+}
