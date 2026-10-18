@@ -10,4 +10,4 @@
 #
 # The dispatcher runs this under `sh -e`, so the first failure stops the push.
 vp run -r --cache check-types
-vp run -r --cache test
+vp run -r --cache test --maxWorkers=25%
