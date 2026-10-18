@@ -565,6 +565,35 @@ function pairRates(paid: RateTable, ledger: RateTable, paidCode: string): RateTa
     };
 }
 
+type CreateArgs = Parameters<typeof transactionsRepo.create>;
+
+/** The transaction a resolved receipt saves as. */
+function receiptEntry(
+    db: CreateArgs[0],
+    draft: ResolvedReceipt,
+    categoryId: string,
+    details: CreateArgs[1]["details"]
+): CreateArgs[1] {
+    return {
+        accountId: draft.accountId,
+        amount: draft.amount,
+        categoryId,
+        currency: draft.currency,
+        date: draft.date,
+        details,
+        fee: draft.income
+            ? null
+            : suggestedCardFee(db, {
+                  account: draft.accountId ? getAccountById(db, draft.accountId) : null,
+                  categoryId,
+                  currency: draft.currency,
+                  merchant: draft.merchant,
+              }),
+        income: draft.income,
+        note: draft.merchant,
+    };
+}
+
 function ScanFlowScreen() {
     const router = useRouter();
     const entitled = useProEntitled();
@@ -705,24 +734,7 @@ function ScanFlowScreen() {
             setSaving(true);
             const write = async () => {
                 try {
-                    const id = await transactionsRepo.create(db, {
-                        accountId: draft.accountId,
-                        amount: draft.amount,
-                        categoryId,
-                        currency: draft.currency,
-                        date: draft.date,
-                        details: detailsOf(draft),
-                        fee: draft.income
-                            ? null
-                            : suggestedCardFee(db, {
-                                  account: draft.accountId ? getAccountById(db, draft.accountId) : null,
-                                  categoryId,
-                                  currency: draft.currency,
-                                  merchant: draft.merchant,
-                              }),
-                        income: draft.income,
-                        note: draft.merchant,
-                    });
+                    const id = await transactionsRepo.create(db, receiptEntry(db, draft, categoryId, detailsOf(draft)));
                     freshEntries.mark(id);
                 } catch {
                     // The row did not land; the form has the failure strip this screen lacks.
