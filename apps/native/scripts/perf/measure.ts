@@ -118,16 +118,19 @@ async function waitForDebugTarget(port: number) {
     throw new Error(`No app attached to Metro on ${port} after 3 minutes.`);
 }
 
-/** A cold start, so the app opens fresh debugger and packager sockets to the side's Metro. */
+/**
+ * A cold start, so the app opens fresh debugger and packager sockets to the side's Metro. It
+ * reaches Metro through the emulator's host address rather than `adb reverse`: the emulator's
+ * adb connection can drop mid-flow, and a reverse tunnel takes the profiler's debugger with it.
+ */
 async function startOn(port: number) {
     const loaded = adb("emu", "avd", "snapshot", "load", SNAPSHOT);
     if (!loaded.includes("OK")) {
         throw new Error(`Snapshot ${SNAPSHOT} did not load: ${loaded}`);
     }
     adb("wait-for-device");
-    adb("reverse", `tcp:${port}`, `tcp:${port}`);
     adb("shell", "am", "force-stop", APP);
-    const url = encodeURIComponent(`http://localhost:${port}`);
+    const url = encodeURIComponent(`http://10.0.2.2:${port}`);
     adb(
         "shell",
         "am",
