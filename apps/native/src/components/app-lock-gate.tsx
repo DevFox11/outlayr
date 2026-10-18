@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
 import { Text } from "@/components/text";
-import { useAppSettings } from "@/contexts/display-settings-context";
+import { useSettingBool } from "@/contexts/display-settings-context";
 import { lockFailureMessage, lockGate, lockIsUnenforceable } from "@/domain/app-lock";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
@@ -26,8 +26,7 @@ export function useAppLockOpen(): boolean {
  */
 export function AppLockGate({ children }: { children: ReactNode }) {
     const t = useTranslation();
-    const { state: settings } = useAppSettings();
-    const enabled = settings.bool("biometricLock");
+    const enabled = useSettingBool("biometricLock");
     const [unlocked, setUnlocked] = useState(false);
     const [enforceable, setEnforceable] = useState<boolean | null>(null);
     const [failure, setFailure] = useState<TranslationKey | null>(null);
