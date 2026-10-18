@@ -1,4 +1,8 @@
 import { decimalsFor } from "@outlayr/money/currency";
+import { utcDateString } from "@outlayr/money/dates";
+import { computeAmountUSD } from "@outlayr/money/rates";
+import type { EntryRateType } from "@outlayr/money/rates";
+import { convertFromUsd } from "@outlayr/money/round";
 
 import { generateSchedule } from "./installments";
 import type { InstallmentInterval, ScheduledInstallment } from "./installments";
@@ -66,6 +70,42 @@ export function newInstallmentDraft(upfrontAccountId: string | null): Installmen
 function roundTo(amount: number, currency: string): number {
     const scale = 10 ** decimalsFor(currency);
     return Math.round(amount * scale) / scale;
+}
+
+/**
+ * The purchase price in the plan's currency, or null while a rate is missing.
+ * The purchase keeps its own currency and is valued the way the account's
+ * balance values it: its dollars at the rate the entry books with
+ * (`entryRate`), then the plan currency's official per-USD rate for the day
+ * (`planPerUsd`), so a paid-off order leaves the balance at zero.
+ */
+export function planPrice(
+    purchase: { amount: number; currency: string; date: Date; rateType: EntryRateType },
+    planCurrency: string,
+    { entryRate, planPerUsd }: { entryRate: number | null; planPerUsd: number | null }
+): number | null {
+    if (purchase.currency === planCurrency) {
+        return purchase.amount;
+    }
+    let usd: number | null = purchase.amount;
+    if (purchase.currency !== "USD") {
+        usd =
+            entryRate === null || !(entryRate > 0)
+                ? null
+                : computeAmountUSD({
+                      baseAmount: purchase.amount,
+                      date: utcDateString(purchase.date.getTime()),
+                      exchangeRate: entryRate,
+                      exchangeRateType: purchase.rateType,
+                  });
+    }
+    if (usd === null) {
+        return null;
+    }
+    if (planCurrency === "USD") {
+        return roundTo(usd, planCurrency);
+    }
+    return planPerUsd === null || !(planPerUsd > 0) ? null : convertFromUsd(usd, planPerUsd, planCurrency);
 }
 
 /** The upfront in the plan's currency, for a price. */

@@ -1323,6 +1323,7 @@ export function TransactionForm({
         currency,
         date,
         db,
+        entryRate: { rate: rateInForce, type: rateSelection.exchangeRateType },
         income,
         initial,
         isSubscription,

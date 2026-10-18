@@ -1,5 +1,6 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import { toAccountKind } from "@outlayr/money/account-kind";
+import type { EntryRateType } from "@outlayr/money/rates";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 
@@ -9,10 +10,11 @@ import { installmentsRepo } from "@/data/installments-core";
 import type { PaymentSource } from "@/data/installments-core";
 import type { Transaction, TransactionInput } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
-import { draftSchedule, newInstallmentDraft, paidBeforeCount, upfrontOf } from "@/domain/installment-draft";
+import { draftSchedule, newInstallmentDraft, paidBeforeCount, planPrice, upfrontOf } from "@/domain/installment-draft";
 import type { InstallmentDraft } from "@/domain/installment-draft";
 import { paymentSource } from "@/domain/installment-payment";
 import { formatAmount } from "@/domain/money";
+import { transactionRateError } from "@/domain/transaction-entry-rate";
 import { useLanguage, useTranslation } from "@/i18n/context";
 
 import { InstallmentsSheet } from "./installments-sheet";
@@ -25,6 +27,8 @@ interface InstallmentOrderArgs {
     currency: string;
     date: Date;
     db: Database;
+    /** The rate the entry books its dollars with, which prices a plan in dollars. */
+    entryRate: { rate: number | null; type: EntryRateType };
     income: boolean;
     initial: Transaction | undefined;
     isSubscription: boolean;
@@ -44,6 +48,7 @@ export function useInstallmentOrder({
     currency,
     date,
     db,
+    entryRate,
     income,
     initial,
     isSubscription,
@@ -59,14 +64,19 @@ export function useInstallmentOrder({
     const [planId] = useState(() => (initial ? planIdForPurchase(db, initial.id) : null));
     const sources = banks.filter((bank) => bank.id !== account?.id && toAccountKind(bank.kind) !== "liability");
     const from = sources.find((bank) => bank.id === draft?.upfrontAccountId) ?? null;
-    // Plan amounts are in the account's currency, so the purchase has to be in it too.
     const offered =
         mode === "create" &&
         account !== null &&
         toAccountKind(account.kind) === "liability" &&
-        account.currency === currency &&
         !income &&
         !isSubscription;
+    // The purchase stays in its own currency; the plan is in the account's.
+    const planCurrency = account?.currency ?? currency;
+    const planPriceOf = (price: number, rate = entryRate.rate) =>
+        planPrice({ amount: price, currency, date, rateType: entryRate.type }, planCurrency, {
+            entryRate: rate,
+            planPerUsd: currency === planCurrency ? null : paymentRate(db, "USD", planCurrency, date),
+        });
 
     useEffect(() => {
         if (presented > 0) {
@@ -88,8 +98,11 @@ export function useInstallmentOrder({
         if (!offered) {
             return [];
         }
+        const plan = planPriceOf(price);
         const first =
-            draft === null ? null : draftSchedule(draft, price, date, currency)?.find((row) => row.sequence > 0);
+            draft === null || plan === null
+                ? null
+                : draftSchedule(draft, plan, date, planCurrency)?.find((row) => row.sequence > 0);
         return [
             {
                 active: draft !== null,
@@ -98,7 +111,7 @@ export function useInstallmentOrder({
                 label:
                     draft && first
                         ? t("installments.chipSet", {
-                              amount: formatAmount(first.amount, currency, true, language),
+                              amount: formatAmount(first.amount, planCurrency, true, language),
                               count: draft.count,
                           })
                         : t("installments.chip"),
@@ -113,12 +126,14 @@ export function useInstallmentOrder({
     };
 
     /** The upfront's source: null when it was paid outside Outlayr, undefined while it cannot be converted. */
-    const upfrontSource = (price: number): PaymentSource | null | undefined => {
+    const upfrontSource = (plan: number): PaymentSource | null | undefined => {
         if (from === null) {
             return null;
         }
-        const upfront = draft === null ? 0 : upfrontOf(draft, price, currency);
-        return paymentSource(upfront, from, currency, paymentRate(db, from.currency, currency, date)) ?? undefined;
+        const upfront = draft === null ? 0 : upfrontOf(draft, plan, planCurrency);
+        return (
+            paymentSource(upfront, from, planCurrency, paymentRate(db, from.currency, planCurrency, date)) ?? undefined
+        );
     };
 
     /** Why the order cannot be saved yet, or null. Opens the sheet on the answer. */
@@ -126,10 +141,13 @@ export function useInstallmentOrder({
         if (!offered || draft === null) {
             return null;
         }
+        const plan = planPriceOf(price);
         let reason: string | null = null;
-        if (draftSchedule(draft, price, date, currency) === null) {
+        if (plan === null) {
+            reason = t("installments.noRate");
+        } else if (draftSchedule(draft, plan, date, planCurrency) === null) {
             reason = t("installments.nothingLeft");
-        } else if (upfrontOf(draft, price, currency) > 0 && upfrontSource(price) === undefined) {
+        } else if (upfrontOf(draft, plan, planCurrency) > 0 && upfrontSource(plan) === undefined) {
             reason = t("installments.noRate");
         }
         if (reason !== null) {
@@ -144,8 +162,10 @@ export function useInstallmentOrder({
         price: number,
         inSameTransaction: (id: string) => Promise<void>
     ): Promise<string> | null => {
-        const schedule = offered && draft !== null ? draftSchedule(draft, price, date, currency) : null;
-        if (account === null || draft === null || schedule === null) {
+        const plan = planPriceOf(price, input.exchangeRate ?? entryRate.rate);
+        const schedule =
+            offered && draft !== null && plan !== null ? draftSchedule(draft, plan, date, planCurrency) : null;
+        if (account === null || draft === null || plan === null || schedule === null) {
             return null;
         }
         const hasUpfront = schedule.some((row) => row.sequence === 0);
@@ -155,24 +175,35 @@ export function useInstallmentOrder({
                 installmentsPaidOutside: paidBeforeCount(draft, schedule, new Date()),
                 purchase: { ...input, accountId: account.id },
                 schedule,
-                upfront: hasUpfront ? upfrontSource(price) : undefined,
+                upfront: hasUpfront ? upfrontSource(plan) : undefined,
             })
             .then(({ transactionId }) => transactionId);
     };
 
-    const sheet = (price: number) =>
-        offered && draft !== null ? (
+    const sheet = (price: number) => {
+        if (!offered || draft === null) {
+            return null;
+        }
+        const plan = planPriceOf(price);
+        return (
             <InstallmentsSheet
                 accounts={sources}
-                currency={currency}
+                currency={planCurrency}
                 draft={draft}
+                entryRateMissing={
+                    transactionRateError(currency, {
+                        exchangeRate: entryRate.rate,
+                        exchangeRateType: entryRate.type,
+                    }) !== null
+                }
                 onChange={setDraft}
-                price={price}
+                price={plan}
                 purchaseDay={date}
                 ref={sheetRef}
-                schedule={draftSchedule(draft, price, date, currency)}
+                schedule={plan === null ? null : draftSchedule(draft, plan, date, planCurrency)}
             />
-        ) : null;
+        );
+    };
 
     return { drafting: draft !== null, problem, save, sheet, verbs };
 }

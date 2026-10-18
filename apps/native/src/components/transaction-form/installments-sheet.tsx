@@ -49,8 +49,11 @@ interface InstallmentsSheetProps {
     accounts: readonly Account[];
     currency: string;
     draft: InstallmentDraft;
+    /** The entry's own rate is what is missing: the form already says so, so the sheet does not. */
+    entryRateMissing: boolean;
     onChange: (next: InstallmentDraft) => void;
-    price: number;
+    /** The price in the plan's currency, null while there is no rate to convert it with. */
+    price: number | null;
     purchaseDay: Date;
     ref?: Ref<BottomSheetModal>;
     /** What the draft generates for the price, or null while it cannot. */
@@ -68,6 +71,7 @@ export function InstallmentsSheet({
     accounts,
     currency,
     draft,
+    entryRateMissing,
     onChange,
     price,
     purchaseDay,
@@ -85,7 +89,7 @@ export function InstallmentsSheet({
     const [open, setOpen] = useState<"every" | "firstDue" | number | null>(null);
     const money = (value: number) => formatAmount(value, currency, true, language);
 
-    const upfront = upfrontOf(draft, price, currency);
+    const upfront = price === null ? 0 : upfrontOf(draft, price, currency);
     const installments = schedule?.filter((row) => row.sequence > 0) ?? [];
     const firstDue = installments[0]?.dueDate ?? draft.firstDue;
     const each = draft.each ?? installments[0]?.amount ?? 0;
@@ -93,7 +97,7 @@ export function InstallmentsSheet({
     const shareOn = (share: number) => "share" in draft.upfront && draft.upfront.share === share;
     const paidBefore = schedule ? paidBeforeCount(draft, schedule, new Date(nowMs)) : 0;
     const total = schedule?.reduce((sum, row) => sum + row.amount, 0) ?? 0;
-    const over = schedule ? overPrice(schedule, price, currency) : 0;
+    const over = schedule && price !== null ? overPrice(schedule, price, currency) : 0;
 
     const openPad = (target: PadTarget, value: number) => {
         setPad({ target, text: numberToNumpad(value, minorUnits) });
@@ -137,6 +141,12 @@ export function InstallmentsSheet({
         return row.sequence === paidBefore + 1 ? dueIn(t, row.dueDate, nowMs) : null;
     };
 
+    // While the entry's own rate is missing, the form's rate error is the one that speaks.
+    let emptyNote: string | null = null;
+    if (!entryRateMissing) {
+        emptyNote = t(price === null ? "installments.noRate" : "installments.nothingLeft");
+    }
+
     const step = (by: number) =>
         onChange(rescheduled(draft, { count: Math.min(MAX_COUNT, Math.max(1, draft.count + by)) }));
 
@@ -177,7 +187,7 @@ export function InstallmentsSheet({
                                 <ShareOption
                                     label={t("installments.none")}
                                     onPress={() => onChange({ ...draft, upfront: { amount: 0 } })}
-                                    selected={upfront === 0}
+                                    selected={"amount" in draft.upfront && draft.upfront.amount === 0}
                                 />
                             </View>
                         </View>
@@ -274,7 +284,7 @@ export function InstallmentsSheet({
                     </View>
 
                     {schedule === null ? (
-                        <Text className="text-expense text-subtitle pt-2">{t("installments.nothingLeft")}</Text>
+                        emptyNote !== null && <Text className="text-expense text-subtitle pt-2">{emptyNote}</Text>
                     ) : (
                         <View className="pt-5">
                             {schedule.map((row) => (

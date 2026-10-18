@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { draftSchedule, newInstallmentDraft, overPrice, paidBeforeCount } from "./installment-draft";
+import { draftSchedule, newInstallmentDraft, overPrice, paidBeforeCount, planPrice } from "./installment-draft";
 
 const day = (year: number, month: number, date: number) => new Date(year, month - 1, date);
 const amounts = (rows: { amount: number }[] | null) => rows?.map((row) => row.amount);
@@ -58,5 +58,21 @@ describe("overPrice", () => {
         expect(
             overPrice(draftSchedule(newInstallmentDraft("bank"), 100, day(2026, 10, 18), "USD") ?? [], 100, "USD")
         ).toBe(0);
+    });
+});
+
+describe("planPrice", () => {
+    const purchase = { amount: 21_853, currency: "VES", date: new Date(2026, 9, 18), rateType: "official" as const };
+
+    it("prices a bolívar purchase on a dollar plan at the entry's rate, and waits for a rate", () => {
+        expect(planPrice(purchase, "USD", { entryRate: 218.53, planPerUsd: 1 })).toBe(100);
+        expect(planPrice({ ...purchase, amount: 1000 }, "USD", { entryRate: 218.53, planPerUsd: 1 })).toBe(4.58);
+        expect(planPrice(purchase, "USD", { entryRate: null, planPerUsd: 1 })).toBeNull();
+    });
+
+    it("prices a plan in a third currency from the entry's own dollars, as the balance values it", () => {
+        // Custom 230 against an official 218.53: the entry books $95.01, which is €87.41 at 0.92.
+        expect(planPrice(purchase, "EUR", { entryRate: 230, planPerUsd: 0.92 })).toBe(87.41);
+        expect(planPrice(purchase, "EUR", { entryRate: 230, planPerUsd: null })).toBeNull();
     });
 });
