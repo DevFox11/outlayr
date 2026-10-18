@@ -51,6 +51,9 @@ export interface SavingsGoalWithProgress {
     target: number;
 }
 
+const NO_ROWS: never[] = [];
+const NO_READ = { all: () => NO_ROWS };
+
 /**
  * Every goal with the balance behind it, valued into the ledger's display
  * currency so a goal set in one currency and an account held in another still
@@ -70,10 +73,24 @@ export function useSavingsGoals(db: Database, nowMs: number): SavingsGoalWithPro
     // key, so an entry scheduled for later today is indistinguishable from one
     // already made and would read as money already put aside.
     const settledAt = useMemo(() => new Date(nowMs), [nowMs]);
-    const cellRows = useLiveQuery(transactions, () => settledAccountsCellQuery(db, settledAt), [settledAt]);
-    const outbound = useLiveQuery(transfers, () => settledTransfersOutboundQuery(db, settledAt), [settledAt]);
-    const inbound = useLiveQuery(transfers, () => settledTransfersInboundQuery(db, settledAt), [settledAt]);
-    const outside = useLiveQuery(outsidePayments, () => settledOutsidePaymentsQuery(db, settledAt), [settledAt]);
+    const enabled = goals.length > 0;
+    const cellRows = useLiveQuery(transactions, () => (enabled ? settledAccountsCellQuery(db, settledAt) : NO_READ), [
+        enabled,
+        settledAt,
+    ]);
+    const outbound = useLiveQuery(transfers, () => (enabled ? settledTransfersOutboundQuery(db, settledAt) : NO_READ), [
+        enabled,
+        settledAt,
+    ]);
+    const inbound = useLiveQuery(transfers, () => (enabled ? settledTransfersInboundQuery(db, settledAt) : NO_READ), [
+        enabled,
+        settledAt,
+    ]);
+    const outside = useLiveQuery(
+        outsidePayments,
+        () => (enabled ? settledOutsidePaymentsQuery(db, settledAt) : NO_READ),
+        [enabled, settledAt]
+    );
     const displayCurrency = useGlobalCurrency(db);
     const rates = useBalanceRates(db, displayCurrency, accounts);
 
