@@ -16,11 +16,13 @@ const SWEEP_COOLDOWN_MS = 60_000;
  * failure clears it so the next foreground retries instead of waiting out a
  * window it never used.
  *
- * `onSwept` runs after the walk commits. Anything derived from a chain's next
- * landing has to wait for that: the sweep retires the carrier and creates the
- * next occurrence, so a reader that fires on the same foreground event races it
- * and sees a landing the sweep is about to invalidate. A failed walk still calls
- * it, against the landings as they stand, so a launch always reconciles.
+ * `onSwept` runs once per launch and foreground, after the walk commits.
+ * Anything derived from a chain's next landing has to wait for that: the sweep
+ * retires the carrier and creates the next occurrence, so a reader that fires on
+ * the same foreground event races it and sees a landing the sweep is about to
+ * invalidate. A foreground inside the cooldown skips the walk but still calls it,
+ * as does a failed walk, against the landings as they stand, so every launch and
+ * foreground reconciles.
  */
 export function useRecurrenceSweep(db: Database | null, onSwept?: (db: Database) => void): void {
     const lastSweepAt = useRef(0);
@@ -40,6 +42,7 @@ export function useRecurrenceSweep(db: Database | null, onSwept?: (db: Database)
         const sweep = () => {
             const startedAt = Date.now();
             if (startedAt - lastSweepAt.current < SWEEP_COOLDOWN_MS) {
+                swept.current?.(db);
                 return;
             }
             lastSweepAt.current = startedAt;

@@ -10,7 +10,7 @@ import { useProEntitled } from "@/hooks/use-pro-locked";
 import { useCloudAuthenticated } from "@/lib/convex";
 import { useEnrichmentQueue } from "@/lib/enrichment-queue";
 import { useDailyReminderSync } from "@/lib/reminder-sync";
-import { syncSubscriptionReminders, useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
+import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 import { useSystemSync } from "@/lib/use-system-sync";
 
 const IDLE_TIMEOUT_MS = 1000;
@@ -42,10 +42,9 @@ export function BackgroundWork() {
     const ready = started ? db : null;
 
     useDailyReminderSync(ready);
-    useSubscriptionReminderSync(ready);
-    // Re-arming from the callback rather than relying on the reminder sync's own
-    // foreground listener: both fire on the same AppState event, and the sweep
-    // moves the very landing the notices are dated from.
+    // The sweep moves the very landing the notices are dated from, so the
+    // subscription reminders reconcile from its callback: once per launch and
+    // foreground, after the walk when there is one.
     useRecurrenceSweep(ready, reconcileSubscriptionReminders);
     // Ordered after the sweep so a subscription that advanced on this foreground
     // is already in the table when the widgets are rebuilt from it.

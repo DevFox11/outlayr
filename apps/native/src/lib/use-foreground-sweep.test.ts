@@ -23,11 +23,11 @@ afterEach(() => {
     jest.restoreAllMocks();
 });
 
-async function renderSweep(onLaunch?: boolean) {
+async function renderSweep() {
     const db = unusedDatabase();
     const { rerender } = await renderHook(
         ({ ready }: { ready: Database | null }) => {
-            useForegroundSweep(ready, sweep, "Sweep", { onLaunch });
+            useForegroundSweep(ready, sweep, "Sweep");
         },
         { initialProps: { ready: null } }
     );
@@ -45,15 +45,5 @@ describe("useForegroundSweep", () => {
             changeTo("active");
         });
         expect(sweep).toHaveBeenCalledTimes(2);
-    });
-
-    it("runs only the foreground passes when another caller owns the launch pass", async () => {
-        await renderSweep(false);
-        expect(sweep).not.toHaveBeenCalled();
-
-        act(() => {
-            changeTo("active");
-        });
-        expect(sweep).toHaveBeenCalledTimes(1);
     });
 });

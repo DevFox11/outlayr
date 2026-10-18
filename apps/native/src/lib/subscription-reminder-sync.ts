@@ -4,7 +4,6 @@ import type { Database } from "@/db/client";
 import { reminderReconcile } from "@/domain/reminder";
 import { orphanedReminderIds } from "@/domain/subscription-reminder";
 import { reminderNotices } from "@/domain/subscription-reminder-copy";
-import { useForegroundSweep } from "@/lib/use-foreground-sweep";
 
 import { readReminderTime } from "./reminder-sync";
 import { cancelReminders, pendingReminderIds, reminderPermission, scheduleDatedReminder } from "./reminders";
@@ -29,10 +28,11 @@ export function syncSubscriptionReminders(db: Database): Promise<void> {
 }
 
 /**
- * Reconciles run one at a time. Several callers can ask on the same foreground —
- * the AppState listener and the recurrence sweep once it commits —
- * and two overlapping passes interleave their cancels and schedules, so one can
- * cancel a request the other has just armed.
+ * Reconciles run one at a time. The recurrence sweep in `BackgroundWork` asks on
+ * every launch and foreground, once its walk has moved the landings; the
+ * transaction form, the voice entry and the notifications screen ask after their
+ * own writes. Two overlapping passes interleave their cancels and schedules, so
+ * one can cancel a request the other has just armed.
  *
  * `catch` keeps the chain alive: without it a single failed pass would wedge
  * every later one behind a permanently rejected promise.
@@ -68,16 +68,4 @@ async function reconcileSubscriptionReminders(db: Database): Promise<void> {
     if (decision === "disable") {
         await setBoolSetting(db, "subscriptionReminders", false);
     }
-}
-
-/**
- * Mounted app-wide, not per screen: the arms are dated, so a device left alone
- * for a month would otherwise come back with a queue describing charges that
- * have already been taken.
- *
- * Foreground passes only. The launch pass is the recurrence sweep's `onSwept`
- * in `BackgroundWork`, which reconciles after the walk has moved the landings.
- */
-export function useSubscriptionReminderSync(db: Database | null): void {
-    useForegroundSweep(db, syncSubscriptionReminders, "Subscription reminder sync", { onLaunch: false });
 }
