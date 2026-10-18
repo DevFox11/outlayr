@@ -3,6 +3,7 @@ import {
     launchCameraAsync,
     launchImageLibraryAsync,
     requestCameraPermissionsAsync,
+    UIImagePickerPreferredAssetRepresentationMode,
 } from "expo-image-picker";
 import type { ImagePickerResult } from "expo-image-picker";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -255,7 +256,8 @@ export function useReceiptScan<Context>({
                     launchImageLibraryAsync({
                         allowsEditing: false,
                         mediaTypes: ["images"],
-                        quality: 1,
+                        preferredAssetRepresentationMode: UIImagePickerPreferredAssetRepresentationMode.Compatible,
+                        quality: 0.9,
                     })
                 );
                 adopt(result, take);
