@@ -1,7 +1,7 @@
 import { GlassContainer, GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import { SymbolView } from "expo-symbols";
 import { NumberFlow } from "number-flow-react-native";
-import { useRef } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import type { AccessibilityActionEvent } from "react-native";
 
@@ -77,15 +77,24 @@ export function AmountNumpad({
      */
     const chained = useRef<{ base: string; next: string } | null>(null);
 
-    const press = (key: NumpadKey) => {
-        // A long press has no tell of its own beyond the amount resetting, and
-        // `keyTap` is silent below the excessive haptics level.
-        haptics(key === "clear" ? "medium" : "keyTap");
-        const current = chained.current?.base === value ? chained.current.next : value;
-        const next = applyNumpadKey(current, key, minorUnits, mode);
-        chained.current = { base: value, next };
-        onChange(next, key);
-    };
+    const latest = useRef({ value, minorUnits, mode, onChange });
+    useLayoutEffect(() => {
+        latest.current = { value, minorUnits, mode, onChange };
+    });
+
+    const press = useCallback(
+        (key: NumpadKey) => {
+            const { value: base, minorUnits: units, mode: entryMode, onChange: emit } = latest.current;
+            // A long press has no tell of its own beyond the amount resetting, and
+            // `keyTap` is silent below the excessive haptics level.
+            haptics(key === "clear" ? "medium" : "keyTap");
+            const current = chained.current?.base === base ? chained.current.next : base;
+            const next = applyNumpadKey(current, key, units, entryMode);
+            chained.current = { base, next };
+            emit(next, key);
+        },
+        [haptics]
+    );
 
     return (
         // No horizontal inset of its own: the caller owns it, so the keys line up

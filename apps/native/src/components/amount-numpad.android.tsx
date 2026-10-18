@@ -1,6 +1,6 @@
 import { SymbolView } from "expo-symbols";
 import { NumberFlow } from "number-flow-react-native";
-import { useRef } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import { Pressable, View } from "react-native";
 import type { AccessibilityActionEvent } from "react-native";
 
@@ -58,13 +58,22 @@ export const AmountNumpad: typeof AmountNumpadBase = ({
     // See `amount-numpad.tsx`: two presses inside one commit must not drop a digit.
     const chained = useRef<{ base: string; next: string } | null>(null);
 
-    const press = (key: NumpadKey) => {
-        haptics(key === "clear" ? "medium" : "keyTap");
-        const current = chained.current?.base === value ? chained.current.next : value;
-        const next = applyNumpadKey(current, key, minorUnits, mode);
-        chained.current = { base: value, next };
-        onChange(next, key);
-    };
+    const latest = useRef({ value, minorUnits, mode, onChange });
+    useLayoutEffect(() => {
+        latest.current = { value, minorUnits, mode, onChange };
+    });
+
+    const press = useCallback(
+        (key: NumpadKey) => {
+            const { value: base, minorUnits: units, mode: entryMode, onChange: emit } = latest.current;
+            haptics(key === "clear" ? "medium" : "keyTap");
+            const current = chained.current?.base === base ? chained.current.next : base;
+            const next = applyNumpadKey(current, key, units, entryMode);
+            chained.current = { base, next };
+            emit(next, key);
+        },
+        [haptics]
+    );
 
     return (
         <View>
