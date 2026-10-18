@@ -34,9 +34,9 @@ export interface AccountsOverview {
     count: number;
     /** False when any part fell back to face value instead of converting. */
     exact: boolean;
-    /** What the liability accounts owe, stated positive. */
+    /** What the liability accounts and the people you owe add up to, stated positive. */
     owe: number;
-    /** What the asset accounts hold. */
+    /** What the asset accounts hold, plus what people owe you. */
     own: number;
     /**
      * Every account together, which is `own - owe`. Unchanged by the kind split:

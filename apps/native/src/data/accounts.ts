@@ -1,5 +1,6 @@
 import { accountBalance } from "@outlayr/money/account-balance";
 import type { AccountBalance } from "@outlayr/money/account-balance";
+import { isPerson } from "@outlayr/money/account-kind";
 import { accountsOverview, balanceIn } from "@outlayr/money/account-overview";
 import type { DisplayedBalance, AccountsOverview } from "@outlayr/money/account-overview";
 import type { CurrencyCell } from "@outlayr/money/currency-totals";
@@ -39,6 +40,23 @@ export function useAccounts(db: Database): Account[] {
     return useLiveQuery(accounts, () =>
         db.select().from(accounts).where(isNull(accounts.deletedAt)).orderBy(accounts.sortOrder)
     ) as Account[];
+}
+
+/**
+ * {@link useAccounts} without people: the lists of accounts that hold or owe
+ * money (Accounts, the Log's block, pickers) leave them to the Debts screen.
+ * A reader that only resolves an id keeps `useAccounts`, since an entry or a
+ * transfer can point at a person.
+ */
+export function useBankAccounts(db: Database): Account[] {
+    const all = useAccounts(db);
+    return useMemo(() => all.filter((account) => !isPerson(account)), [all]);
+}
+
+/** Every person on the ledger, in manual order. */
+export function usePeople(db: Database): Account[] {
+    const all = useAccounts(db);
+    return useMemo(() => all.filter(isPerson), [all]);
 }
 
 /**
@@ -105,28 +123,22 @@ export function useAccountBalance(
 }
 
 /**
- * Every account valued into `valuation`'s currency, with the per-account rows
- * the Log draws. `excludeId` drops an account whose deletion is pending its
- * undo window: its cells are ignored with it, so the total moves as the row
- * leaves rather than after the write lands.
+ * `rows` valued into `valuation`'s currency, with the per-account rows. The Log
+ * passes its banks, the Debts screen its liabilities and people; both read the
+ * same cells, so a card's figure agrees on the two screens.
  */
-export function useAccountsOverviewIn(
+export function useOverviewOf(
     db: Database,
+    rows: readonly Account[],
     valuation: Valuation,
-    nowMs: number,
-    excludeId: string | null = null
+    nowMs: number
 ): AccountsOverview | null {
-    const all = useAccounts(db);
-    const rows = useMemo(
-        () => (excludeId == null ? all : all.filter((account) => account.id !== excludeId)),
-        [all, excludeId]
-    );
     const settledAt = useMemo(() => new Date(nowMs), [nowMs]);
     const cellRows = useLiveQuery(transactions, () => settledAccountsCellQuery(db, settledAt), [settledAt]);
     const outbound = useLiveQuery(transfers, () => settledTransfersOutboundQuery(db, settledAt), [settledAt]);
     const inbound = useLiveQuery(transfers, () => settledTransfersInboundQuery(db, settledAt), [settledAt]);
     const { displayCurrency } = valuation;
-    const rates = useBalanceRates(db, displayCurrency, all);
+    const rates = useBalanceRates(db, displayCurrency, rows);
     return useMemo(
         () =>
             accountsOverview(
@@ -148,10 +160,32 @@ export function useAccountsOverviewIn(
 }
 
 /**
+ * Every bank account valued into `valuation`'s currency, with the per-account
+ * rows the Log draws. People are left out: what they owe is on Debts.
+ * `excludeId` drops an account whose deletion is pending its undo window: its
+ * cells are ignored with it, so the total moves as the row leaves rather than
+ * after the write lands.
+ */
+export function useAccountsOverviewIn(
+    db: Database,
+    valuation: Valuation,
+    nowMs: number,
+    excludeId: string | null = null
+): AccountsOverview | null {
+    const banks = useBankAccounts(db);
+    const rows = useMemo(
+        () => (excludeId == null ? banks : banks.filter((account) => account.id !== excludeId)),
+        [banks, excludeId]
+    );
+    return useOverviewOf(db, rows, valuation, nowMs);
+}
+
+/**
  * Net worth over the recent window, valued into `valuation`'s currency.
  *
  * Shares the cell set `useAccountsOverviewIn` reads, so the line's last point
- * and the accounts card agree by construction rather than by coincidence.
+ * and the accounts card agree by construction rather than by coincidence, once
+ * the people the card leaves out are added back: net worth counts them by sign.
  */
 function useNetWorthSeriesIn(db: Database, valuation: Valuation, nowMs: number): NetWorthSeriesPoint[] {
     const rows = useAccounts(db);

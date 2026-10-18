@@ -1,0 +1,61 @@
+import { describe, expect, it } from "@jest/globals";
+import { buildRateTable } from "@outlayr/money/valuation";
+
+import { migratedDatabase } from "@/db/test-database";
+
+import { settledBalanceAt } from "./accounts";
+import { accountsRepo, getAccountById } from "./accounts-core";
+import { createPerson, recordDebtMovement } from "./debts-core";
+import { transfersRepo } from "./transfers-core";
+
+const OCT_2 = new Date("2026-10-02T12:00:00.000Z");
+const NOW = new Date("2026-10-18T12:00:00.000Z");
+const rates = buildRateTable([]);
+
+async function balanceOf(db: ReturnType<typeof migratedDatabase>, id: string): Promise<number> {
+    const account = getAccountById(db, id);
+    if (account == null) {
+        throw new Error(`No account ${id}`);
+    }
+    return (await settledBalanceAt(db, account, { displayCurrency: account.currency, rates }, NOW)).value;
+}
+
+describe("recording a debt with a person", () => {
+    it("leaves you owing a person you borrowed from, on top of an older debt", async () => {
+        const db = migratedDatabase({ foreignKeys: false });
+        const zinli = await accountsRepo.create(db, { currency: "USD", initialBalance: 0, name: "Zinli" });
+        const pedro = await createPerson(db, { currency: "USD", name: " Pedro ", openingBalance: -20 });
+
+        await recordDebtMovement(db, {
+            account: { accountId: zinli, amount: 100, currency: "USD" },
+            date: OCT_2,
+            person: { accountId: pedro, amount: 100, currency: "USD" },
+            rateType: null,
+            verb: "borrowed",
+        });
+
+        expect(getAccountById(db, pedro)).toMatchObject({ kind: "person", name: "Pedro" });
+        await expect(balanceOf(db, pedro)).resolves.toBe(-120);
+        await expect(balanceOf(db, zinli)).resolves.toBe(100);
+    });
+
+    it("keeps each leg in its own currency when you lend across currencies", async () => {
+        const db = migratedDatabase({ foreignKeys: false });
+        const banesco = await accountsRepo.create(db, { currency: "VES", initialBalance: 5000, name: "Banesco" });
+        const ana = await createPerson(db, { currency: "USD", name: "Ana" });
+
+        const id = await recordDebtMovement(db, {
+            account: { accountId: banesco, amount: 3650, currency: "VES" },
+            date: OCT_2,
+            person: { accountId: ana, amount: 100, currency: "USD" },
+            rateType: "official",
+            verb: "lent",
+        });
+
+        await expect(balanceOf(db, ana)).resolves.toBe(100);
+        await expect(balanceOf(db, banesco)).resolves.toBe(1350);
+        const stored = await transfersRepo.getById(db, id);
+        expect(stored).toMatchObject({ exchangeRateType: "official", fromCurrency: "VES", toCurrency: "USD" });
+        expect(stored?.exchangeRate).toBeCloseTo(100 / 3650, 10);
+    });
+});

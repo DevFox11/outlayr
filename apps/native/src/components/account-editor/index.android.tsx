@@ -1,6 +1,6 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
-import { toAccountKind } from "@outlayr/money/account-kind";
+import { isPerson, toAccountKind } from "@outlayr/money/account-kind";
 import { useForm, useSelector } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -107,6 +107,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: Database }) {
         },
         balanceAt
     ).total;
+    const person = loaded != null && isPerson(loaded);
     const [initialValues] = useState(() => {
         const startingBalance = roundToMinorUnits(currentBalance, startingCurrency);
         return {
@@ -135,6 +136,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: Database }) {
                 value.balanceText !== initialValues.balanceText ||
                 value.negative !== initialValues.negative ||
                 value.currency !== initialValues.currency;
+            const toggledKind = value.liability ? ("liability" as const) : ("asset" as const);
             const input = {
                 currency: value.currency,
                 customColor: draft.color ?? null,
@@ -142,7 +144,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: Database }) {
                 icon: draft.icon ?? null,
                 imageColor: draft.photoColor ?? null,
                 imageUri: draft.photoUri ?? null,
-                kind: value.liability ? ("liability" as const) : ("asset" as const),
+                kind: person ? ("person" as const) : toggledKind,
                 name: value.name.trim(),
             };
             const persist = async () => {
@@ -232,7 +234,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: Database }) {
         // A stored identity is a choice already made, so editing such an account
         // never looks anything up. An account saved without one is still owed a
         // logo: its name is looked up on open, and again as it is retyped.
-        enabled: mode === "create" || !hasStoredIdentity,
+        enabled: !person && (mode === "create" || !hasStoredIdentity),
         groundedLookup,
         initialName: initialValues.name,
         locale,

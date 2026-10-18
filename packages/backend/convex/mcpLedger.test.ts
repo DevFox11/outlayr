@@ -301,6 +301,30 @@ describe("account_balances", () => {
             owned: roundMoney(overview?.own ?? Number.NaN, 2),
         });
     });
+
+    it("counts what people owe the user as owned and what the user owes them as owed", async () => {
+        const t = await seeded({
+            accounts: [
+                account("checking", { initialBalance: 1000, initialBalanceUsd: 1000 }),
+                account("ana", { initialBalance: 80, initialBalanceUsd: 80, kind: "person", sortOrder: 1 }),
+                account("pedro", { initialBalance: -50, initialBalanceUsd: -50, kind: "person", sortOrder: 2 }),
+            ],
+            currency: "USD",
+        });
+
+        const result = await t.query(internal.mcpLedger.accountBalances, { caller });
+
+        expect(result.accounts.map((row) => [row.name, row.kind])).toStrictEqual([
+            ["checking", "asset"],
+            ["ana", "person"],
+            ["pedro", "person"],
+        ]);
+        expect({ net: result.net, owed: result.owed, owned: result.owned }).toStrictEqual({
+            net: 1030,
+            owed: 50,
+            owned: 1080,
+        });
+    });
 });
 
 describe("budget_status", () => {

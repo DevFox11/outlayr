@@ -10,7 +10,7 @@ import { DaySectionHeader } from "@/components/day-section-header";
 import { FloatingAddButton } from "@/components/floating-add-button";
 import { useDisplaySettings, useSettingBool, useSettingNumber } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useAccounts, useAccountsOverviewIn } from "@/data/accounts";
+import { useBankAccounts, useAccountsOverviewIn } from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { goesWithPendingDelete } from "@/data/card-fees-core";
 import { useCategoryMeta } from "@/data/categories";
@@ -115,7 +115,7 @@ export function Log() {
     const { pendingId: pendingAccountId } = useDeferredDelete("account");
     const nowMs = useNow();
     const accountsOverview = useAccountsOverviewIn(db, valuation, nowMs, pendingAccountId);
-    const accountRows = useAccounts(db);
+    const accountRows = useBankAccounts(db);
     const valued = useValuedCurrencies(db);
     const { showCents, swapTimeLabel, use24Hour } = useDisplaySettings().state;
     const showUpcoming = useSettingBool("showUpcoming");

@@ -5,7 +5,7 @@ import { Platform, Pressable, StyleSheet, View } from "react-native";
 
 import { SheetGestureRoot } from "@/components/sheet-gesture-root";
 import { cn } from "@/components/tw";
-import { useAccounts } from "@/data/accounts";
+import { useBankAccounts } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
 import type { Database } from "@/db/client";
 import { useMergedRef } from "@/hooks/use-merged-ref";
@@ -50,7 +50,7 @@ export function AccountPickerSheet({
     const t = useTranslation();
     const colors = useColors();
     const sheetSurface = useSheetSurface(colors.surfaceSecondary);
-    const accounts = useAccounts(db);
+    const accounts = useBankAccounts(db);
     const sheetRef = useRef<BottomSheetModal>(null);
 
     const setRefs = useMergedRef(sheetRef, ref);

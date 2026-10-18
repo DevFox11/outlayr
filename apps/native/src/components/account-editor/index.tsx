@@ -3,7 +3,7 @@ import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import { ScrollView, useNativeState, VStack } from "@expo/ui/swift-ui";
 import type { TextFieldRef } from "@expo/ui/swift-ui";
 import { animation, blur, opacity, overlay, padding, scrollDismissesKeyboard } from "@expo/ui/swift-ui/modifiers";
-import { toAccountKind } from "@outlayr/money/account-kind";
+import { isPerson, toAccountKind } from "@outlayr/money/account-kind";
 import { useForm, useSelector } from "@tanstack/react-form";
 import { Stack, useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -135,6 +135,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
         },
         balanceAt
     ).total;
+    const person = loaded != null && isPerson(loaded);
     const [initialValues] = useState(() => {
         const startingBalance = roundToMinorUnits(currentBalance, startingCurrency);
         return {
@@ -164,6 +165,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                 value.balanceText !== initialValues.balanceText ||
                 value.negative !== initialValues.negative ||
                 value.currency !== initialValues.currency;
+            const toggledKind = value.liability ? ("liability" as const) : ("asset" as const);
             const input = {
                 currency: value.currency,
                 customColor: draft.color ?? null,
@@ -171,7 +173,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                 icon: draft.icon ?? null,
                 imageColor: draft.photoColor ?? null,
                 imageUri: draft.photoUri ?? null,
-                kind: value.liability ? ("liability" as const) : ("asset" as const),
+                kind: person ? ("person" as const) : toggledKind,
                 name: value.name.trim(),
             };
             const persist = async () => {
@@ -288,7 +290,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
         // A stored identity is a choice already made, so editing such an account
         // never looks anything up. An account saved without one is still owed a
         // logo: its name is looked up on open, and again as it is retyped.
-        enabled: mode === "create" || !hasStoredIdentity,
+        enabled: !person && (mode === "create" || !hasStoredIdentity),
         groundedLookup,
         initialName: initialValues.name,
         locale,

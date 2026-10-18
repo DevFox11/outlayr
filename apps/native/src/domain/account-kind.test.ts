@@ -10,6 +10,10 @@ describe("reading a stored kind", () => {
     it("reads a liability", () => {
         expect(toAccountKind("liability")).toBe("liability");
     });
+
+    it("reads a person", () => {
+        expect(toAccountKind("person")).toBe("person");
+    });
 });
 
 describe("splitting the accounts total into own and owe", () => {
@@ -43,6 +47,26 @@ describe("splitting the accounts total into own and owe", () => {
         const worth = netWorth([{ balance: 40, kind: "liability" }]);
         expect(worth.owe).toBe(-40);
         expect(worth.net).toBe(40);
+    });
+
+    it("counts what a person owes you as held and what you owe them as owed", () => {
+        const worth = netWorth([
+            { balance: 80, kind: "person" },
+            { balance: -50, kind: "person" },
+        ]);
+        expect(worth.own).toBe(80);
+        expect(worth.owe).toBe(50);
+    });
+
+    it("leaves the total the plain sum with people on both sides", () => {
+        const accounts = [
+            { balance: 3412.4, kind: "asset" as const },
+            { balance: -640, kind: "liability" as const },
+            { balance: 80, kind: "person" as const },
+            { balance: -50, kind: "person" as const },
+        ];
+        const plainTotal = accounts.reduce((sum, one) => sum + one.balance, 0);
+        expect(netWorth(accounts).net).toBeCloseTo(plainTotal, 10);
     });
 
     it("never hands a negative zero to a formatter", () => {

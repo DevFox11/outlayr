@@ -1,4 +1,4 @@
-import { DEFAULT_ACCOUNT_KIND } from "@outlayr/money/account-kind";
+import { DEFAULT_ACCOUNT_KIND, isPerson } from "@outlayr/money/account-kind";
 import type { AccountKind } from "@outlayr/money/account-kind";
 import { and, eq, isNull, max } from "drizzle-orm";
 
@@ -25,7 +25,7 @@ export interface AccountInput {
     initialBalance?: number;
     /** Defaults to now — the account starts holding this balance today. */
     initialBalanceDate?: Date;
-    /** `asset` or `liability`; defaults to asset. See `domain/account-kind.ts`. */
+    /** `asset`, `liability` or `person`; defaults to asset. See `@outlayr/money/account-kind`. */
     kind?: AccountKind;
     name: string;
 }
@@ -43,11 +43,13 @@ export function getAccountById(db: Database, id: string): Account | null {
 /**
  * A tombstoned account resolves to null here through {@link getAccountById},
  * so the default quietly falls back to none rather than reviving a deleted
- * account on the next entry.
+ * account on the next entry. A person is never the default either: "Pedro paid"
+ * is one entry, not where the next one comes from.
  */
 export function getLastUsedAccount(db: Database): Account | null {
     const id = getMetaSync(db, META_KEYS.lastTransactionAccount);
-    return id == null ? null : getAccountById(db, id);
+    const account = id == null ? null : getAccountById(db, id);
+    return account && !isPerson(account) ? account : null;
 }
 
 export async function rememberLastUsedAccount(db: Database, id: string): Promise<void> {
@@ -94,7 +96,16 @@ export const accountsRepo = {
         return await db.select().from(accounts).where(isNull(accounts.deletedAt)).orderBy(accounts.sortOrder);
     },
 
-    /** The caller supplies every live account already in the desired order. */
+    /** {@link listActive} without people, for whatever matches a bank or a card. */
+    async listBanks(db: Database): Promise<Account[]> {
+        const live = await accountsRepo.listActive(db);
+        return live.filter((account) => !isPerson(account));
+    },
+
+    /**
+     * The caller supplies every live account it lists, already in the desired
+     * order. Reorder lists banks only; people keep their own relative order.
+     */
     async reorder(db: Database, orderedIds: string[]): Promise<void> {
         const now = new Date();
         await withTransaction(db, async () => {

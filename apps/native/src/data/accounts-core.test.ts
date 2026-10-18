@@ -342,6 +342,13 @@ describe("the last-used account", () => {
         expect(getLastUsedAccount(db)?.id).toBe(second);
     });
 
+    it("never defaults the next entry to a person", async () => {
+        const pedro = await accountsRepo.create(db, { currency: "USD", kind: "person", name: "Pedro" });
+        await rememberLastUsedAccount(db, pedro);
+
+        expect(getLastUsedAccount(db)).toBeNull();
+    });
+
     it("answers null once the remembered account is deleted", async () => {
         const id = await accountsRepo.create(db, {
             currency: "USD",

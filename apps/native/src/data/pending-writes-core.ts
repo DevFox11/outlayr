@@ -191,7 +191,7 @@ export function cardStatus<Account extends CardAccountCandidate>(
 }
 
 export async function cardStillAsks(db: Database, text: string): Promise<boolean> {
-    const live = await accountsRepo.listActive(db);
+    const live = await accountsRepo.listBanks(db);
     return cardStatus(text, parseWalletCards(await getMeta(db, META_KEYS.walletCards)), live).asks;
 }
 
@@ -211,7 +211,7 @@ export async function fileWaitingPurchases(db: Database): Promise<void> {
     if (waitingCards.length === 0) {
         return;
     }
-    const live = await accountsRepo.listActive(db);
+    const live = await accountsRepo.listBanks(db);
     const attempts = waitingCards.flatMap((card) => {
         const { account } = cardStatus(card.text, cards, live);
         return account
@@ -711,7 +711,7 @@ async function resolveAccount(
     if (!card) {
         return { account: null, asks: false };
     }
-    const rows = await accountsRepo.listActive(db);
+    const rows = await accountsRepo.listBanks(db);
     const status = cardStatus(card, parseWalletCards(await getMeta(db, META_KEYS.walletCards)), rows);
     const charged = job.currency?.trim().toUpperCase() || detectCurrency(job.amountText);
     const same = charged ? rows.filter((row) => row.currency === charged) : [];

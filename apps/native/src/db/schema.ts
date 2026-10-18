@@ -53,7 +53,7 @@ export const accounts = sqliteTable(
          * when no rate was available then.
          */
         initialBalanceUsd: real("initialBalanceUsd"),
-        /** `asset` or `liability` — see `domain/account-kind.ts`. */
+        /** `asset`, `liability` or `person` — see `@outlayr/money/account-kind`. */
         kind: text("kind").notNull().default("asset"),
         name: text("name").notNull(),
         sortOrder: integer("sortOrder").notNull().default(0),

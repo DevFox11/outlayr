@@ -19,7 +19,7 @@ import { Text } from "@/components/text";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useAccountBalance, useAccounts } from "@/data/accounts";
+import { useAccountBalance, useBankAccounts } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
@@ -45,7 +45,7 @@ export function Accounts() {
     const router = useRouter();
     const t = useTranslation();
     const colors = useColors();
-    const all = useAccounts(db);
+    const all = useBankAccounts(db);
     const fabClearance = useFabClearance();
     const { pendingId, requestDelete } = useDeferredDelete("account");
     const rows = useMemo(() => all.filter((account) => account.id !== pendingId), [all, pendingId]);

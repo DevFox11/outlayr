@@ -19,7 +19,7 @@ import { ImportSheet } from "@/components/import-sheet/import-sheet";
 import type { ImportSheetHandle } from "@/components/import-sheet/import-sheet";
 import { cn } from "@/components/tw";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useAccounts } from "@/data/accounts";
+import { useBankAccounts } from "@/data/accounts";
 import { LARGEST_STANDARD_FONT_SCALE } from "@/hooks/use-accessibility-text-size";
 import { useTranslation } from "@/i18n/context";
 import { importDraftStore } from "@/lib/import-draft-store";
@@ -175,7 +175,7 @@ export function FloatingAddButton() {
         navigating.current = true;
         router.push(href);
     }, []);
-    const canTransfer = useAccounts(useDatabase()).length >= 2;
+    const canTransfer = useBankAccounts(useDatabase()).length >= 2;
 
     const room = windowHeight - insets.top - NAV_BAR_HEIGHT - insets.bottom - DIAL_BOTTOM_INSET;
     // Bottom-up by how often each is reached for: the transaction always, then

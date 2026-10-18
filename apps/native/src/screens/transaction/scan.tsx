@@ -21,7 +21,7 @@ import type { StageBox } from "@/components/receipt/photo-stage";
 import { ReceiptFrame } from "@/components/receipt/receipt-frame";
 import { ThinkingOrb } from "@/components/thinking-orb/thinking-orb";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useAccounts } from "@/data/accounts";
+import { useBankAccounts } from "@/data/accounts";
 import { getAccountById, rememberLastUsedAccount } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { suggestedCardFee } from "@/data/card-fees-core";
@@ -578,7 +578,7 @@ function ScanFlowScreen() {
     const localeTag = useLocaleTag();
     const regionCode = useRegionCode();
     const currency = useGlobalCurrency(db);
-    const accounts = useAccounts(db);
+    const accounts = useBankAccounts(db);
     const expenseCategories = useCategoriesByNamespace(db, false);
     const incomeCategories = useCategoriesByNamespace(db, true);
     const [saving, setSaving] = useState(false);

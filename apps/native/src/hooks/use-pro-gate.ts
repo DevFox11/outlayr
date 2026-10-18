@@ -1,6 +1,6 @@
 import { useDatabase } from "@/contexts/local-data-context";
-import { useAccounts } from "@/data/accounts";
-import { blocksNewCurrency, FREE_ACCOUNTS } from "@/domain/pro-limits";
+import { useBankAccounts, usePeople } from "@/data/accounts";
+import { blocksNewCurrency, FREE_ACCOUNTS, FREE_PEOPLE } from "@/domain/pro-limits";
 import { useProLocked } from "@/hooks/use-pro-locked";
 
 export function useProCapped(count: number, limit: number): boolean {
@@ -9,12 +9,17 @@ export function useProCapped(count: number, limit: number): boolean {
 
 export function useAccountCreateRoute(): "/accounts/create" | "/paywall" {
     const db = useDatabase();
-    return useProCapped(useAccounts(db).length, FREE_ACCOUNTS) ? "/paywall" : "/accounts/create";
+    return useProCapped(useBankAccounts(db).length, FREE_ACCOUNTS) ? "/paywall" : "/accounts/create";
+}
+
+/** True when a free ledger already holds {@link FREE_PEOPLE}, so adding one goes to the paywall. */
+export function usePeopleCapped(): boolean {
+    return useProCapped(usePeople(useDatabase()).length, FREE_PEOPLE);
 }
 
 export function useCurrencyBlocked(exceptAccountId: string | null): (code: string) => boolean {
     const db = useDatabase();
-    const accounts = useAccounts(db);
+    const accounts = useBankAccounts(db);
     const locked = useProLocked();
     return (code) => {
         // Keeping what the account already holds is never a new currency, even on

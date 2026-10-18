@@ -228,6 +228,19 @@ describe("useAccountsOverviewIn", () => {
         expect(result.current?.rows.map((row) => row.id)).toStrictEqual(["keep"]);
     });
 
+    it("leaves people out of the Log's total", async () => {
+        mockUseLiveQuery
+            .mockReturnValueOnce([account("zinli", 100), { ...account("pedro", -50), kind: "person" }])
+            .mockReturnValueOnce([])
+            .mockReturnValueOnce([])
+            .mockReturnValueOnce([]);
+
+        const { result } = await renderHook(() => useAccountsOverviewIn(makeDb(), valuation, JUNE_1.getTime()));
+
+        expect(result.current?.total).toBe(100);
+        expect(result.current?.rows.map((row) => row.id)).toStrictEqual(["zinli"]);
+    });
+
     it("leaves a future-dated row out of the total until its date", async () => {
         mockUseLiveQuery.mockImplementation(useLiveQuery);
         const db = makeDb();

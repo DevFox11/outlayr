@@ -26,7 +26,7 @@ import { ImportSheet } from "@/components/import-sheet/import-sheet";
 import type { ImportSheetHandle } from "@/components/import-sheet/import-sheet";
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useAccounts } from "@/data/accounts";
+import { useBankAccounts } from "@/data/accounts";
 import { useTranslation } from "@/i18n/context";
 import { importDraftStore } from "@/lib/import-draft-store";
 import { useHaptics } from "@/lib/use-haptics";
@@ -90,7 +90,7 @@ export function FloatingAddButton() {
     const progress = useSharedValue(0);
     const navigating = useRef(false);
     const importSheetRef = useRef<ImportSheetHandle>(null);
-    const canTransfer = useAccounts(useDatabase()).length >= 2;
+    const canTransfer = useBankAccounts(useDatabase()).length >= 2;
 
     useFocusEffect(
         useCallback(() => {

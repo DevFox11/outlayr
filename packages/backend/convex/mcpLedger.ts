@@ -537,7 +537,7 @@ export const ledgerTools: McpToolRegistration[] = [
         annotations: { readOnlyHint: true },
         args: { caller: mcpCallerValidator },
         description:
-            "Every account's balance today, as on Outlayr's Accounts screen: in the account's own currency and in the user's main currency, with its kind (asset or liability) and what the user owns, owes and is worth in total. Entries and transfers dated later than now are not counted. `exact` is false when a rate was missing and part of a figure stayed at face value.",
+            "Every account's balance today, as on Outlayr's Accounts screen: in the account's own currency and in the user's main currency, with its kind and what the user owns, owes and is worth in total. A kind is `asset`, `liability`, or `person`: someone the user lent to or borrowed from, positive when they owe the user and negative when the user owes them, so it counts as owned or owed by its sign. People are listed here though the Accounts screen leaves them out. Entries and transfers dated later than now are not counted. `exact` is false when a rate was missing and part of a figure stayed at face value.",
         fn: internal.mcpLedger.accountBalances,
         identityArg: "caller",
         name: "account_balances",

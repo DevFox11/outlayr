@@ -29,6 +29,7 @@ const mockNowMs = Date.UTC(2026, 9, 1);
 jest.mock("@/data/accounts", () => ({
     useAccountBalance: (_db: unknown, account: { id: string }) => ({ total: mockBalances.get(account.id) ?? 0 }),
     useAccounts: () => mockAccounts,
+    useBankAccounts: () => mockAccounts,
 }));
 
 jest.mock("@/data/use-now", () => ({

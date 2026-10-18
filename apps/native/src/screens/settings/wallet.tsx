@@ -19,7 +19,7 @@ import { SettingsScreen } from "@/components/settings/settings-screen";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useAccounts } from "@/data/accounts";
+import { useBankAccounts } from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { META_KEYS, setMeta } from "@/data/app-meta-core";
 import { useLiveQuery, useLiveValue } from "@/data/live-query";
@@ -227,7 +227,7 @@ function LastEntry({ db, txId }: { db: Database; txId: string }) {
     const { language } = useLanguage();
     const { showCents, use24Hour } = useDisplaySettings().state;
     const ledgerCurrency = useGlobalCurrency(db);
-    const accounts = useAccounts(db);
+    const accounts = useBankAccounts(db);
     const rows = useLiveQuery(
         transactions,
         () =>
@@ -307,7 +307,7 @@ const UNPICKED = "unpicked";
 function CardsSection({ db }: { db: Database }) {
     const t = useTranslation();
     const { language } = useLanguage();
-    const accounts = useAccounts(db);
+    const accounts = useBankAccounts(db);
     const raw = useLiveValue(
         appMeta,
         () => db.select().from(appMeta).where(eq(appMeta.key, META_KEYS.walletCards)),

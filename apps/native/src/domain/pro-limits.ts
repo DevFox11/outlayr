@@ -1,6 +1,8 @@
 export const FREE_ACCOUNTS = 2;
 export const FREE_BUDGETS = 2;
 export const FREE_CURRENCIES = 1;
+/** People sit outside both caps above: they never count as accounts or currencies. */
+export const FREE_PEOPLE = 3;
 
 export function blocksNewBudget(
     categoryId: string | null,

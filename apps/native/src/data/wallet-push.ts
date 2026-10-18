@@ -11,7 +11,7 @@ import { getMeta, META_KEYS } from "./app-meta-core";
 import { cardStatus, filedNote, parseWalletCards } from "./pending-writes-core";
 
 export async function buildWalletPush(db: Database): Promise<WalletPushSnapshot> {
-    const live = await accountsRepo.listActive(db);
+    const live = await accountsRepo.listBanks(db);
     const walletCards = parseWalletCards(await getMeta(db, META_KEYS.walletCards));
     const filed = await db
         .select({

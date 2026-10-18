@@ -1,10 +1,11 @@
+import { isPerson } from "@outlayr/money/account-kind";
 import { MARKET_RATE_TYPES } from "@outlayr/money/rates";
 import type { MarketRateType } from "@outlayr/money/rates";
 import { roundMoney } from "@outlayr/money/round";
 import type { RateTable } from "@outlayr/money/valuation";
 import { useMemo, useState } from "react";
 
-import { useAccountBalance, useAccounts } from "@/data/accounts";
+import { useAccountBalance, useAccounts, useBankAccounts } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
 import { pairRateSource, usePriorCustomRate, useTransferRates } from "@/data/transfer-rates";
 import type { RateSource } from "@/data/transfer-rates";
@@ -180,6 +181,7 @@ function reconcile(
 }
 
 export interface TransferDraft {
+    /** What the leg pickers offer: people are left out. */
     accounts: Account[];
     arrivalSeen: boolean;
     arrived: number | null;
@@ -290,7 +292,11 @@ export interface TransferDraftSnapshot extends Opening {
     shownPair: string | null;
 }
 
-/** The editor's opening state: the seed where it speaks, else the last transfer's route, else the first two accounts. */
+/**
+ * The editor's opening state: the seed where it speaks, else the last transfer's
+ * route, else the first two accounts. Only a seed may name a person; a default
+ * leg never lands on one, so a debt paid back last is not the next route.
+ */
 function openingState(
     accounts: readonly Account[],
     seed: TransferSeed | undefined,
@@ -302,8 +308,9 @@ function openingState(
     const spokenIn = seed?.currency;
     const onSent = amount !== undefined && from !== undefined && (spokenIn === undefined || spokenIn === from.currency);
     const onArrival = amount !== undefined && !onSent && to !== undefined && spokenIn === to.currency;
+    const banks = accounts.filter((account) => !isPerson(account));
     const holds = (id: string, currency: string) =>
-        accounts.some((account) => account.id === id && account.currency === currency);
+        banks.some((account) => account.id === id && account.currency === currency);
     const route =
         last !== null && holds(last.fromAccountId, last.fromCurrency) && holds(last.toAccountId, last.toCurrency)
             ? last
@@ -313,7 +320,7 @@ function openingState(
     // opens as an account paying itself. A leg that was named and missed stays
     // empty: guessing a balance the person never named is worse than asking.
     const leg = (routed: string | undefined, other: string | null | undefined) =>
-        [routed, ...accounts.map((account) => account.id)].find((id) => id !== undefined && id !== other);
+        [routed, ...banks.map((account) => account.id)].find((id) => id !== undefined && id !== other);
     const fallbackFrom = seed?.fromUnresolved ? null : leg(route?.fromAccountId, to?.id);
     const fromId = from?.id ?? fallbackFrom ?? null;
     const fallbackTo = seed?.toUnresolved ? null : leg(route?.toAccountId, fromId);
@@ -466,7 +473,10 @@ export function useTransferDraft(
     /** A discarded draft to open as, in place of `saved` or `seed`. */
     restored?: TransferDraftSnapshot
 ): TransferDraft {
+    // Every account resolves a leg, so a saved transfer with a person still opens;
+    // only banks are offered to pick until the editor grows a People section.
     const accounts = useAccounts(db);
+    const banks = useBankAccounts(db);
     const [opening] = useState(() => startingDraft(db, accounts, seed, saved, restored));
     const [fromId, setFromId] = useState<string | null>(opening.fromId);
     const [toId, setToId] = useState<string | null>(opening.toId);
@@ -595,7 +605,7 @@ export function useTransferDraft(
     }
 
     return {
-        accounts,
+        accounts: banks,
         arrivalSeen: !crossCurrency || arrivalPinned || shownPair === pair,
         arrived: math.arrived,
         arrivedText,

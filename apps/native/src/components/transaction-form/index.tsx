@@ -24,7 +24,7 @@ import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
 import { SubscribeFields } from "@/components/form/subscribe-fields";
 import { useAppSettings, useDisplaySettings, useSettingBool } from "@/contexts/display-settings-context";
 import { EMPTY_DRAFT, useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
-import { useAccounts } from "@/data/accounts";
+import { useBankAccounts } from "@/data/accounts";
 import { getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
@@ -1304,7 +1304,7 @@ export function TransactionForm({
         openSplit,
         setAllocations: setSplitAllocations,
     } = useSplitDraft(db, mode, initial, restore?.splitAllocations);
-    const allAccounts = useAccounts(db);
+    const allAccounts = useBankAccounts(db);
     const [accountDeclined, setAccountDeclined] = useState(
         restore?.accountDeclined ?? (initial != null && initial.accountId == null)
     );

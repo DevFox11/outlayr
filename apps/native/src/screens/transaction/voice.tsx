@@ -26,7 +26,7 @@ import { ModalClose } from "@/components/modal-close";
 import { VoiceOrb } from "@/components/voice/voice-orb";
 import type { VoiceOrbState } from "@/components/voice/voice-orb";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useAccounts } from "@/data/accounts";
+import { useBankAccounts } from "@/data/accounts";
 import { getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { suggestedCardFee } from "@/data/card-fees-core";
@@ -603,7 +603,7 @@ function VoiceThreadScreen() {
     const haptics = useHaptics();
     const { language } = useLanguage();
     const currency = useGlobalCurrency(db);
-    const accounts = useAccounts(db);
+    const accounts = useBankAccounts(db);
     const expenseCategories = useCategoriesByNamespace(db, false);
     const incomeCategories = useCategoriesByNamespace(db, true);
     const [saving, setSaving] = useState(false);

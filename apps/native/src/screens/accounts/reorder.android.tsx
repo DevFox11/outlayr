@@ -6,7 +6,7 @@ import { Eyebrow, PARENT_TILE } from "@/components/category-list-chrome";
 import { ReorderList } from "@/components/reorder-list";
 import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
-import { useAccounts } from "@/data/accounts";
+import { useBankAccounts } from "@/data/accounts";
 import { accountsRepo } from "@/data/accounts-core";
 import type { Account } from "@/data/accounts-core";
 import { useTranslation } from "@/i18n/context";
@@ -20,7 +20,7 @@ export function AccountReorder() {
     const db = useDatabase();
     const t = useTranslation();
     const colors = useColors();
-    const rows = useAccounts(db);
+    const rows = useBankAccounts(db);
 
     const reorder = (ids: string[]) => accountsRepo.reorder(db, ids);
 
