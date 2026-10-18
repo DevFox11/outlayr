@@ -13,7 +13,7 @@ import { MonoLabel } from "@/components/mono-label";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useSettingBool, useSettingNumber } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
-import { settledBalanceAt, useAccountBalances, useAccounts } from "@/data/accounts";
+import { settledBalanceAt, useAccounts } from "@/data/accounts";
 import { useGlobalCurrency } from "@/data/app-meta";
 import type { CategoryBudgetView } from "@/data/budgets";
 import {
@@ -72,9 +72,6 @@ export function Budgets() {
     const asRows = useSettingBool("budgetViewStyle");
     const nowMs = useNow();
     const allGoals = useSavingsGoals(db, nowMs);
-    // Read here rather than inside the picker: the balance the goal freezes has to
-    // be the same figure the tab is showing, not one re-derived a frame later.
-    const balances = useAccountBalances(db, nowMs);
     const accounts = useAccounts(db);
     const valuation = useValuation(db);
 
@@ -168,7 +165,7 @@ export function Budgets() {
         }
         // The draft was composed against the currency the ledger was showing when
         // the account was picked. A synced settings change can move that while the
-        // sheet is open, and `balances` would then be denominated in the new one —
+        // sheet is open, and the balance read below would then be in the new one —
         // so committing would file a figure in one currency under the name of
         // another, permanently. The typed target no longer means what it said
         // either, so the draft is refused rather than reinterpreted.
@@ -177,11 +174,10 @@ export function Budgets() {
             notifyFailure({ body: t("goals.currencyMoved.body"), title: t("goals.currencyMoved.title") });
             return;
         }
-        // Read from the database at this instant, not from the map above. That map
-        // is bounded by `useNow()`, which does not tick when a scheduled row simply
-        // becomes due — so it can still be excluding money that settled an hour
-        // ago, and `dateCreated` is now. An anchor is frozen once and read forever,
-        // so it has to be the balance as it actually stands.
+        // Read again at this instant rather than reusing the figure from the pick:
+        // a scheduled row can become due while the sheet is open, and `dateCreated`
+        // is now. An anchor is frozen once and read forever, so it has to be the
+        // balance as it actually stands.
         const account = accounts.find((candidate) => candidate.id === target.accountId);
         const balance = account && (await settledBalanceAt(db, account, valuation, new Date()));
         if (!balance?.exact) {
@@ -316,18 +312,18 @@ export function Budgets() {
                     accountSheetRef.current?.dismiss();
                     router.push(accountCreateRoute);
                 }}
-                onSelect={(picked) => {
+                onSelect={async (picked) => {
                     accountSheetRef.current?.dismiss();
                     if (!picked) {
                         return;
                     }
-                    const balance = balances.get(picked.id);
+                    const balance = await settledBalanceAt(db, picked, valuation, new Date());
                     // A goal freezes this balance as the line every later figure is
                     // measured against, so an approximate one cannot be accepted: the
                     // live balance would correct itself once the rates arrive and the
                     // frozen anchor never would, inventing a gap that is pure
                     // arithmetic. Refused with the reason rather than stored.
-                    if (balance === undefined || !balance.exact) {
+                    if (!balance.exact) {
                         notifyFailure({
                             body: t("goals.unvalued.body", { account: picked.name }),
                             title: t("goals.unvalued.title"),
