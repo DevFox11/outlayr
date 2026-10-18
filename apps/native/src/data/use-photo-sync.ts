@@ -43,11 +43,7 @@ export function usePhotoSync(db: Database | null, paused: boolean): void {
 
         let running = false;
 
-        const cycle = async () => {
-            if (running) {
-                return;
-            }
-            running = true;
+        const syncPhotos = async () => {
             try {
                 if (!(await isSyncEnabled(db))) {
                     return;
@@ -60,9 +56,17 @@ export function usePhotoSync(db: Database | null, paused: boolean): void {
                 }
             } catch (error) {
                 console.warn("[outlayr] photo sync failed", error);
-            } finally {
-                running = false;
             }
+        };
+
+        const cycle = async () => {
+            if (running) {
+                return;
+            }
+            running = true;
+            await syncPhotos().finally(() => {
+                running = false;
+            });
         };
 
         const schedule = debounce(PHOTO_DEBOUNCE_MS, () => {
