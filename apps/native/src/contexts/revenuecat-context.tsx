@@ -63,6 +63,17 @@ export function useRevenueCat(): RevenueCatValue {
     return use(RevenueCatContext);
 }
 
+async function purchaseOutcome(pack: PurchasesPackage): Promise<PurchaseOutcome> {
+    try {
+        return (await purchaseAndCheckPro(pack)) ? "pro" : "unentitled";
+    } catch (error) {
+        if (purchaseCancelled.safeParse(error).success) {
+            return (await refreshProEntitlement()) ? "pro" : "cancelled";
+        }
+        throw error;
+    }
+}
+
 export function RevenueCatProvider({ children }: { children: ReactNode }) {
     const { accountId, profile } = useAuthSession();
     const email = profile?.email;
@@ -295,16 +306,7 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
     const purchasePackage = useCallback(
         (pack: PurchasesPackage) =>
             runForSession<PurchaseOutcome>(
-                async () => {
-                    try {
-                        return (await purchaseAndCheckPro(pack)) ? "pro" : "unentitled";
-                    } catch (error) {
-                        if (purchaseCancelled.safeParse(error).success) {
-                            return (await refreshProEntitlement()) ? "pro" : "cancelled";
-                        }
-                        throw error;
-                    }
-                },
+                () => purchaseOutcome(pack),
                 "cancelled",
                 (outcome) => applyPro(outcome === "pro")
             ),
