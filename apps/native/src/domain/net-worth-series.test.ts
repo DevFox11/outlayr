@@ -14,7 +14,6 @@ function account(id: string, overrides: Partial<NetWorthSeriesAccount> = {}): Ne
         id,
         initialBalance: 0,
         initialBalanceDate: new Date("2026-06-01T12:00:00Z"),
-        initialBalanceUsd: null,
         ...overrides,
     };
 }
@@ -161,12 +160,36 @@ describe("netWorthSeries", () => {
         // own currency adds bolivares to dollars.
         const rates = buildRateTable([{ date: "2026-01-01", quote: "EUR", rate: 2 }]);
         const series = netWorthSeries(
-            [account("eur", { currency: "EUR", initialBalance: 100, initialBalanceUsd: 50 })],
+            [account("eur", { currency: "EUR", initialBalance: 100 })],
             new Map(),
             rates,
             NOW,
             "USD"
         );
         expect(valueAt(series, "2026-08-10")).toBe(50);
+    });
+
+    it("restates each day at its own rate, and a day older than every rate at the oldest", () => {
+        const rates = buildRateTable([
+            { date: "2026-07-01", quote: "EUR", rate: 2 },
+            { date: "2026-08-01", quote: "EUR", rate: 4 },
+        ]);
+        const series = netWorthSeries(
+            [account("eur", { currency: "EUR", initialBalance: 100 })],
+            new Map(),
+            rates,
+            NOW,
+            "USD"
+        );
+        expect(series.find((point) => point.date === "2026-06-15")).toStrictEqual({
+            date: "2026-06-15",
+            exact: false,
+            value: 50,
+        });
+        expect(series.find((point) => point.date === "2026-08-10")).toStrictEqual({
+            date: "2026-08-10",
+            exact: true,
+            value: 25,
+        });
     });
 });

@@ -90,15 +90,18 @@ function zoneOffset(rows: readonly { date: number; day: number; deletedAt: numbe
     return latest ? utcOffsetOf(latest.day) : 0;
 }
 
-async function ratesIn(ctx: QueryCtx, code: string): Promise<RateTable> {
-    if (code === "USD") {
-        return buildRateTable([]);
-    }
-    const rows = await ctx.db
-        .query("exchangeRates")
-        .withIndex("by_quote_and_rateType_and_date", (q) => q.eq("quote", code).eq("rateType", "official"))
-        .collect();
-    return buildRateTable(rows);
+/** One table carrying every code's official rates. USD needs none. */
+async function ratesIn(ctx: QueryCtx, ...codes: string[]): Promise<RateTable> {
+    const quotes = [...new Set(codes)].filter((code) => code !== "USD");
+    const rows = await Promise.all(
+        quotes.map((code) =>
+            ctx.db
+                .query("exchangeRates")
+                .withIndex("by_quote_and_rateType_and_date", (q) => q.eq("quote", code).eq("rateType", "official"))
+                .collect()
+        )
+    );
+    return buildRateTable(rows.flat());
 }
 
 async function liveCategories(ctx: QueryCtx, userId: string) {
@@ -196,7 +199,7 @@ export const accountBalances = internalQuery({
         const userId = caller.subject;
         const now = Date.now();
         const currency = (await setting(ctx, userId, "currency")) ?? "USD";
-        const [accountRows, transactionRows, transferRows, rates] = await Promise.all([
+        const [accountRows, transactionRows, transferRows] = await Promise.all([
             ctx.db
                 .query("accounts")
                 .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
@@ -209,10 +212,12 @@ export const accountBalances = internalQuery({
                 .query("transfers")
                 .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
                 .collect(),
-            ratesIn(ctx, currency),
         ]);
         const offsetMs = zoneOffset(transactionRows, now);
         const accounts = accountRows.filter((row) => row.deletedAt === null).sort((a, b) => a.sortOrder - b.sortOrder);
+        // Each balance is summed in its account's currency and restated into the
+        // main one, so the table carries both.
+        const rates = await ratesIn(ctx, currency, ...accounts.map((row) => row.currency));
         const ledger = new Map<string, LegEntry[]>(accounts.map((account) => [account.localId, []]));
         for (const row of transactionRows) {
             if (row.deletedAt === null && row.date <= now && row.accountId) {
@@ -242,7 +247,7 @@ export const accountBalances = internalQuery({
             });
         }
         const overview = accountsOverview(
-            accounts.map((row) => ({ ...row, id: row.localId, initialBalanceDate: new Date(row.initialBalanceDate) })),
+            accounts.map((row) => ({ ...row, id: row.localId })),
             accounts.flatMap((account) =>
                 groupCells(ledger.get(account.localId) ?? [], (entry) => entry.leg).map((cell) => ({
                     ...cell,
@@ -250,16 +255,13 @@ export const accountBalances = internalQuery({
                 }))
             ),
             currency,
-            rates
+            rates,
+            new Date(now)
         );
         const decimals = decimalsFor(currency);
         if (overview === null) {
             return { accounts: [], currency, net: 0, owed: 0, owned: 0 };
         }
-        const codes = [...new Set(accounts.map((row) => row.currency))];
-        const ownRates = new Map(
-            await Promise.all(codes.map(async (code) => [code, await ratesIn(ctx, code)] as const))
-        );
         return {
             accounts: accounts.map((account, index) => {
                 const own = accountBalance(
@@ -268,7 +270,7 @@ export const accountBalances = internalQuery({
                         ledger.get(account.localId) ?? [],
                         (entry) => `${entry.leg}|${localDate(entry.date.getTime(), offsetMs)}`
                     ),
-                    ownRates.get(account.currency) ?? buildRateTable([])
+                    rates
                 );
                 const row = overview.rows[index];
                 return {

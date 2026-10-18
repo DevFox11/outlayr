@@ -1,3 +1,5 @@
+import type { AccountBalanceInput } from "@outlayr/money/account-balance";
+import { restate } from "@outlayr/money/account-overview";
 import { valueCell } from "@outlayr/money/currency-totals";
 import type { CurrencyCell } from "@outlayr/money/currency-totals";
 import type { RateTable } from "@outlayr/money/valuation";
@@ -19,32 +21,34 @@ export interface GoalBalancePoint {
  * midnight — Friday afternoon locally, BEFORE the deposit that caused it. A goal
  * is read on local days throughout, so its history has to be cut on them too.
  *
- * This is a running presentation of `accountBalance`'s valuation, not a second
- * definition of it: each cell is valued by the same `valueCell` that function
- * uses, and the total of every point is the total that function returns.
+ * This is a running presentation of `balanceIn`, not a second definition of a
+ * balance: each cell is valued into the account's currency by the same
+ * `valueCell`, and each day's total is restated at that day's rate the way
+ * `balanceIn` restates today's.
  */
 export function goalBalanceSeries(
     cells: readonly PlottedCell[],
-    currency: string,
+    account: AccountBalanceInput,
+    displayCurrency: string,
     rates: RateTable,
-    opening: number,
     sinceMs: number
 ): GoalBalancePoint[] {
-    const byDay = new Map<number, number>();
+    const byDay = new Map<string, number>();
     for (const cell of cells) {
-        const day = localMidnightOf(cell.plotDay);
-        const net = (cell.income ? 1 : -1) * valueCell(cell, currency, rates);
-        byDay.set(day, (byDay.get(day) ?? 0) + net);
+        const net = (cell.income ? 1 : -1) * valueCell(cell, account.currency, rates);
+        byDay.set(cell.plotDay, (byDay.get(cell.plotDay) ?? 0) + net);
     }
 
     const points: GoalBalancePoint[] = [];
-    let running = opening;
-    for (const day of [...byDay.keys()].sort((left, right) => left - right)) {
+    let running = account.initialBalance;
+    // `YYYY-MM-DD` keys sort lexically exactly as they sort chronologically.
+    for (const day of [...byDay.keys()].sort()) {
         running += byDay.get(day) ?? 0;
+        const time = localMidnightOf(day);
         // Days before the goal existed still move the running total — they are what
         // the account held when it started — but they are not part of its line.
-        if (day >= sinceMs) {
-            points.push({ time: day, value: running });
+        if (time >= sinceMs) {
+            points.push({ time, value: restate(running, account.currency, displayCurrency, day, rates).value });
         }
     }
     return points;

@@ -42,20 +42,9 @@ export function accountBalanceSeries(
     account: AccountBalanceSeriesAccount,
     cells: readonly CurrencyCell[],
     rates: RateTable,
-    now: Date,
-    /**
-     * Value the line in this currency instead of the account's own, with the
-     * opening balance already converted into it.
-     *
-     * The single-account chart wants the account's own currency and its raw
-     * opening; a sum across accounts cannot, or it would add bolivares to
-     * dollars. Both readings come from one walk rather than two definitions of
-     * "balance" that can drift apart.
-     */
-    valuedIn?: { currency: string; opening: number }
+    now: Date
 ): AccountBalanceSeriesPoint[] {
-    const currency = valuedIn === undefined ? account.currency : valuedIn.currency;
-    const opening = valuedIn === undefined ? account.initialBalance : valuedIn.opening;
+    const { currency, initialBalance: opening } = account;
     const nowKey = utcDateString(now.getTime());
     const windowStart = addUtcDays(nowKey, -(HISTORY_DAYS - 1));
     const stampedOpening = utcDateString(account.initialBalanceDate.getTime());

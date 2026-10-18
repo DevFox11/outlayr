@@ -266,17 +266,14 @@ describe("account_balances", () => {
         const checkingCells = [...toCells(checkingFlow.map(datedEntry)), ...toCells([outbound])];
         const cardCells = [...toCells(cardFlow.map(datedEntry)), ...toCells([inbound])];
         const overview = accountsOverview(
-            [checking, card].map((row) => ({
-                ...row,
-                id: row.localId,
-                initialBalanceDate: new Date(row.initialBalanceDate),
-            })),
+            [checking, card].map((row) => ({ ...row, id: row.localId })),
             [
                 ...checkingCells.map((cell) => ({ ...cell, accountId: "checking" })),
                 ...cardCells.map((cell) => ({ ...cell, accountId: "card" })),
             ],
             "EUR",
-            eur
+            eur,
+            new Date(NOW)
         );
         const [checkingRow, cardRow] = overview?.rows ?? [];
         expect(result).toStrictEqual({

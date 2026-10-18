@@ -220,7 +220,7 @@ describe("useAccountsOverviewIn", () => {
             .mockReturnValueOnce([]);
 
         const { result } = await renderHook(() =>
-            useAccountsOverviewIn({} as Database, valuation, JUNE_1.getTime(), "going")
+            useAccountsOverviewIn(makeDb(), valuation, JUNE_1.getTime(), "going")
         );
 
         expect(result.current?.count).toBe(1);

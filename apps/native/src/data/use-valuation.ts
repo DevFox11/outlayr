@@ -1,5 +1,5 @@
 import { buildRateTable } from "@outlayr/money/valuation";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
@@ -10,8 +10,10 @@ import { useRatesRead } from "./live-query";
 import type { Valuation } from "./valuation-source";
 import { VALUATION_RATE_TYPE } from "./valuation-source";
 
-/** The reactive twin of `loadValuationIn`. */
-export function useValuationIn(db: Database, code: string): Valuation {
+const NO_OTHERS: readonly string[] = [];
+
+/** The reactive twin of `loadValuationIn`. Keep `also` stable across renders. */
+export function useValuationIn(db: Database, code: string, also: readonly string[] = NO_OTHERS): Valuation {
     const rows = useRatesRead(
         () =>
             db
@@ -21,9 +23,11 @@ export function useValuationIn(db: Database, code: string): Valuation {
                     rate: exchangeRates.rate,
                 })
                 .from(exchangeRates)
-                .where(and(eq(exchangeRates.quote, code), eq(exchangeRates.rateType, VALUATION_RATE_TYPE)))
+                .where(
+                    and(inArray(exchangeRates.quote, [code, ...also]), eq(exchangeRates.rateType, VALUATION_RATE_TYPE))
+                )
                 .all(),
-        [db, code]
+        [db, code, also]
     );
 
     return useMemo(() => ({ displayCurrency: code, rates: buildRateTable(rows) }), [code, rows]);

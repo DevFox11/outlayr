@@ -1,4 +1,4 @@
-import { initialInDisplay } from "@outlayr/money/account-overview";
+import { restate } from "@outlayr/money/account-overview";
 import type { CurrencyCell } from "@outlayr/money/currency-totals";
 import type { RateTable } from "@outlayr/money/valuation";
 
@@ -7,8 +7,6 @@ import type { AccountBalanceSeriesAccount } from "./account-balance-series";
 
 export interface NetWorthSeriesAccount extends AccountBalanceSeriesAccount {
     id: string;
-    /** Frozen at write, and what makes a foreign opening balance convertible. */
-    initialBalanceUsd: number | null;
 }
 
 export interface NetWorthSeriesPoint {
@@ -44,18 +42,18 @@ export function netWorthSeries(
         return [];
     }
 
-    // Valued into the display currency rather than each account's own, or the sum
-    // would add bolivares to dollars. The opening balance converts through the
-    // same frozen `initialBalanceUsd` the accounts card uses.
+    // Each day restated into the display currency, or the sum would add bolivares
+    // to dollars. Restated as a balance, at that day's rate, the way the accounts
+    // card states today's: the line's last point is the card's total.
     const perAccount = accounts.map((account) => {
-        const opening = initialInDisplay(account, displayCurrency, rates);
-        const series = accountBalanceSeries(account, cellsByAccount.get(account.id) ?? [], rates, now, {
-            currency: displayCurrency,
-            opening: opening.value,
-        });
+        const series = accountBalanceSeries(account, cellsByAccount.get(account.id) ?? [], rates, now);
         return {
-            byDate: new Map(series.map((point) => [point.date, point])),
-            openingExact: opening.exact,
+            byDate: new Map(
+                series.map((point) => {
+                    const restated = restate(point.value, account.currency, displayCurrency, point.date, rates);
+                    return [point.date, { exact: point.exact && restated.exact, value: restated.value }];
+                })
+            ),
         };
     });
 
@@ -76,11 +74,7 @@ export function netWorthSeries(
         for (const [index, { byDate }] of perAccount.entries()) {
             const point = byDate.get(date);
             if (point != null) {
-                carried[index] = {
-                    exact: point.exact && perAccount[index].openingExact,
-                    seen: true,
-                    value: point.value,
-                };
+                carried[index] = { exact: point.exact, seen: true, value: point.value };
             }
             const held = carried[index];
             // An account that has not opened yet holds nothing, and is not a reason

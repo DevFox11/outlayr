@@ -1,5 +1,4 @@
-import { accountBalance } from "@outlayr/money/account-balance";
-import { initialInDisplay } from "@outlayr/money/account-overview";
+import { balanceIn } from "@outlayr/money/account-overview";
 import type { DisplayedBalance } from "@outlayr/money/account-overview";
 import type { CurrencyCell } from "@outlayr/money/currency-totals";
 import { utcDateString } from "@outlayr/money/dates";
@@ -15,13 +14,13 @@ import { minorUnitsFor } from "@/domain/money";
 import { goalProgress } from "@/domain/savings-goal";
 import type { GoalProgress } from "@/domain/savings-goal";
 
-import { useAccounts, useSettledAccountCells } from "./accounts";
+import { useAccounts, useBalanceRates, useSettledAccountCells } from "./accounts";
+import { useGlobalCurrency } from "./app-meta";
 import { settledAccountsCellQuery, toCurrencyCell } from "./cell-query";
 import { useLiveQuery } from "./live-query";
 import type { SavingsGoal } from "./savings-goals-core";
 import { savingsGoalsQuery } from "./savings-goals-core";
 import { settledTransfersInboundQuery, settledTransfersOutboundQuery, toTransferCell } from "./transfer-cells";
-import { useValuation } from "./use-valuation";
 
 export interface SavingsGoalWithProgress {
     /**
@@ -69,7 +68,8 @@ export function useSavingsGoals(db: Database, nowMs: number): SavingsGoalWithPro
     const cellRows = useLiveQuery(transactions, () => settledAccountsCellQuery(db, settledAt), [settledAt]);
     const outbound = useLiveQuery(transfers, () => settledTransfersOutboundQuery(db, settledAt), [settledAt]);
     const inbound = useLiveQuery(transfers, () => settledTransfersInboundQuery(db, settledAt), [settledAt]);
-    const { displayCurrency, rates } = useValuation(db);
+    const displayCurrency = useGlobalCurrency(db);
+    const rates = useBalanceRates(db, displayCurrency, accounts);
 
     return useMemo(() => {
         const byAccount = new Map<string, CurrencyCell[]>();
@@ -102,20 +102,20 @@ export function useSavingsGoals(db: Database, nowMs: number): SavingsGoalWithPro
             if (account == null) {
                 return [];
             }
-            const opening = initialInDisplay(account, displayCurrency, rates);
-            const flow = accountBalance(
-                { currency: displayCurrency, initialBalance: 0 },
+            const balance = balanceIn(
+                account,
                 byAccount.get(account.id) ?? [],
-                rates
+                displayCurrency,
+                rates,
+                utcDateString(nowMs)
             );
-            const saved = opening.value + flow.total;
-            // Both halves, because either can fall back to a face value in the
-            // account's own currency — a new device before its rates finish
-            // loading is the ordinary case. That number is not in the currency the
-            // target is stated in, so the pace and the standing built from it would
-            // be a precise verdict on a comparison that was never made: EUR 1,000
-            // read against a GBP target.
-            const exact = opening.exact && flow.exact;
+            const saved = balance.value;
+            // Its flag travels with it, because the balance can be left out or
+            // approximate — a new device before its rates finish loading is the
+            // ordinary case. That number is not the one the target is compared
+            // with, so the pace and the standing built from it would be a precise
+            // verdict on a comparison that was never made.
+            const { exact } = balance;
             const target = frozenInDisplay(goal, goal.targetAmount, goal.targetAmountUsd, displayCurrency, rates);
             const start = frozenInDisplay(goal, goal.startAmount, goal.startAmountUsd, displayCurrency, rates);
             const comparable = exact && target.exact && start.exact;
@@ -209,13 +209,13 @@ export function useSavingsGoal(db: Database, id: string, nowMs: number): Savings
     const accounts = useAccounts(db);
     const account = accounts.find((candidate) => candidate.id === entry?.goal.accountId) ?? null;
     const cells = useSettledAccountCells(db, account?.id ?? "", nowMs);
-    const { displayCurrency, rates } = useValuation(db);
+    const displayCurrency = useGlobalCurrency(db);
+    const rates = useBalanceRates(db, displayCurrency, accounts);
 
     return useMemo(() => {
         if (entry == null || account == null) {
             return null;
         }
-        const opening = initialInDisplay(account, displayCurrency, rates);
         // The day the goal was set, not the instant, or a goal made today would
         // draw no line at all.
         const since = startOfLocalDay(entry.goal.dateCreated.getTime());
@@ -227,7 +227,7 @@ export function useSavingsGoal(db: Database, id: string, nowMs: number): Savings
         // Bucketed on the reader's own days, because the cells now are: outside UTC
         // a UTC bucket names a day the entry did not happen on, and drawing it at
         // that day's midnight can place a deposit before itself.
-        const history = goalBalanceSeries(cells, displayCurrency, rates, opening.value, since).filter(
+        const history = goalBalanceSeries(cells, account, displayCurrency, rates, since).filter(
             (point) => point.time < today
         );
         // Today is stated once, at the local boundary the standing is measured at,

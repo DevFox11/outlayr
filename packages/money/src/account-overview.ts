@@ -1,5 +1,5 @@
 import { accountBalance } from "./account-balance";
-import type { AccountCompositionEntry } from "./account-balance";
+import type { AccountBalanceInput, AccountCompositionEntry } from "./account-balance";
 import { netWorth, toAccountKind } from "./account-kind";
 import type { AccountKind, Balanced } from "./account-kind";
 import type { CurrencyCell } from "./currency-totals";
@@ -15,8 +15,6 @@ export interface OverviewAccount {
     currency: string;
     id: string;
     initialBalance: number;
-    initialBalanceDate: Date;
-    initialBalanceUsd: number | null;
     /** Absent on a row written before the column existed; reads as `asset`. */
     kind?: string | null;
 }
@@ -51,14 +49,16 @@ export interface AccountsOverview {
 export type AccountCellRow = CurrencyCell & { accountId: string | null };
 
 /**
- * Every account's balance valued into the display currency and summed. Null
- * with no accounts, so the card can disappear rather than print a zero.
+ * Every account's balance valued into the display currency at `now`'s rate and
+ * summed. Null with no accounts, so the card can disappear rather than print a
+ * zero. `rates` has to carry each account's currency beside the display one.
  */
 export function accountsOverview(
     accounts: readonly OverviewAccount[],
     cells: readonly AccountCellRow[],
     displayCurrency: string,
-    rates: RateTable
+    rates: RateTable,
+    now: Date
 ): AccountsOverview | null {
     if (accounts.length === 0) {
         return null;
@@ -79,16 +79,15 @@ export function accountsOverview(
     let exact = true;
     const balances: Balanced[] = [];
     const rows: OverviewRow[] = [];
+    const today = utcDateString(now.getTime());
     for (const account of accounts) {
-        const start = initialInDisplay(account, displayCurrency, rates);
-        const own = byAccount.get(account.id) ?? [];
-        const flow = accountBalance({ currency: displayCurrency, initialBalance: 0 }, own, rates);
+        const balance = balanceIn(account, byAccount.get(account.id) ?? [], displayCurrency, rates, today);
         const row: OverviewRow = {
-            balance: start.value + flow.total,
-            exact: start.exact && flow.exact,
+            balance: balance.value,
+            exact: balance.exact,
             id: account.id,
             kind: toAccountKind(account.kind),
-            multiCurrency: isMultiCurrency(flow.composition, account.currency),
+            multiCurrency: isMultiCurrency(balance.composition, account.currency),
         };
         rows.push(row);
         balances.push({ balance: row.balance, kind: row.kind });
@@ -98,28 +97,72 @@ export function accountsOverview(
     return { count: accounts.length, exact, owe: worth.owe, own: worth.own, rows, total: worth.net };
 }
 
-/** `exact` is false when no rate reached the display currency and the opening is left out. */
+/** `exact` is false when part of the figure could not be valued. */
 export interface DisplayedBalance {
     exact: boolean;
     value: number;
 }
 
-export function initialInDisplay(
-    account: OverviewAccount,
+/**
+ * An account's balance in the display currency on `dateKey`: summed in the
+ * account's own currency, then restated once at that day's rate.
+ *
+ * A balance is what the account holds, so it moves with the rate. Converting the
+ * opening and every entry at their own days instead needs a rate for every day
+ * since the account opened, and the app keeps about 90: an older opening fell
+ * out of the figure entirely.
+ *
+ * `rates` has to carry the account's currency beside the display one.
+ */
+export function balanceIn(
+    account: AccountBalanceInput,
+    cells: readonly CurrencyCell[],
     displayCurrency: string,
-    rates: RateTable
-): DisplayedBalance {
-    if (account.currency === displayCurrency || account.initialBalance === 0) {
-        return { exact: true, value: account.initialBalance };
+    rates: RateTable,
+    dateKey: string
+): DisplayedBalance & { composition: AccountCompositionEntry[] } {
+    const own = accountBalance(account, cells, rates);
+    const restated = restate(own.total, account.currency, displayCurrency, dateKey, rates);
+    return { composition: own.composition, exact: own.exact && restated.exact, value: restated.value };
+}
+
+/**
+ * `amount` of `from` restated in `to` through USD at `dateKey`'s rates.
+ *
+ * A day older than every rate held reads at the oldest one, flagged approximate:
+ * nearer the truth than today's, and a line drawn through it stays continuous.
+ * With no rate at all on either side the amount is left out.
+ */
+export function restate(amount: number, from: string, to: string, dateKey: string, rates: RateTable): DisplayedBalance {
+    if (from === to) {
+        return { exact: true, value: amount };
     }
-    const converted =
-        account.initialBalanceUsd == null
-            ? null
-            : convertUsdSum(
-                  account.initialBalanceUsd,
-                  utcDateString(account.initialBalanceDate.getTime()),
-                  displayCurrency,
-                  rates
-              );
-    return converted == null ? { exact: false, value: 0 } : { exact: true, value: converted };
+    const onDay = convertBetween(amount, from, to, dateKey, rates);
+    if (onDay !== null) {
+        return { exact: true, value: onDay };
+    }
+    let floor = dateKey;
+    for (const code of [from, to]) {
+        if (code === "USD") {
+            continue;
+        }
+        const earliest = rates.earliest(code);
+        if (earliest === null) {
+            return { exact: false, value: 0 };
+        }
+        if (earliest > floor) {
+            floor = earliest;
+        }
+    }
+    return { exact: false, value: convertBetween(amount, from, to, floor, rates) ?? 0 };
+}
+
+/** Null when either side has no rate on or before `dateKey`. */
+function convertBetween(amount: number, from: string, to: string, dateKey: string, rates: RateTable): number | null {
+    // A stored rate is currency-per-USD, so USD is the amount divided by it.
+    const perUsd = from === "USD" ? 1 : rates.get(from, dateKey);
+    if (perUsd === null || perUsd <= 0) {
+        return null;
+    }
+    return convertUsdSum(amount / perUsd, dateKey, to, rates);
 }

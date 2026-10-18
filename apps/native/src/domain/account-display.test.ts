@@ -5,6 +5,8 @@ import { buildRateTable } from "@outlayr/money/valuation";
 
 import { formatSignedAmount } from "./account-display";
 
+const NOW = new Date("2026-10-18T12:00:00Z");
+
 function cell(overrides: Partial<AccountCellRow> = {}): AccountCellRow {
     return {
         accountId: "a1",
@@ -25,8 +27,6 @@ function account(overrides: Partial<OverviewAccount> = {}): OverviewAccount {
         currency: "USD",
         id: "a1",
         initialBalance: 0,
-        initialBalanceDate: new Date("2026-06-01T12:00:00Z"),
-        initialBalanceUsd: 0,
         ...overrides,
     };
 }
@@ -72,7 +72,7 @@ describe("accountsOverview", () => {
     const rates = buildRateTable([{ date: "2026-01-01", quote: "EUR", rate: 2 }]);
 
     it("is null with no accounts, so the card can hide", () => {
-        expect(accountsOverview([], [], "USD", rates)).toBeNull();
+        expect(accountsOverview([], [], "USD", rates, NOW)).toBeNull();
     });
 
     it("sums same-currency accounts at face value, exactly", () => {
@@ -83,7 +83,8 @@ describe("accountsOverview", () => {
                 cell({ accountId: "a2", amount: 10, amountUsd: 10, income: true }),
             ],
             "USD",
-            rates
+            rates,
+            NOW
         );
         expect(summary(result)).toStrictEqual({
             count: 2,
@@ -94,28 +95,40 @@ describe("accountsOverview", () => {
         });
     });
 
-    it("converts a foreign account's opening through its frozen USD value", () => {
-        const result = accountsOverview(
-            [account({ currency: "EUR", initialBalance: 80, initialBalanceUsd: 40 })],
-            [],
-            "USD",
-            rates
-        );
-        expect(summary(result)).toStrictEqual({ count: 1, exact: true, owe: 0, own: 40, total: 40 });
+    it("restates a foreign account at today's rate, not the one it opened at", () => {
+        const moved = buildRateTable([
+            { date: "2026-01-01", quote: "EUR", rate: 2 },
+            { date: "2026-06-01", quote: "EUR", rate: 4 },
+        ]);
+        const result = accountsOverview([account({ currency: "EUR", initialBalance: 80 })], [], "USD", moved, NOW);
+        expect(summary(result)).toStrictEqual({ count: 1, exact: true, owe: 0, own: 20, total: 20 });
     });
 
-    it("leaves an unvalued foreign opening out rather than adding it at face value", () => {
+    it("counts an entry older than every rate held, at today's rate", () => {
+        // Converted at its own day, a deposit from before the rate window had no
+        // rate and dropped out: a $9,450 savings account read €0.00 in euros.
+        const result = accountsOverview(
+            [account()],
+            [cell({ amount: 1000, amountUsd: 1000, dateKey: "2025-11-20", income: true })],
+            "EUR",
+            buildRateTable([{ date: "2026-07-01", quote: "EUR", rate: 0.9 }]),
+            NOW
+        );
+        expect(summary(result)).toStrictEqual({ count: 1, exact: true, owe: 0, own: 900, total: 900 });
+    });
+
+    it("leaves out an account no rate can restate, rather than adding it at face value", () => {
         const result = accountsOverview(
             [
                 account({
                     currency: "GBP",
                     initialBalance: 80,
-                    initialBalanceUsd: null,
                 }),
             ],
             [],
             "USD",
-            rates
+            rates,
+            NOW
         );
         expect(summary(result)).toStrictEqual({ count: 1, exact: false, owe: 0, own: 0, total: 0 });
     });
@@ -134,7 +147,8 @@ describe("accountsOverview", () => {
                 }),
             ],
             "USD",
-            rates
+            rates,
+            NOW
         );
         expect(result?.exact).toBe(false);
     });
@@ -144,7 +158,8 @@ describe("accountsOverview", () => {
             [account({ id: "a1", initialBalance: 5 })],
             [cell({ accountId: "tombstoned", amount: 100, amountUsd: 100 })],
             "USD",
-            rates
+            rates,
+            NOW
         );
         expect(summary(result)).toStrictEqual({ count: 1, exact: true, owe: 0, own: 5, total: 5 });
     });
@@ -154,12 +169,13 @@ describe("accountsOverview", () => {
         // negative balance, and only one of them is a debt.
         const result = accountsOverview(
             [
-                account({ id: "a1", initialBalance: -200, initialBalanceUsd: -200, kind: "liability" }),
-                account({ id: "a2", initialBalance: -50, initialBalanceUsd: -50 }),
+                account({ id: "a1", initialBalance: -200, kind: "liability" }),
+                account({ id: "a2", initialBalance: -50 }),
             ],
             [],
             "USD",
-            rates
+            rates,
+            NOW
         );
         expect(summary(result)).toStrictEqual({ count: 2, exact: true, owe: 200, own: -50, total: -250 });
     });
@@ -172,12 +188,13 @@ describe("accountsOverview rows", () => {
         const result = accountsOverview(
             [
                 account({ id: "card", initialBalance: -200, kind: "liability" }),
-                account({ currency: "EUR", id: "eur", initialBalance: 80, initialBalanceUsd: 40 }),
+                account({ currency: "EUR", id: "eur", initialBalance: 80 }),
                 account({ id: "cash", initialBalance: 30 }),
             ],
             [cell({ accountId: "cash", amount: 5, amountUsd: 5 })],
             "USD",
-            rates
+            rates,
+            NOW
         );
         expect(result?.rows).toStrictEqual([
             { balance: -200, exact: true, id: "card", kind: "liability", multiCurrency: false },
@@ -188,13 +205,11 @@ describe("accountsOverview rows", () => {
 
     it("marks only the row that could not be valued", () => {
         const result = accountsOverview(
-            [
-                account({ currency: "GBP", id: "gbp", initialBalance: 80, initialBalanceUsd: null }),
-                account({ id: "usd" }),
-            ],
+            [account({ currency: "GBP", id: "gbp", initialBalance: 80 }), account({ id: "usd" })],
             [],
             "USD",
-            rates
+            rates,
+            NOW
         );
         expect(result?.rows.map((row) => row.exact)).toStrictEqual([false, true]);
         expect(result?.exact).toBe(false);
@@ -205,7 +220,8 @@ describe("accountsOverview rows", () => {
             [account({ id: "a1" })],
             [cell({ accountId: "a1", amount: 10, amountUsd: 20, currencyCode: "EUR" })],
             "USD",
-            rates
+            rates,
+            NOW
         );
         expect(result?.rows[0]?.multiCurrency).toBe(true);
     });
