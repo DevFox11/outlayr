@@ -72,7 +72,6 @@ export function useSyncEngine(db: Database | null, paused: boolean): void {
                 // Only on a clean pass. A cycle that threw reached the server or did
                 // not, and claiming a time for it would date a sync that never landed.
                 await setSyncedAt(db, new Date());
-                invalidateAll(["appMeta"]);
             } catch (error) {
                 console.warn("[outlayr] sync failed", error);
             } finally {
