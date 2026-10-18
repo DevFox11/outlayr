@@ -20,6 +20,21 @@ describe("resolveInstitutionDomain", () => {
         expect(resolveInstitutionDomain(merchantKey("BBVA Provincial"))).toBe("provincial.com");
     });
 
+    it("resolves installment companies, and the more specific name wins over the one it contains", () => {
+        expect(resolveInstitutionDomain(merchantKey("Cashea"))).toBe("cashea.app");
+        expect(resolveInstitutionDomain(merchantKey("Addi cupo"))).toBe("addi.com");
+        expect(resolveInstitutionDomain(merchantKey("Mercado Crédito"))).toBe("mercadopago.com");
+        expect(resolveInstitutionDomain(merchantKey("Cash App Afterpay"))).toBe("afterpay.com");
+        expect(resolveInstitutionDomain(merchantKey("Cash App"))).toBe("cash.app");
+    });
+
+    // Common words that name a company only with a second token.
+    it("does not brand a bare zip or alma", () => {
+        expect(resolveInstitutionDomain(merchantKey("Zip"))).toBeNull();
+        expect(resolveInstitutionDomain(merchantKey("Alma"))).toBeNull();
+        expect(resolveInstitutionDomain(merchantKey("Zip Pay"))).toBe("zip.co");
+    });
+
     // Plain cash is not a company. The model answers null for it, and so must this.
     it("answers nothing for a name no institution covers", () => {
         expect(resolveInstitutionDomain(merchantKey("Cash"))).toBeNull();

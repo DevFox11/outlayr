@@ -85,6 +85,15 @@ const INSTITUTIONS: readonly InstitutionEntry[] = [
         label: "Navy Federal",
         patterns: ["navy federal", "navy federal credit union"],
     },
+    { domain: "affirm.com", id: "affirm", label: "Affirm", patterns: ["affirm"] },
+    {
+        domain: "afterpay.com",
+        id: "afterpay",
+        label: "Afterpay",
+        patterns: ["afterpay", "after pay", "cash app afterpay"],
+    },
+    { domain: "sezzle.com", id: "sezzle", label: "Sezzle", patterns: ["sezzle"] },
+    { domain: "splitit.com", id: "splitit", label: "Splitit", patterns: ["splitit", "split it"] },
 
     // Wallets, transfer and brokerage
     { domain: "paypal.com", id: "paypal", label: "PayPal", patterns: ["paypal"] },
@@ -133,6 +142,28 @@ const INSTITUTIONS: readonly InstitutionEntry[] = [
         patterns: ["sabadell", "banco sabadell"],
     },
     { domain: "bankinter.com", id: "bankinter", label: "Bankinter", patterns: ["bankinter"] },
+    { domain: "klarna.com", id: "klarna", label: "Klarna", patterns: ["klarna"] },
+    { domain: "clearpay.co.uk", id: "clearpay", label: "Clearpay", patterns: ["clearpay", "clear pay"] },
+    { domain: "scalapay.com", id: "scalapay", label: "Scalapay", patterns: ["scalapay"] },
+    // "alma pay", never bare "alma" — it is a first name and a Spanish word.
+    { domain: "almapay.com", id: "alma", label: "Alma", patterns: ["alma pay", "almapay"] },
+    { domain: "oney.com", id: "oney", label: "Oney", patterns: ["oney"] },
+    { domain: "zilch.com", id: "zilch", label: "Zilch", patterns: ["zilch"] },
+    { domain: "riverty.com", id: "riverty", label: "Riverty", patterns: ["riverty"] },
+
+    // Asia-Pacific and Middle East
+    // "zip pay" and its old name, never bare "zip" — it is a common word.
+    {
+        domain: "zip.co",
+        id: "zip",
+        label: "Zip",
+        patterns: ["zip pay", "zip co", "quadpay", "quad pay"],
+    },
+    // Atome has no global site; `atome.com` is another company.
+    { domain: "atome.sg", id: "atome", label: "Atome", patterns: ["atome"] },
+    { domain: "tabby.ai", id: "tabby", label: "Tabby", patterns: ["tabby"] },
+    { domain: "tamara.co", id: "tamara", label: "Tamara", patterns: ["tamara"] },
+    { domain: "paidy.com", id: "paidy", label: "Paidy", patterns: ["paidy"] },
 
     // Latin America
     { domain: "nubank.com.br", id: "nubank", label: "Nubank", patterns: ["nubank", "nu bank"] },
@@ -140,7 +171,7 @@ const INSTITUTIONS: readonly InstitutionEntry[] = [
         domain: "mercadopago.com",
         id: "mercado-pago",
         label: "Mercado Pago",
-        patterns: ["mercado pago", "mercadopago"],
+        patterns: ["mercado pago", "mercadopago", "mercado credito"],
     },
     { domain: "itau.com.br", id: "itau", label: "Itaú", patterns: ["itau", "itau unibanco"] },
     { domain: "bradesco.com.br", id: "bradesco", label: "Bradesco", patterns: ["bradesco"] },
@@ -172,6 +203,21 @@ const INSTITUTIONS: readonly InstitutionEntry[] = [
     { domain: "interbank.pe", id: "interbank", label: "Interbank", patterns: ["interbank"] },
     { domain: "scotiabank.com", id: "scotiabank", label: "Scotiabank", patterns: ["scotiabank"] },
     { domain: "rbc.com", id: "rbc", label: "RBC", patterns: ["rbc", "royal bank of canada"] },
+    {
+        domain: "kueskipay.com",
+        id: "kueski-pay",
+        label: "Kueski Pay",
+        patterns: ["kueski", "kueski pay", "kueskipay"],
+    },
+    { domain: "aplazo.mx", id: "aplazo", label: "Aplazo", patterns: ["aplazo"] },
+    { domain: "coppel.com", id: "coppel", label: "Coppel", patterns: ["coppel", "credito coppel"] },
+    { domain: "addi.com", id: "addi", label: "Addi", patterns: ["addi"] },
+    {
+        domain: "sistecredito.com",
+        id: "sistecredito",
+        label: "Sistecrédito",
+        patterns: ["sistecredito", "siste credito"],
+    },
 
     // Venezuela
     { domain: "banesco.com", id: "banesco", label: "Banesco", patterns: ["banesco"] },
@@ -205,6 +251,10 @@ const INSTITUTIONS: readonly InstitutionEntry[] = [
     { domain: "banplus.com", id: "banplus", label: "Banplus", patterns: ["banplus"] },
     // `merchantKey` folds "100% Banco" to "100 banco".
     { domain: "100banco.com", id: "100-banco", label: "100% Banco", patterns: ["100 banco"] },
+    { domain: "cashea.app", id: "cashea", label: "Cashea", patterns: ["cashea"] },
+    { domain: "krece.app", id: "krece", label: "Krece", patterns: ["krece"] },
+    { domain: "lysto.app", id: "lysto", label: "Lysto", patterns: ["lysto"] },
+    { domain: "chollo.app", id: "chollo", label: "Chollo", patterns: ["chollo"] },
 ] as const;
 
 const INSTITUTION_INDEX: ReadonlyMap<string, InstitutionEntry> = buildPatternIndex(INSTITUTIONS);
