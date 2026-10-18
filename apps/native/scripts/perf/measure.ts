@@ -27,6 +27,7 @@ import { parseArgs } from "node:util";
 const APP = "com.tryoutlayr.app";
 const SNAPSHOT = "perf-seeded";
 const READY_TEXT = "Hide amounts";
+const MAX_ATTEMPTS = 5;
 
 const { values: args } = parseArgs({
     options: {
@@ -171,6 +172,12 @@ async function measure(side: Side): Promise<Run> {
     const target = ["--device_id", device, "--port", String(port)];
     argent("debugger-connect", target);
     argent("react-profiler-start", target);
+    // The debugger can drop a couple of seconds after the start; fail before the flow rather than after it.
+    await sleep(3000);
+    const status = argent("react-profiler-status", target);
+    if (status.session_status !== "active") {
+        throw new Error(`The profiler session dropped right after it started: ${JSON.stringify(status)}`);
+    }
     execFileSync("argent", ["flow", "run", flowFile, "--device", device], { stdio: "inherit" });
     const stopped = argent("react-profiler-stop", target);
     const commits = Number(stopped.total_react_commits);
@@ -190,6 +197,24 @@ async function measure(side: Side): Promise<Run> {
     };
 }
 
+/**
+ * Gives a failed run up to four more tries: host load can leave the UI tree unreadable, and the
+ * debugger can fail to connect or drop the profile after the app cold-starts.
+ */
+async function measureWithRetries(side: Side): Promise<Run> {
+    for (let attempt = 1; ; attempt += 1) {
+        try {
+            // oxlint-disable-next-line no-await-in-loop -- attempts share one emulator
+            return await measure(side);
+        } catch (error) {
+            if (attempt === MAX_ATTEMPTS) {
+                throw error;
+            }
+            process.stderr.write(`Retrying ${side}: ${error instanceof Error ? error.message : String(error)}\n`);
+        }
+    }
+}
+
 const median = (values: number[]) => {
     const sorted = values.toSorted((a, b) => a - b);
     const middle = Math.floor(sorted.length / 2);
@@ -202,12 +227,8 @@ async function main() {
         // Alternate which side goes first, so a slow host phase does not always land on one side.
         const order: Side[] = round % 2 === 0 ? ["base", "pr"] : ["pr", "base"];
         for (const side of order) {
-            // A flow that fails under host load (an unreadable UI tree) gets one more try.
             // oxlint-disable-next-line no-await-in-loop -- runs share one emulator, so they must not overlap
-            const run = await measure(side).catch((error: unknown) => {
-                process.stderr.write(`Retrying ${side}: ${error instanceof Error ? error.message : String(error)}\n`);
-                return measure(side);
-            });
+            const run = await measureWithRetries(side);
             runs.push(run);
             process.stdout.write(`${JSON.stringify(run)}\n`);
         }
