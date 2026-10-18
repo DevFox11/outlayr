@@ -1,6 +1,7 @@
 import { addDatabaseChangeListener } from "expo-sqlite";
 import { useEffect } from "react";
 
+import { subscribeToSettingChanges } from "@/data/database-changes";
 import { readBoolSetting, readNumberSetting, setBoolSetting } from "@/data/settings-core";
 import { lastLoggedEntry } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
@@ -18,8 +19,6 @@ import { armChosenReminder } from "./chosen-reminder";
 import { freshEntries } from "./fresh-entries";
 import { cancelReminders, pendingReminderIds, reminderPermission, scheduleDatedReminder } from "./reminders";
 import { debounce, PUBLISH_DEBOUNCE_MS } from "./sync-cadence";
-
-const RESYNC_TABLES = new Set(["transactions", "appMeta"]);
 
 export async function readReminderTime(db: Database): Promise<TimeOfDay> {
     const [option, hour, minute] = await Promise.all([
@@ -97,15 +96,17 @@ export function useDailyReminderSync(db: Database | null): void {
         });
         const unsubscribe = freshEntries.subscribe(arm.schedule);
         const listener = addDatabaseChangeListener((event) => {
-            if (RESYNC_TABLES.has(event.tableName)) {
+            if (event.tableName === "transactions") {
                 resync.schedule();
             }
         });
+        const unsubscribeSettings = subscribeToSettingChanges(db, resync.schedule);
         return () => {
             resync.cancel();
             arm.cancel();
             unsubscribe();
             listener.remove();
+            unsubscribeSettings();
         };
     }, [db]);
 }

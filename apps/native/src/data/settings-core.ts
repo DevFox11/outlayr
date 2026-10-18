@@ -79,6 +79,17 @@ export const SETTING_DEFAULTS = {
     use24HourClock: false,
 } as const satisfies Record<BoolSettingKey | NumberSettingKey, boolean | number>;
 
+/**
+ * The `appMeta` keys a person chooses, as opposed to the bookkeeping the app
+ * keeps beside them (the sync cursor, `syncedAt`, the enrichment outbox, rate
+ * stamps). `walletCards` is which account each Apple Pay card files into.
+ */
+export const SETTING_KEYS: ReadonlySet<string> = new Set([
+    ...Object.keys(SETTING_DEFAULTS),
+    META_KEYS.currency,
+    META_KEYS.walletCards,
+]);
+
 interface ChoiceOption {
     label: TranslationKey;
     value: number;

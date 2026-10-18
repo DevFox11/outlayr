@@ -10,6 +10,7 @@ import {
     stampLedgerCurrency,
 } from "@/data/canonicalize-backfill";
 import { settlePendingFees } from "@/data/card-fees-core";
+import { subscribeToSettingChanges } from "@/data/database-changes";
 import { drainPendingWrites, fileWaitingPurchases, takeRepriced } from "@/data/pending-writes-core";
 import { applyRecentRates, pullRatesIfDue } from "@/data/rates";
 import type { RateWireRow } from "@/data/rates";
@@ -122,6 +123,10 @@ export function useSystemSync(db: Database | null): void {
                 reindex.schedule();
             }
         });
+        const unsubscribeSettings = subscribeToSettingChanges(db, () => {
+            publish.schedule();
+            reindex.schedule();
+        });
 
         const unwatchWrites = onWatchPendingWrite(catchUp);
 
@@ -145,6 +150,7 @@ export function useSystemSync(db: Database | null): void {
             publish.cancel();
             reindex.cancel();
             listener.remove();
+            unsubscribeSettings();
             subscription.remove();
             unwatchWrites();
         };
