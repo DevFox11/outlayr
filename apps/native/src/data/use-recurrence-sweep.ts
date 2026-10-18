@@ -19,7 +19,8 @@ const SWEEP_COOLDOWN_MS = 60_000;
  * `onSwept` runs after the walk commits. Anything derived from a chain's next
  * landing has to wait for that: the sweep retires the carrier and creates the
  * next occurrence, so a reader that fires on the same foreground event races it
- * and sees a landing the sweep is about to invalidate.
+ * and sees a landing the sweep is about to invalidate. A failed walk still calls
+ * it, against the landings as they stand, so a launch always reconciles.
  */
 export function useRecurrenceSweep(db: Database | null, onSwept?: (db: Database) => void): void {
     const lastSweepAt = useRef(0);
@@ -51,6 +52,7 @@ export function useRecurrenceSweep(db: Database | null, onSwept?: (db: Database)
                 .catch((error) => {
                     lastSweepAt.current = 0;
                     console.error("Recurrence sweep failed", error);
+                    swept.current?.(db);
                 });
         };
 

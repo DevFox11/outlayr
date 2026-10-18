@@ -72,10 +72,14 @@ async function reconcileDailyReminder(db: Database): Promise<void> {
     }
 }
 
-export function useDailyReminderSync(db: Database): void {
+export function useDailyReminderSync(db: Database | null): void {
     useForegroundSweep(db, syncDailyReminder, "Daily reminder sync");
 
     useEffect(() => {
+        if (db == null) {
+            return;
+        }
+
         const resync = debounce(PUBLISH_DEBOUNCE_MS, () => {
             syncDailyReminder(db).catch((error) => {
                 console.error("Daily reminder sync failed", error);

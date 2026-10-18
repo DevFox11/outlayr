@@ -30,7 +30,7 @@ export function syncSubscriptionReminders(db: Database): Promise<void> {
 
 /**
  * Reconciles run one at a time. Several callers can ask on the same foreground —
- * the mount, the AppState listener, and the recurrence sweep once it commits —
+ * the AppState listener and the recurrence sweep once it commits —
  * and two overlapping passes interleave their cancels and schedules, so one can
  * cancel a request the other has just armed.
  *
@@ -74,7 +74,10 @@ async function reconcileSubscriptionReminders(db: Database): Promise<void> {
  * Mounted app-wide, not per screen: the arms are dated, so a device left alone
  * for a month would otherwise come back with a queue describing charges that
  * have already been taken.
+ *
+ * Foreground passes only. The launch pass is the recurrence sweep's `onSwept`
+ * in `BackgroundWork`, which reconciles after the walk has moved the landings.
  */
-export function useSubscriptionReminderSync(db: Database): void {
-    useForegroundSweep(db, syncSubscriptionReminders, "Subscription reminder sync");
+export function useSubscriptionReminderSync(db: Database | null): void {
+    useForegroundSweep(db, syncSubscriptionReminders, "Subscription reminder sync", { onLaunch: false });
 }

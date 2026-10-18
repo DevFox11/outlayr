@@ -5,13 +5,21 @@ import { usePhotoReconcile } from "@/data/use-photo-reconcile";
 import { usePhotoSync } from "@/data/use-photo-sync";
 import { useRecurrenceSweep } from "@/data/use-recurrence-sweep";
 import { useSyncEngine } from "@/data/use-sync-engine";
+import type { Database } from "@/db/client";
 import { useProEntitled } from "@/hooks/use-pro-locked";
 import { useCloudAuthenticated } from "@/lib/convex";
 import { useEnrichmentQueue } from "@/lib/enrichment-queue";
-import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
+import { useDailyReminderSync } from "@/lib/reminder-sync";
+import { syncSubscriptionReminders, useSubscriptionReminderSync } from "@/lib/subscription-reminder-sync";
 import { useSystemSync } from "@/lib/use-system-sync";
 
 const IDLE_TIMEOUT_MS = 1000;
+
+const reconcileSubscriptionReminders = (db: Database) => {
+    syncSubscriptionReminders(db).catch((error) => {
+        console.error("Subscription reminder sync failed", error);
+    });
+};
 
 export function BackgroundWork() {
     const db = useDatabase();
@@ -33,10 +41,12 @@ export function BackgroundWork() {
 
     const ready = started ? db : null;
 
+    useDailyReminderSync(ready);
+    useSubscriptionReminderSync(ready);
     // Re-arming from the callback rather than relying on the reminder sync's own
     // foreground listener: both fire on the same AppState event, and the sweep
     // moves the very landing the notices are dated from.
-    useRecurrenceSweep(ready, syncSubscriptionReminders);
+    useRecurrenceSweep(ready, reconcileSubscriptionReminders);
     // Ordered after the sweep so a subscription that advanced on this foreground
     // is already in the table when the widgets are rebuilt from it.
     useSystemSync(ready);
