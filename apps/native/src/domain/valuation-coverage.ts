@@ -12,7 +12,7 @@ export interface ValuationCoverage {
      * pull reaches back to them — face value is final, not provisional.
      */
     beyondRateHistory: number;
-    /** Rows carrying a frozen USD value. */
+    /** Rows carrying a frozen USD value; 0 when nothing is pending or beyond rate history. */
     converted: number;
     /** Rows a later rate pull can still value. */
     pending: number;

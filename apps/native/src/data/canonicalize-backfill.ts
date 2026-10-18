@@ -269,12 +269,14 @@ async function canonicalizedCount(db: SpendDb): Promise<number> {
  *
  * A currency with no rows at all is left in `pending`: rates for it may still
  * arrive, and "never" is not something to claim without evidence.
+ *
+ * All zeroes when nothing is outstanding, `converted` included.
  */
 export async function valuationCoverage(db: SpendDb): Promise<ValuationCoverage> {
-    const converted = await canonicalizedCount(db);
     if (!(await hasUncanonicalized(db))) {
-        return { beyondRateHistory: 0, converted, pending: 0 };
+        return { beyondRateHistory: 0, converted: 0, pending: 0 };
     }
+    const converted = await canonicalizedCount(db);
 
     const floors = new Map<string, string>();
     const earliest = await db

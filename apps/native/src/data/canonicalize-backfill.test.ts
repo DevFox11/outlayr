@@ -375,7 +375,7 @@ describe("valuationCoverage", () => {
 
         await expect(valuationCoverage(db)).resolves.toStrictEqual({
             beyondRateHistory: 0,
-            converted: 1,
+            converted: 0,
             pending: 0,
         });
     });
