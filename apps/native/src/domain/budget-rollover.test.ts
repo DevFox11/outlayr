@@ -1,6 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
-import { effectiveLimit, MAX_CARRY_PERIODS, rolloverCarry } from "@outlayr/money/budget-rollover";
-import { BUDGET_TYPE } from "@outlayr/money/budget-window";
+import { effectiveLimit, MAX_CARRY_PERIODS, rolloverCarry, rolloverCarryFrom } from "@outlayr/money/budget-rollover";
+import { lastMsBefore, spentForCategory, spentForMain } from "@outlayr/money/budget-spent";
+import type { ExpenseContribution } from "@outlayr/money/budget-spent";
+import { advanceBudgetWindow, BUDGET_TYPE } from "@outlayr/money/budget-window";
+import { addDays } from "@outlayr/money/calendar";
 
 const MONTH = BUDGET_TYPE.month;
 
@@ -100,6 +103,67 @@ describe("carrying a budget forward", () => {
         });
         expect(carry).toStrictEqual({ clamped: false, credit: 0, periods: 0 });
     });
+});
+
+describe("carrying a budget forward from ledger rows", () => {
+    const NOW = new Date(2026, 6, 20, 15, 30);
+    // Mid-window, with the ledger starting months before it.
+    const ANCHOR = new Date(2025, 2, 15, 13);
+    const FIRST_START = new Date(2025, 0, 1);
+
+    /** Seeded, so a mismatch reproduces. */
+    function ledger(): ExpenseContribution[] {
+        let seed = 42;
+        const random = () => {
+            seed = (seed * 16_807) % 2_147_483_647;
+            return seed / 2_147_483_647;
+        };
+        const scopes = [
+            { categoryId: "food", parentId: null },
+            { categoryId: "groceries", parentId: "food" },
+            { categoryId: "rent", parentId: null },
+            { categoryId: null, parentId: null },
+        ] as const;
+        const rows: ExpenseContribution[] = [];
+        const add = (date: Date) => {
+            const scope = scopes[Math.floor(random() * scopes.length)] ?? scopes[0];
+            // Valued amounts are not whole cents, so summation order shows.
+            rows.push({ amount: (Math.round(random() * 20_000) / 100) * 1.0837, date, ...scope });
+        };
+        const from = new Date(2024, 11, 1);
+        // Every window of every type starts and ends on a local midnight.
+        for (let day = from; day <= NOW; day = addDays(day, 1)) {
+            add(day);
+            add(new Date(day.getTime() - 1));
+        }
+        for (let count = 0; count < 2500; count += 1) {
+            add(new Date(from.getTime() + Math.floor(random() * (NOW.getTime() - from.getTime()))));
+        }
+        return rows;
+    }
+
+    const rows = ledger();
+    const cases = Object.values(BUDGET_TYPE).flatMap((type) => [
+        { categoryId: "food", type },
+        { categoryId: null, type },
+    ]);
+
+    it.each(cases)(
+        "equals a spend pass per closed window (type $type, category $categoryId)",
+        ({ categoryId, type }) => {
+            const input = { anchor: ANCHOR, current: advanceBudgetWindow(FIRST_START, type, NOW), limit: 750.25, type };
+            const perWindow = rolloverCarry({
+                ...input,
+                spentIn: (start, end) =>
+                    categoryId === null
+                        ? spentForMain(rows, start, lastMsBefore(end))
+                        : spentForCategory(rows, categoryId, start, lastMsBefore(end)),
+            });
+
+            expect(perWindow.periods).toBeGreaterThan(0);
+            expect(rolloverCarryFrom(rows, categoryId, input)).toStrictEqual(perWindow);
+        }
+    );
 });
 
 describe("the limit a window actually runs on", () => {

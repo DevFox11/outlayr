@@ -1,5 +1,5 @@
-import { effectiveLimit, rolloverCarry } from "@outlayr/money/budget-rollover";
-import { lastMsBefore, spentForCategory, spentForMain } from "@outlayr/money/budget-spent";
+import { effectiveLimit, rolloverCarryFrom } from "@outlayr/money/budget-rollover";
+import { spentForCategory, spentForMain } from "@outlayr/money/budget-spent";
 import type { ExpenseContribution } from "@outlayr/money/budget-spent";
 import {
     advanceBudgetWindow,
@@ -167,11 +167,10 @@ export function useMainBudget(
         // Anchored on the window being VIEWED, not on today's: stepping back to
         // March must show what March actually inherited, not what this month did.
         const carry = row.rollover
-            ? rolloverCarry({
+            ? rolloverCarryFrom(contributions, null, {
                   anchor: row.dateCreated ?? window.start,
                   current: window,
                   limit,
-                  spentIn: (start, end) => spentForMain(contributions, start, lastMsBefore(end)),
                   type: row.type,
               }).credit
             : 0;
@@ -279,18 +278,14 @@ export function usePerCategoryBudgets(
             const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
             const limit = limitIn(row, window.start, displayCurrency, rates);
             // Every closed window since the anchor, but only when the budget asked
-            // for it: the walk costs one spend pass per window, and a budget that
+            // for it: the walk costs a spend pass over the ledger, and a budget that
             // does not roll over must not pay for one.
             const carry =
                 row.rollover && row.categoryId
-                    ? rolloverCarry({
+                    ? rolloverCarryFrom(contributions, row.categoryId, {
                           anchor: row.dateCreated ?? window.start,
                           current: window,
                           limit,
-                          // SAFETY: this branch is the category-budget one, and a category budget
-                          // always has a categoryId — the column is nullable for the overall budget.
-                          spentIn: (start, end) =>
-                              spentForCategory(contributions, row.categoryId as string, start, lastMsBefore(end)),
                           type: row.type,
                       }).credit
                     : 0;
@@ -407,13 +402,10 @@ export function useCategoryBudget(db: Database, id: string, nowMs: number, perio
         const limit = limitIn(row, window.start, displayCurrency, rates);
         const carry =
             row.rollover && row.categoryId
-                ? rolloverCarry({
+                ? rolloverCarryFrom(contributions, row.categoryId, {
                       anchor: row.dateCreated ?? window.start,
                       current: window,
                       limit,
-                      // SAFETY: the category branch again, as above.
-                      spentIn: (start, end) =>
-                          spentForCategory(contributions, row.categoryId as string, start, lastMsBefore(end)),
                       type: row.type,
                   }).credit
                 : 0;

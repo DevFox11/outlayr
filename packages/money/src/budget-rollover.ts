@@ -1,3 +1,5 @@
+import { contributesTo } from "./budget-spent";
+import type { ExpenseContribution } from "./budget-spent";
 import { previousPeriodStart } from "./budget-window";
 import type { BudgetWindow } from "./budget-window";
 
@@ -36,6 +38,22 @@ export interface CarryInput {
     type: number;
 }
 
+/** The closed windows a carry is summed over, newest first, back to the anchor. */
+function carryWindows({ anchor, current, type }: Omit<CarryInput, "limit" | "spentIn">) {
+    const windows: BudgetWindow[] = [];
+    let end = current.start;
+    while (windows.length < MAX_CARRY_PERIODS) {
+        const start = previousPeriodStart(end, type);
+        // A type whose period cannot step backwards would loop forever.
+        if (start.getTime() >= end.getTime() || end.getTime() <= anchor.getTime()) {
+            return { clamped: false, windows };
+        }
+        windows.push({ end, start });
+        end = start;
+    }
+    return { clamped: true, windows };
+}
+
 /**
  * What the current window inherits from the ones before it.
  *
@@ -48,24 +66,42 @@ export interface CarryInput {
  * spent in, and crediting it against itself would count the same allowance
  * twice.
  */
-export function rolloverCarry({ anchor, current, type, limit, spentIn }: CarryInput): RolloverCarry {
+export function rolloverCarry({ limit, spentIn, ...walk }: CarryInput): RolloverCarry {
+    const { clamped, windows } = carryWindows(walk);
     let credit = 0;
-    let periods = 0;
-    let end = current.start;
-    while (periods < MAX_CARRY_PERIODS) {
-        const start = previousPeriodStart(end, type);
-        // A type whose period cannot step backwards would loop forever.
-        if (start.getTime() >= end.getTime()) {
-            return { clamped: false, credit, periods };
-        }
-        if (end.getTime() <= anchor.getTime()) {
-            return { clamped: false, credit, periods };
-        }
+    for (const { start, end } of windows) {
         credit += limit - spentIn(start, end);
-        periods += 1;
-        end = start;
     }
-    return { clamped: true, credit, periods };
+    return { clamped, credit, periods: windows.length };
+}
+
+/**
+ * {@link rolloverCarry} over ledger rows, filing each row under its closed window
+ * in one pass rather than one pass per window. A null `categoryId` is the overall
+ * budget. Each window adds the same rows in the same order as `spentForCategory`
+ * or `spentForMain` over `[start, lastMsBefore(end)]`, so the credit is identical.
+ */
+export function rolloverCarryFrom(
+    rows: readonly ExpenseContribution[],
+    categoryId: string | null,
+    input: Omit<CarryInput, "spentIn">
+): RolloverCarry {
+    const { windows } = carryWindows(input);
+    const starts = windows.map(({ start }) => start.getTime());
+    const sums = starts.map(() => 0);
+    const newestEnd = windows[0]?.end.getTime() ?? Number.NEGATIVE_INFINITY;
+    const oldestStart = starts.at(-1) ?? Number.POSITIVE_INFINITY;
+    for (const row of rows) {
+        const at = row.date.getTime();
+        if (at < oldestStart || at >= newestEnd || !contributesTo(row, categoryId)) {
+            continue;
+        }
+        // The windows are contiguous and newest first.
+        const index = starts.findIndex((start) => at >= start);
+        sums[index] = (sums[index] ?? 0) + row.amount;
+    }
+    const spentByStart = new Map(starts.map((start, index) => [start, sums[index] ?? 0]));
+    return rolloverCarry({ ...input, spentIn: (start) => spentByStart.get(start.getTime()) ?? 0 });
 }
 
 /**
