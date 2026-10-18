@@ -1,4 +1,3 @@
-import CoreSpotlight
 import ExpoModulesCore
 
 public class LaunchLinkSubscriber: ExpoAppDelegateSubscriber {
@@ -8,17 +7,6 @@ public class LaunchLinkSubscriber: ExpoAppDelegateSubscriber {
     completionHandler: @escaping (Bool) -> Void
   ) {
     completionHandler(open(shortcutItem.userInfo?["href"] as? String, application))
-  }
-
-  public func application(
-    _ application: UIApplication,
-    continue userActivity: NSUserActivity,
-    restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
-  ) -> Bool {
-    guard userActivity.activityType == CSSearchableItemActionType else {
-      return false
-    }
-    return open(userActivity.userInfo?[CSSearchableItemActivityIdentifier] as? String, application)
   }
 
   private func open(_ link: String?, _ application: UIApplication) -> Bool {
