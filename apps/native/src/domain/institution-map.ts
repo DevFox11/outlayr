@@ -16,9 +16,63 @@ import { buildPatternIndex, containsTokenSequence } from "./pattern-index";
  * curated tier answer for a transaction named "Chase" and suppress the model
  * call that currently classifies it.
  */
+/** The regions the account picker offers installment apps in. */
+export const INSTALLMENT_REGIONS = [
+    "AE",
+    "AT",
+    "AU",
+    "CA",
+    "CO",
+    "DE",
+    "ES",
+    "FR",
+    "GB",
+    "IT",
+    "JP",
+    "MX",
+    "NL",
+    "NZ",
+    "SA",
+    "SE",
+    "SG",
+    "US",
+    "VE",
+] as const;
+
+export type InstallmentRegion = (typeof INSTALLMENT_REGIONS)[number];
+
+/**
+ * The currency a region's installment apps bill in, and so the currency their
+ * accounts are made in: the local one, except Venezuela's apps, which quote in
+ * dollars and are paid in bolívares at BCV.
+ */
+const INSTALLMENT_CURRENCIES: Readonly<Record<InstallmentRegion, string>> = {
+    AE: "AED",
+    AT: "EUR",
+    AU: "AUD",
+    CA: "CAD",
+    CO: "COP",
+    DE: "EUR",
+    ES: "EUR",
+    FR: "EUR",
+    GB: "GBP",
+    IT: "EUR",
+    JP: "JPY",
+    MX: "MXN",
+    NL: "EUR",
+    NZ: "NZD",
+    SA: "SAR",
+    SE: "SEK",
+    SG: "SGD",
+    US: "USD",
+    VE: "USD",
+};
+
 interface InstitutionEntry {
     readonly domain: string;
     readonly id: string;
+    /** Set on installment apps: the regions (ISO 3166 codes) the account picker offers them in. */
+    readonly installmentsIn?: readonly InstallmentRegion[];
     /** The brand's own name, spelled and cased the way the brand spells it. */
     readonly label: string;
     /**
@@ -85,14 +139,15 @@ const INSTITUTIONS: readonly InstitutionEntry[] = [
         label: "Navy Federal",
         patterns: ["navy federal", "navy federal credit union"],
     },
-    { domain: "affirm.com", id: "affirm", label: "Affirm", patterns: ["affirm"] },
+    { domain: "affirm.com", id: "affirm", installmentsIn: ["US", "CA"], label: "Affirm", patterns: ["affirm"] },
     {
         domain: "afterpay.com",
         id: "afterpay",
+        installmentsIn: ["US", "CA", "AU", "NZ"],
         label: "Afterpay",
         patterns: ["afterpay", "after pay", "cash app afterpay"],
     },
-    { domain: "sezzle.com", id: "sezzle", label: "Sezzle", patterns: ["sezzle"] },
+    { domain: "sezzle.com", id: "sezzle", installmentsIn: ["US", "CA"], label: "Sezzle", patterns: ["sezzle"] },
     { domain: "splitit.com", id: "splitit", label: "Splitit", patterns: ["splitit", "split it"] },
 
     // Wallets, transfer and brokerage
@@ -142,28 +197,53 @@ const INSTITUTIONS: readonly InstitutionEntry[] = [
         patterns: ["sabadell", "banco sabadell"],
     },
     { domain: "bankinter.com", id: "bankinter", label: "Bankinter", patterns: ["bankinter"] },
-    { domain: "klarna.com", id: "klarna", label: "Klarna", patterns: ["klarna"] },
-    { domain: "clearpay.co.uk", id: "clearpay", label: "Clearpay", patterns: ["clearpay", "clear pay"] },
-    { domain: "scalapay.com", id: "scalapay", label: "Scalapay", patterns: ["scalapay"] },
+    {
+        domain: "klarna.com",
+        id: "klarna",
+        installmentsIn: ["US", "GB", "DE", "AT", "NL", "SE", "ES", "IT", "FR", "AU"],
+        label: "Klarna",
+        patterns: ["klarna"],
+    },
+    {
+        domain: "clearpay.co.uk",
+        id: "clearpay",
+        installmentsIn: ["GB", "ES", "FR", "IT"],
+        label: "Clearpay",
+        patterns: ["clearpay", "clear pay"],
+    },
+    {
+        domain: "scalapay.com",
+        id: "scalapay",
+        installmentsIn: ["IT", "FR", "ES"],
+        label: "Scalapay",
+        patterns: ["scalapay"],
+    },
     // "alma pay", never bare "alma" — it is a first name and a Spanish word.
-    { domain: "almapay.com", id: "alma", label: "Alma", patterns: ["alma pay", "almapay"] },
-    { domain: "oney.com", id: "oney", label: "Oney", patterns: ["oney"] },
-    { domain: "zilch.com", id: "zilch", label: "Zilch", patterns: ["zilch"] },
-    { domain: "riverty.com", id: "riverty", label: "Riverty", patterns: ["riverty"] },
+    { domain: "almapay.com", id: "alma", installmentsIn: ["FR"], label: "Alma", patterns: ["alma pay", "almapay"] },
+    { domain: "oney.com", id: "oney", installmentsIn: ["FR", "ES"], label: "Oney", patterns: ["oney"] },
+    { domain: "zilch.com", id: "zilch", installmentsIn: ["GB"], label: "Zilch", patterns: ["zilch"] },
+    {
+        domain: "riverty.com",
+        id: "riverty",
+        installmentsIn: ["DE", "NL", "AT"],
+        label: "Riverty",
+        patterns: ["riverty"],
+    },
 
     // Asia-Pacific and Middle East
     // "zip pay" and its old name, never bare "zip" — it is a common word.
     {
         domain: "zip.co",
         id: "zip",
+        installmentsIn: ["AU", "NZ", "US"],
         label: "Zip",
         patterns: ["zip pay", "zip co", "quadpay", "quad pay"],
     },
     // Atome has no global site; `atome.com` is another company.
-    { domain: "atome.sg", id: "atome", label: "Atome", patterns: ["atome"] },
-    { domain: "tabby.ai", id: "tabby", label: "Tabby", patterns: ["tabby"] },
-    { domain: "tamara.co", id: "tamara", label: "Tamara", patterns: ["tamara"] },
-    { domain: "paidy.com", id: "paidy", label: "Paidy", patterns: ["paidy"] },
+    { domain: "atome.sg", id: "atome", installmentsIn: ["SG"], label: "Atome", patterns: ["atome"] },
+    { domain: "tabby.ai", id: "tabby", installmentsIn: ["AE", "SA"], label: "Tabby", patterns: ["tabby"] },
+    { domain: "tamara.co", id: "tamara", installmentsIn: ["SA", "AE"], label: "Tamara", patterns: ["tamara"] },
+    { domain: "paidy.com", id: "paidy", installmentsIn: ["JP"], label: "Paidy", patterns: ["paidy"] },
 
     // Latin America
     { domain: "nubank.com.br", id: "nubank", label: "Nubank", patterns: ["nubank", "nu bank"] },
@@ -206,15 +286,23 @@ const INSTITUTIONS: readonly InstitutionEntry[] = [
     {
         domain: "kueskipay.com",
         id: "kueski-pay",
+        installmentsIn: ["MX"],
         label: "Kueski Pay",
         patterns: ["kueski", "kueski pay", "kueskipay"],
     },
-    { domain: "aplazo.mx", id: "aplazo", label: "Aplazo", patterns: ["aplazo"] },
-    { domain: "coppel.com", id: "coppel", label: "Coppel", patterns: ["coppel", "credito coppel"] },
-    { domain: "addi.com", id: "addi", label: "Addi", patterns: ["addi"] },
+    { domain: "aplazo.mx", id: "aplazo", installmentsIn: ["MX"], label: "Aplazo", patterns: ["aplazo"] },
+    {
+        domain: "coppel.com",
+        id: "coppel",
+        installmentsIn: ["MX"],
+        label: "Coppel",
+        patterns: ["coppel", "credito coppel"],
+    },
+    { domain: "addi.com", id: "addi", installmentsIn: ["CO"], label: "Addi", patterns: ["addi"] },
     {
         domain: "sistecredito.com",
         id: "sistecredito",
+        installmentsIn: ["CO"],
         label: "Sistecrédito",
         patterns: ["sistecredito", "siste credito"],
     },
@@ -251,11 +339,31 @@ const INSTITUTIONS: readonly InstitutionEntry[] = [
     { domain: "banplus.com", id: "banplus", label: "Banplus", patterns: ["banplus"] },
     // `merchantKey` folds "100% Banco" to "100 banco".
     { domain: "100banco.com", id: "100-banco", label: "100% Banco", patterns: ["100 banco"] },
-    { domain: "cashea.app", id: "cashea", label: "Cashea", patterns: ["cashea"] },
-    { domain: "krece.app", id: "krece", label: "Krece", patterns: ["krece"] },
-    { domain: "lysto.app", id: "lysto", label: "Lysto", patterns: ["lysto"] },
-    { domain: "chollo.app", id: "chollo", label: "Chollo", patterns: ["chollo"] },
+    { domain: "cashea.app", id: "cashea", installmentsIn: ["VE"], label: "Cashea", patterns: ["cashea"] },
+    { domain: "krece.app", id: "krece", installmentsIn: ["VE"], label: "Krece", patterns: ["krece"] },
+    { domain: "lysto.app", id: "lysto", installmentsIn: ["VE"], label: "Lysto", patterns: ["lysto"] },
+    { domain: "chollo.app", id: "chollo", installmentsIn: ["VE"], label: "Chollo", patterns: ["chollo"] },
 ] as const;
+
+export type InstallmentApp = Pick<InstitutionEntry, "domain" | "id" | "label"> & { readonly currency: string };
+
+/** The device region as one the account picker offers installment apps in, or null. */
+export function installmentRegion(regionCode: string | null | undefined): InstallmentRegion | null {
+    const code = regionCode?.toUpperCase();
+    return INSTALLMENT_REGIONS.find((region) => region === code) ?? null;
+}
+
+/** The installment apps offered in a region, in the order this list keeps them, each in the currency it bills in there. */
+export function installmentAppsIn(region: InstallmentRegion | null): InstallmentApp[] {
+    return region === null
+        ? []
+        : INSTITUTIONS.filter((entry) => entry.installmentsIn?.includes(region)).map(({ domain, id, label }) => ({
+              currency: INSTALLMENT_CURRENCIES[region],
+              domain,
+              id,
+              label,
+          }));
+}
 
 const INSTITUTION_INDEX: ReadonlyMap<string, InstitutionEntry> = buildPatternIndex(INSTITUTIONS);
 

@@ -2,7 +2,7 @@ import type { Href } from "expo-router";
 
 import type { RootStackGroup } from "@/domain/auth-gate";
 import type { TranslationKey } from "@/i18n/catalog";
-import { ACCOUNT_DETENT, CATEGORY_DETENT, SUBCATEGORY_DETENT } from "@/lib/sheet-detents";
+import { ACCOUNT_DETENT, CATEGORY_DETENT, INSTALLMENT_PAY_DETENT, SUBCATEGORY_DETENT } from "@/lib/sheet-detents";
 
 /**
  * Pushed screens that carry a transparent header, a minimal back button and a
@@ -51,6 +51,11 @@ export const SHEET_SCREENS: readonly {
         titleKey: "accounts.nav.edit",
     },
     {
+        detent: INSTALLMENT_PAY_DETENT,
+        name: "installments/pay",
+        titleKey: "installments.pay.title",
+    },
+    {
         detent: CATEGORY_DETENT,
         name: "settings/categories/create",
         titleKey: "nav.newCategory",
@@ -93,6 +98,7 @@ export const ROOT_STACK_SCREEN_NAMES = {
         ...MODAL_SCREENS.map((modal) => modal.name),
         "accounts/reorder",
         "accounts/[accountId]/index",
+        "installments/[planId]",
         "settings/categories/reorder",
         "settings/licenses/[name]",
         "settings/category-symbol",

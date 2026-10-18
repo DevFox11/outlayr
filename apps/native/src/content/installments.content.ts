@@ -1,0 +1,346 @@
+import { t } from "intlayer";
+import type { Dictionary } from "intlayer";
+
+const installments = {
+    content: {
+        "installments.apps.add": t({
+            en: "Add",
+            es: "Agregar",
+        }),
+        "installments.apps.adding": t({
+            en: "Adding…",
+            es: "Agregando…",
+        }),
+        "installments.apps.in": t({
+            en: "Installments in {country}",
+            es: "Cuotas en {country}",
+        }),
+        "installments.apps.other": t({
+            en: "Other",
+            es: "Otra",
+        }),
+        "installments.bought": t({
+            en: "Bought {date} for {price}",
+            es: "Comprado el {date} por {price}",
+        }),
+        "installments.chip": t({
+            en: "Installments",
+            es: "Cuotas",
+        }),
+        "installments.chipSet": t({
+            en: "{count} × {amount}",
+            es: "{count} × {amount}",
+        }),
+        "installments.comingUp": t({
+            en: "Coming up",
+            es: "Próximas cuotas",
+        }),
+        "installments.country.AE": t({
+            en: "United Arab Emirates",
+            es: "Emiratos Árabes Unidos",
+        }),
+        "installments.country.AT": t({
+            en: "Austria",
+            es: "Austria",
+        }),
+        "installments.country.AU": t({
+            en: "Australia",
+            es: "Australia",
+        }),
+        "installments.country.CA": t({
+            en: "Canada",
+            es: "Canadá",
+        }),
+        "installments.country.CO": t({
+            en: "Colombia",
+            es: "Colombia",
+        }),
+        "installments.country.DE": t({
+            en: "Germany",
+            es: "Alemania",
+        }),
+        "installments.country.ES": t({
+            en: "Spain",
+            es: "España",
+        }),
+        "installments.country.FR": t({
+            en: "France",
+            es: "Francia",
+        }),
+        "installments.country.GB": t({
+            en: "the UK",
+            es: "Reino Unido",
+        }),
+        "installments.country.IT": t({
+            en: "Italy",
+            es: "Italia",
+        }),
+        "installments.country.JP": t({
+            en: "Japan",
+            es: "Japón",
+        }),
+        "installments.country.MX": t({
+            en: "Mexico",
+            es: "México",
+        }),
+        "installments.country.NL": t({
+            en: "the Netherlands",
+            es: "Países Bajos",
+        }),
+        "installments.country.NZ": t({
+            en: "New Zealand",
+            es: "Nueva Zelanda",
+        }),
+        "installments.country.SA": t({
+            en: "Saudi Arabia",
+            es: "Arabia Saudita",
+        }),
+        "installments.country.SE": t({
+            en: "Sweden",
+            es: "Suecia",
+        }),
+        "installments.country.SG": t({
+            en: "Singapore",
+            es: "Singapur",
+        }),
+        "installments.country.US": t({
+            en: "the US",
+            es: "Estados Unidos",
+        }),
+        "installments.country.VE": t({
+            en: "Venezuela",
+            es: "Venezuela",
+        }),
+        "installments.cuota": t({
+            en: "Installment {index} of {count}",
+            es: "Cuota {index} de {count}",
+        }),
+        "installments.cuota.amount": t({
+            en: "Amount",
+            es: "Monto",
+        }),
+        "installments.cuota.delete": t({
+            en: "Delete installment",
+            es: "Eliminar cuota",
+        }),
+        "installments.cuota.due": t({
+            en: "Due",
+            es: "Vence",
+        }),
+        "installments.deleteOrder": t({
+            en: "Delete order",
+            es: "Eliminar orden",
+        }),
+        "installments.deleteOrder.body": t({
+            en: "Its schedule goes. The purchase and the payments stay.",
+            es: "Se borra su cronograma. La compra y los pagos se quedan.",
+        }),
+        "installments.each": t({
+            en: "Each",
+            es: "Cada una",
+        }),
+        "installments.every": t({
+            en: "Every",
+            es: "Cada",
+        }),
+        "installments.every.days14": t({
+            en: "14 days",
+            es: "14 días",
+        }),
+        "installments.every.days14.providers": t({
+            en: "Cashea, Klarna, Afterpay",
+            es: "Cashea, Klarna, Afterpay",
+        }),
+        "installments.every.days15": t({
+            en: "15 days",
+            es: "15 días",
+        }),
+        "installments.every.days15.providers": t({
+            en: "Aplazo, Krece",
+            es: "Aplazo, Krece",
+        }),
+        "installments.every.fifteenthAndLast": t({
+            en: "15th and last day",
+            es: "Día 15 y último día",
+        }),
+        "installments.every.fifteenthAndLast.providers": t({
+            en: "Kueski",
+            es: "Kueski",
+        }),
+        "installments.every.firstAndSixteenth": t({
+            en: "1st and 16th",
+            es: "Día 1 y 16",
+        }),
+        "installments.every.firstAndSixteenth.providers": t({
+            en: "Lysto",
+            es: "Lysto",
+        }),
+        "installments.every.monthly": t({
+            en: "Every month",
+            es: "Cada mes",
+        }),
+        "installments.every.monthly.providers": t({
+            en: "Cards, Addi, Mercado Pago",
+            es: "Tarjetas, Addi, Mercado Pago",
+        }),
+        "installments.every.weekly": t({
+            en: "Every week",
+            es: "Cada semana",
+        }),
+        "installments.failedBody": t({
+            en: "Nothing was changed. Try again.",
+            es: "No se cambió nada. Inténtalo de nuevo.",
+        }),
+        "installments.failedTitle": t({
+            en: "Couldn't save",
+            es: "No se pudo guardar",
+        }),
+        "installments.finished_one": t({
+            en: "{count} paid off",
+            es: "{count} pagada",
+        }),
+        "installments.finished_other": t({
+            en: "{count} paid off",
+            es: "{count} pagadas",
+        }),
+        "installments.firstDue": t({
+            en: "First due",
+            es: "Primera cuota",
+        }),
+        "installments.forOrder": t({
+            en: "{order} · {index} of {count}",
+            es: "{order} · {index} de {count}",
+        }),
+        "installments.from": t({
+            en: "From",
+            es: "Desde",
+        }),
+        "installments.from.none": t({
+            en: "None",
+            es: "Ninguna",
+        }),
+        "installments.from.outside": t({
+            en: "Paid outside Outlayr. You owe {account} less, no bank changes.",
+            es: "Pagado fuera de Outlayr. Le debes menos a {account} y ningún banco cambia.",
+        }),
+        "installments.inDays_one": t({
+            en: "in {count} day",
+            es: "en {count} día",
+        }),
+        "installments.inDays_other": t({
+            en: "in {count} days",
+            es: "en {count} días",
+        }),
+        "installments.leftToPay": t({
+            en: "Left to pay",
+            es: "Por pagar",
+        }),
+        "installments.next": t({
+            en: "Next {date}",
+            es: "Próxima {date}",
+        }),
+        "installments.noRate": t({
+            en: "No rate for this day yet, so the payment can't be converted.",
+            es: "Aún no hay tasa para este día, así que no se puede convertir el pago.",
+        }),
+        "installments.none": t({
+            en: "None",
+            es: "Ninguno",
+        }),
+        "installments.notFromAccount": t({
+            en: "not from an account",
+            es: "no salió de una cuenta",
+        }),
+        "installments.nothingLeft": t({
+            en: "The upfront covers the whole price.",
+            es: "La inicial cubre todo el precio.",
+        }),
+        "installments.order": t({
+            en: "Order",
+            es: "Orden",
+        }),
+        "installments.orders": t({
+            en: "Orders",
+            es: "Órdenes",
+        }),
+        "installments.overPrice": t({
+            en: "{amount} over the price",
+            es: "{amount} más que el precio",
+        }),
+        "installments.overdue": t({
+            en: "Overdue",
+            es: "Vencida",
+        }),
+        "installments.paid": t({
+            en: "Paid",
+            es: "Pagada",
+        }),
+        "installments.paidAction": t({
+            en: "Paid",
+            es: "Pagué",
+        }),
+        "installments.paidBefore": t({
+            en: "Paid before Outlayr",
+            es: "Pagada antes de Outlayr",
+        }),
+        "installments.paidNow": t({
+            en: "Paid now",
+            es: "Pagado ahora",
+        }),
+        "installments.paidOutside": t({
+            en: "Paid outside Outlayr",
+            es: "Pagado fuera de Outlayr",
+        }),
+        "installments.partly": t({
+            en: "{amount} in",
+            es: "{amount} abonado",
+        }),
+        "installments.pay": t({
+            en: "Pay {amount}",
+            es: "Pagar {amount}",
+        }),
+        "installments.pay.converted": t({
+            en: "{amount} at {rate}",
+            es: "{amount} a {rate}",
+        }),
+        "installments.pay.date": t({
+            en: "Date",
+            es: "Fecha",
+        }),
+        "installments.pay.for": t({
+            en: "For",
+            es: "Para",
+        }),
+        "installments.pay.title": t({
+            en: "Pay",
+            es: "Pagar",
+        }),
+        "installments.pay.to": t({
+            en: "Pay {account}",
+            es: "Pagar {account}",
+        }),
+        "installments.payAll": t({
+            en: "Pay all {amount}",
+            es: "Pagar todo {amount}",
+        }),
+        "installments.schedule": t({
+            en: "Schedule",
+            es: "Cronograma",
+        }),
+        "installments.then": t({
+            en: "Then",
+            es: "Luego",
+        }),
+        "installments.total": t({
+            en: "Total",
+            es: "Total",
+        }),
+        "installments.upfront": t({
+            en: "Upfront",
+            es: "Inicial",
+        }),
+    },
+    key: "installments" as const,
+} satisfies Dictionary;
+
+export default installments;

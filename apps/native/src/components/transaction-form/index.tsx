@@ -26,6 +26,7 @@ import { useAppSettings, useDisplaySettings, useSettingBool } from "@/contexts/d
 import { EMPTY_DRAFT, useIdentityDraft, useIdentityFlyUp } from "@/contexts/identity-draft-context";
 import { useBankAccounts, usePeople } from "@/data/accounts";
 import { getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "@/data/accounts-core";
+import type { Account } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
 import {
     cardFeeFor,
@@ -145,6 +146,7 @@ import type { StageAction, StageFooter } from "./stage/stage";
 import { StageOptionRow } from "./stage/stage-options";
 import type { StageOptionItem } from "./stage/stage-options";
 import { StepAccount } from "./stage/step-account";
+import { StepAccountInstallments } from "./stage/step-account-installments";
 import { StepCategory } from "./stage/step-category";
 import { StepCurrency } from "./stage/step-currency";
 import { StepDate } from "./stage/step-date";
@@ -155,6 +157,7 @@ import { StepRate, StepRateField } from "./stage/step-rate";
 import type { StepRateOption } from "./stage/step-rate";
 import { StepRepeat } from "./stage/step-repeat";
 import { StepWhen } from "./stage/step-when";
+import { useInstallmentOrder } from "./use-installment-order";
 import { useSplitDraft } from "./use-split-draft";
 
 const HERO_REST_TOP = 88;
@@ -662,10 +665,10 @@ export function TransactionForm({
 
             const entryCurrency = value.txCurrency ?? globalCurrency;
             const amount = roundToMinorUnits(numpadToNumber(value.amount), entryCurrency);
-            if (isRealSplit(splitAllocations) && !isBalanced(amount, splitAllocations, minorUnitsFor(entryCurrency))) {
+            const refusal = saveRefusal(amount, entryCurrency);
+            if (refusal !== null) {
                 haptics("error");
-                setSaveFailure(t("transaction.split.unbalanced"));
-                splitSheetRef.current?.present();
+                setSaveFailure(refusal);
                 return;
             }
 
@@ -718,21 +721,23 @@ export function TransactionForm({
                 fee: feeInputFor(value.merchant.trim() || (value.category?.name ?? ""), categoryId, amount),
                 paidVia: paysBolivares ? (value.paidVia ?? suggestedPaidVia) : null,
             };
+            const writeExtras = async (id: string) => {
+                if (tagsSource !== "initial") {
+                    const materializedTagIds = await materializeTagIds(db, value.tagIds, value.pendingTagNames);
+                    await tagsRepo.writeTagsFor(db, id, materializedTagIds);
+                }
+                await splitsRepo.writeSplit(
+                    db,
+                    id,
+                    amount,
+                    isRealSplit(splitAllocations) ? splitAllocations : [],
+                    minorUnitsFor(entryCurrency)
+                );
+            };
             let savedId: string;
             try {
-                savedId = await persistTransaction(db, mode, initial, input, async (id) => {
-                    if (tagsSource !== "initial") {
-                        const materializedTagIds = await materializeTagIds(db, value.tagIds, value.pendingTagNames);
-                        await tagsRepo.writeTagsFor(db, id, materializedTagIds);
-                    }
-                    await splitsRepo.writeSplit(
-                        db,
-                        id,
-                        amount,
-                        isRealSplit(splitAllocations) ? splitAllocations : [],
-                        minorUnitsFor(entryCurrency)
-                    );
-                });
+                savedId = await (installmentOrder.save(input, amount, writeExtras) ??
+                    persistTransaction(db, mode, initial, input, writeExtras));
                 if (mode === "create") {
                     freshEntries.mark(savedId);
                 }
@@ -1312,6 +1317,29 @@ export function TransactionForm({
     } = useSplitDraft(db, mode, initial, restore?.splitAllocations);
     const allAccounts = useBankAccounts(db);
     const people = usePeople(db);
+    const installmentOrder = useInstallmentOrder({
+        account,
+        banks: allAccounts,
+        currency,
+        date,
+        db,
+        income,
+        initial,
+        isSubscription,
+        mode,
+    });
+    /** Why a save is refused before it writes, with the sheet that fixes it presented. */
+    const saveRefusal = (amount: number, entryCurrency: string): string | null => {
+        if (isRealSplit(splitAllocations) && !isBalanced(amount, splitAllocations, minorUnitsFor(entryCurrency))) {
+            splitSheetRef.current?.present();
+            return t("transaction.split.unbalanced");
+        }
+        return installmentOrder.problem(amount);
+    };
+    // The chip names the first cuota only once there is a draft, so only then does it follow each keypress.
+    const installmentPrice = useSelector(form.store, (s) =>
+        installmentOrder.drafting ? numpadToNumber(s.values.amount) : 0
+    );
     const [accountDeclined, setAccountDeclined] = useState(
         restore?.accountDeclined ?? (initial != null && initial.accountId == null)
     );
@@ -2322,15 +2350,17 @@ export function TransactionForm({
             };
         }
         if (stageStep === "account") {
+            const pickAccount = (picked: Account | null) => {
+                form.setFieldValue("account", picked);
+                setAccountDeclined(picked === null);
+                advance("account", amountNumber, merchant);
+            };
             return {
                 body: (
                     <StepAccount
                         accounts={allAccounts}
-                        onSelect={(picked) => {
-                            form.setFieldValue("account", picked);
-                            setAccountDeclined(picked === null);
-                            advance("account", amountNumber, merchant);
-                        }}
+                        after={income ? null : <StepAccountInstallments accounts={allAccounts} onPick={pickAccount} />}
+                        onSelect={pickAccount}
                         people={people}
                         selectedId={account?.id ?? null}
                     />
@@ -2743,6 +2773,7 @@ export function TransactionForm({
                       },
                   ]
                 : []),
+            ...installmentOrder.verbs(hasAmount, installmentPrice),
         ],
     } satisfies Partial<ComponentProps<typeof TransactionSentenceBody>>;
 
@@ -2902,19 +2933,22 @@ export function TransactionForm({
 
                 <SubscribeFields selector={(s) => ({ amount: s.values.amount })} store={form.store}>
                     {({ amount }) => (
-                        <SplitSheet
-                            allocations={splitAllocations}
-                            code={currency}
-                            db={db}
-                            income={income}
-                            minorUnits={minorUnitsFor(currency)}
-                            onChange={(next) => {
-                                setEdited(true);
-                                setSplitAllocations(next);
-                            }}
-                            ref={splitSheetRef}
-                            total={numpadToNumber(amount)}
-                        />
+                        <>
+                            {installmentOrder.sheet(numpadToNumber(amount))}
+                            <SplitSheet
+                                allocations={splitAllocations}
+                                code={currency}
+                                db={db}
+                                income={income}
+                                minorUnits={minorUnitsFor(currency)}
+                                onChange={(next) => {
+                                    setEdited(true);
+                                    setSplitAllocations(next);
+                                }}
+                                ref={splitSheetRef}
+                                total={numpadToNumber(amount)}
+                            />
+                        </>
                     )}
                 </SubscribeFields>
                 <SubscribeFields

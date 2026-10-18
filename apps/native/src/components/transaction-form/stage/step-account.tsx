@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ScrollView, View } from "react-native";
 
 import { AccountTile } from "@/components/account-tile";
@@ -23,6 +24,8 @@ const NO_PEOPLE: readonly Account[] = [];
 
 interface StepAccountProps {
     accounts: readonly Account[];
+    /** More options under the accounts and people. */
+    after?: ReactNode;
     /** Offers "None" first: an entry is allowed to sit outside every account. */
     allowNone?: boolean;
     onSelect: (account: Account | null) => void;
@@ -39,6 +42,7 @@ interface StepAccountProps {
  */
 export function StepAccount({
     accounts,
+    after,
     allowNone = true,
     onSelect,
     people = NO_PEOPLE,
@@ -50,9 +54,12 @@ export function StepAccount({
 
     if (accounts.length === 0 && people.length === 0) {
         return (
-            <Text className="text-muted text-subtitle" testID="stage-account-empty">
-                {t("transaction.account.empty")}
-            </Text>
+            <>
+                <Text className="text-muted text-subtitle" testID="stage-account-empty">
+                    {t("transaction.account.empty")}
+                </Text>
+                {after}
+            </>
         );
     }
 
@@ -92,6 +99,7 @@ export function StepAccount({
                     <StageOptionRow onSelect={pick} options={people.map(optionFor)} selectedId={selectedId} />
                 </View>
             ) : null}
+            {after}
         </ScrollView>
     );
 }

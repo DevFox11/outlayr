@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { resolveInstitutionDomain } from "./institution-map";
+import { installmentAppsIn, installmentRegion, resolveInstitutionDomain } from "./institution-map";
 import { merchantKey } from "./merchant-resolver";
 
 describe("resolveInstitutionDomain", () => {
@@ -46,5 +46,15 @@ describe("resolveInstitutionDomain", () => {
     // than showing none.
     it("does not answer for a near-miss spelling", () => {
         expect(resolveInstitutionDomain(merchantKey("Chace"))).toBeNull();
+    });
+});
+
+describe("installmentAppsIn", () => {
+    it("offers a region's installment apps and nothing for a region without any", () => {
+        const apps = (code: string | undefined) => installmentAppsIn(installmentRegion(code));
+        expect(apps("ve").map((app) => app.label)).toStrictEqual(["Cashea", "Krece", "Lysto", "Chollo"]);
+        expect(apps("MX").map((app) => app.id)).toStrictEqual(["kueski-pay", "aplazo", "coppel"]);
+        expect(apps("AR")).toStrictEqual([]);
+        expect(apps(undefined)).toStrictEqual([]);
     });
 });

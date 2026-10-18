@@ -1,5 +1,5 @@
 import { SectionList } from "@legendapp/list/section-list";
-import { isPerson } from "@outlayr/money/account-kind";
+import { isPerson, toAccountKind } from "@outlayr/money/account-kind";
 import { Stack, useRouter } from "expo-router";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import { View } from "react-native";
@@ -18,6 +18,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useAccountTransfers } from "@/data/account-transfers";
 import { useAccountBalanceDetails, useAccounts, useAccountTransactions } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
+import { useOutsidePaymentRows } from "@/data/installment-reads";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
@@ -29,6 +30,7 @@ import { useLanguage, useTranslation } from "@/i18n/context";
 import { PersonHero, PersonToolbar } from "@/screens/debts/person-header";
 
 import { AccountBalanceChart } from "./components/account-balance-chart";
+import { InstallmentSections } from "./components/installment-sections";
 
 export function AccountDetail({ id }: { id: string }) {
     const db = useDatabase();
@@ -61,14 +63,29 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
     const { balance, cells, rates } = useAccountBalanceDetails(db, account, nowMs);
     const transactionRows = useAccountTransactions(db, account.id);
     const transferRows = useAccountTransfers(db, account.id);
-    const rows = useMemo(() => mergeByRecency(transactionRows, transferRows), [transactionRows, transferRows]);
+    const outsideRows = useOutsidePaymentRows(
+        db,
+        toAccountKind(account.kind) === "liability" ? account : null,
+        t("installments.paidOutside")
+    );
+    const rows = useMemo(
+        () => mergeByRecency(mergeByRecency(transactionRows, transferRows), outsideRows),
+        [transactionRows, transferRows, outsideRows]
+    );
     const sections = useMemo(() => groupByDay(rows, account.currency, rates), [rows, account.currency, rates]);
     const transferIds = useMemo(() => new Set(transferRows.map((transfer) => transfer.id)), [transferRows]);
     // A transfer id is not a transaction id: `/transactions/[id]` finds nothing behind it.
+    const outsidePlans = useMemo(() => new Map(outsideRows.map((row) => [row.id, row.planId])), [outsideRows]);
     const openRow = useCallback(
-        (rowId: string) =>
-            router.push(transferIds.has(rowId) ? `/transactions/transfers/${rowId}` : `/transactions/${rowId}`),
-        [router, transferIds]
+        (rowId: string) => {
+            const planId = outsidePlans.get(rowId);
+            if (planId === undefined) {
+                router.push(transferIds.has(rowId) ? `/transactions/transfers/${rowId}` : `/transactions/${rowId}`);
+            } else {
+                router.push({ params: { planId }, pathname: "/installments/[planId]" });
+            }
+        },
+        [router, transferIds, outsidePlans]
     );
 
     // A person shares the history, but reads as a debt and keeps out of the account editor.
@@ -135,6 +152,9 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
                             </View>
                             <Text className="font-sans-medium text-muted text-subtitle">{startedAt}</Text>
                             <AccountBalanceChart account={account} cells={cells} rates={rates} showCents={showCents} />
+                            {toAccountKind(account.kind) === "liability" ? (
+                                <InstallmentSections accountId={account.id} db={db} nowMs={nowMs} />
+                            ) : null}
                         </View>
                     )
                 }

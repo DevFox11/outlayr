@@ -318,6 +318,7 @@ function RootStack() {
                 ))}
                 <Stack.Screen name="accounts/reorder" options={chrome.pushed} />
                 <Stack.Screen name="accounts/[accountId]/index" options={chrome.pushed} />
+                <Stack.Screen name="installments/[planId]" options={chrome.pushed} />
                 <Stack.Screen name="settings/categories/reorder" options={chrome.pushed} />
                 <Stack.Screen name="settings/licenses/[name]" options={chrome.pushed} />
                 {SHEET_SCREENS.map((sheet) => (

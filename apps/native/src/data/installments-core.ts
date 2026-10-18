@@ -35,6 +35,8 @@ export interface PaymentSource {
 }
 
 export interface InstallmentOrderInput {
+    /** More writes for the purchase entry (its tags, its split), inside the order's transaction. */
+    inSameTransaction?: (transactionId: string) => Promise<void>;
     /**
      * Installments 1..k already paid outside Outlayr, each on its due date (today
      * at the latest): an order started before it was recorded. Defaults to none.
@@ -131,9 +133,9 @@ export const installmentsRepo = {
      * Writes an order in one transaction: the purchase on the liability account
      * at full price, the plan, its rows, the upfront as a transfer from
      * `upfront.fromAccountId` dated the purchase day (or paid outside), and any
-     * installments already paid outside. Answers the plan id.
+     * installments already paid outside. Answers the plan and purchase ids.
      */
-    async createOrder(db: Database, input: InstallmentOrderInput): Promise<string> {
+    async createOrder(db: Database, input: InstallmentOrderInput): Promise<{ planId: string; transactionId: string }> {
         const { purchase, schedule } = input;
         const account = liabilityAccount(db, purchase.accountId);
         if (purchase.income) {
@@ -178,7 +180,7 @@ export const installmentsRepo = {
             );
         }
 
-        await transactionsRepo.create(db, purchase, {
+        const purchaseId = await transactionsRepo.create(db, purchase, {
             inSameTransaction: async (transactionId) => {
                 await db.insert(installmentPlans).values({
                     accountId: account.id,
@@ -201,9 +203,10 @@ export const installmentsRepo = {
                     await db.insert(outsidePayments).values(outside);
                 }
                 await upfront?.write();
+                await input.inSameTransaction?.(transactionId);
             },
         });
-        return planId;
+        return { planId, transactionId: purchaseId };
     },
 
     /** Removes one row; the rest of the schedule stays as it is. */

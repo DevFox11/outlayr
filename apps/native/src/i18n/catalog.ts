@@ -24,6 +24,7 @@ type Domain = typeof import("@/content/domain.content").default;
 type Goals = typeof import("@/content/goals.content").default;
 type ImportSheet = typeof import("@/content/import.content").default;
 type Insights = typeof import("@/content/insights.content").default;
+type Installments = typeof import("@/content/installments.content").default;
 type Log = typeof import("@/content/log.content").default;
 type Onboarding = typeof import("@/content/onboarding.content").default;
 type Pro = typeof import("@/content/pro.content").default;
@@ -59,6 +60,7 @@ export const DICTIONARY_KEYS = [
     "goals",
     "import",
     "insights",
+    "installments",
     "log",
     "onboarding",
     "pro",
@@ -90,6 +92,7 @@ type Content =
     | Goals["content"]
     | ImportSheet["content"]
     | Insights["content"]
+    | Installments["content"]
     | Log["content"]
     | Onboarding["content"]
     | Pro["content"]

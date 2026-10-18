@@ -1,9 +1,11 @@
+import Calendar03SolidIcon from "@hugeicons-pro/core-solid-rounded/Calendar03Icon";
 import DivideSignCircleSolidIcon from "@hugeicons-pro/core-solid-rounded/DivideSignCircleIcon";
 import NoteEditSolidIcon from "@hugeicons-pro/core-solid-rounded/NoteEditIcon";
 import PercentCircleSolidIcon from "@hugeicons-pro/core-solid-rounded/PercentCircleIcon";
 import RepeatSolidIcon from "@hugeicons-pro/core-solid-rounded/RepeatIcon";
 import SparklesSolidIcon from "@hugeicons-pro/core-solid-rounded/SparklesIcon";
 import Tag01SolidIcon from "@hugeicons-pro/core-solid-rounded/Tag01Icon";
+import Calendar03Icon from "@hugeicons-pro/core-stroke-rounded/Calendar03Icon";
 import DivideSignCircleIcon from "@hugeicons-pro/core-stroke-rounded/DivideSignCircleIcon";
 import NoteEditIcon from "@hugeicons-pro/core-stroke-rounded/NoteEditIcon";
 import PercentCircleIcon from "@hugeicons-pro/core-stroke-rounded/PercentCircleIcon";
@@ -25,6 +27,7 @@ export const FACT_GLYPHS = {
     add: { set: PlusSignIcon, unset: PlusSignIcon },
     fee: { set: PercentCircleSolidIcon, unset: PercentCircleIcon },
     icon: { set: SparklesSolidIcon, unset: SparklesIcon },
+    installments: { set: Calendar03SolidIcon, unset: Calendar03Icon },
     note: { set: NoteEditSolidIcon, unset: NoteEditIcon },
     repeat: { set: RepeatSolidIcon, unset: RepeatIcon },
     split: { set: DivideSignCircleSolidIcon, unset: DivideSignCircleIcon },

@@ -48,7 +48,7 @@ const fromBank = (amount: number): PaymentSource => ({
 
 /** A $100 Cashea order: $40 upfront from the bank, then 3 cuotas every 14 days. */
 async function order(accountId = cashea): Promise<string> {
-    return await installmentsRepo.createOrder(db, {
+    const { planId } = await installmentsRepo.createOrder(db, {
         purchase: {
             accountId,
             amount: 100,
@@ -69,6 +69,7 @@ async function order(accountId = cashea): Promise<string> {
         }),
         upfront: fromBank(40),
     });
+    return planId;
 }
 
 describe("creating an order", () => {
@@ -228,7 +229,7 @@ async function balanceOf(id: string, now: Date): Promise<number> {
 /** The $100 order bought on Aug 1, before Outlayr: the upfront and the first `paid` cuotas settled outside it. */
 async function startedBefore(paid: number): Promise<string> {
     const bought = new Date(2026, 7, 1, 12);
-    return await installmentsRepo.createOrder(db, {
+    const { planId } = await installmentsRepo.createOrder(db, {
         installmentsPaidOutside: paid,
         purchase: {
             accountId: cashea,
@@ -250,6 +251,7 @@ async function startedBefore(paid: number): Promise<string> {
         }),
         upfront: null,
     });
+    return planId;
 }
 
 describe("payments made outside Outlayr", () => {

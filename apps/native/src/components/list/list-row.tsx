@@ -115,12 +115,15 @@ export function ChoiceRow({
     detail,
     leading,
     selected,
+    value,
     onPress,
 }: {
     label: string;
     detail?: string;
     leading?: ReactNode;
     selected: boolean;
+    /** Shown at the end, before the check. */
+    value?: string;
     onPress: () => void;
 }) {
     const colors = useColors();
@@ -136,6 +139,7 @@ export function ChoiceRow({
                 <Text className="text-body text-foreground">{label}</Text>
                 {detail ? <Text className="text-muted text-subtitle leading-snug">{detail}</Text> : null}
             </View>
+            {value ? <Text className="text-body text-muted tabular-nums">{value}</Text> : null}
             {selected ? <HugeiconsIcon color={colors.tint} icon={Tick02Icon} size={20} strokeWidth={2.4} /> : null}
         </Pressable>
     );
