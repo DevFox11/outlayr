@@ -10,7 +10,7 @@ import { isNull } from "drizzle-orm";
 import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
-import { accounts, transactions, transfers } from "@/db/schema";
+import { accounts, outsidePayments, transactions, transfers } from "@/db/schema";
 import type { PlottedCell } from "@/domain/goal-balance-series";
 import { roundToMinorUnits } from "@/domain/money";
 import { netWorthSeries } from "@/domain/net-worth-series";
@@ -23,6 +23,8 @@ import { useDecoratedRows } from "./transactions";
 import type { TransactionWithCategory } from "./transactions";
 import { accountTransactionsQuery } from "./transactions-core";
 import {
+    settledOutsidePaymentQuery,
+    settledOutsidePaymentsQuery,
     settledTransferInboundQuery,
     settledTransferOutboundQuery,
     settledTransfersInboundQuery,
@@ -85,15 +87,19 @@ export function useSettledAccountCells(db: Database, accountId: string, nowMs: n
         accountId,
         settledAt,
     ]);
+    const outside = useLiveQuery(outsidePayments, () => settledOutsidePaymentQuery(db, accountId, settledAt), [
+        accountId,
+        settledAt,
+    ]);
     return useMemo(
         () => [
             // `plotDay` says where a row is DRAWN; `dateKey` stays the day it was
             // valued at, which is the date its rate is looked up under.
             ...rows.map(({ plotDay, ...row }) => ({ ...toCurrencyCell(row), plotDay })),
             ...outbound.map(({ plotDay, ...row }) => ({ ...toTransferCell(row, false), plotDay })),
-            ...inbound.map(({ plotDay, ...row }) => ({ ...toTransferCell(row, true), plotDay })),
+            ...[...inbound, ...outside].map(({ plotDay, ...row }) => ({ ...toTransferCell(row, true), plotDay })),
         ],
-        [rows, outbound, inbound]
+        [rows, outbound, inbound, outside]
     );
 }
 
@@ -137,6 +143,7 @@ export function useOverviewOf(
     const cellRows = useLiveQuery(transactions, () => settledAccountsCellQuery(db, settledAt), [settledAt]);
     const outbound = useLiveQuery(transfers, () => settledTransfersOutboundQuery(db, settledAt), [settledAt]);
     const inbound = useLiveQuery(transfers, () => settledTransfersInboundQuery(db, settledAt), [settledAt]);
+    const outside = useLiveQuery(outsidePayments, () => settledOutsidePaymentsQuery(db, settledAt), [settledAt]);
     const { displayCurrency } = valuation;
     const rates = useBalanceRates(db, displayCurrency, rows);
     return useMemo(
@@ -149,13 +156,16 @@ export function useOverviewOf(
                         accountId: row.accountId,
                     })),
                     ...outbound.map(({ accountId, ...row }) => ({ ...toTransferCell(row, false), accountId })),
-                    ...inbound.map(({ accountId, ...row }) => ({ ...toTransferCell(row, true), accountId })),
+                    ...[...inbound, ...outside].map(({ accountId, ...row }) => ({
+                        ...toTransferCell(row, true),
+                        accountId,
+                    })),
                 ],
                 displayCurrency,
                 rates,
                 settledAt
             ),
-        [rows, cellRows, outbound, inbound, displayCurrency, rates, settledAt]
+        [rows, cellRows, outbound, inbound, outside, displayCurrency, rates, settledAt]
     );
 }
 
@@ -193,6 +203,7 @@ function useNetWorthSeriesIn(db: Database, valuation: Valuation, nowMs: number):
     const cellRows = useLiveQuery(transactions, () => settledAccountsCellQuery(db, settledAt), [settledAt]);
     const outbound = useLiveQuery(transfers, () => settledTransfersOutboundQuery(db, settledAt), [settledAt]);
     const inbound = useLiveQuery(transfers, () => settledTransfersInboundQuery(db, settledAt), [settledAt]);
+    const outside = useLiveQuery(outsidePayments, () => settledOutsidePaymentsQuery(db, settledAt), [settledAt]);
     const { displayCurrency } = valuation;
     const rates = useBalanceRates(db, displayCurrency, rows);
     return useMemo(() => {
@@ -214,11 +225,11 @@ function useNetWorthSeriesIn(db: Database, valuation: Valuation, nowMs: number):
         for (const { accountId, ...row } of outbound) {
             push(accountId, toTransferCell(row, false));
         }
-        for (const { accountId, ...row } of inbound) {
+        for (const { accountId, ...row } of [...inbound, ...outside]) {
             push(accountId, toTransferCell(row, true));
         }
         return netWorthSeries(rows, byAccount, rates, settledAt, displayCurrency);
-    }, [rows, cellRows, outbound, inbound, rates, settledAt, displayCurrency]);
+    }, [rows, cellRows, outbound, inbound, outside, rates, settledAt, displayCurrency]);
 }
 
 /** {@link useNetWorthSeriesIn} for the ledger's own display currency. */
@@ -247,6 +258,7 @@ function useAccountBalancesIn(db: Database, valuation: Valuation, nowMs: number)
     const cellRows = useLiveQuery(transactions, () => settledAccountsCellQuery(db, settledAt), [settledAt]);
     const outbound = useLiveQuery(transfers, () => settledTransfersOutboundQuery(db, settledAt), [settledAt]);
     const inbound = useLiveQuery(transfers, () => settledTransfersInboundQuery(db, settledAt), [settledAt]);
+    const outside = useLiveQuery(outsidePayments, () => settledOutsidePaymentsQuery(db, settledAt), [settledAt]);
     const { displayCurrency } = valuation;
     const rates = useBalanceRates(db, displayCurrency, rows);
     return useMemo(() => {
@@ -268,7 +280,7 @@ function useAccountBalancesIn(db: Database, valuation: Valuation, nowMs: number)
         for (const { accountId, ...row } of outbound) {
             push(accountId, toTransferCell(row, false));
         }
-        for (const { accountId, ...row } of inbound) {
+        for (const { accountId, ...row } of [...inbound, ...outside]) {
             push(accountId, toTransferCell(row, true));
         }
         const today = utcDateString(settledAt.getTime());
@@ -288,7 +300,7 @@ function useAccountBalancesIn(db: Database, valuation: Valuation, nowMs: number)
                 return [account.id, { exact, value }];
             })
         );
-    }, [rows, cellRows, outbound, inbound, displayCurrency, rates, settledAt]);
+    }, [rows, cellRows, outbound, inbound, outside, displayCurrency, rates, settledAt]);
 }
 
 /** {@link useAccountBalancesIn} for the ledger's own display currency. */
@@ -315,16 +327,17 @@ export async function settledBalanceAt(
     valuation: Valuation,
     now: Date
 ): Promise<DisplayedBalance> {
-    const [rows, outbound, inbound, { rates }] = await Promise.all([
+    const [rows, outbound, inbound, outside, { rates }] = await Promise.all([
         settledAccountCellQuery(db, account.id, now),
         settledTransferOutboundQuery(db, account.id, now),
         settledTransferInboundQuery(db, account.id, now),
+        settledOutsidePaymentQuery(db, account.id, now),
         loadValuationIn(db, valuation.displayCurrency, [account.currency]),
     ]);
     const cells = [
         ...rows.map(toCurrencyCell),
         ...outbound.map((row) => toTransferCell(row, false)),
-        ...inbound.map((row) => toTransferCell(row, true)),
+        ...[...inbound, ...outside].map((row) => toTransferCell(row, true)),
     ];
     const { exact, value } = balanceIn(account, cells, valuation.displayCurrency, rates, utcDateString(now.getTime()));
     return { exact, value };
@@ -337,16 +350,17 @@ export async function openingForBalance(
     currency: string,
     now: Date
 ): Promise<number> {
-    const [rows, outbound, inbound, { rates }] = await Promise.all([
+    const [rows, outbound, inbound, outside, { rates }] = await Promise.all([
         settledAccountCellQuery(db, accountId, now),
         settledTransferOutboundQuery(db, accountId, now),
         settledTransferInboundQuery(db, accountId, now),
+        settledOutsidePaymentQuery(db, accountId, now),
         loadValuationIn(db, currency),
     ]);
     const cells = [
         ...rows.map(toCurrencyCell),
         ...outbound.map((row) => toTransferCell(row, false)),
-        ...inbound.map((row) => toTransferCell(row, true)),
+        ...[...inbound, ...outside].map((row) => toTransferCell(row, true)),
     ];
     const flow = accountBalance({ currency, initialBalance: 0 }, cells, rates).total;
     return roundToMinorUnits(balance - flow, currency);

@@ -128,6 +128,12 @@ export const META_KEYS = {
      */
     syncDeviceId: "syncDeviceId",
     /**
+     * Tables to re-read once from the start of the log, comma separated: the
+     * ones an older build skipped rows of (see migration 0033). Deleted when the
+     * walk completes. Device-local.
+     */
+    syncReread: "syncReread",
+    /**
      * Whether this device replicates at all. The outbox triggers read it, so a
      * ledger that never syncs never queues a row. Device-local.
      */

@@ -232,6 +232,13 @@
       "when": 1792287101861,
       "tag": "0032_stop_null_indexes_hijacking_the_planner",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1792900000000,
+      "tag": "0033_installments",
+      "breakpoints": true
     }
   ]
 }

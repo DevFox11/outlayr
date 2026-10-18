@@ -94,6 +94,13 @@ export const transferFields = {
     fromAmount: v.number(),
     fromAmountUsd: v.union(v.number(), v.null()),
     fromCurrency: v.string(),
+    /**
+     * The installment order this transfer pays, or null. Optional, not just
+     * nullable: a handset on a build that predates installments pushes transfers
+     * without the key at all. `push` patches, so an absent key leaves the stored
+     * link alone rather than clearing it.
+     */
+    installmentPlanId: v.optional(v.union(v.string(), v.null())),
     month: v.number(),
     note: v.string(),
     toAccountId: v.string(),
@@ -226,6 +233,29 @@ export const transactionSplitFields = {
     transactionId: v.string(),
 };
 
+/** One purchase on a liability account, paid over time. */
+export const installmentPlanFields = {
+    accountId: v.string(),
+    dateCreated: v.number(),
+    transactionId: v.string(),
+};
+
+/** One stored due date of an order; `sequence` 0 is the upfront payment. */
+export const installmentFields = {
+    amount: v.number(),
+    dueDate: v.number(),
+    planId: v.string(),
+    sequence: v.number(),
+};
+
+/** A payment toward an order made outside Outlayr; `amount` is in the order's account currency. */
+export const outsidePaymentFields = {
+    amount: v.number(),
+    amountUsd: v.union(v.number(), v.null()),
+    date: v.number(),
+    planId: v.string(),
+};
+
 const TOMBSTONED_TABLES = [
     "categories",
     "transactions",
@@ -239,6 +269,9 @@ const TOMBSTONED_TABLES = [
     "accounts",
     // After `accounts`: a transfer's two legs are account localIds.
     "transfers",
+    "installmentPlans",
+    "installments",
+    "outsidePayments",
 ] as const;
 
 /**
@@ -254,7 +287,10 @@ export const FIELDS_BY_TABLE = {
     appMeta: appMetaFields,
     budgets: budgetFields,
     categories: categoryFields,
+    installmentPlans: installmentPlanFields,
+    installments: installmentFields,
     mainBudget: mainBudgetFields,
+    outsidePayments: outsidePaymentFields,
     savingsGoals: savingsGoalFields,
     tags: tagFields,
     transactionPhotos: transactionPhotoFields,

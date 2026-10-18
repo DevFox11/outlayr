@@ -12,6 +12,9 @@ import {
     categoryFields,
     FIELDS_BY_TABLE,
     incomingWins,
+    installmentFields,
+    installmentPlanFields,
+    outsidePaymentFields,
     mainBudgetFields,
     SYNCED_TABLES,
     savingsGoalFields,
@@ -116,6 +119,24 @@ const pushRow = v.union(
         fields: v.object(transferFields),
     }),
     v.object({
+        localId: v.string(),
+        table: v.literal("installmentPlans"),
+        ...tombstone,
+        fields: v.object(installmentPlanFields),
+    }),
+    v.object({
+        localId: v.string(),
+        table: v.literal("installments"),
+        ...tombstone,
+        fields: v.object(installmentFields),
+    }),
+    v.object({
+        localId: v.string(),
+        table: v.literal("outsidePayments"),
+        ...tombstone,
+        fields: v.object(outsidePaymentFields),
+    }),
+    v.object({
         /** Keys are never deleted, so this side of the union has no tombstone. */
         deletedAt: v.null(),
         fields: v.object(appMetaFields),
@@ -133,13 +154,15 @@ interface PushRow {
     updatedAt: number;
 }
 
+const syncedTable = v.union(...SYNCED_TABLES.map((table) => v.literal(table)));
+
 const pulledRow = v.object({
     deletedAt: v.union(v.number(), v.null()),
     deviceId: v.string(),
     fields: v.record(v.string(), v.any()),
     localId: v.string(),
     seq: v.number(),
-    table: v.union(...SYNCED_TABLES.map((table) => v.literal(table))),
+    table: syncedTable,
     updatedAt: v.number(),
 });
 
@@ -318,6 +341,21 @@ async function upsert(
         }
         case "transfers": {
             return await writeRow(ctx, "transfers", existing, { ...envelope, ...fieldsFor<"transfers">(row) });
+        }
+        case "installmentPlans": {
+            return await writeRow(ctx, "installmentPlans", existing, {
+                ...envelope,
+                ...fieldsFor<"installmentPlans">(row),
+            });
+        }
+        case "installments": {
+            return await writeRow(ctx, "installments", existing, { ...envelope, ...fieldsFor<"installments">(row) });
+        }
+        case "outsidePayments": {
+            return await writeRow(ctx, "outsidePayments", existing, {
+                ...envelope,
+                ...fieldsFor<"outsidePayments">(row),
+            });
         }
         case "savingsGoals": {
             const fields = fieldsFor<"savingsGoals">(row);
@@ -558,19 +596,25 @@ function toWire(table: SyncedTable, doc: Doc<SyncedTable>) {
  * it — `seq` is last-modified order, and a category edited today sorts after a
  * transaction created against it last year. The applier runs the batch with
  * foreign keys off for exactly this reason.
+ *
+ * `tables` narrows the walk, for a device re-reading only the tables an older
+ * build skipped rows of. Its cursor is that walk's own, never the device's main
+ * one: a page that omits tables cannot vouch for their seqs.
  */
 export const pullSince = query({
     args: {
         cursor: v.number(),
         limit: v.optional(v.number()),
+        tables: v.optional(v.array(syncedTable)),
     },
     handler: async (ctx, args) => {
         const userId = await requireUserId(ctx);
         await requirePro(ctx, userId);
         const limit = Math.min(Math.max(Math.trunc(args.limit ?? PULL_PAGE_LIMIT), 1), PULL_PAGE_LIMIT);
 
+        const tables: readonly SyncedTable[] = args.tables ?? SYNCED_TABLES;
         const pages = await Promise.all(
-            SYNCED_TABLES.map((table: SyncedTable) =>
+            tables.map((table) =>
                 ctx.db
                     .query(table)
                     .withIndex("by_user_and_seq", (q) => q.eq("userId", userId).gt("seq", args.cursor))
@@ -579,7 +623,7 @@ export const pullSince = query({
         );
 
         const merged = pages
-            .flatMap((docs, index) => docs.map((doc) => toWire(SYNCED_TABLES[index], doc)))
+            .flatMap((docs, index) => docs.map((doc) => toWire(tables[index], doc)))
             .sort((a, b) => a.seq - b.seq);
 
         const rows = merged.slice(0, limit);

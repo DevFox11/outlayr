@@ -6,6 +6,7 @@ import {
     accounts,
     budgets,
     categories,
+    installmentPlans,
     mainBudget,
     outbox,
     savingsGoals,
@@ -17,7 +18,7 @@ import { migratedDatabase, transactionalDatabase } from "@/db/test-database";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { applyPulledRows, drainOutbox, incomingWinsLocally, pullAndApply, runSync, specFor } from "./sync-engine-core";
-import type { PulledRow, PushFn, WireRow } from "./sync-engine-core";
+import type { PullFn, PulledRow, PushFn, WireRow } from "./sync-engine-core";
 import { getSyncCursor, outboxPendingCount, SYNCED_TABLES, setSyncEnabled } from "./sync-outbox-core";
 
 const makeDb = (): Database => migratedDatabase();
@@ -67,8 +68,10 @@ function makeServer() {
         return { accepted, nextSeq, skipped };
     };
 
-    const pull = async ({ cursor, limit }: { cursor: number; limit: number }) => {
-        const after = [...rows.values()].filter((row) => row.seq > cursor).sort((a, b) => a.seq - b.seq);
+    const pull: PullFn = async ({ cursor, limit, tables }) => {
+        const after = [...rows.values()]
+            .filter((row) => row.seq > cursor && (tables === undefined || tables.includes(row.table)))
+            .sort((a, b) => a.seq - b.seq);
         const page = after.slice(0, limit);
         return {
             cursor: page.at(-1)?.seq ?? cursor,
@@ -1170,6 +1173,35 @@ describe("two devices against one account", () => {
         });
 
         expect(calls).toBe(1);
+    });
+
+    it("re-reads only the tables an older build skipped, leaving a restored entry live", async () => {
+        const db = makeDb();
+        const server = makeServer();
+        await setSyncEnabled(db, true);
+        // The server still holds the entry's tombstone; this device restored it.
+        server.rows.set("transactions restored", txRow("restored", 1, 5000, { deletedAt: 5000 }));
+        server.rows.set("installmentPlans plan-1", {
+            deletedAt: null,
+            deviceId: "device-b",
+            fields: { accountId: "acct-1", dateCreated: 4000, transactionId: "restored" },
+            localId: "plan-1",
+            seq: 2,
+            table: "installmentPlans",
+            updatedAt: 4000,
+        });
+        await addTransaction(db, "restored", { updatedAt: AT(6000) });
+        await db.delete(outbox);
+        await setMeta(db, META_KEYS.syncCursor, "9");
+        await setMeta(db, META_KEYS.syncReread, "installmentPlans,installments,transfers");
+
+        await pullAndApply(db, server.pull);
+
+        const [entry] = await db.select().from(transactions).where(eqId("restored"));
+        expect(entry?.deletedAt).toBeNull();
+        await expect(db.select().from(installmentPlans)).resolves.toHaveLength(1);
+        await expect(getSyncCursor(db)).resolves.toBe(9);
+        await expect(getMeta(db, META_KEYS.syncReread)).resolves.toBeNull();
     });
 
     it("does not pull while the gate is shut", async () => {

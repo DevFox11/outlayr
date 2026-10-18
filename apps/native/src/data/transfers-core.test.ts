@@ -58,10 +58,22 @@ function makeDb(): Database {
 			fromAccountId text NOT NULL, toAccountId text NOT NULL,
 			fromAmount real NOT NULL, fromCurrency text NOT NULL, fromAmountUsd real,
 			toAmount real NOT NULL, toCurrency text NOT NULL, toAmountUsd real,
-			exchangeRate real, exchangeRateType text,
+			exchangeRate real, exchangeRateType text, installmentPlanId text,
 			date integer NOT NULL, day integer NOT NULL, month integer NOT NULL,
 			note text DEFAULT '' NOT NULL,
 			dateCreated integer NOT NULL, updatedAt integer NOT NULL, deletedAt integer
+		);
+		CREATE TABLE installmentPlans (
+			id text PRIMARY KEY NOT NULL, accountId text NOT NULL, transactionId text NOT NULL,
+			dateCreated integer NOT NULL, updatedAt integer NOT NULL, deletedAt integer
+		);
+		CREATE TABLE installments (
+			id text PRIMARY KEY NOT NULL, planId text NOT NULL, sequence integer NOT NULL, dueDate integer NOT NULL,
+			amount real NOT NULL, updatedAt integer NOT NULL, deletedAt integer
+		);
+		CREATE TABLE outsidePayments (
+			id text PRIMARY KEY NOT NULL, planId text NOT NULL, date integer NOT NULL, amount real NOT NULL,
+			amountUsd real, updatedAt integer NOT NULL, deletedAt integer
 		);
 		CREATE TABLE exchangeRates (
 			quote text NOT NULL, rateType text NOT NULL, date text NOT NULL, rate real NOT NULL,

@@ -226,12 +226,36 @@ describe("push table coverage", () => {
                 table: "transactionSplits",
                 updatedAt: 4,
             },
+            {
+                deletedAt: null,
+                fields: { accountId: "acct-1", dateCreated: 5, transactionId: "tx-1" },
+                localId: "plan-1",
+                table: "installmentPlans",
+                updatedAt: 5,
+            },
+            {
+                deletedAt: null,
+                fields: { amount: 20, dueDate: 1_700_000_000_000, planId: "plan-1", sequence: 1 },
+                localId: "inst-1",
+                table: "installments",
+                updatedAt: 6,
+            },
+            {
+                deletedAt: null,
+                fields: { amount: 40, amountUsd: 40, date: 1_699_000_000_000, planId: "plan-1" },
+                localId: "out-1",
+                table: "outsidePayments",
+                updatedAt: 7,
+            },
         ];
 
         await pushAs(t, owner, DEVICE_A, rows);
 
         const page = await pullAs(t, owner, 0);
         expect(page.rows.map((row) => row.table).sort()).toStrictEqual([
+            "installmentPlans",
+            "installments",
+            "outsidePayments",
             "tags",
             "transactionPhotos",
             "transactionSplits",
@@ -239,6 +263,41 @@ describe("push table coverage", () => {
         ]);
         const tag = page.rows.find((row) => row.table === "tags");
         expect(tag?.fields).toMatchObject({ name: "festival", sortOrder: 0 });
+    });
+
+    it("keeps a transfer's installment link when a build that predates it edits the transfer", async () => {
+        const t = harness();
+        const owner = await seedProUser(t);
+        const transfer = (updatedAt: number, fields: Partial<Arm<"transfers">["fields"]>): Arm<"transfers"> => ({
+            deletedAt: null,
+            fields: {
+                date: 1_700_000_000_000,
+                dateCreated: 1_700_000_000_000,
+                day: 1_700_000_000_000,
+                exchangeRate: null,
+                exchangeRateType: null,
+                fromAccountId: "bank",
+                fromAmount: 20,
+                fromAmountUsd: 20,
+                fromCurrency: "USD",
+                month: 1_700_000_000_000,
+                note: "",
+                toAccountId: "cashea",
+                toAmount: 20,
+                toAmountUsd: 20,
+                toCurrency: "USD",
+                ...fields,
+            },
+            localId: "tr-1",
+            table: "transfers",
+            updatedAt,
+        });
+
+        await pushAs(t, owner, DEVICE_A, [transfer(1, { installmentPlanId: "plan-1" })]);
+        await pushAs(t, owner, DEVICE_B, [transfer(2, { note: "cuota 2" })]);
+
+        const [row] = (await pullAs(t, owner, 0)).rows;
+        expect(row?.fields).toMatchObject({ installmentPlanId: "plan-1", note: "cuota 2" });
     });
 
     it("round-trips an account and a transaction that names it", async () => {
@@ -708,6 +767,30 @@ describe("pullSince", () => {
         ]);
         expect(page.cursor).toBe(4);
         expect(page.hasMore).toBeFalsy();
+    });
+
+    it("walks only the tables a scoped re-read names", async () => {
+        const t = harness();
+        const owner = await seedProUser(t);
+        await pushAs(t, owner, DEVICE_A, [
+            transactionRow("t1", 100),
+            categoryRow("c1", 101),
+            {
+                deletedAt: null,
+                fields: { accountId: "acct-1", dateCreated: 5, transactionId: "t1" },
+                localId: "plan-1",
+                table: "installmentPlans",
+                updatedAt: 102,
+            },
+        ]);
+
+        const page = await authenticatedAs(t, owner).query(api.sync.pullSince, {
+            cursor: 0,
+            tables: ["installmentPlans", "installments"],
+        });
+
+        expect(page.rows.map((row) => [row.table, row.localId])).toStrictEqual([["installmentPlans", "plan-1"]]);
+        expect(page.cursor).toBe(3);
     });
 
     it("serves only what is strictly after the cursor", async () => {

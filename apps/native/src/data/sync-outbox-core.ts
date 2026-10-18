@@ -6,6 +6,9 @@ import {
     appMeta,
     budgets,
     categories,
+    installmentPlans,
+    installments,
+    outsidePayments,
     mainBudget,
     outbox,
     savingsGoals,
@@ -34,6 +37,9 @@ export const SYNCED_TABLES = [
     "transactionSplits",
     "accounts",
     "transfers",
+    "installmentPlans",
+    "installments",
+    "outsidePayments",
     "appMeta",
 ] as const;
 
@@ -200,6 +206,9 @@ export async function enqueueAllForSync(db: Database): Promise<void> {
     collect("transactionSplits", await db.select({ localId: transactionSplits.id }).from(transactionSplits));
     collect("accounts", await db.select({ localId: accounts.id }).from(accounts));
     collect("transfers", await db.select({ localId: transfers.id }).from(transfers));
+    collect("installmentPlans", await db.select({ localId: installmentPlans.id }).from(installmentPlans));
+    collect("installments", await db.select({ localId: installments.id }).from(installments));
+    collect("outsidePayments", await db.select({ localId: outsidePayments.id }).from(outsidePayments));
     collect(
         "appMeta",
         await db
@@ -249,6 +258,7 @@ export async function resetSyncForAccountSwitch(db: Database): Promise<void> {
                     META_KEYS.syncCursor,
                     META_KEYS.syncedAt,
                     META_KEYS.syncEnabled,
+                    META_KEYS.syncReread,
                 ])
             );
     });

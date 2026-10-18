@@ -22,6 +22,7 @@ import { cardFeeFor, cardFeeValues, suggestedCardFee } from "./card-fees-core";
 import type { CardFeeInput } from "./card-fees-core";
 import { getCategoryById } from "./categories-core";
 import { ERASED_DATE } from "./erase-core";
+import { restorePlansForTransaction, tombstonePlansForTransaction } from "./installment-cascade";
 import {
     forgetLogoDismissal,
     isLogoCandidate,
@@ -500,6 +501,7 @@ export const transactionsRepo = {
                 .update(transactions)
                 .set({ deletedAt: now, updatedAt: now })
                 .where(and(eq(transactions.feeForId, id), isNull(transactions.deletedAt)));
+            await tombstonePlansForTransaction(db, id, now);
         });
     },
 
@@ -542,6 +544,7 @@ export const transactionsRepo = {
                 .update(transactions)
                 .set({ deletedAt: null, updatedAt: now })
                 .where(and(eq(transactions.feeForId, id), eq(transactions.deletedAt, previous.deletedAt)));
+            await restorePlansForTransaction(db, id, previous.deletedAt, now);
         });
     },
 

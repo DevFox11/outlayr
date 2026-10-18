@@ -2,7 +2,15 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import { getTableColumns, isNull } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
-import { budgets, categories, mainBudget, transactions } from "@/db/schema";
+import {
+    budgets,
+    categories,
+    installmentPlans,
+    installments,
+    mainBudget,
+    outsidePayments,
+    transactions,
+} from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
 
 import { ERASED_TRANSACTION, eraseLedger } from "./erase-core";
@@ -153,6 +161,37 @@ describe("eraseLedger", () => {
         expect(row.amountUsd).toBeNull();
         expect(row.exchangeRate).toBeNull();
         expect(row.exchangeRateType).toBeNull();
+    });
+
+    it("erases an order's schedule and outside payments with the entries", async () => {
+        await db.insert(installmentPlans).values({
+            accountId: "acct-1",
+            dateCreated: AUTHORED,
+            id: "plan-1",
+            transactionId: "tx-1",
+            updatedAt: AUTHORED,
+        });
+        await db.insert(installments).values({
+            amount: 20,
+            dueDate: AUTHORED,
+            id: "inst-1",
+            planId: "plan-1",
+            sequence: 1,
+            updatedAt: AUTHORED,
+        });
+        await db
+            .insert(outsidePayments)
+            .values({ amount: 20, amountUsd: 20, date: AUTHORED, id: "out-1", planId: "plan-1", updatedAt: AUTHORED });
+
+        await eraseLedger(db, "transactions");
+
+        await expect(
+            db.select().from(installmentPlans).where(isNull(installmentPlans.deletedAt))
+        ).resolves.toStrictEqual([]);
+        const [row] = await db.select().from(installments);
+        expect(row).toMatchObject({ amount: 0, deletedAt: expect.any(Date) });
+        const [outside] = await db.select().from(outsidePayments);
+        expect(outside).toMatchObject({ amount: 0, amountUsd: null, deletedAt: expect.any(Date) });
     });
 
     it("keeps budgets live under the transactions scope", async () => {

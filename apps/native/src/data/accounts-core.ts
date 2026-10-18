@@ -9,6 +9,7 @@ import { newId } from "@/domain/ids";
 
 import { getMetaSync, META_KEYS, setMeta } from "./app-meta-core";
 import { frozenUsdAmount } from "./frozen-usd";
+import { tombstonePlansOnAccount } from "./installment-cascade";
 import { refreshLogoCandidates } from "./logo-backfill-state";
 import { tombstoneTransfersTouchingAccount } from "./transfers-core";
 
@@ -127,6 +128,7 @@ export const accountsRepo = {
     async softDelete(db: Database, id: string, now: Date = new Date()): Promise<void> {
         await withTransaction(db, async () => {
             await tombstoneTransfersTouchingAccount(db, id, now);
+            await tombstonePlansOnAccount(db, id, now);
             await db
                 .update(accounts)
                 .set({ deletedAt: now, updatedAt: now })

@@ -9,6 +9,9 @@ import {
     appMeta,
     budgets,
     categories,
+    installmentPlans,
+    installments,
+    outsidePayments,
     mainBudget,
     outbox,
     savingsGoals,
@@ -22,8 +25,15 @@ import {
 import { withTransaction } from "@/db/transaction";
 import { chunkRows } from "@/lib/chunk";
 
-import { getOrCreateDeviceId, getSyncCursor, isSyncEnabled, setSyncCursor, SYNCED_META_KEYS } from "./sync-outbox-core";
-import type { SYNCED_TABLES } from "./sync-outbox-core";
+import { getMeta, META_KEYS } from "./app-meta-core";
+import {
+    getOrCreateDeviceId,
+    getSyncCursor,
+    isSyncEnabled,
+    setSyncCursor,
+    SYNCED_META_KEYS,
+    SYNCED_TABLES,
+} from "./sync-outbox-core";
 
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
 
@@ -69,6 +79,8 @@ export type PushFn = (args: {
 export type PullFn = (args: {
     cursor: number;
     limit: number;
+    /** Narrows the walk; see `pullSince`. Absent reads every table. */
+    tables?: readonly SyncedTable[];
 }) => Promise<{ rows: PulledRow[]; cursor: number; hasMore: boolean }>;
 
 interface TableSpec {
@@ -146,6 +158,24 @@ const SPECS = {
         fields: ["name", "color", "icon", "emoji", "income", "sortOrder", "dateCreated", "parentId"],
         id: categories.id,
         table: categories,
+    },
+    installmentPlans: {
+        dates: ["dateCreated"],
+        fields: ["accountId", "transactionId", "dateCreated"],
+        id: installmentPlans.id,
+        table: installmentPlans,
+    },
+    installments: {
+        dates: ["dueDate"],
+        fields: ["planId", "sequence", "dueDate", "amount"],
+        id: installments.id,
+        table: installments,
+    },
+    outsidePayments: {
+        dates: ["date"],
+        fields: ["planId", "date", "amount", "amountUsd"],
+        id: outsidePayments.id,
+        table: outsidePayments,
     },
     mainBudget: {
         dates: ["startDate", "dateCreated"],
@@ -265,6 +295,7 @@ const SPECS = {
             "month",
             "note",
             "dateCreated",
+            "installmentPlanId",
         ],
         id: transfers.id,
         table: transfers,
@@ -565,7 +596,8 @@ function isReplicated(row: PulledRow): boolean {
 async function applyInTransaction(
     db: Database,
     page: { rows: readonly PulledRow[]; cursor: number },
-    now: Date
+    now: Date,
+    keepCursor: boolean
 ): Promise<ApplyResult> {
     const touched = new Set<SyncedTable>();
     let applied = 0;
@@ -659,7 +691,9 @@ async function applyInTransaction(
         }
 
         applied = winners.length;
-        await setSyncCursor(db, page.cursor);
+        if (!keepCursor) {
+            await setSyncCursor(db, page.cursor);
+        }
     });
 
     return { applied, tables: [...touched] };
@@ -866,7 +900,8 @@ async function reconcileMainBudget(db: Database, now: Date): Promise<boolean> {
 export async function applyPulledRows(
     db: Database,
     page: { rows: readonly PulledRow[]; cursor: number },
-    now: Date = new Date()
+    now: Date = new Date(),
+    { keepCursor = false }: { keepCursor?: boolean } = {}
 ): Promise<ApplyResult> {
     if (page.rows.length === 0) {
         return { applied: 0, tables: [] };
@@ -880,7 +915,7 @@ export async function applyPulledRows(
         await db.run(sql`PRAGMA foreign_keys = OFF`);
     }
     try {
-        return await applyInTransaction(db, page, now);
+        return await applyInTransaction(db, page, now, keepCursor);
     } finally {
         if (wasOn) {
             await db.run(sql`PRAGMA foreign_keys = ON`);
@@ -889,40 +924,66 @@ export async function applyPulledRows(
 }
 
 /**
- * Walks the account's change log from this device's cursor to its end.
+ * Walks the change log from `cursor` to its end. A scoped walk (`tables`) keeps
+ * its cursor to itself, since its pages say nothing about the other tables.
  *
  * The `cursor` guard is not paranoia: a page that returns rows but does not
  * advance the watermark would otherwise be replayed forever.
+ */
+async function walkLog(
+    db: Database,
+    pull: PullFn,
+    from: number,
+    now: Date,
+    tables?: readonly SyncedTable[]
+): Promise<ApplyResult> {
+    let cursor = from;
+    let applied = 0;
+    const touched = new Set<SyncedTable>();
+
+    /* oxlint-disable no-await-in-loop -- each page is fetched from the cursor the previous page returned, so the walk is inherently sequential */
+    for (;;) {
+        const page = await pull({ cursor, limit: PULL_PAGE_LIMIT, ...(tables && { tables }) });
+        if (page.rows.length === 0) {
+            break;
+        }
+        const result = await applyPulledRows(db, page, now, { keepCursor: tables !== undefined });
+        applied += result.applied;
+        for (const table of result.tables) {
+            touched.add(table);
+        }
+        if (page.cursor <= cursor) {
+            break;
+        }
+        ({ cursor } = page);
+        if (!page.hasMore) {
+            break;
+        }
+    }
+    /* oxlint-enable no-await-in-loop */
+    return { applied, tables: [...touched] };
+}
+
+/**
+ * Walks the account's change log from this device's cursor to its end, then
+ * runs the one-time re-read `syncReread` asks for, if any. That re-read is
+ * scoped rather than a cursor reset: a full re-read would hand back the server's
+ * tombstone for every entry this device restored from Recently Deleted.
  */
 export async function pullAndApply(db: Database, pull: PullFn, now: Date = new Date()): Promise<ApplyResult> {
     if (!(await isSyncEnabled(db))) {
         return { applied: 0, tables: [] };
     }
-
-    let cursor = await getSyncCursor(db);
-    let applied = 0;
-    const tables = new Set<SyncedTable>();
-
-    /* oxlint-disable no-await-in-loop -- each page is fetched from the cursor the previous page returned, so the walk is inherently sequential */
-    for (;;) {
-        const page = await pull({ cursor, limit: PULL_PAGE_LIMIT });
-        if (page.rows.length === 0) {
-            return { applied, tables: [...tables] };
-        }
-        const result = await applyPulledRows(db, page, now);
-        applied += result.applied;
-        for (const table of result.tables) {
-            tables.add(table);
-        }
-        if (page.cursor <= cursor) {
-            return { applied, tables: [...tables] };
-        }
-        ({ cursor } = page);
-        if (!page.hasMore) {
-            return { applied, tables: [...tables] };
-        }
+    const main = await walkLog(db, pull, await getSyncCursor(db), now);
+    const reread = await getMeta(db, META_KEYS.syncReread);
+    if (reread === null) {
+        return main;
     }
-    /* oxlint-enable no-await-in-loop */
+    const named = reread.split(",");
+    const tables = SYNCED_TABLES.filter((table) => named.includes(table));
+    const extra = tables.length === 0 ? { applied: 0, tables: [] } : await walkLog(db, pull, 0, now, tables);
+    await db.delete(appMeta).where(eq(appMeta.key, META_KEYS.syncReread));
+    return { applied: main.applied + extra.applied, tables: [...new Set([...main.tables, ...extra.tables])] };
 }
 
 /**

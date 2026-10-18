@@ -6,6 +6,7 @@ import { buildBurndown } from "./budget-burndown";
 import { budgetPace, daysLeftInWindow, hoursLeftInDay } from "./budget-math";
 import { nextClockTick } from "./clock";
 import { formatDayHeader } from "./dates";
+import { generateSchedule } from "./installments";
 import { daysBetween } from "./local-day";
 import { goalProgress } from "./savings-goal";
 import { reminderFireAt } from "./subscription-reminder";
@@ -125,6 +126,24 @@ async function answer(): Promise<string> {
                 ],
                 landingOffset: landing.getTimezoneOffset(),
             });
+        }
+        case "installments": {
+            const every = parts[5] ?? 0;
+            const schedule = generateSchedule({
+                amount: { each: 10 },
+                count: 3,
+                currency: "USD",
+                interval: { every, kind: every === 14 ? "days" : "months" },
+                purchaseDay: localDate(0),
+            });
+            return JSON.stringify(
+                schedule.map(({ dueDate }) => [
+                    dueDate.getFullYear(),
+                    dueDate.getMonth(),
+                    dueDate.getDate(),
+                    dueDate.getHours(),
+                ])
+            );
         }
         default: {
             throw new Error(`unknown probe: ${kind}`);

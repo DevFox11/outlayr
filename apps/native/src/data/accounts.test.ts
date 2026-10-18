@@ -147,7 +147,8 @@ describe("useSettledAccountCells", () => {
         mockUseLiveQuery
             .mockReturnValueOnce([transaction])
             .mockReturnValueOnce([outbound])
-            .mockReturnValueOnce([inbound]);
+            .mockReturnValueOnce([inbound])
+            .mockReturnValueOnce([]);
 
         const { result } = await renderHook(() =>
             useSettledAccountCells({} as Database, "account-1", JUNE_1.getTime())
@@ -217,6 +218,7 @@ describe("useAccountsOverviewIn", () => {
             .mockReturnValueOnce([account("keep", 100), account("going", 50)])
             .mockReturnValueOnce([{ ...liveRow({ income: false, total: 5, totalUsd: 5 }), accountId: "going" }])
             .mockReturnValueOnce([])
+            .mockReturnValueOnce([])
             .mockReturnValueOnce([]);
 
         const { result } = await renderHook(() =>
@@ -231,6 +233,7 @@ describe("useAccountsOverviewIn", () => {
     it("leaves people out of the Log's total", async () => {
         mockUseLiveQuery
             .mockReturnValueOnce([account("zinli", 100), { ...account("pedro", -50), kind: "person" }])
+            .mockReturnValueOnce([])
             .mockReturnValueOnce([])
             .mockReturnValueOnce([])
             .mockReturnValueOnce([]);

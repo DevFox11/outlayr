@@ -7,6 +7,9 @@ import {
     appMetaFields,
     budgetFields,
     categoryFields,
+    installmentFields,
+    installmentPlanFields,
+    outsidePaymentFields,
     mainBudgetFields,
     replicated,
     savingsGoalFields,
@@ -256,6 +259,21 @@ export default defineSchema({
         .index("by_user", ["userId"])
         .index("by_user_and_bytes", ["userId", "bytes"])
         .index("by_key", ["key"]),
+
+    /** An order on a liability account; its payments are transfers that name it or outside payments. */
+    installmentPlans: defineTable({ ...replicated, ...installmentPlanFields })
+        .index("by_user_and_seq", ["userId", "seq"])
+        .index("by_user_and_localId", ["userId", "localId"]),
+
+    /** One due date of an order. Paid status is derived on the device, never stored. */
+    installments: defineTable({ ...replicated, ...installmentFields })
+        .index("by_user_and_seq", ["userId", "seq"])
+        .index("by_user_and_localId", ["userId", "localId"]),
+
+    /** A payment toward an order made outside Outlayr; nothing leaves an account. */
+    outsidePayments: defineTable({ ...replicated, ...outsidePaymentFields })
+        .index("by_user_and_seq", ["userId", "seq"])
+        .index("by_user_and_localId", ["userId", "localId"]),
 
     /** A target on an account; progress is that account's balance. */
     savingsGoals: defineTable({ ...replicated, ...savingsGoalFields })

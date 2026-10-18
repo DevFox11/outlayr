@@ -2,7 +2,7 @@ import type { CurrencyCell } from "@outlayr/money/currency-totals";
 import { and, count, eq, isNull, lte, sql, sum } from "drizzle-orm";
 
 import type { SpendDb } from "@/data/budget-spent";
-import { transfers } from "@/db/schema";
+import { accounts, installmentPlans, outsidePayments, transfers } from "@/db/schema";
 
 import type { CellRow } from "./cell-query";
 
@@ -66,6 +66,50 @@ export function settledTransfersInboundQuery(db: SpendDb, now: Date) {
         .from(transfers)
         .where(and(isNull(transfers.deletedAt), lte(transfers.date, now)))
         .groupBy(transfers.toAccountId, transfers.toCurrency, TRANSFER_UTC_DAY);
+}
+
+const OUTSIDE_UTC_DAY = sql<string>`strftime('%Y-%m-%d', ${outsidePayments.date} / 1000, 'unixepoch')`;
+const OUTSIDE_LOCAL_DAY = sql<string>`strftime('%Y-%m-%d', ${outsidePayments.date} / 1000, 'unixepoch', 'localtime')`;
+
+/**
+ * An order's outside payments arrive on its liability account like a transfer's
+ * inbound leg, from nowhere: read them as `toTransferCell(row, true)`. The plan
+ * gives the account, and the account the currency its amounts are in.
+ */
+const OUTSIDE_COLUMNS = {
+    currency: accounts.currency,
+    dateKey: OUTSIDE_UTC_DAY,
+    rows: count(),
+    total: sum(outsidePayments.amount),
+    totalUsd: sum(outsidePayments.amountUsd),
+    unconverted: sum(
+        sql<number>`CASE WHEN ${outsidePayments.amountUsd} IS NULL THEN ${outsidePayments.amount} ELSE 0 END`
+    ),
+    unconvertedRows: sql<number>`SUM(CASE WHEN ${outsidePayments.amountUsd} IS NULL THEN 1 ELSE 0 END)`,
+} as const;
+
+function settledOutside(now: Date) {
+    return and(isNull(outsidePayments.deletedAt), isNull(installmentPlans.deletedAt), lte(outsidePayments.date, now));
+}
+
+export function settledOutsidePaymentQuery(db: SpendDb, accountId: string, now: Date) {
+    return db
+        .select({ ...OUTSIDE_COLUMNS, plotDay: OUTSIDE_LOCAL_DAY })
+        .from(outsidePayments)
+        .innerJoin(installmentPlans, eq(installmentPlans.id, outsidePayments.planId))
+        .innerJoin(accounts, eq(accounts.id, installmentPlans.accountId))
+        .where(and(settledOutside(now), eq(installmentPlans.accountId, accountId)))
+        .groupBy(accounts.currency, OUTSIDE_UTC_DAY, OUTSIDE_LOCAL_DAY);
+}
+
+export function settledOutsidePaymentsQuery(db: SpendDb, now: Date) {
+    return db
+        .select({ accountId: installmentPlans.accountId, ...OUTSIDE_COLUMNS })
+        .from(outsidePayments)
+        .innerJoin(installmentPlans, eq(installmentPlans.id, outsidePayments.planId))
+        .innerJoin(accounts, eq(accounts.id, installmentPlans.accountId))
+        .where(settledOutside(now))
+        .groupBy(installmentPlans.accountId, accounts.currency, OUTSIDE_UTC_DAY);
 }
 
 export function toTransferCell(row: Omit<CellRow, "income">, income: boolean): CurrencyCell {

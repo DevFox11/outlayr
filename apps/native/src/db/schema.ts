@@ -84,6 +84,13 @@ export const transfers = sqliteTable(
         fromAmountUsd: real("fromAmountUsd"),
         fromCurrency: text("fromCurrency").notNull(),
         id: text("id").primaryKey(),
+        /**
+         * The installment order this transfer pays, see `installmentPlans`. No
+         * foreign key, like `transactions.feeForId`: transfers -> plans ->
+         * transactions -> transfers would be a cycle no archive restore order can
+         * insert. Deleting a plan clears it on the write path.
+         */
+        installmentPlanId: text("installmentPlanId"),
         month: integer("month", { mode: "timestamp_ms" }).notNull(),
         note: text("note").notNull().default(""),
         toAccountId: text("toAccountId")
@@ -99,6 +106,9 @@ export const transfers = sqliteTable(
         index("transfers_fromAccountId_idx").on(table.fromAccountId),
         index("transfers_toAccountId_idx").on(table.toAccountId),
         index("transfers_day_date_idx").on(table.day, table.date),
+        index("transfers_installmentPlanId_idx")
+            .on(table.installmentPlanId)
+            .where(sql`${table.installmentPlanId} IS NOT NULL`),
     ]
 );
 
@@ -403,6 +413,77 @@ export const savingsGoals = sqliteTable(
         index("savingsGoals_accountId_idx").on(table.accountId),
         index("savingsGoals_deletedAt_idx").on(table.deletedAt),
     ]
+);
+
+/**
+ * One purchase on a liability account, paid over time. The purchase entry holds
+ * the price; the plan holds only its schedule (`installments`), and its payments
+ * are transfers that name it or `outsidePayments`. Nothing here records what is
+ * paid: that is derived, see `domain/installments.ts`.
+ */
+export const installmentPlans = sqliteTable(
+    "installmentPlans",
+    {
+        accountId: text("accountId")
+            .notNull()
+            .references(() => accounts.id, { onDelete: "cascade" }),
+        dateCreated: integer("dateCreated", { mode: "timestamp_ms" }).notNull(),
+        deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+        id: text("id").primaryKey(),
+        transactionId: text("transactionId")
+            .notNull()
+            .references(() => transactions.id, { onDelete: "cascade" }),
+        updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+    },
+    (table) => [
+        index("installmentPlans_accountId_idx").on(table.accountId),
+        index("installmentPlans_transactionId_idx").on(table.transactionId),
+    ]
+);
+
+/**
+ * One due date of an order, generated once from a template and then edited on
+ * its own: providers move single dates and round unevenly. `sequence` 0 is the
+ * upfront payment, 1..N the installments. `amount` is in the account's currency.
+ */
+export const installments = sqliteTable(
+    "installments",
+    {
+        amount: real("amount").notNull(),
+        deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+        /** A local midnight, the same convention as `transactions.day`. */
+        dueDate: integer("dueDate", { mode: "timestamp_ms" }).notNull(),
+        id: text("id").primaryKey(),
+        planId: text("planId")
+            .notNull()
+            .references(() => installmentPlans.id, { onDelete: "cascade" }),
+        sequence: integer("sequence").notNull(),
+        updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+    },
+    (table) => [index("installments_planId_idx").on(table.planId), index("installments_dueDate_idx").on(table.dueDate)]
+);
+
+/**
+ * A payment toward an order made outside Outlayr: before the order was recorded,
+ * or from money no account tracks. Nothing leaves an account; it raises the
+ * order's liability balance like an arriving transfer (`outsidePaymentCells`)
+ * and counts toward the order's paid total. `amount` is in the account's
+ * currency, `amountUsd` frozen at `date` like a transfer leg's.
+ */
+export const outsidePayments = sqliteTable(
+    "outsidePayments",
+    {
+        amount: real("amount").notNull(),
+        amountUsd: real("amountUsd"),
+        date: integer("date", { mode: "timestamp_ms" }).notNull(),
+        deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
+        id: text("id").primaryKey(),
+        planId: text("planId")
+            .notNull()
+            .references(() => installmentPlans.id, { onDelete: "cascade" }),
+        updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+    },
+    (table) => [index("outsidePayments_planId_idx").on(table.planId)]
 );
 
 export const tags = sqliteTable(

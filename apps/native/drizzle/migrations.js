@@ -34,6 +34,7 @@ import m0029 from './0029_tag_pair_index_partial.sql';
 import m0030 from './0030_card_fees.sql';
 import m0031 from './0031_paid_via.sql';
 import m0032 from './0032_stop_null_indexes_hijacking_the_planner.sql';
+import m0033 from './0033_installments.sql';
 
   export default {
     journal,
@@ -70,7 +71,8 @@ m0028,
 m0029,
 m0030,
 m0031,
-m0032
+m0032,
+m0033
     }
   }
   

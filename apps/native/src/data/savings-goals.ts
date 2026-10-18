@@ -6,7 +6,7 @@ import { convertUsdSum } from "@outlayr/money/valuation";
 import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
-import { savingsGoals, transactions, transfers } from "@/db/schema";
+import { outsidePayments, savingsGoals, transactions, transfers } from "@/db/schema";
 import { goalBalanceSeries } from "@/domain/goal-balance-series";
 import type { GoalLinePoint } from "@/domain/goal-pace-geometry";
 import { startOfLocalDay } from "@/domain/local-day";
@@ -20,7 +20,12 @@ import { settledAccountsCellQuery, toCurrencyCell } from "./cell-query";
 import { useLiveQuery } from "./live-query";
 import type { SavingsGoal } from "./savings-goals-core";
 import { savingsGoalsQuery } from "./savings-goals-core";
-import { settledTransfersInboundQuery, settledTransfersOutboundQuery, toTransferCell } from "./transfer-cells";
+import {
+    settledOutsidePaymentsQuery,
+    settledTransfersInboundQuery,
+    settledTransfersOutboundQuery,
+    toTransferCell,
+} from "./transfer-cells";
 
 export interface SavingsGoalWithProgress {
     /**
@@ -68,6 +73,7 @@ export function useSavingsGoals(db: Database, nowMs: number): SavingsGoalWithPro
     const cellRows = useLiveQuery(transactions, () => settledAccountsCellQuery(db, settledAt), [settledAt]);
     const outbound = useLiveQuery(transfers, () => settledTransfersOutboundQuery(db, settledAt), [settledAt]);
     const inbound = useLiveQuery(transfers, () => settledTransfersInboundQuery(db, settledAt), [settledAt]);
+    const outside = useLiveQuery(outsidePayments, () => settledOutsidePaymentsQuery(db, settledAt), [settledAt]);
     const displayCurrency = useGlobalCurrency(db);
     const rates = useBalanceRates(db, displayCurrency, accounts);
 
@@ -90,7 +96,7 @@ export function useSavingsGoals(db: Database, nowMs: number): SavingsGoalWithPro
         for (const { accountId, ...row } of outbound) {
             push(accountId, toTransferCell(row, false));
         }
-        for (const { accountId, ...row } of inbound) {
+        for (const { accountId, ...row } of [...inbound, ...outside]) {
             push(accountId, toTransferCell(row, true));
         }
 
@@ -152,7 +158,7 @@ export function useSavingsGoals(db: Database, nowMs: number): SavingsGoalWithPro
                 },
             ];
         });
-    }, [goals, accounts, cellRows, outbound, inbound, displayCurrency, rates, nowMs]);
+    }, [goals, accounts, cellRows, outbound, inbound, outside, displayCurrency, rates, nowMs]);
 }
 
 /**

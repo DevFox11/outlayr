@@ -210,7 +210,7 @@ export const accountBalances = internalQuery({
         const userId = caller.subject;
         const now = Date.now();
         const currency = (await setting(ctx, userId, "currency")) ?? "USD";
-        const [accountRows, transactionRows, transferRows, offsetMs] = await Promise.all([
+        const [accountRows, transactionRows, transferRows, planRows, outsideRows, offsetMs] = await Promise.all([
             ctx.db
                 .query("accounts")
                 .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
@@ -226,6 +226,14 @@ export const accountBalances = internalQuery({
                 .withIndex("by_user_and_deletedAt_and_date", (q) =>
                     q.eq("userId", userId).eq("deletedAt", null).lte("date", now)
                 )
+                .collect(),
+            ctx.db
+                .query("installmentPlans")
+                .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+                .collect(),
+            ctx.db
+                .query("outsidePayments")
+                .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
                 .collect(),
             zoneOffset(ctx, userId, now),
         ]);
@@ -254,6 +262,26 @@ export const accountBalances = internalQuery({
                 amountUsd: row.toAmountUsd,
                 currency: row.toCurrency,
                 date,
+                income: true,
+                leg: "inbound",
+            });
+        }
+        // A payment made outside Outlayr arrives on its order's account from nowhere.
+        const planAccount = new Map(
+            planRows.filter((row) => row.deletedAt === null).map((row) => [row.localId, row.accountId])
+        );
+        const currencyOf = new Map(accounts.map((account) => [account.localId, account.currency]));
+        for (const row of outsideRows.sort(bySeq)) {
+            const accountId = planAccount.get(row.planId);
+            const accountCurrency = accountId === undefined ? undefined : currencyOf.get(accountId);
+            if (row.deletedAt !== null || row.date > now || accountId === undefined || accountCurrency === undefined) {
+                continue;
+            }
+            ledger.get(accountId)?.push({
+                amount: row.amount,
+                amountUsd: row.amountUsd,
+                currency: accountCurrency,
+                date: new Date(row.date),
                 income: true,
                 leg: "inbound",
             });

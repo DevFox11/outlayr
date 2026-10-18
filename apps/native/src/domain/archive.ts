@@ -10,7 +10,7 @@ import { z } from "zod";
  */
 
 /** Rises when a file carries something an older build would drop on restore. */
-export const ARCHIVE_VERSION = 2;
+export const ARCHIVE_VERSION = 3;
 
 export const ARCHIVE_FORMAT = "outlayr.archive";
 
@@ -31,6 +31,10 @@ export const ARCHIVE_TABLES = [
     "transactionTags",
     "transactionPhotos",
     "transactionSplits",
+    // After `transactions`: an order points at its purchase entry.
+    "installmentPlans",
+    "installments",
+    "outsidePayments",
     "appMeta",
 ] as const;
 
@@ -49,7 +53,10 @@ const ARCHIVE_DATE_COLUMNS = {
     appMeta: [],
     budgets: ["startDate", "dateCreated", "updatedAt", "deletedAt"],
     categories: ["dateCreated", "updatedAt", "deletedAt"],
+    installmentPlans: ["dateCreated", "updatedAt", "deletedAt"],
+    installments: ["dueDate", "updatedAt", "deletedAt"],
     mainBudget: ["startDate", "dateCreated", "updatedAt", "deletedAt"],
+    outsidePayments: ["date", "updatedAt", "deletedAt"],
     savingsGoals: ["dateCreated", "targetDate", "updatedAt", "deletedAt"],
     tags: ["updatedAt", "deletedAt"],
     transactionPhotos: ["updatedAt", "deletedAt"],
@@ -167,7 +174,10 @@ export function parseArchive(text: string): ArchiveDocument | null {
             appMeta: tables.appMeta ?? [],
             budgets: tables.budgets ?? [],
             categories: tables.categories ?? [],
+            installmentPlans: tables.installmentPlans ?? [],
+            installments: tables.installments ?? [],
             mainBudget: tables.mainBudget ?? [],
+            outsidePayments: tables.outsidePayments ?? [],
             savingsGoals: tables.savingsGoals ?? [],
             tags: tables.tags ?? [],
             transactionPhotos: tables.transactionPhotos ?? [],

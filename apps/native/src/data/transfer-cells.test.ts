@@ -87,6 +87,7 @@ function makeDb() {
 			toAmountUsd real,
 			exchangeRate real,
 			exchangeRateType text,
+			installmentPlanId text,
 			date integer NOT NULL,
 			day integer NOT NULL,
 			month integer NOT NULL,

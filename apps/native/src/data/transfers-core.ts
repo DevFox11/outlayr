@@ -28,6 +28,11 @@ export interface TransferInput {
     fromAccountId: string;
     fromAmount: number;
     fromCurrency: string;
+    /**
+     * The installment order this transfer pays. Absent leaves an edited
+     * transfer's link alone, so an editor that never shows it cannot unlink it.
+     */
+    installmentPlanId?: string | null;
     note?: string;
     toAccountId: string;
     toAmount: number;
@@ -82,6 +87,7 @@ function legColumns(input: TransferInput, fromAmountUsd: number | null, toAmount
         toAmountUsd,
         toCurrency: input.toCurrency,
         updatedAt: now,
+        ...(input.installmentPlanId !== undefined && { installmentPlanId: input.installmentPlanId }),
     };
 }
 
@@ -243,6 +249,38 @@ export async function tombstoneTransfersTouchingAccount(db: Database, accountId:
         .where(and(isNull(transfers.deletedAt), touchesAccount(accountId)));
 }
 
+/**
+ * A new transfer's id and the statements that write it, with the frozen USD
+ * figures already looked up. Statements only, like
+ * {@link tombstoneTransfersTouchingAccount}: a write that has to land in the
+ * same transaction as other rows runs `write` inside its own.
+ */
+export async function stageTransfer(
+    db: Database,
+    input: TransferInput
+): Promise<{ id: string; write: () => Promise<void> }> {
+    assertMovable(input);
+    const now = new Date();
+    const id = newId();
+    const [fromAmountUsd, toAmountUsd, feeUsd] = await Promise.all([
+        frozenUsdAmount(db, input.fromAmount, input.fromCurrency, input.date),
+        frozenUsdAmount(db, input.toAmount, input.toCurrency, input.date),
+        input.fee ? frozenUsdAmount(db, input.fee.amount, feeCurrency(input), input.date) : Promise.resolve(null),
+    ]);
+    const write = async () => {
+        await db.insert(transfers).values({
+            ...legColumns(input, fromAmountUsd, toAmountUsd, now),
+            dateCreated: now,
+            deletedAt: null,
+            id,
+        });
+        if (input.fee) {
+            await insertFee(db, input, input.fee, feeUsd, now, id);
+        }
+    };
+    return { id, write };
+}
+
 export const transfersRepo = {
     async countForAccount(db: Database, accountId: string): Promise<number> {
         const [row] = await db
@@ -258,26 +296,8 @@ export const transfersRepo = {
      * legs to the source would deny it.
      */
     async create(db: Database, input: TransferInput): Promise<string> {
-        assertMovable(input);
-        const now = new Date();
-        const id = newId();
-        const [fromAmountUsd, toAmountUsd, feeUsd] = await Promise.all([
-            frozenUsdAmount(db, input.fromAmount, input.fromCurrency, input.date),
-            frozenUsdAmount(db, input.toAmount, input.toCurrency, input.date),
-            input.fee ? frozenUsdAmount(db, input.fee.amount, feeCurrency(input), input.date) : Promise.resolve(null),
-        ]);
-
-        await withTransaction(db, async () => {
-            await db.insert(transfers).values({
-                ...legColumns(input, fromAmountUsd, toAmountUsd, now),
-                dateCreated: now,
-                deletedAt: null,
-                id,
-            });
-            if (input.fee) {
-                await insertFee(db, input, input.fee, feeUsd, now, id);
-            }
-        });
+        const { id, write } = await stageTransfer(db, input);
+        await withTransaction(db, write);
         return id;
     },
     async getById(db: Database, id: string): Promise<Transfer | null> {

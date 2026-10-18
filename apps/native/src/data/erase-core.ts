@@ -3,7 +3,15 @@ import { isNull } from "drizzle-orm";
 
 import { TOMBSTONED_BUDGET, TOMBSTONED_MAIN_BUDGET } from "@/data/budgets-core";
 import type { Database } from "@/db/client";
-import { budgets, mainBudget, transactions, transfers } from "@/db/schema";
+import {
+    budgets,
+    installmentPlans,
+    installments,
+    mainBudget,
+    outsidePayments,
+    transactions,
+    transfers,
+} from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 
 export type EraseScope = "transactions" | "everything";
@@ -73,6 +81,7 @@ const ERASED_TRANSFER = {
     fromAmount: 0,
     fromAmountUsd: null,
     fromCurrency: "",
+    installmentPlanId: null,
     month: ERASED_DATE,
     note: "",
     toAmount: 0,
@@ -101,6 +110,19 @@ export async function eraseLedger(db: Database, scope: EraseScope): Promise<void
             .update(transfers)
             .set({ ...ERASED_TRANSFER, deletedAt: now, updatedAt: now })
             .where(isNull(transfers.deletedAt));
+        // An order is its purchase entry's schedule, so it goes with the entries.
+        await db
+            .update(installments)
+            .set({ amount: 0, deletedAt: now, dueDate: ERASED_DATE, updatedAt: now })
+            .where(isNull(installments.deletedAt));
+        await db
+            .update(outsidePayments)
+            .set({ amount: 0, amountUsd: null, date: ERASED_DATE, deletedAt: now, updatedAt: now })
+            .where(isNull(outsidePayments.deletedAt));
+        await db
+            .update(installmentPlans)
+            .set({ dateCreated: ERASED_DATE, deletedAt: now, updatedAt: now })
+            .where(isNull(installmentPlans.deletedAt));
 
         if (scope !== "everything") {
             return;
