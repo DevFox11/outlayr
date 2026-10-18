@@ -4,7 +4,7 @@ import { act, renderHook } from "@testing-library/react-native";
 import type { Database } from "@/db/client";
 import { migratedDatabase } from "@/db/test-database";
 
-type ChangeListener = (event: { tableName: string }) => void;
+type ChangeListener = (event: { tableName: string; rowId: number }) => void;
 
 const mockListeners = new Set<ChangeListener>();
 jest.mock("expo-sqlite", () => ({
@@ -28,23 +28,26 @@ jest.mock("@/lib/convex", () => ({
     watchSyncWatermark: () => () => undefined,
 }));
 
-jest.mock("./table-invalidation", () => ({ invalidateAll: jest.fn() }));
-
 let mockCountFails = false;
+const mockCountCalls = jest.fn();
 jest.mock("./sync-outbox-core", () => {
     const actual = jest.requireActual<typeof import("./sync-outbox-core")>("./sync-outbox-core");
     return {
         ...actual,
-        outboxPendingCount: (...args: Parameters<typeof actual.outboxPendingCount>) =>
-            mockCountFails ? Promise.reject(new Error("database is closed")) : actual.outboxPendingCount(...args),
+        outboxPendingCount: (...args: Parameters<typeof actual.outboxPendingCount>) => {
+            mockCountCalls();
+            return mockCountFails
+                ? Promise.reject(new Error("database is closed"))
+                : actual.outboxPendingCount(...args);
+        },
     };
 });
 
 import { useSyncEngine } from "./use-sync-engine";
 
-function emitChange(tableName: string): void {
+function emitChange(tableName: string, rowId = 1): void {
     for (const listener of mockListeners) {
-        listener({ tableName });
+        listener({ tableName, rowId });
     }
 }
 
@@ -54,6 +57,7 @@ describe("useSyncEngine", () => {
     beforeEach(() => {
         mockListeners.clear();
         mockCountFails = false;
+        mockCountCalls.mockClear();
         mockRunSync.mockReset();
         mockRunSync.mockResolvedValue({ tables: [] });
         db = migratedDatabase({ foreignKeys: false });
@@ -68,6 +72,7 @@ describe("useSyncEngine", () => {
 
         await act(async () => {
             emitChange("appMeta");
+            jest.advanceTimersByTime(0);
         });
         await act(async () => {
             jest.advanceTimersByTime(10_000);
@@ -85,6 +90,7 @@ describe("useSyncEngine", () => {
 
         await act(async () => {
             emitChange("transactions");
+            jest.advanceTimersByTime(0);
         });
         await act(async () => {
             jest.advanceTimersByTime(10_000);
@@ -102,11 +108,28 @@ describe("useSyncEngine", () => {
 
         await act(async () => {
             emitChange("transactions");
+            jest.advanceTimersByTime(0);
         });
         await act(async () => {
             jest.advanceTimersByTime(10_000);
         });
 
         expect(mockRunSync.mock.calls.length).toBeGreaterThan(afterMount);
+    });
+
+    it("counts the outbox once for a burst of row events", async () => {
+        await act(async () => {
+            renderHook(() => useSyncEngine(db, false));
+        });
+        mockCountCalls.mockClear();
+
+        await act(async () => {
+            for (let rowId = 1; rowId <= 300; rowId += 1) {
+                emitChange("transactions", rowId);
+            }
+            jest.advanceTimersByTime(0);
+        });
+
+        expect(mockCountCalls).toHaveBeenCalledTimes(1);
     });
 });

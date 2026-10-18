@@ -1,4 +1,3 @@
-import { addDatabaseChangeListener } from "expo-sqlite";
 import { useEffect } from "react";
 import { AppState } from "react-native";
 
@@ -7,6 +6,7 @@ import { isBehindWatermark } from "@/domain/sync-wakeup";
 import { syncTransport, watchSyncWatermark } from "@/lib/convex";
 import { debounce } from "@/lib/sync-cadence";
 
+import { subscribeToTableChanges } from "./database-changes";
 import { runSync } from "./sync-engine-core";
 import { getSyncCursor, isSyncEnabled, outboxPendingCount, SYNCED_TABLES, setSyncedAt } from "./sync-outbox-core";
 import { invalidateAll } from "./table-invalidation";
@@ -17,8 +17,6 @@ import { invalidateAll } from "./table-invalidation";
  * far more expensive than rebuilding a tile.
  */
 const SYNC_DEBOUNCE_MS = 2000;
-
-const REPLICATED = new Set<string>(SYNCED_TABLES);
 
 /**
  * Drives replication on the same shape as `useSystemSync`: on foreground, and
@@ -85,7 +83,25 @@ export function useSyncEngine(db: Database | null, paused: boolean): void {
 
         cycle();
 
+        let disposed = false;
+
+        // A burst reports one change per table, so a write that touches several
+        // replicated tables still costs a single count.
+        let checkQueued = false;
         const scheduleIfPending = () => {
+            if (checkQueued) {
+                return;
+            }
+            checkQueued = true;
+            queueMicrotask(() => {
+                checkQueued = false;
+                if (!disposed) {
+                    countPending();
+                }
+            });
+        };
+
+        const countPending = () => {
             outboxPendingCount(db)
                 .then((pending) => {
                     if (pending > 0) {
@@ -94,15 +110,13 @@ export function useSyncEngine(db: Database | null, paused: boolean): void {
                 })
                 .catch((error) => {
                     console.warn("[outlayr] sync schedule check failed", error);
-                    schedule.schedule();
+                    if (!disposed) {
+                        schedule.schedule();
+                    }
                 });
         };
 
-        const listener = addDatabaseChangeListener((event) => {
-            if (REPLICATED.has(event.tableName)) {
-                scheduleIfPending();
-            }
-        });
+        const unsubscribeTables = SYNCED_TABLES.map((table) => subscribeToTableChanges(table, scheduleIfPending));
 
         const subscription = AppState.addEventListener("change", (state) => {
             if (state === "active") {
@@ -130,7 +144,6 @@ export function useSyncEngine(db: Database | null, paused: boolean): void {
         // subscription is established and torn down as that value changes rather
         // than once at mount.
         let unwatch: (() => void) | null = null;
-        let disposed = false;
 
         const reconcileWatch = async () => {
             const wanted = await isSyncEnabled(db);
@@ -160,17 +173,15 @@ export function useSyncEngine(db: Database | null, paused: boolean): void {
         // Registered after `watchGate` exists rather than beside the other listener:
         // the callback only fires on a later write, but reading a `const` declared
         // below would be a dead-zone throw if that ever stopped being true.
-        const gateListener = addDatabaseChangeListener((event) => {
-            if (event.tableName === "appMeta") {
-                watchGate();
-            }
-        });
+        const unsubscribeGate = subscribeToTableChanges("appMeta", watchGate);
 
         return () => {
             disposed = true;
             schedule.cancel();
-            listener.remove();
-            gateListener.remove();
+            for (const unsubscribe of unsubscribeTables) {
+                unsubscribe();
+            }
+            unsubscribeGate();
             subscription.remove();
             unwatch?.();
         };
