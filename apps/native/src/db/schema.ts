@@ -203,6 +203,12 @@ export const transactions = sqliteTable(
          */
         reminderLeadDays: integer("reminderLeadDays"),
         /**
+         * When the entry was last lifted from Recently Deleted, or null. Sync reads
+         * it to tell a deliberate restore from an edit that raced a delete; see
+         * `docs/convex-sync-design.md` §4.
+         */
+        restoredAt: integer("restoredAt", { mode: "timestamp_ms" }),
+        /**
          * Set only on a transfer's fee. A lifecycle link, never an exclusion flag:
          * a fee is ordinary spending and every aggregate must keep counting it, so
          * nothing filters on this column.
@@ -430,6 +436,8 @@ export const installmentPlans = sqliteTable(
         dateCreated: integer("dateCreated", { mode: "timestamp_ms" }).notNull(),
         deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
         id: text("id").primaryKey(),
+        /** Set when restored with its purchase entry, like `transactions.restoredAt`. */
+        restoredAt: integer("restoredAt", { mode: "timestamp_ms" }),
         transactionId: text("transactionId")
             .notNull()
             .references(() => transactions.id, { onDelete: "cascade" }),
@@ -457,6 +465,8 @@ export const installments = sqliteTable(
         planId: text("planId")
             .notNull()
             .references(() => installmentPlans.id, { onDelete: "cascade" }),
+        /** Set when restored with its purchase entry, like `transactions.restoredAt`. */
+        restoredAt: integer("restoredAt", { mode: "timestamp_ms" }),
         sequence: integer("sequence").notNull(),
         updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
     },
@@ -481,6 +491,8 @@ export const outsidePayments = sqliteTable(
         planId: text("planId")
             .notNull()
             .references(() => installmentPlans.id, { onDelete: "cascade" }),
+        /** Set when restored with its purchase entry, like `transactions.restoredAt`. */
+        restoredAt: integer("restoredAt", { mode: "timestamp_ms" }),
         updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
     },
     (table) => [index("outsidePayments_planId_idx").on(table.planId)]
@@ -513,6 +525,8 @@ export const transactionTags = sqliteTable(
     {
         deletedAt: integer("deletedAt", { mode: "timestamp_ms" }),
         id: text("id").primaryKey(),
+        /** When a retired link was revived by re-adding its tag, like `transactions.restoredAt`. */
+        restoredAt: integer("restoredAt", { mode: "timestamp_ms" }),
         tagId: text("tagId")
             .notNull()
             .references(() => tags.id),

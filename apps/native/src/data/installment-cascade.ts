@@ -50,20 +50,22 @@ export async function tombstonePlansForTransaction(db: Database, transactionId: 
 /**
  * The purchase entry restored brings back what its delete took: the orders,
  * rows and outside payments tombstoned at the same instant. Ones deleted on
- * their own before it stay deleted.
+ * their own before it stay deleted. `restoredAt` is the entry's own stamp, so
+ * they sync back with it.
  */
 export async function restorePlansForTransaction(
     db: Database,
     transactionId: string,
     deletedAt: Date,
-    now: Date
+    now: Date,
+    restoredAt: Date
 ): Promise<void> {
     const taken = and(eq(installmentPlans.transactionId, transactionId), eq(installmentPlans.deletedAt, deletedAt));
     await Promise.all(
         PLAN_CHILDREN.map((child) =>
             db
                 .update(child)
-                .set({ deletedAt: null, updatedAt: now })
+                .set({ deletedAt: null, restoredAt, updatedAt: now })
                 .where(
                     and(
                         eq(child.deletedAt, deletedAt),
@@ -75,7 +77,7 @@ export async function restorePlansForTransaction(
                 )
         )
     );
-    await db.update(installmentPlans).set({ deletedAt: null, updatedAt: now }).where(taken);
+    await db.update(installmentPlans).set({ deletedAt: null, restoredAt, updatedAt: now }).where(taken);
 }
 
 /** An account going takes its orders with it. */

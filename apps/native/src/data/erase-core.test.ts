@@ -128,7 +128,7 @@ describe("eraseLedger", () => {
     // A column added to `transactions` and not to the constant would survive the
     // erase on the tombstone, and no round-trip assertion above would notice.
     it("names every column of a transaction that is not the envelope", () => {
-        const ENVELOPE = new Set(["id", "updatedAt", "deletedAt"]);
+        const ENVELOPE = new Set(["id", "updatedAt", "deletedAt", "restoredAt"]);
         const declared = Object.keys(getTableColumns(transactions)).filter((name) => !ENVELOPE.has(name));
 
         expect(Object.keys(ERASED_TRANSACTION).sort()).toStrictEqual(declared.sort());

@@ -5,6 +5,7 @@ import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { migratedSqlite, testDatabase } from "@/db/test-database";
 
+import { incomingWins } from "../../../../packages/backend/convex/lib/syncTables";
 import { accountLedgerState, discardAccountLedger, replaceLocalFromAccount } from "./adoption-engine-core";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { candidateLogoIds, rememberLogoCandidate } from "./logo-backfill-state";
@@ -18,28 +19,10 @@ function makeDb(): Database {
     return testDatabase(sqlite);
 }
 
-/** The same R1/R2 rule as `packages/backend/convex/lib/syncTables.ts`. */
+/** One row per `(table, localId)`, merged by the server's own `incomingWins`. */
 function makeServer() {
     const rows = new Map<string, PulledRow>();
     let nextSeq = 1;
-
-    const wins = (
-        incoming: { updatedAt: number; deletedAt: number | null; deviceId: string },
-        existing: PulledRow | undefined
-    ): boolean => {
-        if (!existing) {
-            return true;
-        }
-        const a = incoming.deletedAt !== null;
-        const b = existing.deletedAt !== null;
-        if (a !== b) {
-            return a;
-        }
-        if (incoming.updatedAt !== existing.updatedAt) {
-            return incoming.updatedAt > existing.updatedAt;
-        }
-        return incoming.deviceId > existing.deviceId;
-    };
 
     const push: PushFn = async ({ deviceId, rows: pushed }) => {
         let accepted = 0;
@@ -47,11 +30,11 @@ function makeServer() {
         for (const row of pushed) {
             const key = `${row.table} ${row.localId}`;
             const existing = rows.get(key);
-            if (!wins({ ...row, deviceId }, existing)) {
+            if (!incomingWins({ ...row, deviceId }, existing ?? null)) {
                 skipped += 1;
                 continue;
             }
-            rows.set(key, { ...row, deviceId, seq: nextSeq });
+            rows.set(key, { ...row, deviceId, restoredAt: row.restoredAt ?? null, seq: nextSeq });
             nextSeq += 1;
             accepted += 1;
         }
@@ -84,9 +67,15 @@ async function addTransaction(db: Database, id: string, updatedAt: Date): Promis
     });
 }
 
-function serverRow(localId: string, updatedAt: number, deletedAt: number | null = null): PulledRow {
+function serverRow(
+    localId: string,
+    updatedAt: number,
+    deletedAt: number | null = null,
+    restoredAt: number | null = null
+): PulledRow {
     return {
         deletedAt,
+        restoredAt,
         deviceId: "peer",
         fields: {
             amount: 99,
@@ -152,6 +141,15 @@ describe("replaceLocalFromAccount", () => {
         expect(rows.map((row) => row.id)).toStrictEqual(["remote"]);
     });
 
+    it("spends the one-time restore re-read, having just read the whole log", async () => {
+        const server = makeServer();
+        await setMeta(db, META_KEYS.syncRestoresReread, "1");
+
+        await replaceLocalFromAccount(db, server.pull);
+
+        await expect(getMeta(db, META_KEYS.syncRestoresReread)).resolves.toBeNull();
+    });
+
     it("keeps device-local meta that no pull would hand back", async () => {
         const server = makeServer();
         await setMeta(db, META_KEYS.syncDeviceId, "this-device");
@@ -195,6 +193,19 @@ describe("discardAccountLedger", () => {
         const survivor = server.rows.get("transactions shared");
         expect(survivor?.deletedAt).toBeNull();
         expect(survivor?.fields.note).toBe("shared");
+    });
+
+    it("keeps the local row over one the account restored, even when the local edit is newer", async () => {
+        const server = makeServer();
+        await server.push({ deviceId: "peer", rows: [serverRow("restored", 900, null, 900)] });
+        await addTransaction(db, "restored", new Date(1000));
+
+        await discardAccountLedger(db, server.transport);
+        await setSyncEnabled(db, true);
+        await enqueueAllForSync(db);
+        await drainOutbox(db, server.push);
+
+        expect(server.rows.get("transactions restored")?.fields.note).toBe("restored");
     });
 
     it("moves a lifted row's logo candidate with its new clock", async () => {

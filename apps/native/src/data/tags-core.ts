@@ -6,6 +6,8 @@ import { withTransaction } from "@/db/transaction";
 import { newId } from "@/domain/ids";
 import { findTagByName, normalizeTagName, tagLinkDiff } from "@/domain/tags";
 
+import { restoreStamp } from "./sync-engine-core";
+
 export interface TagRow {
     color: string | null;
     id: string;
@@ -127,14 +129,18 @@ export const tagsRepo = {
         /* oxlint-disable no-await-in-loop -- expo-sqlite's withTransactionAsync shares one connection, so statements issued concurrently inside the callback interleave with the transaction boundary */
         for (const tagId of attach) {
             const retired = await db
-                .select({ id: transactionTags.id })
+                .select({
+                    deletedAt: transactionTags.deletedAt,
+                    id: transactionTags.id,
+                    restoredAt: transactionTags.restoredAt,
+                })
                 .from(transactionTags)
                 .where(and(eq(transactionTags.transactionId, transactionId), eq(transactionTags.tagId, tagId)))
                 .limit(1);
             if (retired[0]) {
                 await db
                     .update(transactionTags)
-                    .set({ deletedAt: null, updatedAt: now })
+                    .set({ deletedAt: null, restoredAt: restoreStamp(retired[0], now), updatedAt: now })
                     .where(eq(transactionTags.id, retired[0].id));
                 continue;
             }

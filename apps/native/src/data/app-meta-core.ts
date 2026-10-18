@@ -122,6 +122,13 @@ export const META_KEYS = {
     /** How far this device has read the account's change log. Device-local. */
     syncCursor: "syncCursor",
     /**
+     * Present on a device that synced before `restoredAt` existed (see migration
+     * 0034): the build before it rejected every restored row it pulled, so
+     * `pullAndApply` re-reads the restorable tables once for those rows. Deleted
+     * when the walk completes. Device-local.
+     */
+    syncRestoresReread: "syncRestoresReread",
+    /**
      * This device's replication identity, minted on first use. It breaks the tie
      * when two devices last wrote a row in the same millisecond, so it must stay
      * device-local — replicating it would hand every device the same one.

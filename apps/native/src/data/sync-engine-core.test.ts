@@ -16,40 +16,24 @@ import {
 } from "@/db/schema";
 import { migratedDatabase, transactionalDatabase } from "@/db/test-database";
 
+import { incomingWins } from "../../../../packages/backend/convex/lib/syncTables";
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
 import { applyPulledRows, drainOutbox, incomingWinsLocally, pullAndApply, runSync, specFor } from "./sync-engine-core";
 import type { PullFn, PulledRow, PushFn, WireRow } from "./sync-engine-core";
-import { getSyncCursor, outboxPendingCount, SYNCED_TABLES, setSyncEnabled } from "./sync-outbox-core";
+import { getSyncCursor, outboxPendingCount, SYNCED_TABLES, setSyncCursor, setSyncEnabled } from "./sync-outbox-core";
+import { transactionsRepo } from "./transactions-core";
 
 const makeDb = (): Database => migratedDatabase();
 
 /**
  * A minimal server: one seq counter, one row per `(table, localId)`, and the
- * same R1/R2 rule `packages/backend/convex/sync.ts` applies. It exists so the
- * device-side tests can exercise a real round trip; the Convex handler is
- * tested against `convex-test` in `packages/backend/convex/sync.test.ts`.
+ * server's own `incomingWins`. It exists so the device-side tests can exercise
+ * a real round trip; the Convex handler is tested against `convex-test` in
+ * `packages/backend/convex/sync.test.ts`.
  */
 function makeServer() {
     const rows = new Map<string, PulledRow>();
     let nextSeq = 1;
-
-    const wins = (
-        incoming: { updatedAt: number; deletedAt: number | null; deviceId: string },
-        existing: PulledRow | undefined
-    ): boolean => {
-        if (!existing) {
-            return true;
-        }
-        const a = incoming.deletedAt !== null;
-        const b = existing.deletedAt !== null;
-        if (a !== b) {
-            return a;
-        }
-        if (incoming.updatedAt !== existing.updatedAt) {
-            return incoming.updatedAt > existing.updatedAt;
-        }
-        return incoming.deviceId > existing.deviceId;
-    };
 
     const push: PushFn = async ({ deviceId, rows: pushed }) => {
         let accepted = 0;
@@ -57,11 +41,11 @@ function makeServer() {
         for (const row of pushed) {
             const key = `${row.table} ${row.localId}`;
             const existing = rows.get(key);
-            if (!wins({ ...row, deviceId }, existing)) {
+            if (!incomingWins({ ...row, deviceId }, existing ?? null)) {
                 skipped += 1;
                 continue;
             }
-            rows.set(key, { ...row, deviceId, seq: nextSeq });
+            rows.set(key, { ...row, deviceId, restoredAt: row.restoredAt ?? null, seq: nextSeq });
             nextSeq += 1;
             accepted += 1;
         }
@@ -113,10 +97,12 @@ function txRow(
         deletedAt?: number | null;
         deviceId?: string;
         fields?: Record<string, unknown>;
+        restoredAt?: number | null;
     } = {}
 ): PulledRow {
     return {
         deletedAt: overrides.deletedAt ?? null,
+        restoredAt: overrides.restoredAt ?? null,
         deviceId: overrides.deviceId ?? "device-b",
         fields: {
             amount: 10,
@@ -165,7 +151,7 @@ describe("the replicated column set", () => {
     // A column added to the local schema and not to the spec replicates as
     // permanently absent rather than as an error, which no round-trip test would
     // notice on its own.
-    const ENVELOPE = new Set(["id", "key", "updatedAt", "deletedAt"]);
+    const ENVELOPE = new Set(["id", "key", "updatedAt", "deletedAt", "restoredAt"]);
     /** Columns whose value is about this handset, not about the ledger. */
     const DEVICE_LOCAL = new Set([
         "transactions.imageUri",
@@ -230,6 +216,32 @@ describe("incomingWinsLocally", () => {
         expect(incomingWinsLocally({ deletedAt: null, updatedAt: 5 }, { deletedAt: null, updatedAt: 5 }, false)).toBe(
             true
         );
+    });
+});
+
+// The same cases run against the server's `incomingWins` in
+// `packages/backend/convex/lib/syncTables.test.ts`; the two must agree.
+describe("incomingWinsLocally across a restore", () => {
+    const live = (updatedAt: number, restoredAt: number | null = null) => ({ deletedAt: null, restoredAt, updatedAt });
+    const deleted = (deletedAt: number, restoredAt: number | null = null) => ({
+        deletedAt,
+        restoredAt,
+        updatedAt: deletedAt,
+    });
+
+    it.each([
+        ["a restore beats the older tombstone it lifted", live(20, 20), deleted(10), true],
+        ["the lifted tombstone does not undo the restore", deleted(10), live(20, 20), false],
+        ["an offline edit after a delete still loses", live(12), deleted(10), false],
+        ["an edit that raced the delete loses to the restore", live(30), live(20, 20), false],
+        ["a delete after the restore wins", deleted(25, 20), live(20, 20), true],
+        ["a delete after the restore wins with its clock behind", deleted(15, 20), live(20, 20), true],
+        ["a delete that never saw the restore wins only if later", deleted(22), live(20, 20), true],
+        ["a delete that never saw the restore loses if earlier", deleted(18), live(20, 20), false],
+        ["a restore stamped at the delete's instant loses the tie", live(10, 10), deleted(10), false],
+        ["an edit after the restore is plain R2", live(30, 20), live(20, 20), true],
+    ])("%s", (_name, incoming, local, wins) => {
+        expect(incomingWinsLocally(incoming, local, false)).toBe(wins);
     });
 });
 
@@ -1117,6 +1129,78 @@ describe("two devices against one account", () => {
             const [row] = await db.select().from(transactions);
             expect(row.deletedAt).not.toBeNull();
         }
+    });
+
+    it("carries a restore from Recently Deleted to the other device, and a later delete back", async () => {
+        const alpha = makeDb();
+        const beta = makeDb();
+        const server = makeServer();
+        await setSyncEnabled(alpha, true);
+        await setSyncEnabled(beta, true);
+        const liveOn = async (db: Database) => (await db.select().from(transactions))[0].deletedAt === null;
+
+        await addTransaction(alpha, "t1");
+        await runSync(alpha, server.transport);
+        await runSync(beta, server.transport);
+        await transactionsRepo.remove(alpha, "t1", AT(2000));
+        await runSync(alpha, server.transport);
+        await runSync(beta, server.transport);
+
+        await transactionsRepo.restore(beta, "t1", AT(3000));
+        await runSync(beta, server.transport);
+        await runSync(alpha, server.transport);
+        await expect(liveOn(alpha)).resolves.toBe(true);
+
+        // A full re-read of the log replays the tombstone, which no longer wins.
+        await pullAndApply(alpha, async ({ limit }) => await server.pull({ cursor: 0, limit }));
+        await expect(liveOn(alpha)).resolves.toBe(true);
+
+        await transactionsRepo.remove(alpha, "t1", AT(4000));
+        await runSync(alpha, server.transport);
+        await runSync(beta, server.transport);
+        await expect(liveOn(beta)).resolves.toBe(false);
+    });
+
+    it("rereads once after the upgrade: takes the restores it rejected, re-pushes the ones it made", async () => {
+        const db = makeDb();
+        const server = makeServer();
+        const wire = (localId: string, at: number, extra: Partial<WireRow> = {}): WireRow => {
+            const { deviceId: _deviceId, seq: _seq, ...row } = txRow(localId, 0, at, { deletedAt: at });
+            return { ...row, ...extra };
+        };
+        await server.push({
+            deviceId: "device-b",
+            rows: [
+                wire("restored-here", 2000),
+                wire("restored-there", 2000),
+                wire("restored-there", 2500, { deletedAt: null, restoredAt: 2500 }),
+                wire("from-archive", 2000),
+                wire("deleted", 2000),
+            ],
+        });
+        // What the build before this one left behind, written with the gate shut
+        // so nothing is queued: it rejected the peer's restore, its own never
+        // landed, and an archive put back a row deleted after it was taken.
+        await addTransaction(db, "restored-here", { updatedAt: AT(3000) });
+        await addTransaction(db, "restored-there", { deletedAt: AT(2000), updatedAt: AT(2000) });
+        await addTransaction(db, "from-archive", { updatedAt: AT(1500) });
+        await addTransaction(db, "deleted", { deletedAt: AT(2000), updatedAt: AT(2000) });
+        await setSyncEnabled(db, true);
+        await setSyncCursor(db, 5);
+        await setMeta(db, META_KEYS.syncRestoresReread, "1");
+
+        await runSync(db, server.transport);
+        await runSync(db, server.transport);
+
+        const deletedAt = async (id: string) =>
+            (await db.select().from(transactions).where(eqId(id)))[0].deletedAt?.getTime() ?? null;
+        await expect(deletedAt("restored-there")).resolves.toBeNull();
+        await expect(deletedAt("restored-here")).resolves.toBeNull();
+        await expect(deletedAt("from-archive")).resolves.toBeNull();
+        await expect(deletedAt("deleted")).resolves.toBe(2000);
+        expect(server.rows.get("transactions restored-here")?.deletedAt).toBeNull();
+        expect(server.rows.get("transactions from-archive")?.deletedAt).toBe(2000);
+        await expect(getMeta(db, META_KEYS.syncRestoresReread)).resolves.toBeNull();
     });
 
     it("applies a pull without losing an unpushed local edit to another row", async () => {

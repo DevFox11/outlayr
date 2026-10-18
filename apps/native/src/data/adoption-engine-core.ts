@@ -1,10 +1,12 @@
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Database } from "@/db/client";
+import { appMeta } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import type { RemoteLedger } from "@/domain/ledger-adoption";
 
+import { META_KEYS } from "./app-meta-core";
 import { refreshLogoCandidate } from "./logo-backfill-state";
 import { applyPulledRows, PULL_PAGE_LIMIT, PUSH_BATCH_LIMIT, specFor } from "./sync-engine-core";
 import type { LocalValue, PulledRow, PullFn, PushFn, SyncedTable, WireRow } from "./sync-engine-core";
@@ -106,6 +108,8 @@ export async function replaceLocalFromAccount(db: Database, pull: PullFn, now: D
         }
         /* oxlint-enable no-await-in-loop */
         await setSyncCursor(db, 0);
+        // The walk below reads the whole log under the merge that knows `restoredAt`.
+        await db.delete(appMeta).where(eq(appMeta.key, META_KEYS.syncRestoresReread));
     });
 
     let cursor = 0;
@@ -138,9 +142,10 @@ export async function replaceLocalFromAccount(db: Database, pull: PullFn, now: D
  * pull hands those tombstones back and deletes them locally too.
  *
  * So a row the account and this device both hold is left alive on the server and
- * beaten on its own terms: its local `updatedAt` is lifted above the account's
- * so the ordinary drain wins the last-writer comparison. Only rows this device
- * has never seen are tombstoned.
+ * beaten on its own terms: its local `updatedAt` is lifted above the account's,
+ * and it takes the account's `restoredAt` when that is later than its own, so
+ * the ordinary drain wins the last-writer comparison rather than losing on the
+ * restore. Only rows this device has never seen are tombstoned.
  *
  * `appMeta` needs no lift — it has no local clock, so `drainOutbox` stamps it
  * with the enqueue time, which is necessarily later than anything already there.
@@ -155,7 +160,7 @@ export async function discardAccountLedger(
     const stamp = now.getTime();
 
     const tombstones: WireRow[] = [];
-    const lifts = new Map<SyncedTable, { id: string; updatedAt: Date }[]>();
+    const lifts = new Map<SyncedTable, { id: string; restoredAt: Date | null; updatedAt: Date }[]>();
 
     const localByTable = new Map(
         await Promise.all(SYNCED_TABLES.map(async (table) => [table, await localRows(db, table)] as const))
@@ -183,11 +188,14 @@ export async function discardAccountLedger(
             }
             const mineAt = mine.updatedAt;
             const mineMs = mineAt instanceof Date ? mineAt.getTime() : 0;
-            if (mineMs <= row.updatedAt) {
+            const mineRestored = mine.restoredAt instanceof Date ? mine.restoredAt.getTime() : 0;
+            const theirsRestored = row.restoredAt ?? 0;
+            if (mineMs <= row.updatedAt || theirsRestored > mineRestored) {
                 const bucket = lifts.get(table) ?? [];
                 bucket.push({
                     id: row.localId,
-                    updatedAt: new Date(row.updatedAt + 1),
+                    restoredAt: theirsRestored > mineRestored ? new Date(theirsRestored) : null,
+                    updatedAt: new Date(Math.max(mineMs, row.updatedAt + 1)),
                 });
                 lifts.set(table, bucket);
             }
@@ -207,10 +215,14 @@ export async function discardAccountLedger(
                         await refreshLogoCandidate(db, row.id, row.updatedAt.getTime());
                     }
                     // SAFETY: `spec.table` is a runtime table name, which erases the per-table
-                    // update type; `updatedAt` is a column every synced table declares.
+                    // update type; `updatedAt` is a column every synced table declares, and
+                    // `restoredAt` is set only from a row that carried one, so its table has it.
                     await db
                         .update(spec.table)
-                        .set({ updatedAt: row.updatedAt } as never)
+                        .set({
+                            updatedAt: row.updatedAt,
+                            ...(row.restoredAt && { restoredAt: row.restoredAt }),
+                        } as never)
                         .where(inArray(spec.id, [row.id]));
                 }
                 /* oxlint-enable no-await-in-loop */

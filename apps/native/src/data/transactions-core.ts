@@ -33,6 +33,7 @@ import {
 } from "./logo-backfill-state";
 import { localRateLookup } from "./rates";
 import { insertOccurrences, scheduleSuccessor } from "./recurrence-backfill";
+import { restoreStamp } from "./sync-engine-core";
 
 export const LOG_PAGE_DAYS = 30;
 
@@ -507,8 +508,8 @@ export const transactionsRepo = {
 
     /**
      * Lifts a tombstone, putting the entry back on every read that filters on
-     * `deletedAt`. `updatedAt` moves with it so the outbox triggers queue the row
-     * and the restore travels; without that the next pull hands the entry back
+     * `deletedAt`. `restoredAt` is what lets the restore beat the tombstone on
+     * the server and on every other device; without it R1 hands the entry back
      * deleted, on this device and on every other one.
      *
      * `recurringType` is left where {@link remove} retired it. Deleting the
@@ -539,12 +540,13 @@ export const transactionsRepo = {
                 return;
             }
             await refreshLogoCandidate(db, id, now.getTime());
-            await db.update(transactions).set({ deletedAt: null, updatedAt: now }).where(eq(transactions.id, id));
+            const lifted = { deletedAt: null, restoredAt: restoreStamp(previous, now), updatedAt: now };
+            await db.update(transactions).set(lifted).where(eq(transactions.id, id));
             await db
                 .update(transactions)
-                .set({ deletedAt: null, updatedAt: now })
+                .set(lifted)
                 .where(and(eq(transactions.feeForId, id), eq(transactions.deletedAt, previous.deletedAt)));
-            await restorePlansForTransaction(db, id, previous.deletedAt, now);
+            await restorePlansForTransaction(db, id, previous.deletedAt, now, lifted.restoredAt);
         });
     },
 

@@ -23,6 +23,11 @@ export const replicated = {
     deletedAt: v.union(v.number(), v.null()),
     deviceId: v.string(),
     localId: v.string(),
+    /**
+     * When the row was last brought back from a tombstone, or null. Optional
+     * because every document written before restores synced lacks it.
+     */
+    restoredAt: v.optional(v.union(v.number(), v.null())),
     seq: v.number(),
     /** Client wall clock at the edit, mirroring the SQLite `updatedAt`. */
     updatedAt: v.number(),
@@ -303,20 +308,32 @@ export const FIELDS_BY_TABLE = {
 interface Versioned {
     deletedAt: number | null;
     deviceId: string;
+    restoredAt?: number | null;
     updatedAt: number;
+}
+
+/**
+ * Where a version sits in its row's delete and restore history. A delete or a
+ * restore opens a new era, and a later era wins outright. A tombstone carrying
+ * a `restoredAt` was deleted after that restore, whatever its own clock says,
+ * so its era is never earlier than the restore it ended.
+ */
+function era(version: Versioned): number {
+    const restoredAt = version.restoredAt ?? 0;
+    return version.deletedAt === null ? restoredAt : Math.max(version.deletedAt, restoredAt);
 }
 
 /**
  * R1 then R2 from `docs/convex-sync-design.md` §4, applied to a whole row.
  *
- * R1 — a tombstone is absorbing: whichever side is deleted wins outright, and
- * `updatedAt` never enters into it. The app has no undelete surface, so an edit
- * that loses to a delete cannot be observed as lost, whereas a resurrected
- * charge silently changes every total it is in.
+ * R1 — a tombstone wins unless the live side was restored after it. Eras are
+ * compared first; at the same era a tombstone beats a live row, so an offline
+ * edit that raced a delete (era 0 against the delete's) never resurrects a
+ * charge, while a deliberate restore (era after the delete) does.
  *
  * R2 — otherwise the greater `updatedAt` takes the whole row, and an exact tie
  * goes to the greater `deviceId`. Ties must break the same way here and on the
- * device (`apps/native/src/data/sync-merge.ts`) or the two never converge.
+ * device (`apps/native/src/data/sync-engine-core.ts`) or the two never converge.
  *
  * A row identical on both sides does NOT win, which is what makes a re-push of
  * an unchanged row a no-op and the whole drain safe to retry.
@@ -324,6 +341,11 @@ interface Versioned {
 export function incomingWins(incoming: Versioned, existing: Versioned | null): boolean {
     if (existing === null) {
         return true;
+    }
+    const incomingEra = era(incoming);
+    const existingEra = era(existing);
+    if (incomingEra !== existingEra) {
+        return incomingEra > existingEra;
     }
     const incomingDeleted = incoming.deletedAt !== null;
     const existingDeleted = existing.deletedAt !== null;

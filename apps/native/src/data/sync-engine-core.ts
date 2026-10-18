@@ -62,6 +62,8 @@ export interface WireRow {
     deletedAt: number | null;
     fields: WireFields;
     localId: string;
+    /** Sent only when set, so a row that was never restored pushes as it always has. */
+    restoredAt?: number | null;
     table: SyncedTable;
     updatedAt: number;
 }
@@ -468,10 +470,12 @@ export async function drainOutbox(db: Database, push: PushFn): Promise<number> {
                 continue;
             }
             const spec = SPECS[table];
+            const restoredAt = toEpoch(row.restoredAt);
             rows.push({
                 deletedAt: table === "appMeta" ? null : toEpoch(row.deletedAt),
                 fields: toWireFields(spec, row),
                 localId: entry.localId,
+                ...(restoredAt !== null && { restoredAt }),
                 table,
                 // `appMeta` has no clock of its own, so the enqueue time is the only
                 // honest "when did this device last say so" it can carry.
@@ -502,12 +506,33 @@ export async function drainOutbox(db: Database, push: PushFn): Promise<number> {
 
 interface LocalVersion {
     deletedAt: number | null;
+    restoredAt?: number | null;
     /** Null for a table with no clock of its own — `appMeta` is the only one. */
     updatedAt: number | null;
 }
 
 /**
+ * Where a version sits in its row's delete and restore history, the same as
+ * `era` beside `incomingWins` in `packages/backend/convex/lib/syncTables.ts`.
+ */
+function era(version: { deletedAt: number | null; restoredAt?: number | null }): number {
+    const restoredAt = version.restoredAt ?? 0;
+    return version.deletedAt === null ? restoredAt : Math.max(version.deletedAt, restoredAt);
+}
+
+/**
+ * The `restoredAt` that lifts a tombstone: now, or just past the tombstone's
+ * own era when this clock runs behind the one that deleted it, so a restore
+ * always beats the delete it undoes.
+ */
+export function restoreStamp(row: { deletedAt: Date | null; restoredAt: Date | null }, now: Date): Date {
+    const lifted = era({ deletedAt: toEpoch(row.deletedAt), restoredAt: toEpoch(row.restoredAt) });
+    return new Date(Math.max(now.getTime(), lifted + 1));
+}
+
+/**
  * R1 then R2 from `docs/convex-sync-design.md` §4, from the device's side.
+ * Eras decide first, exactly as on the server.
  *
  * A local row carries no `deviceId`, so an exact `updatedAt` tie cannot break
  * the way the server's does. It breaks on whether this device still owes the
@@ -517,7 +542,7 @@ interface LocalVersion {
  * already declared the account's winner.
  */
 export function incomingWinsLocally(
-    incoming: { updatedAt: number; deletedAt: number | null },
+    incoming: { updatedAt: number; deletedAt: number | null; restoredAt?: number | null },
     local: LocalVersion | null,
     localIsPending: boolean
 ): boolean {
@@ -529,6 +554,9 @@ export function incomingWinsLocally(
     // is still owed a push is the only signal there is.
     if (local.updatedAt === null) {
         return !localIsPending;
+    }
+    if (era(incoming) !== era(local)) {
+        return era(incoming) > era(local);
     }
     const incomingDeleted = incoming.deletedAt !== null;
     const localDeleted = local.deletedAt !== null;
@@ -643,6 +671,7 @@ async function applyInTransaction(
                     ? null
                     : {
                           deletedAt: row.table === "appMeta" ? null : toEpoch(local.deletedAt),
+                          restoredAt: toEpoch(local.restoredAt),
                           updatedAt: row.table === "appMeta" ? null : (toEpoch(local.updatedAt) ?? 0),
                       };
             const isPending = pending.has(`${row.table}\0${row.localId}`);
@@ -707,7 +736,7 @@ async function applyInTransaction(
  *
  * Both devices see the same pair and pick the same survivor, so device A
  * tombstones its local rival and device B writes the incoming loser already
- * tombstoned. Both push their tombstone, and R1 makes it absorbing, so the
+ * tombstoned. Both push their tombstone, and R1 lets it win, so the
  * account converges on one live budget per category.
  */
 async function resolveBudgetCategory(db: Database, row: PulledRow, now: Date): Promise<boolean> {
@@ -838,6 +867,8 @@ async function writeRow(
         ...toLocalFields(spec, row.fields),
         [spec.id.name]: row.localId,
         deletedAt: rewritten ? now : toLocalDate(row.deletedAt),
+        // Dropped by drizzle on a table without the column.
+        restoredAt: toLocalDate(row.restoredAt ?? null),
         updatedAt: rewritten ? now : new Date(row.updatedAt),
     } satisfies Row;
     if (lostCategory) {
@@ -930,13 +961,8 @@ export async function applyPulledRows(
  * The `cursor` guard is not paranoia: a page that returns rows but does not
  * advance the watermark would otherwise be replayed forever.
  */
-async function walkLog(
-    db: Database,
-    pull: PullFn,
-    from: number,
-    now: Date,
-    tables?: readonly SyncedTable[]
-): Promise<ApplyResult> {
+async function walkLog(db: Database, pull: PullFn, from: number, now: Date, scope?: RereadScope): Promise<ApplyResult> {
+    const tables = scope?.tables;
     let cursor = from;
     let applied = 0;
     const touched = new Set<SyncedTable>();
@@ -947,7 +973,13 @@ async function walkLog(
         if (page.rows.length === 0) {
             break;
         }
-        const result = await applyPulledRows(db, page, now, { keepCursor: tables !== undefined });
+        if (scope?.repair) {
+            for (const table of await repairUnsyncedRestores(db, page.rows)) {
+                touched.add(table);
+            }
+        }
+        const rows = page.rows.filter((row) => !scope?.markersOnly.has(row.table) || row.restoredAt != null);
+        const result = await applyPulledRows(db, { ...page, rows }, now, { keepCursor: tables !== undefined });
         applied += result.applied;
         for (const table of result.tables) {
             touched.add(table);
@@ -965,10 +997,27 @@ async function walkLog(
 }
 
 /**
+ * What a one-time re-read walks. Rows of a `markersOnly` table apply only when
+ * they carry `restoredAt`, and `repair` stamps this device's own unsynced
+ * restores first; see {@link repairUnsyncedRestores}.
+ */
+interface RereadScope {
+    markersOnly: ReadonlySet<SyncedTable>;
+    repair: boolean;
+    tables: readonly SyncedTable[];
+}
+
+/** Where a build before `restoredAt` could restore, and so reject a peer's restore. */
+const LEGACY_RESTORABLE = ["transactions", "transactionTags"] as const satisfies readonly SyncedTable[];
+
+/**
  * Walks the account's change log from this device's cursor to its end, then
- * runs the one-time re-read `syncReread` asks for, if any. That re-read is
- * scoped rather than a cursor reset: a full re-read would hand back the server's
- * tombstone for every entry this device restored from Recently Deleted.
+ * runs the one-time re-read the migrations asked for, if any, as one walk:
+ * `syncReread` names tables to read whole, and `syncRestoresReread` adds the
+ * tables where the build before `restoredAt` rejected every restored row it
+ * pulled. Those are read for their restored rows only. Neither is a cursor
+ * reset: a full re-read would hand back the server's tombstone for every entry
+ * this device restored from Recently Deleted before restores synced.
  */
 export async function pullAndApply(db: Database, pull: PullFn, now: Date = new Date()): Promise<ApplyResult> {
     if (!(await isSyncEnabled(db))) {
@@ -976,14 +1025,72 @@ export async function pullAndApply(db: Database, pull: PullFn, now: Date = new D
     }
     const main = await walkLog(db, pull, await getSyncCursor(db), now);
     const reread = await getMeta(db, META_KEYS.syncReread);
-    if (reread === null) {
+    const restores = (await getMeta(db, META_KEYS.syncRestoresReread)) !== null;
+    if (reread === null && !restores) {
         return main;
     }
-    const named = reread.split(",");
-    const tables = SYNCED_TABLES.filter((table) => named.includes(table));
-    const extra = tables.length === 0 ? { applied: 0, tables: [] } : await walkLog(db, pull, 0, now, tables);
-    await db.delete(appMeta).where(eq(appMeta.key, META_KEYS.syncReread));
+    const named = reread?.split(",") ?? [];
+    const whole = SYNCED_TABLES.filter((table) => named.includes(table));
+    const markersOnly = restores ? LEGACY_RESTORABLE.filter((table) => !whole.includes(table)) : [];
+    const tables = [...whole, ...markersOnly];
+    const extra =
+        tables.length === 0
+            ? { applied: 0, tables: [] }
+            : await walkLog(db, pull, 0, now, { markersOnly: new Set(markersOnly), repair: restores, tables });
+    await db.delete(appMeta).where(inArray(appMeta.key, [META_KEYS.syncReread, META_KEYS.syncRestoresReread]));
     return { applied: main.applied + extra.applied, tables: [...new Set([...main.tables, ...extra.tables])] };
+}
+
+/** The tables a restore can lift a tombstone in, and so the ones the reread repairs. */
+const RESTORABLE = { installmentPlans, installments, outsidePayments, transactionTags, transactions } as const;
+
+/**
+ * Restores this device made before restores synced: live here, tombstoned on
+ * the server. It runs after the main walk has served every tombstone this
+ * device had not read yet, and a tombstone always won locally under the old
+ * rule, so a row live here against a tombstone in the log was brought back
+ * here. A restore moved `updatedAt` past the delete; a row put back by an
+ * archive restore did not, and is left as it is rather than revived on every
+ * device. Stamped, the row is queued and the next push carries the restore.
+ */
+async function repairUnsyncedRestores(db: Database, read: readonly PulledRow[]): Promise<SyncedTable[]> {
+    const repaired: SyncedTable[] = [];
+    await withTransaction(db, async () => {
+        /* oxlint-disable no-await-in-loop -- one SQLite transaction admits a single writer, so these reads and updates cannot overlap */
+        for (const [name, table] of Object.entries(RESTORABLE)) {
+            // SAFETY: `RESTORABLE` is keyed by the synced table names it holds.
+            const tableName = name as keyof typeof RESTORABLE;
+            const tombstones = new Map(
+                read.filter((row) => row.table === tableName && row.deletedAt !== null).map((row) => [row.localId, row])
+            );
+            if (tombstones.size === 0) {
+                continue;
+            }
+            const locals = await rowsById(db, tableName, [...tombstones.keys()]);
+            for (const [id, served] of tombstones) {
+                const local = locals.get(id);
+                const updatedAt = toEpoch(local?.updatedAt);
+                if (
+                    local === undefined ||
+                    local.deletedAt != null ||
+                    updatedAt === null ||
+                    served.deletedAt === null ||
+                    updatedAt <= served.deletedAt ||
+                    era({ deletedAt: null, restoredAt: toEpoch(local.restoredAt) }) > era(served)
+                ) {
+                    continue;
+                }
+                const stamp = restoreStamp(
+                    { deletedAt: toLocalDate(served.deletedAt), restoredAt: toLocalDate(served.restoredAt ?? null) },
+                    new Date(updatedAt)
+                );
+                await db.update(table).set({ restoredAt: stamp }).where(eq(table.id, id));
+                repaired.push(tableName);
+            }
+        }
+        /* oxlint-enable no-await-in-loop */
+    });
+    return repaired;
 }
 
 /**

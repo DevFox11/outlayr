@@ -90,12 +90,14 @@ function transactionRow(
     options: {
         deletedAt?: number | null;
         fields?: Partial<Arm<"transactions">["fields"]>;
+        restoredAt?: number;
     } = {}
 ): Arm<"transactions"> {
     return {
         deletedAt: options.deletedAt ?? null,
         fields: transactionFields(options.fields),
         localId,
+        ...(options.restoredAt !== undefined && { restoredAt: options.restoredAt }),
         table: "transactions",
         updatedAt,
     };
@@ -477,6 +479,21 @@ describe("push conflict resolution", () => {
 
         const stored = await t.run((ctx) => ctx.db.query("transactions").collect());
         expect(stored[0].deletedAt).toBe(100);
+    });
+
+    it("a restore lands on its tombstone and reaches the next pull with its marker", async () => {
+        const t = harness();
+        const owner = await seedProUser(t);
+
+        await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 100, { deletedAt: 100 })]);
+        const consumed = await pullAs(t, owner, 0);
+        const restore = await pushAs(t, owner, DEVICE_A, [transactionRow("t1", 200, { restoredAt: 200 })]);
+        const stale = await pushAs(t, owner, DEVICE_B, [transactionRow("t1", 100, { deletedAt: 100 })]);
+
+        expect(restore.accepted).toBe(1);
+        expect(stale.accepted).toBe(0);
+        const page = await pullAs(t, owner, consumed.cursor);
+        expect(page.rows).toMatchObject([{ deletedAt: null, localId: "t1", restoredAt: 200 }]);
     });
 
     it("R2 — the greater updatedAt takes the whole row", async () => {

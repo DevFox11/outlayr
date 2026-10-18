@@ -259,6 +259,7 @@ export async function resetSyncForAccountSwitch(db: Database): Promise<void> {
                     META_KEYS.syncedAt,
                     META_KEYS.syncEnabled,
                     META_KEYS.syncReread,
+                    META_KEYS.syncRestoresReread,
                 ])
             );
     });

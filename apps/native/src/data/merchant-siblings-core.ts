@@ -7,6 +7,7 @@ import { newId } from "@/domain/ids";
 import { merchantKey } from "@/domain/merchant-resolver";
 
 import { forgetLogoDismissal, refreshLogoCandidate } from "./logo-backfill-state";
+import { restoreStamp } from "./sync-engine-core";
 
 /**
  * How far back the sibling search reads. The same bound and the same reason
@@ -201,10 +202,15 @@ async function attachTagsIfStill(
             return;
         }
         const retired = await db
-            .select({ id: transactionTags.id, tagId: transactionTags.tagId })
+            .select({
+                deletedAt: transactionTags.deletedAt,
+                id: transactionTags.id,
+                restoredAt: transactionTags.restoredAt,
+                tagId: transactionTags.tagId,
+            })
             .from(transactionTags)
             .where(and(eq(transactionTags.transactionId, transactionId), inArray(transactionTags.tagId, [...tagIds])));
-        const revivable = new Map(retired.map((row) => [row.tagId, row.id]));
+        const revivable = new Map(retired.map((row) => [row.tagId, row]));
         /* oxlint-disable no-await-in-loop -- expo-sqlite's withTransactionAsync shares one connection, so statements issued concurrently inside the callback interleave with the transaction boundary */
         for (const tagId of tagIds) {
             const revived = revivable.get(tagId);
@@ -220,8 +226,8 @@ async function attachTagsIfStill(
             }
             await db
                 .update(transactionTags)
-                .set({ deletedAt: null, updatedAt: now })
-                .where(eq(transactionTags.id, revived));
+                .set({ deletedAt: null, restoredAt: restoreStamp(revived, now), updatedAt: now })
+                .where(eq(transactionTags.id, revived.id));
         }
         wrote = tagIds.length > 0;
     });

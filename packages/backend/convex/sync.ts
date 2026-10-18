@@ -42,6 +42,8 @@ export const PULL_PAGE_LIMIT = 1000;
 
 const tombstone = {
     deletedAt: v.union(v.number(), v.null()),
+    /** Optional: a build that predates restores never sends it. */
+    restoredAt: v.optional(v.union(v.number(), v.null())),
     updatedAt: v.number(),
 };
 
@@ -150,6 +152,7 @@ interface PushRow {
     deletedAt: number | null;
     fields: WireFields;
     localId: string;
+    restoredAt?: number | null;
     table: SyncedTable;
     updatedAt: number;
 }
@@ -161,6 +164,7 @@ const pulledRow = v.object({
     deviceId: v.string(),
     fields: v.record(v.string(), v.any()),
     localId: v.string(),
+    restoredAt: v.union(v.number(), v.null()),
     seq: v.number(),
     table: syncedTable,
     updatedAt: v.number(),
@@ -191,6 +195,7 @@ function versioned(doc: Doc<SyncedTable>) {
     return {
         deletedAt: "deletedAt" in doc ? doc.deletedAt : null,
         deviceId: doc.deviceId,
+        restoredAt: "restoredAt" in doc ? doc.restoredAt : null,
         updatedAt: doc.updatedAt,
     };
 }
@@ -223,7 +228,8 @@ function transactionPolicyTieDecision(row: PushRow, existing: Doc<SyncedTable> |
         row.deletedAt !== null ||
         !("deletedAt" in existing) ||
         existing.deletedAt !== null ||
-        row.updatedAt !== existing.updatedAt
+        row.updatedAt !== existing.updatedAt ||
+        (row.restoredAt ?? null) !== (existing.restoredAt ?? null)
     ) {
         return null;
     }
@@ -294,6 +300,7 @@ async function upsert(
         deletedAt: row.deletedAt,
         deviceId: stamp.deviceId,
         localId: row.localId,
+        restoredAt: row.restoredAt ?? null,
         seq: stamp.seq,
         updatedAt: row.updatedAt,
         userId: stamp.userId,
@@ -495,6 +502,7 @@ export const push = mutation({
             const candidate = {
                 deletedAt: row.deletedAt,
                 deviceId: args.deviceId,
+                restoredAt: row.restoredAt,
                 updatedAt: row.updatedAt,
             };
             const policyTieDecision = transactionPolicyTieDecision(row, existing);
@@ -551,6 +559,7 @@ export const push = mutation({
  */
 type StoredDocument = Record<string, WireValue | undefined> & {
     deletedAt?: number | null;
+    restoredAt?: number | null;
     /** `appMeta` identifies its rows by `key`; every other table by `localId`. */
     key?: string;
     localId?: string;
@@ -578,6 +587,7 @@ function toWire(table: SyncedTable, doc: Doc<SyncedTable>) {
         deviceId: doc.deviceId,
         fields,
         localId,
+        restoredAt: source.restoredAt ?? null,
         seq: doc.seq,
         table,
         updatedAt: doc.updatedAt,

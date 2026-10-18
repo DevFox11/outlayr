@@ -41,6 +41,7 @@ const TRANSACTIONS_DDL = `
 		feeForId text,
 		feeRate real,
 		paidVia text,
+		restoredAt integer,
 		updatedAt integer NOT NULL,
 		deletedAt integer
 	);
@@ -73,15 +74,15 @@ const TRANSFERS_DDL = `
 const INSTALLMENTS_DDL = `
 	CREATE TABLE installmentPlans (
 		id text PRIMARY KEY NOT NULL, accountId text NOT NULL, transactionId text NOT NULL,
-		dateCreated integer NOT NULL, updatedAt integer NOT NULL, deletedAt integer
+		dateCreated integer NOT NULL, updatedAt integer NOT NULL, deletedAt integer, restoredAt integer
 	);
 	CREATE TABLE installments (
 		id text PRIMARY KEY NOT NULL, planId text NOT NULL, sequence integer NOT NULL, dueDate integer NOT NULL,
-		amount real NOT NULL, updatedAt integer NOT NULL, deletedAt integer
+		amount real NOT NULL, updatedAt integer NOT NULL, deletedAt integer, restoredAt integer
 	);
 	CREATE TABLE outsidePayments (
 		id text PRIMARY KEY NOT NULL, planId text NOT NULL, date integer NOT NULL, amount real NOT NULL,
-		amountUsd real, updatedAt integer NOT NULL, deletedAt integer
+		amountUsd real, updatedAt integer NOT NULL, deletedAt integer, restoredAt integer
 	);
 `;
 
