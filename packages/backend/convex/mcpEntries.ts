@@ -218,6 +218,7 @@ export const logEntry = internalMutation({
             localId,
             note: entry.note,
             onceRecurring: false,
+            paidVia: null,
             recurringAnchorDay: null,
             recurringCoefficient: 1,
             recurringEndDate: null,

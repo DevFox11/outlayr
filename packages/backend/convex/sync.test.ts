@@ -295,26 +295,22 @@ describe("push table coverage", () => {
         });
     });
 
-    it("serves a stored transaction that predates accountId as null", async () => {
+    it("leaves off a field a stored row predates, and serves a stored null as null", async () => {
         const t = harness();
         const owner = await seedProUser(t);
 
         const { accountId: _absent, ...legacy } = transactionFields();
         await t.run(async (ctx) => {
-            await ctx.db.insert("transactions", {
-                deletedAt: null,
-                deviceId: DEVICE_A,
-                localId: "t-legacy",
-                seq: 1,
-                updatedAt: 100,
-                userId: owner.userId,
-                ...legacy,
-            });
-            await ctx.db.insert("syncState", { nextSeq: 2, userId: owner.userId });
+            const envelope = { deletedAt: null, deviceId: DEVICE_A, updatedAt: 100, userId: owner.userId };
+            await ctx.db.insert("transactions", { ...envelope, ...legacy, localId: "t-legacy", seq: 1 });
+            await ctx.db.insert("transactions", { ...envelope, ...transactionFields(), localId: "t-null", seq: 2 });
+            await ctx.db.insert("syncState", { nextSeq: 3, userId: owner.userId });
         });
 
         const page = await pullAs(t, owner, 0);
-        expect(page.rows[0].fields.accountId).toBeNull();
+        const fields = new Map(page.rows.map((row) => [row.localId, row.fields]));
+        expect(fields.get("t-legacy")).not.toHaveProperty("accountId");
+        expect(fields.get("t-null")).toHaveProperty("accountId", null);
     });
 });
 

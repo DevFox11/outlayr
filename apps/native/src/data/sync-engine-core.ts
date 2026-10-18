@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, getTableColumns, inArray, isNull, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 import { z } from "zod";
@@ -76,9 +76,11 @@ interface TableSpec {
     dates: readonly string[];
     /**
      * What a column falls back to when the wire omits it, for columns added after
-     * a table began replicating. Without one `toLocalFields` writes an explicit
-     * null, which a NOT NULL column rejects — taking the whole pull transaction
-     * with it, not just the row.
+     * a table began replicating, and in place of a null a NOT NULL column cannot
+     * hold. Without one `toLocalFields` writes an explicit null, which a NOT NULL
+     * column rejects — taking the whole pull transaction with it, not just the
+     * row. A null the wire carries for a nullable column is a value, and lands as
+     * one.
      */
     defaults?: Readonly<Record<string, WireValue>>;
     /**
@@ -95,6 +97,8 @@ interface TableSpec {
 const SPECS = {
     accounts: {
         dates: ["initialBalanceDate", "dateCreated"],
+        // `kind` arrived in `0020` and an older build pushes accounts without it; absent reads as `asset`.
+        defaults: { kind: "asset" },
         // `imageUri` is absent for the same reason it is on `transactions`.
         fields: [
             "name",
@@ -156,7 +160,8 @@ const SPECS = {
         // figure is spelled, and a goal carrying one would withhold its progress
         // and chart for as long as the display currency differed from its own —
         // for a figure that is exactly zero in every currency. Same pair the
-        // migration writes. `targetDate` is defaulted only so a dateless TOMBSTONE can be
+        // migration writes. A null the wire does carry for `startAmountUsd` stays null.
+        // `targetDate` is defaulted only so a dateless TOMBSTONE can be
         // written — a live dateless goal never gets this far (`isReplicated`
         // refuses it), and the epoch it lands on is on a row nothing reads.
         defaults: { startAmount: 0, startAmountUsd: 0, targetDate: 0 },
@@ -334,9 +339,11 @@ function toLocalDate(value: WireValue): Date | null {
 }
 
 function toLocalFields(spec: TableSpec, fields: WireFields): Row {
+    const columns = getTableColumns(spec.table);
     return Object.fromEntries(
         spec.fields.map((name) => {
-            const value = fields[name] ?? spec.defaults?.[name] ?? null;
+            const carried = Object.hasOwn(fields, name) && (fields[name] !== null || !columns[name].notNull);
+            const value = carried ? fields[name] : (spec.defaults?.[name] ?? null);
             return [name, spec.dates.includes(name) ? toLocalDate(value) : value];
         })
     );

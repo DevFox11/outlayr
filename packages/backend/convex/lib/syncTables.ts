@@ -141,7 +141,8 @@ export const transactionColumns = {
     ...transactionFields,
     // Optional in storage only: documents written before accounts existed have no
     // such field, and a required column would fail the schema push over them. The
-    // wire keeps it required; `toWire` serves the absent field as null.
+    // wire keeps it required; `toWire` leaves the absent field off, which the
+    // client reads as null.
     accountId: v.optional(v.union(v.string(), v.null())),
     imageUri: v.optional(v.union(v.string(), v.null())),
 };

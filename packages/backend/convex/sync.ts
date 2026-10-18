@@ -523,7 +523,10 @@ function toWire(table: SyncedTable, doc: Doc<SyncedTable>) {
     const source: StoredDocument = doc;
     const fields: WireFields = {};
     for (const name of fieldNames) {
-        fields[name] = source[name] ?? null;
+        const value = source[name];
+        if (value !== undefined) {
+            fields[name] = value;
+        }
     }
     const localId = source.localId ?? source.key;
     if (localId === undefined) {

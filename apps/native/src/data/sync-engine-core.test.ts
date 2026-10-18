@@ -725,6 +725,37 @@ describe("the echo of this device's own push", () => {
         expect(row.note).toBe("theirs");
     });
 
+    it("keeps a goal's unconvertible start null rather than defaulting it", async () => {
+        await db.insert(accounts).values({
+            currency: "VES",
+            dateCreated: AT(1000),
+            id: "acct-1",
+            initialBalance: 0,
+            initialBalanceDate: AT(1000),
+            name: "Savings",
+            updatedAt: AT(1000),
+        });
+        await db.insert(savingsGoals).values({
+            accountId: "acct-1",
+            currency: "VES",
+            dateCreated: AT(1000),
+            id: "goal-1",
+            name: "Moto",
+            startAmount: 500,
+            startAmountUsd: null,
+            targetAmount: 5000,
+            targetAmountUsd: 100,
+            targetDate: AT(9000),
+            updatedAt: AT(1000),
+        });
+
+        const result = await applyPulledRows(db, await pushAndEcho());
+
+        const [goal] = await db.select().from(savingsGoals);
+        expect(goal.startAmountUsd).toBeNull();
+        expect(result.tables).toStrictEqual([]);
+    });
+
     it("still clears the notice on an echoed row with no live schedule", async () => {
         await addTransaction(db, "t1", { recurringType: 0, reminderLeadDays: 3 });
 
@@ -1250,6 +1281,38 @@ describe("a savings goal from a build that predates the start anchor", () => {
 
         const [row] = await db.select().from(savingsGoals);
         expect(row.deletedAt).not.toBeNull();
+    });
+});
+
+describe("an account from a build that predates account kinds", () => {
+    it("lands as an asset rather than failing the page", async () => {
+        // `kind` is NOT NULL locally; without its default, the null would reject the whole pull.
+        const db = makeDb();
+
+        await applyPulledRows(db, {
+            cursor: 1,
+            rows: [
+                {
+                    deletedAt: null,
+                    deviceId: "device-b",
+                    fields: {
+                        currency: "USD",
+                        dateCreated: 1000,
+                        initialBalance: 0,
+                        initialBalanceDate: 1000,
+                        name: "Savings",
+                        sortOrder: 0,
+                    },
+                    localId: "acct-1",
+                    seq: 1,
+                    table: "accounts",
+                    updatedAt: 5000,
+                },
+            ],
+        });
+
+        const [row] = await db.select().from(accounts);
+        expect(row.kind).toBe("asset");
     });
 });
 
