@@ -108,6 +108,35 @@ describe("transactionRow", () => {
         expect(getByLabelText("log.row.unplaced")).toBeTruthy();
         expect(getByRole("button").props.accessibilityLabel).toBeUndefined();
     });
+
+    const PAID_IN_BOLIVARES = {
+        ...PENDING_CUSTOM,
+        amount: 22_000,
+        amountUsd: 25.98,
+        exchangeRateType: null,
+        valued: 25.98,
+    };
+
+    it("leads with the list's currency and keeps what was paid beside the time", async () => {
+        const { getByText, queryByText } = await render(
+            <TransactionRow currency="USD" onPress={() => {}} transaction={PAID_IN_BOLIVARES as never} />
+        );
+
+        expect(getByText("-$25.98")).toBeTruthy();
+        expect(getByText("Bs.22,000.00")).toBeTruthy();
+        expect(queryByText("VES")).toBeNull();
+    });
+
+    it("names only the currency paid in while amounts are hidden", async () => {
+        const { getByText, queryByText } = await render(
+            <AmountsHiddenContext value>
+                <TransactionRow currency="USD" onPress={() => {}} transaction={PAID_IN_BOLIVARES as never} />
+            </AmountsHiddenContext>
+        );
+
+        expect(getByText("VES")).toBeTruthy();
+        expect(queryByText("Bs.22,000.00")).toBeNull();
+    });
 });
 
 describe("a transfer's row", () => {

@@ -133,4 +133,33 @@ describe("groupByDay with rates", () => {
         expect(section.total).toBe(summed);
         expect(section.total).toBe(-0.27);
     });
+
+    it("hands each row its share of the header, so the rows add up to it to the cent", () => {
+        // Converted one at a time, these three come to 0.30 under a 0.29 header.
+        const rows = [1, 2, 3].map((n) => ({
+            ...row("2026-07-24", 100 * n),
+            amountUsd: 0.1,
+            currency: "VES",
+            date: new Date(Date.UTC(2026, 6, 24, 12)),
+        }));
+        const [section] = groupByDay(rows, "EUR", buildRateTable([{ date: "2026-07-01", quote: "EUR", rate: 0.95 }]));
+        const summed = section.data.reduce((sum, entry) => sum + (entry.valued ?? 0), 0);
+        expect(summed).toBeCloseTo(-section.total, 10);
+    });
+
+    it("leaves a row no rate reaches unvalued rather than passing its own amount off as the list's", () => {
+        const [section] = groupByDay(
+            [
+                {
+                    ...row("2026-06-24", 22_000),
+                    amountUsd: 25,
+                    currency: "VES",
+                    date: new Date(Date.UTC(2026, 5, 24, 12)),
+                },
+            ],
+            "EUR",
+            eurRates
+        );
+        expect(section.data[0].valued).toBeNull();
+    });
 });

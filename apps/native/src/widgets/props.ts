@@ -1,6 +1,7 @@
 import { advanceBudgetWindow } from "@outlayr/money/budget-window";
 import { startOfDay } from "@outlayr/money/calendar";
-import { limitIn } from "@outlayr/money/valuation";
+import { utcDateString } from "@outlayr/money/dates";
+import { isExact, limitIn } from "@outlayr/money/valuation";
 import { and, asc, desc, isNull, lte } from "drizzle-orm";
 
 import { getMeta, META_KEYS } from "@/data/app-meta-core";
@@ -329,7 +330,7 @@ export async function buildWidgetProps(db: SpendDb, now: Date = new Date()): Pro
         .orderBy(asc(categoriesTable.sortOrder), asc(categoriesTable.name));
     const categoriesById = new Map(categoryRows.map((row) => [row.id, row]));
     const budgets = await budgetFigures(db, now, contributions, valuation);
-    const watchEntries = await buildWatchEntries(db, now, categoriesById, entryMoney);
+    const watchEntries = await buildWatchEntries(db, now, categoriesById, entryMoney, contributions, valuation);
 
     return {
         Budget: buildBudget(budgets, now, categoriesById, money, whole),
@@ -626,11 +627,14 @@ async function buildWatchEntries(
     db: SpendDb,
     now: Date,
     categoriesById: ReadonlyMap<string, CategoryRow>,
-    entryMoney: EntryMoney
+    entryMoney: EntryMoney,
+    contributions: readonly Contribution[],
+    valuation: Valuation
 ): Promise<WatchEntryProps[]> {
     const rows = await db
         .select({
             amount: transactionsTable.amount,
+            amountUsd: transactionsTable.amountUsd,
             categoryId: transactionsTable.categoryId,
             currency: transactionsTable.currency,
             customColor: transactionsTable.customColor,
@@ -646,11 +650,20 @@ async function buildWatchEntries(
         .orderBy(desc(transactionsTable.date))
         .limit(LEDGER_LIMIT);
     const writeIds = await writeIdsByTransaction(db);
+    const valuedById = new Map(contributions.map((row) => [row.id, row.amount]));
+    const { displayCurrency, rates } = valuation;
 
     return rows.map((row) => {
         const category = row.categoryId ? categoriesById.get(row.categoryId) : undefined;
+        // The figure the headers summed, so a day's entries add up to them. An entry
+        // nothing can value exactly keeps its own currency rather than a guessed one.
+        const valued =
+            row.currency !== null &&
+            isExact({ ...row, dateKey: utcDateString(row.date.getTime()) }, displayCurrency, rates)
+                ? valuedById.get(row.id)
+                : undefined;
         return {
-            amount: entryMoney(row.amount, row.currency),
+            amount: valued === undefined ? entryMoney(row.amount, row.currency) : entryMoney(valued, displayCurrency),
             at: row.date.getTime(),
             category: category?.name ?? "",
             // Identity precedence, matching the form.

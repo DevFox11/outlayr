@@ -106,7 +106,7 @@ function makeDb(): SpendDb {
 const NOW = new Date(Date.UTC(2026, 6, 28, 12));
 
 describe("the Ledger widget's entries", () => {
-    it("quotes each entry in the currency it was kept in", async () => {
+    it("quotes an entry it cannot value in the currency it was kept in", async () => {
         // Pinning every row to the display currency would turn 12,000 yen into
         // twelve thousand dollars on the home screen.
         const db = makeDb();
@@ -134,6 +134,27 @@ describe("the Ledger widget's entries", () => {
 
         expect(props.Ledger.entries).toHaveLength(1);
         expect(props.Ledger.entries[0]?.amount).toBe("¥12,000");
+    });
+
+    it("states an entry it can value in the display currency, like the headers above it", async () => {
+        const db = makeDb();
+        await db.insert(transactions).values({
+            amount: 8770,
+            amountUsd: 9.96,
+            currency: "VES",
+            date: NOW,
+            day: NOW,
+            id: "t1",
+            income: false,
+            month: NOW,
+            note: "Farmatodo",
+            updatedAt: NOW,
+        });
+
+        const props = await buildWidgetProps(db, NOW);
+
+        expect(props.Ledger.entries[0]?.amount).toBe("$9.96");
+        expect(props.Ledger.headers.today.spent.amount).toBe("$9.96");
     });
 
     it("leaves an entry in the ledger's own currency alone", async () => {

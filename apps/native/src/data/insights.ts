@@ -597,13 +597,14 @@ export function bucketDateLabel(period: InsightsPeriod, date: Date, language: La
 
 /**
  * The reactive hook builds this same query itself; this async form feeds the
- * tests, so the two have to stay in step.
+ * tests, so the two have to stay in step. Only this form carries `id`, which the
+ * widgets look an entry's valued figure up by.
  */
 export async function loadContributions(
     db: SpendDb,
     now: Date,
     valuation: Valuation = NO_VALUATION
-): Promise<InsightsContribution[]> {
+): Promise<(InsightsContribution & { id: string })[]> {
     const rows = await db
         .select({
             amount: transactions.amount,
@@ -613,6 +614,7 @@ export async function loadContributions(
             date: transactions.date,
             exchangeRate: transactions.exchangeRate,
             exchangeRateType: transactions.exchangeRateType,
+            id: transactions.id,
             income: transactions.income,
             parentId: categories.parentId,
         })
@@ -625,6 +627,7 @@ export async function loadContributions(
         amount: valued[index],
         categoryId: row.categoryId,
         date: row.date,
+        id: row.id,
         income: row.income,
         parentId: row.parentId ?? null,
     }));

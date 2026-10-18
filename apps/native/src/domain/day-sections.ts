@@ -1,5 +1,7 @@
 import { currencyTotals } from "@outlayr/money/currency-totals";
 import type { CurrencyBucket } from "@outlayr/money/currency-totals";
+import { utcDateString } from "@outlayr/money/dates";
+import { isExact, valueRowsIn } from "@outlayr/money/valuation";
 import type { RateTable } from "@outlayr/money/valuation";
 
 import { DEFAULT_CURRENCY } from "./money";
@@ -26,6 +28,11 @@ export interface DayGroupable {
     id?: string;
     income: boolean;
     transferId?: string | null;
+    /**
+     * What the row is worth in its list's currency, stamped by {@link valueRows}.
+     * Null when nothing can state it exactly; absent on a list valued without rates.
+     */
+    valued?: number | null;
 }
 
 export interface DaySection<T> {
@@ -42,6 +49,9 @@ export interface DaySection<T> {
 }
 
 export type WithFee<T> = T & { fee?: T };
+
+/** A row as {@link valueRows} hands it back. */
+export type Valued<T> = T & Pick<DayGroupable, "valued">;
 
 const instant = (row: DayGroupable): number => (row.date ?? row.day).getTime();
 
@@ -70,6 +80,38 @@ export function foldFees<T extends DayGroupable>(rows: readonly T[]): WithFee<T>
 }
 
 /**
+ * Stamps `valued` on the rows a list totals, handed out from the same
+ * `(currency, UTC day, direction)` cells its header sums, so the rows add up to
+ * the header to the cent. Without rates the rows come back as they were.
+ */
+export function valueRows<T extends DayGroupable>(
+    rows: readonly T[],
+    currency: string,
+    rates: RateTable | undefined
+): readonly Valued<T>[] {
+    if (!rates) {
+        return rows;
+    }
+    const counted = rows.filter((row) => !row.excludedFromTotals);
+    const valuables = counted.map((row) => ({
+        amount: row.amount,
+        amountUsd: row.amountUsd ?? null,
+        currency: row.currency ?? null,
+        // The key `toCells` files the row under, so it lands in its header's cell.
+        dateKey: row.date ? utcDateString(row.date.getTime()) : "",
+        income: row.income,
+    }));
+    const values = valueRowsIn(valuables, currency, rates);
+    const valued = new Map(
+        counted.map((row, index): [T, number | null] => [
+            row,
+            isExact(valuables[index], currency, rates) ? values[index] : null,
+        ])
+    );
+    return rows.map((row) => ({ ...row, valued: valued.get(row) ?? null }));
+}
+
+/**
  * Newest first, keyed on the local calendar day of the row's instant. The stored
  * `day` is midnight in whatever time zone the row was saved in, so keying on it
  * splits one day in two once the device's zone changes.
@@ -78,7 +120,7 @@ export function groupByDay<T extends DayGroupable>(
     rows: readonly T[],
     globalCurrency: string = DEFAULT_CURRENCY,
     rates?: RateTable
-): DaySection<WithFee<T>>[] {
+): DaySection<WithFee<Valued<T>>>[] {
     const sections: DaySection<T>[] = [];
     const byDay = new Map<number, DaySection<T>>();
     for (const row of rows) {
@@ -107,5 +149,8 @@ export function groupByDay<T extends DayGroupable>(
         }
         section.total = total;
     }
-    return sections.map((section) => ({ ...section, data: foldFees(section.data) }));
+    return sections.map((section) => ({
+        ...section,
+        data: foldFees(valueRows(section.data, globalCurrency, rates)),
+    }));
 }

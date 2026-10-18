@@ -40,8 +40,24 @@ function feeGlyph({ color, size }: { color: string; size: number }) {
 
 const UNDER_AMOUNT = "text-eyebrow text-muted font-mono tabular-nums";
 
+interface Figure {
+    amount: number;
+    currency: string;
+}
+
+/** A figure in the list's currency when the list could value it exactly, otherwise as it was kept. */
+function inListCurrency(
+    figure: { amount: number; currency: string | null; valued?: number | null },
+    currency: string
+): Figure {
+    const kept = figure.currency ?? currency;
+    return kept !== currency && figure.valued != null
+        ? { amount: figure.valued, currency }
+        : { amount: figure.amount, currency: kept };
+}
+
 interface UnderAmountProps {
-    fee: { amount: number; currency: string } | undefined;
+    fee: Figure | undefined;
     moved: TransferMove | undefined;
     sentCurrency: string;
     showCents: boolean;
@@ -98,21 +114,30 @@ interface RowMetaProps {
     details: string | null | undefined;
     foreignCode: string | null;
     future: boolean;
+    /** The amount as it was kept, when the trailing figure restates it in the list's currency. */
+    original: string | null;
     rateNeeded: boolean;
     subtitle: string;
     unplaced: boolean;
-    wrap: boolean;
 }
 
-function RowMeta({ currency, details, foreignCode, future, rateNeeded, subtitle, unplaced, wrap }: RowMetaProps) {
+function RowMeta({ currency, details, foreignCode, future, original, rateNeeded, subtitle, unplaced }: RowMetaProps) {
     const t = useTranslation();
+    const showOriginal = original !== null && !use(AmountsHiddenContext);
     return (
         <>
-            <View className={cn("flex-row items-center gap-1.25", wrap && "flex-wrap")}>
+            {/* Wraps rather than clips, so a narrow phone drops the original amount to
+                its own line instead of cutting digits off it. */}
+            <View className="flex-row flex-wrap items-center gap-1.25">
                 <Text className={cn(ROW_TYPE.subtitle, future ? "text-subtle" : "text-muted")} numberOfLines={1}>
                     {subtitle}
                 </Text>
-                {foreignCode ? (
+                {showOriginal ? (
+                    <Text className={UNDER_AMOUNT} numberOfLines={1}>
+                        {original}
+                    </Text>
+                ) : null}
+                {foreignCode && !showOriginal ? (
                     <View className="border-border rounded-[3px] border px-[3px]">
                         <MonoLabel>{foreignCode}</MonoLabel>
                     </View>
@@ -144,7 +169,10 @@ function RowMeta({ currency, details, foreignCode, future, rateNeeded, subtitle,
 }
 
 interface TransactionRowProps {
-    /** Global display currency, used when the row's own currency is null. */
+    /**
+     * The list's currency: a row kept in another one is restated in it, and a row
+     * that stated none is printed under it.
+     */
     currency: string;
     /**
      * Forces the upcoming variant. A scheduled entry whose stored date is already
@@ -176,9 +204,10 @@ interface TransactionRowProps {
     transaction: TransactionWithCategory & {
         details?: string | null;
         ends?: TransferLogRow["ends"];
-        fee?: { amount: number; currency: string | null };
+        fee?: { amount: number; currency: string | null; valued?: number | null };
         moved?: TransferMove;
         sign?: TransferLogRow["sign"];
+        valued?: number | null;
     };
 }
 
@@ -208,6 +237,10 @@ export function TransactionRow({
     const recurring = transaction.recurringType > 0;
     const rateNeeded = isTransactionRateNeeded(transaction);
     const foreignCode = transaction.currency && transaction.currency !== currency ? transaction.currency : null;
+    // A transfer keeps the currency it left in: what arrived, and in what, is the row's point.
+    const shown = isTransfer
+        ? { amount: transaction.moved?.sent ?? transaction.amount, currency: code }
+        : inListCurrency(transaction, currency);
     // A row that stated no currency is printed under the global code. That is a
     // fact only while something can place it; once nothing can, the code is an
     // assumption and the mark says so.
@@ -231,8 +264,8 @@ export function TransactionRow({
     const amount = (
         <View className={stacked ? "items-start" : "items-end"}>
             <RowAmount
-                amount={transaction.moved?.sent ?? transaction.amount}
-                code={code}
+                amount={shown.amount}
+                code={shown.currency}
                 income={transaction.income}
                 isFuture={future}
                 showCents={showCents}
@@ -240,12 +273,7 @@ export function TransactionRow({
                 transferSign={transaction.sign}
             />
             <UnderAmount
-                fee={
-                    transaction.fee && {
-                        amount: transaction.fee.amount,
-                        currency: transaction.fee.currency ?? currency,
-                    }
-                }
+                fee={transaction.fee && inListCurrency(transaction.fee, currency)}
                 moved={transaction.moved}
                 sentCurrency={code}
                 showCents={showCents}
@@ -315,10 +343,12 @@ export function TransactionRow({
                     details={transaction.details}
                     foreignCode={foreignCode}
                     future={future}
+                    original={
+                        shown.currency === code ? null : formatAmount(transaction.amount, code, showCents, language)
+                    }
                     rateNeeded={rateNeeded}
                     subtitle={subtitle}
                     unplaced={unplaced}
-                    wrap={stacked}
                 />
             </View>
             {stacked ? null : amount}

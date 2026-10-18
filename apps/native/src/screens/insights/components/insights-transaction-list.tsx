@@ -11,7 +11,7 @@ import { goesWithPendingDelete } from "@/data/card-fees-core";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
-import { foldFees, groupByDay } from "@/domain/day-sections";
+import { foldFees, groupByDay, valueRows } from "@/domain/day-sections";
 import { useTranslation } from "@/i18n/context";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { MARK_CEILING } from "@/theme/empty-state-ink";
@@ -71,7 +71,7 @@ export function InsightsTransactionList({
     );
 
     if (!grouped) {
-        return <View>{foldFees(rows).map(row)}</View>;
+        return <View>{foldFees(valueRows(rows, currency, rates)).map(row)}</View>;
     }
 
     return (

@@ -12,7 +12,7 @@ import { TransactionRow } from "@/components/transaction-row";
 import { cn } from "@/components/tw";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { TransactionWithCategory } from "@/data/transactions";
-import { foldFees } from "@/domain/day-sections";
+import { foldFees, valueRows } from "@/domain/day-sections";
 import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useTranslation } from "@/i18n/context";
 
@@ -74,7 +74,7 @@ export function LogUpcoming({ transactions, schedules, currency, rates, onPress,
                     </View>
                 ) : null}
             </View>
-            {foldFees(transactions).map((transaction) => (
+            {foldFees(valueRows(transactions, currency, rates)).map((transaction) => (
                 <TransactionRow
                     currency={currency}
                     future
