@@ -1,5 +1,5 @@
-import { useTheme } from "panelui-native/theme";
 import { useLayoutEffect } from "react";
+import { Uniwind } from "uniwind";
 
 import { useSettingNumber } from "@/contexts/display-settings-context";
 
@@ -20,11 +20,10 @@ import type { ThemePreference } from "./theme-preference";
  */
 export function useApplyThemePreference(): ThemePreference {
     const preference = themePreferenceForValue(useSettingNumber("colorScheme"));
-    const { setTheme } = useTheme();
 
     useLayoutEffect(() => {
-        setTheme(preference);
-    }, [preference, setTheme]);
+        Uniwind.setTheme(preference);
+    }, [preference]);
 
     return preference;
 }

@@ -8,8 +8,8 @@ import { useApplyThemePreference } from "./use-theme-preference";
 const mockSetTheme = jest.fn();
 const stored = { colorScheme: 0 };
 
-jest.mock<Partial<typeof import("panelui-native/theme")>>("panelui-native/theme", () => ({
-    useTheme: () => ({ setTheme: mockSetTheme, theme: "light" }),
+jest.mock<Partial<typeof import("uniwind")>>("uniwind", () => ({
+    Uniwind: { setTheme: (theme: string) => mockSetTheme(theme) } as unknown as typeof import("uniwind").Uniwind,
 }));
 
 jest.mock<Partial<typeof import("@/contexts/display-settings-context")>>("@/contexts/display-settings-context", () => ({
