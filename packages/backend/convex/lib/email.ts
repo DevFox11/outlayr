@@ -50,6 +50,8 @@ export function accountExistsEmail(language: Language): Email {
     };
 }
 
+const SEND_TIMEOUT_MS = 10_000;
+
 export const emailConfigured = Boolean(env.CLOUDFLARE_ACCOUNT_ID && env.CLOUDFLARE_EMAIL_TOKEN && env.EMAIL_FROM);
 
 /** Sends through Cloudflare Email Sending, from `EMAIL_FROM` under the name Outlayr. */
@@ -62,6 +64,7 @@ export async function sendEmail(to: string, { subject, text }: Email): Promise<v
         body: JSON.stringify({ from: { address: from, name: "Outlayr" }, subject, text, to }),
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         method: "POST",
+        signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
     });
     if (!response.ok) {
         throw new Error(`Cloudflare refused the email with ${response.status}`);

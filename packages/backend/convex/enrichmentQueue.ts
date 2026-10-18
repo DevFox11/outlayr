@@ -153,7 +153,9 @@ export async function resolveJob(
     if (cached !== null && (!row.grounded || (cached.source === "web" && cached.merchantName !== undefined))) {
         return applyToTree(row.categoryTree, cached);
     }
-    if (row.grounded) {
+    // Spent when `suggest` or an earlier job (a retry included) already searched this merchant today.
+    const perKey = row.grounded ? await rateLimiter.limit(ctx, "groundedPerKey", { key }) : null;
+    if (perKey?.ok) {
         const deep = await groundedAnswer(
             ctx,
             {

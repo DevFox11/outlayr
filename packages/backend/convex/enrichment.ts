@@ -162,7 +162,7 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     enrichmentQueue: perUserBurst("enrichmentQueue", false),
     // Kills both a user retyping the same unknown name and a
     // thundering herd across many users hitting one new merchant at once.
-    // Consumed inside `groundedLookup.run`; `maybeScheduleGrounded` only reads it.
+    // Consumed inside `groundedLookup.run` and `enrichmentQueue.resolveJob`; `maybeScheduleGrounded` only reads it.
     groundedPerKey: {
         capacity: 1,
         kind: "token bucket",

@@ -80,15 +80,20 @@ const wall = (instant: number, offsetMs: number) => new Date(instant + offsetMs)
 const wallDay = (date: Date) => date.toISOString().slice(0, 10);
 const localDate = (instant: number, offsetMs: number) => wallDay(wall(instant, offsetMs));
 
-function zoneOffset(rows: readonly { date: number; day: number; deletedAt: number | null }[], now: number): number {
-    let latest: (typeof rows)[number] | null = null;
-    for (const row of rows) {
-        if (row.deletedAt === null && row.date <= now && (latest === null || row.date > latest.date)) {
-            latest = row;
-        }
-    }
+async function zoneOffset(ctx: QueryCtx, userId: string, now: number): Promise<number> {
+    const latest = await ctx.db
+        .query("transactions")
+        .withIndex("by_user_and_deletedAt_and_date", (q) =>
+            q.eq("userId", userId).eq("deletedAt", null).lte("date", now)
+        )
+        .order("desc")
+        .first();
     return latest ? utcOffsetOf(latest.day) : 0;
 }
+
+// Valuation rounds per cell in input order, so rows read by date go back into the seq order a full scan gave.
+const bySeq = (a: { seq: number }, b: { seq: number }) => a.seq - b.seq;
+const utcDayStart = (instant: number) => Math.floor(instant / DAY_MS) * DAY_MS;
 
 /** One table carrying every code's official rates. USD needs none. */
 async function ratesIn(ctx: QueryCtx, ...codes: string[]): Promise<RateTable> {
@@ -127,14 +132,20 @@ export const spendingSummary = internalQuery({
         const currency = (await setting(ctx, userId, "currency")) ?? "USD";
         const firstDayOfMonth = Number(await setting(ctx, userId, "firstDayOfMonth")) || 1;
         const now = Date.now();
-        // ponytail: full scan of the user's rows; add a by_user_and_date index when ledgers outgrow it.
+        const offsetMs = await zoneOffset(ctx, userId, now);
+        const window = monthWindow(now, offsetMs, firstDayOfMonth, Math.max(0, Math.trunc(monthsAgo)));
+        // Whole UTC days around the window: a valuation cell is one UTC day, and one cut at the edge values differently.
         const stored = await ctx.db
             .query("transactions")
-            .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+            .withIndex("by_user_and_deletedAt_and_date", (q) =>
+                q
+                    .eq("userId", userId)
+                    .eq("deletedAt", null)
+                    .gte("date", utcDayStart(window.start))
+                    .lt("date", utcDayStart(window.end - 1) + DAY_MS)
+            )
             .collect();
-        const rows = stored.filter((row) => row.deletedAt === null && row.date <= now);
-        const offsetMs = zoneOffset(rows, now);
-        const window = monthWindow(now, offsetMs, firstDayOfMonth, Math.max(0, Math.trunc(monthsAgo)));
+        const rows = stored.filter((row) => row.date <= now).sort(bySeq);
         const values = valueDatedRowsIn(
             rows.map((row) => ({ ...row, date: new Date(row.date) })),
             currency,
@@ -199,35 +210,36 @@ export const accountBalances = internalQuery({
         const userId = caller.subject;
         const now = Date.now();
         const currency = (await setting(ctx, userId, "currency")) ?? "USD";
-        const [accountRows, transactionRows, transferRows] = await Promise.all([
+        const [accountRows, transactionRows, transferRows, offsetMs] = await Promise.all([
             ctx.db
                 .query("accounts")
                 .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
                 .collect(),
             ctx.db
                 .query("transactions")
-                .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+                .withIndex("by_user_and_deletedAt_and_date", (q) =>
+                    q.eq("userId", userId).eq("deletedAt", null).lte("date", now)
+                )
                 .collect(),
             ctx.db
                 .query("transfers")
-                .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+                .withIndex("by_user_and_deletedAt_and_date", (q) =>
+                    q.eq("userId", userId).eq("deletedAt", null).lte("date", now)
+                )
                 .collect(),
+            zoneOffset(ctx, userId, now),
         ]);
-        const offsetMs = zoneOffset(transactionRows, now);
         const accounts = accountRows.filter((row) => row.deletedAt === null).sort((a, b) => a.sortOrder - b.sortOrder);
         // Each balance is summed in its account's currency and restated into the
         // main one, so the table carries both.
         const rates = await ratesIn(ctx, currency, ...accounts.map((row) => row.currency));
         const ledger = new Map<string, LegEntry[]>(accounts.map((account) => [account.localId, []]));
-        for (const row of transactionRows) {
-            if (row.deletedAt === null && row.date <= now && row.accountId) {
+        for (const row of transactionRows.sort(bySeq)) {
+            if (row.accountId) {
                 ledger.get(row.accountId)?.push({ ...row, date: new Date(row.date), leg: "flow" });
             }
         }
-        for (const row of transferRows) {
-            if (row.deletedAt !== null || row.date > now) {
-                continue;
-            }
+        for (const row of transferRows.sort(bySeq)) {
             const date = new Date(row.date);
             ledger.get(row.fromAccountId)?.push({
                 amount: row.fromAmount,
@@ -355,7 +367,7 @@ export const budgetStatus = internalQuery({
         const userId = caller.subject;
         const now = Date.now();
         const currency = (await setting(ctx, userId, "currency")) ?? "USD";
-        const [mainRows, budgetRows, transactionRows, categories, rates] = await Promise.all([
+        const [mainRows, budgetRows, transactionRows, categories, rates, offsetMs] = await Promise.all([
             ctx.db
                 .query("mainBudget")
                 .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
@@ -366,13 +378,15 @@ export const budgetStatus = internalQuery({
                 .collect(),
             ctx.db
                 .query("transactions")
-                .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+                .withIndex("by_user_and_deletedAt_and_date", (q) =>
+                    q.eq("userId", userId).eq("deletedAt", null).lte("date", now)
+                )
                 .collect(),
             liveCategories(ctx, userId),
             ratesIn(ctx, currency),
+            zoneOffset(ctx, userId, now),
         ]);
-        const offsetMs = zoneOffset(transactionRows, now);
-        const expenses = transactionRows.filter((row) => row.deletedAt === null && !row.income && row.date <= now);
+        const expenses = transactionRows.filter((row) => !row.income).sort(bySeq);
         const values = valueDatedRowsIn(
             expenses.map((row) => ({ ...row, date: new Date(row.date) })),
             currency,
@@ -429,19 +443,26 @@ export const upcomingCharges = internalQuery({
         const userId = caller.subject;
         const now = Date.now();
         const currency = (await setting(ctx, userId, "currency")) ?? "USD";
-        const [transactionRows, categories, rates] = await Promise.all([
+        const [recurring, future, categories, rates, offsetMs] = await Promise.all([
             ctx.db
                 .query("transactions")
-                .withIndex("by_user_and_seq", (q) => q.eq("userId", userId))
+                .withIndex("by_user_and_deletedAt_and_recurringType", (q) =>
+                    q.eq("userId", userId).eq("deletedAt", null).gt("recurringType", RECURRING_TYPE.none)
+                )
+                .collect(),
+            ctx.db
+                .query("transactions")
+                .withIndex("by_user_and_deletedAt_and_date", (q) =>
+                    q.eq("userId", userId).eq("deletedAt", null).gt("date", now)
+                )
                 .collect(),
             liveCategories(ctx, userId),
             ratesIn(ctx, currency),
+            zoneOffset(ctx, userId, now),
         ]);
-        const offsetMs = zoneOffset(transactionRows, now);
         const today = wall(now, offsetMs);
-        const scheduled = transactionRows.filter(
-            (row) => row.deletedAt === null && (row.recurringType > RECURRING_TYPE.none || row.date > now)
-        );
+        // A future recurring entry is in both reads.
+        const scheduled = [...new Map([...recurring, ...future].map((row) => [row._id, row])).values()].sort(bySeq);
         const perMonth = monthlySubscriptionCost(
             scheduled.map((row) => ({
                 ...row,

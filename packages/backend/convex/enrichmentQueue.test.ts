@@ -137,6 +137,35 @@ describe(resolveJob, () => {
         });
     });
 
+    it("searches the web for a merchant once a day, leaving later jobs to the fast model", async () => {
+        const t = setup();
+        let searches = 0;
+        const grounding = new MockLanguageModelV3({
+            doGenerate: () => {
+                searches += 1;
+                throw new Error("no publishable answer");
+            },
+        });
+        const fast = fastModel({
+            brand: "Care4Bag",
+            categoryName: "Travel",
+            domain: null,
+            domainConfidence: "low",
+            isNewCategory: false,
+            tags: [],
+        });
+        const resolve = () =>
+            t.action((ctx) =>
+                resolveJob(ctx, queuedRow({ grounded: true }), { fast, grounded: { grounding, groundingTools: {} } })
+            );
+
+        await resolve();
+        const retry = await resolve();
+
+        expect(searches).toBe(1);
+        expect(retry).toMatchObject({ categoryName: "Travel", merchantName: "Care4Bag" });
+    });
+
     it("keeps a row off the web when its owner withdrew consent, and still names the merchant", async () => {
         const t = setup();
         const fast = fastModel({

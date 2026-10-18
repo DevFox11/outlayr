@@ -316,7 +316,9 @@ export default defineSchema({
     transactions: defineTable({ ...replicated, ...transactionColumns })
         .index("by_user_and_seq", ["userId", "seq"])
         .index("by_user_and_localId", ["userId", "localId"])
-        .index("by_user_and_imageKey", ["userId", "imageKey"]),
+        .index("by_user_and_imageKey", ["userId", "imageKey"])
+        .index("by_user_and_deletedAt_and_date", ["userId", "deletedAt", "date"])
+        .index("by_user_and_deletedAt_and_recurringType", ["userId", "deletedAt", "recurringType"]),
 
     /**
      * `fromAccountId` and `toAccountId` hold account `localId`s, staying in
@@ -324,5 +326,6 @@ export default defineSchema({
      */
     transfers: defineTable({ ...replicated, ...transferFields })
         .index("by_user_and_seq", ["userId", "seq"])
-        .index("by_user_and_localId", ["userId", "localId"]),
+        .index("by_user_and_localId", ["userId", "localId"])
+        .index("by_user_and_deletedAt_and_date", ["userId", "deletedAt", "date"]),
 });

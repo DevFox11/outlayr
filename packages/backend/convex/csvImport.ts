@@ -270,16 +270,12 @@ export const csvImport = action({
         // never reaches the model.
         const known: LabelSuggestion[] = [];
         const remaining: string[] = [];
-        const looked = await Promise.all(
-            args.labels.map(async (label) => ({
-                label,
-                row: await ctx.runQuery(internal.merchantKnowledge.lookup, {
-                    keys: knowledgeKeys(label, undefined),
-                    now: Date.now(),
-                }),
-            }))
-        );
-        for (const { label, row } of looked) {
+        const looked = await ctx.runQuery(internal.merchantKnowledge.lookupMany, {
+            keyLists: args.labels.map((label) => knowledgeKeys(label, undefined)),
+            now: Date.now(),
+        });
+        for (const [index, label] of args.labels.entries()) {
+            const row = looked[index] ?? null;
             if (row === null) {
                 remaining.push(label);
             } else {

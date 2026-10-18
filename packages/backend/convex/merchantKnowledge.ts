@@ -3,10 +3,11 @@ import type { Infer } from "convex/values";
 
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
 import { MODEL_TTL_MS, WEB_TTL_MS } from "./lib/merchantTrust";
 
 /**
- * `lookup`/`record`/`purge` are all `internal*` and stay that way — a public
+ * `lookup`/`lookupMany`/`record`/`purge` are all `internal*` and stay that way — a public
  * exact-key oracle over a shared, non-user-scoped table is a
  * dictionary-enumeration surface (threat T5). `lookup` is reachable only from
  * `enrichment.ts:suggest`, `csvImport.ts:csvImport` and the enrichment queue,
@@ -43,33 +44,42 @@ function expiresAt(row: Doc<"merchantKnowledge">): number {
     return row.expiresAt ?? row.resolvedAt + WEB_TTL_MS;
 }
 
+async function findKnowledge(ctx: QueryCtx, keys: readonly string[], now: number) {
+    for (const key of keys.slice(0, MAX_KEYS)) {
+        // oxlint-disable-next-line no-await-in-loop -- the keys are tried in order of trust, raw name first, and the first live row answers
+        const row = await ctx.db
+            .query("merchantKnowledge")
+            .withIndex("by_key", (q) => q.eq("key", key))
+            .unique();
+        if (row !== null && expiresAt(row) > now) {
+            return {
+                categoryName: row.categoryName,
+                domain: row.domain,
+                emoji: row.emoji,
+                key: row.key,
+                merchantName: row.merchantName,
+                modelId: row.modelId,
+                parentCategoryName: row.parentCategoryName,
+                resolvedAt: row.resolvedAt,
+                source: sourceOf(row),
+                tags: row.tags,
+            };
+        }
+    }
+    return null;
+}
+
 export const lookup = internalQuery({
     args: { keys: v.array(v.string()), now: v.number() },
-    handler: async (ctx, args) => {
-        for (const key of args.keys.slice(0, MAX_KEYS)) {
-            // oxlint-disable-next-line no-await-in-loop -- the keys are tried in order of trust, raw name first, and the first live row answers
-            const row = await ctx.db
-                .query("merchantKnowledge")
-                .withIndex("by_key", (q) => q.eq("key", key))
-                .unique();
-            if (row !== null && expiresAt(row) > args.now) {
-                return {
-                    categoryName: row.categoryName,
-                    domain: row.domain,
-                    emoji: row.emoji,
-                    key: row.key,
-                    merchantName: row.merchantName,
-                    modelId: row.modelId,
-                    parentCategoryName: row.parentCategoryName,
-                    resolvedAt: row.resolvedAt,
-                    source: sourceOf(row),
-                    tags: row.tags,
-                };
-            }
-        }
-        return null;
-    },
+    handler: async (ctx, args) => await findKnowledge(ctx, args.keys, args.now),
     returns: v.union(knowledgeRecord, v.null()),
+});
+
+/** `lookup` for many names in one transaction: one answer per key list, in order. */
+export const lookupMany = internalQuery({
+    args: { keyLists: v.array(v.array(v.string())), now: v.number() },
+    handler: async (ctx, args) => await Promise.all(args.keyLists.map((keys) => findKnowledge(ctx, keys, args.now))),
+    returns: v.array(v.union(knowledgeRecord, v.null())),
 });
 
 export const record = internalMutation({
