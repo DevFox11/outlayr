@@ -5,9 +5,8 @@ import { Icon } from "@/components/icon";
 import { StoreBadges } from "@/components/store-badges";
 import { CONTAINER } from "@/lib/layout";
 
+import { HERO_POSTER } from "./hero-poster";
 import { LoopVideo, Phone, videoUrl } from "./media";
-
-export const HERO_POSTER = { dark: "/screens/log-an-expense-dark.webp", light: "/screens/log-an-expense.webp" };
 
 export function Hero() {
     const { hero } = useIntlayer("home");

@@ -1,4 +1,4 @@
-import { posthog } from "posthog-js";
+import type { PostHog, Properties } from "posthog-js";
 
 export type Consent = "denied" | "granted" | "pending";
 
@@ -47,7 +47,9 @@ const ASK_FIRST = new Set([
     "YT",
 ]);
 
-let started = false;
+// Loaded on start rather than imported: posthog-js was over a third of the chunk every page waits on.
+let posthog: PostHog | null = null;
+let starting = false;
 const listeners = new Set<() => void>();
 
 function notify() {
@@ -56,11 +58,13 @@ function notify() {
     }
 }
 
-export function startAnalytics(country: string | null) {
-    if (!TOKEN || started) {
+export async function startAnalytics(country: string | null) {
+    if (!TOKEN || starting) {
         return;
     }
-    posthog.init(TOKEN, {
+    starting = true;
+    const { posthog: client } = await import("posthog-js");
+    client.init(TOKEN, {
         advanced_disable_feature_flags: true,
         api_host: "https://relay.tryoutlayr.com",
         capture_exceptions: true,
@@ -70,15 +74,20 @@ export function startAnalytics(country: string | null) {
     });
     const sendsGpc = "globalPrivacyControl" in navigator && navigator.globalPrivacyControl === true;
     const asksFirst = country === null || ASK_FIRST.has(country) || sendsGpc;
-    if (!asksFirst && posthog.get_explicit_consent_status() === "pending") {
-        posthog.opt_in_capturing({ captureEventName: false });
+    if (!asksFirst && client.get_explicit_consent_status() === "pending") {
+        client.opt_in_capturing({ captureEventName: false });
     }
-    started = true;
+    posthog = client;
     notify();
 }
 
+/** Dropped until analytics has started, as posthog itself drops events before `init`. */
+export function capture(event: string, properties?: Properties) {
+    posthog?.capture(event, properties);
+}
+
 export function readConsent(): Consent | null {
-    return started ? posthog.get_explicit_consent_status() : null;
+    return posthog?.get_explicit_consent_status() ?? null;
 }
 
 export function subscribeConsent(listener: () => void) {
@@ -90,9 +99,9 @@ export function subscribeConsent(listener: () => void) {
 
 export function chooseConsent(granted: boolean) {
     if (granted) {
-        posthog.opt_in_capturing();
+        posthog?.opt_in_capturing();
     } else {
-        posthog.opt_out_capturing();
+        posthog?.opt_out_capturing();
     }
     notify();
 }

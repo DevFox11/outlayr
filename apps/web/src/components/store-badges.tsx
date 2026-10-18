@@ -1,6 +1,6 @@
-import { posthog } from "posthog-js";
 import { useIntlayer, useLocale } from "react-intlayer";
 
+import { capture } from "@/lib/analytics";
 import type { Locale } from "@/lib/i18n";
 import { APP_STORE_URL } from "@/lib/site";
 
@@ -25,7 +25,7 @@ export function StoreBadges({ placement }: { placement: Placement }) {
             <a
                 className="fluid shrink-0 hover:-translate-y-0.5 active:translate-y-px"
                 href={APP_STORE_URL}
-                onClick={() => posthog.capture("app_store_badge_clicked", { placement })}
+                onClick={() => capture("app_store_badge_clicked", { placement })}
             >
                 <img
                     alt={badges.appStore.value}

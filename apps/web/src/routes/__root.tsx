@@ -1,3 +1,5 @@
+import geistMono from "@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2?url";
+import geist from "@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url";
 import { HeadContent, Scripts, createRootRoute, useParams } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
@@ -75,6 +77,14 @@ export const Route = createRootRoute({
                       ]
                     : []),
                 { href: appCss, rel: "stylesheet" },
+                // The latin faces the first paint sets, fetched with the CSS instead of after it.
+                ...[geist, geistMono].map((href) => ({
+                    as: "font",
+                    crossOrigin: "anonymous" as const,
+                    href,
+                    rel: "preload",
+                    type: "font/woff2",
+                })),
                 { href: "/favicon.svg", rel: "icon", type: "image/svg+xml" },
                 {
                     href: "/favicon-light.png",
@@ -124,7 +134,9 @@ export const Route = createRootRoute({
 function RootDocument({ children }: { children: ReactNode }) {
     const locale = localeFromParam(useParams({ strict: false }).locale);
     const country = Route.useLoaderData();
-    useEffect(() => startAnalytics(country), [country]);
+    useEffect(() => {
+        startAnalytics(country).catch(() => undefined);
+    }, [country]);
     useAgentTools(locale);
     useMotion();
     return (

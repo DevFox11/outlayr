@@ -74,12 +74,15 @@ export function LoopVideo({
     av1,
     className = "relative",
     label,
+    lazyPoster = false,
     poster,
     sources,
 }: {
     av1?: { dark: string; light: string };
     className?: string;
     label: string;
+    /** For a video below the fold: a `poster` attribute is fetched at once, a lazy image only when near. */
+    lazyPoster?: boolean;
     poster: { dark: string; light: string };
     sources: { dark: string; light: string };
 }) {
@@ -116,10 +119,21 @@ export function LoopVideo({
 
     return (
         <div className={className} ref={ref}>
+            {theme === null || !lazyPoster ? null : (
+                <img
+                    alt=""
+                    className="absolute inset-0 size-full object-cover"
+                    decoding="async"
+                    height={1080}
+                    loading="lazy"
+                    src={poster[theme]}
+                    width={1080}
+                />
+            )}
             {theme === null ? null : (
                 <video
                     aria-label={label}
-                    className="size-full object-cover"
+                    className={lazyPoster ? "relative size-full object-cover" : "size-full object-cover"}
                     data-variant={theme}
                     height={1080}
                     key={theme}
@@ -128,7 +142,7 @@ export function LoopVideo({
                     onPause={() => setPaused(true)}
                     onPlay={() => setPaused(false)}
                     playsInline
-                    poster={poster[theme]}
+                    poster={lazyPoster ? undefined : poster[theme]}
                     preload="none"
                     ref={video}
                     width={1080}
@@ -155,6 +169,7 @@ export function Film({ label, name }: { label: string; name: string }) {
     return (
         <LoopVideo
             className="bg-surface relative aspect-square"
+            lazyPoster
             av1={{ dark: videoUrl(`${name}-dark${cut}.av1.mp4`), light: videoUrl(`${name}-light${cut}.av1.mp4`) }}
             label={label}
             poster={{ dark: videoUrl(`${name}-dark${cut}.webp`), light: videoUrl(`${name}-light${cut}.webp`) }}

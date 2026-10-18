@@ -12,7 +12,11 @@ export default defineConfig({
         tailwindcss(),
         intlayer(),
         tanstackStart(),
-        nitro({ routes: { "/assets/**": "./src/server/missing-asset.ts" } }),
+        nitro({
+            // Every file under /assets is content-hashed by Vite, so a URL never changes meaning.
+            routeRules: { "/assets/**": { headers: { "cache-control": "public, max-age=31536000, immutable" } } },
+            routes: { "/assets/**": "./src/server/missing-asset.ts" },
+        }),
         viteReact(),
     ],
     resolve: {

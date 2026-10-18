@@ -3,7 +3,8 @@ import { getIntlayer } from "intlayer";
 
 import { Extras, Screens, Trust } from "@/components/home/details";
 import { Features } from "@/components/home/features";
-import { HERO_POSTER, Hero } from "@/components/home/hero";
+import { Hero } from "@/components/home/hero";
+import { HERO_POSTER } from "@/components/home/hero-poster";
 import { HowItWorks } from "@/components/home/how-it-works";
 import { Pricing } from "@/components/home/pricing";
 import { Problem } from "@/components/home/problem";

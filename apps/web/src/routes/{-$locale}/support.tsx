@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getIntlayer } from "intlayer";
-import { posthog } from "posthog-js";
 import { useId, useState } from "react";
 import { useIntlayer } from "react-intlayer";
 
 import { Icon } from "@/components/icon";
 import { Page } from "@/components/page";
 import { fold } from "@/lib/agent-tools";
+import { capture } from "@/lib/analytics";
 import { LANGUAGES, localeFromParam } from "@/lib/i18n";
 import { faqPage, ldJson, pageMeta } from "@/lib/seo";
 import { SUPPORT_EMAIL } from "@/lib/site";
@@ -28,7 +28,7 @@ function EmailButton() {
         <a
             className="fluid bg-foreground text-background inline-flex items-center gap-3 rounded-full px-6 py-3 text-base font-semibold hover:-translate-y-0.5 active:translate-y-px"
             href={`mailto:${SUPPORT_EMAIL}`}
-            onClick={() => posthog.capture("support_email_clicked")}
+            onClick={() => capture("support_email_clicked")}
         >
             <Icon name="envelope-simple" />
             {SUPPORT_EMAIL}

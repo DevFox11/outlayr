@@ -79,12 +79,14 @@ function GuidePlate({ alt, plate }: { alt: string; plate: string }) {
         return (
             <figure className="bg-surface mx-auto w-full max-w-sm rounded-3xl p-2 lg:max-w-xs">
                 <div className="aspect-4/5 overflow-hidden rounded-2xl lg:aspect-auto">
+                    {/* Both lazy: a hidden lazy image is never fetched, so only the painted theme's plate loads. */}
                     <img
                         alt={alt}
                         className="light-only size-full object-cover object-top lg:h-auto"
                         decoding="async"
                         fetchPriority="high"
                         height={1912}
+                        loading="lazy"
                         src={plate}
                         width={880}
                     />
@@ -92,6 +94,7 @@ function GuidePlate({ alt, plate }: { alt: string; plate: string }) {
                         alt={alt}
                         className="dark-only size-full object-cover object-top lg:h-auto"
                         decoding="async"
+                        fetchPriority="high"
                         height={1912}
                         loading="lazy"
                         src={plate.replace(WEBP, "-dark.webp")}
