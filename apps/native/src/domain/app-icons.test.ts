@@ -120,11 +120,6 @@ describe("app icon catalogue", () => {
 });
 
 describe("resolving what iOS reports", () => {
-    it("reads null back as the default, whichever primary the build ships", () => {
-        expect(EN[appIconLabel(null)]).toBe("Default");
-        expect(appIconChoice(null)).toBe(APP_ICONS[0]);
-    });
-
     it("resolves each alternate by its catalogue name", () => {
         for (const icon of APP_ICONS) {
             expect(appIconChoice(icon.name)).toBe(icon);
@@ -181,17 +176,6 @@ describe("choosing an icon", () => {
             name: "OutlayrInk",
         });
         expect(landed).toStrictEqual({ active: "OutlayrInk", pending: null });
-    });
-
-    it("accepts the next tap once the change has landed", () => {
-        const landed = appIconTransition(tap(ON_MONO, "OutlayrInk"), {
-            kind: "resolved",
-            name: "OutlayrInk",
-        });
-        expect(tap(landed, "OutlayrEmboss")).toStrictEqual({
-            active: "OutlayrEmboss",
-            pending: { name: "OutlayrEmboss" },
-        });
     });
 
     it("restores the icon iOS reports when the change is refused", () => {

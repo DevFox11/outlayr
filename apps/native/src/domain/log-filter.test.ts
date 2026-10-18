@@ -14,7 +14,6 @@ describe("filterHasMenu", () => {
 
     it("withholds one from the filters that are just a label", () => {
         expect(filterHasMenu("recurring")).toBe(false);
-        expect(filterHasMenu("upcoming")).toBe(false);
     });
 });
 

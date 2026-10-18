@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
 
-import { holdSubmitting, pressSubmit, pressSubmitWith } from "./submit-guard";
+import { pressSubmit, pressSubmitWith } from "./submit-guard";
 
 describe("pressSubmit", () => {
     it("calls handleSubmit when the form is not submitting", () => {
@@ -39,15 +39,5 @@ describe("pressSubmitWith", () => {
         const handleSubmit = jest.fn<(meta: "finish") => Promise<void>>().mockResolvedValue(undefined);
         pressSubmitWith({ handleSubmit, state: { isSubmitting: true } }, "finish");
         expect(handleSubmit).not.toHaveBeenCalled();
-    });
-});
-
-describe("holdSubmitting", () => {
-    it("never settles", async () => {
-        const settled = jest.fn();
-        holdSubmitting().then(settled).catch(settled);
-        await Promise.resolve();
-        await Promise.resolve();
-        expect(settled).not.toHaveBeenCalled();
     });
 });

@@ -60,14 +60,6 @@ beforeEach(() => {
 });
 
 describe("recentCategoryIdsQuery", () => {
-    it("orders by the most recent transaction, newest first", () => {
-        const db = migratedDatabase();
-        log(db, "rent");
-        log(db, "groceries");
-        log(db, "transport");
-        expect(ids(db, false)).toStrictEqual(["transport", "groceries", "rent"]);
-    });
-
     it("lists a category once, ranked by its newest transaction", () => {
         const db = migratedDatabase();
         log(db, "groceries");

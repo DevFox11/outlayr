@@ -51,10 +51,6 @@ describe("translate", () => {
         expect(translate("greeting", { catalog: {}, fallback: EN })).toBe("Hello");
     });
 
-    it("falls back to English for a plural key too", () => {
-        expect(translate("entry", { catalog: {}, fallback: EN, params: { count: 2 } })).toBe("2 entries");
-    });
-
     it("picks the singular form when count is 1", () => {
         expect(translate("entry", { catalog: ES, fallback: EN, params: { count: 1 } })).toBe("1 registro");
     });

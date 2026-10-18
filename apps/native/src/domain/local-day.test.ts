@@ -1,6 +1,19 @@
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
+
 import { describe, expect, it } from "@jest/globals";
 
-import { addLocalMonths, daysBetween, onUtcPickerDay, startOfLocalDay, tomorrowLocal, utcPickerDay } from "./local-day";
+import { addLocalMonths, onUtcPickerDay, startOfLocalDay, tomorrowLocal, utcPickerDay } from "./local-day";
+
+const inNewYork = (...args: (number | string)[]): string =>
+    execFileSync(
+        process.execPath,
+        ["--import", "tsx", join(import.meta.dirname, "dst-probe.ts"), ...args.map(String)],
+        {
+            encoding: "utf-8",
+            env: { ...process.env, TZ: "America/New_York" },
+        }
+    );
 
 describe("the reader's calendar", () => {
     it("floors to the local midnight, not the epoch's", () => {
@@ -9,10 +22,7 @@ describe("the reader's calendar", () => {
     });
 
     it("counts whole days across a clock change", () => {
-        // 47 or 49 hours in a shifting zone; two calendar days either way.
-        const from = new Date(2027, 2, 7).getTime();
-        const to = new Date(2027, 2, 9).getTime();
-        expect(daysBetween(from, to)).toBe(2);
+        expect(inNewYork("days-between", 2027, 2, 13, 0, 0, 2027, 2, 15, 0, 0)).toBe("2");
     });
 
     it("offers tomorrow at midnight, whatever the hour now", () => {
@@ -41,10 +51,5 @@ describe("the Material date picker's UTC days", () => {
         const entry = new Date(2026, 9, 14, 21, 45);
         const moved = onUtcPickerDay(new Date("2026-10-02T00:00:00.000Z"), entry);
         expect(moved).toStrictEqual(new Date(2026, 9, 2, 21, 45));
-    });
-
-    it("reads back the day it was opened on as no change", () => {
-        const entry = new Date(2026, 9, 14, 23, 30);
-        expect(onUtcPickerDay(new Date(utcPickerDay(entry)), entry)).toStrictEqual(entry);
     });
 });

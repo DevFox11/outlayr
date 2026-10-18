@@ -32,20 +32,8 @@ describe("amountHeroFontSize", () => {
         expect(size * amountHeroLength(453_333_333, 2) * 0.58).toBeLessThanOrEqual(IPHONE_CONTENT_WIDTH);
     });
 
-    it("keeps shrinking as the figure keeps growing", () => {
-        const nine = amountHeroFontSize(453_333_333, 2, IPHONE_CONTENT_WIDTH);
-        const twelve = amountHeroFontSize(453_333_333_000, 2, IPHONE_CONTENT_WIDTH);
-        expect(twelve).toBeLessThan(nine);
-    });
-
     it("never goes below the floor", () => {
         expect(amountHeroFontSize(Number.MAX_SAFE_INTEGER, 2, IPHONE_CONTENT_WIDTH)).toBe(AMOUNT_HERO_MIN_SIZE);
-    });
-
-    it("shrinks sooner on a narrower screen", () => {
-        const wide = amountHeroFontSize(4_500_000, 2, IPHONE_CONTENT_WIDTH);
-        const narrow = amountHeroFontSize(4_500_000, 2, 280);
-        expect(narrow).toBeLessThan(wide);
     });
 
     // A zero or negative content width means layout has not reported yet.

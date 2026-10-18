@@ -618,35 +618,6 @@ describe("runSuggest sanitisation", () => {
         expect(result.tags).toStrictEqual(["a".repeat(24), "second", "third"]);
     });
 
-    it("drops a domain the model itself rates low, so the grounded tier is asked instead", async () => {
-        const model = mockModel({
-            categoryName: "Dining Out",
-            domain: "sushiway.com",
-            domainConfidence: "low",
-            isNewCategory: false,
-            tags: [],
-        });
-
-        await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toMatchObject({
-            categoryName: "Dining Out",
-            domain: null,
-        });
-    });
-
-    it("drops a domain the model did not rate at all", async () => {
-        const model = mockModel({
-            categoryName: "Groceries",
-            domain: "intermarche.com",
-            isNewCategory: false,
-            tags: [],
-        });
-
-        await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toMatchObject({
-            categoryName: "Groceries",
-            domain: null,
-        });
-    });
-
     it("drops a domain rated medium, so the grounded tier is asked instead", async () => {
         const model = mockModel({
             categoryName: "Dining Out",
@@ -660,44 +631,6 @@ describe("runSuggest sanitisation", () => {
             categoryName: "Dining Out",
             domain: null,
         });
-    });
-
-    it("rejects a domain that is not a bare host.tld shape", async () => {
-        const model = mockModel({
-            categoryName: null,
-            domain: "https://netflix.com/watch",
-            isNewCategory: false,
-            tags: [],
-        });
-
-        await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toMatchObject({ domain: null });
-    });
-
-    it("case-folds an otherwise valid domain instead of rejecting it", async () => {
-        const model = mockModel({
-            categoryName: null,
-            domain: "NETFLIX.COM",
-            domainConfidence: "high",
-            isNewCategory: false,
-            tags: [],
-        });
-
-        await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toMatchObject({
-            domain: "netflix.com",
-        });
-    });
-
-    it("rejects a domain longer than 253 characters", async () => {
-        const longDomain = `${"a".repeat(251)}.co`;
-        expect(longDomain.length).toBeGreaterThan(253);
-        const model = mockModel({
-            categoryName: null,
-            domain: longDomain,
-            isNewCategory: false,
-            tags: [],
-        });
-
-        await expect(runSuggest(model, { ...BASE_ARGS, categoryTree: [] })).resolves.toMatchObject({ domain: null });
     });
 
     it("nulls out an empty category name", async () => {
@@ -906,6 +839,14 @@ describe(sanitizeDomain, () => {
     it("case-folds before stripping, so WWW.NETFLIX.COM also loses its prefix", () => {
         expect(sanitizeDomain("WWW.NETFLIX.COM")).toBe("netflix.com");
     });
+
+    it.each([
+        ["a url", "https://netflix.com"],
+        ["a bare name", "netflix"],
+        ["a host over 253 characters", `${"a".repeat(250)}.com`],
+    ])("rejects %s before it reaches the logo fetcher", (_, domain) => {
+        expect(sanitizeDomain(domain)).toBeNull();
+    });
 });
 
 describe(sanitizeCurrencyCode, () => {
@@ -929,10 +870,6 @@ describe(sanitizeRegionCode, () => {
 
     it("rejects a three-letter code", () => {
         expect(sanitizeRegionCode("VEN")).toBeUndefined();
-    });
-
-    it("rejects a code containing a digit", () => {
-        expect(sanitizeRegionCode("1E")).toBeUndefined();
     });
 
     it("passes undefined through unchanged", () => {

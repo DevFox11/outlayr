@@ -3,10 +3,7 @@ import { describe, expect, it, test } from "@jest/globals";
 import { cardFeeAmount, cardFeeBase, cardFeeOf, feeDraftOf, formatFeeRate } from "./card-fee";
 
 describe("cardFeeAmount", () => {
-    it.each([
-        [12.53, 0.035, 0.44],
-        [5.17, 0.035, 0.18],
-    ])("charges %d at %d as the bank did, %d", (base, rate, fee) => {
+    it.each([[12.53, 0.035, 0.44]])("charges %d at %d as the bank did, %d", (base, rate, fee) => {
         expect(cardFeeAmount({ kind: "percent", rate }, base, "USD")).toBe(fee);
     });
 
@@ -60,6 +57,10 @@ describe("cardFeeBase", () => {
 
     it("carries a foreign charge through USD into a non-USD card's own currency", () => {
         expect(cardFeeBase(10, { card: "EUR", entry: "USD" }, eurToUsd, 0.87)).toBe(8.7);
+    });
+
+    it.each([0, -10])("has no base for a charge of %d", (amount) => {
+        expect(cardFeeBase(amount, { card: "USD", entry: "USD" }, eurToUsd, null)).toBeNull();
     });
 
     it("has no base while a rate is missing", () => {

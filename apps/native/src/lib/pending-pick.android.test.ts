@@ -53,22 +53,15 @@ beforeEach(async () => {
 });
 
 describe("pendingPick on Android", () => {
-    it("hands a recovered photo back to the screen that launched the pick", async () => {
-        await tornDownPick("receipt-scan");
-        clock.mockReturnValue(LAUNCHED_AT + MINUTE_MS);
+    it.each([["receipt-scan", "identity-picker"]] as const)(
+        "keeps a photo picked for %s from %s, and for its own screen",
+        async (owner, other) => {
+            await tornDownPick(owner);
 
-        await expect(pendingPick("receipt-scan")).resolves.toStrictEqual(PHOTO);
-    });
-
-    it.each([
-        ["receipt-scan", "identity-picker"],
-        ["identity-picker", "receipt-scan"],
-    ] as const)("keeps a photo picked for %s from %s, and for its own screen", async (owner, other) => {
-        await tornDownPick(owner);
-
-        await expect(pendingPick(other)).resolves.toBeNull();
-        await expect(pendingPick(owner)).resolves.toStrictEqual(PHOTO);
-    });
+            await expect(pendingPick(other)).resolves.toBeNull();
+            await expect(pendingPick(owner)).resolves.toStrictEqual(PHOTO);
+        }
+    );
 
     it("drops a photo from a pick launched long before", async () => {
         await tornDownPick("receipt-scan");

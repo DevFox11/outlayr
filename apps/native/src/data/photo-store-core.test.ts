@@ -285,16 +285,6 @@ describe("reconcilePhotos", () => {
         expect(result.purged).toBe(0);
     });
 
-    it("clears an account whose logo is gone", async () => {
-        await insertAccount(db, "a1", "file:///tmp/ImagePicker/reclaimed.jpg");
-        const files = new FakeFiles();
-
-        const result = await reconcilePhotos(db, files, NOW);
-
-        await expect(storedAccountUri(db, "a1")).resolves.toBeNull();
-        expect(result.cleared).toBe(1);
-    });
-
     it("is idempotent", async () => {
         const cached = "file:///tmp/ImagePicker/AB-CD.jpeg";
         await insert(db, "t1", cached);

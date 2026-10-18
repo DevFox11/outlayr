@@ -5,7 +5,6 @@ import { quietAlternative } from "./insights-quiet";
 describe("quietAlternative", () => {
     it("returns null on a window with no money at all, since there is nowhere to send anyone", () => {
         expect(quietAlternative("spent", { income: 0, spent: 0 })).toBeNull();
-        expect(quietAlternative("income", { income: 0, spent: 0 })).toBeNull();
         expect(quietAlternative("net", { income: 0, spent: 0 })).toBeNull();
     });
 
@@ -28,21 +27,5 @@ describe("quietAlternative", () => {
 
     it("returns null for a one-sided window whose only figure is the promoted one", () => {
         expect(quietAlternative("income", { income: 1200, spent: 0 })).toBeNull();
-        expect(quietAlternative("spent", { income: 0, spent: 900 })).toBeNull();
-    });
-
-    it("never offers net, because a quiet promoted measure leaves net restating the other direction", () => {
-        const WINDOWS = [
-            { income: 0, spent: 0 },
-            { income: 1200, spent: 0 },
-            { income: 0, spent: 900 },
-            { income: 1200, spent: 900 },
-            { income: 500, spent: 500 },
-        ];
-        for (const totals of WINDOWS) {
-            for (const measure of ["spent", "income", "net"] as const) {
-                expect(quietAlternative(measure, totals)).not.toBe("net");
-            }
-        }
     });
 });

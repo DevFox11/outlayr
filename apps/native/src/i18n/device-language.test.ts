@@ -70,17 +70,6 @@ describe("useDeviceLanguageTag", () => {
         expect(result.current).toBe("en-US");
     });
 
-    it("re-reads the tag when the app returns to the foreground", async () => {
-        const appState = watchAppState();
-        mockDeviceLanguageTag.mockReturnValue("en-US");
-        const { result } = await renderHook(() => useDeviceLanguageTag());
-
-        mockDeviceLanguageTag.mockReturnValue("es-MX");
-        await appState.emit("active");
-
-        expect(result.current).toBe("es-MX");
-    });
-
     it("notifies every mounted consumer, not just the first", async () => {
         const appState = watchAppState();
         mockDeviceLanguageTag.mockReturnValue("en-US");

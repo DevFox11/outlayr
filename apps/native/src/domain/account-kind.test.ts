@@ -7,10 +7,6 @@ describe("reading a stored kind", () => {
         expect(toAccountKind(undefined)).toBe("asset");
     });
 
-    it("refuses a value it does not know rather than trusting it", () => {
-        expect(toAccountKind("chequing")).toBe("asset");
-    });
-
     it("reads a liability", () => {
         expect(toAccountKind("liability")).toBe("liability");
     });

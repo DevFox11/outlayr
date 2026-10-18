@@ -1,8 +1,11 @@
 import { text } from "node:stream/consumers";
 
+import { buildBurndown } from "./budget-burndown";
 import { budgetPace, daysLeftInWindow, hoursLeftInDay } from "./budget-math";
 import { nextClockTick } from "./clock";
 import { formatDayHeader } from "./dates";
+import { daysBetween } from "./local-day";
+import { goalProgress } from "./savings-goal";
 import { reminderFireAt } from "./subscription-reminder";
 
 const [kind = "", ...rest] = process.argv.slice(2);
@@ -32,6 +35,23 @@ async function answer(): Promise<string> {
         }
         case "pace": {
             return String(budgetPace({ end: localDate(0), start: localDate(5) }, localDate(10)).remaining);
+        }
+        case "days-between": {
+            return String(daysBetween(localDate(0).getTime(), localDate(5).getTime()));
+        }
+        case "goal-elapsed": {
+            const span = { startAmount: 0, startDate: localDate(0), targetDate: localDate(5) };
+            return String(goalProgress(0, 100, { ...span, now: localDate(10) }).standing?.elapsed);
+        }
+        case "burndown": {
+            const rows = [
+                { amount: 10, categoryId: null, date: localDate(0), parentId: null },
+                { amount: 20, categoryId: null, date: localDate(15), parentId: null },
+            ];
+            const window = { end: localDate(5), start: localDate(0) };
+            return JSON.stringify(
+                buildBurndown(rows, { limit: 100, now: localDate(10), window }).points.map((p) => p.spent)
+            );
         }
         case "clock": {
             const dateArgs: [number, number, number, number][] = JSON.parse(await text(process.stdin));

@@ -202,11 +202,4 @@ describe("resolving a gap as a fee", () => {
             }
         }
     });
-
-    it("keeps the rate the user pinned rather than rewriting it", () => {
-        const gapped: TransferValues = { arrived: 5400, fee: 0, feeSide: "destination", rate: 55.5, sent: 100 };
-        const fee = solveTransfer(gapped, "fee", VES_DECIMALS) as number;
-        const legs = transferLegs({ ...gapped, fee }, USD_DECIMALS, VES_DECIMALS);
-        expect((legs?.toAmount ?? 0) / (legs?.fromAmount ?? 1)).toBeCloseTo(55.5, 9);
-    });
 });

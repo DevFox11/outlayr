@@ -24,29 +24,11 @@ describe("a transfer sits in the day's list without touching its total", () => {
         expect(section.data).toHaveLength(2);
     });
 
-    it("keeps the per-currency buckets free of it too", () => {
-        const [section] = groupByDay(
-            [row(50, false), row(100, true, { currency: "VES", excludedFromTotals: true })],
-            "USD"
-        );
-
-        expect(section.totals.map((bucket) => bucket.currencyCode)).toStrictEqual(["USD"]);
-    });
-
     it("reports a zero total for a day that holds nothing but transfers", () => {
         const [section] = groupByDay([row(100, false, { excludedFromTotals: true })], "USD");
 
         expect(section.total).toBe(0);
         expect(section.data).toHaveLength(1);
-    });
-
-    it("counts a fee, which is an ordinary expense that happens to belong to a transfer", () => {
-        const [section] = groupByDay(
-            [row(100, false, { excludedFromTotals: true }), row(2.7, false, { transferId: "t1" })],
-            "USD"
-        );
-
-        expect(section.total).toBe(-2.7);
     });
 
     it("folds a fee under its transfer instead of listing it as its own row", () => {

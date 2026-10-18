@@ -37,7 +37,6 @@ describe("sparklineTrendKey", () => {
 describe("sparklineLabelKey", () => {
     it("speaks the direction of a running net balance", () => {
         expect(sparklineLabelKey("net", amounts("net"), false)).toBe("insights.trend.falling");
-        expect(sparklineLabelKey("net", [10, 40], false)).toBe("insights.trend.rising");
     });
 
     it("does not read a direction off Out, whose ends are pinned to zero", () => {
@@ -62,10 +61,5 @@ describe("sparklineLabelKey", () => {
         // followed the zero the series always opens at.
         expect(sparklineTrendKey(income)).toBe("insights.trend.rising");
         expect(sparklineLabelKey("in", income, true)).toBe("insights.trend.monthlyTotals");
-    });
-
-    it("names the granularity rather than the measure, so daily and monthly differ", () => {
-        expect(sparklineLabelKey("out", amounts("out"), true)).toBe("insights.trend.monthlyTotals");
-        expect(sparklineLabelKey("in", amounts("in"), false)).toBe("insights.trend.dailyTotals");
     });
 });

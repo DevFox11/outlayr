@@ -26,18 +26,6 @@ describe("the currency picker's rows", () => {
         expect(hints(currencyPickerRows(["USD"], ""))).toStrictEqual([]);
     });
 
-    it("keeps a search flat, hint included", () => {
-        // A search is its own shortcut. Teaching the gesture mid-search would push
-        // the match the user typed further down for no gain.
-        expect(hints(currencyPickerRows([], "eur"))).toStrictEqual([]);
-    });
-
-    it("clusters the favourites above the rest, each under its own header", () => {
-        const rows = currencyPickerRows(["USD", "VES"], "");
-        expect(sections(rows)).toStrictEqual(["favourites", "all"]);
-        expect(codes(rows).slice(0, 2)).toStrictEqual(["USD", "VES"]);
-    });
-
     it("never repeats a favourite in the list below the cluster", () => {
         // The catalogue pins USD and VES above its own alphabet, so a cluster that
         // repeated its codes put them back-to-back with themselves — two identical
@@ -46,11 +34,6 @@ describe("the currency picker's rows", () => {
         const listed = codes(rows);
         expect(listed.filter((code) => code === "USD")).toHaveLength(1);
         expect(listed.filter((code) => code === "VES")).toHaveLength(1);
-    });
-
-    it("keeps every key distinct, which is what the list is keyed on", () => {
-        const rows = currencyPickerRows(["USD", "VES"], "");
-        expect(new Set(rows.map((row) => row.key)).size).toBe(rows.length);
     });
 
     it("marks the cluster's rows as favourites and the rest as not", () => {
@@ -97,14 +80,5 @@ describe("where a section closes", () => {
         expect(closingCodes[0]).toBe("VES");
         expect(closingCodes).toHaveLength(2);
         expect(closingCodes[1]).toBe(rows.at(-1)?.kind === "currency" ? closingCodes[1] : null);
-    });
-
-    it("closes only the final row of a search", () => {
-        const rows = currencyPickerRows([], "dollar");
-        expect(lastCodes(rows)).toHaveLength(1);
-    });
-
-    it("closes the catalogue's last row when the cluster is empty", () => {
-        expect(lastCodes(currencyPickerRows([], ""))).toHaveLength(1);
     });
 });

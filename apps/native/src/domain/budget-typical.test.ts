@@ -77,17 +77,6 @@ describe("what a scope typically costs", () => {
         expect(history).toStrictEqual([240, 200]);
     });
 
-    it("honours a shorter lookback", () => {
-        const { history } = typicalSpend({
-            current: monthWindow(2026, 7),
-            lookback: 2,
-            spentIn: spendBy({ "2026-06-01": 200, "2026-07-01": 240 }),
-            type: MONTH,
-        });
-
-        expect(history).toStrictEqual([240, 200]);
-    });
-
     it("does not loop forever on a type whose period cannot step backwards", () => {
         const { history } = typicalSpend({
             current: monthWindow(2026, 7),

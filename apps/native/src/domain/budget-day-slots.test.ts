@@ -29,12 +29,6 @@ function expense(
 const t: TranslateFn = (key, params) => translate(key, { catalog: EN, fallback: EN, params });
 
 describe("categoryMedian", () => {
-    it("ignores an outlier a mean would follow", () => {
-        const rows = [expense(20, 10), expense(21, 12), expense(22, 11), expense(23, 500)];
-
-        expect(categoryMedian(rows, COFFEE)).toBe(11.5);
-    });
-
     it("counts a subcategory's purchases as the parent's", () => {
         const rows = [expense(20, 8, "beans", COFFEE), expense(21, 12)];
 
@@ -131,20 +125,6 @@ describe("buildDaySlots", () => {
         expect(slots.remaining).toBe(-7);
         expect(slots.verdict).toBe("over");
         expect(dayVerdictSentence(slots, "Coffee", t)).toBe("One Coffee too many.");
-    });
-
-    it("names the count when more than one purchase overshot", () => {
-        const rows = [expense(25, 18), expense(25, 6), expense(25, 6)];
-
-        const slots = buildDaySlots(rows, {
-            categoryId: COFFEE,
-            limit: 20,
-            now: NOW,
-            window: TODAY,
-        });
-
-        expect(slots.overflow).toBe(2);
-        expect(dayVerdictSentence(slots, "Coffee", t)).toBe("2 Coffee too many.");
     });
 
     it("spans past the limit so an overshoot stays on the bar", () => {

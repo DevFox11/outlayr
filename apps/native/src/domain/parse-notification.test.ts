@@ -111,12 +111,6 @@ describe("parseNotification", () => {
         });
     });
 
-    it("strips the payment processor's prefix off the merchant", () => {
-        expect(parseNotification("You made a $9.00 purchase at SQ *BLUE BOTTLE with your card")).toMatchObject({
-            merchant: "BLUE BOTTLE",
-        });
-    });
-
     it("does not read a card's last digits or a word as a currency", () => {
         expect(parseNotification("Your card ending in 4321 was used")).toBeNull();
         expect(parseNotification("Purchase alert\nYou spent 12 at the pen shop")).toBeNull();

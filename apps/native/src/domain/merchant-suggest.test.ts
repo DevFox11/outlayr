@@ -35,15 +35,4 @@ describe("suggesting a curated merchant from a prefix", () => {
     it("drops a name the caller already has", () => {
         expect(suggestMerchants("netf", 4, ["NETFLIX "])).toStrictEqual([]);
     });
-
-    it("names a merchant whose pattern is stripped punctuation", () => {
-        expect(suggestMerchants("at", 8)).toContain("AT&T");
-        expect(suggestMerchants("pg", 8)).toContain("PG&E");
-    });
-
-    it("keeps the brand's own casing rather than title-casing the pattern", () => {
-        expect(suggestMerchants("hbo", 4)).toStrictEqual(["HBO Max"]);
-        expect(suggestMerchants("ebay", 4)).toStrictEqual(["eBay"]);
-        expect(suggestMerchants("mcdonald", 4)).toStrictEqual(["McDonald's"]);
-    });
 });

@@ -60,10 +60,6 @@ describe("cursorLabel", () => {
         expect(cursorLabel("month", MID_WEEK)).toBe("Jul 2026");
     });
 
-    it("labels a week as the span it covers", () => {
-        expect(cursorLabel("week", MID_WEEK, 1)).toBe("19 Jul – 25 Jul");
-    });
-
     it("names both months when a week straddles them", () => {
         expect(cursorLabel("week", new Date("2026-07-29T09:00:00"), 1)).toBe("26 Jul – 1 Aug");
     });

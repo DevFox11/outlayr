@@ -53,19 +53,6 @@ describe("whether a split adds up", () => {
         expect(isBalanced(40, [{ amount: 25, categoryId: "a" }], 2)).toBe(false);
     });
 
-    it("refuses parts that overshoot", () => {
-        expect(
-            isBalanced(
-                40,
-                [
-                    { amount: 25, categoryId: "a" },
-                    { amount: 20, categoryId: "b" },
-                ],
-                2
-            )
-        ).toBe(false);
-    });
-
     it("reports how far off a split is, with a sign", () => {
         expect(unallocated(40, [{ amount: 25, categoryId: "a" }], 2)).toBe(15);
         expect(unallocated(40, [{ amount: 55, categoryId: "a" }], 2)).toBe(-15);

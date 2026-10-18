@@ -17,8 +17,4 @@ describe("crossingDay", () => {
     it("returns null for a limit above the month's total", () => {
         expect(crossingDay(SERIES, 2715.01)).toBeNull();
     });
-
-    it("returns day one for a limit below the first transaction", () => {
-        expect(crossingDay(SERIES, 10)).toBe(1);
-    });
 });

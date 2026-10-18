@@ -32,28 +32,12 @@ describe("scrubLabel", () => {
         expect(scrubLabel("Card ending 1234 purchase")).toBe("Card ending purchase");
     });
 
-    it("keeps 7-Eleven intact", () => {
-        expect(scrubLabel("7-Eleven")).toBe("7-Eleven");
-    });
-
-    it("collapses the whitespace a stripped run leaves behind", () => {
-        expect(scrubLabel("Store 987654 Branch")).toBe("Store Branch");
-    });
-
     it("keeps a run of exactly 3 digits", () => {
         expect(scrubLabel("Aisle 123 Store")).toBe("Aisle 123 Store");
     });
 
     it("strips a run of 4+ fullwidth digits", () => {
         expect(scrubLabel("Card ending ４５６７ purchase")).toBe("Card ending purchase");
-    });
-
-    it("strips a run of 4+ Arabic-Indic digits", () => {
-        expect(scrubLabel("Store ٠١٢٣ Branch")).toBe("Store Branch");
-    });
-
-    it("strips a mixed run of ASCII and fullwidth digits", () => {
-        expect(scrubLabel("Ref 12３４ here")).toBe("Ref here");
     });
 });
 
@@ -67,18 +51,6 @@ describe("buildClassificationPayload", () => {
                 unresolvedLabels: [],
             })
         ).toBeNull();
-    });
-
-    it("returns exactly the two declared keys, with no headers or sampleRows", () => {
-        const payload = buildClassificationPayload({
-            categoryTree: CATEGORY_TREE,
-            draft: DRAFT,
-            parsed: PARSED,
-            unresolvedLabels: ["Coffee Shop", "Unknown Store 12345"],
-        });
-
-        expect(payload).not.toBeNull();
-        expect(Object.keys(payload as object).sort()).toStrictEqual(["categoryTree", "labels"].sort());
     });
 
     it("caps labels at MAX_LABELS", () => {

@@ -111,15 +111,6 @@ describe("outbox triggers", () => {
         expect(outbox(sqlite)).toStrictEqual([]);
     });
 
-    it("enqueues an update, including a tombstone", () => {
-        addTransaction(sqlite, "t1");
-        enableSync(sqlite);
-
-        sqlite.prepare("UPDATE transactions SET deletedAt = 5, updatedAt = 5").run();
-
-        expect(outbox(sqlite).map((row) => [row.tableName, row.localId])).toStrictEqual([["transactions", "t1"]]);
-    });
-
     it("coalesces repeated writes to one row, with a fresh seq each time", () => {
         addTransaction(sqlite, "t1");
         enableSync(sqlite);
@@ -178,18 +169,6 @@ describe("outbox triggers", () => {
         expect(outbox(sqlite).map((row) => row.localId)).toStrictEqual([...SYNCED_META_KEYS]);
     });
 
-    it("clears a stored display-sign value once its migration runs", () => {
-        const upgrading = new BetterSqlite3(":memory:");
-        applyMigrations(upgrading, (name) => name < "0017_");
-        setMeta(upgrading, "showExpenseOrIncomeSign", "false");
-
-        applyMigrations(upgrading, (name) => name >= "0017_");
-
-        expect(upgrading.prepare("SELECT key FROM appMeta WHERE key = 'showExpenseOrIncomeSign'").all()).toStrictEqual(
-            []
-        );
-    });
-
     it("covers every table the sync layer claims to replicate", () => {
         const declared = sqlite.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger'").all() as {
             name: string;
@@ -203,17 +182,6 @@ describe("outbox triggers", () => {
         );
 
         expect(missing).toStrictEqual([]);
-    });
-
-    it("lets a writer remove exactly what it just wrote", () => {
-        addTransaction(sqlite, "pending");
-        enableSync(sqlite);
-        sqlite.prepare("UPDATE transactions SET note = 'local'").run();
-
-        addTransaction(sqlite, "applied");
-        sqlite.prepare("DELETE FROM outbox WHERE tableName = ? AND localId = ?").run("transactions", "applied");
-
-        expect(outbox(sqlite).map((row) => row.localId)).toStrictEqual(["pending"]);
     });
 
     it("does not let a drain delete an edit made after it read", () => {

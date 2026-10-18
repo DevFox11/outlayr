@@ -119,7 +119,9 @@ Before writing one, name the bug it catches. If you cannot, skip it. Slop looks 
 - Duplicates: another test walking the same branch with different numbers
 - Mocks doing the work, so the assertion only checks the mock
 
-What earns a test: money math, dates and time zones, sync and conflict resolution, parsers and imports, auth, data deletion, accessibility contracts, and bugs that actually shipped.
+What earns a test: money math, dates and time zones, sync and conflict resolution, parsers and imports, auth, data deletion, and bugs that actually shipped.
+
+No render tests for components, screens, navigation, widgets, hooks or contexts in `apps/native`. Move the logic into a pure function and test that, and check the UI on the simulator. The only `.test.tsx` files left are `renderHook` tests under `lib`, `data`, `i18n` and `theme` that guard auth, sync or data reset.
 
 - Write assertions inside `it()` or `test()` blocks
 - Avoid done callbacks in async tests - use async/await instead

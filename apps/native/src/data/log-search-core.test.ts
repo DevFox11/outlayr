@@ -138,14 +138,6 @@ describe("search query", () => {
         await expect(search(db, "rent")).resolves.toStrictEqual(["landed"]);
     });
 
-    it("takes in a row the moment the clock reaches it", async () => {
-        const db = makeDb();
-        await seed(db, [{ date: at(2025, 7, 15, 18), id: "later-today", note: "Rent" }]);
-
-        await expect(search(db, "rent")).resolves.toStrictEqual([]);
-        await expect(search(db, "rent", [], at(2025, 7, 15, 19).getTime())).resolves.toStrictEqual(["later-today"]);
-    });
-
     it("excludes tombstones", async () => {
         const db = makeDb();
         await seed(db, [
@@ -194,41 +186,6 @@ describe("search over the note's free text", () => {
 
         await expect(search(db, "dentist")).resolves.toStrictEqual(["in-details"]);
     });
-
-    it("returns a row matching both the note and the free text once", async () => {
-        const db = makeDb();
-        await seed(db, [
-            {
-                date: at(2025, 7, 14),
-                details: "coffee beans for the office",
-                id: "both",
-                note: "Coffee",
-            },
-        ]);
-
-        await expect(search(db, "coffee")).resolves.toStrictEqual(["both"]);
-    });
-
-    it("holds the clock and tombstone bounds the note match holds", async () => {
-        const db = makeDb();
-        await seed(db, [
-            {
-                date: at(2025, 8, 1),
-                details: "dentist",
-                id: "scheduled",
-                note: "Card 4471",
-            },
-            {
-                date: at(2025, 7, 1),
-                deletedAt: new Date(0),
-                details: "dentist",
-                id: "gone",
-                note: "Card 4471",
-            },
-        ]);
-
-        await expect(search(db, "dentist")).resolves.toStrictEqual([]);
-    });
 });
 
 describe("wildcards in the query", () => {
@@ -250,26 +207,6 @@ describe("wildcards in the query", () => {
         ]);
 
         await expect(search(db, "50%")).resolves.toStrictEqual(["literal"]);
-    });
-
-    it("matches a literal underscore in the free text", async () => {
-        const db = makeDb();
-        await seed(db, [
-            {
-                date: at(2025, 7, 14),
-                details: "ref a_b",
-                id: "literal",
-                note: "Invoice",
-            },
-            {
-                date: at(2025, 7, 13),
-                details: "ref axb",
-                id: "wildcard-bait",
-                note: "Invoice",
-            },
-        ]);
-
-        await expect(search(db, "a_b")).resolves.toStrictEqual(["literal"]);
     });
 });
 

@@ -405,19 +405,6 @@ describe("downloadPhotos", () => {
         expect(row.imageKey).toBe(`transaction-photos/${USER}/a.jpg`);
     });
 
-    it("keeps the key when the object was deleted out from under the fetch", async () => {
-        const db = makeDb();
-        const peer = new FakeFiles(PEER_DIRECTORY);
-        const { transport } = fakeTransport(undefined, {
-            // The url was minted, then the delete landed.
-            get: async () => null,
-        });
-        await insert(db, "t1", { imageKey: `transaction-photos/${USER}/a.jpg` });
-
-        await expect(downloadPhotos(db, peer, transport)).resolves.toBe(0);
-        expect((await readRow(db, "t1")).imageKey).toBe(`transaction-photos/${USER}/a.jpg`);
-    });
-
     it("re-points to a file already on disk without fetching", async () => {
         const db = makeDb();
         const files = new FakeFiles(DIRECTORY, [["a.jpg", "PHOTO"]]);

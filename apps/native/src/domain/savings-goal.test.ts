@@ -1,6 +1,19 @@
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
+
 import { describe, expect, it } from "@jest/globals";
 
 import { goalProgress, goalRequiredLine } from "./savings-goal";
+
+const inNewYork = (...args: (number | string)[]): string =>
+    execFileSync(
+        process.execPath,
+        ["--import", "tsx", join(import.meta.dirname, "dst-probe.ts"), ...args.map(String)],
+        {
+            encoding: "utf-8",
+            env: { ...process.env, TZ: "America/New_York" },
+        }
+    );
 
 const NOW = new Date("2026-08-13T12:00:00Z");
 
@@ -87,19 +100,6 @@ describe("standing against the line the date demands", () => {
         const progress = goalProgress(2800, 4000, { ...SPAN, startAmount: 1000 });
         expect(progress.standing?.expected).toBe(2800);
         expect(progress.standing?.against).toBe(0);
-    });
-
-    it("calls a sliver either side of the line on pace, not a shortfall", () => {
-        // A goal set moments ago has already drifted a cent off its own line. The
-        // gap is real and it is noise.
-        const justSet = goalProgress(2140, 6000, {
-            now: new Date("2026-06-14T12:00:01Z"),
-            startAmount: 2140,
-            startDate: new Date("2026-06-14T12:00:00Z"),
-            targetDate: new Date("2026-12-14T12:00:00Z"),
-        });
-        expect(justSet.standing?.onPace).toBe(true);
-        expect(Math.abs(justSet.standing?.against ?? 99)).toBeLessThan(1);
     });
 
     it("still calls a goal set yesterday on pace, having had no day to save in", () => {
@@ -194,11 +194,7 @@ describe("a goal opened on an account in the red", () => {
 });
 
 describe("the calendar a goal is measured on", () => {
-    it("keeps a one-day goal measurable wherever the reader is", () => {
-        // The picker hands back a local midnight, and east of UTC that belongs to
-        // the previous UTC date — so truncating to UTC days could land both ends of
-        // a made-today, due-tomorrow goal on one day and leave it with no standing
-        // at all. Built through the local constructor, as the picker would.
+    it("keeps a one-day goal measurable", () => {
         const opened = new Date(2026, 7, 13, 0, 0, 0);
         const due = new Date(2026, 7, 14, 0, 0, 0);
         const progress = goalProgress(0, 100, { now: opened, startAmount: 0, startDate: opened, targetDate: due });
@@ -222,20 +218,7 @@ describe("the calendar a goal is measured on", () => {
 
 describe("a goal spanning a clock change", () => {
     it("counts calendar days, not the hours between midnights", () => {
-        // Spring forward: 7 March to 9 March is 47 hours in a shifting zone, so
-        // dividing the raw span would report the 8th as 24/47 elapsed rather than
-        // as one day of two. Built through the local constructor so the zone's own
-        // rules apply wherever this runs.
-        const opened = new Date(2027, 2, 7);
-        const due = new Date(2027, 2, 9);
-        const progress = goalProgress(0, 100, {
-            now: new Date(2027, 2, 8),
-            startAmount: 0,
-            startDate: opened,
-            targetDate: due,
-        });
-
-        expect(progress.standing?.elapsed).toBe(0.5);
+        expect(inNewYork("goal-elapsed", 2027, 2, 13, 0, 0, 2027, 2, 15, 0, 0, 2027, 2, 14, 0, 0)).toBe("0.5");
     });
 });
 

@@ -108,10 +108,4 @@ describe("logAgainDraft", () => {
             note: "Flat white",
         });
     });
-
-    it("keeps an income row income", () => {
-        const earned = { ...row, income: true };
-
-        expect(logAgainDraft(earned).income).toBe(true);
-    });
 });

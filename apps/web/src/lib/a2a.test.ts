@@ -32,7 +32,6 @@ describe("answerA2a", () => {
         { body: "{", code: -32_700, version: "1.0" },
         { body: "[]", code: -32_600, version: "1.0" },
         { body: send(question), code: -32_009, version: null },
-        { body: send(question), code: -32_009, version: "0.3" },
         {
             body: JSON.stringify({ id: 1, jsonrpc: "2.0", method: "GetTask", params: {} }),
             code: -32_601,

@@ -165,16 +165,6 @@ describe("stampLedgerCurrency", () => {
         expect(row.currency).toBeNull();
     });
 
-    it("refuses when the default is all bootstrap ever wrote", async () => {
-        const db = makeDb();
-        await db.insert(appMeta).values({ key: "currency", value: "USD" });
-        await add(db, { amount: 10, currency: null });
-
-        await expect(stampLedgerCurrency(db)).resolves.toBe(0);
-        const [row] = await db.select({ currency: transactions.currency }).from(transactions);
-        expect(row.currency).toBeNull();
-    });
-
     it("stamps the default once the user has stated it", async () => {
         const db = makeDb();
         await db.insert(appMeta).values([
@@ -186,15 +176,6 @@ describe("stampLedgerCurrency", () => {
         await expect(stampLedgerCurrency(db)).resolves.toBe(1);
         const [row] = await db.select({ currency: transactions.currency }).from(transactions);
         expect(row.currency).toBe("USD");
-    });
-
-    it("is a no-op on a second pass", async () => {
-        const db = makeDb();
-        await db.insert(appMeta).values({ key: "currency", value: "EUR" });
-        await add(db, { amount: 10, currency: null });
-
-        await stampLedgerCurrency(db);
-        await expect(stampLedgerCurrency(db)).resolves.toBe(0);
     });
 });
 

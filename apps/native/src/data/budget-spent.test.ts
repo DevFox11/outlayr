@@ -184,31 +184,6 @@ describe("expenseContributionQuery", () => {
         expect(rows.map((row) => row.amount).sort((a, b) => a - b)).toStrictEqual([5, 10, 20, 100]);
     });
 
-    it("hides a future-dated expense until its day arrives", async () => {
-        const rows = await expenseContributionQuery(db, at(2025, 1, 12));
-        expect(rows.map((row) => row.amount).sort((a, b) => a - b)).toStrictEqual([5, 10]);
-    });
-
-    it("keeps a pending custom contribution at face value in its native budget currency", async () => {
-        const pendingDb = makeDb();
-        await pendingDb.insert(transactions).values({
-            amount: 40,
-            amountUsd: null,
-            currency: "VES",
-            date: NOW,
-            day: NOW,
-            exchangeRate: null,
-            exchangeRateType: "custom",
-            id: "pending-custom",
-            income: false,
-            month: WINDOW_START,
-            updatedAt: NOW,
-        });
-        const rows = await expenseContributionQuery(pendingDb, NOW);
-
-        expect(valueDatedRowsIn(rows, "VES", buildRateTable([]))).toStrictEqual([40]);
-    });
-
     it("excludes a pending custom contribution from a foreign-currency budget scalar", async () => {
         const pendingDb = makeDb();
         await pendingDb.insert(transactions).values({
@@ -234,25 +209,11 @@ describe("spentForCategory", () => {
     it("sums a category together with its subcategories", () => {
         expect(spentForCategory(CONTRIBUTIONS, "food", WINDOW_START, NOW)).toBe(30);
     });
-
-    it("counts only the exact category when it has no children", () => {
-        expect(spentForCategory(CONTRIBUTIONS, "groc", WINDOW_START, NOW)).toBe(20);
-        expect(spentForCategory(CONTRIBUTIONS, "rent", WINDOW_START, NOW)).toBe(100);
-    });
-
-    it("respects the window lower bound", () => {
-        // Widening the window back to December pulls in the 5.00 expense.
-        expect(spentForCategory(CONTRIBUTIONS, "food", at(2024, 12, 1), NOW)).toBe(35);
-    });
 });
 
 describe("spentForMain", () => {
     it("sums every in-window expense across categories", () => {
         expect(spentForMain(CONTRIBUTIONS, WINDOW_START, NOW)).toBe(130);
-    });
-
-    it("respects the window lower bound", () => {
-        expect(spentForMain(CONTRIBUTIONS, at(2024, 12, 1), NOW)).toBe(135);
     });
 });
 

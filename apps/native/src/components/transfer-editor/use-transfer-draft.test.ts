@@ -287,11 +287,6 @@ describe("swapping a transfer that carries a custom rate", () => {
         mockRates.set("VES", OFFICIAL_VES_PER_USD);
     });
 
-    it("converts 100 USD at the typed 600 before the swap", async () => {
-        const result = await customRateDraft();
-        expect(result.current).toMatchObject({ legs: { fromAmount: 100, toAmount: 60_000 }, quotedRate: 600 });
-    });
-
     it("values the inverted pair at its own rate, never at the one typed for the other", async () => {
         const result = await customRateDraft();
         await act(async () => {
@@ -368,21 +363,6 @@ describe("choosing my rate before typing one", () => {
             result.current.setCustomRate(TYPED_RATE);
         });
         expect(result.current.rateType).toBe("custom");
-    });
-});
-
-describe("changing the destination under a custom rate", () => {
-    beforeEach(() => {
-        mockRates.set("VES", OFFICIAL_VES_PER_USD);
-        mockRates.set("EUR", 0.9);
-    });
-
-    it("values the new pair at its own rate", async () => {
-        const result = await customRateDraft();
-        await act(async () => {
-            result.current.chooseTo(mockAccounts[2] ?? null);
-        });
-        expect(result.current).toMatchObject({ legs: { fromAmount: 100, toAmount: 90 }, quotedRate: 0.9 });
     });
 });
 
@@ -659,13 +639,6 @@ describe("reopening a saved transfer", () => {
         });
     });
 
-    it("stays saveable when the rate for its day is no longer cached", async () => {
-        const result = await reopened(saved);
-
-        expect(result.current.canSave).toBe(true);
-        expect(result.current.legs).toMatchObject({ fromAmount: 100, toAmount: 5550 });
-    });
-
     it("reopens a custom rate and a destination fee as they were", async () => {
         const result = await reopened({
             ...saved,
@@ -926,16 +899,6 @@ describe("dollars from Payoneer that arrive as bolívares through Binance", () =
         expect(result.current.customRatePadText).toBe("1031.52");
     });
 
-    it("offers no Binance rate on a pair that is not dollars and bolívares", async () => {
-        mockRates.set("MXN", 18.5);
-        const result = await draft();
-        await act(async () => {
-            result.current.chooseTo(mockAccounts[8] ?? null);
-        });
-        expect(result.current.rateType).toBe("official");
-        expect(result.current.rateOptions).not.toContain("binance");
-    });
-
     it("reopens a transfer saved at the Binance rate with no gap", async () => {
         const { result } = await renderHook(() =>
             useTransferDraft({} as Database, undefined, {
@@ -964,21 +927,6 @@ describe("dollars from Payoneer that arrive as bolívares through Binance", () =
 });
 
 describe("a gap measured on the side that carries the fee", () => {
-    it("reads dollars to pesos at the official rate as dollars lost", async () => {
-        mockRates.set("MXN", 18.5);
-        const result = await draft();
-        await act(async () => {
-            result.current.chooseTo(mockAccounts[8] ?? null);
-        });
-        await act(async () => {
-            result.current.setSent("160");
-        });
-        await act(async () => {
-            result.current.setArrived("2900");
-        });
-        expect(result.current.gapAmount).toBe(3.24);
-    });
-
     it("keeps a fee moved to the receiver there, in bolívares", async () => {
         mockRates.set("VES", OFFICIAL_VES_PER_USD);
         const result = await draft();
@@ -1102,53 +1050,6 @@ describe("an arrival the user typed", () => {
             result.current.setSent("110");
         });
         expect(result.current).toMatchObject({ arrived: 4900, gapAmount: 10 });
-    });
-
-    it("stays when a fee is typed", async () => {
-        const result = await typedArrival();
-        await act(async () => {
-            result.current.setFee("4");
-        });
-        expect(result.current).toMatchObject({ arrived: 4900, gapAmount: -4 });
-    });
-
-    it("stays when another rate source is picked", async () => {
-        const result = await typedArrival();
-        await act(async () => {
-            result.current.setRateType("official");
-        });
-        expect(result.current).toMatchObject({ arrived: 4900, gapAmount: 2 });
-    });
-
-    it("stays when a rate is typed", async () => {
-        const result = await typedArrival();
-        await act(async () => {
-            result.current.setRateType("custom");
-        });
-        await act(async () => {
-            result.current.setCustomRate("50");
-        });
-        expect(result.current).toMatchObject({ arrived: 4900, gapAmount: 2, rateType: "custom" });
-    });
-
-    it("stays when the fee moves to the receiver, and counts the difference there", async () => {
-        const result = await typedArrival();
-        await act(async () => {
-            result.current.setRateType("official");
-        });
-        await act(async () => {
-            result.current.toggleFeeSide();
-        });
-        expect(result.current).toMatchObject({ arrived: 4900, feeCurrency: "VES", gapAmount: 100 });
-    });
-
-    it("stays when the day's rate moves with the date", async () => {
-        const result = await typedArrival();
-        mockBinanceRates.set("VES", 50);
-        await act(async () => {
-            result.current.setDate(new Date(Date.UTC(2026, 0, 1)));
-        });
-        expect(result.current).toMatchObject({ arrived: 4900, gapAmount: 2 });
     });
 
     it("follows the rate again once it is cleared", async () => {

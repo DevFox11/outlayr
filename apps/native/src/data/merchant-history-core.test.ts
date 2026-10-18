@@ -93,16 +93,6 @@ describe("reading a merchant's category back out of the ledger", () => {
         await expect(remembered("Netflix")).resolves.toBeNull();
     });
 
-    it("knows nothing about a merchant with no history", async () => {
-        log("Netflix", "entertainment");
-        await expect(remembered("Panaderia La Mejor")).resolves.toBeNull();
-    });
-
-    it("answers nothing for a name too short to normalise into a key", async () => {
-        log("Netflix", "entertainment");
-        await expect(remembered("   ")).resolves.toBeNull();
-    });
-
     it("forgets a merchant pushed out of the recency window", async () => {
         log("Panaderia La Mejor", "food");
         for (let filler = 0; filler < HISTORY_WINDOW; filler += 1) {

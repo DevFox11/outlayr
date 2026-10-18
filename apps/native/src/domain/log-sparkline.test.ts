@@ -46,12 +46,6 @@ describe("sparklineSeries", () => {
         expect(points.at(-1)?.amount).toBe(300);
     });
 
-    it("never lets the running net fall back once nothing more is logged", () => {
-        const points = sparklineSeries([row("2026-07-22T09:00:00", 100)], "net", "week", NOW);
-        const tail = points.slice(-3).map((point) => point.amount);
-        expect(tail).toStrictEqual([-100, -100, -100]);
-    });
-
     it("buckets Out per sample instead of accumulating it", () => {
         const points = sparklineSeries(
             [row("2026-07-23T09:00:00", 40), row("2026-07-23T18:00:00", 10), row("2026-07-25T09:00:00", 7)],

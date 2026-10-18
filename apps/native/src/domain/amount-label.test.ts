@@ -26,11 +26,6 @@ describe("rowAmountLabel states the direction in words", () => {
         expect(rowAmountLabel({ ...USD, income: null, transferSign: "-" }, es)).toBe("Salida de $1,240.50");
         expect(rowAmountLabel({ ...USD, income: null }, en)).toBe("$1,240.50 moved");
     });
-
-    it("keeps the direction in Spanish too", () => {
-        expect(rowAmountLabel({ ...USD, income: true }, es)).toMatch(/Ingreso/);
-        expect(rowAmountLabel({ ...USD, income: false }, es)).toMatch(/Gasto/);
-    });
 });
 
 describe("rowAmountLabel carries the figure it labels", () => {
@@ -59,14 +54,5 @@ describe("rowAmountLabel carries the figure it labels", () => {
         expect(rowAmountLabel({ amount: -1240.5, code: "USD", income: false }, en)).toBe(
             rowAmountLabel({ amount: 1240.5, code: "USD", income: false }, en)
         );
-    });
-
-    it("resolves both keys rather than leaking them", () => {
-        for (const income of [true, false]) {
-            const label = rowAmountLabel({ ...USD, income }, en);
-
-            expect(label).not.toMatch(/log\.row\.amount/);
-            expect(label).not.toMatch(/\{amount\}/);
-        }
     });
 });

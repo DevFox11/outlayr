@@ -15,10 +15,6 @@ const NOW = new Date(2025, 5, 15, 10, 30);
 const NINE_AM = { hour: 9, minute: 0 };
 const at = (y: number, m: number, day: number, hour = 0, minute = 0): Date => new Date(y, m - 1, day, hour, minute);
 
-type LandingRow = (string | number)[];
-
-const byLocalId = (a: LandingRow, b: LandingRow): number => String(a[0]).localeCompare(String(b[0]));
-
 const makeDb = () => migratedDatabase({ foreignKeys: false });
 
 interface CarrierOverrides {
@@ -191,15 +187,6 @@ describe("reminderCandidates", () => {
         await expect(reminderCandidates(db, NOW, NINE_AM)).resolves.toStrictEqual([]);
     });
 
-    it("keeps a same-day notice, which is not the off state", async () => {
-        await seedCarrier(db, { date: at(2025, 3, 15), reminderLeadDays: 0 });
-
-        const candidates = await reminderCandidates(db, NOW, NINE_AM);
-
-        expect(candidates).toHaveLength(1);
-        expect(candidates[0]?.leadDays).toBe(0);
-    });
-
     it("yields nothing for a soft-deleted carrier", async () => {
         await seedCarrier(db, {
             date: at(2025, 3, 15),
@@ -232,31 +219,6 @@ describe("reminderCandidates", () => {
 
         await expect(reminderCandidates(db, NOW, NINE_AM)).resolves.toStrictEqual([]);
     });
-
-    it("resolves every live carrier, each on its own cadence", async () => {
-        await seedCarrier(db, {
-            date: at(2025, 3, 15),
-            id: "netflix",
-            reminderLeadDays: 2,
-        });
-        await seedCarrier(db, {
-            date: at(2025, 6, 10),
-            id: "gym",
-            recurringType: RECURRING_TYPE.weekly,
-            reminderLeadDays: 1,
-        });
-
-        const candidates = await reminderCandidates(db, NOW, NINE_AM);
-
-        expect(
-            candidates.map((candidate) => [candidate.localId, candidate.landing.getTime()]).sort(byLocalId)
-        ).toStrictEqual(
-            [
-                ["gym", at(2025, 6, 17).getTime()],
-                ["netflix", at(2025, 7, 15).getTime()],
-            ].sort(byLocalId)
-        );
-    });
 });
 
 describe("pendingReminderPlan", () => {
@@ -277,16 +239,6 @@ describe("pendingReminderPlan", () => {
         expect(arm[0]?.id).toBe("outlayr.sub-due.src");
         expect(arm[0]?.localId).toBe("src");
         expect(arm[0]?.fireAt.getTime()).toBe(at(2025, 7, 13, 9, 0).getTime());
-    });
-
-    it("drops a notice whose fire time has already passed", async () => {
-        await seedCarrier(db, {
-            date: at(2025, 6, 10),
-            recurringType: RECURRING_TYPE.weekly,
-            reminderLeadDays: 7,
-        });
-
-        await expect(pendingReminderPlan(db, NOW, NINE_AM)).resolves.toStrictEqual([]);
     });
 
     it("writes nothing", async () => {

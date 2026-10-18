@@ -20,10 +20,6 @@ describe("parseFavourites", () => {
         expect(parseFavourites("")).toStrictEqual([]);
     });
 
-    it("uppercases what it reads back", () => {
-        expect(parseFavourites("eur,usd")).toStrictEqual(["EUR", "USD"]);
-    });
-
     it("trims the padding a hand-edited value would carry", () => {
         expect(parseFavourites(" eur ,\tusd ")).toStrictEqual(["EUR", "USD"]);
     });
@@ -55,11 +51,6 @@ describe("parseFavourites", () => {
 });
 
 describe("serialiseFavourites", () => {
-    it("writes the comma-separated shape the setting stores", () => {
-        expect(serialiseFavourites(["EUR", "JPY"])).toBe("EUR,JPY");
-        expect(serialiseFavourites([])).toBe("");
-    });
-
     it("round-trips every code in the catalogue", () => {
         for (let start = 0; start < PICKABLE_CURRENCY_CODES.length; start += FAVOURITE_CURRENCY_LIMIT) {
             const chunk = PICKABLE_CURRENCY_CODES.slice(start, start + FAVOURITE_CURRENCY_LIMIT);

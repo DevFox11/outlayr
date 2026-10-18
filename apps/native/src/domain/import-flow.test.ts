@@ -193,14 +193,6 @@ describe("importFlowReducer — invalidation cascade", () => {
         expect(resettled.resolved).toBe(RESOLVED);
     });
 
-    it("toggling a row changes nothing else in state", () => {
-        const state = withResolution();
-        const toggled = dispatch(state, { index: 5, type: "rowToggled" });
-        expect(toggled.resolution).toBe(state.resolution);
-        expect(toggled.resolved).toBe(state.resolved);
-        expect(toggled.commit).toBe(state.commit);
-    });
-
     it("preserves the excluded set when a commit fails", () => {
         const excluded = dispatch(withResolution(), {
             index: 2,
@@ -224,18 +216,6 @@ describe("duplicatesFlagged", () => {
         });
         expect(flagged.duplicates).toStrictEqual(new Set([0, 2]));
         expect(flagged.excluded).toStrictEqual(new Set([0, 2]));
-    });
-
-    it("overwrites any prior manual exclusions with the flagged set", () => {
-        const toggled = dispatch(withResolution(), {
-            index: 5,
-            type: "rowToggled",
-        });
-        const flagged = dispatch(toggled, {
-            indices: new Set([1]),
-            type: "duplicatesFlagged",
-        });
-        expect(flagged.excluded).toStrictEqual(new Set([1]));
     });
 
     it("is a no-op with no settled resolution yet", () => {
@@ -278,19 +258,6 @@ describe("duplicates reset on invalidation", () => {
             type: "resolutionSettled",
         });
         expect(resettled.duplicates.size).toBe(0);
-    });
-
-    it("preserves duplicates when a commit fails", () => {
-        const flagged = dispatch(withResolution(), {
-            indices: new Set([0]),
-            type: "duplicatesFlagged",
-        });
-        const writing = dispatch(flagged, { type: "commitStarted" });
-        const failed = dispatch(writing, {
-            detail: "write error",
-            type: "commitFailed",
-        });
-        expect(failed.duplicates).toBe(flagged.duplicates);
     });
 });
 

@@ -32,12 +32,6 @@ describe("useDiscardGuard", () => {
         jest.clearAllMocks();
     });
 
-    it("lets a clean screen go", async () => {
-        await renderHook(() => useDiscardGuard());
-
-        expect(lastGuard().prevent).toBe(false);
-    });
-
     it("asks before dropping an edit and leaves only on Discard", async () => {
         const alert = jest.spyOn(Alert, "alert").mockReturnValue(undefined);
         const repeat = jest.fn();

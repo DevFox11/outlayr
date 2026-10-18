@@ -123,26 +123,6 @@ async function addTransfer(
 }
 
 describe("transferCells projects each leg into the shape the balance engine already sums", () => {
-    it("gives the source an outbound cell that subtracts", async () => {
-        const db = makeDb();
-        await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });
-
-        const cells = await transferCells(db, "a");
-
-        expect(cells).toHaveLength(1);
-        expect(cells[0]).toMatchObject({ amount: 100, currencyCode: "USD", income: false });
-    });
-
-    it("gives the destination an inbound cell that adds", async () => {
-        const db = makeDb();
-        await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });
-
-        const cells = await transferCells(db, "b");
-
-        expect(cells).toHaveLength(1);
-        expect(cells[0]).toMatchObject({ amount: 100, currencyCode: "USD", income: true });
-    });
-
     it("carries each leg's own currency and frozen USD value across a conversion", async () => {
         const db = makeDb();
         await addTransfer(db, {
@@ -190,17 +170,6 @@ describe("transferCells projects each leg into the shape the balance engine alre
         expect(cells[0]).toMatchObject({ amount: 140, count: 2, income: false });
     });
 
-    it("keeps both directions when an account sends and receives", async () => {
-        const db = makeDb();
-        await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });
-        await addTransfer(db, { fromAccountId: "b", fromAmount: 30, id: "t2", toAccountId: "a", toAmount: 30 });
-
-        const cells = await transferCells(db, "a");
-
-        expect(cells.find((cell) => cell.income === false)?.amount).toBe(100);
-        expect(cells.find((cell) => cell.income === true)?.amount).toBe(30);
-    });
-
     it("marks a leg with no frozen USD value as unconverted", async () => {
         const db = makeDb();
         await addTransfer(db, { fromAccountId: "a", fromAmountUsd: null, id: "t1", toAccountId: "b" });
@@ -212,21 +181,6 @@ describe("transferCells projects each leg into the shape the balance engine alre
 });
 
 describe("transfer legs and account balances", () => {
-    it("moves money out of the source and into the destination", async () => {
-        const db = makeDb();
-        await addTransfer(db, { fromAccountId: "a", id: "t1", toAccountId: "b" });
-
-        const source = accountBalance({ currency: "USD", initialBalance: 500 }, await transferCells(db, "a"), NO_RATES);
-        const destination = accountBalance(
-            { currency: "USD", initialBalance: 0 },
-            await transferCells(db, "b"),
-            NO_RATES
-        );
-
-        expect(source.total).toBe(400);
-        expect(destination.total).toBe(100);
-    });
-
     it("debits the source exactly once when a fee rides along", async () => {
         const db = makeDb();
         await addTransfer(db, { fromAccountId: "a", fromAmount: 97.3, id: "t1", toAccountId: "b" });

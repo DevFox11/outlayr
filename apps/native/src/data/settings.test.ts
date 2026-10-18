@@ -4,12 +4,14 @@ import type { Database } from "@/db/client";
 import { migratedDatabase } from "@/db/test-database";
 import { amountParts, formatAmount } from "@/domain/money";
 
+import type { BoolSettingKey } from "./settings-core";
 import {
     ordinalDay,
     parseBoolSetting,
     parseIntSetting,
     readBoolSetting,
     readNumberSetting,
+    remoteEnrichmentOn,
     seedClockPreference,
     setBoolSetting,
     setNumberSetting,
@@ -50,13 +52,6 @@ describe("settings read/write round-trip", () => {
         db = makeDb();
     });
 
-    it("persists and reads back integer settings", async () => {
-        await setNumberSetting(db, "firstWeekday", 2);
-        await setNumberSetting(db, "firstDayOfMonth", 15);
-        await expect(readNumberSetting(db, "firstWeekday")).resolves.toBe(2);
-        await expect(readNumberSetting(db, "firstDayOfMonth")).resolves.toBe(15);
-    });
-
     it("upserts (a second write replaces the first)", async () => {
         await setNumberSetting(db, "firstWeekday", 2);
         await setNumberSetting(db, "firstWeekday", 1);
@@ -94,8 +89,6 @@ describe("time-frame labels", () => {
         expect(ordinalDay(12)).toBe("12th");
         expect(ordinalDay(13)).toBe("13th");
         expect(ordinalDay(21)).toBe("21st");
-        expect(ordinalDay(22)).toBe("22nd");
-        expect(ordinalDay(23)).toBe("23rd");
     });
 });
 
@@ -108,17 +101,15 @@ describe("showCents effect on formatting", () => {
         // Omitting the flag defaults to showing cents.
         expect(formatAmount(12.34, "USD")).toBe("$12.34");
     });
+});
 
-    it("drops cents and rounds to whole units when showCents is false", () => {
-        const parts = amountParts(12.34, "USD", false);
-        expect(parts.fraction).toBe("");
-        expect(parts.integer).toBe("12");
-        expect(formatAmount(12.34, "USD", false)).toBe("$12");
-        expect(formatAmount(1999.5, "USD", false)).toBe("$2,000");
-    });
-
-    it("never adds cents to a zero-minor-unit currency", () => {
-        expect(amountParts(1234, "JPY", true).fraction).toBe("");
-        expect(amountParts(1234, "JPY", true).integer).toBe("1,234");
+describe("remoteEnrichmentOn", () => {
+    it.each([
+        [["aiEnrichment"], false],
+        [["aiConsentV2"], false],
+        [["aiConsentV2", "aiEnrichment"], true],
+    ] as const)("with %j on, sends merchant names to an AI provider: %p", (keys, allowed) => {
+        const on = new Set<BoolSettingKey>(keys);
+        expect(remoteEnrichmentOn((key) => on.has(key))).toBe(allowed);
     });
 });

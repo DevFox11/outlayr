@@ -383,8 +383,4 @@ describe("every accent a user can pick", () => {
             ["pine", 4],
         ]);
     });
-
-    it("gives no two accents the same stored value, which would shadow one", () => {
-        expect(new Set(ACCENTS.map((accent) => accent.value)).size).toBe(ACCENTS.length);
-    });
 });

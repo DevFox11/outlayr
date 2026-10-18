@@ -58,16 +58,6 @@ describe("monthlySubscriptionCost", () => {
         expect(both.transactionCount).toBe(2);
     });
 
-    it("drops a retired schedule instead of counting it", () => {
-        const buckets = monthlySubscriptionCost(
-            [schedule(20, RECURRING_TYPE.monthly), schedule(999, RECURRING_TYPE.none)],
-            "USD"
-        );
-        expect(buckets).toHaveLength(1);
-        expect(buckets[0].amount).toBe(-20);
-        expect(buckets[0].transactionCount).toBe(1);
-    });
-
     it("lets a retired row open no bucket of its own", () => {
         const buckets = monthlySubscriptionCost(
             [schedule(20, RECURRING_TYPE.monthly), schedule(999, RECURRING_TYPE.none, 1, { currency: "EUR" })],

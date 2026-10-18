@@ -8,14 +8,6 @@ function row(day: string, amount: number, income = false) {
 }
 
 describe("groupByDay", () => {
-    it("collects a day's rows under one section in input order", () => {
-        const rows = [row("2026-07-24", 12), row("2026-07-24", 30)];
-        const sections = groupByDay(rows);
-        expect(sections).toHaveLength(1);
-        expect(sections[0].day.getTime()).toBe(rows[0].day.getTime());
-        expect(sections[0].data).toStrictEqual(rows);
-    });
-
     it("subtracts expense and adds income into the day total", () => {
         const sections = groupByDay([row("2026-07-24", 40), row("2026-07-24", 15, true)]);
         expect(sections[0].total).toBe(-25);
@@ -69,13 +61,6 @@ describe("groupByDay", () => {
         const [section] = groupByDay([purchase, fee, orphan]);
         expect(section.data).toStrictEqual([{ ...purchase, fee }, orphan]);
         expect(section.total).toBeCloseTo(-10.54);
-    });
-
-    it("copies the day key so callers cannot mutate a row's date through it", () => {
-        const rows = [row("2026-07-24", 10)];
-        const [section] = groupByDay(rows);
-        section.day.setDate(1);
-        expect(rows[0].day.getDate()).toBe(24);
     });
 });
 

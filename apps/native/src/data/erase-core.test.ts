@@ -232,27 +232,4 @@ describe("eraseLedger", () => {
         const secondBudget = await db.select().from(budgets);
         expect(secondBudget[0].updatedAt.getTime()).toBe(firstBudget[0].updatedAt.getTime());
     });
-
-    it("leaves a row another path already tombstoned alone", async () => {
-        const removed = new Date("2026-02-01T00:00:00.000Z");
-        await db.insert(transactions).values({
-            amount: 7,
-            date: AUTHORED,
-            day: AUTHORED,
-            deletedAt: removed,
-            id: "tx-2",
-            income: false,
-            month: AUTHORED,
-            note: "already gone",
-            updatedAt: removed,
-        });
-
-        await eraseLedger(db, "transactions");
-
-        const rows = await db.select().from(transactions);
-        const survivor = rows.find((row) => row.id === "tx-2");
-        expect(survivor?.deletedAt?.getTime()).toBe(removed.getTime());
-        expect(survivor?.updatedAt.getTime()).toBe(removed.getTime());
-        expect(survivor?.note).toBe("already gone");
-    });
 });

@@ -3,10 +3,6 @@ import { describe, expect, it } from "@jest/globals";
 import { DEFAULT_LANGUAGE, languageFromTag, resolveLanguage } from "./languages";
 
 describe("languageFromTag", () => {
-    it("matches a bare language code", () => {
-        expect(languageFromTag("es")).toBe("es");
-    });
-
     it("matches a regional tag by its primary subtag", () => {
         expect(languageFromTag("es-419")).toBe("es");
         expect(languageFromTag("es-MX")).toBe("es");

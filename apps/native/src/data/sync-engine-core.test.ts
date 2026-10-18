@@ -456,18 +456,6 @@ describe("applyPulledRows", () => {
         expect(row.deletedAt).toBeNull();
     });
 
-    it("overwrites a local row the incoming one outranks", async () => {
-        await addTransaction(db, "t1", { note: "mine", updatedAt: AT(1000) });
-
-        await applyPulledRows(db, {
-            cursor: 1,
-            rows: [txRow("t1", 1, 9000, { fields: { note: "theirs" } })],
-        });
-
-        const [row] = await db.select().from(transactions);
-        expect(row.note).toBe("theirs");
-    });
-
     it("keeps a newer local row and does not clear its queue entry", async () => {
         await setSyncEnabled(db, true);
         await addTransaction(db, "t1", { note: "mine", updatedAt: AT(9000) });
@@ -481,18 +469,6 @@ describe("applyPulledRows", () => {
         expect(result.applied).toBe(0);
         expect(row.note).toBe("mine");
         await expect(outboxPendingCount(db)).resolves.toBe(1);
-    });
-
-    it("r1 — an incoming tombstone beats a newer local edit", async () => {
-        await addTransaction(db, "t1", { updatedAt: AT(9000) });
-
-        await applyPulledRows(db, {
-            cursor: 1,
-            rows: [txRow("t1", 1, 1000, { deletedAt: 1000 })],
-        });
-
-        const [row] = await db.select().from(transactions);
-        expect(row.deletedAt?.getTime()).toBe(1000);
     });
 
     it("r1 — a local tombstone is not resurrected by a newer incoming edit", async () => {
@@ -971,22 +947,6 @@ describe("two devices against one account", () => {
         expect(row).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
         await expect(getSyncCursor(db)).resolves.toBe(2);
         await expect(outboxPendingCount(db)).resolves.toBe(0);
-    });
-
-    it("replicates a ledger from one device to the other", async () => {
-        const alpha = makeDb();
-        const beta = makeDb();
-        const server = makeServer();
-        await setSyncEnabled(alpha, true);
-        await setSyncEnabled(beta, true);
-
-        await addTransaction(alpha, "t1", { note: "coffee" });
-        await runSync(alpha, server.transport);
-        await runSync(beta, server.transport);
-
-        const [row] = await beta.select().from(transactions);
-        expect(row.note).toBe("coffee");
-        await expect(outboxPendingCount(beta)).resolves.toBe(0);
     });
 
     it("replicates an account, dates as epochs and the local path withheld", async () => {

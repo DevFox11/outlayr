@@ -157,25 +157,6 @@ describe("the Ledger widget's entries", () => {
         expect(props.Ledger.headers.today.spent.amount).toBe("$9.96");
     });
 
-    it("leaves an entry in the ledger's own currency alone", async () => {
-        const db = makeDb();
-        await db.insert(transactions).values({
-            amount: 18.5,
-            currency: "USD",
-            date: NOW,
-            day: NOW,
-            id: "t1",
-            income: false,
-            month: NOW,
-            note: "Coffee",
-            updatedAt: NOW,
-        });
-
-        const props = await buildWidgetProps(db, NOW);
-
-        expect(props.Ledger.entries[0]?.amount).toBe("$18.50");
-    });
-
     it("falls back to the ledger's currency when the entry named none", async () => {
         const db = makeDb();
         await db.insert(transactions).values({

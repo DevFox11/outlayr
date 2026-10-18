@@ -32,13 +32,6 @@ describe("reminder time", () => {
         });
     });
 
-    it("falls back to the morning for an option nothing offers", () => {
-        expect(reminderTime(99, { hour: 13, minute: 45 })).toStrictEqual({
-            hour: 8,
-            minute: 0,
-        });
-    });
-
     it("clamps a stored time that could never fire", () => {
         expect(clampTimeOfDay(25, 70)).toStrictEqual({ hour: 23, minute: 59 });
         expect(clampTimeOfDay(-3, -1)).toStrictEqual({ hour: 0, minute: 0 });
@@ -54,15 +47,6 @@ describe("time of day label", () => {
     it("reads back in the 12-hour form the option rows use", () => {
         expect(formatTimeOfDay({ hour: 8, minute: 0 })).toBe("8:00 AM");
         expect(formatTimeOfDay({ hour: 20, minute: 0 })).toBe("8:00 PM");
-    });
-
-    it("names both ends of the day without a zero hour", () => {
-        expect(formatTimeOfDay({ hour: 0, minute: 5 })).toBe("12:05 AM");
-        expect(formatTimeOfDay({ hour: 12, minute: 30 })).toBe("12:30 PM");
-    });
-
-    it("pads the minute", () => {
-        expect(formatTimeOfDay({ hour: 9, minute: 7 })).toBe("9:07 AM");
     });
 
     it("writes the meridiem in the reader's language", () => {

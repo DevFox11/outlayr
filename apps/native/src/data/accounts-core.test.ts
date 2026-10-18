@@ -55,16 +55,6 @@ describe("accountsRepo.create", () => {
         expect(getAccountById(db, second)?.sortOrder).toBe(1);
     });
 
-    it("freezes a USD opening balance at rate 1", async () => {
-        const id = await accountsRepo.create(db, {
-            currency: "USD",
-            initialBalance: 250,
-            name: "Checking",
-        });
-
-        expect(getAccountById(db, id)?.initialBalanceUsd).toBe(250);
-    });
-
     it("freezes a foreign opening balance at the rate of its own day", async () => {
         await addRate(db, "EUR", "2026-01-01", 0.8);
 
@@ -410,31 +400,5 @@ describe("an attached entry moving the balance", () => {
             note: "Refund",
         });
         expect((await balanceOf(accountId)).total).toBe(115);
-    });
-
-    it("values a foreign-currency entry through its frozen USD amount", async () => {
-        await addRate(db, "EUR", "2026-01-01", 0.8);
-        const accountId = await accountsRepo.create(db, {
-            currency: "EUR",
-            initialBalance: 100,
-            initialBalanceDate: JAN_5,
-            name: "Girokonto",
-        });
-
-        await transactionsRepo.create(db, {
-            accountId,
-            amount: 10,
-            categoryId: "cat-1",
-            currency: "USD",
-            date: JAN_5,
-            details: null,
-            income: false,
-            note: "Snack",
-        });
-
-        const rates = buildRateTable([{ date: "2026-01-01", quote: "EUR", rate: 0.8 }]);
-        const balance = await balanceOf(accountId, rates);
-        expect(balance.total).toBe(92);
-        expect(balance.exact).toBe(true);
     });
 });

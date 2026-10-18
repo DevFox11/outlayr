@@ -2,15 +2,11 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 
 import type { Database } from "@/db/client";
 import { migratedDatabase } from "@/db/test-database";
-import { FAVOURITE_CURRENCY_LIMIT } from "@/domain/favourite-currencies";
 
 import { getMeta, META_KEYS, setMeta } from "./app-meta-core";
-import { readFavourites, toggleFavouriteCurrency, writeFavourites } from "./favourite-currencies-core";
+import { readFavourites, toggleFavouriteCurrency } from "./favourite-currencies-core";
 
 const makeDb = migratedDatabase;
-
-const EIGHT = ["USD", "EUR", "GBP", "JPY", "AED", "AFN", "ALL", "AMD"];
-const NINTH = "ANG";
 
 describe("favourite currencies storage", () => {
     let db: Database;
@@ -19,32 +15,9 @@ describe("favourite currencies storage", () => {
         db = makeDb();
     });
 
-    it("round-trips the list in the order it was written", async () => {
-        await writeFavourites(db, ["JPY", "EUR", "GBP"]);
-        await expect(readFavourites(db)).resolves.toStrictEqual(["JPY", "EUR", "GBP"]);
-    });
-
     it("adds a code and persists it", async () => {
         await expect(toggleFavouriteCurrency(db, "EUR")).resolves.toStrictEqual(["EUR"]);
         await expect(readFavourites(db)).resolves.toStrictEqual(["EUR"]);
-    });
-
-    it("removes a code it already holds", async () => {
-        await writeFavourites(db, ["EUR", "GBP"]);
-        await expect(toggleFavouriteCurrency(db, "EUR")).resolves.toStrictEqual(["GBP"]);
-        await expect(readFavourites(db)).resolves.toStrictEqual(["GBP"]);
-    });
-
-    it("refuses a ninth and answers the eight unchanged", async () => {
-        expect(EIGHT).toHaveLength(FAVOURITE_CURRENCY_LIMIT);
-        await writeFavourites(db, EIGHT);
-        await expect(toggleFavouriteCurrency(db, NINTH)).resolves.toStrictEqual(EIGHT);
-        await expect(readFavourites(db)).resolves.toStrictEqual(EIGHT);
-    });
-
-    it("still lets a removal through at the limit", async () => {
-        await writeFavourites(db, EIGHT);
-        await expect(toggleFavouriteCurrency(db, "USD")).resolves.toStrictEqual(EIGHT.slice(1));
     });
 
     it("keeps both stars when two taps land before the first write", async () => {

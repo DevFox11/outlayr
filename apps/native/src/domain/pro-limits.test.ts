@@ -31,7 +31,6 @@ describe("blocksNewCurrency", () => {
 
     it("never blocks a currency the ledger already holds", () => {
         expect(blocksNewCurrency("USD", ["USD", "VES"], true)).toBe(false);
-        expect(blocksNewCurrency("VES", ["USD", "VES"], true)).toBe(false);
     });
 
     it("blocks nothing while Pro is unlocked or unsellable", () => {

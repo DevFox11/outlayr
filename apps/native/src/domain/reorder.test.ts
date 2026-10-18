@@ -11,10 +11,6 @@ describe("applyMove", () => {
         expect(applyMove(["a", "b", "c", "d"], [3], 1)).toStrictEqual(["a", "d", "b", "c"]);
     });
 
-    it("keeps the array intact when source and destination coincide", () => {
-        expect(applyMove(["a", "b", "c"], [1], 1)).toStrictEqual(["a", "b", "c"]);
-    });
-
     it("moves multiple items as one block", () => {
         expect(applyMove(["a", "b", "c", "d"], [0, 1], 4)).toStrictEqual(["c", "d", "a", "b"]);
     });
@@ -23,10 +19,6 @@ describe("applyMove", () => {
 describe("moveItem", () => {
     it("lands a forward move on the slot it was dropped on", () => {
         expect(moveItem(["a", "b", "c", "d"], 0, 2)).toStrictEqual(["b", "c", "a", "d"]);
-    });
-
-    it("lands a backward move on the slot it was dropped on", () => {
-        expect(moveItem(["a", "b", "c", "d"], 3, 1)).toStrictEqual(["a", "d", "b", "c"]);
     });
 
     it("returns a copy, leaving the input untouched", () => {

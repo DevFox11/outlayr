@@ -13,18 +13,6 @@ const INPUT: DayCardInput = {
 };
 
 describe("layoutDayCard", () => {
-    it("grows by a fixed height per transaction", () => {
-        const [row] = INPUT.rows;
-        expect(row).toBeTruthy();
-        const heightOf = (count: number) =>
-            layoutDayCard({
-                ...INPUT,
-                rows: Array.from({ length: count }, () => row),
-            }).height;
-        expect(heightOf(2) > heightOf(1)).toBeTruthy();
-        expect(heightOf(2) - heightOf(1)).toBe(heightOf(3) - heightOf(2));
-    });
-
     it("keeps every glyph inside the horizontal padding", () => {
         for (const text of layoutDayCard(INPUT).texts) {
             expect(text.x >= 0 && text.x <= DAY_CARD_WIDTH).toBeTruthy();

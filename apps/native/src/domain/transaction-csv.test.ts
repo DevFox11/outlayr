@@ -35,10 +35,6 @@ describe("serializeCsvAmount", () => {
 });
 
 describe("parseCsvAmount", () => {
-    it("reads a bare integer", () => {
-        expect(parseCsvAmount("1240")).toBe(1240);
-    });
-
     it("strips a currency symbol", () => {
         expect(parseCsvAmount("$12.50")).toBe(12.5);
     });
@@ -168,11 +164,6 @@ describe("parseCsvType", () => {
         expect(parseCsvType("  income ")).toBe(true);
     });
 
-    it("accepts the common synonyms", () => {
-        expect(parseCsvType("credit")).toBe(true);
-        expect(parseCsvType("debit")).toBe(false);
-    });
-
     it("answers null for anything else", () => {
         expect(parseCsvType("transfer")).toBeNull();
     });
@@ -201,11 +192,6 @@ describe("transactionsToCsv", () => {
             note: "Paycheck",
         },
     ];
-
-    it("writes the ledger currency for a row that stated none", () => {
-        const parsed = parseCsv(transactionsToCsv(rows, "USD"));
-        expect(parsed[2]?.[3]).toBe("USD");
-    });
 
     it("keeps a comma in the note instead of deleting it", () => {
         const parsed = parseCsv(transactionsToCsv(rows, "USD"));

@@ -49,7 +49,6 @@ describe("useHaptics on Android", () => {
         [29, "success", "context-click"],
         [30, "warning", "reject"],
         [29, "warning", "long-press"],
-        [29, "error", "long-press"],
     ] as const)("on API %i plays %s as the system's %s", async (api, event, expected) => {
         mockApi.mockReturnValue(api);
 

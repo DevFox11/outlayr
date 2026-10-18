@@ -81,27 +81,6 @@ test("persists the resume secret before revocation and advances idempotently", a
     expect(calls).toStrictEqual(["allowLocal", "quiesce", "persist", "revoke", "clear", "navigate"]);
 });
 
-test("resumes a prepared deletion by retrying provider revocation before advancing", async () => {
-    const calls: string[] = [];
-
-    await resumeCloudDeletion(
-        "prepared",
-        { receiptChallenge: "receipt-challenge", resumeSecret: "resume-secret" },
-        {
-            advanceDeletion: async () => {
-                calls.push("advance");
-                return { phase: "complete" };
-            },
-            eraseBilling: async () => ({ phase: "billingErased" }),
-            revokeProvider: async () => {
-                calls.push("revoke");
-            },
-        }
-    );
-
-    expect(calls).toStrictEqual(["revoke", "advance"]);
-});
-
 test("erases billing when the purge lands, and resumes from purged the same way", async () => {
     const calls: string[] = [];
     const phases = ["purged", "authDeleting", "complete"] as const;

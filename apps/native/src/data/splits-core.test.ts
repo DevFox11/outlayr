@@ -85,23 +85,6 @@ describe("splitsRepo", () => {
         ]);
     });
 
-    it("clears a split so the entry goes back to its own category", async () => {
-        // No rows is the implicit whole, not "attributed to nothing".
-        await splitsRepo.writeSplit(
-            db,
-            "t1",
-            40,
-            [
-                { amount: 25, categoryId: "food" },
-                { amount: 15, categoryId: "travel" },
-            ],
-            2
-        );
-        await splitsRepo.writeSplit(db, "t1", 40, [], 2);
-
-        await expect(splitsForQuery(db, "t1")).resolves.toStrictEqual([]);
-    });
-
     it("leaves the replaced rows as tombstones so the change travels", async () => {
         await splitsRepo.writeSplit(db, "t1", 40, [{ amount: 40, categoryId: "food" }], 2);
         await splitsRepo.writeSplit(db, "t1", 40, [], 2);

@@ -139,12 +139,6 @@ describe(currencyDisplayFor, () => {
 });
 
 describe("provider-driven catalog coverage", () => {
-    it("covers the full provider blend, USD first, with CNH present", () => {
-        expect(PICKABLE_CURRENCY_CODES.length).toBeGreaterThanOrEqual(165);
-        expect(PICKABLE_CURRENCY_CODES[0]).toBe("USD");
-        expect(PICKABLE_CURRENCY_CODES).toContain("CNH");
-    });
-
     it("makes VES and metals pickable and drops BGN", () => {
         expect(isPickableCurrency("VES")).toBeTruthy();
         expect(isPickableCurrency("XAU")).toBeTruthy();

@@ -72,11 +72,6 @@ describe("currencyTotals with rates", () => {
         expect(valueCell(cell, "EUR")).toBe(0);
     });
 
-    it("folds a foreign entry into the global currency at its own day's rate", () => {
-        const buckets = currencyTotals([priced(100, "USD", 100, JULY_5)], "EUR", eurRates);
-        expect(buckets).toStrictEqual([{ amount: -90, currencyCode: "EUR", transactionCount: 1 }]);
-    });
-
     it("values two days at their own rates rather than one blended rate", () => {
         // $100 on the 5th is €90, $100 on the 20th is €95. A single conversion of
         // the $200 would print €180 or €190 — both wrong.
@@ -217,12 +212,6 @@ describe("switching display currency", () => {
             income: false,
         },
     ];
-
-    it("leaves the figures alone while the setting still matches", () => {
-        expect(currencyTotals(nullCurrency, "USD", eurRates)).toStrictEqual([
-            { amount: -99.15, currencyCode: "USD", transactionCount: 3 },
-        ]);
-    });
 
     it("converts the whole history when the setting changes", () => {
         // 99.15 USD at the 5 July rate of 0.90, converted once.

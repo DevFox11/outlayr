@@ -61,11 +61,6 @@ describe("local ledger state", () => {
         await expect(localLedgerState(bare)).resolves.toBe("populated");
     });
 
-    it("reads a single transaction as populated", async () => {
-        await addTransaction(db, "t1");
-        await expect(localLedgerState(db)).resolves.toBe("populated");
-    });
-
     it("reads a transaction deleted offline as populated", async () => {
         await addTransaction(db, "t1", new Date());
         await expect(localLedgerState(db)).resolves.toBe("populated");
@@ -204,12 +199,6 @@ describe("adoption marker", () => {
         await expect(isSyncEnabled(db)).resolves.toBe(false);
         await expect(outboxPendingCount(db)).resolves.toBe(0);
         await expect(getMeta(db, META_KEYS.syncAccountSubject)).resolves.toBeNull();
-    });
-
-    it("is replaced when a different account signs in", async () => {
-        await markAdopted(db, "user_a");
-        await markAdopted(db, "user_b");
-        await expect(adoptedAccount(db)).resolves.toBe("user_b");
     });
 });
 

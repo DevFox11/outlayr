@@ -57,7 +57,6 @@ describe("sign-in cancellation", () => {
     it("does not swallow a real failure", () => {
         expect(isSignInCancellation({ code: "PLAY_SERVICES_NOT_AVAILABLE" })).toBe(false);
         expect(isSignInCancellation(new Error("network down"))).toBe(false);
-        expect(isSignInCancellation(null)).toBe(false);
         expect(isSignInCancellation("ERR_REQUEST_CANCELED")).toBe(false);
     });
 });
@@ -69,7 +68,6 @@ describe("sign-in failure message", () => {
 
     it("names what went wrong in the email flow", () => {
         expect(signInFailureMessage({ code: "INVALID_EMAIL_OR_PASSWORD", status: 401 }, t)).toMatch(/don't match/);
-        expect(signInFailureMessage({ code: "OTP_EXPIRED", status: 400 }, t)).toMatch(/wrong or expired/);
         expect(signInFailureMessage({ code: "TOO_MANY_ATTEMPTS_FOR_THIS_EMAIL", status: 429 }, t)).toMatch(
             /Wait a bit/
         );

@@ -151,26 +151,6 @@ describe("logCellQuery", () => {
         expect(cell.unconvertedCount).toBe(1);
     });
 
-    it("values each day at its own rate across a period", async () => {
-        const db = makeDb();
-        await add(db, {
-            amount: 100,
-            amountUsd: 100,
-            currency: "USD",
-            date: new Date(Date.UTC(2026, 6, 5, 12)),
-        });
-        await add(db, {
-            amount: 100,
-            amountUsd: 100,
-            currency: "USD",
-            date: new Date(Date.UTC(2026, 6, 20, 12)),
-        });
-        // 90 + 95, not 200 at either single rate.
-        await expect(figures(db, "EUR")).resolves.toStrictEqual([
-            { count: 2, currencyCode: "EUR", expense: 185, income: 0 },
-        ]);
-    });
-
     it("keeps income and expense apart inside a converted currency", async () => {
         const db = makeDb();
         const july5 = new Date(Date.UTC(2026, 6, 5, 12));

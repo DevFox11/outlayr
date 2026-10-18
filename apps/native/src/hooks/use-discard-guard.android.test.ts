@@ -68,16 +68,6 @@ describe("useDiscardGuard on Android", () => {
         mockSheetListener.current = null;
     });
 
-    it("leaves after a save only once the lowered guard has rendered", async () => {
-        const { result } = await dirtyGuard();
-
-        await act(async () => {
-            result.current.leave();
-        });
-
-        expect(mockGuardAtPop).toStrictEqual([false]);
-    });
-
     it("leaves once, however many times it is asked to", async () => {
         const { result } = await dirtyGuard();
 
@@ -93,26 +83,23 @@ describe("useDiscardGuard on Android", () => {
         expect(mockGuardAtPop).toStrictEqual([false]);
     });
 
-    it.each(["GO_BACK", "POP"])(
-        "asks on %s and leaves on Discard once the lowered guard has rendered",
-        async (type) => {
-            // POP is a full-screen dialog's app-bar X: it is not a swipe.
-            const alert = jest.spyOn(Alert, "alert").mockReturnValue(undefined);
-            const repeat = jest.fn(() => mockGuardAtPop.push(mockLastGuard().prevent));
-            await dirtyGuard();
+    it.each(["POP"])("asks on %s and leaves on Discard once the lowered guard has rendered", async (type) => {
+        // POP is a full-screen dialog's app-bar X: it is not a swipe.
+        const alert = jest.spyOn(Alert, "alert").mockReturnValue(undefined);
+        const repeat = jest.fn(() => mockGuardAtPop.push(mockLastGuard().prevent));
+        await dirtyGuard();
 
-            mockLastGuard().callback({ data: { action: { type } }, repeat });
-            expect(repeat).not.toHaveBeenCalled();
-            expect(alert.mock.calls[0]?.[3]).toStrictEqual({ cancelable: true });
-            const buttons = alert.mock.calls[0]?.[2] as AlertButton[];
-            await act(async () => {
-                buttons.find((button) => button.style === "destructive")?.onPress?.();
-            });
+        mockLastGuard().callback({ data: { action: { type } }, repeat });
+        expect(repeat).not.toHaveBeenCalled();
+        expect(alert.mock.calls[0]?.[3]).toStrictEqual({ cancelable: true });
+        const buttons = alert.mock.calls[0]?.[2] as AlertButton[];
+        await act(async () => {
+            buttons.find((button) => button.style === "destructive")?.onPress?.();
+        });
 
-            expect(repeat).toHaveBeenCalledTimes(1);
-            expect(mockGuardAtPop).toStrictEqual([false]);
-        }
-    );
+        expect(repeat).toHaveBeenCalledTimes(1);
+        expect(mockGuardAtPop).toStrictEqual([false]);
+    });
 
     it("lets a sheet that reported itself hidden go without asking", async () => {
         const alert = jest.spyOn(Alert, "alert").mockReturnValue(undefined);

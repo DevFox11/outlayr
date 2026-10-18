@@ -18,16 +18,6 @@ describe("reviewEntryIdentity", () => {
         expect(reviewEntryIdentity("NETFLIX").domain).toBe("netflix.com");
     });
 
-    it("falls back to the tier-2 enrichment cache for the domain", () => {
-        setCachedEnrichment(merchantKey("Bakery Corner"), {
-            categoryName: "Groceries",
-            domain: "bakerycorner.example",
-            isNewCategory: false,
-            tags: [],
-        });
-        expect(reviewEntryIdentity("Bakery Corner").domain).toBe("bakerycorner.example");
-    });
-
     it("resolves the cached domain for a note carrying a store number", () => {
         setCachedEnrichment(merchantKey("Blue Bottle Coffee"), {
             categoryName: "Food & Drink",

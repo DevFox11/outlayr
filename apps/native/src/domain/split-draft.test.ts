@@ -30,24 +30,6 @@ describe("adding a category", () => {
 });
 
 describe("typing an amount", () => {
-    it("moves the difference out of a neighbour rather than leaving a remainder", () => {
-        const draft = setPartAmount(TOTAL, addPart(openDraft(TOTAL, "groceries", 2), "home"), 1, 34, 2);
-        expect(draft).toStrictEqual([
-            { amount: 50, categoryId: "groceries" },
-            { amount: 34, categoryId: "home" },
-        ]);
-        expect(unallocated(TOTAL, draft, 2)).toBe(0);
-    });
-
-    it("stays balanced across three parts, added and filled in turn", () => {
-        let draft = addPart(openDraft(TOTAL, "groceries", 2), "home");
-        draft = setPartAmount(TOTAL, draft, 1, 34, 2);
-        draft = addPart(draft, "pets");
-        draft = setPartAmount(TOTAL, draft, 2, 10, 2);
-        expect(isBalanced(TOTAL, draft, 2)).toBe(true);
-        expect(draft.map((one) => one.amount)).toStrictEqual([50, 24, 10]);
-    });
-
     it("never shows a negative part when there is nothing left to take from", () => {
         // Both categories added before anything was typed, so the draft is 84/0/0
         // and filling the middle one has no slack to absorb it.

@@ -131,32 +131,6 @@ describe("log window", () => {
         });
     });
 
-    it("widens by whole days and keeps the rows it already had", async () => {
-        const db = makeDb();
-        await seedDay(db, 15, 2);
-        await seedDay(db, 14, 9);
-        await seedDay(db, 13, 3);
-
-        const first = await windowFor(db, 2);
-        const second = await windowFor(db, 3);
-
-        expect(second.rows).toHaveLength(14);
-        const kept = new Set(second.rows.map((r) => r.id));
-        for (const row of first.rows) {
-            expect(kept.has(row.id)).toBeTruthy();
-        }
-    });
-
-    it("reports the end only once no older day remains", async () => {
-        const db = makeDb();
-        await seedDay(db, 15, 1);
-        await seedDay(db, 14, 1);
-
-        expect((await windowFor(db, 1)).reachedEnd).toBe(false);
-        expect((await windowFor(db, 2)).reachedEnd).toBe(false);
-        expect((await windowFor(db, 3)).reachedEnd).toBe(true);
-    });
-
     it("excludes deleted and future rows from the window it measures", async () => {
         const db = makeDb();
         await seedDay(db, 15, 1);

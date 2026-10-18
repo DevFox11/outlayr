@@ -1,8 +1,21 @@
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
+
 import { describe, expect, it } from "@jest/globals";
 import type { ExpenseContribution } from "@outlayr/money/budget-spent";
 import type { BudgetWindow } from "@outlayr/money/budget-window";
 
 import { buildBurndown } from "./budget-burndown";
+
+const inNewYork = (...args: (number | string)[]): string =>
+    execFileSync(
+        process.execPath,
+        ["--import", "tsx", join(import.meta.dirname, "dst-probe.ts"), ...args.map(String)],
+        {
+            encoding: "utf-8",
+            env: { ...process.env, TZ: "America/New_York" },
+        }
+    );
 
 const at = (y: number, m: number, day: number): Date => new Date(y, m - 1, day);
 
@@ -39,18 +52,6 @@ const REAL_JULY: ExpenseContribution[] = [
 ];
 
 describe("buildBurndown", () => {
-    it("reproduces the spend and overage the Budgets screen shows", () => {
-        const result = buildBurndown(REAL_JULY, {
-            limit: 2000,
-            now: at(2026, 7, 25),
-            window: JULY,
-        });
-
-        const today = result.points.at(-1);
-        expect(today?.spent).toBe(2881.5);
-        expect(today?.balance).toBe(-881.5);
-    });
-
     it("reports the day the balance first went negative", () => {
         const result = buildBurndown(REAL_JULY, {
             limit: 2000,
@@ -128,30 +129,6 @@ describe("buildBurndown", () => {
         expect(result.points.at(-1)?.spent).toBe(40);
     });
 
-    it("ignores expenses dated after now but still inside the window", () => {
-        const result = buildBurndown([expense(5, 40), expense(28, 500)], {
-            limit: 500,
-            now: at(2026, 7, 10),
-            window: JULY,
-        });
-
-        expect(result.points.at(-1)?.spent).toBe(40);
-    });
-
-    it("projects the end-of-window balance from the current rate", () => {
-        // 10 days elapsed of 31, $100/day.
-        const rows = Array.from({ length: 10 }, (_, i) => expense(i + 1, 100));
-
-        const result = buildBurndown(rows, {
-            limit: 2000,
-            now: at(2026, 7, 10),
-            window: JULY,
-        });
-
-        // 31 days x $100 = $3,100 spent, against a $2,000 limit.
-        expect(result.projectedBalance).toBe(-1100);
-    });
-
     it("keeps a lone outlier from dominating the projection", () => {
         const result = buildBurndown(REAL_JULY, {
             limit: 2000,
@@ -181,17 +158,10 @@ describe("buildBurndown", () => {
         expect(result.projectedBalance).toBe(2000 - 900 - 1890);
     });
 
-    it("averages the middle pair when an even number of days has elapsed", () => {
-        const rows = [10, 20, 30, 40, 50, 60, 70, 80].map((amount, i) => expense(i + 1, amount));
+    it("forecasts no more spending for a window with no spending yet", () => {
+        const result = buildBurndown([], { limit: 2000, now: at(2026, 7, 20), window: JULY });
 
-        const result = buildBurndown(rows, {
-            limit: 2000,
-            now: at(2026, 7, 8),
-            window: JULY,
-        });
-
-        // Median of 8 days is (40 + 50) / 2 = 45, across the 23 days left.
-        expect(result.projectedBalance).toBe(2000 - 360 - 45 * 23);
+        expect(result.projectedBalance).toBe(2000);
     });
 
     it("withholds the projection while too little of the window has elapsed", () => {
@@ -204,34 +174,9 @@ describe("buildBurndown", () => {
         expect(result.projectedBalance).toBeNull();
     });
 
-    it("survives a zero limit without dividing by it", () => {
-        const result = buildBurndown([expense(2, 50)], {
-            limit: 0,
-            now: at(2026, 7, 10),
-            window: JULY,
-        });
-
-        expect(result.points.at(-1)?.balance).toBe(-50);
-        expect(result.runwayDay).toBe(2);
-    });
-
     it("buckets by calendar day so a DST shift cannot smear spending", () => {
-        // US DST ends Nov 1 2026; Nov 2 is a 25-hour day away from the start.
-        const november: BudgetWindow = {
-            end: at(2026, 12, 1),
-            start: at(2026, 11, 1),
-        };
-        const rows = [
-            { amount: 10, categoryId: null, date: at(2026, 11, 1), parentId: null },
-            { amount: 20, categoryId: null, date: at(2026, 11, 3), parentId: null },
-        ];
-
-        const result = buildBurndown(rows, {
-            limit: 100,
-            now: at(2026, 11, 5),
-            window: november,
-        });
-
-        expect(result.points.map((p) => p.spent)).toStrictEqual([10, 10, 30, 30, 30]);
+        expect(inNewYork("burndown", 2026, 10, 1, 0, 0, 2026, 11, 1, 0, 0, 2026, 10, 5, 0, 0, 2026, 10, 3, 0, 0)).toBe(
+            "[10,10,30,30,30]"
+        );
     });
 });

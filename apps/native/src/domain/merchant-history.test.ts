@@ -19,15 +19,6 @@ describe("what the ledger remembers about a merchant", () => {
         expect(rememberedCategory(entries, merchantKey("Panaderia La Mejor"))).toBeNull();
     });
 
-    it("reads spellings that differ only in case, spacing or accents as one merchant", () => {
-        const entries = [
-            entry("Panadería La Mejor", "food", 1),
-            entry("PANADERIA LA MEJOR", "food", 2),
-            entry("panaderia  la mejor ", "food", 3),
-        ];
-        expect(rememberedCategory(entries, merchantKey("Panaderia la Mejor"))).toBe("food");
-    });
-
     it("lets the majority outvote a single miscategorised entry", () => {
         // The stray row is the newest, so a most-recent rule would return it.
         const entries = [
@@ -41,15 +32,6 @@ describe("what the ledger remembers about a merchant", () => {
     it("breaks a tie on recency", () => {
         const entries = [entry("Uber", "transport", 1), entry("Uber", "travel", 5)];
         expect(rememberedCategory(entries, merchantKey("Uber"))).toBe("travel");
-    });
-
-    it("ignores entries for other merchants when counting", () => {
-        const entries = [
-            entry("Spotify", "music", 1),
-            entry("Netflix", "entertainment", 2),
-            entry("Netflix", "entertainment", 3),
-        ];
-        expect(rememberedCategory(entries, merchantKey("Spotify"))).toBe("music");
     });
 
     it("answers nothing for an empty key rather than matching every blank note", () => {

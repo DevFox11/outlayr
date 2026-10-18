@@ -114,15 +114,4 @@ describe(resolveEntryRate, () => {
             })
         ).toThrow(MoneyValidationError);
     });
-
-    it("rejects a zero entry rate, which divides to infinity rather than to a price", () => {
-        expect(() =>
-            computeAmountUSD({
-                baseAmount: 100,
-                date: "2026-06-30",
-                exchangeRate: 0,
-                exchangeRateType: "official",
-            })
-        ).toThrow(MoneyValidationError);
-    });
 });

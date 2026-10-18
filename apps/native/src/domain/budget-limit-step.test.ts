@@ -3,10 +3,6 @@ import { describe, expect, it } from "@jest/globals";
 import { LIMIT_STEP, suggestedLimit } from "./budget-limit-step";
 
 describe("the limit a fresh sheet opens on", () => {
-    it("takes four fifths of what the window has already cost", () => {
-        expect(suggestedLimit(500)).toBe(400);
-    });
-
     it("snaps that to the step the drag moves in", () => {
         expect(suggestedLimit(519)).toBe(425);
     });

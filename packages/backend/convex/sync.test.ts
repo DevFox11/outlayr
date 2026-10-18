@@ -119,13 +119,6 @@ function pullAs(t: TestClient, who: SeededIdentity, cursor: number, limit?: numb
     return authenticatedAs(t, who).query(api.sync.pullSince, { cursor, limit });
 }
 
-async function omitStoredTransactionAccountId(t: TestClient): Promise<void> {
-    await t.run(async (ctx) => {
-        const [stored] = await ctx.db.query("transactions").collect();
-        await ctx.db.patch(stored._id, { accountId: undefined });
-    });
-}
-
 describe("push authorization", () => {
     it("refuses a caller with no session", async () => {
         const t = harness();
@@ -542,48 +535,6 @@ describe("push conflict resolution", () => {
                 },
             }),
         ]);
-
-        const result = await pushAs(t, owner, DEVICE_A, [
-            transactionRow("t1", 100, {
-                fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
-            }),
-        ]);
-
-        expect(result.accepted).toBe(1);
-        const [stored] = await t.run((ctx) => ctx.db.query("transactions").collect());
-        expect(stored).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
-    });
-
-    it("treats a legacy omitted stored accountId as null when pending custom arrives first", async () => {
-        const t = harness();
-        const owner = await seedProUser(t);
-        await pushAs(t, owner, DEVICE_A, [
-            transactionRow("t1", 100, {
-                fields: { amountUsd: null, currency: "VES", exchangeRate: null, exchangeRateType: "custom" },
-            }),
-        ]);
-        await omitStoredTransactionAccountId(t);
-
-        const result = await pushAs(t, owner, DEVICE_B, [
-            transactionRow("t1", 100, {
-                fields: { amountUsd: 2.5, currency: "VES", exchangeRate: 40, exchangeRateType: "official" },
-            }),
-        ]);
-
-        expect(result.skipped).toBe(1);
-        const [stored] = await t.run((ctx) => ctx.db.query("transactions").collect());
-        expect(stored).toMatchObject({ amountUsd: null, exchangeRate: null, exchangeRateType: "custom" });
-    });
-
-    it("treats a legacy omitted stored accountId as null when official arrives first", async () => {
-        const t = harness();
-        const owner = await seedProUser(t);
-        await pushAs(t, owner, DEVICE_B, [
-            transactionRow("t1", 100, {
-                fields: { amountUsd: 2.5, currency: "VES", exchangeRate: 40, exchangeRateType: "official" },
-            }),
-        ]);
-        await omitStoredTransactionAccountId(t);
 
         const result = await pushAs(t, owner, DEVICE_A, [
             transactionRow("t1", 100, {

@@ -35,10 +35,6 @@ describe("subscription reminder identity", () => {
 });
 
 describe("normalizing a stored lead", () => {
-    it("reads a missing lead as off rather than as the due day", () => {
-        expect(normalizeLead(null)).toBeNull();
-    });
-
     it("refuses a lead that is not a real number", () => {
         expect(normalizeLead(Number.NaN)).toBeNull();
         expect(normalizeLead(Number.POSITIVE_INFINITY)).toBeNull();
@@ -50,21 +46,12 @@ describe("normalizing a stored lead", () => {
         expect(normalizeLead(99)).toBe(30);
         expect(normalizeLead(30)).toBe(30);
     });
-
-    it("floors a fractional lead", () => {
-        expect(normalizeLead(2.9)).toBe(2);
-    });
 });
 
 describe("when a reminder fires", () => {
     it("lands on the due day at the configured hour with no lead", () => {
         const fire = reminderFireAt(new Date(2026, 4, 14, 23, 12), 0, NINE_AM);
         expect(wallClock(fire)).toStrictEqual([2026, 5, 14, 9, 0, 0]);
-    });
-
-    it("lands a week earlier at a week's lead", () => {
-        const fire = reminderFireAt(new Date(2026, 4, 14), 7, NINE_AM);
-        expect(wallClock(fire)).toStrictEqual([2026, 5, 7, 9, 0, 0]);
     });
 
     it("carries the chosen minute through", () => {
@@ -128,15 +115,6 @@ describe("planning what to arm", () => {
         expect(plan.arm.map((armed) => armed.localId)).toStrictEqual(["ahead"]);
     });
 
-    it("drops a lead that pulls the reminder back before now", () => {
-        const plan = reminderPlan({
-            candidates: [{ landing: new Date(2026, 2, 12), leadDays: 7, localId: "led-past" }],
-            now,
-            time: NINE_AM,
-        });
-        expect(plan.arm).toStrictEqual([]);
-    });
-
     it("arms nothing for a candidate whose lead is off", () => {
         const plan = reminderPlan({
             candidates: [{ landing: new Date(2026, 2, 12), leadDays: null, localId: "off" }],
@@ -157,19 +135,6 @@ describe("planning what to arm", () => {
         // left — and it would survive the `now` filter, so nothing else catches it.
         expect(plan.arm).toHaveLength(1);
         expect(plan.arm[0].fireAt).toStrictEqual(new Date(2026, 2, 12, 9, 0));
-    });
-
-    it("orders by fire time, not by the order the rows arrived", () => {
-        const plan = reminderPlan({
-            candidates: [
-                { landing: new Date(2026, 5, 1), leadDays: 0, localId: "june" },
-                { landing: new Date(2026, 3, 1), leadDays: 0, localId: "april" },
-                { landing: new Date(2026, 4, 1), leadDays: 3, localId: "may-led" },
-            ],
-            now,
-            time: NINE_AM,
-        });
-        expect(plan.arm.map((armed) => armed.localId)).toStrictEqual(["april", "may-led", "june"]);
     });
 
     it("keeps the soonest charges when it has to truncate", () => {

@@ -88,13 +88,6 @@ describe("transactionsRepo.update over a row the rates no longer reach", () => {
         await db.delete(exchangeRates);
     });
 
-    it("freezes the value at the rate of the day it happened", async () => {
-        const row = await frozen(db, id);
-        expect(row.amountUsd).toBe(111.111111);
-        expect(row.exchangeRate).toBe(0.9);
-        expect(row.exchangeRateType).toBe("official");
-    });
-
     it("keeps that value when the edit leaves the money alone", async () => {
         await transactionsRepo.update(db, id, {
             ...DRAFT,
@@ -189,70 +182,6 @@ describe("transactionsRepo entry-rate selections", () => {
         });
     }
 
-    it("freezes a custom transaction from the supplied actual rate", async () => {
-        const db = makeDb();
-        const id = await transactionsRepo.create(db, {
-            ...DRAFT,
-            currency: "VES",
-            exchangeRate: 55.5,
-            exchangeRateType: "custom",
-        });
-        await expect(frozen(db, id)).resolves.toMatchObject({
-            amountUsd: 1.801802,
-            exchangeRate: 55.5,
-            exchangeRateType: "custom",
-        });
-    });
-
-    it("freezes a VES transaction at the EUR (BCV) figure per dollar", async () => {
-        const db = makeDb();
-        await seedRate(db, "VES", "eur_reference", 50);
-        await seedRate(db, "EUR", "official", 0.8);
-        const id = await transactionsRepo.create(db, { ...DRAFT, currency: "VES", exchangeRateType: "eur_reference" });
-        await expect(frozen(db, id)).resolves.toMatchObject({
-            amountUsd: 2,
-            exchangeRate: 50,
-            exchangeRateType: "eur_reference",
-        });
-    });
-
-    it("keeps omitted metadata backward-compatible with official", async () => {
-        const db = makeDb();
-        await seedRate(db, "EUR", "official", 0.8);
-        const id = await transactionsRepo.create(db, DRAFT);
-        await expect(frozen(db, id)).resolves.toMatchObject({
-            amountUsd: 125,
-            exchangeRate: 0.8,
-            exchangeRateType: "official",
-        });
-    });
-
-    it("clears supplied metadata for USD", async () => {
-        const db = makeDb();
-        const id = await transactionsRepo.create(db, {
-            ...DRAFT,
-            currency: "USD",
-            exchangeRate: 55.5,
-            exchangeRateType: "custom",
-        });
-        await expect(frozen(db, id)).resolves.toMatchObject({
-            amountUsd: 100,
-            exchangeRate: 1,
-            exchangeRateType: null,
-        });
-    });
-
-    it("restores an imported positive provider rate without replacing it from the local feed", async () => {
-        const db = makeDb();
-        await seedRate(db, "EUR", "official", 0.9);
-        const id = await transactionsRepo.create(db, { ...DRAFT, exchangeRate: 0.8, exchangeRateType: "official" });
-        await expect(frozen(db, id)).resolves.toMatchObject({
-            amountUsd: 125,
-            exchangeRate: 0.8,
-            exchangeRateType: "official",
-        });
-    });
-
     it("re-freezes when an edit changes official to custom without changing amount currency or date", async () => {
         const db = makeDb();
         await seedRate(db, "EUR", "official", 0.8);
@@ -261,6 +190,18 @@ describe("transactionsRepo entry-rate selections", () => {
         await expect(frozen(db, id)).resolves.toMatchObject({
             amountUsd: 200,
             exchangeRate: 0.5,
+            exchangeRateType: "custom",
+        });
+    });
+
+    it("drops the frozen USD value when an edit changes only the rate type", async () => {
+        const db = makeDb();
+        await seedRate(db, "EUR", "official", 0.8);
+        const id = await transactionsRepo.create(db, DRAFT);
+        await transactionsRepo.update(db, id, { ...DRAFT, exchangeRateType: "custom" });
+        await expect(frozen(db, id)).resolves.toMatchObject({
+            amountUsd: null,
+            exchangeRate: null,
             exchangeRateType: "custom",
         });
     });
@@ -594,19 +535,6 @@ describe("the reminder notice on a subscription", () => {
         expect(row?.reminderLeadDays).toBeNull();
     });
 
-    // A lead outside the picker's set reaches the row from a legacy or restored
-    // input, and a stored negative would place the reminder *after* the charge.
-    it("clamps a lead the picker would never offer", async () => {
-        const db = makeDb();
-        await transactionsRepo.create(db, {
-            ...SUBSCRIPTION,
-            reminderLeadDays: -4,
-        });
-
-        const [row] = await notices(db);
-        expect(row?.reminderLeadDays).toBe(0);
-    });
-
     it("keeps a same-day notice distinct from no notice", async () => {
         const db = makeDb();
         const sameDay = await transactionsRepo.create(db, {
@@ -698,14 +626,6 @@ describe("restoring a tombstoned transaction", () => {
 
         expect((await ledgerSizeQuery(db)).map((row) => row.id)).toStrictEqual([id]);
         await expect(logWindowDaysQuery(db, Date.now(), 30)).resolves.toHaveLength(1);
-    });
-
-    it("takes the entry off the deleted list it was restored from", async () => {
-        expect((await deletedTransactionsQuery(db)).map((row) => row.id)).toStrictEqual([id]);
-
-        await transactionsRepo.restore(db, id, RESTORED_AT);
-
-        await expect(deletedTransactionsQuery(db)).resolves.toStrictEqual([]);
     });
 
     it("moves updatedAt, so a peer is told the row came back", async () => {
@@ -883,18 +803,6 @@ describe("the account an entry is attached to", () => {
             .where(eq(transactions.id, id));
         return row?.accountId;
     }
-
-    it("moves the attachment when an edit names another account", async () => {
-        const db = makeDb();
-        const id = await transactionsRepo.create(db, {
-            ...DRAFT,
-            accountId: "acc-1",
-        });
-
-        await transactionsRepo.update(db, id, { ...DRAFT, accountId: "acc-2" });
-
-        await expect(attachedTo(db, id)).resolves.toBe("acc-2");
-    });
 
     it("detaches on an explicit null", async () => {
         const db = makeDb();

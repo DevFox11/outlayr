@@ -58,7 +58,6 @@ describe("buildTransactionInput", () => {
 
     it("clamps the coefficient to at least 1", () => {
         expect(buildTransactionInput({ ...BASE, coefficient: 0, isSubscription: true }).recurringCoefficient).toBe(1);
-        expect(buildTransactionInput({ ...BASE, coefficient: -5, isSubscription: true }).recurringCoefficient).toBe(1);
     });
 
     it("carries the selected rate type and actual rate into the transaction input", () => {

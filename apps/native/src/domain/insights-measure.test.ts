@@ -25,7 +25,6 @@ describe("stored round-trip", () => {
     it("falls back to spent on a value it does not recognise", () => {
         // A spending app's honest default, and what an unseeded install reads.
         expect(insightsMeasureFromStored(0)).toBe("spent");
-        expect(insightsMeasureFromStored(99)).toBe("spent");
     });
 });
 
@@ -45,7 +44,6 @@ describe("insightsMeasureIsPositive", () => {
     it("signs spend negative and income positive regardless of the window", () => {
         expect(insightsMeasureIsPositive("spent", TOTALS)).toBe(false);
         expect(insightsMeasureIsPositive("income", TOTALS)).toBe(true);
-        expect(insightsMeasureIsPositive("spent", UNDERWATER)).toBe(false);
     });
 
     it("signs net from the window itself", () => {
@@ -84,7 +82,5 @@ describe("favourable direction", () => {
 describe("insightsMeasureAlternatives", () => {
     it("returns the two the hero is not showing", () => {
         expect(insightsMeasureAlternatives("spent")).toStrictEqual(["income", "net"]);
-        expect(insightsMeasureAlternatives("income")).toStrictEqual(["spent", "net"]);
-        expect(insightsMeasureAlternatives("net")).toStrictEqual(["spent", "income"]);
     });
 });

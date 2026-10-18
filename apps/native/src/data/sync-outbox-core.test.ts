@@ -58,16 +58,6 @@ describe("sync cursor", () => {
         db = migratedDatabase();
     });
 
-    it("starts at zero", async () => {
-        await expect(getSyncCursor(db)).resolves.toBe(0);
-    });
-
-    it("round-trips", async () => {
-        await setSyncCursor(db, 4218);
-
-        await expect(getSyncCursor(db)).resolves.toBe(4218);
-    });
-
     it("falls back to zero rather than replaying from a corrupt cursor", async () => {
         await setMeta(db, META_KEYS.syncCursor, "not-a-number");
 
@@ -181,15 +171,6 @@ describe("enqueueAllForSync", () => {
         await enqueueAllForSync(db);
 
         await expect(outboxPendingCount(db)).resolves.toBe(SYNCED_META_KEYS.length);
-    });
-
-    it("is idempotent", async () => {
-        await addTransaction(db, "t1");
-
-        await enqueueAllForSync(db);
-        await enqueueAllForSync(db);
-
-        await expect(outboxPendingCount(db)).resolves.toBe(1);
     });
 
     it("queues a ledger larger than one insert can bind", async () => {

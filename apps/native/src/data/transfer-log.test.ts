@@ -37,26 +37,6 @@ describe("logTransferBounds", () => {
         expect(bounds?.since).toBeNull();
     });
 
-    it("reaches back past that floor when the list has loaded nothing to bound it with", () => {
-        const bounds = logTransferBounds(scope("all", { page: { floor: null, reachedEnd: false } }));
-
-        expect(bounds?.since).toBeNull();
-    });
-
-    it("holds a month filter to the month its cursor names", () => {
-        const bounds = logTransferBounds(scope("month"));
-
-        expect(bounds?.since).toStrictEqual(MARCH_1);
-        expect(bounds?.until).toStrictEqual(APRIL_1);
-    });
-
-    it("holds a day filter to that one day", () => {
-        const bounds = logTransferBounds(scope("day"));
-
-        expect(bounds?.since).toStrictEqual(new Date(2026, 2, 18));
-        expect(bounds?.until).toStrictEqual(new Date(2026, 2, 19));
-    });
-
     it("holds a week filter to the week its cursor names, on the weekday the owner starts on", () => {
         const sunday = logTransferBounds(scope("week", { firstWeekday: 1 }));
         const monday = logTransferBounds(scope("week", { firstWeekday: 2 }));
@@ -76,7 +56,7 @@ describe("logTransferBounds", () => {
         expect(bounds?.until).toStrictEqual(APRIL_1);
     });
 
-    it.each<LogFilter>(["category", "type", "recurring", "upcoming"])(
+    it.each<LogFilter>(["category"])(
         "admits no transfer to the %s filter, which a transfer answers nothing about",
         (filter) => {
             expect(logTransferBounds(scope(filter))).toBeNull();

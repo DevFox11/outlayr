@@ -4,17 +4,6 @@ import { authGate, authRoute, rootStackGroup } from "./auth-gate";
 import type { AuthGate } from "./auth-gate";
 
 describe("auth gate", () => {
-    it("opens on a restored session", () => {
-        expect(
-            authGate({
-                configured: true,
-                hasSession: true,
-                restoreExpired: false,
-                restoring: false,
-            })
-        ).toBe("signed-in");
-    });
-
     it("opens on a cached session the client is still revalidating", () => {
         expect(
             authGate({

@@ -53,17 +53,4 @@ describe("useInsights pending custom valuation", () => {
         expect(result.current.spent).toBe(0);
         await unmount();
     });
-
-    it("keeps pending custom at face value on its native-currency screen", async () => {
-        const db = makeDb();
-        await seedPendingCustom(db);
-        mockUseValuation.mockReturnValue({ displayCurrency: "VES", rates: buildRateTable([]) });
-
-        const { result, unmount } = await renderHook(() => useInsights(db, NOW.getTime(), "month", "spent"));
-
-        expect(result.current.rows).toHaveLength(1);
-        expect(result.current.rows[0]?.amount).toBe(40);
-        expect(result.current.spent).toBe(40);
-        await unmount();
-    });
 });

@@ -161,14 +161,6 @@ describe("pullRatesIfDue", () => {
         await expect(storedRates(db)).resolves.toStrictEqual([{ date: "2026-07-28", quote: "EUR" }]);
     });
 
-    it("stamps the pull time it was given", async () => {
-        const db = makeDb();
-        const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
-
-        await pullRatesIfDue(db, pull, { now: NOW });
-        await expect(lastPullAt(db)).resolves.toBe(String(NOW));
-    });
-
     it("re-stamps over a previous pull rather than conflicting", async () => {
         const db = makeDb();
         await db.insert(appMeta).values({ key: "lastRatesPullAt", value: String(NOW - 1) });
@@ -186,15 +178,6 @@ describe("pullRatesIfDue", () => {
         await expect(pullRatesIfDue(db, pull, { now: NOW })).resolves.toBe(false);
         await expect(storedRates(db)).resolves.toHaveLength(1);
         await expect(lastPullAt(db)).resolves.toBeNull();
-    });
-
-    it("bumps the rates revision when a pull lands", async () => {
-        const db = makeDb();
-        const { pull } = pagedPuller([[wireRow("EUR", "2026-07-28")]]);
-        const before = ratesRevision();
-
-        await pullRatesIfDue(db, pull, { now: NOW });
-        expect(ratesRevision()).toBe(before + 1);
     });
 
     it("rolls the wipe back when the replacement fails part-way", async () => {

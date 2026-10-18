@@ -19,7 +19,6 @@ const en: TranslateFn = (key, params) => translate(key, { catalog: EN, fallback:
 describe("rate names", () => {
     it("names the official rate after the BCV wherever a bolívar is priced", () => {
         expect(en(rateNameKey("official", quotedByBcv("VES")))).toBe("USD (BCV)");
-        expect(en(rateNameKey("official", quotedByBcv("USD", "VES")))).toBe("USD (BCV)");
         expect(en(rateSourceWordKey("official", quotedByBcv("VES")))).toBe("USD (BCV)");
     });
 
@@ -30,7 +29,6 @@ describe("rate names", () => {
 
     it("leaves the other sources' names alone", () => {
         expect(en(rateNameKey("eur_reference", true))).toBe("EUR (BCV)");
-        expect(en(rateNameKey("custom", true))).toBe("My rate");
     });
 });
 

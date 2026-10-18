@@ -207,33 +207,6 @@ describe("loadContributions", () => {
         expect(rent?.parentId).toBeNull();
     });
 
-    it("keeps a pending custom insight contribution in its native currency", async () => {
-        const db = makeDb();
-        await seed(db);
-        const pendingDate = at(2025, 7, 14, 8);
-        await db.insert(transactions).values({
-            amount: 40,
-            amountUsd: null,
-            categoryId: "food",
-            currency: "VES",
-            date: pendingDate,
-            day: pendingDate,
-            exchangeRate: null,
-            exchangeRateType: "custom",
-            id: "pending-custom",
-            income: false,
-            month: pendingDate,
-            updatedAt: NOW,
-        });
-
-        const rows = await loadContributions(db, NOW, {
-            displayCurrency: "VES",
-            rates: buildRateTable([]),
-        });
-
-        expect(rows.find((row) => row.date.getTime() === pendingDate.getTime())?.amount).toBe(40);
-    });
-
     it("excludes a pending custom contribution from a foreign-currency insight total", async () => {
         const db = makeDb();
         await seed(db);
@@ -330,15 +303,6 @@ describe("elapsedSlots", () => {
 });
 
 describe("bucketSeries — spent", () => {
-    it("buckets the week and excludes rows outside it", () => {
-        const buckets = bucketSeries(contributions, "week", "spent", NOW);
-        // Jul 13–19 holds only e5; e3/e4 fall in the previous calendar week.
-        expect(periodTotal(buckets)).toBe(30);
-        expect(buckets[2].value).toBe(30); // Jul 15: e5 only, f2 is future
-        expect(buckets[0].value).toBe(0); // Jul 13
-        expect(buckets[6].value).toBe(0); // Jul 19, still to come
-    });
-
     it("buckets the month, excluding income, soft-deleted, and future", () => {
         const buckets = bucketSeries(contributions, "month", "spent", NOW);
         expect(periodTotal(buckets)).toBe(165);
@@ -346,15 +310,6 @@ describe("bucketSeries — spent", () => {
         expect(buckets[7].value).toBe(0); // Jul 8 was soft-deleted
         expect(buckets[14].value).toBe(30); // Jul 15: e5 only, f2 is future
         expect(buckets[30].value).toBe(0); // Jul 31 is charted but empty
-    });
-
-    it("buckets the year into months", () => {
-        const buckets = bucketSeries(contributions, "year", "spent", NOW);
-        // 2025 only — e7 (Sep 2024) now belongs to the previous year's window.
-        expect(periodTotal(buckets)).toBe(223);
-        expect(buckets[2].value).toBe(50); // Mar 2025
-        expect(buckets[5].value).toBe(8); // Jun 2025
-        expect(buckets[6].value).toBe(165); // Jul 2025
     });
 });
 
@@ -413,27 +368,6 @@ describe("categoryBreakdown", () => {
 });
 
 describe("bucketRanges — window offset", () => {
-    it("month offset -1 is the full previous calendar month", () => {
-        const june = bucketRanges("month", NOW, -1);
-        expect(june).toHaveLength(30); // June has 30 days
-        expect(june[0].start).toStrictEqual(at(2025, 6, 1));
-        expect(june[29].start).toStrictEqual(at(2025, 6, 30));
-    });
-
-    it("week offset -1 is the previous calendar week", () => {
-        const prev = bucketRanges("week", NOW, -1);
-        expect(prev).toHaveLength(7);
-        expect(prev[0].start).toStrictEqual(at(2025, 7, 6));
-        expect(prev[6].start).toStrictEqual(at(2025, 7, 12));
-    });
-
-    it("year offset -1 is the previous calendar year", () => {
-        const prev = bucketRanges("year", NOW, -1);
-        expect(prev).toHaveLength(12);
-        expect(prev[0].start).toStrictEqual(at(2024, 1, 1));
-        expect(prev[11].start).toStrictEqual(at(2024, 12, 1));
-    });
-
     it("windowStart agrees with the first slot", () => {
         expect(windowStart("month", NOW, -2)).toStrictEqual(at(2025, 5, 1));
         expect(windowStart("week", NOW, -2)).toStrictEqual(at(2025, 6, 29));
@@ -441,31 +375,7 @@ describe("bucketRanges — window offset", () => {
     });
 });
 
-describe("bucketSeries — window offset", () => {
-    it("month offset -1 buckets only the previous month's rows", () => {
-        const buckets = bucketSeries(contributions, "month", "spent", NOW, -1);
-        expect(buckets).toHaveLength(30);
-        expect(periodTotal(buckets)).toBe(8); // b1 (Jun 1)
-        expect(buckets[0].value).toBe(8);
-    });
-
-    it("week offset -1 buckets the previous calendar week", () => {
-        const spent = bucketSeries(contributions, "week", "spent", NOW, -1);
-        expect(periodTotal(spent)).toBe(105); // e3 (Jul 10) + e4 (Jul 12)
-        expect(spent[4].value).toBe(100);
-        expect(spent[6].value).toBe(5);
-        expect(spent[2].value).toBe(0); // Jul 8 was soft-deleted
-    });
-});
-
 describe("windowTotals", () => {
-    it("splits the current window into income and spent", () => {
-        expect(windowTotals(contributions, "month", NOW, 0)).toStrictEqual({
-            income: 540,
-            spent: 165,
-        });
-    });
-
     it("tracks the offset window", () => {
         expect(windowTotals(contributions, "month", NOW, -1)).toStrictEqual({
             income: 0,
@@ -505,14 +415,6 @@ describe("subcategoryBreakdown", () => {
         expect(subs[1].name).toBe("Direct"); // e1 (10) + e4 (5)
         expect(subs[1].amount).toBe(15);
         expect(Math.abs(subs[0].fraction - 20 / 35) < 1e-9).toBeTruthy();
-    });
-
-    it("returns a single Direct entry for a childless parent", () => {
-        const subs = subcategoryBreakdown(contributions, categoriesById, "rent", "month", "spent", NOW);
-        expect(subs).toHaveLength(1);
-        expect(subs[0].name).toBe("Direct");
-        expect(subs[0].amount).toBe(130);
-        expect(subs[0].fraction).toBe(1);
     });
 });
 

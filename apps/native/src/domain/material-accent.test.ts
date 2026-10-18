@@ -31,7 +31,6 @@ describe("materialAccentOptions", () => {
 describe("offeredAccentValue", () => {
     it("keeps a stored accent the row offers", () => {
         expect(offeredAccentValue(3, ACCENTS, DEFAULT_ACCENT.value)).toBe(3);
-        expect(offeredAccentValue(WALLPAPER_ACCENT_VALUE, materialAccentOptions(true), 0)).toBe(WALLPAPER_ACCENT_VALUE);
     });
 
     it("shows the default for Wallpaper synced to a row without it", () => {

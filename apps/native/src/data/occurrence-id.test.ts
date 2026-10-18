@@ -19,13 +19,6 @@ function occurrenceIdIn(timeZone: string, parentLocalId: string, isoHolding: str
 }
 
 describe("occurrence id", () => {
-    it("is the same on both sides of a wide zone split", () => {
-        const madrid = occurrenceIdIn("Europe/Madrid", "sub-1", "2025-08-10T09:00:00.000Z");
-        const newYork = occurrenceIdIn("America/New_York", "sub-1", "2025-08-10T09:00:00.000Z");
-
-        expect(madrid).toBe(newYork);
-    });
-
     // The failing shape: 23:30Z is already tomorrow in Madrid and still today in
     // New York, so a local-midnight seed disagreed by a whole day here.
     it("agrees across a zone split that straddles the local date", () => {

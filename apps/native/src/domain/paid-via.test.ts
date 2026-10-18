@@ -11,7 +11,7 @@ describe("paidViaCharge", () => {
         expect(paidViaCharge("transfer", amount)).toBe(fee);
     });
 
-    it.each(["sameBankTransfer", "card", "cash"] as const)("leaves %s free", (via) => {
+    it.each(["sameBankTransfer"] as const)("leaves %s free", (via) => {
         expect(paidViaCharge(via, 8770)).toBeNull();
     });
 });

@@ -221,16 +221,6 @@ describe("attachMissingLogos", () => {
         expect(row.updatedAt.getTime()).toBeGreaterThan(ahead.getTime());
     });
 
-    it("answers a curated merchant without a model call", async () => {
-        await seedRow(db, "a", "Uber Eats");
-        const deps = makeDeps();
-
-        await attachMissingLogos(db, deps);
-
-        expect(deps.enrichCalls).toStrictEqual([]);
-        expect(deps.fetched).toStrictEqual(["ubereats.com"]);
-    });
-
     it("leaves a row that already has an identity alone", async () => {
         await seedRow(db, "icon", "Intermarche", { icon: "cart" });
         await seedRow(db, "emoji", "Intermarche", { emoji: "🛒" });

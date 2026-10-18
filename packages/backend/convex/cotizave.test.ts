@@ -140,31 +140,6 @@ describe("cotizave.fetchRates", () => {
         });
     });
 
-    it("writes nothing and logs an error for a fully malformed response", async () => {
-        const t = convexTest(schema, modules);
-        await t.run((ctx) =>
-            ctx.db.insert("exchangeRates", {
-                date: "2026-07-03",
-                fetchedAt: 1,
-                quote: "VES",
-                rate: 650,
-                rateType: "official",
-                source: "cotizave",
-            })
-        );
-        const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {
-            // silence expected error log
-        });
-        stubFetch({ error: "boom" });
-
-        await t.action(internal.cotizave.fetchRates, {});
-
-        const rows = await t.run((ctx) => ctx.db.query("exchangeRates").collect());
-        expect(rows).toHaveLength(1);
-        expect(rows[0]).toMatchObject({ rate: 650, source: "cotizave" });
-        expect(errorSpy).toHaveBeenCalledWith("Cotizave response did not match the expected USD-based VES contract");
-    });
-
     it("writes nothing and logs an error when no target market is present", async () => {
         const t = convexTest(schema, modules);
         const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {

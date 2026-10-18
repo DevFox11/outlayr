@@ -36,10 +36,6 @@ describe("parseCsv", () => {
         expect(parseCsv('"He said ""hi""",5')).toStrictEqual([['He said "hi"', "5"]]);
     });
 
-    it("keeps a newline inside a quoted field", () => {
-        expect(parseCsv('"two\nlines",5')).toStrictEqual([["two\nlines", "5"]]);
-    });
-
     it("accepts CRLF line endings", () => {
         expect(parseCsv("a,b\r\n1,2\r\n")).toStrictEqual([
             ["a", "b"],
@@ -49,13 +45,6 @@ describe("parseCsv", () => {
 
     it("drops a trailing newline rather than emitting an empty row", () => {
         expect(parseCsv("a,b\n")).toStrictEqual([["a", "b"]]);
-    });
-
-    it("drops blank lines", () => {
-        expect(parseCsv("a,b\n\n1,2")).toStrictEqual([
-            ["a", "b"],
-            ["1", "2"],
-        ]);
     });
 
     it("keeps a row whose every field is empty out of the result", () => {

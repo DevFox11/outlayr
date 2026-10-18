@@ -12,10 +12,6 @@ describe("local shell readiness", () => {
         ).toBe(false);
     });
 
-    it("holds while the database is opening", () => {
-        expect(localShellReady({ data: "opening", fontsLoaded: true })).toBe(false);
-    });
-
     it("holds on a database that failed to open", () => {
         expect(
             localShellReady({
@@ -48,14 +44,6 @@ describe("route settlement", () => {
         expect(routeSettled({ adoption: "settled", gate: "signed-in" })).toBe(true);
     });
 
-    it("settles on a signed-out device, whose destination is the sign-in screen", () => {
-        expect(routeSettled({ adoption: "settled", gate: "signed-out" })).toBe(true);
-    });
-
-    it("settles on a build with no auth client at all", () => {
-        expect(routeSettled({ adoption: "settled", gate: "unconfigured" })).toBe(true);
-    });
-
     it("local restore skips the account wait", () => {
         expect(routeSettled({ adoption: "resolving", gate: "unconfigured" })).toBe(true);
     });
@@ -64,9 +52,5 @@ describe("route settlement", () => {
     // would hide the only question that can move the app forward.
     it("settles once reconciliation has a question to ask", () => {
         expect(routeSettled({ adoption: "ask", gate: "signed-in" })).toBe(true);
-    });
-
-    it("settles while a chosen reconciliation runs", () => {
-        expect(routeSettled({ adoption: "working", gate: "signed-in" })).toBe(true);
     });
 });

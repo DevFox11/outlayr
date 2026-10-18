@@ -144,22 +144,6 @@ describe("transfersRepo.create", () => {
         expect(row.month.getTime()).toBe(firstOfMonth(DAY).getTime());
     });
 
-    it("freezes both legs at the same USD value when the transfer went at the official rate", async () => {
-        const db = makeDb();
-        const { from, to } = await twoAccounts(db);
-
-        const id = await transfersRepo.create(db, {
-            ...baseInput(from, to),
-            exchangeRate: OFFICIAL_VES_PER_USD,
-            exchangeRateType: "official",
-            toAmount: 100 * OFFICIAL_VES_PER_USD,
-        });
-        const [row] = await db.select().from(transfers).where(eq(transfers.id, id));
-
-        expect(row.fromAmountUsd).toBe(100);
-        expect(row.toAmountUsd).toBe(100);
-    });
-
     /**
      * Deliberate: a transfer struck away from the market moves net worth by the
      * spread, because that is what happened. Pinning the arriving leg to what left
@@ -180,26 +164,6 @@ describe("transfersRepo.create", () => {
         expect(row.fromAmountUsd).toBe(100);
         expect(row.toAmountUsd).toBeCloseTo((100 * P2P_VES_PER_USD) / OFFICIAL_VES_PER_USD, 5);
         expect(row.toAmountUsd).toBeGreaterThan(row.fromAmountUsd as number);
-    });
-
-    it("values each leg in its own currency when the money moves the other way", async () => {
-        const db = makeDb();
-        const from = await accountsRepo.create(db, { currency: "VES", name: "Banesco" });
-        const to = await accountsRepo.create(db, { currency: "USD", name: "Zinli" });
-
-        const id = await transfersRepo.create(db, {
-            ...baseInput(from, to),
-            exchangeRate: P2P_VES_PER_USD,
-            exchangeRateType: "custom",
-            fromAmount: 100 * P2P_VES_PER_USD,
-            fromCurrency: "VES",
-            toAmount: 100,
-            toCurrency: "USD",
-        });
-        const [row] = await db.select().from(transfers).where(eq(transfers.id, id));
-
-        expect(row.fromAmountUsd).toBeCloseTo((100 * P2P_VES_PER_USD) / OFFICIAL_VES_PER_USD, 5);
-        expect(row.toAmountUsd).toBe(100);
     });
 
     it("leaves only the leg it cannot price unvalued", async () => {

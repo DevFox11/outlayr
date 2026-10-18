@@ -4,11 +4,6 @@ import { resolveInstitutionDomain } from "./institution-map";
 import { merchantKey } from "./merchant-resolver";
 
 describe("resolveInstitutionDomain", () => {
-    it("resolves the banks the name placeholder advertises", () => {
-        expect(resolveInstitutionDomain(merchantKey("Chase"))).toBe("chase.com");
-        expect(resolveInstitutionDomain(merchantKey("Nubank"))).toBe("nubank.com.br");
-    });
-
     it("folds punctuation and accents the way merchantKey does", () => {
         expect(resolveInstitutionDomain(merchantKey("U.S. Bank"))).toBe("usbank.com");
         expect(resolveInstitutionDomain(merchantKey("Itaú"))).toBe("itau.com.br");

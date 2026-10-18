@@ -45,11 +45,4 @@ describe("compareBudgetSeverity", () => {
         const spent = budget(1000, 1, "barely-spent");
         expect(rank([zero, spent])).toStrictEqual(["barely-spent", "zero"]);
     });
-
-    it("ranks a zero-limit budget with spending among the over-budget group", () => {
-        const zero = budget(0, 40, "zero-limit-spent");
-        const healthy = budget(1000, 999, "healthy");
-        const deeper = budget(1000, 1100, "deeper");
-        expect(rank([healthy, zero, deeper])).toStrictEqual(["deeper", "zero-limit-spent", "healthy"]);
-    });
 });

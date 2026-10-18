@@ -35,10 +35,4 @@ describe(measureMicros, () => {
     it("undefined token counts contribute zero rather than throwing", () => {
         expect(measureMicros({ inputTokens: undefined, outputTokens: undefined }, 0)).toBe(0);
     });
-
-    it("a higher search-call count scales the total proportionally", () => {
-        const one = measureMicros({ inputTokens: 0, outputTokens: 0 }, 1);
-        const three = measureMicros({ inputTokens: 0, outputTokens: 0 }, 3);
-        expect(three).toBe(one * 3);
-    });
 });

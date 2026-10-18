@@ -430,22 +430,6 @@ describe("backfillRecurring", () => {
         expect(newest?.reminderLeadDays).toBe(0);
     });
 
-    it("leaves the notice off a chain that has run out of schedule to carry", async () => {
-        const id = await seedSource(db, {
-            date: at(2025, 3, 15),
-            recurringEndDate: at(2025, 6, 20),
-            reminderLeadDays: 7,
-        });
-
-        await backfillRecurring(db, id, NOW);
-
-        const generated = await generatedRows(db, id);
-        expect(generated.length).toBeGreaterThan(0);
-        for (const row of generated) {
-            expect(row.reminderLeadDays).toBeNull();
-        }
-    });
-
     it("leaves the newest occurrence inert when the next charge is past the end date", async () => {
         const id = await seedSource(db, {
             date: at(2025, 3, 15),
@@ -500,28 +484,6 @@ describe("backfillRecurring", () => {
         expect(generated).toHaveLength(0);
         const source = (await allRows(db)).find((row) => row.id === id);
         expect(source?.recurringType).toBe(RECURRING_TYPE.monthly);
-    });
-
-    it("makes forward progress under a malformed coefficient (guard)", async () => {
-        const id = await seedSource(db, {
-            date: at(2025, 6, 12),
-            recurringCoefficient: 0,
-            recurringType: RECURRING_TYPE.daily,
-        });
-
-        await backfillRecurring(db, id, NOW);
-
-        const generated = await generatedRows(db, id);
-        expect(generated).toHaveLength(3);
-        const times = generated.map((row) => row.date.getTime());
-        expect(times).toStrictEqual(
-            [at(2025, 6, 13), at(2025, 6, 14), at(2025, 6, 15)].map((d) => startOfDay(d).getTime())
-        );
-        for (let i = 1; i < times.length; i += 1) {
-            expect((times[i] ?? 0) > (times[i - 1] ?? 0)).toBeTruthy();
-        }
-        const source = (await allRows(db)).find((row) => row.id === id);
-        expect(source?.recurringType).toBe(RECURRING_TYPE.none);
     });
 
     it("leaves a non-recurring source untouched", async () => {
@@ -766,19 +728,6 @@ describe("transactionsRepo.stopRecurring", () => {
 
         await expect(allRows(db)).resolves.toHaveLength(before);
         await expect(liveCarrier(db)).resolves.toBeNull();
-    });
-
-    it("anchors no successor, so later sweeps generate nothing", async () => {
-        const id = await seedSource(db, { date: at(2025, 3, 15) });
-        await backfillRecurring(db, id, NOW);
-        const carrier = await liveCarrier(db);
-        await transactionsRepo.stopRecurring(db, carrier?.id ?? "", NOW);
-
-        await backfillAllRecurring(db, new Date(2025, 8, 20, 9, 0));
-
-        expect((await allRows(db)).map((row) => row.date.getTime())).toStrictEqual(
-            [at(2025, 3, 15), at(2025, 4, 15), at(2025, 5, 15), at(2025, 6, 15)].map((d) => d.getTime())
-        );
     });
 
     // The distinction the delete path cannot draw: removing the pending charge

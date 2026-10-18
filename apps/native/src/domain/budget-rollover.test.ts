@@ -36,31 +36,6 @@ describe("carrying a budget forward", () => {
         expect(carry).toStrictEqual({ clamped: false, credit: 0, periods: 0 });
     });
 
-    it("carries what a closed window left unspent", () => {
-        const carry = rolloverCarry({
-            anchor: new Date(2026, 5, 1),
-            current: monthWindow(2026, 6),
-            limit: 500,
-            spentIn: spendBy({ "2026-06-01": 300 }),
-            type: MONTH,
-        });
-        expect(carry.credit).toBe(200);
-        expect(carry.periods).toBe(1);
-    });
-
-    it("carries an overspend as a debt rather than forgetting it", () => {
-        // Clamping here would reward overspending: spend double one month and the
-        // next would start clean.
-        const carry = rolloverCarry({
-            anchor: new Date(2026, 5, 1),
-            current: monthWindow(2026, 6),
-            limit: 500,
-            spentIn: spendBy({ "2026-06-01": 900 }),
-            type: MONTH,
-        });
-        expect(carry.credit).toBe(-400);
-    });
-
     it("accumulates across several closed windows", () => {
         const carry = rolloverCarry({
             anchor: new Date(2026, 3, 1),

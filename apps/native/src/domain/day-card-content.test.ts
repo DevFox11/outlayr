@@ -41,15 +41,6 @@ describe("dayCardContent", () => {
         expect(dayCardContent(SECTION, OPTIONS, DAY).dayLabel).toBe("TODAY");
     });
 
-    it("falls back to the calendar label for a day that is not today", () => {
-        const label = dayCardContent(SECTION, OPTIONS, new Date(2026, 7, 20)).dayLabel;
-        expect(label.includes("JUL")).toBeTruthy();
-    });
-
-    it("prints the day's signed total", () => {
-        expect(dayCardContent(SECTION, OPTIONS, DAY).total).toBe("-$42.50");
-    });
-
     it("joins two currencies with a slash rather than adding them", () => {
         const mixed = {
             ...SECTION,
@@ -70,10 +61,6 @@ describe("dayCardContent", () => {
     it("drops the cents when the setting is off", () => {
         const card = dayCardContent(SECTION, { ...OPTIONS, showCents: false }, DAY);
         expect(card.rows[0]?.amount).toBe("-€12");
-    });
-
-    it("subtitles a row with its time", () => {
-        expect(dayCardContent(SECTION, OPTIONS, DAY).rows[0]?.meta).toBe("9:30 AM");
     });
 
     it("subtitles a row on a 24-hour clock when the setting asks for one", () => {

@@ -16,8 +16,6 @@ const TYPICAL_LOOKBACK = 6;
 export interface TypicalInput {
     /** The window a limit is being placed on. Everything before it is closed. */
     current: BudgetWindow;
-    /** How many closed windows to walk back over. Defaults to {@link TYPICAL_LOOKBACK}. */
-    lookback?: number;
     /** Where the ledger's own history starts; the walk stops once it passes this. */
     since?: Date | null;
     /** What was spent in `[start, end)` of a closed window. */
@@ -53,16 +51,8 @@ export interface TypicalSpend {
  * every non-deleted expense in memory, so `spentIn` is an array pass, not a
  * query.
  */
-export function typicalSpend({
-    current,
-    type,
-    spentIn,
-    lookback = TYPICAL_LOOKBACK,
-    since,
-}: TypicalInput): TypicalSpend {
-    const history = closedWindowsBefore({ count: lookback, current, since, type }).map((window) =>
-        spentIn(window.start, window.end)
-    );
+export function typicalSpend({ current, type, spentIn, since }: TypicalInput): TypicalSpend {
+    const history = closedWindowsBefore({ current, since, type }).map((window) => spentIn(window.start, window.end));
     return { history, typical: typicalOf(history) };
 }
 

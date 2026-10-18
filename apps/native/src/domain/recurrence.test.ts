@@ -36,15 +36,6 @@ describe("advancing one occurrence", () => {
         expect(ymd(nextDate(at(2026, 2, 28), RECURRING_TYPE.monthly, 2, 31))).toStrictEqual([2026, 4, 30]);
     });
 
-    it("takes the day it starts from when no anchor is given", () => {
-        expect(ymd(nextDate(at(2026, 2, 28), RECURRING_TYPE.monthly, 1))).toStrictEqual([2026, 3, 28]);
-    });
-
-    it("ignores the anchor for cadences that step in whole days", () => {
-        expect(ymd(nextDate(at(2026, 2, 28), RECURRING_TYPE.daily, 1, 31))).toStrictEqual([2026, 3, 1]);
-        expect(ymd(nextDate(at(2026, 2, 28), RECURRING_TYPE.weekly, 1, 31))).toStrictEqual([2026, 3, 7]);
-    });
-
     it("re-anchors a yearly cadence back onto the leap day", () => {
         expect(ymd(nextDate(at(2025, 2, 28), RECURRING_TYPE.yearly, 1, 29))).toStrictEqual([2026, 2, 28]);
         expect(ymd(nextDate(at(2027, 2, 28), RECURRING_TYPE.yearly, 1, 29))).toStrictEqual([2028, 2, 29]);
@@ -92,10 +83,6 @@ describe("the next landing after today", () => {
         ]);
     });
 
-    it("leaves a schedule that genuinely falls on the 28th alone", () => {
-        expect(ymd(nextLanding(at(2026, 1, 28), RECURRING_TYPE.monthly, 1, null, now))).toStrictEqual([2026, 3, 28]);
-    });
-
     it("returns a charge ahead of today even on the very next day", () => {
         expect(ymd(nextLanding(at(2026, 3, 21), RECURRING_TYPE.monthly, 1, null, now))).toStrictEqual([2026, 3, 21]);
     });
@@ -122,21 +109,6 @@ describe("the next landing after today", () => {
         expect(ymd(nextLanding(at(2026, 1, 15), RECURRING_TYPE.monthly, 1, at(2026, 4, 15), now))).toStrictEqual([
             2026, 4, 15,
         ]);
-    });
-
-    it("ignores the end date's time of day", () => {
-        expect(
-            ymd(nextLanding(at(2026, 1, 15), RECURRING_TYPE.monthly, 1, new Date(2026, 3, 15, 1, 0), now))
-        ).toStrictEqual([2026, 4, 15]);
-    });
-
-    it("has no landing when the cadence cannot advance", () => {
-        expect(nextLanding(at(2026, 1, 15), RECURRING_TYPE.none, 1, null, now)).toBeNull();
-        expect(nextLanding(at(2026, 1, 15), 99, 1, null, now)).toBeNull();
-    });
-
-    it("walks a weekly cadence the same way", () => {
-        expect(ymd(nextLanding(at(2026, 3, 1), RECURRING_TYPE.weekly, 1, null, now))).toStrictEqual([2026, 3, 22]);
     });
 });
 

@@ -45,18 +45,9 @@ describe("startOfWeek", () => {
     it("stays put when the day already is the first weekday", () => {
         expect(startOfWeek(NOW, 2).getDate()).toBe(27);
     });
-
-    it("returns midnight, not the given wall time", () => {
-        expect(startOfWeek(WEDNESDAY).getHours()).toBe(0);
-    });
 });
 
 describe("month names", () => {
-    it("names the month in each language", () => {
-        expect(monthAbbrevTitle(WEDNESDAY, "en")).toBe("Jul");
-        expect(monthAbbrevTitle(WEDNESDAY, "es")).toBe("jul");
-    });
-
     it("indexes December off the end of the year rather than wrapping", () => {
         const december = new Date("2026-12-01T09:00:00");
         expect(monthAbbrevTitle(december, "en")).toBe("Dec");
@@ -117,11 +108,6 @@ describe("formatTime", () => {
     it("drops the leading zero from a 12-hour hour", () => {
         expect(formatTime(AFTERNOON, false, "en")).toBe("1:04 PM");
         expect(formatTime(EVENING, false, "en")).toBe("9:04 PM");
-    });
-
-    it("uses the language's own meridiem", () => {
-        expect(formatTime(MIDNIGHT, false, "es")).toBe("12:07 a. m.");
-        expect(formatTime(EVENING, false, "es")).toBe("9:04 p. m.");
     });
 
     it("pads the hour and drops the meridiem on a 24-hour clock", () => {

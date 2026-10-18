@@ -2,6 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import { isTransactionRateNeeded } from "@outlayr/money/rates";
 
 import {
+    effectiveEntryRate,
     flipRateForQuote,
     formatQuotedRate,
     formatQuotedRateFigure,
@@ -15,6 +16,19 @@ import {
 } from "./transaction-entry-rate";
 
 describe("transaction entry rate policy", () => {
+    it.each([
+        ["an explicit rate over the suggestion", { exchangeRate: 40, exchangeRateType: "official" }, 40],
+        ["the official suggestion when no rate is set", { exchangeRate: null, exchangeRateType: "official" }, 36.5],
+        [
+            "the EUR reference suggestion when no rate is set",
+            { exchangeRate: null, exchangeRateType: "eur_reference" },
+            42,
+        ],
+        ["nothing for a custom selection with no rate", { exchangeRate: null, exchangeRateType: "custom" }, null],
+    ] as const)("records %s", (_, selection, rate) => {
+        expect(effectiveEntryRate(selection, { eurReference: 42, official: 36.5 })).toBe(rate);
+    });
+
     it("offers official and custom for every non-USD currency, adding EUR reference only for VES", () => {
         expect(transactionRateOptions("EUR")).toStrictEqual(["official", "custom"]);
         expect(transactionRateOptions("VES")).toStrictEqual(["official", "eur_reference", "custom"]);

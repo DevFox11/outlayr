@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 
-import { faviconUrl, fetchMerchantImage, logoDevUrl } from "./logo-fetch";
+import { fetchMerchantImage, logoDevUrl } from "./logo-fetch";
 
 const mockWriteCachedLogo = jest.fn();
 
@@ -41,10 +41,6 @@ describe("url builders", () => {
         expect(logoDevUrl("netflix.com", "pk_test")).toContain("fallback=404");
         expect(logoDevUrl("netflix.com", "pk_test")).toContain("size=512");
     });
-
-    it("escapes the domain", () => {
-        expect(faviconUrl("a b&c")).toContain("domain=a%20b%26c");
-    });
 });
 
 describe("fetchMerchantImage", () => {
@@ -76,15 +72,6 @@ describe("fetchMerchantImage", () => {
         expect(result).toStrictEqual({ bytes: favicon, kind: "logo" });
         expect(calls[0]).toContain("img.logo.dev");
         expect(calls[1]).toContain("s2/favicons");
-    });
-
-    it("returns none when every tier refuses", async () => {
-        const result = await fetchMerchantImage(
-            { domain: "zzqq-nothing.example", name: "zzqq nothing" },
-            (async () => notFound) as unknown as typeof fetch
-        );
-
-        expect(result).toStrictEqual({ kind: "none" });
     });
 
     it("skips straight to the favicon when no logo.dev token is configured", async () => {

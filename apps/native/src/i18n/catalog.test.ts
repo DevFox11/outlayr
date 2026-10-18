@@ -3,7 +3,6 @@ import { getIntlayer } from "intlayer";
 
 import { CATALOGS, DICTIONARY_KEYS, EN, ES } from "./catalog";
 import { SUPPORTED_LANGUAGES } from "./languages";
-import { interpolate } from "./translate";
 
 const PLACEHOLDER = /\{(\w+)\}/g;
 const PLURAL_SUFFIX = /_(one|other)$/;
@@ -101,13 +100,6 @@ describe("catalog parity", () => {
             for (const [, value] of Object.entries(CATALOGS[catalogName])) {
                 expect(value.trim().length > 0).toBeTruthy();
             }
-        }
-    });
-
-    it("renders every Spanish string without leaking a placeholder", () => {
-        for (const [, template] of Object.entries(ES)) {
-            const params = Object.fromEntries([...placeholders(template)].map((name) => [name, "x"]));
-            expect(!interpolate(template, params).includes("{")).toBeTruthy();
         }
     });
 });

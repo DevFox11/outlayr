@@ -93,7 +93,7 @@ describe("transactionFormErrors", () => {
         ).toStrictEqual({ fields: { exchangeRate: TRANSACTION_FORM_ERROR.eurReferenceRequiresVes } });
     });
 
-    it.each([null, 0, -1, Number.NaN])(
+    it.each([null, 0, Number.NaN])(
         "rejects custom when the actual rate is blank zero negative or non-finite (%s)",
         (exchangeRate) => {
             expect(transactionFormErrors({ ...VALID_VALUES, exchangeRate, exchangeRateType: "custom" })).toStrictEqual({

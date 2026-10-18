@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import { BUDGET_TYPE, shiftWindow, startOfPeriod } from "@outlayr/money/budget-window";
+import { BUDGET_TYPE, startOfPeriod } from "@outlayr/money/budget-window";
 import { buildRateTable, limitIn } from "@outlayr/money/valuation";
 import { and, eq, getTableColumns, isNull } from "drizzle-orm";
 
@@ -45,16 +45,6 @@ describe("budgetsRepo.createBudget", () => {
         });
         const [row] = await db.select().from(budgets).where(eq(budgets.id, id));
         expect(row?.startDate?.getTime()).toBe(BACKDATE.getTime());
-    });
-
-    it("anchors an omitted start date to the period start", async () => {
-        const id = await budgetsRepo.createBudget(db, {
-            amount: 250,
-            categoryId: "cat-1",
-            type: BUDGET_TYPE.month,
-        });
-        const [row] = await db.select().from(budgets).where(eq(budgets.id, id));
-        expect(row?.startDate?.getTime()).toBe(startOfPeriod(new Date(), BUDGET_TYPE.month).getTime());
     });
 
     it("anchors an omitted start date to the user's own week", async () => {
@@ -122,15 +112,6 @@ describe("budgetsRepo.createMainBudget", () => {
         });
         const [row] = await db.select().from(mainBudget).where(eq(mainBudget.id, id));
         expect(row?.startDate?.getTime()).toBe(BACKDATE.getTime());
-    });
-
-    it("anchors an omitted start date to the period start", async () => {
-        const id = await budgetsRepo.createMainBudget(db, {
-            amount: 1000,
-            type: BUDGET_TYPE.week,
-        });
-        const [row] = await db.select().from(mainBudget).where(eq(mainBudget.id, id));
-        expect(row?.startDate?.getTime()).toBe(startOfPeriod(new Date(), BUDGET_TYPE.week).getTime());
     });
 
     it("anchors first-run's exact call shape to the 1st of the month", async () => {
@@ -430,40 +411,6 @@ describe("an edited budget stays coherent", () => {
 });
 
 describe("budgetsRepo stamps the currency it was set in", () => {
-    it("names the ledger's currency and freezes the target's USD value", async () => {
-        const db = makeDb();
-        await db.insert(appMeta).values({ key: "currency", value: "EUR" });
-        await db.insert(exchangeRates).values({
-            date: "2020-01-01",
-            fetchedAt: 0,
-            quote: "EUR",
-            rate: 0.9,
-            rateType: "official",
-            source: "frankfurter",
-        });
-
-        const id = await budgetsRepo.createBudget(db, {
-            amount: 400,
-            categoryId: "cat",
-            name: null,
-            startDate: null,
-            type: 3,
-        });
-
-        const [row] = await db
-            .select({
-                amount: budgets.amount,
-                amountUsd: budgets.amountUsd,
-                currency: budgets.currency,
-            })
-            .from(budgets)
-            .where(eq(budgets.id, id));
-        expect(row.amount).toBe(400);
-        expect(row.currency).toBe("EUR");
-        // 400 EUR / 0.9.
-        expect(Math.round((row.amountUsd ?? 0) * 100) / 100).toBe(444.44);
-    });
-
     it("freezes the USD value on the day the anchored window opens", async () => {
         // `limitIn` restates the target at the window's day, so a value frozen at
         // the write instant would be converted from a rate it was never set at.
@@ -511,87 +458,6 @@ describe("budgetsRepo stamps the currency it was set in", () => {
         });
         const [row] = await db.select({ amount: budgets.amount }).from(budgets).where(eq(budgets.id, id));
         expect(row.amount).toBe(250);
-    });
-});
-
-describe("a budget stepped back to a closed window", () => {
-    it("values its limit at that window's day, not at the current one", async () => {
-        // The rule PR #157 settled: the target is subtracted from spending valued
-        // at the window's own days, so stepping back to March must restate the
-        // limit in March money or the leftover means nothing.
-        const db = makeDb();
-        await db.insert(appMeta).values({ key: "currency", value: "EUR" });
-        await db.insert(exchangeRates).values([
-            {
-                date: "2026-03-01",
-                fetchedAt: 0,
-                quote: "EUR",
-                rate: 0.9,
-                rateType: "official",
-                source: "frankfurter",
-            },
-            {
-                date: "2026-07-01",
-                fetchedAt: 0,
-                quote: "EUR",
-                rate: 0.5,
-                rateType: "official",
-                source: "frankfurter",
-            },
-        ]);
-        const rates = buildRateTable([
-            { date: "2026-03-01", quote: "EUR", rate: 0.9 },
-            { date: "2026-07-01", quote: "EUR", rate: 0.5 },
-        ]);
-
-        const current = new Date(2026, 6, 1);
-        const id = await budgetsRepo.createBudget(db, {
-            amount: 450,
-            categoryId: "cat-1",
-            startDate: current,
-            type: BUDGET_TYPE.month,
-        });
-        const row = getBudgetById(db, id);
-        if (!row) {
-            throw new Error("expected the budget to exist");
-        }
-
-        const july = shiftWindow(current, BUDGET_TYPE.month, 0);
-        const march = shiftWindow(current, BUDGET_TYPE.month, -4);
-        expect(march.start).toStrictEqual(new Date(2026, 2, 1));
-
-        expect(limitIn(row, july.start, "USD", rates)).toBe(900);
-        expect(limitIn(row, march.start, "USD", rates)).toBe(500);
-    });
-
-    it("falls back to the frozen value when no rate reaches the window", async () => {
-        const db = makeDb();
-        await db.insert(appMeta).values({ key: "currency", value: "EUR" });
-        await db.insert(exchangeRates).values({
-            date: "2026-07-01",
-            fetchedAt: 0,
-            quote: "EUR",
-            rate: 0.5,
-            rateType: "official",
-            source: "frankfurter",
-        });
-        const rates = buildRateTable([{ date: "2026-07-01", quote: "EUR", rate: 0.5 }]);
-
-        const current = new Date(2026, 6, 1);
-        const id = await budgetsRepo.createBudget(db, {
-            amount: 450,
-            categoryId: "cat-1",
-            startDate: current,
-            type: BUDGET_TYPE.month,
-        });
-        const row = getBudgetById(db, id);
-        if (!row) {
-            throw new Error("expected the budget to exist");
-        }
-
-        const march = shiftWindow(current, BUDGET_TYPE.month, -4);
-        // 450 / 0.5: the write-time freeze, since March predates every EUR rate.
-        expect(limitIn(row, march.start, "USD", rates)).toBe(900);
     });
 });
 

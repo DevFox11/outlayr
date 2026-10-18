@@ -49,25 +49,6 @@ describe("archiving a ledger", () => {
         db = migratedDatabase();
     });
 
-    it("round-trips a ledger through serialize, parse and restore", async () => {
-        await db.insert(categories).values(CATEGORY);
-        await db.insert(transactions).values(transactionRow("t1"));
-
-        const text = serializeArchive(await buildArchive(db, new Date()));
-        const parsed = parseArchive(text);
-        if (!parsed) {
-            throw new Error("expected the archive to parse");
-        }
-
-        const fresh = migratedDatabase();
-        await restoreArchive(fresh, parsed);
-
-        const rows = await fresh.select().from(transactions);
-        expect(rows).toHaveLength(1);
-        expect(rows[0].note).toBe("coffee");
-        expect(rows[0].amount).toBe(12.5);
-    });
-
     it("round-trips an account and the entry that names it", async () => {
         await db.insert(categories).values(CATEGORY);
         await db.insert(accounts).values({

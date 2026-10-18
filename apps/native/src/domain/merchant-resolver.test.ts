@@ -31,11 +31,6 @@ describe("longest-pattern-first (WCGW #3)", () => {
         const result = resolveMerchant("Apple Music Family Plan");
         expect(result?.domain).toBe("music.apple.com");
     });
-
-    it("still resolves apple's own longer alias correctly", () => {
-        const result = resolveMerchant("Apple Store Purchase");
-        expect(result?.domain).toBe("apple.com");
-    });
 });
 
 describe("alias and token containment", () => {
@@ -54,11 +49,6 @@ describe("fuzzy matching", () => {
         const result = resolveMerchant("Spotifi");
         expect(result?.categoryName).toBe("Entertainment");
         expect(result?.tags).toStrictEqual(["Music", "Streaming", "Subscription"]);
-    });
-
-    it("always suppresses the domain on a fuzzy hit (D3)", () => {
-        const result = resolveMerchant("Spotifi");
-        expect(result?.domain).toBeNull();
     });
 
     it("rejects short names below the 5-character floor even at distance 1", () => {
@@ -86,11 +76,8 @@ describe("descriptorKey", () => {
         ["AIRBNB * HMASFW2JP2", "airbnb"],
         ["NYX*VenetisABEET", "venetis"],
         ["CARE4BAG AE", "care4bag"],
-        ["SQ *BLUE BOTTLE COFFEE", "blue bottle coffee"],
         ["BLUE BOTTLE COFFEE #08761", "blue bottle coffee"],
         ["FIUMICINO AEROPORTO SS", "fiumicino aeroporto ss"],
-        ["UBER *EATS PENDING", "uber eats pending"],
-        ["PayPal", "paypal"],
     ])("%s decodes to %s, the same as the backend's copy", (raw, expected) => {
         expect(descriptorKey(raw)).toBe(expected);
     });

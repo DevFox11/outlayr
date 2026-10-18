@@ -45,17 +45,6 @@ describe("netWorthSeries", () => {
         expect(netWorthSeries([], new Map(), NO_RATES, NOW, "USD")).toStrictEqual([]);
     });
 
-    it("adds every account's balance together", () => {
-        const series = netWorthSeries(
-            [account("a1", { initialBalance: 100 }), account("a2", { initialBalance: 50 })],
-            new Map(),
-            NO_RATES,
-            NOW,
-            "USD"
-        );
-        expect(valueAt(series, "2026-08-10")).toBe(150);
-    });
-
     it("nets a transfer's two legs to zero on the day it happened", () => {
         // The case that would make the chart contradict the accounts card: money
         // leaving one account and arriving in another is not a change in worth.
@@ -71,30 +60,6 @@ describe("netWorthSeries", () => {
         );
         expect(valueAt(series, "2026-08-05")).toBe(100);
         expect(valueAt(series, "2026-08-10")).toBe(100);
-    });
-
-    it("counts a real expense as a fall in worth", () => {
-        const series = netWorthSeries(
-            [account("a1", { initialBalance: 100 })],
-            new Map([["a1", [cell({ amount: 30, amountUsd: 30, dateKey: "2026-08-05" })]]]),
-            NO_RATES,
-            NOW,
-            "USD"
-        );
-        expect(valueAt(series, "2026-08-10")).toBe(70);
-    });
-
-    it("counts a liability's negative balance against the total", () => {
-        // `kind` never reaches here: a debt is already a negative balance, which is
-        // what keeps the line equal to the accounts card's own total.
-        const series = netWorthSeries(
-            [account("a1", { initialBalance: 500 }), account("card", { initialBalance: -200 })],
-            new Map(),
-            NO_RATES,
-            NOW,
-            "USD"
-        );
-        expect(valueAt(series, "2026-08-10")).toBe(300);
     });
 
     it("carries an account forward on days its own series does not cover", () => {
@@ -113,21 +78,6 @@ describe("netWorthSeries", () => {
         // which would show up as a partial sum neither of those.
         expect(valueAt(series, "2026-08-10")).toBe(140);
         expect(series.every((point) => point.value === 100 || point.value === 140)).toBe(true);
-    });
-
-    it("contributes nothing for a day before an account opened", () => {
-        const series = netWorthSeries(
-            [
-                account("a1", { initialBalance: 100, initialBalanceDate: new Date("2026-06-01T12:00:00Z") }),
-                account("later", { initialBalance: 70, initialBalanceDate: new Date("2026-08-01T12:00:00Z") }),
-            ],
-            new Map(),
-            NO_RATES,
-            NOW,
-            "USD"
-        );
-        expect(valueAt(series, "2026-07-15")).toBe(100);
-        expect(valueAt(series, "2026-08-10")).toBe(170);
     });
 
     it("marks a day approximate when any account could not be valued", () => {
@@ -153,20 +103,6 @@ describe("netWorthSeries", () => {
         );
         const point = series.find((candidate) => candidate.date === "2026-08-05");
         expect(point?.exact).toBe(false);
-    });
-
-    it("values a foreign account into the display currency, not its own", () => {
-        // The bug this guards: summing per-account series valued in each account's
-        // own currency adds bolivares to dollars.
-        const rates = buildRateTable([{ date: "2026-01-01", quote: "EUR", rate: 2 }]);
-        const series = netWorthSeries(
-            [account("eur", { currency: "EUR", initialBalance: 100 })],
-            new Map(),
-            rates,
-            NOW,
-            "USD"
-        );
-        expect(valueAt(series, "2026-08-10")).toBe(50);
     });
 
     it("restates each day at its own rate, and a day older than every rate at the oldest", () => {

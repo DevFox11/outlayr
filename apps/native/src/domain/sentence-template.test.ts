@@ -24,10 +24,6 @@ describe("parseSentence", () => {
         expect(words("¿{amount}?")).toStrictEqual([["¿", "amount", "?"]]);
     });
 
-    it("collapses runs of whitespace into a single cluster break", () => {
-        expect(words("a   {b}")).toStrictEqual([["a"], ["b"]]);
-    });
-
     it("ignores leading and trailing whitespace", () => {
         expect(words("  {a}  ")).toStrictEqual([["a"]]);
     });

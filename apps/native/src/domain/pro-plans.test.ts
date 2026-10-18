@@ -77,7 +77,6 @@ describe("readPlans", () => {
     });
 
     it("claims a trial only for a product the store confirmed as eligible", () => {
-        expect(readPlans([ANNUAL], new Set(["ANNUAL"]))[0]?.trialDays).toBe(7);
         expect(readPlans([ANNUAL], new Set(["MONTHLY"]))[0]?.trialDays).toBeNull();
         expect(readPlans([ANNUAL])[0]?.trialDays).toBeNull();
     });

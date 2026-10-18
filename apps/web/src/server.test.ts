@@ -39,7 +39,7 @@ it("serves the main content as markdown to a client that prefers it, even on a n
     }
 });
 
-it.each(["text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "*/*", "application/json"])(
+it.each(["text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "*/*"])(
     "hands %s to the app untouched",
     async (accept) => {
         const request = new Request("https://tryoutlayr.com/", { headers: { accept } });

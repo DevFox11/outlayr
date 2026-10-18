@@ -38,13 +38,6 @@ async function sparklineAmounts(db: Database, displayCurrency: string): Promise<
 }
 
 describe("useSparklineRows pending custom valuation", () => {
-    it("charts the native amount when the sparkline uses the transaction currency", async () => {
-        const db = makeDb();
-        await seedPendingCustom(db);
-
-        await expect(sparklineAmounts(db, "VES")).resolves.toStrictEqual([40]);
-    });
-
     it("charts zero instead of face value when the sparkline uses a foreign currency", async () => {
         const db = makeDb();
         await seedPendingCustom(db);

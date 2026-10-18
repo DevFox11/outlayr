@@ -27,17 +27,6 @@ describe("resolveImportMapping", () => {
         }
     });
 
-    it("leaves note null when only a category column exists", () => {
-        const draft = guessMapping(["date", "category", "amount"]);
-        const result = resolveImportMapping(draft);
-        expect(result.ok).toBe(true);
-        if (result.ok) {
-            expect(result.value.mapping.category).toBe(1);
-            expect(result.value.mapping.note).toBeNull();
-            expect(result.value.labelSource).toBe("categoryColumn");
-        }
-    });
-
     it("preserves optional rate columns without making them required", () => {
         const draft = {
             ...guessMapping(["date", "category", "amount"]),

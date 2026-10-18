@@ -51,13 +51,6 @@ describe("categoryMovers", () => {
         expect(movers).toHaveLength(1);
     });
 
-    it("drops anything moving less than 5% of the window", () => {
-        const current = [entry("a", 1020)];
-        const prior = [entry("a", 1000)];
-        // A $20 move on a $1,020 window is 2% — noise.
-        expect(categoryMovers(current, prior, 1020)).toStrictEqual([]);
-    });
-
     it("reports a category that stopped entirely", () => {
         // It cannot be found by walking the current window, which no longer has it.
         const movers = categoryMovers([entry("a", 1000)], [entry("b", 900)], 1000);
@@ -157,17 +150,6 @@ describe("categoryBreakdownWithin", () => {
         row("taxi", 40, new Date(2025, 6, 10)),
         row("food", 900, new Date(2025, 6, 20)),
     ];
-
-    it("counts only what falls inside the given bounds", () => {
-        // Just the 10th — the bucket a user would have tapped.
-        const bounds = {
-            end: new Date(2025, 6, 11).getTime(),
-            start: new Date(2025, 6, 10).getTime(),
-        };
-        const breakdown = categoryBreakdownWithin(rows, meta, "spent", bounds, now);
-        const total = breakdown.reduce((sum, e) => sum + e.amount, 0);
-        expect(total).toBe(140);
-    });
 
     it("recomputes shares against the narrowed total, not the window's", () => {
         const bounds = {

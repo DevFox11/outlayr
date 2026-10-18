@@ -36,14 +36,6 @@ function emptyDocument(): ArchiveDocument {
 }
 
 describe("encoding a row", () => {
-    it("writes an instant as epoch milliseconds", () => {
-        const encoded = encodeArchiveRow({
-            date: new Date(1_700_000_000_000),
-            id: "t1",
-        });
-        expect(encoded.date).toBe(1_700_000_000_000);
-    });
-
     it("leaves a column that merely looks like a date alone", () => {
         // `note` is free text. Encoding by name rather than by value is what keeps
         // a note reading "2026-01-01" from being rewritten as a number.

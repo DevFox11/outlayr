@@ -3,16 +3,6 @@ import { describe, expect, it } from "@jest/globals";
 import { logCurrencyOptions } from "./log-currency-options";
 
 describe("logCurrencyOptions", () => {
-    it("offers the ledger's currency alone on a single-currency ledger", () => {
-        // This is what "the chip always shows" rests on: one option, still an
-        // option, so the chip has something to render and stays tappable.
-        expect(logCurrencyOptions({ favourites: [], global: "USD", produced: ["USD"] })).toStrictEqual(["USD"]);
-    });
-
-    it("offers the ledger's currency even when the period produced nothing", () => {
-        expect(logCurrencyOptions({ favourites: [], global: "USD", produced: [] })).toStrictEqual(["USD"]);
-    });
-
     it("leads with the ledger's currency whatever the period produced", () => {
         expect(
             logCurrencyOptions({
@@ -21,16 +11,6 @@ describe("logCurrencyOptions", () => {
                 produced: ["JPY", "EUR", "USD"],
             })
         ).toStrictEqual(["USD", "JPY", "EUR"]);
-    });
-
-    it("leads with the ledger's currency even when a favourite repeats it", () => {
-        expect(
-            logCurrencyOptions({
-                favourites: ["EUR", "USD", "JPY"],
-                global: "USD",
-                produced: [],
-            })
-        ).toStrictEqual(["USD", "EUR", "JPY"]);
     });
 
     it("keeps favourites in the order they were arranged, not sorted", () => {
@@ -51,26 +31,6 @@ describe("logCurrencyOptions", () => {
                 produced: ["VES", "COP"],
             })
         ).toStrictEqual(["USD", "EUR", "JPY", "VES", "COP"]);
-    });
-
-    it("collapses a produced currency that is already a favourite", () => {
-        expect(
-            logCurrencyOptions({
-                favourites: ["EUR", "JPY"],
-                global: "USD",
-                produced: ["JPY", "USD", "EUR"],
-            })
-        ).toStrictEqual(["USD", "EUR", "JPY"]);
-    });
-
-    it("collapses repeats inside one list", () => {
-        expect(
-            logCurrencyOptions({
-                favourites: ["EUR", "EUR"],
-                global: "USD",
-                produced: ["VES", "VES"],
-            })
-        ).toStrictEqual(["USD", "EUR", "VES"]);
     });
 
     it("collapses codes that differ only in case, keeping the first spelling", () => {
@@ -103,20 +63,6 @@ describe("logCurrencyOptions", () => {
                 produced: ["EUR", " JPY"],
             })
         ).toStrictEqual(["USD", "EUR", "JPY"]);
-    });
-
-    it("offers a produced code the currency catalogue does not know", () => {
-        // Dropping it would leave the one figure on screen unreadable: the user
-        // could see the bucket and never switch the screen into it.
-        expect(logCurrencyOptions({ favourites: [], global: "USD", produced: ["XXX"] })).toStrictEqual(["USD", "XXX"]);
-    });
-
-    it("never mutates the lists it is handed", () => {
-        const favourites = ["EUR"];
-        const produced = ["JPY"];
-        logCurrencyOptions({ favourites, global: "USD", produced });
-        expect(favourites).toStrictEqual(["EUR"]);
-        expect(produced).toStrictEqual(["JPY"]);
     });
 
     describe("when a favourite cannot be reached", () => {

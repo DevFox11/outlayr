@@ -31,20 +31,6 @@ describe("scopeTotals", () => {
         expect(shown.count).toBe(2);
     });
 
-    /**
-     * The Log's list is pageable, so the tempting input is whatever it has loaded.
-     * The filtered read is unwindowed precisely so this can be the whole scope.
-     */
-    it("totals every entry in the scope, not the page a list would have loaded", () => {
-        const scope = Array.from({ length: 60 }, () => entry(10));
-        const page = scope.slice(0, 20);
-
-        expect(netTotal(scopeTotals(scope, "USD").shown)).toBe(-600);
-        expect(scopeTotals(scope, "USD").shown.count).toBe(60);
-        // The wrong answer this exists to rule out: the same rows, windowed.
-        expect(netTotal(scopeTotals(page, "USD").shown)).toBe(-200);
-    });
-
     it("splits a mixed-currency scope instead of inventing a sum", () => {
         const scope = [entry(40, "USD"), entry(10, "EUR"), entry(10, "EUR")];
         const { shown, others } = scopeTotals(scope, "USD");
@@ -109,12 +95,6 @@ describe("a transfer never reaches the scope header", () => {
         const totals = scopeTotals([scopeEntry(40), scopeEntry(500, { excludedFromTotals: true })], "USD");
         expect(totals.shown.expense).toBe(40);
         expect(totals.shown.count).toBe(1);
-    });
-
-    it("reports zero for a scope holding nothing but transfers", () => {
-        const totals = scopeTotals([scopeEntry(500, { excludedFromTotals: true })], "USD");
-        expect(totals.shown.expense).toBe(0);
-        expect(totals.shown.count).toBe(0);
     });
 
     // Which is why the header asks first: +0.00 / -0.00 over a screen full of

@@ -36,10 +36,6 @@ describe("insights hero", () => {
         expect(positive(GROCERIES, "income")).toBe(true);
     });
 
-    it("keeps a filtered spend category negative under the spend measure too", () => {
-        expect(positive(GROCERIES, "spent")).toBe(false);
-    });
-
     it("falls through to the window when nothing is filtered", () => {
         expect(magnitude(null, "net")).toBe(1100);
         expect(positive(null, "net")).toBe(true);

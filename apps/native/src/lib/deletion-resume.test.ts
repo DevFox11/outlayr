@@ -94,3 +94,21 @@ describe("resumePersistedCloudDeletion", () => {
         expect(cloudMutation).not.toHaveBeenCalled();
     });
 });
+
+describe("resumePersistedCloudDeletion with no cloud configured", () => {
+    function withoutCloud() {
+        jest.resetModules();
+        jest.doMock<Partial<typeof import("@/lib/convex")>>("@/lib/convex", () => ({ convex: null }));
+        return require("./deletion-resume") as typeof import("./deletion-resume");
+    }
+
+    it("fails closed when the resume is required", async () => {
+        await expect(withoutCloud().resumePersistedCloudDeletion({ required: true })).rejects.toThrow(
+            "requires reauthentication"
+        );
+    });
+
+    it("reports nothing resumed otherwise", async () => {
+        await expect(withoutCloud().resumePersistedCloudDeletion()).resolves.toBe(false);
+    });
+});

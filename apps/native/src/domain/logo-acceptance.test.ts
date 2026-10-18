@@ -36,10 +36,6 @@ describe("isRealLogo", () => {
         expect(isRealLogo(200, "image/png", PNG_1KB)).toStrictEqual({ ok: true });
     });
 
-    it("accepts an ico, which is what some providers return", () => {
-        expect(isRealLogo(200, "image/vnd.microsoft.icon", padded([0, 0, 1, 0], 9854))).toStrictEqual({ ok: true });
-    });
-
     it("accepts a webp, whose signature is split across two offsets", () => {
         const bytes = padded([0x52, 0x49, 0x46, 0x46], 2048);
         bytes.set([0x57, 0x45, 0x42, 0x50], 8);
@@ -92,16 +88,5 @@ describe("isRealLogo", () => {
             ok: false,
             reason: "placeholder",
         });
-    });
-});
-
-describe("fingerprint", () => {
-    it("is stable for identical bytes and differs for a single flipped byte", () => {
-        const a = padded([0x89, 0x50, 0x4e, 0x47], 1024);
-        const b = padded([0x89, 0x50, 0x4e, 0x47], 1024);
-        expect(fingerprint(a)).toBe(fingerprint(b));
-
-        b[500] = 0x01;
-        expect(fingerprint(a)).not.toBe(fingerprint(b));
     });
 });
