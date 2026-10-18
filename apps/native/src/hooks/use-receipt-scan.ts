@@ -163,9 +163,12 @@ export function useReceiptScan<Context>({
                     setPhase({ kind: "failed", photo, reason: "timeout" });
                     return;
                 }
-                if (settled.status === "ok" && settled.receipt !== null) {
-                    setPhase({ context: sentContext, draft: settled.receipt, kind: "review", photo });
-                    return;
+                if (settled.status === "ok") {
+                    const { receipt } = settled;
+                    if (receipt !== null) {
+                        setPhase({ context: sentContext, draft: receipt, kind: "review", photo });
+                        return;
+                    }
                 }
                 setPhase({ kind: "failed", photo, reason: failureFor(settled.status) });
             } catch {
