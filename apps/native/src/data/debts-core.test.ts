@@ -8,6 +8,7 @@ import { accountsRepo, getAccountById } from "./accounts-core";
 import { categoriesRepo } from "./categories-core";
 import { createPerson, recordDebtMovement, recordSoldOnCredit } from "./debts-core";
 import { loadContributions } from "./insights";
+import { getTransactionById } from "./transactions-core";
 import { transfersRepo } from "./transfers-core";
 
 const OCT_2 = new Date("2026-10-02T12:00:00.000Z");
@@ -61,7 +62,7 @@ describe("recording a debt with a person", () => {
         expect(stored?.exchangeRate).toBeCloseTo(100 / 3650, 10);
     });
 
-    it("counts a sale on credit as income once, and being paid back only settles it", async () => {
+    it("counts a sale on credit as income once, titled as a sale, and being paid back only settles it", async () => {
         const db = migratedDatabase({ foreignKeys: false });
         const zinli = await accountsRepo.create(db, { currency: "USD", initialBalance: 0, name: "Zinli" });
         const ana = await createPerson(db, { currency: "USD", name: "Ana" });
@@ -72,13 +73,14 @@ describe("recording a debt with a person", () => {
             name: "Sales",
         });
 
-        await recordSoldOnCredit(db, {
+        const sale = await recordSoldOnCredit(db, {
             amount: 35,
             categoryId: sales,
             date: OCT_2,
             person: { currency: "USD", id: ana },
         });
         await expect(balanceOf(db, ana)).resolves.toBe(35);
+        expect(getTransactionById(db, sale)?.note).toBe("Sold on credit");
 
         await recordDebtMovement(db, {
             account: { accountId: zinli, amount: 35, currency: "USD" },

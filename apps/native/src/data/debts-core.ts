@@ -4,6 +4,7 @@ import type { Database } from "@/db/client";
 import { debtLegs } from "@/domain/debts";
 import type { DebtVerb } from "@/domain/debts";
 import { roundToMinorUnits } from "@/domain/money";
+import { translateNow } from "@/i18n/runtime";
 
 import { accountsRepo } from "./accounts-core";
 import { transactionsRepo } from "./transactions-core";
@@ -85,18 +86,23 @@ export interface SoldOnCreditInput {
 }
 
 /**
- * Fiado: an income entry on the person's account, so it counts as income once
- * and leaves them owing you. Being paid back later is a transfer, not income.
+ * A sale on credit: an income entry on the person's account, so it counts as
+ * income once and leaves them owing you. Being paid back later is a transfer,
+ * not income. Titled with the note, or "Sold on credit" in the app's language.
  */
 export async function recordSoldOnCredit(db: Database, input: SoldOnCreditInput): Promise<string> {
-    return await transactionsRepo.create(db, {
-        accountId: input.person.id,
-        amount: input.amount,
-        categoryId: input.categoryId,
-        currency: input.person.currency,
-        date: input.date,
-        details: input.note ?? null,
-        income: true,
-        note: "",
-    });
+    return await transactionsRepo.create(
+        db,
+        {
+            accountId: input.person.id,
+            amount: input.amount,
+            categoryId: input.categoryId,
+            currency: input.person.currency,
+            date: input.date,
+            details: null,
+            income: true,
+            note: input.note ?? translateNow("debts.sale.title"),
+        },
+        { logoCandidate: false }
+    );
 }

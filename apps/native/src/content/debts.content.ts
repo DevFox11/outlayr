@@ -179,6 +179,10 @@ const debts = {
             en: "You owe",
             es: "Le debes",
         }),
+        "debts.sale.title": t({
+            en: "Sold on credit",
+            es: "Venta a crédito",
+        }),
         "debts.settled": t({
             en: "Settled · {count}",
             es: "Saldados · {count}",
@@ -197,7 +201,7 @@ const debts = {
         }),
         "debts.verb.soldOnCredit": t({
             en: "Sold on credit",
-            es: "Fiado",
+            es: "Vendí a crédito",
         }),
         "debts.youOwe": t({
             en: "You owe",
