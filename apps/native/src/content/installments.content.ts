@@ -323,6 +323,10 @@ const installments = {
             en: "Pay all {amount}",
             es: "Pagar todo {amount}",
         }),
+        "installments.reminder.ask": t({
+            en: "Remind you the day before each installment?",
+            es: "¿Te aviso el día antes de cada cuota?",
+        }),
         "installments.reminder.body": t({
             en: "{amount} to {account}. Tap when it's paid.",
             es: "{amount} a {account}. Toca cuando la pagues.",
@@ -334,6 +338,10 @@ const installments = {
         "installments.reminder.title": t({
             en: "{order} is due tomorrow",
             es: "{order} vence mañana",
+        }),
+        "installments.reminder.turnOn": t({
+            en: "Turn on",
+            es: "Activar",
         }),
         "installments.schedule": t({
             en: "Schedule",

@@ -824,7 +824,7 @@ export function TransactionForm({
                 announceSaved(value, amount);
             }
             onDone();
-            if (mode === "create") {
+            if (mode === "create" && !installmentOrder.afterDone()) {
                 askForReview(db).catch((error) => {
                     console.error("Failed to ask for a review", error);
                 });

@@ -20,6 +20,7 @@ import type { TimeOfDay } from "@/domain/reminder";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { translateNow } from "@/i18n/runtime";
+import { setDueReminders } from "@/lib/due-reminders";
 import { openNotificationSettings, reminderPermission, requestReminderPermission } from "@/lib/reminders";
 
 const OPTIONS = [
@@ -74,44 +75,6 @@ async function enableReminders(db: Database): Promise<void> {
 
 async function disableReminders(db: Database): Promise<void> {
     await setBoolSetting(db, "showNotifications", false);
-}
-
-/**
- * The same permission ladder, its own key: the daily reminder and each kind of
- * due-date notice are separate promises, and the revoke reconcile writes each
- * back off on its own. The write re-arms both kinds through `BackgroundWork`'s
- * settings listener, so turning one on arms it within a beat.
- */
-async function setDueReminders(
-    db: Database,
-    key: "installmentReminders" | "subscriptionReminders",
-    next: boolean
-): Promise<void> {
-    if (next) {
-        const existing = await reminderPermission();
-        if (enableReminderStep(existing) === "open-settings") {
-            Alert.alert(
-                translateNow("settings.notifications.deniedTitle"),
-                translateNow("settings.notifications.deniedBody"),
-                [
-                    {
-                        style: "cancel",
-                        text: translateNow("settings.notifications.notNow"),
-                    },
-                    {
-                        onPress: openNotificationSettings,
-                        text: translateNow("settings.notifications.openSettings"),
-                    },
-                ]
-            );
-            return;
-        }
-        const granted = existing === "granted" ? existing : await requestReminderPermission();
-        if (granted !== "granted") {
-            return;
-        }
-    }
-    await setBoolSetting(db, key, next);
 }
 
 export function Notifications() {

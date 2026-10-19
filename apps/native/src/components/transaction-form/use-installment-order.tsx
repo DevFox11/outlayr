@@ -16,6 +16,7 @@ import { paymentSource, paymentSources } from "@/domain/installment-payment";
 import { formatAmount } from "@/domain/money";
 import { transactionRateError } from "@/domain/transaction-entry-rate";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { askForInstallmentReminders } from "@/lib/due-reminders";
 import { rearmInstallmentReminders } from "@/lib/installment-reminder-sync";
 
 import { InstallmentsSheet } from "./installments-sheet";
@@ -59,6 +60,7 @@ export function useInstallmentOrder({
     const t = useTranslation();
     const { language } = useLanguage();
     const sheetRef = useRef<BottomSheetModal>(null);
+    const ordered = useRef(false);
     const [draft, setDraft] = useState<InstallmentDraft | null>(null);
     // Presented from an effect: the sheet mounts with the draft, a render after the tap that makes it.
     const [presented, setPresented] = useState(0);
@@ -185,10 +187,14 @@ export function useInstallmentOrder({
                 upfront: hasUpfront ? upfrontSource(plan) : undefined,
             })
             .then(({ transactionId }) => {
+                ordered.current = true;
                 rearmInstallmentReminders(db);
                 return transactionId;
             });
     };
+
+    /** For the form to fire after its `onDone`: an order it just saved may ask about cuota notices. True when it asks. */
+    const afterDone = () => ordered.current && askForInstallmentReminders(db);
 
     const sheet = (price: number) => {
         if (!offered || draft === null) {
@@ -215,5 +221,5 @@ export function useInstallmentOrder({
         );
     };
 
-    return { drafting: draft !== null, problem, save, sheet, verbs };
+    return { afterDone, drafting: draft !== null, problem, save, sheet, verbs };
 }

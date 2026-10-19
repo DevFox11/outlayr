@@ -11,7 +11,7 @@ import type { TimeOfDay } from "./reminder";
 import { reminderFireAt } from "./subscription-reminder";
 
 /**
- * Off until someone turns it on in Settings, like the subscription notices.
+ * Off until someone turns it on, in Settings or when a saved order asks.
  * Flipping it reaches only ledgers that already granted notifications: with
  * the permission undetermined, the reconcile writes the setting back off.
  */
