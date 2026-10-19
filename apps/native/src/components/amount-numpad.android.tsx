@@ -1,11 +1,10 @@
 import { SymbolView } from "expo-symbols";
-import { NumberFlow } from "number-flow-react-native";
 import { useCallback, useLayoutEffect, useRef } from "react";
 import { Pressable, View } from "react-native";
 import type { AccessibilityActionEvent } from "react-native";
 
 import { useSettingNumber } from "@/contexts/display-settings-context";
-import { currencySymbol, numberLocale } from "@/domain/money";
+import { currencySymbol, formatFixed, numberLocale } from "@/domain/money";
 import { applyNumpadKey, numpadMode, numpadToNumber } from "@/domain/numpad";
 import type { NumpadKey, NumpadTileKey } from "@/domain/numpad";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -83,17 +82,13 @@ export const AmountNumpad: typeof AmountNumpadBase = ({
                         <Text className="text-body text-m3-on-surface-variant">{t("transaction.field.amount")}</Text>
                     </View>
                     <View className="min-h-14 items-center justify-center px-4 pt-2 pb-7">
-                        <NumberFlow
-                            format={{
-                                maximumFractionDigits: minorUnits,
-                                minimumFractionDigits: minorUnits,
-                                useGrouping: true,
-                            }}
-                            locales={locale.tag}
-                            prefix={`${symbol} `}
+                        <Text
+                            adjustsFontSizeToFit
+                            numberOfLines={1}
                             style={{ color: amountColor, fontFamily: "InstrumentSerif_400Regular", fontSize: 44 }}
-                            value={numpadToNumber(value)}
-                        />
+                        >
+                            {`${symbol} ${formatFixed(numpadToNumber(value), minorUnits, language)}`}
+                        </Text>
                     </View>
                 </>
             ) : null}

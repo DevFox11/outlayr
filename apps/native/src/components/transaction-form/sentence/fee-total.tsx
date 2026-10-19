@@ -49,7 +49,7 @@ export function FeeTotal({ account, accountTile, base, code, fee, onPress }: Fee
                     </Text>
                 </View>
                 <View className="ml-auto">
-                    <HeroNumber amount={total} code={code} sign="" size={FIGURE_SIZE} snapWidth />
+                    <HeroNumber amount={total} code={code} sign="" size={FIGURE_SIZE} still />
                 </View>
             </View>
             <Sentence

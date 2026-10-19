@@ -199,7 +199,7 @@ function PayForm({ account, amount: owed, entry, forNext, sources }: PayFormProp
                                 className="items-center gap-1 pt-4 pb-6"
                                 onPress={() => padRef.current?.present()}
                             >
-                                <HeroNumber amount={amount} code={plan.currency} showCents sign="" />
+                                <HeroNumber amount={amount} code={plan.currency} showCents sign="" still />
                                 {converted ? (
                                     <Text className="text-muted text-subtitle tabular-nums">{converted}</Text>
                                 ) : null}

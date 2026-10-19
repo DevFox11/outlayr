@@ -291,6 +291,7 @@ function GoalTargetBody({ target, onCommit }: { onCommit: GoalTargetSheetProps["
                             showCents={hasMinorUnits}
                             sign=""
                             size={40}
+                            still
                         />
                     </Pressable>
                     {target.balance === null ? null : (

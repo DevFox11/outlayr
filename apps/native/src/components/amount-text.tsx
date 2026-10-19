@@ -3,7 +3,6 @@ import { roundMoney } from "@outlayr/money/round";
 import { NumberFlow } from "number-flow-react-native";
 import { createContext, Fragment, use } from "react";
 import { useWindowDimensions, View } from "react-native";
-import { Easing } from "react-native-reanimated";
 import { useResolveClassNames } from "uniwind";
 
 import { amountHeroFontSize, SYMBOL_ALLOWANCE } from "@/domain/amount-hero-size";
@@ -22,7 +21,6 @@ import { cn, tv } from "./tw";
 
 const BASELINE_STRUT = "\u200B";
 const HERO_GUTTER = 40;
-const SNAP_WIDTH = { duration: 0, easing: Easing.linear };
 
 export const AmountsHiddenContext = createContext(false);
 
@@ -38,17 +36,30 @@ interface FlowFigureProps {
     locale: NumberLocale;
     prefix?: string;
     size?: number;
-    snapWidth?: boolean;
+    /** Drawn as plain text after `prefix`, with no digit roll. */
+    text?: string;
     value: number;
 }
 
-export function FlowFigure({ className, fontFamily, format, locale, prefix, size, snapWidth, value }: FlowFigureProps) {
+export function FlowFigure({ className, fontFamily, format, locale, prefix, size, text, value }: FlowFigureProps) {
     const resolved = useResolveClassNames(className ?? "");
     const { color, fontSize, fontVariant, fontWeight } = resolved;
     const fontScaleCap = use(FontScaleCapContext);
     const { fontScale } = useWindowDimensions();
     const figureSize = size ?? fontSize;
     const overCap = figureSize !== undefined && fontScaleCap !== undefined && fontScale > fontScaleCap;
+    if (text !== undefined) {
+        return (
+            <Text
+                className={className}
+                numberOfLines={1}
+                style={[size == null ? undefined : { fontSize: size }, fontFamily == null ? undefined : { fontFamily }]}
+            >
+                {prefix}
+                {text}
+            </Text>
+        );
+    }
     return (
         <View className="flex-row items-center">
             <Text
@@ -69,7 +80,6 @@ export function FlowFigure({ className, fontFamily, format, locale, prefix, size
                     fontVariant,
                     fontWeight,
                 }}
-                transformTiming={snapWidth ? SNAP_WIDTH : undefined}
                 value={value}
             />
         </View>
@@ -85,7 +95,8 @@ interface FlowAmountProps {
     prefix?: string;
     showCents: boolean;
     size?: number;
-    snapWidth?: boolean;
+    /** Plain text, for a figure the user is typing or picking. */
+    still?: boolean;
 }
 
 export function FlowAmount({
@@ -96,22 +107,12 @@ export function FlowAmount({
     prefix,
     showCents,
     size,
-    snapWidth,
+    still = false,
 }: FlowAmountProps) {
     const { language } = useLanguage();
-    const { locale, minorUnits } = amountParts(amount, code, showCents, language);
-    if (use(AmountsHiddenContext)) {
-        return (
-            <Text
-                className={className}
-                numberOfLines={1}
-                style={[size == null ? undefined : { fontSize: size }, fontFamily == null ? undefined : { fontFamily }]}
-            >
-                {prefix}
-                {AMOUNT_MASK}
-            </Text>
-        );
-    }
+    const parts = amountParts(amount, code, showCents, language);
+    const { locale, minorUnits } = parts;
+    const digits = still ? amountDigits(parts) : undefined;
     return (
         <FlowFigure
             className={className}
@@ -120,7 +121,7 @@ export function FlowAmount({
             locale={locale}
             prefix={prefix}
             size={size}
-            snapWidth={snapWidth}
+            text={use(AmountsHiddenContext) ? AMOUNT_MASK : digits}
             value={roundMoney(Math.abs(amount), minorUnits)}
         />
     );
@@ -156,7 +157,8 @@ interface HeroNumberProps {
     showCents?: boolean;
     sign?: "+" | "-" | "";
     size?: number;
-    snapWidth?: boolean;
+    /** Plain text, for a figure the user is typing or picking. */
+    still?: boolean;
     /** uniwind color class for the digits, e.g. "text-income". */
     toneClass?: string;
 }
@@ -168,7 +170,7 @@ export function HeroNumber({
     sign,
     toneClass = "text-foreground",
     size = 40,
-    snapWidth,
+    still = false,
     showCents = true,
 }: HeroNumberProps) {
     // Read through the context rather than `amountParts`' `runtimeLanguage()`
@@ -205,7 +207,7 @@ export function HeroNumber({
                 format={{ maximumFractionDigits: 0, useGrouping: true }}
                 locale={parts.locale}
                 size={fitted}
-                snapWidth={snapWidth}
+                text={still ? parts.integer : undefined}
                 value={whole}
             />
             {parts.fraction ? (
@@ -216,7 +218,7 @@ export function HeroNumber({
                     locale={parts.locale}
                     prefix={intlDecimal(parts.locale.tag)}
                     size={small}
-                    snapWidth={snapWidth}
+                    text={still ? parts.fraction : undefined}
                     value={Number(parts.fraction)}
                 />
             ) : null}

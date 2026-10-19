@@ -105,7 +105,7 @@ export function NewDebt(props: NewDebtProps) {
                         className="items-center py-2 active:opacity-70"
                         onPress={() => present(form.amountSheet)}
                     >
-                        <HeroNumber amount={form.amount} code={currency} showCents={showCents} sign="" />
+                        <HeroNumber amount={form.amount} code={currency} showCents={showCents} sign="" still />
                     </Pressable>
 
                     <View>

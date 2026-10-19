@@ -275,6 +275,7 @@ function ReviewLine({
                     code={draft.currency}
                     prefix={symbolPrefix(amountParts(draft.amount, draft.currency, true, language).symbol)}
                     showCents
+                    still
                 />
             </View>
             <View className="flex-row items-center justify-center gap-2">

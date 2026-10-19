@@ -5,7 +5,6 @@ import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { MAX_INTERVAL, RECURRING_TYPE, SELECTABLE_RECURRING_TYPES, schedulePreview } from "@outlayr/money/recurrence";
 import type { ScheduledCharge } from "@outlayr/money/recurrence";
-import { NumberFlow } from "number-flow-react-native";
 import { BottomSheet } from "panelui-native/components/bottom-sheet";
 import { Button } from "panelui-native/components/button";
 import { Tabs } from "panelui-native/components/tabs";
@@ -40,25 +39,7 @@ const RIPPLE_STAGGER_MS = SWAP.duration * 2;
 
 const SENTENCE = "font-sans-medium text-[30px] text-foreground leading-9";
 const SENTENCE_SIZE = 30;
-/** Half the count's roll: two things moving at one speed read as one thing. */
 const UNIT_FADE_MS = 170;
-
-/**
- * NumberFlow gives each digit an `overflow: hidden` slot sized to the advance
- * width it measures from a one-glyph line, and SF Pro Rounded's round digits
- * carry ink past that advance — so 2, 3 and 6 rendered with a flat slice down
- * their right side while 1, which has slack, looked correct. Tracking widens
- * the measured advance, and the slot is cut from it.
- *
- * 5 at 30px, from pixel-measuring the "6": its ink was 45px wide with the right
- * edge landing on one x for 34 of its 64 rows — a cut — and comes out 50px wide
- * with that edge spread across four x values, which is a curve. 2 was not enough.
- *
- * Changing it alone looks like it does nothing: the library caches metrics under
- * `fontFamily:fontSize:variant:weight`, which letterSpacing is not part of, so
- * Fast Refresh keeps serving the stale width. Reload the app fully.
- */
-const COUNT_TRACKING = 5;
 
 // Keyed by a stored `recurringType`, as in `domain/recurrence.ts`.
 const UNIT_TITLE_KEY = new Map<number, TranslationKey>([
@@ -309,9 +290,8 @@ export function CustomScheduleSheet({
                 </View>
 
                 {/*
-                 * A row rather than one Text with nested spans: NumberFlow is a view and
-                 * cannot live inside a Text, and the unit needs its own node to cross-fade.
-                 * `items-baseline` is what keeps the three pieces sitting on one line.
+                 * A row rather than one Text with nested spans: the step buttons are views,
+                 * and the unit needs its own node to cross-fade.
                  */}
                 <View
                     className="h-9 flex-row items-center gap-2"
@@ -325,20 +305,16 @@ export function CustomScheduleSheet({
                         icon={MinusSignIcon}
                         onStep={stepDown}
                     />
-                    <NumberFlow
+                    <Text
                         style={{
                             color: colors.foreground,
                             fontFamily: SANS_BY_WEIGHT[700],
                             fontSize: SENTENCE_SIZE,
                             fontWeight: "700",
-                            letterSpacing: COUNT_TRACKING,
                         }}
-                        // Shortest path per digit. Left to auto-detect, a drop from 12 to 3
-                        // spins the units column down through 9, 8, 7 — so the sentence
-                        // visibly reads "every 9 months", a schedule nobody chose.
-                        trend={0}
-                        value={coefficient}
-                    />
+                    >
+                        {coefficient}
+                    </Text>
                     <StepButton
                         accessibilityLabel={t("transaction.schedule.more")}
                         disabled={coefficient >= MAX_INTERVAL}

@@ -119,6 +119,7 @@ export function StepRateField({
                             code={figure.code}
                             prefix={symbolPrefix(currencySymbol(figure.code))}
                             showCents
+                            still
                         />
                     ) : (
                         <Text className={valueClass}>{value}</Text>

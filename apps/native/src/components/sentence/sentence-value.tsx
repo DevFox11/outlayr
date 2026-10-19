@@ -119,7 +119,7 @@ export function SentenceValue({
                             code={figure.code}
                             prefix={symbolPrefix(currencySymbol(figure.code))}
                             showCents
-                            snapWidth
+                            still
                         />
                     ) : (
                         <Text className={cn(textClassName, tone())}>{value}</Text>

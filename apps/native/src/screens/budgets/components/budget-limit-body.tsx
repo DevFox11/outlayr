@@ -282,7 +282,7 @@ export function BudgetLimitBody({
                         accessibilityRole="button"
                         onPress={() => setTyping((open) => !open)}
                     >
-                        <HeroNumber amount={limit} code={currency} showCents={false} sign="" size={40} />
+                        <HeroNumber amount={limit} code={currency} showCents={false} sign="" size={40} still />
                     </Pressable>
                     <MonoLabel>
                         {evidence.typical === null
