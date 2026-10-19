@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { accountBalance } from "@outlayr/money/account-balance";
 import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 import { buildRateTable } from "@outlayr/money/valuation";
 import { renderHook } from "@testing-library/react-native";
@@ -8,7 +9,7 @@ import { accounts, transactions, transfers } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
 
 import { openingForBalance, useAccountBalance, useSettledAccountCells } from "./accounts";
-import { settledAccountsCellQuery, toCurrencyCell } from "./cell-query";
+import { settledAccountCellQuery, settledAccountsCellQuery, toCurrencyCell, toCurrencyCells } from "./cell-query";
 import type { CellRow } from "./cell-query";
 import { useLogOverviewIn } from "./debts";
 import { backfillRecurring } from "./recurrence-backfill";
@@ -83,6 +84,31 @@ describe("settledAccountsCellQuery", () => {
         expect(rows).toHaveLength(1);
         expect(rows[0].accountId).toBe("a1");
         expect(toCurrencyCell(rows[0]).amount).toBe(4);
+    });
+
+    it("values an account to the cent its own read does when a UTC day spans two local days", async () => {
+        // 02:00Z and 06:00Z are one UTC day but either side of Caracas midnight.
+        await addTransaction(db, {
+            accountId: "a1",
+            amount: 3.3,
+            amountUsd: 3.3,
+            date: new Date("2026-06-01T02:00Z"),
+            id: "t1",
+        });
+        await addTransaction(db, {
+            accountId: "a1",
+            amount: 3.3,
+            amountUsd: 3.3,
+            date: new Date("2026-06-01T06:00Z"),
+            id: "t2",
+        });
+        const euros = { currency: "EUR", initialBalance: 0 };
+        const rates = buildRateTable([{ date: "2026-06-01", quote: "EUR", rate: 0.92 }]);
+
+        const alone = accountBalance(euros, toCurrencyCells(await settledAccountCellQuery(db, "a1", JUNE_1)), rates);
+        const all = accountBalance(euros, toCurrencyCells(await settledAccountsCellQuery(db, JUNE_1)), rates);
+
+        expect(all.total).toBe(alone.total);
     });
 });
 

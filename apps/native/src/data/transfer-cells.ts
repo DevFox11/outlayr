@@ -57,7 +57,7 @@ export function settledTransfersOutboundQuery(db: SpendDb, now: Date) {
         .select({ accountId: transfers.fromAccountId, ...OUTBOUND_COLUMNS })
         .from(transfers)
         .where(and(isNull(transfers.deletedAt), lte(transfers.date, now)))
-        .groupBy(transfers.fromAccountId, transfers.fromCurrency, TRANSFER_UTC_DAY);
+        .groupBy(transfers.fromAccountId, transfers.fromCurrency, TRANSFER_UTC_DAY, TRANSFER_LOCAL_DAY);
 }
 
 export function settledTransfersInboundQuery(db: SpendDb, now: Date) {
@@ -65,7 +65,7 @@ export function settledTransfersInboundQuery(db: SpendDb, now: Date) {
         .select({ accountId: transfers.toAccountId, ...INBOUND_COLUMNS })
         .from(transfers)
         .where(and(isNull(transfers.deletedAt), lte(transfers.date, now)))
-        .groupBy(transfers.toAccountId, transfers.toCurrency, TRANSFER_UTC_DAY);
+        .groupBy(transfers.toAccountId, transfers.toCurrency, TRANSFER_UTC_DAY, TRANSFER_LOCAL_DAY);
 }
 
 const OUTSIDE_UTC_DAY = sql<string>`strftime('%Y-%m-%d', ${outsidePayments.date} / 1000, 'unixepoch')`;
@@ -109,7 +109,7 @@ export function settledOutsidePaymentsQuery(db: SpendDb, now: Date) {
         .innerJoin(installmentPlans, eq(installmentPlans.id, outsidePayments.planId))
         .innerJoin(accounts, eq(accounts.id, installmentPlans.accountId))
         .where(settledOutside(now))
-        .groupBy(installmentPlans.accountId, accounts.currency, OUTSIDE_UTC_DAY);
+        .groupBy(installmentPlans.accountId, accounts.currency, OUTSIDE_UTC_DAY, OUTSIDE_LOCAL_DAY);
 }
 
 export function toTransferCell(row: Omit<CellRow, "income">, income: boolean): CurrencyCell {

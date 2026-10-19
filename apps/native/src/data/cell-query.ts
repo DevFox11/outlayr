@@ -21,6 +21,10 @@ export const UTC_DAY = sql<string>`strftime('%Y-%m-%d', ${transactions.date} / 1
  * It travels beside `dateKey` rather than replacing it: that key is the date the
  * rate is looked up at, so re-cutting it would value a row on a day whose rate
  * may not exist, or may not be the one it was frozen against.
+ *
+ * Every read of an account's cells groups by it, plotted or not: each cell is
+ * rounded on its own when valued, so two reads that split a UTC day differently
+ * value the account a cent apart.
  */
 export const LOCAL_DAY = sql<string>`strftime('%Y-%m-%d', ${transactions.date} / 1000, 'unixepoch', 'localtime')`;
 
@@ -120,7 +124,7 @@ export function settledAccountsCellQuery(db: SpendDb, now: Date) {
         .select({ accountId: transactions.accountId, ...CELL_COLUMNS })
         .from(transactions)
         .where(and(isNull(transactions.deletedAt), isNotNull(transactions.accountId), lte(transactions.date, now)))
-        .groupBy(transactions.accountId, transactions.currency, transactions.income, UTC_DAY);
+        .groupBy(transactions.accountId, transactions.currency, transactions.income, UTC_DAY, LOCAL_DAY);
 }
 
 /**
