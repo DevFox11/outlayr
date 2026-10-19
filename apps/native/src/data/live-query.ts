@@ -100,9 +100,17 @@ export function useLiveValue<TRow, TValue>(
     return useLiveRead(table, () => select(build().all()), deps);
 }
 
-function useLiveRead<TValue>(
+/**
+ * The read under {@link useLiveQuery}, for a value of the caller's shape. When
+ * only `deps` changed since the last read, with no write to `table` reported in
+ * between, `read` gets the value it returned then and may build on it instead of
+ * reading everything again; otherwise it gets null. A write still waiting to be
+ * reported re-reads in full once it is. `equal` keeps the cached value when a
+ * read finds the same one.
+ */
+export function useLiveRead<TValue>(
     table: SQLiteTable,
-    read: () => TValue,
+    read: (previous: TValue | null) => TValue,
     deps: readonly unknown[],
     equal?: (cached: TValue, next: TValue) => boolean,
     clock?: number
@@ -118,7 +126,7 @@ export function useRatesRead<TValue>(read: () => TValue, deps: readonly unknown[
 
 function useRead<TValue>(
     subscribeChanges: (bump: () => void) => () => void,
-    read: () => TValue,
+    read: (previous: TValue | null) => TValue,
     deps: readonly unknown[],
     equal?: (cached: TValue, next: TValue) => boolean,
     clock?: number
@@ -156,7 +164,7 @@ function useRead<TValue>(
         if (inChangeCheck.current && cached?.followsClock && clock !== readNow()) {
             return SKIPPED_READ;
         }
-        const next = read();
+        const next = read(cached !== null && cached.revision === revision.current ? cached.value : null);
         const value = cached !== null && equal?.(cached.value, next) ? cached.value : next;
         snapshot.current = { deps, followsClock: clock === readNow(), revision: revision.current, value };
         return value;

@@ -4,6 +4,8 @@ import { utcDateString } from "@outlayr/money/dates";
 import { isExact, valueRowsIn } from "@outlayr/money/valuation";
 import type { RateTable } from "@outlayr/money/valuation";
 
+import { growing } from "@/lib/growing";
+
 import { DEFAULT_CURRENCY } from "./money";
 
 export interface DayGroupable {
@@ -176,6 +178,18 @@ export function joinDaySections<T>(
         return oldestNewer ? newer : older;
     }
     return newestOlder.day.getTime() < oldestNewer.day.getTime() ? [...newer, ...older] : regroup();
+}
+
+/**
+ * {@link groupByDay} for rows that grow by older ones, as the Log's window does
+ * when it pages: while the rows it grouped last are still the first ones, it
+ * groups only the rows after them and joins those days on. One per list.
+ */
+export function groupByDayAsItGrows<T extends DayGroupable>(globalCurrency: string, rates?: RateTable) {
+    return growing(
+        (rows: readonly T[]) => groupByDay(rows, globalCurrency, rates),
+        (held, added, rows) => joinDaySections(held, added, () => groupByDay(rows, globalCurrency, rates))
+    );
 }
 
 /**

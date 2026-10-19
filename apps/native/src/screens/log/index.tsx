@@ -29,7 +29,7 @@ import { useNow } from "@/data/use-now";
 import { useValuationIn } from "@/data/use-valuation";
 import { useValuedCurrencies } from "@/data/valued-currencies";
 import type { Database } from "@/db/client";
-import { groupByDay, joinDaySections } from "@/domain/day-sections";
+import { groupByDay, groupByDayAsItGrows, joinDaySections } from "@/domain/day-sections";
 import { logCurrencyOptions } from "@/domain/log-currency-options";
 import type { LogFilter } from "@/domain/log-filter";
 import { filterDetail, filterPeriodUnit } from "@/domain/log-filter";
@@ -237,7 +237,11 @@ export function Log() {
         return kept.length === tailRows.length ? tailRows : kept;
     }, [tailRows, pendingId]);
     const headSections = useMemo(() => groupByDay(visibleRows, currency, rates), [visibleRows, currency, rates]);
-    const tailSections = useMemo(() => groupByDay(visibleTail, currency, rates), [visibleTail, currency, rates]);
+    const groupTail = useMemo(
+        () => groupByDayAsItGrows<(typeof visibleTail)[number]>(currency, rates),
+        [currency, rates]
+    );
+    const tailSections = useMemo(() => groupTail(visibleTail), [groupTail, visibleTail]);
     const sections = useMemo(
         () =>
             joinDaySections(headSections, tailSections, () =>

@@ -79,6 +79,25 @@ describe("useLoggedTransactions", () => {
         expect(result.current.tail).toBe(tail);
     });
 
+    it("pages in older days without rebuilding the ones already held, and still shows an edit to them", async () => {
+        const { rerender, result } = await renderHook(
+            ({ days }: { days: number }) => useLoggedTransactions(db, NOW, days),
+            {
+                initialProps: { days: 2 },
+            }
+        );
+        const [old] = result.current.tail;
+        expect(ids(result.current.tail)).toStrictEqual(["old"]);
+
+        await rerender({ days: 3 });
+        expect(ids(result.current.tail)).toStrictEqual(["old", "older"]);
+        expect(result.current.tail[0]).toBe(old);
+
+        await db.update(transactions).set({ amountUsd: 5.5 }).where(eq(transactions.id, "old"));
+        await fireChange();
+        expect(result.current.tail[0]?.amountUsd).toBe(5.5);
+    });
+
     it("re-reads the older days when one of their rows changes, stamp or no stamp", async () => {
         const { result } = await renderHook(() => useLoggedTransactions(db, NOW, 540));
 

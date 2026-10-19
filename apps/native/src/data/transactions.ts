@@ -2,9 +2,11 @@ import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
 import { transactions } from "@/db/schema";
+import { growing } from "@/lib/growing";
 
 import { useCategoryMeta } from "./categories";
-import { useLiveQuery } from "./live-query";
+import { useLiveQuery, useLiveRead } from "./live-query";
+import { sameRows } from "./same-rows";
 import {
     ledgerSizeQuery,
     logSplitMs,
@@ -29,29 +31,36 @@ export interface CategoryDisplay {
     categoryEmoji: string | null;
 }
 
-export type TransactionWithCategory = {
+type LogRow = {
     [K in keyof typeof LOG_COLUMNS]: Transaction[K];
-} & CategoryDisplay;
+};
+
+export type TransactionWithCategory = LogRow & CategoryDisplay;
 
 export function useDecoratedRows<Row extends { categoryId: string | null }>(
     db: Database,
     rows: readonly Row[]
 ): (Row & CategoryDisplay)[] {
     const meta = useCategoryMeta(db);
-    return useMemo(
+    const decorate = useMemo(
         () =>
-            rows.map((row) => {
-                const found = row.categoryId ? meta.get(row.categoryId) : undefined;
-                return {
-                    ...row,
-                    categoryColor: found?.color ?? null,
-                    categoryEmoji: found?.emoji ?? null,
-                    categoryIcon: found?.icon ?? null,
-                    categoryName: found?.name ?? null,
-                };
-            }),
-        [rows, meta]
+            growing(
+                (page: readonly Row[]) =>
+                    page.map((row) => {
+                        const found = row.categoryId ? meta.get(row.categoryId) : undefined;
+                        return {
+                            ...row,
+                            categoryColor: found?.color ?? null,
+                            categoryEmoji: found?.emoji ?? null,
+                            categoryIcon: found?.icon ?? null,
+                            categoryName: found?.name ?? null,
+                        };
+                    }),
+                (held, added) => [...held, ...added]
+            ),
+        [meta]
     );
+    return useMemo(() => decorate(rows), [decorate, rows]);
 }
 
 export interface LoggedTransactions {
@@ -66,6 +75,13 @@ export interface LoggedTransactions {
      * objects included, through any write that leaves these rows alone.
      */
     tail: TransactionWithCategory[];
+}
+
+interface LogTail {
+    /** The midnight `rows` start from; `splitMs` when the window ends above it. */
+    floorMs: number;
+    rows: LogRow[];
+    splitMs: number;
 }
 
 /**
@@ -83,7 +99,9 @@ export interface LoggedTransactions {
  * skipping rows.
  *
  * It comes in two reads so a grown window does not rebuild every row it holds
- * when one recent entry changes: only `head` follows the clock.
+ * when one recent entry changes: only `head` follows the clock. Paging only
+ * moves the floor older, so `tail` then reads just the new days and appends
+ * them to the rows it holds, which keep their objects.
  */
 export function useLoggedTransactions(db: Database, nowMs: number, days: number): LoggedTransactions {
     const dayRows = useLiveQuery(transactions, () => logWindowDaysQuery(db, nowMs, days), [nowMs, days], nowMs);
@@ -99,9 +117,21 @@ export function useLoggedTransactions(db: Database, nowMs: number, days: number)
         [nowMs, headFloorMs],
         nowMs
     );
-    const tailData = useLiveQuery(transactions, () => logTailRowsQuery(db, floorMs, splitMs), [floorMs, splitMs]);
+    const tailFloorMs = Math.min(floorMs ?? splitMs, splitMs);
+    const tailRead = useLiveRead(
+        transactions,
+        (previous: LogTail | null): LogTail => {
+            const grown = previous !== null && previous.splitMs === splitMs && tailFloorMs < previous.floorMs;
+            const rows = grown
+                ? [...previous.rows, ...logTailRowsQuery(db, tailFloorMs, previous.floorMs).all()]
+                : logTailRowsQuery(db, tailFloorMs, splitMs).all();
+            return { floorMs: tailFloorMs, rows, splitMs };
+        },
+        [tailFloorMs, splitMs],
+        (cached, next) => sameRows(cached.rows, next.rows)
+    );
     const head = useDecoratedRows(db, headData);
-    const tail = useDecoratedRows(db, tailData);
+    const tail = useDecoratedRows(db, tailRead.rows);
 
     return useMemo(() => ({ head, reachedEnd, splitMs, tail }), [head, reachedEnd, splitMs, tail]);
 }

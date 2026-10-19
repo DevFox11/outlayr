@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import { buildRateTable } from "@outlayr/money/valuation";
 
-import { capAtDayEnd, groupByDay, joinDaySections } from "./day-sections";
+import { capAtDayEnd, groupByDay, groupByDayAsItGrows, joinDaySections } from "./day-sections";
 
 function row(day: string, amount: number, income = false) {
     return { amount, day: new Date(`${day}T00:00:00`), income };
@@ -201,5 +201,28 @@ describe("joinDaySections", () => {
         const older = [row("2026-07-23", 5), row("2026-07-22", 30)];
         const joined = joinDaySections(groupByDay(newer), groupByDay(older), () => groupByDay([...newer, ...older]));
         expect(joined.map((section) => section.total)).toStrictEqual([-10, -25, -30]);
+    });
+});
+
+describe("groupByDayAsItGrows", () => {
+    const totals = (sections: { total: number }[]) => sections.map((section) => section.total);
+
+    it("groups only the older rows a list grows by, and all of them once a held row changes", () => {
+        const group = groupByDayAsItGrows<ReturnType<typeof row>>("USD");
+        const held = [row("2026-07-24", 10), row("2026-07-23", 20)];
+        const [first] = group(held);
+
+        const grown = group([...held, row("2026-07-22", 30)]);
+        expect(grown[0]).toBe(first);
+        expect(totals(grown)).toStrictEqual([-10, -20, -30]);
+
+        expect(totals(group([row("2026-07-24", 15), held[1], row("2026-07-22", 30)]))).toStrictEqual([-15, -20, -30]);
+    });
+
+    it("keeps one section for a day the held and the added rows share", () => {
+        const group = groupByDayAsItGrows<ReturnType<typeof row>>("USD");
+        const held = [row("2026-07-24", 10), row("2026-07-23", 20)];
+        group(held);
+        expect(totals(group([...held, row("2026-07-23", 5), row("2026-07-22", 30)]))).toStrictEqual([-10, -25, -30]);
     });
 });
