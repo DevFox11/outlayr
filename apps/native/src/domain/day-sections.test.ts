@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import { buildRateTable } from "@outlayr/money/valuation";
 
-import { groupByDay } from "./day-sections";
+import { capAtDayEnd, groupByDay } from "./day-sections";
 
 function row(day: string, amount: number, income = false) {
     return { amount, day: new Date(`${day}T00:00:00`), income };
@@ -153,5 +153,44 @@ describe("groupByDay with rates", () => {
             eurRates
         );
         expect(section.data[0].valued).toBeNull();
+    });
+});
+
+describe("capAtDayEnd", () => {
+    // Newest first, as the Insights list reads them: three on the 24th, three on the 23rd, two on the 22nd.
+    const rows = [
+        ...[1, 2, 3].map(() => row("2026-07-24", 1)),
+        ...[1, 2, 3].map(() => row("2026-07-23", 1)),
+        ...[1, 2].map(() => row("2026-07-22", 1)),
+    ];
+
+    it("runs a cut that lands inside a day on to that day's end, so its header totals the whole day", () => {
+        expect(capAtDayEnd(rows, 4)).toBe(6);
+    });
+
+    it("stops at the cap when the cap already ends a day", () => {
+        expect(capAtDayEnd(rows, 3)).toBe(3);
+    });
+
+    it("keeps every row when there are no more than the cap", () => {
+        expect(capAtDayEnd(rows, 8)).toBe(8);
+        expect(capAtDayEnd(rows, 50)).toBe(8);
+    });
+
+    it("reads the day off the row's instant, as the sections do, not its stored day", () => {
+        const late = {
+            amount: 1,
+            date: new Date("2026-09-09T22:09:00"),
+            day: new Date("2026-09-09T00:00:00"),
+            income: false,
+        };
+        const early = {
+            amount: 1,
+            date: new Date("2026-09-09T02:47:00"),
+            // Sep 9's midnight saved an hour east, which is still Sep 8 here.
+            day: new Date("2026-09-08T23:00:00"),
+            income: false,
+        };
+        expect(capAtDayEnd([late, early, row("2026-09-08", 1)], 1)).toBe(2);
     });
 });

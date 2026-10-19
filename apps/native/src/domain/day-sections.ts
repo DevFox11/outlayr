@@ -57,6 +57,8 @@ export type Valued<T> = T & Pick<DayGroupable, "valued">;
 
 const instant = (row: DayGroupable): number => (row.date ?? row.day).getTime();
 
+const localDay = (row: DayGroupable): number => new Date(instant(row)).setHours(0, 0, 0, 0);
+
 function feeParent(row: DayGroupable): string | null {
     const parent = row.feeForId ?? row.transferId ?? null;
     return parent === row.id ? null : parent;
@@ -126,7 +128,7 @@ export function groupByDay<T extends DayGroupable>(
     const sections: DaySection<T>[] = [];
     const byDay = new Map<number, DaySection<T>>();
     for (const row of rows) {
-        const key = new Date(instant(row)).setHours(0, 0, 0, 0);
+        const key = localDay(row);
         let section = byDay.get(key);
         if (!section) {
             section = { data: [], day: new Date(key), key: String(key), total: 0, totals: [] };
@@ -155,4 +157,19 @@ export function groupByDay<T extends DayGroupable>(
         ...section,
         data: foldFees(valueRows(section.data, globalCurrency, rates)),
     }));
+}
+
+/**
+ * How many of `rows`, newest first, a capped list shows: the first `cap`, run on
+ * to the end of the last one's day, so a day header never totals part of its day.
+ * All of them when there are `cap` or fewer.
+ */
+export function capAtDayEnd(rows: readonly DayGroupable[], cap: number): number {
+    const last = rows[cap - 1];
+    if (rows.length <= cap || !last) {
+        return rows.length;
+    }
+    const lastDay = localDay(last);
+    const next = rows.findIndex((row, index) => index >= cap && localDay(row) !== lastDay);
+    return next === -1 ? rows.length : next;
 }

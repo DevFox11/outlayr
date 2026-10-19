@@ -1,21 +1,29 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { View } from "react-native";
 
 import { DaySectionHeader } from "@/components/day-section-header";
 import { EmptyState } from "@/components/empty-state";
 import { Hairline } from "@/components/empty-state-parts";
 import { Fade } from "@/components/mark-motion";
+import { RowPressable } from "@/components/row-pressable";
+import { ROW_TYPE } from "@/components/row-type";
+import { Text } from "@/components/text";
 import { TransactionRow } from "@/components/transaction-row";
+import { TILE_SIZE } from "@/components/transfer-tile";
+import { cn } from "@/components/tw";
 import { useDatabase } from "@/contexts/local-data-context";
 import { goesWithPendingDelete } from "@/data/card-fees-core";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { useNow } from "@/data/use-now";
 import { useValuation } from "@/data/use-valuation";
-import { foldFees, groupByDay, valueRows } from "@/domain/day-sections";
+import { capAtDayEnd, foldFees, groupByDay, valueRows } from "@/domain/day-sections";
 import { useTranslation } from "@/i18n/context";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 import { MARK_CEILING } from "@/theme/empty-state-ink";
 import { MARK_MOTION, recedeDelay } from "@/theme/mark-motion";
+
+/** Rows mounted before "Show all". A grouped list runs on to the end of that row's day. */
+const LIST_CAP = 50;
 
 interface InsightsTransactionListProps {
     currency: string;
@@ -46,13 +54,15 @@ export function InsightsTransactionList({
     const { rates } = useValuation(db);
     const nowMs = useNow();
     const openRowActions = useTransactionRowActions(nowMs, onRequestDelete);
+    const [showAll, setShowAll] = useState(false);
     const rows = useMemo(
         () => transactions.filter((transaction) => !goesWithPendingDelete(transaction, pendingDeleteId ?? null)),
         [transactions, pendingDeleteId]
     );
+    const cut = showAll ? rows.length : capAtDayEnd(rows, LIST_CAP);
     const sections = useMemo(
-        () => (grouped ? groupByDay(rows, currency, rates) : []),
-        [grouped, rows, currency, rates]
+        () => (grouped ? groupByDay(rows.slice(0, cut), currency, rates) : []),
+        [grouped, rows, cut, currency, rates]
     );
 
     if (rows.length === 0) {
@@ -71,7 +81,14 @@ export function InsightsTransactionList({
     );
 
     if (!grouped) {
-        return <View>{foldFees(valueRows(rows, currency, rates)).map(row)}</View>;
+        const list = foldFees(valueRows(rows, currency, rates));
+        const shown = showAll ? list : list.slice(0, LIST_CAP);
+        return (
+            <View>
+                {shown.map(row)}
+                <ShowAllRow hidden={list.length - shown.length} onPress={() => setShowAll(true)} />
+            </View>
+        );
     }
 
     return (
@@ -82,7 +99,26 @@ export function InsightsTransactionList({
                     {section.data.map(row)}
                 </View>
             ))}
+            <ShowAllRow hidden={foldFees(rows.slice(cut)).length} onPress={() => setShowAll(true)} />
         </View>
+    );
+}
+
+function ShowAllRow({ hidden, onPress }: { hidden: number; onPress: () => void }) {
+    const t = useTranslation();
+    if (hidden === 0) {
+        return null;
+    }
+    return (
+        <RowPressable accessibilityRole="button" className="flex-row items-center gap-3 py-2" onPress={onPress}>
+            <View style={{ height: TILE_SIZE, width: TILE_SIZE }} />
+            <Text className={cn(ROW_TYPE.title, "text-tint flex-1")} numberOfLines={1}>
+                {t("insights.list.showAll")}
+            </Text>
+            <Text className={cn(ROW_TYPE.subtitle, "text-muted tabular-nums")} numberOfLines={1}>
+                {t("insights.list.more", { count: hidden })}
+            </Text>
+        </RowPressable>
     );
 }
 

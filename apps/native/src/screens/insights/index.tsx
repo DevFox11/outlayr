@@ -514,6 +514,7 @@ export function Insights() {
                         <InsightsTransactionList
                             currency={currency}
                             grouped={listGrouped}
+                            key={`${listQuery.start.getTime()}:${listQuery.end.getTime()}:${listQuery.categoryId}:${listQuery.income}`}
                             onPress={(id) => router.push(`/transactions/${id}`)}
                             onRequestDelete={requestDelete}
                             pendingDeleteId={pendingId}

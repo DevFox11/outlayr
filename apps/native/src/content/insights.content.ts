@@ -59,6 +59,14 @@ const insights = {
             en: "No entries found.",
             es: "No se encontraron registros.",
         }),
+        "insights.list.more": t({
+            en: "{count} more",
+            es: "{count} más",
+        }),
+        "insights.list.showAll": t({
+            en: "Show all",
+            es: "Ver todo",
+        }),
         "insights.measure.income": t({
             en: "Income",
             es: "Ingreso",
