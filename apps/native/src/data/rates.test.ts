@@ -266,14 +266,14 @@ describe("applyRecentRates", () => {
         ]);
     });
 
-    it("does nothing for a delivery the cache already holds", async () => {
+    it("bumps once for the same delivery applied twice", async () => {
         const db = makeDb();
         const delivery = [wireRow("EUR", "2026-07-27"), wireRow("EUR", "2026-07-28")];
-        await applyRecentRates(db, delivery);
         const before = ratesRevision();
 
+        await expect(applyRecentRates(db, delivery)).resolves.toBe(true);
         await expect(applyRecentRates(db, delivery)).resolves.toBe(false);
-        expect(ratesRevision()).toBe(before);
+        expect(ratesRevision()).toBe(before + 1);
     });
 
     it("writes the one rate that moved in an otherwise repeated delivery", async () => {
@@ -295,13 +295,15 @@ describe("applyRecentRates", () => {
         ]);
     });
 
-    it("takes a re-stamped fetch time even when the rate held", async () => {
+    it("takes a re-stamped fetch time without bumping when the rate held", async () => {
         const db = makeDb();
         await applyRecentRates(db, [wireRow("EUR", "2026-07-28")]);
+        const before = ratesRevision();
 
         await expect(
             applyRecentRates(db, [{ ...wireRow("EUR", "2026-07-28"), fetchedAt: NOW + 3_600_000 }])
-        ).resolves.toBe(true);
+        ).resolves.toBe(false);
+        expect(ratesRevision()).toBe(before);
         await expect(db.select({ fetchedAt: exchangeRates.fetchedAt }).from(exchangeRates)).resolves.toStrictEqual([
             { fetchedAt: NOW + 3_600_000 },
         ]);

@@ -138,14 +138,16 @@ function rateKey({ date, quote, rateType }: Pick<RateWireRow, "date" | "quote" |
 
 /**
  * Upserts the delivered rows the cache does not already hold verbatim. Answers
- * whether any did, and bumps only then.
+ * whether a `rate` moved or arrived, and bumps only then. A re-stamped
+ * `fetchedAt` alone is written without a bump, so an open entry form keeps its
+ * earlier "as of" until it remounts.
  */
 export async function applyRecentRates(db: Database, rows: RateWireRow[]): Promise<boolean> {
     if (rows.length === 0) {
         return false;
     }
 
-    let written = 0;
+    let moved = false;
     await withTransaction(db, async () => {
         const stored = await db
             .select()
@@ -170,10 +172,10 @@ export async function applyRecentRates(db: Database, rows: RateWireRow[]): Promi
                 },
                 target: [exchangeRates.quote, exchangeRates.rateType, exchangeRates.date],
             });
-        written = changed.length;
+        moved = changed.some((row) => storedByKey.get(rateKey(row))?.rate !== row.rate);
     });
 
-    if (written === 0) {
+    if (!moved) {
         return false;
     }
 
