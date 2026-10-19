@@ -2,7 +2,7 @@ import { useRouter, useSegments } from "expo-router";
 import { BottomSheet } from "panelui-native/components/bottom-sheet";
 import { Button } from "panelui-native/components/button";
 import { cn } from "panelui-native/utils/cn";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -12,6 +12,7 @@ import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAiConsent } from "@/data/settings";
 import { setBoolSetting } from "@/data/settings-core";
+import type { AiConsent } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -112,14 +113,23 @@ export function AiConsentGate() {
  * Asks once, on the tabs, anyone signed in who has not answered yet: people
  * past onboarding before the question existed, or who skipped its step. A
  * swipe away is Not now. Waits for no cover for the reason `UpdateSheet` does.
+ * Mounts once the question is unanswered this run, and stays so an answer animates out.
  */
 export function AiConsentSheet() {
+    const consent = useAiConsent(useDatabase());
+    const [asked, setAsked] = useState(consent === "unanswered");
+    if (consent === "unanswered" && !asked) {
+        setAsked(true);
+    }
+    return asked ? <AiConsentSheetBody consent={consent} /> : null;
+}
+
+function AiConsentSheetBody({ consent }: { consent: AiConsent }) {
     const db = useDatabase();
     const colors = useColors();
     const insets = useSafeAreaInsets();
     const sheetInsets = useMemo(() => ({ ...insets, bottom: 0 }), [insets]);
     const { gate } = useAuthSession();
-    const consent = useAiConsent(db);
     const onTabs = useSegments()[0] === "(tabs)";
     const lockOpen = useAppLockOpen();
     const covered = useAuthCovered();
