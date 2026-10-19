@@ -26,15 +26,14 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useDebtsOverview } from "@/data/debts";
 import type { DebtsScreenOverview } from "@/data/debts";
-import { DUE_WINDOW_DAYS } from "@/data/debts-due";
 import { useNow } from "@/data/use-now";
 import { formatSignedAmount } from "@/domain/account-display";
-import { formatSentenceDate } from "@/domain/dates";
-import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { hitArea, outline } from "@/lib/swift-ui-geometry";
 import { useColors } from "@/theme/use-colors";
 import type { ThemeColors } from "@/theme/use-colors";
+
+import { debtSubtitle, dueStripWording } from "./debts-wording";
 
 type DebtListRow = DebtsScreenOverview["youOwe"][number];
 
@@ -86,48 +85,23 @@ export function Debts() {
         );
     }
 
-    // A liability with orders says its next cuota, in its own currency, flagged when
-    // overdue; otherwise only what the figure does not already say: the account keeps
-    // another currency.
-    const subtitle = (item: DebtListRow): string | null => {
-        const orders = debts.installments.get(item.id);
-        if (orders === undefined) {
-            return item.account.currency === currency ? null : item.account.currency;
-        }
-        const [only, ...others] = orders.open;
-        const { overdue } = orders.next;
-        const date = formatSentenceDate(orders.next.row.dueDate, language);
-        const next = {
-            amount: formatAmount(orders.next.remaining, item.account.currency, showCents, language),
-            date: overdue ? `${date} · ${t("installments.overdue")}` : date,
-        };
-        return only && others.length === 0
-            ? t(overdue ? "debts.overdue.of" : "debts.next.of", {
-                  ...next,
-                  paid: only.standing.installmentsPaid,
-                  total: only.standing.installmentsTotal,
-              })
-            : t(overdue ? "debts.overdue.orders" : "debts.next.orders", { ...next, count: orders.open.length });
+    const wording = { currency, language, showCents, t };
+    const tones = { due: colors.tint, muted: colors.muted, overdue: colors.expense };
+    const row = (item: DebtListRow) => {
+        const subtitle = debtSubtitle(item, debts, wording);
+        return (
+            <DebtRow
+                colors={colors}
+                currency={currency}
+                format={format}
+                key={item.id}
+                onOpen={open}
+                row={item}
+                subtitle={subtitle.text}
+                subtitleColor={tones[subtitle.tone]}
+            />
+        );
     };
-    // An overdue cuota reads as an expense; otherwise the one the due row names is tinted.
-    const subtitleColor = (item: DebtListRow): string => {
-        if (debts.installments.get(item.id)?.next.overdue) {
-            return colors.expense;
-        }
-        return item.id === debts.due?.next.accountId ? colors.tint : colors.muted;
-    };
-    const row = (item: DebtListRow) => (
-        <DebtRow
-            colors={colors}
-            currency={currency}
-            format={format}
-            key={item.id}
-            onOpen={open}
-            row={item}
-            subtitle={subtitle(item)}
-            subtitleColor={subtitleColor(item)}
-        />
-    );
     const total = (label: string, amount: number) => (
         <VStack
             alignment="leading"
@@ -161,7 +135,7 @@ export function Debts() {
                                 currency={currency}
                                 due={debts.due}
                                 format={format}
-                                name={debts.youOwe.find((item) => item.id === debts.due?.next.accountId)?.account.name}
+                                wording={dueStripWording(debts.due, debts, wording)}
                             />
                         )}
                     </Section>
@@ -227,25 +201,14 @@ interface DueRowProps {
     currency: string;
     due: NonNullable<DebtsScreenOverview["due"]>;
     format: (amount: number) => string;
-    /** The account the soonest cuota is owed to. */
-    name: string | undefined;
+    wording: ReturnType<typeof dueStripWording>;
 }
 
 /**
  * "Due in the next 14 days", how many cuotas and the soonest, and what they come
  * to. When the soonest is overdue it says since when, in the expense colour.
  */
-function DueRow({ colors, currency, due, format, name }: DueRowProps) {
-    const t = useTranslation();
-    const { language } = useLanguage();
-    const title = t("debts.due.title", { days: DUE_WINDOW_DAYS });
-    const { overdue } = due.next.standing;
-    const summary = t(overdue ? "debts.due.overdue" : "debts.due.summary", {
-        count: due.count,
-        date: formatSentenceDate(due.next.standing.row.dueDate, language),
-        name: name ?? t("installments.order"),
-    });
-
+function DueRow({ colors, currency, due, format, wording: { overdue, summary, title } }: DueRowProps) {
     return (
         <HStack
             modifiers={[

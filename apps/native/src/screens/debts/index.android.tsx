@@ -24,14 +24,17 @@ import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { useMaterialColors } from "@/theme/use-material-colors";
 
+import { debtSubtitle, dueStripWording } from "./debts-wording";
+import type { DebtSubtitle } from "./debts-wording";
+
 type DebtListRow = DebtsScreenOverview["youOwe"][number];
 
 const PRESSED_ALPHA = 0.1;
 
 /**
- * The Debts screen on Android: the two totals, then M3 two-line rows on
- * hairlines under the same sections as iOS (you owe, owed to you, and the
- * settled people folded under one row). Every row opens its account, which
+ * The Debts screen on Android: the two totals and what is due in the next 14
+ * days, then M3 two-line rows on hairlines under the same sections as iOS (you
+ * owe, owed to you, and the settled people folded under one row). Every row opens its account, which
  * for a person is the person detail. The route's "+" menu stays in the app bar.
  */
 export function Debts() {
@@ -71,9 +74,22 @@ export function Debts() {
         );
     }
 
-    const row = (item: DebtListRow) => (
-        <DebtRow currency={currency} format={format} key={item.id} onOpen={open} row={item} />
-    );
+    const wording = { currency, language, showCents, t };
+    const row = (item: DebtListRow) => {
+        const subtitle = debtSubtitle(item, debts, wording);
+        return (
+            <DebtRow
+                currency={currency}
+                format={format}
+                key={item.id}
+                onOpen={open}
+                row={item}
+                subtitle={subtitle.text}
+                tone={subtitle.tone}
+            />
+        );
+    };
+
     const section = (title: string, rows: readonly DebtListRow[]) =>
         rows.length === 0 ? null : (
             <>
@@ -94,6 +110,14 @@ export function Debts() {
                 </View>
                 {debts.exact ? null : (
                     <Text className="font-sans-semibold text-label text-m3-on-surface-variant px-4">{`${currency}?`}</Text>
+                )}
+                {debts.due === null ? null : (
+                    <DueStrip
+                        amount={format(debts.due.total)}
+                        currency={currency}
+                        exact={debts.due.exact}
+                        wording={dueStripWording(debts.due, debts, wording)}
+                    />
                 )}
                 {section(t("debts.youOwe"), debts.youOwe)}
                 {section(t("debts.owedToYou"), debts.owedToYou)}
@@ -145,6 +169,44 @@ function SettledToggle({ count, onToggle, open }: { count: number; onToggle: () 
     );
 }
 
+/** "Due in the next 14 days", how many cuotas and the soonest, and what they come to; overdue in the error colour. */
+function DueStrip({
+    amount,
+    currency,
+    exact,
+    wording: { overdue, summary, title },
+}: {
+    amount: string;
+    currency: string;
+    exact: boolean;
+    wording: ReturnType<typeof dueStripWording>;
+}) {
+    return (
+        <View
+            accessibilityLabel={`${title}, ${summary}`}
+            accessibilityValue={{ text: amount }}
+            accessible
+            className="flex-row items-center gap-4 px-4 pt-3 pb-1"
+        >
+            <View className="flex-1">
+                <Text className="text-caption text-m3-on-surface-variant">{title}</Text>
+                <Text
+                    className={overdue ? "text-body text-m3-error" : "text-body text-m3-on-surface"}
+                    numberOfLines={2}
+                >
+                    {summary}
+                </Text>
+            </View>
+            {exact ? null : (
+                <Text className="font-sans-semibold text-label text-m3-on-surface-variant">{`${currency}?`}</Text>
+            )}
+            <Text className="font-sans-medium text-body text-m3-on-surface tabular-nums" numberOfLines={1}>
+                {amount}
+            </Text>
+        </View>
+    );
+}
+
 const MARK_TILE = 34;
 
 function DebtsMark() {
@@ -161,13 +223,19 @@ interface DebtRowProps {
     format: (amount: number) => string;
     onOpen: (id: string) => void;
     row: DebtListRow;
+    subtitle: string | null;
+    tone: DebtSubtitle["tone"];
 }
 
-const DebtRow = memo(({ currency, format, onOpen, row }: DebtRowProps) => {
+const SUBTITLE_TONE = {
+    due: "text-m3-primary",
+    muted: "text-m3-on-surface-variant",
+    overdue: "text-m3-error",
+} as const;
+
+const DebtRow = memo(({ currency, format, onOpen, row, subtitle, tone }: DebtRowProps) => {
     const m3 = useMaterialColors();
     const { account } = row;
-    // Only what the figure does not already say: the account keeps another currency.
-    const subtitle = account.currency === currency ? null : account.currency;
     const amount = format(row.amount);
 
     return (
@@ -185,7 +253,7 @@ const DebtRow = memo(({ currency, format, onOpen, row }: DebtRowProps) => {
                     {account.name}
                 </Text>
                 {subtitle === null ? null : (
-                    <Text className="text-caption text-m3-on-surface-variant" numberOfLines={1}>
+                    <Text className={`text-caption ${SUBTITLE_TONE[tone]}`} numberOfLines={2}>
                         {subtitle}
                     </Text>
                 )}

@@ -9,24 +9,19 @@ import { revealEntering } from "@/components/sentence/sentence-motion";
 import { SheetGestureRoot } from "@/components/sheet-gesture-root";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
-import { useDatabase } from "@/contexts/local-data-context";
-import { installmentsRepo } from "@/data/installments-core";
 import type { InstallmentRow } from "@/data/installments-core";
 import { formatTargetDate } from "@/domain/dates";
-import { formatAmount, minorUnitsFor } from "@/domain/money";
-import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
+import { formatAmount } from "@/domain/money";
 import { useMergedRef } from "@/hooks/use-merged-ref";
 import { useSheetSurface } from "@/hooks/use-sheet-surface";
 import { useLanguage, useTranslation } from "@/i18n/context";
-import { rearmInstallmentReminders } from "@/lib/installment-reminder-sync";
-import { notifyFailure } from "@/lib/notify";
-import { useHaptics } from "@/lib/use-haptics";
 import { CompactDatePicker } from "@/screens/budgets/components/compact-date-picker";
 import { EditorRow } from "@/screens/budgets/components/editor-row";
 
 import { installmentTitle } from "./labels";
+import { useCuotaEditor } from "./use-cuota-editor";
 
-interface CuotaSheetProps {
+export interface CuotaSheetProps {
     count: number;
     currency: string;
     /** The purchase's date: a cuota due before it would take the upfront's payment. */
@@ -37,11 +32,7 @@ interface CuotaSheetProps {
     row: InstallmentRow | null;
 }
 
-/**
- * One cuota's date and amount, each committed from its own row the way the
- * goal editor commits, and its delete. Moving or deleting a row touches only
- * that row; the payments already made are re-allocated by date on the next read.
- */
+/** One cuota's date and amount, each committed from its own row the way the goal editor commits, and its delete. */
 export function CuotaSheet({ count, currency, earliest, onDismiss, ref, row }: CuotaSheetProps) {
     const sheetSurface = useSheetSurface();
     const sheetRef = useRef<BottomSheetModal>(null);
@@ -85,49 +76,15 @@ function CuotaBody({
     onClose: () => void;
     row: InstallmentRow;
 }) {
-    const db = useDatabase();
     const t = useTranslation();
-    const haptics = useHaptics();
     const { language } = useLanguage();
     const { showCents } = useDisplaySettings().state;
-    const minorUnits = minorUnitsFor(currency);
-    const padRef = useRef<BottomSheetModal>(null);
     const [pickingDate, setPickingDate] = useState(false);
-    const [dueDate, setDueDate] = useState(row.dueDate);
-    const [amount, setAmount] = useState(row.amount);
-    const [padText, setPadText] = useState(() => numberToNumpad(row.amount, minorUnits));
-
-    const write = async (patch: { amount?: number; dueDate?: Date }) => {
-        try {
-            await installmentsRepo.updateInstallment(db, row.id, patch);
-            rearmInstallmentReminders(db);
-            haptics("success");
-        } catch (error) {
-            console.error("Failed to update the installment", error);
-            notifyFailure({ body: t("installments.failedBody"), title: t("installments.failedTitle") });
-        }
-    };
-
-    const commitAmount = () => {
-        padRef.current?.dismiss();
-        const next = numpadToNumber(padText);
-        if (next > 0 && next !== amount) {
-            setAmount(next);
-            write({ amount: next }).catch(() => undefined);
-        }
-    };
-
-    const remove = async () => {
-        try {
-            await installmentsRepo.deleteInstallment(db, row.id);
-            rearmInstallmentReminders(db);
-            haptics("warning");
-            onClose();
-        } catch (error) {
-            console.error("Failed to delete the installment", error);
-            notifyFailure({ body: t("installments.failedBody"), title: t("installments.failedTitle") });
-        }
-    };
+    const { amount, commitAmount, dueDate, minorUnits, moveTo, padRef, padText, remove, setPadText } = useCuotaEditor({
+        currency,
+        onClose,
+        row,
+    });
 
     return (
         <View>
@@ -146,8 +103,7 @@ function CuotaBody({
                             label={t("installments.cuota.due")}
                             onChange={(next) => {
                                 setPickingDate(false);
-                                setDueDate(next);
-                                write({ dueDate: next }).catch(() => undefined);
+                                moveTo(next);
                             }}
                             onDismiss={() => setPickingDate(false)}
                             range={{ start: earliest }}

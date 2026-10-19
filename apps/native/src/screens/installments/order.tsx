@@ -1,8 +1,6 @@
-import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { Button } from "panelui-native/components/button";
-import { useEffect, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 import { HeroNumber } from "@/components/amount-text";
 import { MonoLabel } from "@/components/mono-label";
@@ -12,21 +10,16 @@ import { toolbarIcon } from "@/components/toolbar-icons";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccounts } from "@/data/accounts";
-import { useInstallmentPlans } from "@/data/installments";
-import { installmentsRepo } from "@/data/installments-core";
 import type { InstallmentRow, PlanWithStanding } from "@/data/installments-core";
-import { useNow } from "@/data/use-now";
 import { formatSentenceDate } from "@/domain/dates";
 import { orderName } from "@/domain/installments";
 import type { InstallmentStanding } from "@/domain/installments";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
-import { rearmInstallmentReminders } from "@/lib/installment-reminder-sync";
-import { notifyFailure } from "@/lib/notify";
-import { useHaptics } from "@/lib/use-haptics";
 
 import { CuotaSheet } from "./cuota-sheet";
-import { dueIn, installmentTitle } from "./labels";
+import { installmentTitle, scheduleRowWording } from "./labels";
+import { useInstallmentEntry, useOrderActions } from "./use-order";
 
 /**
  * One order: what is left, what it was bought for, and every row of its
@@ -35,61 +28,20 @@ import { dueIn, installmentTitle } from "./labels";
  * or round one amount.
  */
 export function InstallmentOrder({ planId }: { planId: string }) {
-    const db = useDatabase();
-    const router = useRouter();
-    const nowMs = useNow();
-    const entry = useInstallmentPlans(db, nowMs).find(({ plan }) => plan.id === planId) ?? null;
-
-    useEffect(() => {
-        if (entry == null) {
-            router.back();
-        }
-    }, [entry, router]);
-
+    const { entry, nowMs } = useInstallmentEntry(planId);
     return entry == null ? null : <OrderLoaded entry={entry} nowMs={nowMs} />;
 }
 
 function OrderLoaded({ entry, nowMs }: { entry: PlanWithStanding; nowMs: number }) {
     const db = useDatabase();
-    const router = useRouter();
     const t = useTranslation();
-    const haptics = useHaptics();
     const { language } = useLanguage();
     const { showCents } = useDisplaySettings().state;
     const { plan, purchase, standing } = entry;
     const account = useAccounts(db).find((row) => row.id === plan.accountId);
     const money = (value: number) => formatAmount(value, plan.currency, showCents, language);
-    const cuotaSheetRef = useRef<BottomSheetModal>(null);
-    const [editing, setEditing] = useState<InstallmentRow | null>(null);
     const name = orderName(t, purchase);
-
-    useEffect(() => {
-        if (editing) {
-            cuotaSheetRef.current?.present();
-        }
-    }, [editing]);
-
-    const pay = (all: boolean) =>
-        router.push({ params: { all: all ? "1" : "0", planId: plan.id }, pathname: "/installments/pay" });
-
-    const deleteOrder = () =>
-        Alert.alert(t("installments.deleteOrder"), t("installments.deleteOrder.body"), [
-            { style: "cancel", text: t("common.cancel") },
-            {
-                onPress: async () => {
-                    try {
-                        await installmentsRepo.deletePlan(db, plan.id);
-                        rearmInstallmentReminders(db);
-                        haptics("warning");
-                    } catch (error) {
-                        console.error("Failed to delete the order", error);
-                        notifyFailure({ body: t("installments.failedBody"), title: t("installments.failedTitle") });
-                    }
-                },
-                style: "destructive",
-                text: t("common.delete"),
-            },
-        ]);
+    const { cuotaSheetRef, deleteOrder, editing, pay, setEditing } = useOrderActions(entry);
 
     return (
         <>
@@ -165,6 +117,8 @@ function OrderLoaded({ entry, nowMs }: { entry: PlanWithStanding; nowMs: number 
     );
 }
 
+const STATUS_TONE = { overdue: "text-expense", paid: "text-income", partial: "text-muted" } as const;
+
 interface ScheduleRowProps {
     count: number;
     isNext: boolean;
@@ -177,16 +131,7 @@ interface ScheduleRowProps {
 function ScheduleRow({ count, isNext, money, nowMs, onPress, row }: ScheduleRowProps) {
     const t = useTranslation();
     const { language } = useLanguage();
-    const due = isNext ? dueIn(t, row.row.dueDate, nowMs) : null;
-    const when = [formatSentenceDate(row.row.dueDate, language), due].filter(Boolean).join(" · ");
-    let status: { className: string; text: string } | null = null;
-    if (row.status === "paid") {
-        status = { className: "text-income", text: t("installments.paid") };
-    } else if (row.overdue) {
-        status = { className: "text-expense", text: t("installments.overdue") };
-    } else if (row.status === "partial") {
-        status = { className: "text-muted", text: t("installments.partly", { amount: money(row.covered) }) };
-    }
+    const { status, when } = scheduleRowWording(t, language, row, { isNext, money, nowMs });
     return (
         <Pressable
             accessibilityRole={onPress ? "button" : undefined}
@@ -200,7 +145,7 @@ function ScheduleRow({ count, isNext, money, nowMs, onPress, row }: ScheduleRowP
             </View>
             <View className="items-end gap-0.5">
                 <Text className="text-body text-foreground tabular-nums">{money(row.row.amount)}</Text>
-                {status ? <Text className={`${status.className} text-subtitle`}>{status.text}</Text> : null}
+                {status ? <Text className={`${STATUS_TONE[status.tone]} text-subtitle`}>{status.text}</Text> : null}
             </View>
         </Pressable>
     );

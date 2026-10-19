@@ -16,6 +16,8 @@ import { StatusBar } from "react-native";
 export const CATEGORY_DETENT = 0.65;
 export const SUBCATEGORY_DETENT = 0.55;
 export const ACCOUNT_DETENT = 0.72;
+/** The installment pay sheet: its header, the amount and two fields over the Pay button. */
+export const INSTALLMENT_PAY_DETENT = 0.62;
 
 /**
  * The Android identity picker's resting height. Taller than iOS's 430: its

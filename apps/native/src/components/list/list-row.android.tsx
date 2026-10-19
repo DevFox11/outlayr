@@ -84,10 +84,10 @@ export function ToggleRow({ icon, title, value, onValueChange, testID }: Compone
  * Android's single choice is a leading radio button, where iOS draws a trailing
  * checkmark. Like the switch above, the radio has no handler: the row takes the tap.
  */
-export function ChoiceRow({ label, detail, leading, selected, onPress }: ComponentProps<typeof IosChoiceRow>) {
+export function ChoiceRow({ label, detail, leading, selected, value, onPress }: ComponentProps<typeof IosChoiceRow>) {
     return (
         <MaterialListItem
-            accessibilityLabel={label}
+            accessibilityLabel={[label, value, detail].filter(Boolean).join(", ")}
             accessibilityRole="radio"
             accessibilityState={{ checked: selected }}
             leading={
@@ -101,7 +101,7 @@ export function ChoiceRow({ label, detail, leading, selected, onPress }: Compone
                 </>
             }
             onPress={onPress}
-            supporting={[detail]}
+            supporting={[value, detail]}
             title={label}
         />
     );
