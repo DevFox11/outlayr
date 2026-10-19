@@ -56,6 +56,7 @@ export function DaySectionHeader({ section, first = false, onShare }: DaySection
                     onPress: onShare,
                 },
             ]}
+            owner={String(section.day.getTime())}
         >
             {/* The menu lifts this view into its preview, so the group's own
 			    ground has to be on it — a transparent header would be snapshotted

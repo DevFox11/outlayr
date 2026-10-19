@@ -99,15 +99,22 @@ function LongPressMenu({
     actions,
     children,
     onPressAction,
+    owner,
     style,
 }: {
     actions: readonly MenuAction[];
     children: ReactNode;
     onPressAction?: (event: NativeActionEvent) => void;
+    owner?: string;
     style?: StyleProp<ViewStyle>;
 }) {
     const haptics = useHaptics();
     const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
+    const [shownOwner, setShownOwner] = useState(owner);
+    if (shownOwner !== owner) {
+        setShownOwner(owner);
+        setAnchor(null);
+    }
     const longPress = useLongPressGesture({
         onActivate: (event) => {
             haptics("heavy");
@@ -161,7 +168,7 @@ export const StretchedMenuView: typeof StretchedMenuViewBase = ({
 };
 
 /** A long-press Material 3 menu around a row. Same contract as `action-menu.tsx`. */
-export const ActionMenu: typeof ActionMenuBase = ({ items, children, style }) => {
+export const ActionMenu: typeof ActionMenuBase = ({ items, owner, children, style }) => {
     // An empty menu would still swallow the long press.
     if (items.length === 0) {
         return children;
@@ -175,6 +182,7 @@ export const ActionMenu: typeof ActionMenuBase = ({ items, children, style }) =>
         <LongPressMenu
             actions={actions}
             onPressAction={({ nativeEvent }) => items.find((item) => item.id === nativeEvent.event)?.onPress()}
+            owner={owner}
             style={style}
         >
             {children}

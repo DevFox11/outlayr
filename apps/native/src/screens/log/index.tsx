@@ -339,9 +339,7 @@ export function Log() {
                 keyExtractor={(item) => item.id}
                 itemsAreEqual={logEntriesEqual}
                 stickySectionHeadersEnabled={false}
-                // `ReanimatedSwipeable` keeps its open/closed offset inside the row
-                // instance, so a recycled row would inherit the previous row's swipe.
-                recycleItems={false}
+                recycleItems
                 onEndReachedThreshold={0.5}
                 onEndReached={() => {
                     if (filter === "all" && !reachedEnd) {

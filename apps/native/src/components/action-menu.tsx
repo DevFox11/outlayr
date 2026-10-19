@@ -26,6 +26,14 @@ interface ActionMenuProps {
     /** The row itself. Long-pressing it lifts it into the menu's preview. */
     children: ReactNode;
     items: readonly ActionMenuItem[];
+    /**
+     * What the items act on, for a row a recycling list hands to another entry. A
+     * menu still open when the owner changes then cannot act on the new one: on
+     * Android it closes; on iOS, where SwiftUI keeps showing the menu it opened
+     * with, the native items are rebuilt under the new owner, so a tap in that menu
+     * reaches nothing.
+     */
+    owner?: string;
     style?: StyleProp<ViewStyle>;
 }
 
@@ -72,22 +80,24 @@ export function StretchedMenuView({ children, style, ...menu }: MenuComponentPro
  * Items carry their own handler rather than an id the caller switches on, so a
  * menu cannot drift out of sync with the table that dispatches it.
  */
-export function ActionMenu({ items, children, style }: ActionMenuProps) {
+export function ActionMenu({ items, owner, children, style }: ActionMenuProps) {
     // An empty menu still swallows the long press, which reads as a dead row
     // rather than a row that offers nothing.
     if (items.length === 0) {
         return children;
     }
 
+    const actionId = (item: ActionMenuItem) => (owner === undefined ? item.id : `${owner}:${item.id}`);
+
     const actions: MenuAction[] = items.map((item) => ({
         attributes: item.destructive ? { destructive: true } : undefined,
-        id: item.id,
+        id: actionId(item),
         image: item.icon,
         title: item.label,
     }));
 
     const onPressAction = ({ nativeEvent }: NativeActionEvent) => {
-        items.find((item) => item.id === nativeEvent.event)?.onPress();
+        items.find((item) => actionId(item) === nativeEvent.event)?.onPress();
     };
 
     return (

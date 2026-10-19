@@ -1,5 +1,5 @@
 import type { RateTable } from "@outlayr/money/valuation";
-import { useCallback, useRef, useSyncExternalStore } from "react";
+import { useCallback, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { Pressable, View } from "react-native";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import type { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
@@ -32,10 +32,18 @@ export function SwipeableTransactionRow({
     onDelete,
 }: SwipeableTransactionRowProps) {
     const swipeRef = useRef<SwipeableMethods>(null);
+    const swipedId = useRef<string | null>(null);
     const t = useTranslation();
     const { id } = transaction;
     const fresh = useSyncExternalStore(freshEntries.subscribe, () => freshEntries.has(id));
     const settle = useCallback(() => freshEntries.settle(id), [id]);
+
+    useLayoutEffect(() => {
+        if (swipedId.current !== null && swipedId.current !== id) {
+            swipeRef.current?.reset();
+            swipeRef.current?.close();
+        }
+    }, [id]);
 
     const renderRightActions = () => (
         <Pressable
@@ -55,6 +63,12 @@ export function SwipeableTransactionRow({
         <View>
             <ReanimatedSwipeable
                 friction={2}
+                onSwipeableClose={() => {
+                    swipedId.current = null;
+                }}
+                onSwipeableOpenStartDrag={() => {
+                    swipedId.current = id;
+                }}
                 overshootRight={false}
                 ref={swipeRef}
                 renderRightActions={renderRightActions}
@@ -71,7 +85,7 @@ export function SwipeableTransactionRow({
                     />
                 </Animated.View>
             </ReanimatedSwipeable>
-            {fresh ? <ArrivalMark onSettled={settle} /> : null}
+            {fresh ? <ArrivalMark key={id} onSettled={settle} /> : null}
         </View>
     );
 }

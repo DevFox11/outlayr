@@ -408,5 +408,11 @@ export function TransactionRow({
         </RowPressable>
     );
 
-    return menuItems?.length ? <ActionMenu items={menuItems}>{row}</ActionMenu> : row;
+    return menuItems?.length ? (
+        <ActionMenu items={menuItems} owner={transaction.id}>
+            {row}
+        </ActionMenu>
+    ) : (
+        row
+    );
 }
