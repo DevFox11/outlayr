@@ -276,3 +276,38 @@ describe("a goal held in a 3-decimal currency", () => {
         expect(goalProgress(0, 100.005, span, 3).pace?.perMonth).toBe(50.002);
     });
 });
+
+describe("a payoff plan", () => {
+    it("climbs a debt you owe to zero, measuring what is paid", () => {
+        // Three fifths of the way along -1000 → 0, the date wants -400.
+        const progress = goalProgress(-500, 0, { ...SPAN, startAmount: -1000 });
+        expect(progress).toMatchObject({ fraction: 0.5, reached: false, remaining: 500 });
+        expect(progress.standing).toMatchObject({ against: -100, expected: -400, onPace: false });
+        expect(progress.pace).toStrictEqual({ monthsLeft: 1, perMonth: 500 });
+    });
+
+    it("brings what a person owes you down to zero", () => {
+        // Three fifths of the way along 800 → 0, the date wants 320 still owed.
+        const progress = goalProgress(200, 0, { ...SPAN, startAmount: 800 });
+        expect(progress).toMatchObject({ fraction: 0.75, reached: false, remaining: 200 });
+        expect(progress.standing).toMatchObject({ against: 120, expected: 320 });
+    });
+
+    it("owes a debt that grew in full, not just its start", () => {
+        const progress = goalProgress(-1200, 0, { ...SPAN, startAmount: -1000 });
+        expect(progress.fraction).toBe(0);
+        expect(progress.remaining).toBe(1200);
+    });
+
+    it("is reached when paid past zero, from either side", () => {
+        const done = { fraction: 1, pace: null, reached: true, remaining: 0, standing: null };
+        expect(goalProgress(50, 0, { ...SPAN, startAmount: -1000 })).toStrictEqual(done);
+        expect(goalProgress(-30, 0, { ...SPAN, startAmount: 800 })).toStrictEqual(done);
+    });
+
+    it("asks for everything still owed once the date has passed", () => {
+        const progress = goalProgress(300, 0, { ...SPAN, now: new Date("2027-01-01T12:00:00Z"), startAmount: 800 });
+        expect(progress.pace).toStrictEqual({ monthsLeft: 0, perMonth: 300 });
+        expect(progress.standing).toMatchObject({ against: -300, elapsed: 1, expected: 0 });
+    });
+});

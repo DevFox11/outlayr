@@ -9,6 +9,10 @@
  *
  * Every goal carries a date. A target with no deadline has no pace, and the pace
  * is the only forward-looking number the app can give — see {@link goalProgress}.
+ *
+ * A payoff plan is the same goal on a liability or a person with zero as its
+ * target. Its line runs from the start balance to zero from either side: a debt
+ * you owe climbs to it, money a person owes you comes down to it.
  */
 
 import { roundMoney } from "@outlayr/money/round";
@@ -55,7 +59,10 @@ interface GoalStanding {
 }
 
 export interface GoalProgress {
-    /** 0 to 1, clamped. An overdrawn account reads as no progress, not negative. */
+    /**
+     * 0 to 1, clamped. An overdrawn account reads as no progress, not negative.
+     * On a payoff plan it is the share of the start balance paid off.
+     */
     fraction: number;
     /** Null once the goal is reached: nothing is still being asked for. */
     pace: GoalPace | null;
@@ -82,6 +89,13 @@ const REQUIRED_LINE_SAMPLES = 24;
 
 const DAYS_PER_MONTH = 30.44;
 
+const NO_PROGRESS: GoalProgress = { fraction: 0, pace: null, reached: false, remaining: 0, standing: null };
+
+/** A goal whose target is zero: it pays a balance off rather than saving one up. */
+export function isPayoffPlan(goal: { targetAmount: number }): boolean {
+    return goal.targetAmount === 0;
+}
+
 /**
  * Where an account stands against its target, the pace that would land it on the
  * date, and whether it is ahead of or behind that pace.
@@ -92,14 +106,59 @@ const DAYS_PER_MONTH = 30.44;
  * difference between "you have $2,140" and "you are $212 ahead of the date".
  */
 export function goalProgress(saved: number, target: number, span?: GoalSpan, decimals = 2): GoalProgress {
-    if (!(Number.isFinite(target) && target > 0)) {
-        return { fraction: 0, pace: null, reached: false, remaining: 0, standing: null };
+    // A payoff plan's line starts at the frozen balance, so without a span it has none.
+    if (target === 0 && span !== undefined) {
+        return payoffProgress(saved, span, decimals);
     }
-
+    if (!(Number.isFinite(target) && target > 0)) {
+        return NO_PROGRESS;
+    }
     const held = Number.isFinite(saved) ? Math.max(0, saved) : 0;
+    return progressAlong(
+        held,
+        0,
+        target,
+        span && { ...span, startAmount: normalisedStart(span.startAmount) },
+        decimals
+    );
+}
+
+/**
+ * Mirrored so the line always climbs to zero: a balance a person owes you is
+ * negated, and money still owed reads the same from either side. Not clamped like
+ * a savings balance: a debt that grew is owed in full, and paying past zero (so
+ * the person now owes you) is reached, not broken.
+ */
+function payoffProgress(balance: number, span: GoalSpan, decimals: number): GoalProgress {
+    const start = Number.isFinite(span.startAmount) ? span.startAmount : 0;
+    const signed = Number.isFinite(balance) ? balance : start;
+    const direction = (start || signed) > 0 ? -1 : 1;
+    const from = direction * start;
+    const progress = progressAlong(direction * signed, from, 0, { ...span, startAmount: from }, decimals);
+    const { standing } = progress;
+    // Back on the balance's own side, so `expected` is what the balance should read today.
+    return standing
+        ? { ...progress, standing: { ...standing, expected: direction * standing.expected || 0 } }
+        : progress;
+}
+
+/**
+ * Progress up a line from `span.startAmount` to `target`, with `fraction` counted
+ * from `origin`: zero for a savings goal, which reads as the share of the target
+ * held, and the start for a payoff plan, which reads as the share paid.
+ */
+function progressAlong(
+    held: number,
+    origin: number,
+    target: number,
+    span: GoalSpan | undefined,
+    decimals: number
+): GoalProgress {
     const remaining = Math.max(0, round(target - held, decimals));
     const reached = remaining === 0;
-    const fraction = reached ? 1 : Math.min(1, held / target);
+    // A plan set on a settled balance has no distance: still owing, it divides to
+    // -Infinity and clamps to no progress.
+    const fraction = reached ? 1 : Math.min(1, Math.max(0, (held - origin) / (target - origin)));
 
     if (span === undefined) {
         return { fraction, pace: null, reached, remaining, standing: null };
@@ -125,10 +184,11 @@ function paceFor(remaining: number, { now, targetDate }: GoalSpan, decimals: num
 }
 
 /**
- * Never negative, matching `held`. A goal opened on an overdrawn or liability
- * account would otherwise start its line a thousand below zero while the balance
- * above it was clamped to zero — reporting the debt's own magnitude as an
- * immediate lead. An account in the red has put nothing aside, at either end.
+ * Never negative, matching `held`. A savings goal opened on an overdrawn or
+ * liability account would otherwise start its line a thousand below zero while
+ * the balance above it was clamped to zero — reporting the debt's own magnitude
+ * as an immediate lead. An account in the red has put nothing aside, at either
+ * end. A payoff plan keeps its start: there the debt is the line.
  */
 function normalisedStart(startAmount: number): number {
     return Number.isFinite(startAmount) ? Math.max(0, startAmount) : 0;
@@ -162,22 +222,21 @@ function standingFor(
     const elapsed = Math.min(1, Math.max(0, daysBetween(opened, from) / totalDays));
     // Clamped to the target: past the date the line has arrived, and "behind" then
     // means the whole remainder, which is exactly what the pace already says.
-    const start = normalisedStart(startAmount);
-    const expected = round(start + (target - start) * elapsed, decimals);
+    const expected = round(startAmount + (target - startAmount) * elapsed, decimals);
     const against = round(held - expected, decimals);
     return {
         against,
         elapsed,
         expected,
-        // The normalised start, not the raw one: the band has to describe the line
-        // that is actually drawn. A -1,000 → 4,000 goal climbs 40 a day once the
-        // anchor is clamped, and measuring its tolerance against the unclamped
+        // The start the caller normalised, not the raw one: the band has to describe
+        // the line that is actually drawn. A -1,000 → 4,000 goal climbs 40 a day once
+        // the anchor is clamped, and measuring its tolerance against the unclamped
         // 5,000 span would call a balance a full day behind "on pace".
         // `<=`, so a FULL day of drift is tolerated rather than merely less than
         // one. Now that the line advances in whole days, a goal set yesterday and
         // not yet contributed to sits exactly one day behind — the commonest state
         // a new goal is in, and not a verdict it has earned.
-        onPace: Math.abs(against) <= onPaceBand(target, start, totalDays, decimals),
+        onPace: Math.abs(against) <= onPaceBand(target, startAmount, totalDays, decimals),
     };
 }
 

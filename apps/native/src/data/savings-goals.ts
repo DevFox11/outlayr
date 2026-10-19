@@ -11,7 +11,7 @@ import { goalBalanceSeries } from "@/domain/goal-balance-series";
 import type { GoalLinePoint } from "@/domain/goal-pace-geometry";
 import { startOfLocalDay } from "@/domain/local-day";
 import { minorUnitsFor } from "@/domain/money";
-import { goalProgress } from "@/domain/savings-goal";
+import { goalProgress, isPayoffPlan } from "@/domain/savings-goal";
 import type { GoalProgress } from "@/domain/savings-goal";
 
 import { useAccounts, useBalanceRates, useSettledAccountCells } from "./accounts";
@@ -55,7 +55,7 @@ const NO_ROWS: never[] = [];
 const NO_READ = { all: () => NO_ROWS };
 
 /**
- * Every goal with the balance behind it, valued into the ledger's display
+ * Every savings goal with the balance behind it, valued into the ledger's display
  * currency so a goal set in one currency and an account held in another still
  * compare. The target converts through its own frozen `targetAmountUsd`, the
  * same contract every other cross-currency figure keeps.
@@ -67,7 +67,9 @@ const NO_READ = { all: () => NO_ROWS };
  * yesterday's.
  */
 export function useSavingsGoals(db: Database, nowMs: number): SavingsGoalWithProgress[] {
-    const goals = useLiveQuery(savingsGoals, () => savingsGoalsQuery(db));
+    const all = useLiveQuery(savingsGoals, () => savingsGoalsQuery(db));
+    // Payoff plans are drawn on the Debts screen, not as goals to save toward.
+    const goals = useMemo(() => all.filter((goal) => !isPayoffPlan(goal)), [all]);
     const accounts = useAccounts(db);
     // Bounded at `now` in SQL, not filtered afterwards: a cell carries only a day
     // key, so an entry scheduled for later today is indistinguishable from one

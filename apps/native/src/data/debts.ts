@@ -4,6 +4,7 @@ import type { AccountsOverview, OverviewRow } from "@outlayr/money/account-overv
 import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
+import { savingsGoals } from "@/db/schema";
 import { debtsOverview } from "@/domain/debts";
 import type { DebtsOverview } from "@/domain/debts";
 
@@ -14,6 +15,10 @@ import { dueWindow, installmentsByAccount } from "./debts-due";
 import type { AccountInstallments, DueWindow } from "./debts-due";
 import { useInstallmentPlans } from "./installments";
 import type { PlanWithStanding } from "./installments-core";
+import { useLiveQuery } from "./live-query";
+import { payoffLines } from "./payoff-plans";
+import type { PayoffLine } from "./payoff-plans";
+import { savingsGoalsQuery } from "./savings-goals-core";
 import { useDeferredDelete } from "./use-deferred-delete";
 import type { Valuation } from "./valuation-source";
 
@@ -52,11 +57,15 @@ function debtsIn(
 /**
  * Every liability account and every person, valued into the ledger's display
  * currency and split the way the Debts screen reads them. Each row carries its
- * account, so the screen needs no second lookup for a name or a logo. An
- * account whose deletion is pending its undo window is left out, as on the
- * Accounts screen, so the totals move as the row leaves.
+ * account, so the screen needs no second lookup for a name or a logo, and
+ * `payoff` holds each row's plan by account id. An account or a plan whose
+ * deletion is pending its undo window is left out, as on the Accounts screen,
+ * so the totals move as the row leaves.
  */
-export function useDebtsOverview(db: Database, nowMs: number): DebtsScreenOverview {
+export function useDebtsOverview(
+    db: Database,
+    nowMs: number
+): DebtsScreenOverview & { payoff: ReadonlyMap<string, PayoffLine> } {
     const all = useAccounts(db);
     const { pendingId } = useDeferredDelete("account");
     const debts = useMemo(
@@ -70,10 +79,16 @@ export function useDebtsOverview(db: Database, nowMs: number): DebtsScreenOvervi
     const displayCurrency = useGlobalCurrency(db);
     const { overview, rates } = useOverviewOf(db, debts, displayCurrency, nowMs);
     const plans = useInstallmentPlans(db, nowMs);
-    return useMemo(
-        () => debtsIn(debts, overview, plans, { displayCurrency, rates }, nowMs),
-        [debts, overview, plans, displayCurrency, rates, nowMs]
-    );
+    const goals = useLiveQuery(savingsGoals, () => savingsGoalsQuery(db));
+    const { pendingId: pendingGoalId } = useDeferredDelete("goal");
+    return useMemo(() => {
+        const valuation = { displayCurrency, rates };
+        const live = goals.filter((goal) => goal.id !== pendingGoalId);
+        return {
+            ...debtsIn(debts, overview, plans, valuation, nowMs),
+            payoff: payoffLines(live, overview?.rows ?? [], valuation, nowMs),
+        };
+    }, [debts, overview, plans, goals, pendingGoalId, displayCurrency, rates, nowMs]);
 }
 
 export interface LogOverview {
