@@ -20,7 +20,7 @@
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { availableParallelism, loadavg } from "node:os";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { parseArgs } from "node:util";
 
@@ -28,6 +28,12 @@ const APP = "com.tryoutlayr.app";
 const SNAPSHOT = "perf-seeded";
 const READY_TEXT = "Hide amounts";
 const MAX_ATTEMPTS = 5;
+/** Four launches of 45 s each: the three minutes a single launch used to get. */
+const LAUNCHES = 4;
+const LAUNCH_POLLS = 22;
+/** Metro drops a dead app within about 65 s (a ping every 5 s, 60 s without a pong). */
+const DRAIN_POLLS = 40;
+const STARTUP_SETTLE_MS = 10_000;
 
 const { values: args } = parseArgs({
     options: {
@@ -56,6 +62,8 @@ const sides = { base: Number(args.base), pr: Number(args.pr) } as const;
 type Side = keyof typeof sides;
 
 interface Run {
+    /** argent's per-commit render causes for each `--components` entry, for the JSON only. */
+    causes: Record<string, string>;
     commits: number;
     /** Times each `--components` entry rendered in the slow commits argent keeps. */
     components: Record<string, number>;
@@ -78,8 +86,8 @@ function argent(tool: string, flags: string[]): Record<string, unknown> {
 
 const OCCURRENCES = /\*\*Total occurrences:\*\* (\d+)/;
 
-/** Times the component rendered in the stopped session's slow commits; 0 when it never did. */
-function rendersOf(component: string, target: string[]): number {
+/** Times the component rendered in the stopped session's slow commits (0 when it never did), and why. */
+function rendersOf(component: string, target: string[]): { causes: string; renders: number } {
     const output = execFileSync(
         "argent",
         [
@@ -91,57 +99,90 @@ function rendersOf(component: string, target: string[]): number {
             "--component_name",
             component,
             "--top_n",
-            "1",
+            "10",
         ],
         { encoding: "utf-8" }
     );
     if (output.includes("not found in this profiling session")) {
-        return 0;
+        return { causes: "", renders: 0 };
     }
     const renders = OCCURRENCES.exec(output)?.[1];
     if (renders === undefined) {
         throw new Error(`profiler-commit-query ${component}: ${output.slice(0, 300)}`);
     }
-    return Number(renders);
+    return { causes: output, renders: Number(renders) };
 }
 
-async function waitForDebugTarget(port: number) {
-    for (let attempt = 0; attempt < 90; attempt += 1) {
-        const targets = (await fetch(`http://localhost:${port}/json/list`).then((response) =>
-            response.json()
-        )) as unknown[];
-        if (targets.length > 0) {
+async function debugTargetCount(port: number): Promise<number> {
+    const targets = (await fetch(`http://localhost:${port}/json/list`).then((response) =>
+        response.json()
+    )) as unknown[];
+    return targets.length;
+}
+
+async function debugTargetAttached(port: number, polls: number): Promise<boolean> {
+    for (let poll = 0; poll < polls; poll += 1) {
+        if ((await debugTargetCount(port)) > 0) {
+            return true;
+        }
+        await sleep(2000);
+    }
+    return false;
+}
+
+/**
+ * Waits for Metro to list no app, so the next entry is the launch's own. An app that died without
+ * closing its socket stays listed until Metro's heartbeat gives up, about a minute, under the same
+ * id a relaunch registers.
+ */
+async function waitForNoDebugTarget(port: number) {
+    for (let poll = 0; poll < DRAIN_POLLS; poll += 1) {
+        if ((await debugTargetCount(port)) === 0) {
             return;
         }
         await sleep(2000);
     }
-    throw new Error(`No app attached to Metro on ${port} after 3 minutes.`);
+    throw new Error(`Metro on ${port} still lists an app ${DRAIN_POLLS * 2} s after it was stopped.`);
 }
 
 /**
  * A cold start, so the app opens fresh debugger and packager sockets to the side's Metro. It
  * reaches Metro through the emulator's host address rather than `adb reverse`: the emulator's
  * adb connection can drop mid-flow, and a reverse tunnel takes the profiler's debugger with it.
+ *
+ * Right after a snapshot load the guest network can still time out connecting to the host, and
+ * the dev client then sits on its error screen, so an app that has not attached is relaunched.
  */
 async function startOn(port: number) {
+    // Stopped before the load, so its socket closes now rather than at Metro's heartbeat timeout.
+    adb("shell", "am", "force-stop", APP);
     const loaded = adb("emu", "avd", "snapshot", "load", SNAPSHOT);
     if (!loaded.includes("OK")) {
         throw new Error(`Snapshot ${SNAPSHOT} did not load: ${loaded}`);
     }
     adb("wait-for-device");
-    adb("shell", "am", "force-stop", APP);
     const url = encodeURIComponent(`http://10.0.2.2:${port}`);
-    adb(
-        "shell",
-        "am",
-        "start",
-        "-a",
-        "android.intent.action.VIEW",
-        "-d",
-        `exp+outlayr://expo-development-client/?url=${url}`,
-        APP
-    );
-    await waitForDebugTarget(port);
+    let attached = false;
+    for (let launch = 0; launch < LAUNCHES && !attached; launch += 1) {
+        adb("shell", "am", "force-stop", APP);
+        // oxlint-disable-next-line no-await-in-loop -- the stopped app must leave Metro's list before the next launch
+        await waitForNoDebugTarget(port);
+        adb(
+            "shell",
+            "am",
+            "start",
+            "-a",
+            "android.intent.action.VIEW",
+            "-d",
+            `exp+outlayr://expo-development-client/?url=${url}`,
+            APP
+        );
+        // oxlint-disable-next-line no-await-in-loop -- each launch waits for the previous one to attach
+        attached = await debugTargetAttached(port, LAUNCH_POLLS);
+    }
+    if (!attached) {
+        throw new Error(`No app attached to Metro on ${port} after ${LAUNCHES} launches.`);
+    }
     const ready = argent("await-ui-element", [
         "--udid",
         device,
@@ -174,6 +215,9 @@ async function measure(side: Side): Promise<Run> {
     await startOn(port);
     const target = ["--device_id", device, "--port", String(port)];
     argent("debugger-connect", target);
+    // Startup work (session, entitlement, adoption) still lands a context commit or two after the
+    // Log shows; profiled, it reads as a render the flow never caused.
+    await sleep(STARTUP_SETTLE_MS);
     argent("react-profiler-start", target);
     // The debugger can drop a couple of seconds after the start; fail before the flow rather than after it.
     await sleep(3000);
@@ -188,11 +232,16 @@ async function measure(side: Side): Promise<Run> {
         throw new Error(`The profiler captured no commits on ${side}: ${JSON.stringify(stopped)}`);
     }
     const hotCommits = Array.isArray(stopped.hot_commit_indices) ? stopped.hot_commit_indices.length : 0;
+    const queried = new Map(
+        components.map((component) => [
+            component,
+            hotCommits === 0 ? { causes: "", renders: 0 } : rendersOf(component, target),
+        ])
+    );
     return {
+        causes: Object.fromEntries([...queried].map(([component, { causes }]) => [component, causes])),
         commits,
-        components: Object.fromEntries(
-            components.map((component) => [component, hotCommits === 0 ? 0 : rendersOf(component, target)])
-        ),
+        components: Object.fromEntries([...queried].map(([component, { renders }]) => [component, renders])),
         fiberRenders: Number(stopped.fiber_renders_captured),
         hotCommits,
         profiledMs: Math.round(Number(stopped.duration_ms)),
@@ -213,7 +262,15 @@ async function measureWithRetries(side: Side): Promise<Run> {
             if (attempt === MAX_ATTEMPTS) {
                 throw error;
             }
-            process.stderr.write(`Retrying ${side}: ${error instanceof Error ? error.message : String(error)}\n`);
+            let screen = resolve(args.out === undefined ? "." : dirname(args.out), `failed-${side}-${Date.now()}.png`);
+            try {
+                writeFileSync(screen, execFileSync("adb", ["-s", device, "exec-out", "screencap", "-p"]));
+            } catch {
+                screen = "not captured";
+            }
+            process.stderr.write(
+                `Retrying ${side} (screen: ${screen}): ${error instanceof Error ? error.message : String(error)}\n`
+            );
         }
     }
 }
@@ -233,7 +290,8 @@ async function main() {
             // oxlint-disable-next-line no-await-in-loop -- runs share one emulator, so they must not overlap
             const run = await measureWithRetries(side);
             runs.push(run);
-            process.stdout.write(`${JSON.stringify(run)}\n`);
+            const { causes: _causes, ...summary } = run;
+            process.stdout.write(`${JSON.stringify(summary)}\n`);
         }
     }
 
