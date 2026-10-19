@@ -136,7 +136,8 @@ export function useExpenseContributions(
     const data = useLiveQuery(
         transactions,
         () => expenseContributionQuery(db, new Date(nowMs), sinceMs === null ? null : new Date(sinceMs)),
-        [nowMs, sinceMs]
+        [nowMs, sinceMs],
+        nowMs
     );
 
     const categoryMeta = useCategoryMeta(db);

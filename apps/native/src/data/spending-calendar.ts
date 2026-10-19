@@ -66,7 +66,7 @@ function normalizeRows(
 }
 
 export function useSpendingCalendar(db: Database, nowMs: number): SpendingCalendarEntry[] {
-    const rows = useLiveQuery(transactions, () => spendingCalendarQuery(db, new Date(nowMs)), [nowMs]);
+    const rows = useLiveQuery(transactions, () => spendingCalendarQuery(db, new Date(nowMs)), [nowMs], nowMs);
     const valuation = useValuation(db);
 
     return useMemo(

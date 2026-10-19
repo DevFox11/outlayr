@@ -84,22 +84,27 @@ export function useSparklineRows(
         exchangeRateType: transactions.exchangeRateType,
         income: transactions.income,
     };
-    const rows = useLiveQuery(transactions, () => {
-        if (!enabled) {
-            return db.select(columns).from(transactions).where(eq(transactions.id, ""));
-        }
-        return db
-            .select(columns)
-            .from(transactions)
-            .where(
-                and(
-                    isNull(transactions.deletedAt),
-                    lte(transactions.date, new Date(nowMs)),
-                    cumulative || !floor ? undefined : gte(transactions.date, floor)
+    const rows = useLiveQuery(
+        transactions,
+        () => {
+            if (!enabled) {
+                return db.select(columns).from(transactions).where(eq(transactions.id, ""));
+            }
+            return db
+                .select(columns)
+                .from(transactions)
+                .where(
+                    and(
+                        isNull(transactions.deletedAt),
+                        lte(transactions.date, new Date(nowMs)),
+                        cumulative || !floor ? undefined : gte(transactions.date, floor)
+                    )
                 )
-            )
-            .orderBy(asc(transactions.date));
-    }, [nowMs, enabled, cumulative, floor?.getTime() ?? null]);
+                .orderBy(asc(transactions.date));
+        },
+        [nowMs, enabled, cumulative, floor?.getTime() ?? null],
+        nowMs
+    );
 
     return useMemo(() => {
         const valued = valueDatedRowsIn(rows, displayCurrency, rates);
@@ -141,7 +146,7 @@ export function useLogInsights(
     const now = new Date(nowMs);
     const start = logPeriodStart(period, now, firstWeekday);
 
-    const rows = useLiveQuery(transactions, () => logCellQuery(db, start, now), [nowMs, period, firstWeekday]);
+    const rows = useLiveQuery(transactions, () => logCellQuery(db, start, now), [nowMs, period, firstWeekday], nowMs);
 
     return useMemo(() => {
         const ordered = cellFigures(toCurrencyCells(rows), globalCurrency, rates);

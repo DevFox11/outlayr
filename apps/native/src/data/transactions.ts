@@ -69,12 +69,12 @@ export interface LoggedTransactions {
  * skipping rows.
  */
 export function useLoggedTransactions(db: Database, nowMs: number, days: number): LoggedTransactions {
-    const dayRows = useLiveQuery(transactions, () => logWindowDaysQuery(db, nowMs, days), [nowMs, days]);
+    const dayRows = useLiveQuery(transactions, () => logWindowDaysQuery(db, nowMs, days), [nowMs, days], nowMs);
 
     const floorMs = dayRows.at(-1)?.day?.getTime() ?? null;
     const reachedEnd = dayRows.length < days;
 
-    const data = useLiveQuery(transactions, () => logWindowRowsQuery(db, nowMs, floorMs), [nowMs, floorMs]);
+    const data = useLiveQuery(transactions, () => logWindowRowsQuery(db, nowMs, floorMs), [nowMs, floorMs], nowMs);
     const rows = useDecoratedRows(db, data);
 
     return useMemo(() => ({ reachedEnd, rows }), [rows, reachedEnd]);

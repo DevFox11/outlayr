@@ -57,25 +57,34 @@ export function useWindowTransactions(db: Database, query: WindowTransactionsQue
     // without re-subscribing on every render's fresh array identity.
     const contributingKey = contributingIds?.join(",") ?? "";
 
-    const data = useLiveQuery(transactions, () => {
-        if (!enabled) {
-            return db.select(getTableColumns(transactions)).from(transactions).where(eq(transactions.id, "")).limit(0);
-        }
-        return db
-            .select(getTableColumns(transactions))
-            .from(transactions)
-            .where(
-                and(
-                    isNull(transactions.deletedAt),
-                    gte(transactions.date, new Date(startMs)),
-                    lt(transactions.date, new Date(endMs)),
-                    lte(transactions.date, new Date(nowMs)),
-                    income == null ? undefined : eq(transactions.income, income),
-                    contributingIds ? inArray(transactions.categoryId, contributingIds) : undefined
+    const data = useLiveQuery(
+        transactions,
+        () => {
+            if (!enabled) {
+                return db
+                    .select(getTableColumns(transactions))
+                    .from(transactions)
+                    .where(eq(transactions.id, ""))
+                    .limit(0);
+            }
+            return db
+                .select(getTableColumns(transactions))
+                .from(transactions)
+                .where(
+                    and(
+                        isNull(transactions.deletedAt),
+                        gte(transactions.date, new Date(startMs)),
+                        lt(transactions.date, new Date(endMs)),
+                        lte(transactions.date, new Date(nowMs)),
+                        income == null ? undefined : eq(transactions.income, income),
+                        contributingIds ? inArray(transactions.categoryId, contributingIds) : undefined
+                    )
                 )
-            )
-            .orderBy(desc(transactions.date), asc(transactions.feeForId));
-    }, [enabled, startMs, endMs, nowMs, income, contributingKey]);
+                .orderBy(desc(transactions.date), asc(transactions.feeForId));
+        },
+        [enabled, startMs, endMs, nowMs, income, contributingKey],
+        nowMs
+    );
 
     return useDecoratedRows(db, data);
 }

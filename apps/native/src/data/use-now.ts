@@ -91,7 +91,8 @@ function subscribe(notify: () => void): () => void {
     };
 }
 
-function read(): number {
+/** What `useNow()` returns, for a caller outside render. */
+export function readNow(): number {
     return readingMs;
 }
 
@@ -108,5 +109,5 @@ function read(): number {
  * listeners are installed once for the app, not once per screen reading it.
  */
 export function useNow(): number {
-    return useSyncExternalStore(subscribe, read);
+    return useSyncExternalStore(subscribe, readNow);
 }

@@ -119,7 +119,8 @@ export function useInsights(
                         lte(transactions.date, new Date(nowMs))
                     )
                 ),
-        [nowMs, queryStart.getTime()]
+        [nowMs, queryStart.getTime()],
+        nowMs
     );
 
     // How far back the pager may step. Derived from its own aggregate row because

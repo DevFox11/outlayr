@@ -107,7 +107,8 @@ export function useLogTransfers(db: Database, nowMs: number, bounds: TransferBou
                           )
                 )
                 .orderBy(desc(transfers.day), desc(transfers.date)),
-        [nowMs, bounds === null, bounds?.floorOn, bounds?.since?.getTime() ?? 0, bounds?.until?.getTime() ?? 0]
+        [nowMs, bounds === null, bounds?.floorOn, bounds?.since?.getTime() ?? 0, bounds?.until?.getTime() ?? 0],
+        nowMs
     );
     const fees = useTransferFees(db, bounds !== null);
     const byId = useMemo(() => new Map(accounts.map((account) => [account.id, account])), [accounts]);

@@ -41,7 +41,8 @@ export function useSearchedTransactions(db: Database, query: string, nowMs: numb
     const rows = useLiveQuery(
         transactions,
         () => searchedTransactionsQuery(db, { categoryIds, nowMs, query: trimmed }),
-        [trimmed, categoryIds.join(","), nowMs]
+        [trimmed, categoryIds.join(","), nowMs],
+        nowMs
     );
 
     return useDecoratedRows(db, rows);

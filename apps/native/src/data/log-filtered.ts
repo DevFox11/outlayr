@@ -111,7 +111,8 @@ export function useFilteredTransactions(db: Database, nowMs: number, scope: LogF
             scope.income,
             scope.firstWeekday,
             categoryIds?.join(",") ?? "",
-        ]
+        ],
+        nowMs
     );
 
     return useDecoratedRows(db, rows);
@@ -151,7 +152,8 @@ export function useUpcomingTransactions(db: Database, nowMs: number, limited: bo
                         and(isNull(transactions.deletedAt), gt(transactions.date, now))
                     )
                 ),
-        [nowMs]
+        [nowMs],
+        nowMs
     );
 
     const decorated = useDecoratedRows(db, rows);

@@ -74,22 +74,29 @@ export function useSavingsGoals(db: Database, nowMs: number): SavingsGoalWithPro
     // already made and would read as money already put aside.
     const settledAt = useMemo(() => new Date(nowMs), [nowMs]);
     const enabled = goals.length > 0;
-    const cellRows = useLiveQuery(transactions, () => (enabled ? settledAccountsCellQuery(db, settledAt) : NO_READ), [
-        enabled,
-        settledAt,
-    ]);
-    const outbound = useLiveQuery(transfers, () => (enabled ? settledTransfersOutboundQuery(db, settledAt) : NO_READ), [
-        enabled,
-        settledAt,
-    ]);
-    const inbound = useLiveQuery(transfers, () => (enabled ? settledTransfersInboundQuery(db, settledAt) : NO_READ), [
-        enabled,
-        settledAt,
-    ]);
+    const cellRows = useLiveQuery(
+        transactions,
+        () => (enabled ? settledAccountsCellQuery(db, settledAt) : NO_READ),
+        [enabled, settledAt],
+        nowMs
+    );
+    const outbound = useLiveQuery(
+        transfers,
+        () => (enabled ? settledTransfersOutboundQuery(db, settledAt) : NO_READ),
+        [enabled, settledAt],
+        nowMs
+    );
+    const inbound = useLiveQuery(
+        transfers,
+        () => (enabled ? settledTransfersInboundQuery(db, settledAt) : NO_READ),
+        [enabled, settledAt],
+        nowMs
+    );
     const outside = useLiveQuery(
         outsidePayments,
         () => (enabled ? settledOutsidePaymentsQuery(db, settledAt) : NO_READ),
-        [enabled, settledAt]
+        [enabled, settledAt],
+        nowMs
     );
     const displayCurrency = useGlobalCurrency(db);
     const rates = useBalanceRates(db, displayCurrency, accounts);

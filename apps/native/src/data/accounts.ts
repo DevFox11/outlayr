@@ -75,22 +75,30 @@ export function useSettledAccountCells(db: Database, accountId: string, nowMs: n
     // keeps only a day key, so a row dated later today cannot be told from one
     // already made once it is grouped.
     const settledAt = useMemo(() => new Date(nowMs), [nowMs]);
-    const rows = useLiveQuery(transactions, () => settledAccountCellQuery(db, accountId, settledAt), [
-        accountId,
-        settledAt,
-    ]);
-    const outbound = useLiveQuery(transfers, () => settledTransferOutboundQuery(db, accountId, settledAt), [
-        accountId,
-        settledAt,
-    ]);
-    const inbound = useLiveQuery(transfers, () => settledTransferInboundQuery(db, accountId, settledAt), [
-        accountId,
-        settledAt,
-    ]);
-    const outside = useLiveQuery(outsidePayments, () => settledOutsidePaymentQuery(db, accountId, settledAt), [
-        accountId,
-        settledAt,
-    ]);
+    const rows = useLiveQuery(
+        transactions,
+        () => settledAccountCellQuery(db, accountId, settledAt),
+        [accountId, settledAt],
+        nowMs
+    );
+    const outbound = useLiveQuery(
+        transfers,
+        () => settledTransferOutboundQuery(db, accountId, settledAt),
+        [accountId, settledAt],
+        nowMs
+    );
+    const inbound = useLiveQuery(
+        transfers,
+        () => settledTransferInboundQuery(db, accountId, settledAt),
+        [accountId, settledAt],
+        nowMs
+    );
+    const outside = useLiveQuery(
+        outsidePayments,
+        () => settledOutsidePaymentQuery(db, accountId, settledAt),
+        [accountId, settledAt],
+        nowMs
+    );
     return useMemo(
         () => [
             // `plotDay` says where a row is DRAWN; `dateKey` stays the day it was
@@ -130,10 +138,11 @@ export function useAccountBalance(
 
 /** Every settled entry, transfer leg and outside payment as one list of cells, read once per caller. */
 function useSettledCells(db: Database, settledAt: Date): AccountCellRow[] {
-    const cellRows = useLiveQuery(transactions, () => settledAccountsCellQuery(db, settledAt), [settledAt]);
-    const outbound = useLiveQuery(transfers, () => settledTransfersOutboundQuery(db, settledAt), [settledAt]);
-    const inbound = useLiveQuery(transfers, () => settledTransfersInboundQuery(db, settledAt), [settledAt]);
-    const outside = useLiveQuery(outsidePayments, () => settledOutsidePaymentsQuery(db, settledAt), [settledAt]);
+    const clock = settledAt.getTime();
+    const cellRows = useLiveQuery(transactions, () => settledAccountsCellQuery(db, settledAt), [settledAt], clock);
+    const outbound = useLiveQuery(transfers, () => settledTransfersOutboundQuery(db, settledAt), [settledAt], clock);
+    const inbound = useLiveQuery(transfers, () => settledTransfersInboundQuery(db, settledAt), [settledAt], clock);
+    const outside = useLiveQuery(outsidePayments, () => settledOutsidePaymentsQuery(db, settledAt), [settledAt], clock);
     return useMemo(
         () => [
             ...cellRows.map((row) => ({ ...toCurrencyCell(row), accountId: row.accountId })),

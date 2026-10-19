@@ -5,6 +5,7 @@ import { useCallback, useRef, useSyncExternalStore } from "react";
 import { subscribeToTableChanges } from "./database-changes";
 import { subscribeRatesRevision } from "./rates-revision";
 import { sameRows } from "./same-rows";
+import { readNow } from "./use-now";
 
 /**
  * A Drizzle query the expo-sqlite driver can run on the JS thread: the driver is
@@ -15,8 +16,16 @@ export interface SyncQuery<TRow> {
     all: () => TRow[];
 }
 
+/**
+ * What `getSnapshot` hands React's change check in place of a read it skips. It
+ * equals no value, so the component re-renders and reads there instead.
+ */
+const SKIPPED_READ = Symbol("skipped read");
+
 interface Snapshot<TValue> {
     deps: readonly unknown[];
+    /** Whether the read's `clock` was the standing `useNow()` reading. */
+    followsClock: boolean;
     revision: number;
     value: TValue;
 }
@@ -52,13 +61,20 @@ function sameDeps(a: readonly unknown[], b: readonly unknown[]): boolean {
  *
  * A re-read that finds the same rows, column by column, hands back the previous
  * array, so a write that leaves this query's rows alone re-renders nothing.
+ *
+ * `clock` is the time the query is bounded by, when that can be the `useNow()`
+ * reading. While it follows the reading, a ledger write moves both, so the
+ * render that follows reads with the new bound anyway, and the read React's
+ * change check would make with the old one is skipped. A bound pinned elsewhere
+ * reads in the check as before.
  */
 export function useLiveQuery<TRow extends object>(
     table: SQLiteTable,
     build: () => SyncQuery<TRow>,
-    deps: readonly unknown[] = []
+    deps: readonly unknown[] = [],
+    clock?: number
 ): TRow[] {
-    return useLiveRead(table, () => build().all(), deps, sameRows);
+    return useLiveRead(table, () => build().all(), deps, sameRows, clock);
 }
 
 /**
@@ -87,11 +103,12 @@ function useLiveRead<TValue>(
     table: SQLiteTable,
     read: () => TValue,
     deps: readonly unknown[],
-    equal?: (cached: TValue, next: TValue) => boolean
+    equal?: (cached: TValue, next: TValue) => boolean,
+    clock?: number
 ): TValue {
     const tableName = getTableName(table);
     const subscribeTable = useCallback((bump: () => void) => subscribeToTableChanges(tableName, bump), [tableName]);
-    return useRead(subscribeTable, read, deps, equal);
+    return useRead(subscribeTable, read, deps, equal, clock);
 }
 
 export function useRatesRead<TValue>(read: () => TValue, deps: readonly unknown[] = []): TValue {
@@ -102,16 +119,23 @@ function useRead<TValue>(
     subscribeChanges: (bump: () => void) => () => void,
     read: () => TValue,
     deps: readonly unknown[],
-    equal?: (cached: TValue, next: TValue) => boolean
+    equal?: (cached: TValue, next: TValue) => boolean,
+    clock?: number
 ): TValue {
     const revision = useRef(0);
     const snapshot = useRef<Snapshot<TValue> | null>(null);
+    const inChangeCheck = useRef(false);
 
     const subscribe = useCallback(
         (onStoreChange: () => void) =>
             subscribeChanges(() => {
                 revision.current += 1;
-                onStoreChange();
+                inChangeCheck.current = true;
+                try {
+                    onStoreChange();
+                } finally {
+                    inChangeCheck.current = false;
+                }
             }),
         [subscribeChanges]
     );
@@ -119,16 +143,26 @@ function useRead<TValue>(
     // React calls this on every render to detect a change, so it must return the
     // identical value until something actually invalidates it — re-reading (or
     // even re-wrapping the rows) here would loop forever.
-    const getSnapshot = (): TValue => {
+    const getSnapshot = (): TValue | typeof SKIPPED_READ => {
         const cached = snapshot.current;
         if (cached !== null && cached.revision === revision.current && sameDeps(cached.deps, deps)) {
             return cached.value;
         }
+        // The change check runs the committed closure: when its read followed the
+        // clock and the clock has moved since, these `deps` are stale and the render
+        // reads anyway. A render never skips: one whose bound stays put would loop.
+        if (inChangeCheck.current && cached?.followsClock && clock !== readNow()) {
+            return SKIPPED_READ;
+        }
         const next = read();
         const value = cached !== null && equal?.(cached.value, next) ? cached.value : next;
-        snapshot.current = { deps, revision: revision.current, value };
+        snapshot.current = { deps, followsClock: clock === readNow(), revision: revision.current, value };
         return value;
     };
 
-    return useSyncExternalStore(subscribe, getSnapshot);
+    const value = useSyncExternalStore(subscribe, getSnapshot);
+    if (value === SKIPPED_READ) {
+        throw new Error("A live read was skipped outside React's change check");
+    }
+    return value;
 }
