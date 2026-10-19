@@ -40,7 +40,7 @@ import type { CursorUnit } from "@/domain/log-period-cursor";
 import { scopeHasFigures, scopeTotals } from "@/domain/log-scope-figures";
 import { sparklineIsPositive, sparklineRange, sparklineSeries } from "@/domain/log-sparkline";
 import { mergeByRecency } from "@/domain/transfer-log-rows";
-import { useTranslation } from "@/i18n/context";
+import { useLanguage, useTranslation } from "@/i18n/context";
 import { useDayCardShare } from "@/lib/use-day-card-share";
 import { useTransactionRowActions } from "@/lib/use-transaction-row-actions";
 
@@ -54,6 +54,7 @@ import { LogNoResults } from "./components/log-no-results";
 import { LogToolbar } from "./components/log-toolbar";
 import { LogUpcoming } from "./components/log-upcoming";
 import { SwipeableTransactionRow } from "./components/swipeable-transaction-row";
+import { logEntriesEqual } from "./entries-equal";
 import { filterScopeLabel } from "./labels";
 
 /**
@@ -103,6 +104,7 @@ export function Log() {
     const db = useDatabase();
     const router = useRouter();
     const t = useTranslation();
+    const { language } = useLanguage();
     // Screen state, never a setting: writing the choice to `appMeta` would also
     // restate what the ledger is kept in, which is what the next transaction gets
     // recorded in. Null means the screen follows the ledger's currency.
@@ -257,6 +259,19 @@ export function Log() {
         [upcoming.schedules, pendingId]
     );
     const emptyResult = sections.length === 0 && (filter !== "upcoming" || upcomingRows.length === 0);
+    // LegendList's SectionList keeps `extraData` to itself, so what headers and
+    // rows read besides their rows, the day included, rides on each section for
+    // `logEntriesEqual`.
+    const today = startOfDay(new Date(nowMs)).getTime();
+    const listSections = useMemo(() => {
+        const view = { ...cardOptions, language };
+        return sections.map((section, index) => ({
+            ...section,
+            first: index === 0 && upcomingRows.length === 0,
+            today,
+            view,
+        }));
+    }, [sections, upcomingRows.length, cardOptions, language, today]);
 
     // One setting behind both headers: the promoted figure must not depend on
     // whether a filter happens to be on.
@@ -317,8 +332,9 @@ export function Log() {
             <SectionList
                 className="bg-background"
                 contentInsetAdjustmentBehavior="automatic"
-                sections={filter === "upcoming" ? [] : sections}
+                sections={filter === "upcoming" ? [] : listSections}
                 keyExtractor={(item) => item.id}
+                itemsAreEqual={logEntriesEqual}
                 stickySectionHeadersEnabled={false}
                 // `ReanimatedSwipeable` keeps its open/closed offset inside the row
                 // instance, so a recycled row would inherit the previous row's swipe.
@@ -395,11 +411,7 @@ export function Log() {
                     </>
                 }
                 renderSectionHeader={({ section }) => (
-                    <DaySectionHeader
-                        section={section}
-                        first={sections[0] === section && upcomingRows.length === 0}
-                        onShare={() => shareDay(section)}
-                    />
+                    <DaySectionHeader section={section} first={section.first} onShare={() => shareDay(section)} />
                 )}
                 renderItem={({ item }) => (
                     <SwipeableTransactionRow
