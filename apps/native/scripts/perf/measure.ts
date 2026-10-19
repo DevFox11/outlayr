@@ -14,11 +14,12 @@
  * profiler's, verbatim.
  *
  * Each port is a Metro serving that side's checkout to the perf build. Flows are
- * the Argent flows in `./flows`. Run it on a quiet host: the numbers are only
- * comparable within one invocation.
+ * the Argent flows in `./flows`. A `<flow>-setup.yaml` next to a flow runs before the
+ * profiler starts, for setup too long to profile (scrolling far down the Log). Run it on
+ * a quiet host: the numbers are only comparable within one invocation.
  */
 import { execFileSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { availableParallelism, loadavg } from "node:os";
 import { dirname, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -57,6 +58,7 @@ if (!Number.isInteger(runCount) || runCount < 1) {
     throw new Error(`--runs must be a positive integer, got ${args.runs}`);
 }
 const flowFile = resolve(import.meta.dirname, "flows", `${flow}.yaml`);
+const setupFile = resolve(import.meta.dirname, "flows", `${flow}-setup.yaml`);
 const components = args.components?.split(",").filter(Boolean) ?? [];
 const sides = { base: Number(args.base), pr: Number(args.pr) } as const;
 type Side = keyof typeof sides;
@@ -218,6 +220,9 @@ async function measure(side: Side): Promise<Run> {
     // Startup work (session, entitlement, adoption) still lands a context commit or two after the
     // Log shows; profiled, it reads as a render the flow never caused.
     await sleep(STARTUP_SETTLE_MS);
+    if (existsSync(setupFile)) {
+        execFileSync("argent", ["flow", "run", setupFile, "--device", device], { stdio: "inherit" });
+    }
     argent("react-profiler-start", target);
     // The debugger can drop a couple of seconds after the start; fail before the flow rather than after it.
     await sleep(3000);
