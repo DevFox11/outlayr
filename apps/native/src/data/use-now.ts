@@ -6,6 +6,7 @@ import { transactions, transfers } from "@/db/schema";
 import { clockAdvances, nextClockTick } from "@/domain/clock";
 
 import { subscribeToTableChanges } from "./database-changes";
+import { useTabPaused } from "./tab-pause";
 
 const BOUNDED_TABLES: string[] = [getTableName(transactions), getTableName(transfers)];
 const MOUNT_RESTATE_AFTER_MS = 60_000;
@@ -109,5 +110,5 @@ export function readNow(): number {
  * listeners are installed once for the app, not once per screen reading it.
  */
 export function useNow(): number {
-    return useSyncExternalStore(subscribe, readNow);
+    return useSyncExternalStore(useTabPaused(subscribe), readNow);
 }

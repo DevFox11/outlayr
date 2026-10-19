@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals
 import { act, render, renderHook, waitFor } from "@testing-library/react-native";
 import type BetterSqlite3 from "better-sqlite3";
 import { eq, lte } from "drizzle-orm";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { Text } from "react-native";
 
@@ -11,6 +12,7 @@ import { migratedDatabase } from "@/db/test-database";
 
 import { useLiveQuery, useLiveValue, useRatesRead } from "./live-query";
 import { bumpRatesRevision } from "./rates-revision";
+import { createTabPause, TabPauseContext } from "./tab-pause";
 import { readNow, useNow } from "./use-now";
 
 type ChangeListener = (event: { tableName: string }) => void;
@@ -198,6 +200,27 @@ describe("a useLiveQuery bounded by the clock", () => {
         const before = reads;
 
         await saveEntryLater();
+
+        expect(reads - before).toBe(1);
+        expect(result.current).toHaveLength(1);
+    });
+
+    it("runs its query once when its tab is selected again after a write it missed", async () => {
+        const pause = createTabPause();
+        const { result } = await renderHook(() => useRowsUpTo(useNow()), {
+            wrapper: ({ children }: { children: ReactNode }) => (
+                <TabPauseContext.Provider value={pause}>{children}</TabPauseContext.Provider>
+            ),
+        });
+        pause.setSelected(false);
+        const before = reads;
+
+        await saveEntryLater();
+        expect(reads).toBe(before);
+
+        await act(async () => {
+            pause.setSelected(true);
+        });
 
         expect(reads - before).toBe(1);
         expect(result.current).toHaveLength(1);

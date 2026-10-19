@@ -5,6 +5,7 @@ import { useCallback, useRef, useSyncExternalStore } from "react";
 import { subscribeToTableChanges } from "./database-changes";
 import { subscribeRatesRevision } from "./rates-revision";
 import { sameRows } from "./same-rows";
+import { useTabPaused } from "./tab-pause";
 import { readNow } from "./use-now";
 
 /**
@@ -125,10 +126,11 @@ function useRead<TValue>(
     const revision = useRef(0);
     const snapshot = useRef<Snapshot<TValue> | null>(null);
     const inChangeCheck = useRef(false);
+    const subscribePaused = useTabPaused(subscribeChanges);
 
     const subscribe = useCallback(
         (onStoreChange: () => void) =>
-            subscribeChanges(() => {
+            subscribePaused(() => {
                 revision.current += 1;
                 inChangeCheck.current = true;
                 try {
@@ -137,7 +139,7 @@ function useRead<TValue>(
                     inChangeCheck.current = false;
                 }
             }),
-        [subscribeChanges]
+        [subscribePaused]
     );
 
     // React calls this on every render to detect a change, so it must return the
