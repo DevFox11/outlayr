@@ -1,14 +1,14 @@
 import { Stack, useRouter } from "expo-router";
 
 import { toolbarIcon } from "@/components/toolbar-icons";
-import { useAccountCreateRoute } from "@/hooks/use-pro-gate";
+import { useLiabilityCreateRoute } from "@/hooks/use-pro-gate";
 import { useTranslation } from "@/i18n/context";
 import { Debts } from "@/screens/debts";
 
 export default function DebtsScreen() {
     const router = useRouter();
     const t = useTranslation();
-    const createRoute = useAccountCreateRoute();
+    const createRoute = useLiabilityCreateRoute();
 
     return (
         <>

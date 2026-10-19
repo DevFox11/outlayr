@@ -1,3 +1,4 @@
+import { isPerson, toAccountKind } from "@outlayr/money/account-kind";
 import { decimalsFor } from "@outlayr/money/currency";
 
 import type { PaymentSource } from "@/data/installments-core";
@@ -34,4 +35,18 @@ export function paymentSource(
         fromAmount: Math.round((amount / rate) * scale) / scale,
         fromCurrency: from.currency,
     };
+}
+
+/**
+ * The accounts a payment toward an order can come from: banks first, then
+ * cards and loans, which pay it the way a card pays anything (their debt goes
+ * up as the order's goes down). Never the order's own account, never a person.
+ */
+export function paymentSources<T extends { readonly id: string; readonly kind: string }>(
+    accounts: readonly T[],
+    planAccountId: string | undefined
+): T[] {
+    const offered = accounts.filter((account) => account.id !== planAccountId && !isPerson(account));
+    const card = (account: T) => toAccountKind(account.kind) === "liability";
+    return [...offered.filter((account) => !card(account)), ...offered.filter(card)];
 }

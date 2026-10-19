@@ -9,12 +9,16 @@ import { Text } from "@/components/text";
 import { useDatabase } from "@/contexts/local-data-context";
 import { accountsRepo, getAccountById } from "@/data/accounts-core";
 import type { Account } from "@/data/accounts-core";
-import { installmentAppsIn, installmentRegion, resolveInstitutionDomain } from "@/domain/institution-map";
+import {
+    installmentAppDomain,
+    installmentAppsIn,
+    installmentRegion,
+    isInstallmentAppAccount,
+} from "@/domain/institution-map";
 import type { InstallmentApp } from "@/domain/institution-map";
-import { merchantKey } from "@/domain/merchant-resolver";
 import { useLongWait } from "@/hooks/use-long-wait";
 import { useMerchantMark } from "@/hooks/use-merchant-mark";
-import { useAccountCreateRoute, useCurrencyBlocked } from "@/hooks/use-pro-gate";
+import { useAccountCaps, useLiabilityCreateRoute } from "@/hooks/use-pro-gate";
 import { useRegionCode } from "@/hooks/use-region-code";
 import { useTranslation } from "@/i18n/context";
 import { fetchMerchantImage } from "@/lib/logo-fetch";
@@ -48,8 +52,8 @@ export function StepAccountInstallments({ accounts, onPick }: StepAccountInstall
     const t = useTranslation();
     const colors = useColors();
     const region = installmentRegion(useRegionCode());
-    const createRoute = useAccountCreateRoute();
-    const currencyBlocked = useCurrencyBlocked(null);
+    const caps = useAccountCaps();
+    const liabilityRoute = useLiabilityCreateRoute();
     const [adding, setAdding] = useState<string | null>(null);
     const slow = useLongWait(adding !== null);
     // The ids the editor was opened over; the one it adds is the account to pick.
@@ -64,7 +68,9 @@ export function StepAccountInstallments({ accounts, onPick }: StepAccountInstall
         }
     }, [accounts, onPick]);
 
-    const taken = new Set(accounts.map((account) => resolveInstitutionDomain(merchantKey(account.name))));
+    const taken = new Set(
+        accounts.filter(isInstallmentAppAccount).map((account) => installmentAppDomain(account.name))
+    );
     const apps = installmentAppsIn(region).filter((app) => !taken.has(app.domain));
     if (region === null) {
         return null;
@@ -72,7 +78,7 @@ export function StepAccountInstallments({ accounts, onPick }: StepAccountInstall
 
     const add = async (app: InstallmentApp) => {
         before.current = null;
-        if (createRoute === "/paywall" || currencyBlocked(app.currency)) {
+        if (caps.installmentApps) {
             router.push("/paywall");
             return;
         }
@@ -102,7 +108,9 @@ export function StepAccountInstallments({ accounts, onPick }: StepAccountInstall
 
     const other = () => {
         before.current = new Set(accounts.map((account) => account.id));
-        router.push(createRoute === "/paywall" ? "/paywall" : { params: { kind: "liability" }, pathname: createRoute });
+        router.push(
+            liabilityRoute === "/paywall" ? "/paywall" : { params: { kind: "liability" }, pathname: liabilityRoute }
+        );
     };
 
     const options: StageOptionItem<string>[] = [

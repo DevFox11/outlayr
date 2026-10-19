@@ -28,7 +28,7 @@ import { installmentsRepo } from "@/data/installments-core";
 import type { PlanWithStanding } from "@/data/installments-core";
 import { useNow } from "@/data/use-now";
 import { formatTargetDate } from "@/domain/dates";
-import { paymentSource } from "@/domain/installment-payment";
+import { paymentSource, paymentSources } from "@/domain/installment-payment";
 import { orderName } from "@/domain/installments";
 import { formatAmount, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
@@ -53,9 +53,7 @@ export function PayInstallment({ all, planId }: { all: boolean; planId: string }
     const nowMs = useNow();
     const entry = useInstallmentPlans(db, nowMs).find(({ plan }) => plan.id === planId) ?? null;
     const accounts = useAccounts(db);
-    const sources = useBankAccounts(db).filter(
-        (account) => account.id !== entry?.plan.accountId && toAccountKind(account.kind) !== "liability"
-    );
+    const sources = paymentSources(useBankAccounts(db), entry?.plan.accountId);
 
     useEffect(() => {
         if (entry == null) {
@@ -104,8 +102,10 @@ function PayForm({ account, amount: owed, entry, forNext, sources }: PayFormProp
     const [pickingFrom, setPickingFrom] = useState(false);
     // Null is None: paid outside Outlayr.
     const [fromId, setFromId] = useState<string | null>(() => {
+        // A card pays only when picked: the default stays a bank.
+        const banks = sources.filter((source) => toAccountKind(source.kind) !== "liability");
         const last = getLastUsedAccount(db);
-        return sources.find((source) => source.id === last?.id)?.id ?? sources[0]?.id ?? null;
+        return banks.find((source) => source.id === last?.id)?.id ?? banks[0]?.id ?? null;
     });
     const [busy, setBusy] = useState(false);
     const [failure, setFailure] = useState<string | null>(null);

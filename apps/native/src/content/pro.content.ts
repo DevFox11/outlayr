@@ -203,6 +203,10 @@ const pro = {
             en: "AI matching on import",
             es: "Coincidencia con IA al importar",
         }),
+        "pro.row.installmentApps": t({
+            en: "Installment apps",
+            es: "Apps de cuotas",
+        }),
         "pro.row.lookup": t({
             en: "Web merchant lookup",
             es: "Búsqueda web de comercios",

@@ -4,6 +4,7 @@ import { ScrollView, useNativeState, VStack } from "@expo/ui/swift-ui";
 import type { TextFieldRef } from "@expo/ui/swift-ui";
 import { animation, blur, opacity, overlay, padding, scrollDismissesKeyboard } from "@expo/ui/swift-ui/modifiers";
 import { isPerson, toAccountKind } from "@outlayr/money/account-kind";
+import type { AccountKind } from "@outlayr/money/account-kind";
 import { useForm, useSelector } from "@tanstack/react-form";
 import { Stack, useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -40,11 +41,12 @@ import type { Account } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { remoteEnrichmentOn } from "@/data/settings-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
+import { isInstallmentAppAccount } from "@/domain/institution-map";
 import { formatAmount, minorUnitsFor, roundToMinorUnits } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { useAccountIdentity } from "@/hooks/use-account-identity";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
-import { useCurrencyBlocked } from "@/hooks/use-pro-gate";
+import { useAccountCaps, useCurrencyBlocked } from "@/hooks/use-pro-gate";
 import { useRegionCode } from "@/hooks/use-region-code";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
@@ -84,11 +86,20 @@ function curtainHuesFor(photoUri: string | null, emoji: string | null, tint: str
     return [tint];
 }
 
+/** The kind the form saves: a person stays one, the toggle picks the rest. */
+function formKind(person: boolean, liability: boolean): AccountKind {
+    if (person) {
+        return "person";
+    }
+    return liability ? "liability" : "asset";
+}
+
 function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/client").Database }) {
     const { db, mode } = props;
     const editId = props.mode === "edit" ? props.id : null;
     const router = useRouter();
     const currencyBlocked = useCurrencyBlocked(editId);
+    const accountCaps = useAccountCaps();
     const navigation = useNavigation();
     const t = useTranslation();
     const { language } = useLanguage();
@@ -153,13 +164,6 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
         defaultValues: initialValues,
         onSubmit: async ({ value }) => {
             setFailure(null);
-            // The picker is not the only way a currency gets here: the form opens
-            // on the global currency, which is not capped, so an untouched field
-            // can still be the second currency in the ledger.
-            if (currencyBlocked(value.currency)) {
-                router.push("/paywall");
-                return;
-            }
             // A currency swapped after typing can leave more precision in the pad
             // than the new code has minor units — JPY cannot hold "12.34".
             const magnitude = roundToMinorUnits(numpadToNumber(value.balanceText), value.currency);
@@ -168,7 +172,6 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                 value.balanceText !== initialValues.balanceText ||
                 value.negative !== initialValues.negative ||
                 value.currency !== initialValues.currency;
-            const toggledKind = value.liability ? ("liability" as const) : ("asset" as const);
             const input = {
                 currency: value.currency,
                 customColor: draft.color ?? null,
@@ -176,9 +179,20 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                 icon: draft.icon ?? null,
                 imageColor: draft.photoColor ?? null,
                 imageUri: draft.photoUri ?? null,
-                kind: person ? ("person" as const) : toggledKind,
+                kind: formKind(person, value.liability),
                 name: value.name.trim(),
             };
+            // Which cap a new account fills is only known once it is named: an
+            // installment app has its own.
+            const capped =
+                mode === "create" && accountCaps[isInstallmentAppAccount(input) ? "installmentApps" : "accounts"];
+            // The picker is not the only way a currency gets here: the form opens
+            // on the global currency, which is not capped, so an untouched field
+            // can still be the second currency in the ledger.
+            if (capped || currencyBlocked(input)) {
+                router.push("/paywall");
+                return;
+            }
             const persist = async () => {
                 if (mode === "create") {
                     await accountsRepo.create(db, { ...input, initialBalance: balance });
@@ -476,7 +490,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
             <CurrencyPickerSheet
                 onSelect={(code) => {
                     currencySheetRef.current?.dismiss();
-                    if (currencyBlocked(code)) {
+                    if (currencyBlocked({ currency: code, kind: formKind(person, liability), name })) {
                         router.push("/paywall");
                         return;
                     }

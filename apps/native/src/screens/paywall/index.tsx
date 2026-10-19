@@ -8,7 +8,7 @@ import { Text } from "@/components/text";
 import { useRevenueCat } from "@/contexts/revenuecat-context";
 import type { RevenueCatValue } from "@/contexts/revenuecat-context";
 import { APP_ICONS } from "@/domain/app-icons";
-import { FREE_ACCOUNTS, FREE_BUDGETS, FREE_CURRENCIES } from "@/domain/pro-limits";
+import { FREE_ACCOUNTS, FREE_BUDGETS, FREE_CURRENCIES, FREE_INSTALLMENT_APPS } from "@/domain/pro-limits";
 import { readPlans } from "@/domain/pro-plans";
 import type { Plan, PlanKind } from "@/domain/pro-plans";
 import { LARGEST_STANDARD_FONT_SCALE, useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
@@ -74,6 +74,7 @@ function Comparison() {
             <View className="border-foreground border-t">
                 <Row free="20" label={t("pro.row.captures")} pro="500" />
                 <Row free={String(FREE_ACCOUNTS)} label={t("pro.row.accounts")} pro={UNLIMITED} />
+                <Row free={String(FREE_INSTALLMENT_APPS)} label={t("pro.row.installmentApps")} pro={UNLIMITED} />
                 <Row free={String(FREE_BUDGETS)} label={t("pro.row.budgets")} pro={UNLIMITED} />
                 <Row free={String(FREE_CURRENCIES)} label={t("pro.row.currencies")} pro={UNLIMITED} />
                 <Row free={t("pro.value.off")} label={t("pro.row.devices")} pro={t("pro.value.on")} />

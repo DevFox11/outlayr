@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { blocksNewBudget, blocksNewCurrency } from "./pro-limits";
+import { blocksNewBudget, blocksNewCurrency, fullAccountCaps } from "./pro-limits";
 
 describe("blocksNewBudget", () => {
     it("blocks a category that has no budget yet once the cap is reached", () => {
@@ -20,20 +20,68 @@ describe("blocksNewBudget", () => {
     });
 });
 
+const bank = (currency: string, name = "Banesco") => ({ currency, kind: "asset", name });
+const cashea = { currency: "USD", kind: "liability", name: "Cashea" };
+
 describe("blocksNewCurrency", () => {
     it("lets the first account pick anything", () => {
-        expect(blocksNewCurrency("VES", [], true)).toBe(false);
+        expect(blocksNewCurrency(bank("VES"), [], true)).toBe(false);
     });
 
     it("blocks a second currency once one is in use", () => {
-        expect(blocksNewCurrency("VES", ["USD"], true)).toBe(true);
+        expect(blocksNewCurrency(bank("VES"), [bank("USD")], true)).toBe(true);
     });
 
     it("never blocks a currency the ledger already holds", () => {
-        expect(blocksNewCurrency("USD", ["USD", "VES"], true)).toBe(false);
+        expect(blocksNewCurrency(bank("USD"), [bank("USD"), bank("VES")], true)).toBe(false);
     });
 
     it("blocks nothing while Pro is unlocked or unsellable", () => {
-        expect(blocksNewCurrency("VES", ["USD"], false)).toBe(false);
+        expect(blocksNewCurrency(bank("VES"), [bank("USD")], false)).toBe(false);
+    });
+
+    it("lets a curated installment app bill in a second currency", () => {
+        expect(blocksNewCurrency(cashea, [bank("VES")], true)).toBe(false);
+    });
+
+    it("never lets a curated installment app claim the free currency", () => {
+        expect(blocksNewCurrency(bank("VES"), [cashea], true)).toBe(false);
+        expect(blocksNewCurrency(bank("EUR"), [cashea, bank("VES")], true)).toBe(true);
+    });
+
+    it("never blocks a person's currency, nor lets a person claim one", () => {
+        const pedro = { currency: "USD", kind: "person", name: "Pedro" };
+        expect(blocksNewCurrency(pedro, [bank("VES")], true)).toBe(false);
+        expect(blocksNewCurrency(bank("VES"), [pedro], true)).toBe(false);
+    });
+
+    it("counts a card's currency, and an asset named after an app", () => {
+        const visa = { currency: "USD", kind: "liability", name: "Visa" };
+        expect(blocksNewCurrency(bank("VES"), [visa], true)).toBe(true);
+        expect(blocksNewCurrency(bank("VES"), [bank("USD", "Cashea")], true)).toBe(true);
+    });
+});
+
+describe("fullAccountCaps", () => {
+    const app = (name: string) => ({ kind: "liability", name });
+
+    it("blocks a third installment app on a free ledger", () => {
+        expect(fullAccountCaps([app("Cashea")], true).installmentApps).toBe(false);
+        expect(fullAccountCaps([app("Cashea"), app("Krece")], true).installmentApps).toBe(true);
+    });
+
+    it("keeps installment apps out of the two free accounts", () => {
+        expect(fullAccountCaps([app("Cashea"), app("Krece"), bank("VES")], true).accounts).toBe(false);
+        expect(fullAccountCaps([bank("VES"), app("Visa")], true)).toStrictEqual({
+            accounts: true,
+            installmentApps: false,
+        });
+    });
+
+    it("blocks nothing while Pro is unlocked or unsellable", () => {
+        expect(fullAccountCaps([bank("VES"), bank("USD"), app("Cashea"), app("Krece")], false)).toStrictEqual({
+            accounts: false,
+            installmentApps: false,
+        });
     });
 });

@@ -12,7 +12,7 @@ import type { Transaction, TransactionInput } from "@/data/transactions-core";
 import type { Database } from "@/db/client";
 import { draftSchedule, newInstallmentDraft, paidBeforeCount, planPrice, upfrontOf } from "@/domain/installment-draft";
 import type { InstallmentDraft } from "@/domain/installment-draft";
-import { paymentSource } from "@/domain/installment-payment";
+import { paymentSource, paymentSources } from "@/domain/installment-payment";
 import { formatAmount } from "@/domain/money";
 import { transactionRateError } from "@/domain/transaction-entry-rate";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -63,7 +63,7 @@ export function useInstallmentOrder({
     // Presented from an effect: the sheet mounts with the draft, a render after the tap that makes it.
     const [presented, setPresented] = useState(0);
     const [planId] = useState(() => (initial ? planIdForPurchase(db, initial.id) : null));
-    const sources = banks.filter((bank) => bank.id !== account?.id && toAccountKind(bank.kind) !== "liability");
+    const sources = paymentSources(banks, account?.id);
     const from = sources.find((bank) => bank.id === draft?.upfrontAccountId) ?? null;
     const offered =
         mode === "create" &&
@@ -117,7 +117,13 @@ export function useInstallmentOrder({
                           })
                         : t("installments.chip"),
                 onPress: () => {
-                    setDraft((current) => current ?? newInstallmentDraft(sources[0]?.id ?? null));
+                    setDraft(
+                        (current) =>
+                            current ??
+                            newInstallmentDraft(
+                                sources.find((source) => toAccountKind(source.kind) !== "liability")?.id ?? null
+                            )
+                    );
                     setPresented((count) => count + 1);
                 },
                 onRemove: () => setDraft(null),

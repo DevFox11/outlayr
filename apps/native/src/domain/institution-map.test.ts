@@ -1,6 +1,12 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { installmentAppsIn, installmentRegion, resolveInstitutionDomain } from "./institution-map";
+import {
+    INSTALLMENT_REGIONS,
+    installmentAppsIn,
+    installmentRegion,
+    isInstallmentAppAccount,
+    resolveInstitutionDomain,
+} from "./institution-map";
 import { merchantKey } from "./merchant-resolver";
 
 describe("resolveInstitutionDomain", () => {
@@ -56,5 +62,20 @@ describe("installmentAppsIn", () => {
         expect(apps("MX").map((app) => app.id)).toStrictEqual(["kueski-pay", "aplazo", "coppel"]);
         expect(apps("AR")).toStrictEqual([]);
         expect(apps(undefined)).toStrictEqual([]);
+    });
+});
+
+describe("isInstallmentAppAccount", () => {
+    it("knows every account the picker makes for an installment app, by the label it names it with", () => {
+        const unknown = INSTALLMENT_REGIONS.flatMap(installmentAppsIn)
+            .filter((app) => !isInstallmentAppAccount({ kind: "liability", name: app.label }))
+            .map((app) => app.label);
+        expect(unknown).toStrictEqual([]);
+    });
+
+    it("knows an app by a longer name, and only as a liability", () => {
+        expect(isInstallmentAppAccount({ kind: "liability", name: "Cashea USD" })).toBe(true);
+        expect(isInstallmentAppAccount({ kind: "asset", name: "Klarna" })).toBe(false);
+        expect(isInstallmentAppAccount({ kind: "liability", name: "Chase Sapphire" })).toBe(false);
     });
 });

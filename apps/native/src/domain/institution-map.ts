@@ -1,3 +1,6 @@
+import { toAccountKind } from "@outlayr/money/account-kind";
+
+import { merchantKey } from "./merchant-resolver";
 import { buildPatternIndex, containsTokenSequence } from "./pattern-index";
 
 /**
@@ -366,6 +369,29 @@ export function installmentAppsIn(region: InstallmentRegion | null): Installment
 }
 
 const INSTITUTION_INDEX: ReadonlyMap<string, InstitutionEntry> = buildPatternIndex(INSTITUTIONS);
+
+/** Each installment app's label, folded: the name the account picker gives the account it makes. */
+const INSTALLMENT_APP_LABELS: ReadonlyMap<string, string> = new Map(
+    INSTITUTIONS.filter((entry) => entry.installmentsIn).map((entry) => [merchantKey(entry.label), entry.domain])
+);
+
+const INSTALLMENT_APP_DOMAINS: ReadonlySet<string> = new Set(INSTALLMENT_APP_LABELS.values());
+
+/**
+ * The curated installment app an account name stands for, or null: its label
+ * first ("Zip" and "Alma" brand nothing on their own), then any name the
+ * institution lookup resolves to one.
+ */
+export function installmentAppDomain(name: string): string | null {
+    const key = merchantKey(name);
+    const domain = INSTALLMENT_APP_LABELS.get(key) ?? resolveInstitutionDomain(key);
+    return domain !== null && INSTALLMENT_APP_DOMAINS.has(domain) ? domain : null;
+}
+
+/** A liability named after a curated installment app: the free plan caps these on their own. */
+export function isInstallmentAppAccount(account: { readonly kind: string; readonly name: string }): boolean {
+    return toAccountKind(account.kind) === "liability" && installmentAppDomain(account.name) !== null;
+}
 
 /**
  * The institution's domain, or null. Takes a key already folded by
