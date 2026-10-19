@@ -123,7 +123,12 @@ export function Log() {
     const debts =
         Platform.OS === "ios" &&
         debtsOverview.youOwe.length + debtsOverview.owedToYou.length + debtsOverview.settled.length > 0
-            ? { currency, owedToYou: debtsOverview.owedToYouTotal, youOwe: debtsOverview.youOweTotal }
+            ? {
+                  currency,
+                  due: debtsOverview.due,
+                  owedToYou: debtsOverview.owedToYouTotal,
+                  youOwe: debtsOverview.youOweTotal,
+              }
             : null;
     const valued = useValuedCurrencies(db);
     const { showCents, swapTimeLabel, use24Hour } = useDisplaySettings().state;
@@ -305,7 +310,7 @@ export function Log() {
     if (listRows.length === 0 && filter === "all") {
         return (
             <AmountsHiddenContext value={amountsHidden}>
-                {accountsOverview ? (
+                {accountsOverview || debts ? (
                     // The block rides a scroll view for its automatic inset: the header
                     // is transparent, so anything laid out flat here starts under the
                     // large title. It scrolls, because four account rows plus the empty

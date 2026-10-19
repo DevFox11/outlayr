@@ -11,6 +11,8 @@ import { ROW_TYPE } from "@/components/row-type";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import type { Account } from "@/data/accounts-core";
+import { DUE_WINDOW_DAYS } from "@/data/debts-due";
+import type { DueWindow } from "@/data/debts-due";
 import { formatSignedAmount } from "@/domain/account-display";
 import { maskedAmount } from "@/domain/money";
 import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
@@ -37,7 +39,7 @@ interface AccountsBlockProps {
     onOpen: (accountId: string) => void;
     onOpenAll: () => void;
     onOpenDebts?: () => void;
-    /** Null hides the block entirely — no accounts, no ghost heading. */
+    /** Null hides the bank rows and their heading; with no debts either, the whole block. */
     overview: AccountsOverview | null;
     showCents: boolean;
     trailing?: ReactNode;
@@ -65,8 +67,15 @@ export function AccountsBlock({
     const { language } = useLanguage();
     const hidden = use(AmountsHiddenContext);
     const stacked = useAccessibilityTextSize();
+    const debtsRow =
+        debts !== null && onOpenDebts ? <DebtsRow debts={debts} onPress={onOpenDebts} showCents={showCents} /> : null;
     if (overview == null) {
-        return null;
+        return debtsRow === null ? null : (
+            <View className="gap-1.25 pt-2.5 pb-4.5">
+                {debtsRow}
+                <View className="bg-border" style={{ borderRadius: 0.65, height: 1.3 }} />
+            </View>
+        );
     }
 
     const total = hidden ? maskedAmount(currency) : formatSignedAmount(overview.total, currency, showCents, language);
@@ -121,9 +130,7 @@ export function AccountsBlock({
                     </MonoLabel>
                 </Pressable>
             ) : null}
-            {debts !== null && onOpenDebts ? (
-                <DebtsRow debts={debts} onPress={onOpenDebts} showCents={showCents} />
-            ) : null}
+            {debtsRow}
             <View className="bg-border" style={{ borderRadius: 0.65, height: 1.3 }} />
         </View>
     );
@@ -216,12 +223,18 @@ function AccountRow({ account, row, currency, showCents, language, onPress }: Ac
 export interface DebtsSummary {
     /** The ledger's own currency, which may not be the one the block is shown in. */
     currency: string;
+    /** What the cuotas due in the next 14 days and the overdue ones come to, in `currency`; null with none. */
+    due: Pick<DueWindow, "exact" | "total"> | null;
     /** Both positive, in `currency`. */
     owedToYou: number;
     youOwe: number;
 }
 
-/** One row for everything owed both ways, opening the Debts screen. Its figure is what you owe, muted like a liability's. */
+/**
+ * One row for everything owed both ways, opening the Debts screen. Its figure is
+ * what you owe, muted like a liability's; under it, what is due in the next 14
+ * days, else what you are owed.
+ */
 function DebtsRow({ debts, onPress, showCents }: { debts: DebtsSummary; onPress: () => void; showCents: boolean }) {
     const t = useTranslation();
     const { language } = useLanguage();
@@ -231,7 +244,12 @@ function DebtsRow({ debts, onPress, showCents }: { debts: DebtsSummary; onPress:
     const { currency } = debts;
     const format = (amount: number) =>
         hidden ? maskedAmount(currency) : formatSignedAmount(amount, currency, showCents, language);
-    const subtitle = debts.owedToYou > 0 ? t("debts.overview.owedToYou", { amount: format(debts.owedToYou) }) : null;
+    let subtitle: string | null = null;
+    if (debts.due !== null) {
+        subtitle = t("debts.overview.due", { amount: format(debts.due.total), days: DUE_WINDOW_DAYS });
+    } else if (debts.owedToYou > 0) {
+        subtitle = t("debts.overview.owedToYou", { amount: format(debts.owedToYou) });
+    }
     const figure = (
         <Text className={cn(ROW_TYPE.balance, "text-muted tabular-nums")} numberOfLines={1}>
             {format(debts.youOwe)}
@@ -260,9 +278,14 @@ function DebtsRow({ debts, onPress, showCents }: { debts: DebtsSummary; onPress:
                 </Text>
                 {stacked ? figure : null}
                 {subtitle === null ? null : (
-                    <Text className={cn(ROW_TYPE.subtitle, "text-muted")} numberOfLines={1}>
-                        {subtitle}
-                    </Text>
+                    <View className="flex-row items-baseline gap-1.5">
+                        {debts.due === null || debts.due.exact ? null : (
+                            <MonoLabel className="text-subtle">{`${currency}?`}</MonoLabel>
+                        )}
+                        <Text className={cn(ROW_TYPE.subtitle, "text-muted flex-1")} numberOfLines={1}>
+                            {subtitle}
+                        </Text>
+                    </View>
                 )}
             </View>
             {stacked ? null : figure}

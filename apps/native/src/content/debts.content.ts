@@ -47,6 +47,26 @@ const debts = {
             en: "A person",
             es: "Una persona",
         }),
+        "debts.due.overdue_one": t({
+            en: "{count} payment · {name} overdue since {date}",
+            es: "{count} pago · {name} con atraso desde el {date}",
+        }),
+        "debts.due.overdue_other": t({
+            en: "{count} payments · {name} overdue since {date}",
+            es: "{count} pagos · {name} con atraso desde el {date}",
+        }),
+        "debts.due.summary_one": t({
+            en: "{count} payment · next {name}, {date}",
+            es: "{count} pago · próximo {name}, {date}",
+        }),
+        "debts.due.summary_other": t({
+            en: "{count} payments · next {name}, {date}",
+            es: "{count} pagos · próximo {name}, {date}",
+        }),
+        "debts.due.title": t({
+            en: "Due in the next {days} days",
+            es: "Por pagar en los próximos {days} días",
+        }),
         "debts.empty": t({
             en: "Nobody owes anybody. Add a person, a card or a loan with +.",
             es: "Nadie le debe a nadie. Agrega una persona, tarjeta o préstamo con +.",
@@ -102,6 +122,26 @@ const debts = {
         "debts.new.title": t({
             en: "New Debt",
             es: "Nueva deuda",
+        }),
+        "debts.next.of": t({
+            en: "Next {amount} · {date} · {paid} of {total}",
+            es: "Próxima {amount} · {date} · {paid} de {total}",
+        }),
+        "debts.next.orders": t({
+            en: "Next {amount} · {date} · {count} orders",
+            es: "Próxima {amount} · {date} · {count} órdenes",
+        }),
+        "debts.overdue.of": t({
+            en: "{amount} · {date} · {paid} of {total}",
+            es: "{amount} · {date} · {paid} de {total}",
+        }),
+        "debts.overdue.orders": t({
+            en: "{amount} · {date} · {count} orders",
+            es: "{amount} · {date} · {count} órdenes",
+        }),
+        "debts.overview.due": t({
+            en: "{amount} due in {days} days",
+            es: "{amount} por pagar en {days} días",
         }),
         "debts.overview.owedToYou": t({
             en: "Owed to you {amount}",

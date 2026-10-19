@@ -201,7 +201,8 @@ describe("useSettledAccountCells", () => {
 
 describe("useLogOverviewIn", () => {
     beforeEach(() => {
-        mockUseLiveQuery.mockReset();
+        // The reads after the queued ones are the installment orders, empty here.
+        mockUseLiveQuery.mockReset().mockReturnValue([]);
     });
 
     const account = (id: string, initialBalance: number) => ({

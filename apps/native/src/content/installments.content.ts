@@ -240,8 +240,8 @@ const installments = {
             es: "Próxima {date}",
         }),
         "installments.noRate": t({
-            en: "No rate for this day yet, so the payment can't be converted.",
-            es: "Aún no hay tasa para este día, así que no se puede convertir el pago.",
+            en: "No rate for this day yet, so the amount can't be converted.",
+            es: "Aún no hay tasa para este día, así que no se puede convertir el monto.",
         }),
         "installments.none": t({
             en: "None",

@@ -26,8 +26,11 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useDebtsOverview } from "@/data/debts";
 import type { DebtsScreenOverview } from "@/data/debts";
+import { DUE_WINDOW_DAYS } from "@/data/debts-due";
 import { useNow } from "@/data/use-now";
 import { formatSignedAmount } from "@/domain/account-display";
+import { formatSentenceDate } from "@/domain/dates";
+import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { hitArea, outline } from "@/lib/swift-ui-geometry";
 import { useColors } from "@/theme/use-colors";
@@ -43,9 +46,10 @@ const APPROX = font({ design: "rounded", textStyle: "caption", weight: "semibold
 const CHEVRON = font({ design: "rounded", textStyle: "footnote", weight: "semibold" });
 
 /**
- * Everything owed, both ways: liability accounts and people you owe, then the
- * people who owe you, then the settled people folded under one row. Every row
- * opens its account, which for a person is the person detail.
+ * Everything owed, both ways: what is due in the next 14 days, liability
+ * accounts and people you owe, then the people who owe you, then the settled
+ * people folded under one row. Every row opens its account, which for a person
+ * is the person detail.
  */
 export function Debts() {
     const db = useDatabase();
@@ -82,8 +86,47 @@ export function Debts() {
         );
     }
 
+    // A liability with orders says its next cuota, in its own currency, flagged when
+    // overdue; otherwise only what the figure does not already say: the account keeps
+    // another currency.
+    const subtitle = (item: DebtListRow): string | null => {
+        const orders = debts.installments.get(item.id);
+        if (orders === undefined) {
+            return item.account.currency === currency ? null : item.account.currency;
+        }
+        const [only, ...others] = orders.open;
+        const { overdue } = orders.next;
+        const date = formatSentenceDate(orders.next.row.dueDate, language);
+        const next = {
+            amount: formatAmount(orders.next.remaining, item.account.currency, showCents, language),
+            date: overdue ? `${date} · ${t("installments.overdue")}` : date,
+        };
+        return only && others.length === 0
+            ? t(overdue ? "debts.overdue.of" : "debts.next.of", {
+                  ...next,
+                  paid: only.standing.installmentsPaid,
+                  total: only.standing.installmentsTotal,
+              })
+            : t(overdue ? "debts.overdue.orders" : "debts.next.orders", { ...next, count: orders.open.length });
+    };
+    // An overdue cuota reads as an expense; otherwise the one the due row names is tinted.
+    const subtitleColor = (item: DebtListRow): string => {
+        if (debts.installments.get(item.id)?.next.overdue) {
+            return colors.expense;
+        }
+        return item.id === debts.due?.next.accountId ? colors.tint : colors.muted;
+    };
     const row = (item: DebtListRow) => (
-        <DebtRow colors={colors} currency={currency} format={format} key={item.id} onOpen={open} row={item} />
+        <DebtRow
+            colors={colors}
+            currency={currency}
+            format={format}
+            key={item.id}
+            onOpen={open}
+            row={item}
+            subtitle={subtitle(item)}
+            subtitleColor={subtitleColor(item)}
+        />
     );
     const total = (label: string, amount: number) => (
         <VStack
@@ -111,6 +154,15 @@ export function Debts() {
                         </HStack>
                         {debts.exact ? null : (
                             <SwiftText modifiers={[APPROX, foregroundStyle(colors.subtle)]}>{`${currency}?`}</SwiftText>
+                        )}
+                        {debts.due === null ? null : (
+                            <DueRow
+                                colors={colors}
+                                currency={currency}
+                                due={debts.due}
+                                format={format}
+                                name={debts.youOwe.find((item) => item.id === debts.due?.next.accountId)?.account.name}
+                            />
                         )}
                     </Section>
                     {debts.youOwe.length > 0 ? (
@@ -170,18 +222,68 @@ function DebtsMark() {
     );
 }
 
+interface DueRowProps {
+    colors: ThemeColors;
+    currency: string;
+    due: NonNullable<DebtsScreenOverview["due"]>;
+    format: (amount: number) => string;
+    /** The account the soonest cuota is owed to. */
+    name: string | undefined;
+}
+
+/**
+ * "Due in the next 14 days", how many cuotas and the soonest, and what they come
+ * to. When the soonest is overdue it says since when, in the expense colour.
+ */
+function DueRow({ colors, currency, due, format, name }: DueRowProps) {
+    const t = useTranslation();
+    const { language } = useLanguage();
+    const title = t("debts.due.title", { days: DUE_WINDOW_DAYS });
+    const { overdue } = due.next.standing;
+    const summary = t(overdue ? "debts.due.overdue" : "debts.due.summary", {
+        count: due.count,
+        date: formatSentenceDate(due.next.standing.row.dueDate, language),
+        name: name ?? t("installments.order"),
+    });
+
+    return (
+        <HStack
+            modifiers={[
+                accessibilityElement("combine"),
+                accessibilityLabel(`${title}, ${summary}`),
+                accessibilityValue(format(due.total)),
+            ]}
+            spacing={12}
+        >
+            <VStack alignment="leading" spacing={2}>
+                <SwiftText modifiers={[TOTAL_LABEL, foregroundStyle(colors.muted)]}>{title}</SwiftText>
+                <SwiftText modifiers={[SUBTITLE, lineLimit(2), foregroundStyle(overdue ? colors.expense : LABEL)]}>
+                    {summary}
+                </SwiftText>
+            </VStack>
+            <Spacer />
+            {due.exact ? null : (
+                <SwiftText modifiers={[APPROX, foregroundStyle(colors.subtle)]}>{`${currency}?`}</SwiftText>
+            )}
+            <SwiftText modifiers={[AMOUNT, monospacedDigit(), lineLimit(1), foregroundStyle(LABEL)]}>
+                {format(due.total)}
+            </SwiftText>
+        </HStack>
+    );
+}
+
 interface DebtRowProps {
     colors: ThemeColors;
     currency: string;
     format: (amount: number) => string;
     onOpen: (id: string) => void;
     row: DebtListRow;
+    subtitle: string | null;
+    subtitleColor: string;
 }
 
-const DebtRow = memo(({ colors, currency, format, onOpen, row }: DebtRowProps) => {
+const DebtRow = memo(({ colors, currency, format, onOpen, row, subtitle, subtitleColor }: DebtRowProps) => {
     const { account } = row;
-    // Only what the figure does not already say: the account keeps another currency.
-    const subtitle = account.currency === currency ? null : account.currency;
 
     return (
         <HStack
@@ -190,7 +292,7 @@ const DebtRow = memo(({ colors, currency, format, onOpen, row }: DebtRowProps) =
                 onTapGesture(() => onOpen(account.id)),
                 accessibilityElement("combine"),
                 accessibilityAddTraits(["isButton"]),
-                accessibilityLabel(account.name),
+                accessibilityLabel(subtitle === null ? account.name : `${account.name}, ${subtitle}`),
                 accessibilityValue(format(row.amount)),
             ]}
             spacing={12}
@@ -203,7 +305,7 @@ const DebtRow = memo(({ colors, currency, format, onOpen, row }: DebtRowProps) =
             <VStack alignment="leading" spacing={1}>
                 <SwiftText modifiers={[PARENT_NAME, lineLimit(1), foregroundStyle(LABEL)]}>{account.name}</SwiftText>
                 {subtitle === null ? null : (
-                    <SwiftText modifiers={[SUBTITLE, lineLimit(1), foregroundStyle(colors.muted)]}>
+                    <SwiftText modifiers={[SUBTITLE, lineLimit(2), foregroundStyle(subtitleColor)]}>
                         {subtitle}
                     </SwiftText>
                 )}

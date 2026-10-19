@@ -154,24 +154,21 @@ function useSettledCells(db: Database, settledAt: Date): AccountCellRow[] {
 }
 
 /**
- * `rows` valued into `valuation`'s currency, with the per-account rows. The Log
+ * `rows` valued into `displayCurrency`, with the per-account rows. The Log
  * passes every account and splits banks from debts itself, the Debts screen its
  * liabilities and people; both read the same cells, so a figure agrees on the two.
+ * Hands back the rates it valued with, which carry every row's currency, so a
+ * caller can value more figures on those accounts without reading them again.
  */
-export function useOverviewOf(
-    db: Database,
-    rows: readonly Account[],
-    valuation: Valuation,
-    nowMs: number
-): AccountsOverview | null {
+export function useOverviewOf(db: Database, rows: readonly Account[], displayCurrency: string, nowMs: number) {
     const settledAt = useMemo(() => new Date(nowMs), [nowMs]);
     const cells = useSettledCells(db, settledAt);
-    const { displayCurrency } = valuation;
     const rates = useBalanceRates(db, displayCurrency, rows);
-    return useMemo(
+    const overview = useMemo(
         () => accountsOverview(rows, cells, displayCurrency, rates, settledAt),
         [rows, cells, displayCurrency, rates, settledAt]
     );
+    return { overview, rates };
 }
 
 export interface NetWorth {
