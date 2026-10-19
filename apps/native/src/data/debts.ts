@@ -14,6 +14,7 @@ import { dueWindow, installmentsByAccount } from "./debts-due";
 import type { AccountInstallments, DueWindow } from "./debts-due";
 import { useInstallmentPlans } from "./installments";
 import type { PlanWithStanding } from "./installments-core";
+import { useDeferredDelete } from "./use-deferred-delete";
 import type { Valuation } from "./valuation-source";
 
 export type DebtsScreenOverview = DebtsOverview<OverviewRow & { account: Account }> & {
@@ -51,13 +52,20 @@ function debtsIn(
 /**
  * Every liability account and every person, valued into the ledger's display
  * currency and split the way the Debts screen reads them. Each row carries its
- * account, so the screen needs no second lookup for a name or a logo.
+ * account, so the screen needs no second lookup for a name or a logo. An
+ * account whose deletion is pending its undo window is left out, as on the
+ * Accounts screen, so the totals move as the row leaves.
  */
 export function useDebtsOverview(db: Database, nowMs: number): DebtsScreenOverview {
     const all = useAccounts(db);
+    const { pendingId } = useDeferredDelete("account");
     const debts = useMemo(
-        () => all.filter((account) => isPerson(account) || toAccountKind(account.kind) === "liability"),
-        [all]
+        () =>
+            all.filter(
+                (account) =>
+                    account.id !== pendingId && (isPerson(account) || toAccountKind(account.kind) === "liability")
+            ),
+        [all, pendingId]
     );
     const displayCurrency = useGlobalCurrency(db);
     const { overview, rates } = useOverviewOf(db, debts, displayCurrency, nowMs);
