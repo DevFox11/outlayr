@@ -1,4 +1,4 @@
-import { and, eq, isNull, lte } from "drizzle-orm";
+import { and, asc, eq, gte, isNull, lte } from "drizzle-orm";
 import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
 
 import { transactions } from "@/db/schema";
@@ -24,9 +24,9 @@ export type SpendDb = BaseSQLiteDatabase<"sync", unknown, typeof schema>;
  * each budget's window and category rule is applied in JS over this one result
  * — see {@link spentForCategory} — because `useLiveQuery` registers a fresh
  * database listener per call, and a screen of budgets querying individually
- * re-runs the same full scan on every insert.
+ * re-runs the same full scan on every insert. `since` drops the rows before it.
  */
-export function expenseContributionQuery(db: SpendDb, now: Date) {
+export function expenseContributionQuery(db: SpendDb, now: Date, since: Date | null = null) {
     return db
         .select({
             amount: transactions.amount,
@@ -38,5 +38,13 @@ export function expenseContributionQuery(db: SpendDb, now: Date) {
             exchangeRateType: transactions.exchangeRateType,
         })
         .from(transactions)
-        .where(and(eq(transactions.income, false), isNull(transactions.deletedAt), lte(transactions.date, now)));
+        .where(
+            and(
+                eq(transactions.income, false),
+                isNull(transactions.deletedAt),
+                since ? gte(transactions.date, since) : undefined,
+                lte(transactions.date, now)
+            )
+        )
+        .orderBy(asc(transactions.date));
 }

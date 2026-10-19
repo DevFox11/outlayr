@@ -39,7 +39,7 @@ export interface CarryInput {
 }
 
 /** The closed windows a carry is summed over, newest first, back to the anchor. */
-function carryWindows({ anchor, current, type }: Omit<CarryInput, "limit" | "spentIn">) {
+export function carryWindows({ anchor, current, type }: Omit<CarryInput, "limit" | "spentIn">) {
     const windows: BudgetWindow[] = [];
     let end = current.start;
     while (windows.length < MAX_CARRY_PERIODS) {

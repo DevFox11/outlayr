@@ -1,4 +1,4 @@
-import { effectiveLimit, rolloverCarryFrom } from "@outlayr/money/budget-rollover";
+import { carryWindows, effectiveLimit, rolloverCarryFrom } from "@outlayr/money/budget-rollover";
 import { spentForCategory, spentForMain } from "@outlayr/money/budget-spent";
 import type { ExpenseContribution } from "@outlayr/money/budget-spent";
 import {
@@ -11,7 +11,9 @@ import {
     windowEndMs,
 } from "@outlayr/money/budget-window";
 import type { BudgetWindow } from "@outlayr/money/budget-window";
+import { utcDateString } from "@outlayr/money/dates";
 import { limitIn, sumValuedIn, valueDatedRowsIn } from "@outlayr/money/valuation";
+import type { DatedValuable, RateTable } from "@outlayr/money/valuation";
 import { and, asc, desc, eq, getTableColumns, gte, inArray, isNull, lte } from "drizzle-orm";
 import { useEffect, useMemo } from "react";
 
@@ -100,28 +102,50 @@ export function earliestDate(rows: readonly { date: Date }[]): Date | null {
     return earliest;
 }
 
+/** Expense rows valued in the display currency, each carrying its category's parent. */
+export function expenseContributionsFrom(
+    rows: readonly (DatedValuable & { categoryId: string | null })[],
+    categoryMeta: ReadonlyMap<string, { parentId: string | null }>,
+    displayCurrency: string,
+    rates: RateTable
+): ExpenseContribution[] {
+    const valued = valueDatedRowsIn(rows, displayCurrency, rates);
+    return rows.map((row, index) => ({
+        // `amount` is the valued amount from here down, not the row's stored one.
+        amount: valued[index],
+        categoryId: row.categoryId,
+        date: row.date,
+        parentId: row.categoryId ? (categoryMeta.get(row.categoryId)?.parentId ?? null) : null,
+    }));
+}
+
 /**
  * `useLiveQuery` registers a fresh database listener per call, so this list is a
  *parameter* to the budget hooks rather than something each one fetches. Call
  * it once per screen and thread the result down, or a single insert re-runs the
  * same full scan N times.
+ *
+ * Every expense up to now, or from `sinceMs` on for a caller that reads no
+ * older row.
  */
-export function useExpenseContributions(db: Database, nowMs: number): ExpenseContribution[] {
-    const data = useLiveQuery(transactions, () => expenseContributionQuery(db, new Date(nowMs)), [nowMs]);
+export function useExpenseContributions(
+    db: Database,
+    nowMs: number,
+    sinceMs: number | null = null
+): ExpenseContribution[] {
+    const data = useLiveQuery(
+        transactions,
+        () => expenseContributionQuery(db, new Date(nowMs), sinceMs === null ? null : new Date(sinceMs)),
+        [nowMs, sinceMs]
+    );
 
     const categoryMeta = useCategoryMeta(db);
     const valuation = useValuation(db);
 
-    return useMemo(() => {
-        const valued = valueDatedRowsIn(data, valuation.displayCurrency, valuation.rates);
-        return data.map((row, index) => ({
-            // `amount` is the valued amount from here down, not the row's stored one.
-            amount: valued[index],
-            categoryId: row.categoryId,
-            date: row.date,
-            parentId: row.categoryId ? (categoryMeta.get(row.categoryId)?.parentId ?? null) : null,
-        }));
-    }, [data, categoryMeta, valuation]);
+    return useMemo(
+        () => expenseContributionsFrom(data, categoryMeta, valuation.displayCurrency, valuation.rates),
+        [data, categoryMeta, valuation]
+    );
 }
 
 /**
@@ -273,23 +297,14 @@ export function usePerCategoryBudgets(
     return useMemo(() => {
         const now = new Date(nowMs);
         return rows.map((row) => {
-            const window = advanceBudgetWindow(row.startDate ?? now, row.type, now);
-            const spent = row.categoryId ? spentForCategory(contributions, row.categoryId, window.start, now) : 0;
+            const { amount, carry, limit, spent, window } = categoryBudgetFigures(
+                row,
+                contributions,
+                now,
+                displayCurrency,
+                rates
+            );
             const meta = row.categoryId ? categoryMeta.get(row.categoryId) : undefined;
-            const limit = limitIn(row, window.start, displayCurrency, rates);
-            // Every closed window since the anchor, but only when the budget asked
-            // for it: the walk costs a spend pass over the ledger, and a budget that
-            // does not roll over must not pay for one.
-            const carry =
-                row.rollover && row.categoryId
-                    ? rolloverCarryFrom(contributions, row.categoryId, {
-                          anchor: row.dateCreated ?? window.start,
-                          current: window,
-                          limit,
-                          type: row.type,
-                      }).credit
-                    : 0;
-            const amount = effectiveLimit(limit, carry);
             return {
                 amount,
                 anchor: row.startDate ?? window.start,
@@ -314,8 +329,65 @@ export function usePerCategoryBudgets(
     }, [rows, contributions, categoryMeta, nowMs, displayCurrency, rates]);
 }
 
+/** A category budget's figures for its current window. Reads no row before {@link overBudgetReadStart}. */
+export function categoryBudgetFigures(
+    row: Budget,
+    contributions: readonly ExpenseContribution[],
+    now: Date,
+    displayCurrency: string,
+    rates: RateTable
+) {
+    const window = advanceBudgetWindow(row.startDate ?? now, row.type, now);
+    const spent = row.categoryId ? spentForCategory(contributions, row.categoryId, window.start, now) : 0;
+    const limit = limitIn(row, window.start, displayCurrency, rates);
+    // Every closed window since the anchor, but only when the budget asked
+    // for it: the walk costs a spend pass over the ledger, and a budget that
+    // does not roll over must not pay for one.
+    const carry =
+        row.rollover && row.categoryId
+            ? rolloverCarryFrom(contributions, row.categoryId, {
+                  anchor: row.dateCreated ?? window.start,
+                  current: window,
+                  limit,
+                  type: row.type,
+              }).credit
+            : 0;
+    return { amount: effectiveLimit(limit, carry), carry, limit, spent, window };
+}
+
+/**
+ * The oldest instant whose rows can move a figure of {@link categoryBudgetFigures},
+ * or null when no budget reads a row: each budget's window start, or the start of
+ * the oldest window its rollover carries from. Moved back to its UTC midnight,
+ * because valuation converts a currency's rows a UTC day at a time and a row's
+ * value depends on that day's earlier rows.
+ */
+export function overBudgetReadStart(rows: readonly Budget[], now: Date): number | null {
+    let earliest: number | null = null;
+    for (const row of rows) {
+        if (!row.categoryId) {
+            continue;
+        }
+        const window = advanceBudgetWindow(row.startDate ?? now, row.type, now);
+        const carried = row.rollover
+            ? carryWindows({ anchor: row.dateCreated ?? window.start, current: window, type: row.type }).windows.at(-1)
+            : undefined;
+        const from = (carried ?? window).start.getTime();
+        earliest = earliest === null ? from : Math.min(earliest, from);
+    }
+    return earliest === null ? null : Date.parse(utcDateString(earliest));
+}
+
+/**
+ * The tab bar's badge. Reads only the rows the budgets' figures read, and none
+ * without a category budget, not the whole history the Budgets screen needs.
+ */
 export function useOverBudgetCount(db: Database, nowMs: number): number {
-    const contributions = useExpenseContributions(db, nowMs);
+    const rows = useLiveQuery(budgets, () =>
+        db.select(getTableColumns(budgets)).from(budgets).where(isNull(budgets.deletedAt))
+    );
+    const sinceMs = overBudgetReadStart(rows, new Date(nowMs)) ?? nowMs + 1;
+    const contributions = useExpenseContributions(db, nowMs, sinceMs);
     const perCategory = usePerCategoryBudgets(db, nowMs, contributions);
     return perCategory.reduce((count, budget) => (budget.overBudget ? count + 1 : count), 0);
 }
