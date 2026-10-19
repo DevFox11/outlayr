@@ -3,7 +3,7 @@ import { addDays, addMonths, startOfDay } from "@outlayr/money/calendar";
 import type { RateTable } from "@outlayr/money/valuation";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { Platform, ScrollView } from "react-native";
+import { ScrollView } from "react-native";
 
 import { AmountsHiddenContext } from "@/components/amount-text";
 import { DaySectionHeader } from "@/components/day-section-header";
@@ -119,9 +119,7 @@ export function Log() {
     const nowMs = useNow();
     const { banks: accountsOverview, debts: debtsOverview } = useLogOverviewIn(db, valuation, nowMs, pendingAccountId);
     const accountRows = useBankAccounts(db);
-    // shortcut: iOS only until the Debts screen gets its Android build.
     const debts =
-        Platform.OS === "ios" &&
         debtsOverview.youOwe.length + debtsOverview.owedToYou.length + debtsOverview.settled.length > 0
             ? {
                   currency,
