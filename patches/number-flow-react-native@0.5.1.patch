@@ -1,4 +1,49 @@
+diff --git a/lib/module/native/DigitSlot.js b/lib/module/native/DigitSlot.js
+index 67b3ee133b286d0046010b64c45518e9ca7c845d..9fc844a4306024d2c52a6faff090c65f4d5cda89 100644
+--- a/lib/module/native/DigitSlot.js
++++ b/lib/module/native/DigitSlot.js
+@@ -140,6 +140,22 @@ export const DigitSlot = /*#__PURE__*/React.memo(({
+   });
+   const stripLength = resolvedDigitCount + 2 * STRIP_PAD;
+ 
++  /**
++   * Until something moves the strip, only the resting digit and its two
++   * neighbours mount: the clip window's mask zones reach less than a
++   * line-height above and below the resting digit, so no other strip index
++   * can show. The first change mounts the rest of the strip during render,
++   * in the same commit that starts the roll, so it never moves with digits
++   * missing.
++   */
++  const [restDigit] = useState(initialDigit);
++  const [restSpinGeneration] = useState(continuousSpinGeneration);
++  const [stripMounted, setStripMounted] = useState(false);
++  if (!stripMounted && (exiting || digitValue !== restDigit || continuousSpinGeneration !== restSpinGeneration)) {
++    setStripMounted(true);
++  }
++  const restIndex = normalizeWheelPosition(restDigit, resolvedDigitCount) + STRIP_PAD;
++
+   /**
+    * The whole wheel is one strip translated by a single shared value, instead
+    * of every digit carrying its own animated transform. A spinning slot used
+@@ -240,6 +256,7 @@ export const DigitSlot = /*#__PURE__*/React.memo(({
+   const digitElements = useMemo(() => Array.from({
+     length: stripLength
+   }, (_, i) => {
++    if (!stripMounted && Math.abs(i - restIndex) > 1) return null;
+     const digitString = resolvedDigitStrings[wheelStripDigit(i, STRIP_PAD, resolvedDigitCount)];
+     const top = i * effectiveLH;
+     return PER_DIGIT_FADE ? /*#__PURE__*/_jsx(FadingStripDigit, {
+@@ -252,7 +269,7 @@ export const DigitSlot = /*#__PURE__*/React.memo(({
+       textStyle: effectiveTextStyle,
+       top: top
+     }, i);
+-  }), [stripLength, resolvedDigitCount, resolvedDigitStrings, effectiveLH, effectiveTextStyle, digitOpacities]);
++  }), [stripLength, stripMounted, restIndex, resolvedDigitCount, resolvedDigitStrings, effectiveLH, effectiveTextStyle, digitOpacities]);
+   return /*#__PURE__*/_jsx(Animated.View, {
+     style: [styles.slotClip, animatedSlotStyle],
+     children: /*#__PURE__*/_jsx(Animated.View, {
 diff --git a/lib/module/native/glyphMetricsShared.js b/lib/module/native/glyphMetricsShared.js
+index 08e9350d5eeeac36cdf63c80a2985d9542f1c269..a6b1097b59053de762307fc2e1f880365c6bb66b 100644
 --- a/lib/module/native/glyphMetricsShared.js
 +++ b/lib/module/native/glyphMetricsShared.js
 @@ -15,7 +15,7 @@ export function buildCharSet(additionalChars) {
@@ -11,6 +56,7 @@ diff --git a/lib/module/native/glyphMetricsShared.js b/lib/module/native/glyphMe
    const base = `${style.fontFamily}:${style.fontSize}:${variant}:${weight}`;
    return additionalChars ? `${base}:${additionalChars}` : base;
 diff --git a/lib/module/native/useMeasuredGlyphMetrics.js b/lib/module/native/useMeasuredGlyphMetrics.js
+index 8386d7d990b781a99cb2bff341f529ad1d18fcc2..84757194870f922ee61c8a5409dcaec4b8d84bbe 100644
 --- a/lib/module/native/useMeasuredGlyphMetrics.js
 +++ b/lib/module/native/useMeasuredGlyphMetrics.js
 @@ -1,7 +1,7 @@
@@ -44,6 +90,7 @@ diff --git a/lib/module/native/useMeasuredGlyphMetrics.js b/lib/module/native/us
    if (cached) prevMetricsRef.current = cached;
    const handleComplete = useCallback(metrics => {
 diff --git a/lib/typescript/native/glyphMetricsShared.d.ts b/lib/typescript/native/glyphMetricsShared.d.ts
+index cff31db62f5ef210deba0f92cd159dc11d50f8cd..a4244af3e0572b251f35eabfa22b4b08d90d3ec1 100644
 --- a/lib/typescript/native/glyphMetricsShared.d.ts
 +++ b/lib/typescript/native/glyphMetricsShared.d.ts
 @@ -7,7 +7,7 @@ export declare const metricsCache: Map<string, import("../core/types").GlyphMetr
@@ -55,7 +102,56 @@ diff --git a/lib/typescript/native/glyphMetricsShared.d.ts b/lib/typescript/nati
      fontWeight?: string | number;
  }, additionalChars?: string): string;
  export declare const NO_DESCENDER: Set<string>;
+diff --git a/src/native/DigitSlot.tsx b/src/native/DigitSlot.tsx
+index 98c33d6ff2c86ebe9ed6259c9035929cca85d5e5..738d8f6e31fb8504ea016fc2cf932bdbc6e4bbac 100644
+--- a/src/native/DigitSlot.tsx
++++ b/src/native/DigitSlot.tsx
+@@ -181,6 +181,25 @@ export const DigitSlot = React.memo(
+ 
+     const stripLength = resolvedDigitCount + 2 * STRIP_PAD;
+ 
++    /**
++     * Until something moves the strip, only the resting digit and its two
++     * neighbours mount: the clip window's mask zones reach less than a
++     * line-height above and below the resting digit, so no other strip index
++     * can show. The first change mounts the rest of the strip during render,
++     * in the same commit that starts the roll, so it never moves with digits
++     * missing.
++     */
++    const [restDigit] = useState(initialDigit);
++    const [restSpinGeneration] = useState(continuousSpinGeneration);
++    const [stripMounted, setStripMounted] = useState(false);
++    if (
++      !stripMounted &&
++      (exiting || digitValue !== restDigit || continuousSpinGeneration !== restSpinGeneration)
++    ) {
++      setStripMounted(true);
++    }
++    const restIndex = normalizeWheelPosition(restDigit, resolvedDigitCount) + STRIP_PAD;
++
+     /**
+      * The whole wheel is one strip translated by a single shared value, instead
+      * of every digit carrying its own animated transform. A spinning slot used
+@@ -317,6 +336,8 @@ export const DigitSlot = React.memo(
+     const digitElements = useMemo(
+       () =>
+         Array.from({ length: stripLength }, (_, i) => {
++          if (!stripMounted && Math.abs(i - restIndex) > 1) return null;
++
+           const digitString =
+             resolvedDigitStrings[wheelStripDigit(i, STRIP_PAD, resolvedDigitCount)];
+           const top = i * effectiveLH;
+@@ -340,6 +361,8 @@ export const DigitSlot = React.memo(
+         }),
+       [
+         stripLength,
++        stripMounted,
++        restIndex,
+         resolvedDigitCount,
+         resolvedDigitStrings,
+         effectiveLH,
 diff --git a/src/native/glyphMetricsShared.ts b/src/native/glyphMetricsShared.ts
+index 0932a852561098d7e2f556ed7b41bc8941d1596e..781303825648beaff191ae1aa59b21d79ca4dc0a 100644
 --- a/src/native/glyphMetricsShared.ts
 +++ b/src/native/glyphMetricsShared.ts
 @@ -17,12 +17,12 @@ export function cacheKey(
@@ -74,6 +170,7 @@ diff --git a/src/native/glyphMetricsShared.ts b/src/native/glyphMetricsShared.ts
    const base = `${style.fontFamily}:${style.fontSize}:${variant}:${weight}`;
    return additionalChars ? `${base}:${additionalChars}` : base;
 diff --git a/src/native/useMeasuredGlyphMetrics.tsx b/src/native/useMeasuredGlyphMetrics.tsx
+index 8ae7579f084b1a4f4ea44e12bb110bfd4ecdd667..d4b2cf02070ecebb242dab8d33e132090e7fa85f 100644
 --- a/src/native/useMeasuredGlyphMetrics.tsx
 +++ b/src/native/useMeasuredGlyphMetrics.tsx
 @@ -1,5 +1,5 @@
