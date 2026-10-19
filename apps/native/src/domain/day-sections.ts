@@ -38,6 +38,8 @@ export interface DayGroupable {
 export interface DaySection<T> {
     data: T[];
     day: Date;
+    /** The day's instant, so a list keeps the section's rows when a day above it comes or goes. */
+    key: string;
     /**
      * Signed net for the day across every currency. Only meaningful when the day
      * used one — prefer {@link DaySection.totals}, which never adds two currencies
@@ -127,7 +129,7 @@ export function groupByDay<T extends DayGroupable>(
         const key = new Date(instant(row)).setHours(0, 0, 0, 0);
         let section = byDay.get(key);
         if (!section) {
-            section = { data: [], day: new Date(key), total: 0, totals: [] };
+            section = { data: [], day: new Date(key), key: String(key), total: 0, totals: [] };
             byDay.set(key, section);
             sections.push(section);
         }

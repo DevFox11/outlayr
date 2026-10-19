@@ -18,6 +18,13 @@ describe("groupByDay", () => {
         expect(sections.map((section) => section.day.getDate())).toStrictEqual([24, 23, 21]);
     });
 
+    it("keeps a day's key when a newer day is added above it", () => {
+        const before = groupByDay([row("2026-07-23", 20)]);
+        const after = groupByDay([row("2026-07-24", 10), row("2026-07-23", 20)]);
+        expect(after[1].key).toBe(before[0].key);
+        expect(after[0].key).not.toBe(after[1].key);
+    });
+
     it("merges a day that reappears later without opening a second section", () => {
         // The budget query orders by `date`, not `day`, so an out-of-order row must
         // still land in its own day rather than splitting the section in two.
