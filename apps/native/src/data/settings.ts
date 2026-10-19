@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { useCalendars } from "expo-localization";
 import { useEffect, useMemo } from "react";
 
@@ -21,34 +21,32 @@ export interface SettingsSnapshot {
     number: (key: NumberSettingKey) => number;
 }
 
+type MetaRow = typeof appMeta.$inferSelect;
+
+const SETTING_KEYS = Object.keys(SETTING_DEFAULTS);
+
 /**
- * Every setting from one subscription, as a snapshot whose identity moves on any
- * `appMeta` write. That makes it the wrong read for anything expensive:
- * published through a context it re-renders every consumer for a toggle none of
- * them read. `useBoolSetting`/`useNumberSetting` each run their own query but
- * hand React the parsed value, so an unrelated write costs a keyed lookup and no
- * render — prefer them wherever the render is worth more than the lookup.
+ * Every setting from one subscription, as a snapshot whose identity moves only
+ * when a stored setting does. The bookkeeping that shares `appMeta` (sync
+ * cursors, the enrichment outbox, rate stamps) never reaches it. Published
+ * through a context it still re-renders every consumer for a toggle none of them
+ * read, so prefer `useBoolSetting`/`useNumberSetting` wherever the render is
+ * worth more than the keyed lookup they run.
  */
 export function useAllSettings(db: Database | null): SettingsSnapshot {
     // Nullable because `AppSettingsProvider` mounts above the root splash gate and
     // so renders while the database is still opening; the defaults it publishes in
     // that window are never observed, since every consumer sits below the gate.
-    const rows = useLiveQuery<typeof appMeta.$inferSelect>(
-        appMeta,
-        () => (db == null ? { all: () => [] } : db.select().from(appMeta)),
-        [db]
-    );
+    const rows = useLiveQuery(appMeta, () => selectSettings(db), [db]);
+    return useMemo(() => settingsSnapshot(rows), [rows]);
+}
 
-    return useMemo(() => {
-        const raw = new Map<string, string | null>();
-        for (const row of rows) {
-            raw.set(row.key, row.value);
-        }
-        return {
-            bool: (key) => parseBoolSetting(raw.get(key) ?? null, SETTING_DEFAULTS[key]),
-            number: (key) => parseIntSetting(raw.get(key) ?? null, SETTING_DEFAULTS[key]),
-        };
-    }, [rows]);
+export function settingsSnapshot(rows: readonly MetaRow[]): SettingsSnapshot {
+    const raw = new Map(rows.map((row) => [row.key, row.value]));
+    return {
+        bool: (key) => parseBoolSetting(raw.get(key) ?? null, SETTING_DEFAULTS[key]),
+        number: (key) => parseIntSetting(raw.get(key) ?? null, SETTING_DEFAULTS[key]),
+    };
 }
 
 export function useBoolSetting(db: Database | null, key: BoolSettingKey): boolean {
@@ -110,4 +108,12 @@ function selectSetting(
         return { all: () => [] };
     }
     return db.select({ value: appMeta.value }).from(appMeta).where(eq(appMeta.key, key));
+}
+
+/** Only the stored settings: the bookkeeping that shares `appMeta` never reaches the read. */
+export function selectSettings(db: Database | null): SyncQuery<MetaRow> {
+    if (db == null) {
+        return { all: () => [] };
+    }
+    return db.select().from(appMeta).where(inArray(appMeta.key, SETTING_KEYS));
 }

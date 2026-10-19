@@ -4,6 +4,8 @@ import type { Database } from "@/db/client";
 import { migratedDatabase } from "@/db/test-database";
 import { amountParts, formatAmount } from "@/domain/money";
 
+import { META_KEYS, setMeta } from "./app-meta-core";
+import { selectSettings, settingsSnapshot } from "./settings";
 import type { BoolSettingKey } from "./settings-core";
 import {
     ordinalDay,
@@ -65,6 +67,21 @@ describe("settings read/write round-trip", () => {
         await setBoolSetting(db, "showNotifications", false);
         await expect(readBoolSetting(db, "subscriptionReminders")).resolves.toBe(true);
         await expect(readBoolSetting(db, "showNotifications")).resolves.toBe(false);
+    });
+});
+
+describe("the settings read behind the app-wide snapshot", () => {
+    it("is unchanged by bookkeeping writes and reads a changed setting", async () => {
+        const db = makeDb();
+        await setBoolSetting(db, "showCents", true);
+        const before = selectSettings(db).all();
+
+        await setMeta(db, META_KEYS.syncCursor, "42");
+        await setMeta(db, META_KEYS.syncedAt, "1760000000000");
+        expect(selectSettings(db).all()).toStrictEqual(before);
+
+        await setBoolSetting(db, "showCents", false);
+        expect(settingsSnapshot(selectSettings(db).all()).bool("showCents")).toBe(false);
     });
 });
 

@@ -30,9 +30,10 @@ const AppSettingsContext = createContext<AppSettingsValue | null>(null);
 /**
  * One `useAllSettings` subscription for the whole tree, split into two
  * contexts: `DisplaySettingsContext`'s memo is keyed on the three primitive
- * booleans, so its published value stays referentially stable across an
- * unrelated `appMeta` write — `AppSettingsContext`'s is keyed on the whole
- * snapshot and re-renders on every write, same as today.
+ * booleans, so its published value stays referentially stable across a write
+ * to any other setting — `AppSettingsContext`'s is keyed on the whole snapshot
+ * and republishes on every setting write. Neither moves for the bookkeeping
+ * that shares `appMeta`.
  */
 export function AppSettingsProvider({ children }: { children: ReactNode }) {
     const { db } = useLocalData();
@@ -94,7 +95,7 @@ export function useAppSettings(): AppSettingsValue {
 
 /**
  * One setting, without the context. `useAppSettings` republishes on every
- * `appMeta` write, so reading a single key through it re-renders the caller for
+ * setting write, so reading a single key through it re-renders the caller for
  * every unrelated toggle in the app — which is how a background tab's chart ends
  * up redrawing when the ledger's measure is switched. These subscribe to the key
  * itself and fall back to the default until the database is open.
