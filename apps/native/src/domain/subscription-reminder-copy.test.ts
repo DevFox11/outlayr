@@ -16,35 +16,44 @@ const PRIME = {
 
 describe("reminderCopy", () => {
     it("leads with the amount and name, then when, category and account", () => {
-        expect(reminderCopy(PRIME, "en")).toStrictEqual({
+        expect(reminderCopy(PRIME, false, "en")).toStrictEqual({
             body: "Tomorrow · Streaming · Payoneer USD",
             title: "$7.06 · Prime Video",
         });
-        expect(reminderCopy(PRIME, "es").body).toBe("Mañana · Streaming · Payoneer USD");
+        expect(reminderCopy(PRIME, false, "es").body).toBe("Mañana · Streaming · Payoneer USD");
     });
 
     it("signs a repeating income and drops a missing account", () => {
         expect(
             reminderCopy(
                 { ...PRIME, account: null, amount: 2400, category: "Salary", income: true, note: "Salary" },
+                false,
                 "en"
             )
         ).toStrictEqual({ body: "Tomorrow", title: "+$2,400.00 · Salary" });
     });
 
     it("drops a category that only repeats the name, whatever its case", () => {
-        expect(reminderCopy({ ...PRIME, category: " prime VIDEO " }, "en").body).toBe("Tomorrow · Payoneer USD");
+        expect(reminderCopy({ ...PRIME, category: " prime VIDEO " }, false, "en").body).toBe("Tomorrow · Payoneer USD");
     });
 
     it("names an untitled charge after its category without repeating it", () => {
-        expect(reminderCopy({ ...PRIME, note: "  " }, "en")).toStrictEqual({
+        expect(reminderCopy({ ...PRIME, note: "  " }, false, "en")).toStrictEqual({
             body: "Tomorrow · Payoneer USD",
             title: "$7.06 · Streaming",
         });
     });
 
     it("falls back to the generic name with neither a note nor a category", () => {
-        expect(reminderCopy({ ...PRIME, category: null, note: "" }, "en").title).toBe("$7.06 · Subscription");
+        expect(reminderCopy({ ...PRIME, category: null, note: "" }, false, "en").title).toBe("$7.06 · Subscription");
+    });
+
+    it("leaves the amount and its sign off the title when amounts are hidden", () => {
+        expect(reminderCopy(PRIME, true, "en")).toStrictEqual({
+            body: "Tomorrow · Streaming · Payoneer USD",
+            title: "Prime Video",
+        });
+        expect(reminderCopy({ ...PRIME, income: true }, true, "en").title).toBe("Prime Video");
     });
 });
 
@@ -69,6 +78,7 @@ describe("reminderNotices", () => {
                     armed("vix", { amount: 99, amountUsd: 5.5, currency: "MXN", note: "ViX" }),
                     armed("max", { amount: 1, amountUsd: null, note: "Max" }),
                 ],
+                false,
                 "en"
             )
         ).toStrictEqual([
@@ -90,6 +100,7 @@ describe("reminderNotices", () => {
                 armed("bonus", { income: true }),
                 armed("adobe", { landing: new Date(2026, 9, 15) }),
             ],
+            false,
             "en"
         );
 
@@ -102,9 +113,18 @@ describe("reminderNotices", () => {
         expect(notices[0]?.title).toBe("$7.06 · Prime Video");
     });
 
+    it("names the folded charges without their amounts when amounts are hidden", () => {
+        const [digest] = reminderNotices(
+            [armed("prime"), armed("spotify", { amount: 10.99, amountUsd: 10.99, note: "Spotify" })],
+            true,
+            "en"
+        );
+        expect(digest?.body).toBe("Spotify · Prime Video");
+    });
+
     it("says when the folded charges land, counted from when the notice fires", () => {
         const title = (landing: Date, language: "en" | "es") =>
-            reminderNotices([armed("a", { landing }), armed("b", { landing })], language)[0]?.title;
+            reminderNotices([armed("a", { landing }), armed("b", { landing })], false, language)[0]?.title;
 
         expect(title(new Date(2026, 9, 8), "en")).toBe("2 charges today");
         expect(title(new Date(2026, 9, 8), "es")).toBe("2 cobros hoy");

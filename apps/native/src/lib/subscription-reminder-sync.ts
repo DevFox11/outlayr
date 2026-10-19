@@ -28,9 +28,9 @@ export function syncSubscriptionReminders(db: Database): Promise<void> {
 }
 
 /**
- * Reconciles run one at a time. The recurrence sweep in `BackgroundWork` asks on
- * every launch and foreground, once its walk has moved the landings; the
- * transaction form, the voice entry and the notifications screen ask after their
+ * Reconciles run one at a time. `BackgroundWork` asks on every launch and
+ * foreground, once the recurrence sweep has moved the landings, and after a
+ * setting changes; the transaction form and the voice entry ask after their
  * own writes. Two overlapping passes interleave their cancels and schedules, so
  * one can cancel a request the other has just armed.
  *
@@ -40,9 +40,10 @@ export function syncSubscriptionReminders(db: Database): Promise<void> {
 let queue: Promise<unknown> = Promise.resolve();
 
 async function reconcileSubscriptionReminders(db: Database): Promise<void> {
-    const [enabled, permission] = await Promise.all([
+    const [enabled, permission, hideAmounts] = await Promise.all([
         readBoolSetting(db, "subscriptionReminders"),
         reminderPermission(),
+        readBoolSetting(db, "hideAmounts"),
     ]);
     if (enabled && permission === "unknown") {
         return;
@@ -50,7 +51,7 @@ async function reconcileSubscriptionReminders(db: Database): Promise<void> {
     const decision = reminderReconcile(enabled, permission);
     const notices =
         decision === "schedule"
-            ? reminderNotices(await pendingReminderPlan(db, new Date(), await readReminderTime(db)))
+            ? reminderNotices(await pendingReminderPlan(db, new Date(), await readReminderTime(db)), hideAmounts)
             : [];
 
     await cancelReminders(

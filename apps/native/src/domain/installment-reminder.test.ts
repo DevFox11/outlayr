@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 
 import {
+    cuotaNotice,
     cuotaReminders,
     installmentReminderCap,
     installmentReminderId,
@@ -40,6 +41,30 @@ describe("cuotaReminders", () => {
             1
         );
         expect(armed.map((row) => row.installmentId)).toStrictEqual(["soon"]);
+    });
+});
+
+describe("cuotaNotice", () => {
+    const cuota = {
+        account: "Cashea",
+        amount: 13.33,
+        currency: "USD",
+        fireAt: new Date(2026, 9, 31, 8, 0),
+        id: installmentReminderId("nov-1"),
+        order: "Nike Air",
+        planId: "plan",
+    };
+
+    it("says what is owed to whom, and only to whom when amounts are hidden", () => {
+        expect(cuotaNotice(cuota, false, "en")).toStrictEqual({
+            body: "$13.33 to Cashea. Tap when it's paid.",
+            data: { open: "installment", plan: "plan" },
+            fireAt: cuota.fireAt,
+            id: cuota.id,
+            title: "Nike Air is due tomorrow",
+        });
+        expect(cuotaNotice(cuota, true, "en").body).toBe("Cashea. Tap when it's paid.");
+        expect(cuotaNotice(cuota, true, "es").body).toBe("Cashea. Toca cuando la pagues.");
     });
 });
 

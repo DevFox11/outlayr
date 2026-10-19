@@ -20,9 +20,7 @@ import type { TimeOfDay } from "@/domain/reminder";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { translateNow } from "@/i18n/runtime";
-import { syncInstallmentReminders } from "@/lib/installment-reminder-sync";
 import { openNotificationSettings, reminderPermission, requestReminderPermission } from "@/lib/reminders";
-import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
 
 const OPTIONS = [
     {
@@ -81,13 +79,13 @@ async function disableReminders(db: Database): Promise<void> {
 /**
  * The same permission ladder, its own key: the daily reminder and each kind of
  * due-date notice are separate promises, and the revoke reconcile writes each
- * back off on its own. The sync runs at once, so turning one on arms it now.
+ * back off on its own. The write re-arms both kinds through `BackgroundWork`'s
+ * settings listener, so turning one on arms it within a beat.
  */
 async function setDueReminders(
     db: Database,
     key: "installmentReminders" | "subscriptionReminders",
-    next: boolean,
-    sync: (db: Database) => Promise<void>
+    next: boolean
 ): Promise<void> {
     if (next) {
         const existing = await reminderPermission();
@@ -114,7 +112,6 @@ async function setDueReminders(
         }
     }
     await setBoolSetting(db, key, next);
-    await sync(db);
 }
 
 export function Notifications() {
@@ -192,9 +189,7 @@ export function Notifications() {
                 <ToggleRow
                     icon="CalendarClock"
                     onValueChange={(next) => {
-                        setDueReminders(db, "subscriptionReminders", next, syncSubscriptionReminders).catch(
-                            reportReminderFailure
-                        );
+                        setDueReminders(db, "subscriptionReminders", next).catch(reportReminderFailure);
                     }}
                     title={t("settings.notifications.subscriptionToggle")}
                     value={subscriptionsEnabled}
@@ -208,9 +203,7 @@ export function Notifications() {
                 <ToggleRow
                     icon="CreditCard"
                     onValueChange={(next) => {
-                        setDueReminders(db, "installmentReminders", next, syncInstallmentReminders).catch(
-                            reportReminderFailure
-                        );
+                        setDueReminders(db, "installmentReminders", next).catch(reportReminderFailure);
                     }}
                     title={t("settings.notifications.installmentToggle")}
                     value={installmentsEnabled}

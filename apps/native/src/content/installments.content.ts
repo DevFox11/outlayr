@@ -327,6 +327,10 @@ const installments = {
             en: "{amount} to {account}. Tap when it's paid.",
             es: "{amount} a {account}. Toca cuando la pagues.",
         }),
+        "installments.reminder.bodyHidden": t({
+            en: "{account}. Tap when it's paid.",
+            es: "{account}. Toca cuando la pagues.",
+        }),
         "installments.reminder.title": t({
             en: "{order} is due tomorrow",
             es: "{order} vence mañana",

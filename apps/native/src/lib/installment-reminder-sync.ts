@@ -2,12 +2,16 @@ import { readPlans } from "@/data/installments-core";
 import { readBoolSetting, setBoolSetting } from "@/data/settings-core";
 import type { Database } from "@/db/client";
 import { accounts } from "@/db/schema";
-import { cuotaReminders, installmentReminderCap, orphanedInstallmentReminderIds } from "@/domain/installment-reminder";
+import {
+    cuotaNotice,
+    cuotaReminders,
+    installmentReminderCap,
+    orphanedInstallmentReminderIds,
+} from "@/domain/installment-reminder";
 import { orderName } from "@/domain/installments";
-import { formatAmount } from "@/domain/money";
 import type { TimeOfDay } from "@/domain/reminder";
 import { reminderReconcile } from "@/domain/reminder";
-import { runtimeLanguage, translateNow } from "@/i18n/runtime";
+import { translateNow } from "@/i18n/runtime";
 
 import { readReminderTime } from "./reminder-sync";
 import { cancelReminders, pendingReminderIds, reminderPermission, scheduleDatedReminder } from "./reminders";
@@ -17,8 +21,8 @@ import type { DatedReminder } from "./reminders";
  * Reconciles iOS's pending queue with the day-before notice of every unpaid
  * cuota. Recomputed from the ledger on each pass, so a cuota paid, edited or
  * deleted with its order loses its notice on the next one: `BackgroundWork`
- * asks once per launch and foreground, and the installment screens ask after
- * their own writes.
+ * asks once per launch and foreground and after a setting changes, and the
+ * installment screens ask after their own writes.
  */
 export function syncInstallmentReminders(db: Database): Promise<void> {
     const run = queue.then(() => reconcileInstallmentReminders(db));
@@ -44,9 +48,10 @@ export function rearmInstallmentReminders(db: Database): void {
 let queue: Promise<unknown> = Promise.resolve();
 
 async function reconcileInstallmentReminders(db: Database): Promise<void> {
-    const [enabled, permission] = await Promise.all([
+    const [enabled, permission, hideAmounts] = await Promise.all([
         readBoolSetting(db, "installmentReminders"),
         reminderPermission(),
+        readBoolSetting(db, "hideAmounts"),
     ]);
     if (enabled && permission === "unknown") {
         return;
@@ -55,7 +60,7 @@ async function reconcileInstallmentReminders(db: Database): Promise<void> {
     const pending = await pendingReminderIds();
     const notices =
         decision === "schedule"
-            ? cuotaNotices(db, new Date(), await readReminderTime(db), installmentReminderCap(pending))
+            ? cuotaNotices(db, new Date(), await readReminderTime(db), installmentReminderCap(pending), hideAmounts)
             : [];
 
     await cancelReminders(
@@ -74,9 +79,8 @@ async function reconcileInstallmentReminders(db: Database): Promise<void> {
     }
 }
 
-/** "Nike Air at Traki is due tomorrow" / "$30.00 to Cashea", for each cuota still owed. */
-function cuotaNotices(db: Database, now: Date, time: TimeOfDay, cap: number): DatedReminder[] {
-    const language = runtimeLanguage();
+/** The day-before notice of each cuota still owed, soonest first. */
+function cuotaNotices(db: Database, now: Date, time: TimeOfDay, cap: number, hideAmounts: boolean): DatedReminder[] {
     const names = new Map(
         db
             .select({ id: accounts.id, name: accounts.name })
@@ -89,18 +93,13 @@ function cuotaNotices(db: Database, now: Date, time: TimeOfDay, cap: number): Da
             .filter((row) => row.status !== "paid")
             .map((row) => ({
                 account: names.get(plan.accountId) ?? "",
-                amount: formatAmount(row.remaining, plan.currency, true, language),
+                amount: row.remaining,
+                currency: plan.currency,
                 dueDate: row.row.dueDate,
                 installmentId: row.row.id,
                 order: orderName(translateNow, purchase),
                 planId: plan.id,
             }))
     );
-    return cuotaReminders(owed, now, time, cap).map((cuota) => ({
-        body: translateNow("installments.reminder.body", { account: cuota.account, amount: cuota.amount }),
-        data: { open: "installment", plan: cuota.planId },
-        fireAt: cuota.fireAt,
-        id: cuota.id,
-        title: translateNow("installments.reminder.title", { order: cuota.order }),
-    }));
+    return cuotaReminders(owed, now, time, cap).map((cuota) => cuotaNotice(cuota, hideAmounts));
 }

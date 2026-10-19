@@ -1,6 +1,7 @@
 import { addDatabaseChangeListener } from "expo-sqlite";
 import { useEffect } from "react";
 
+import { META_KEYS } from "@/data/app-meta-core";
 import { subscribeToSettingChanges } from "@/data/database-changes";
 import { readBoolSetting, readNumberSetting, setBoolSetting } from "@/data/settings-core";
 import { lastLoggedEntry } from "@/data/transactions-core";
@@ -30,6 +31,16 @@ export async function readReminderTime(db: Database): Promise<TimeOfDay> {
 }
 
 let queue: Promise<unknown> = Promise.resolve();
+
+/** The settings the daily notices are written or timed from. */
+const DAILY_REMINDER_SETTINGS = [
+    "showNotifications",
+    "hideAmounts",
+    "notificationOption",
+    "notificationHour",
+    "notificationMinute",
+    META_KEYS.currency,
+] as const;
 
 export function syncDailyReminder(db: Database): Promise<void> {
     const run = queue.then(() => reconcileDailyReminder(db));
@@ -100,7 +111,7 @@ export function useDailyReminderSync(db: Database | null): void {
                 resync.schedule();
             }
         });
-        const unsubscribeSettings = subscribeToSettingChanges(db, resync.schedule);
+        const unsubscribeSettings = subscribeToSettingChanges(db, resync.schedule, DAILY_REMINDER_SETTINGS);
         return () => {
             resync.cancel();
             arm.cancel();

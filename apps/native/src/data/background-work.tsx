@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
 import { useDatabase } from "@/contexts/local-data-context";
+import { META_KEYS } from "@/data/app-meta-core";
+import { subscribeToSettingChanges } from "@/data/database-changes";
 import { usePhotoReconcile } from "@/data/use-photo-reconcile";
 import { usePhotoSync } from "@/data/use-photo-sync";
 import { useRecurrenceSweep } from "@/data/use-recurrence-sweep";
@@ -12,13 +14,34 @@ import { useEnrichmentQueue } from "@/lib/enrichment-queue";
 import { syncInstallmentReminders } from "@/lib/installment-reminder-sync";
 import { useDailyReminderSync } from "@/lib/reminder-sync";
 import { syncSubscriptionReminders } from "@/lib/subscription-reminder-sync";
+import { debounce, PUBLISH_DEBOUNCE_MS } from "@/lib/sync-cadence";
 import { useSystemSync } from "@/lib/use-system-sync";
 
 const IDLE_TIMEOUT_MS = 1000;
 
-/** Cuotas take the headroom the subscription notices leave, so they wait for that pass, failed or not. */
+/** The settings the subscription and cuota notices are written or timed from. */
+const DUE_REMINDER_SETTINGS = [
+    "subscriptionReminders",
+    "installmentReminders",
+    "hideAmounts",
+    "notificationOption",
+    "notificationHour",
+    "notificationMinute",
+    META_KEYS.currency,
+] as const;
+
+let duePass: Promise<void> = Promise.resolve();
+
+/**
+ * Cuotas take the headroom the subscription notices leave, so they wait for that
+ * pass, failed or not. Each whole pass also waits for the one before: a
+ * foreground and a setting change would otherwise run side by side, and one's
+ * cuota pass could count the queue while the other's subscriptions are mid
+ * re-arm.
+ */
 const reconcileDueReminders = (db: Database) => {
-    syncSubscriptionReminders(db)
+    duePass = duePass
+        .then(() => syncSubscriptionReminders(db))
         .catch((error) => {
             console.error("Subscription reminder sync failed", error);
         })
@@ -54,6 +77,21 @@ export function BackgroundWork() {
     // foreground, after the walk when there is one. The cuota notices follow
     // them in the same callback rather than a listener of their own.
     useRecurrenceSweep(ready, reconcileDueReminders);
+    // A setting they read rebuilds them now, the way `useDailyReminderSync`
+    // rebuilds the daily one, rather than on the next foreground.
+    useEffect(() => {
+        if (ready == null) {
+            return;
+        }
+        const resync = debounce(PUBLISH_DEBOUNCE_MS, () => {
+            reconcileDueReminders(ready);
+        });
+        const unsubscribe = subscribeToSettingChanges(ready, resync.schedule, DUE_REMINDER_SETTINGS);
+        return () => {
+            resync.cancel();
+            unsubscribe();
+        };
+    }, [ready]);
     // Ordered after the sweep so a subscription that advanced on this foreground
     // is already in the table when the widgets are rebuilt from it.
     useSystemSync(ready);

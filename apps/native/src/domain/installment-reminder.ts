@@ -1,3 +1,12 @@
+import { CATALOGS, EN } from "@/i18n/catalog";
+import type { TranslatableKey } from "@/i18n/catalog";
+import type { Language } from "@/i18n/languages";
+import { runtimeLanguage } from "@/i18n/runtime";
+import { translate } from "@/i18n/translate";
+import type { TranslationParams } from "@/i18n/translate";
+import type { DatedReminder } from "@/lib/reminders";
+
+import { formatAmount } from "./money";
 import type { TimeOfDay } from "./reminder";
 import { reminderFireAt } from "./subscription-reminder";
 
@@ -27,10 +36,10 @@ const IOS_PENDING_LIMIT = 64;
  * The cuotas take what the other reminders leave of iOS's limit, and at most
  * this many: the soonest ones, re-armed on every foreground as they fire.
  *
- * shortcut: a subscription sync outside the foreground pass (a saved entry, the
- * toggle) arms its 55 without counting the cuotas already pending, so the total
- * can pass the limit until the next foreground trims them; give each kind a
- * fixed share if a ledger ever holds that many subscription notices.
+ * shortcut: a subscription sync outside the ordered pass (a saved entry) arms
+ * its 55 without counting the cuotas already pending, so the total can pass the
+ * limit until the next foreground or setting change trims them; give each kind
+ * a fixed share if a ledger ever holds that many subscription notices.
  */
 const MAX_PENDING_INSTALLMENT_REMINDERS = 8;
 
@@ -59,6 +68,41 @@ export function cuotaReminders<Cuota extends { dueDate: Date; installmentId: str
         .filter((cuota) => cuota.fireAt.getTime() > now.getTime())
         .sort((a, b) => a.fireAt.getTime() - b.fireAt.getTime())
         .slice(0, cap);
+}
+
+export interface CuotaNoticeInput {
+    account: string;
+    amount: number;
+    currency: string;
+    fireAt: Date;
+    id: string;
+    order: string;
+    planId: string;
+}
+
+/**
+ * "Nike Air at Traki is due tomorrow" / "$30.00 to Cashea. Tap when it's paid.",
+ * with the amount left off when amounts are hidden.
+ */
+export function cuotaNotice(
+    cuota: CuotaNoticeInput,
+    hideAmounts: boolean,
+    language: Language = runtimeLanguage()
+): DatedReminder {
+    const say = (key: TranslatableKey, params: TranslationParams) =>
+        translate(key, { catalog: CATALOGS[language], fallback: EN, params });
+    return {
+        body: hideAmounts
+            ? say("installments.reminder.bodyHidden", { account: cuota.account })
+            : say("installments.reminder.body", {
+                  account: cuota.account,
+                  amount: formatAmount(cuota.amount, cuota.currency, true, language),
+              }),
+        data: { open: "installment", plan: cuota.planId },
+        fireAt: cuota.fireAt,
+        id: cuota.id,
+        title: say("installments.reminder.title", { order: cuota.order }),
+    };
 }
 
 /** Pending cuota notices the plan no longer covers; everything outside the namespace stays. */
