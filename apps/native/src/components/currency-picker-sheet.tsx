@@ -24,9 +24,9 @@ interface CurrencyPickerSheetProps {
 
 const SHORT_DETENT = 0.55;
 /** `@expo/ui` pads the sheet's content box out from the drag indicator. */
-const SHEET_TOP_PADDING = 16;
+export const SHEET_TOP_PADDING = 16;
 /** The gap iOS leaves above a sheet's card. */
-const SHEET_CARD_GAP = 10;
+export const SHEET_CARD_GAP = 10;
 const TITLE_HEIGHT = 48;
 const SEARCH_HEIGHT = 52;
 

@@ -3,9 +3,11 @@ import MinusSignIcon from "@hugeicons-pro/core-stroke-rounded/MinusSignIcon";
 import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
 import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { Pressable, View } from "react-native";
+import { Pressable, useWindowDimensions, View } from "react-native";
 import Animated from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { SHEET_CARD_GAP, SHEET_TOP_PADDING } from "@/components/currency-picker-sheet";
 import { ChoiceRow } from "@/components/list/list-row";
 import { revealEntering } from "@/components/sentence/sentence-motion";
 import { formatSentenceDate, formatTargetDate } from "@/domain/dates";
@@ -36,6 +38,8 @@ export function InstallmentsSheet(props: InstallmentsSheetProps) {
     const { language } = useLanguage();
     const colors = useColors();
     const sheetSurface = useSheetSurface();
+    const { height: windowHeight } = useWindowDimensions();
+    const insets = useSafeAreaInsets();
     const form = useInstallmentsSheetForm(props);
     const { each, emptyNote, firstDue, from, money, open, openPad, over, paidBefore, setOpen, step, total, upfront } =
         form;
@@ -51,6 +55,10 @@ export function InstallmentsSheet(props: InstallmentsSheetProps) {
                 <BottomSheetScrollView
                     contentContainerStyle={{ paddingBottom: 36, paddingHorizontal: 20, paddingTop: 8 }}
                     showsVerticalScrollIndicator={false}
+                    // The sheet fits its content, so a long schedule would outgrow the screen; capped, it scrolls.
+                    style={{
+                        maxHeight: windowHeight - insets.top - insets.bottom - SHEET_CARD_GAP - SHEET_TOP_PADDING,
+                    }}
                 >
                     <Text accessibilityRole="header" className="text-foreground pb-3 text-center text-lg font-medium">
                         {t("installments.chip")}
