@@ -5,7 +5,13 @@ import { transactions } from "@/db/schema";
 
 import { useCategoryMeta } from "./categories";
 import { useLiveQuery } from "./live-query";
-import { ledgerSizeQuery, logWindowDaysQuery, logWindowRowsQuery } from "./transactions-core";
+import {
+    ledgerSizeQuery,
+    logSplitMs,
+    logTailRowsQuery,
+    logWindowDaysQuery,
+    logWindowRowsQuery,
+} from "./transactions-core";
 import type { LOG_COLUMNS, Transaction } from "./transactions-core";
 
 export function useTransactionCount(db: Database): number {
@@ -49,9 +55,17 @@ export function useDecoratedRows<Row extends { categoryId: string | null }>(
 }
 
 export interface LoggedTransactions {
+    /** The window's days from `splitMs` on, newest first. */
+    head: TransactionWithCategory[];
     /** False while older days remain to be fetched. */
     reachedEnd: boolean;
-    rows: TransactionWithCategory[];
+    /** Midnight dividing `head` from `tail`; see {@link logSplitMs}. */
+    splitMs: number;
+    /**
+     * The window's days before `splitMs`, newest first. The same array, row
+     * objects included, through any write that leaves these rows alone.
+     */
+    tail: TransactionWithCategory[];
 }
 
 /**
@@ -67,15 +81,27 @@ export interface LoggedTransactions {
  * re-runs on every write to the table, and under that a cursor is unsound —
  * inserting a transaction above it shifts every later page, duplicating or
  * skipping rows.
+ *
+ * It comes in two reads so a grown window does not rebuild every row it holds
+ * when one recent entry changes: only `head` follows the clock.
  */
 export function useLoggedTransactions(db: Database, nowMs: number, days: number): LoggedTransactions {
     const dayRows = useLiveQuery(transactions, () => logWindowDaysQuery(db, nowMs, days), [nowMs, days], nowMs);
 
     const floorMs = dayRows.at(-1)?.day?.getTime() ?? null;
     const reachedEnd = dayRows.length < days;
+    const splitMs = logSplitMs(nowMs);
+    const headFloorMs = floorMs === null ? null : Math.max(floorMs, splitMs);
 
-    const data = useLiveQuery(transactions, () => logWindowRowsQuery(db, nowMs, floorMs), [nowMs, floorMs], nowMs);
-    const rows = useDecoratedRows(db, data);
+    const headData = useLiveQuery(
+        transactions,
+        () => logWindowRowsQuery(db, nowMs, headFloorMs),
+        [nowMs, headFloorMs],
+        nowMs
+    );
+    const tailData = useLiveQuery(transactions, () => logTailRowsQuery(db, floorMs, splitMs), [floorMs, splitMs]);
+    const head = useDecoratedRows(db, headData);
+    const tail = useDecoratedRows(db, tailData);
 
-    return useMemo(() => ({ reachedEnd, rows }), [rows, reachedEnd]);
+    return useMemo(() => ({ head, reachedEnd, splitMs, tail }), [head, reachedEnd, splitMs, tail]);
 }

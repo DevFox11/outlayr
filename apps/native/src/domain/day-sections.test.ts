@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import { buildRateTable } from "@outlayr/money/valuation";
 
-import { capAtDayEnd, groupByDay } from "./day-sections";
+import { capAtDayEnd, groupByDay, joinDaySections } from "./day-sections";
 
 function row(day: string, amount: number, income = false) {
     return { amount, day: new Date(`${day}T00:00:00`), income };
@@ -192,5 +192,14 @@ describe("capAtDayEnd", () => {
             income: false,
         };
         expect(capAtDayEnd([late, early, row("2026-09-08", 1)], 1)).toBe(2);
+    });
+});
+
+describe("joinDaySections", () => {
+    it("groups both halves together when a zone change puts one day in each", () => {
+        const newer = [row("2026-07-24", 10), row("2026-07-23", 20)];
+        const older = [row("2026-07-23", 5), row("2026-07-22", 30)];
+        const joined = joinDaySections(groupByDay(newer), groupByDay(older), () => groupByDay([...newer, ...older]));
+        expect(joined.map((section) => section.total)).toStrictEqual([-10, -25, -30]);
     });
 });

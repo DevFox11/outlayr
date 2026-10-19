@@ -29,7 +29,7 @@ import { useNow } from "@/data/use-now";
 import { useValuationIn } from "@/data/use-valuation";
 import { useValuedCurrencies } from "@/data/valued-currencies";
 import type { Database } from "@/db/client";
-import { groupByDay } from "@/domain/day-sections";
+import { groupByDay, joinDaySections } from "@/domain/day-sections";
 import { logCurrencyOptions } from "@/domain/log-currency-options";
 import type { LogFilter } from "@/domain/log-filter";
 import { filterDetail, filterPeriodUnit } from "@/domain/log-filter";
@@ -164,16 +164,16 @@ export function Log() {
     // rather than a fresh Date each render.
     const cursor = cursors[cursorUnit];
 
-    const { rows: windowRows, reachedEnd } = useLoggedTransactions(db, nowMs, days);
+    const { head, reachedEnd, splitMs, tail } = useLoggedTransactions(db, nowMs, days);
     const transferBounds = useMemo(
         () =>
             logTransferBounds({
                 cursor,
                 filter,
                 firstWeekday,
-                page: { floor: windowRows.at(-1)?.day ?? null, reachedEnd },
+                page: { floor: (tail.at(-1) ?? head.at(-1))?.day ?? null, reachedEnd },
             }),
-        [cursor, filter, firstWeekday, windowRows, reachedEnd]
+        [cursor, filter, firstWeekday, head, tail, reachedEnd]
     );
     const transferRows = useLogTransfers(db, nowMs, transferBounds);
     const filteredRows = useFilteredTransactions(db, nowMs, {
@@ -206,19 +206,47 @@ export function Log() {
     const transferIds = useMemo(() => new Set(transferRows.map((transfer) => transfer.id)), [transferRows]);
     const { pendingId, requestDelete } = useDeferredDelete("row");
 
+    const tailTransfers = useMemo(
+        () => transferRows.filter((transfer) => transfer.day.getTime() < splitMs),
+        [transferRows, splitMs]
+    );
     const listRows = useMemo(() => {
         if (filter === "transfers") {
             return transferRows;
         }
-        return mergeByRecency(filter === "all" ? windowRows : filteredRows, transferRows);
-    }, [filter, windowRows, filteredRows, transferRows]);
+        if (filter === "all") {
+            return mergeByRecency(
+                head,
+                transferRows.filter((transfer) => transfer.day.getTime() >= splitMs)
+            );
+        }
+        return mergeByRecency(filteredRows, transferRows);
+    }, [filter, head, splitMs, filteredRows, transferRows]);
+    // The window's older days, grouped apart so a write to a recent entry leaves
+    // them be; empty under every other filter.
+    const tailRows = useMemo(
+        () => (filter === "all" ? mergeByRecency(tail, tailTransfers) : []),
+        [filter, tail, tailTransfers]
+    );
     const visibleRows = useMemo(
         () => listRows.filter((row) => !goesWithPendingDelete(row, pendingId)),
         [listRows, pendingId]
     );
-    const sections = useMemo(() => groupByDay(visibleRows, currency, rates), [visibleRows, currency, rates]);
+    const visibleTail = useMemo(() => {
+        const kept = tailRows.filter((row) => !goesWithPendingDelete(row, pendingId));
+        return kept.length === tailRows.length ? tailRows : kept;
+    }, [tailRows, pendingId]);
+    const headSections = useMemo(() => groupByDay(visibleRows, currency, rates), [visibleRows, currency, rates]);
+    const tailSections = useMemo(() => groupByDay(visibleTail, currency, rates), [visibleTail, currency, rates]);
+    const sections = useMemo(
+        () =>
+            joinDaySections(headSections, tailSections, () =>
+                groupByDay([...visibleRows, ...visibleTail], currency, rates)
+            ),
+        [headSections, tailSections, visibleRows, visibleTail, currency, rates]
+    );
     // Totalled over the filtered read, which `useFilteredTransactions` leaves
-    // unwindowed: `windowRows` is a page, so `all` gets the period header instead.
+    // unwindowed: `head` and `tail` are a page, so `all` gets the period header instead.
     // The same rows the sections are built from, so the figure and the day
     // subtotals under it agree to the cent.
     const scopeFigures = useMemo(
@@ -305,7 +333,7 @@ export function Log() {
         />
     );
 
-    if (listRows.length === 0 && filter === "all") {
+    if (listRows.length === 0 && tailRows.length === 0 && filter === "all") {
         return (
             <AmountsHiddenContext value={amountsHidden}>
                 {accountsOverview || debts ? (

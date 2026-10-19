@@ -1,10 +1,10 @@
-import { firstOfMonth, startOfDay } from "@outlayr/money/calendar";
+import { addDays, firstOfMonth, startOfDay } from "@outlayr/money/calendar";
 import { canonicalUsd } from "@outlayr/money/canonical-usd";
 import type { CanonicalUsd } from "@outlayr/money/canonical-usd";
 import type { EntryRateType } from "@outlayr/money/rates";
 import { isTransactionRateNeeded } from "@outlayr/money/rates";
 import { RECURRING_TYPE } from "@outlayr/money/recurrence";
-import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, sql } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
 import { categories, transactions, transfers } from "@/db/schema";
@@ -161,6 +161,33 @@ export function logWindowRowsQuery(db: SpendDb, nowMs: number, floorMs: number |
         .select(LOG_COLUMNS)
         .from(transactions)
         .where(floorMs == null ? visibleAt(nowMs) : and(visibleAt(nowMs), gte(transactions.day, new Date(floorMs))))
+        .orderBy(desc(transactions.day), desc(transactions.date), asc(transactions.feeForId));
+}
+
+/**
+ * The midnight dividing the Log's window into a head, re-read with the clock on
+ * every write, and an older tail read by {@link logTailRowsQuery}. A calendar
+ * line rather than a count of days, so a write never moves it.
+ */
+export const logSplitMs = (nowMs: number): number => addDays(startOfDay(new Date(nowMs)), -LOG_PAGE_DAYS).getTime();
+
+/**
+ * The window's rows on days before `splitMs`, in {@link logWindowRowsQuery}'s
+ * order. Bounded by days alone: every one of them is already in the past, so the
+ * read does not follow the clock, and a write that leaves these rows alone hands
+ * back the same array. A null floor is an empty window.
+ */
+export function logTailRowsQuery(db: SpendDb, floorMs: number | null, splitMs: number) {
+    return db
+        .select(LOG_COLUMNS)
+        .from(transactions)
+        .where(
+            and(
+                isNull(transactions.deletedAt),
+                gte(transactions.day, new Date(floorMs ?? splitMs)),
+                lt(transactions.day, new Date(splitMs))
+            )
+        )
         .orderBy(desc(transactions.day), desc(transactions.date), asc(transactions.feeForId));
 }
 

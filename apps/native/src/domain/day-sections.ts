@@ -160,6 +160,25 @@ export function groupByDay<T extends DayGroupable>(
 }
 
 /**
+ * Day sections of newer rows then older ones, each half grouped on its own so a
+ * write to one regroups only that half. The halves are split on the stored
+ * `day`, which a zone change can leave on the other side of a local day; when
+ * the two then meet or cross, `regroup` groups them together instead.
+ */
+export function joinDaySections<T>(
+    newer: DaySection<T>[],
+    older: DaySection<T>[],
+    regroup: () => DaySection<T>[]
+): DaySection<T>[] {
+    const oldestNewer = newer.at(-1);
+    const [newestOlder] = older;
+    if (!oldestNewer || !newestOlder) {
+        return oldestNewer ? newer : older;
+    }
+    return newestOlder.day.getTime() < oldestNewer.day.getTime() ? [...newer, ...older] : regroup();
+}
+
+/**
  * How many of `rows`, newest first, a capped list shows: the first `cap`, run on
  * to the end of the last one's day, so a day header never totals part of its day.
  * All of them when there are `cap` or fewer.
