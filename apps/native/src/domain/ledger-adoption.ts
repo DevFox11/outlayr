@@ -36,7 +36,7 @@ export interface AdoptionActions {
 }
 
 /**
- * `docs/convex-sync-design.md` §1. Only the both-populated case is worth a
+ * `docs/internals/convex-sync.md` §1. Only the both-populated case is worth a
  * prompt: silently merging double-counts money and silently wiping destroys it,
  * while the other three have exactly one non-destructive answer each.
  */

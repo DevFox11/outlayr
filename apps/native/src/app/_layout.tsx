@@ -288,7 +288,7 @@ function RootStack() {
 
             {/* Behind onboarding, not in front of it: the currency step is the only
 			    thing that writes `currencyChosen`, and canonicalization declines
-			    every row on a ledger that lacks it (`docs/convex-sync-design.md`
+			    every row on a ledger that lacks it (`docs/internals/convex-sync.md`
 			    §1.7). A device has to state its currency before it holds a ledger,
 			    not after an account has handed it one. */}
             <Stack.Protected guard={group === "sign-in"} redirectTo={GROUP_ENTRY[group]}>

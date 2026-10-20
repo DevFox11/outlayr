@@ -531,7 +531,7 @@ export function restoreStamp(row: { deletedAt: Date | null; restoredAt: Date | n
 }
 
 /**
- * R1 then R2 from `docs/convex-sync-design.md` §4, from the device's side.
+ * R1 then R2 from `docs/internals/convex-sync.md` §4, from the device's side.
  * Eras decide first, exactly as on the server.
  *
  * A local row carries no `deviceId`, so an exact `updatedAt` tie cannot break

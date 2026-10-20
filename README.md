@@ -1,68 +1,59 @@
-# outlayr
+# Outlayr
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines Convex, and more.
+A local-first mobile expense and subscription tracker, on iPhone today and coming to Google Play. The ledger lives on the device; sync, sign-in and server features are optional. [tryoutlayr.com](https://tryoutlayr.com) · [App Store](https://apps.apple.com/app/id6801652978)
 
-## Features
+## Layout
 
-- **TypeScript** - For type safety and improved developer experience
-- **Convex** - Reactive backend-as-a-service platform
-- **Vite+** (`vp`) - Task runner, plus Oxlint and Oxfmt for linting and formatting
+```
+apps/
+  native/        Expo + React Native app, iOS and Android
+  web/           tryoutlayr.com, TanStack Start
+  screenshots/   App Store screenshot editor
+packages/
+  backend/       Convex: auth, sync, exchange rates
+  money/         Money math shared by app and backend
+  env/           Typed env for each app
+  config/        Shared tsconfig and lint presets
+video/           Remotion marketing clips
+```
 
-## Getting Started
+## Getting started
 
-First, install the dependencies:
+Requires Node 24 and pnpm 11. [Vite+](https://viteplus.dev) (`vp`) is the task runner, linter and formatter.
+
+The app icons come from Hugeicons Pro, a paid private registry. Installing needs a token in your user-level config, never in the repo `.npmrc`:
 
 ```bash
+pnpm config set --global "//npm.hugeicons.com/:_authToken" "<token>"
 pnpm install
 ```
 
-## Convex Setup
+Run the app on the iOS simulator or an Android emulator:
 
-This project uses Convex as a backend. You'll need to set up Convex before running the app:
+```bash
+pnpm --filter @outlayr/native ios
+pnpm --filter @outlayr/native android
+```
+
+The app runs without a backend. To work on sync, sign-in or exchange rates, start a local Convex deployment and copy its URLs into `apps/native/.env` (see `apps/native/.env.example`):
 
 ```bash
 pnpm run dev:setup
+pnpm run dev:server
 ```
 
-Follow the prompts to create a new Convex project and connect it to your application.
+## Scripts
 
-Copy environment variables from `packages/backend/.env.local` to `apps/*/.env`.
+- `pnpm run check`: lint and format check (`pnpm run fix` applies fixes)
+- `pnpm run check-types`: type-check every package
+- `pnpm run test`: run every package's tests
 
-Then, run the development server:
-
-```bash
-pnpm run dev
-```
-
-Your app will connect to the Convex cloud backend automatically.
-
-## Git Hooks and Formatting
-
-- Run checks: `pnpm run check`
-
-## Project Structure
-
-```
-outlayr/
-├── apps/
-├── packages/
-│   ├── backend/     # Convex backend functions and schema
-```
-
-## Available Scripts
-
-- `pnpm run dev`: Start all applications in development mode
-- `pnpm run build`: Build all applications
-- `pnpm run dev:setup`: Setup and configure your Convex project
-- `pnpm run check-types`: Check TypeScript types across all apps
-- `pnpm run check`: Lint and check formatting (`pnpm run fix` applies what is fixable)
+Architecture notes and runbooks are in [docs](./docs/README.md).
 
 ## License
 
-This repository is licensed under the **GNU General Public License v3.0** by default — see [LICENSE](./LICENSE). `apps/native` is a modified version of [Dime](https://github.com/rafsoh/dimeApp) by [Rafael Soh](https://github.com/rafsoh) and contributors, released under the GPL-3.0 license. Huge thanks for building such a solid, beautiful foundation. ❤️
+GPL-3.0, see [LICENSE](./LICENSE). `apps/native` began as a modified version of [Dime](https://github.com/rafsoh/dimeApp) by [Rafael Soh](https://github.com/rafsoh) and contributors, also GPL-3.0. Thanks for such a solid foundation.
 
-`packages/backend` overrides the default and is licensed under the **GNU Affero General Public License v3.0** — see [packages/backend/LICENSE](./packages/backend/LICENSE).
+`packages/backend` is AGPL-3.0, see [packages/backend/LICENSE](./packages/backend/LICENSE). `apps/native/modules/glow` vendors an MIT Expo module, see its [LICENSE](./apps/native/modules/glow/LICENSE).
 
-`apps/native/modules/glow` vendors an Expo module released under the MIT License — see [apps/native/modules/glow/LICENSE](./apps/native/modules/glow/LICENSE).
-
-The NumberFlow Swift package formerly at `apps/ios/app/Packages/numberflow` now lives at [danestves/numberflow](https://github.com/danestves/numberflow).
+The NumberFlow Swift package from the SwiftUI era now lives at [danestves/numberflow](https://github.com/danestves/numberflow).

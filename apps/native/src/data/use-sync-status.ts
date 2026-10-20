@@ -18,7 +18,7 @@ export interface SyncStatus {
 /**
  * What the Settings row reads.
  *
- * Deliberately carries no error state: §8.7 of `docs/convex-sync-design.md`
+ * Deliberately carries no error state: §8.7 of `docs/internals/convex-sync.md`
  * settles the failure UX as silent-and-retrying. A stalled queue shows as a
  * pending count that stops falling.
  */

@@ -875,7 +875,7 @@ describe("repairOrphanedRecurrence", () => {
 });
 
 /**
- * The duplicate-charge case from §8.1 of `docs/convex-sync-design.md`: two synced
+ * The duplicate-charge case from §8.1 of `docs/internals/convex-sync.md`: two synced
  * devices both sweep the same subscription, and with a freshly minted id each
  * would insert its own copy of every charge.
  */

@@ -179,7 +179,7 @@ export async function outboxPendingCount(db: Database): Promise<number> {
  *
  * Order matters at the call site, not here — running it before a "replace"
  * adoption pushes the local seed categories the replace exists to discard (see
- * §5 of `docs/convex-sync-design.md`).
+ * §5 of `docs/internals/convex-sync.md`).
  */
 export async function enqueueAllForSync(db: Database): Promise<void> {
     const enqueuedAt = new Date();

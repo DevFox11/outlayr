@@ -4,13 +4,6 @@
 
 @source "node_modules/panelui-native/src";
 
-/* Tailwind auto-detects content sources, which sweeps in `docs/` — and a class
-   quoted in prose there is indistinguishable from one in a component. A
-   `w-[calc(100%-32px)]` example in the audit was making every Metro CSS compile
-   log "Invalid calc, you can't mix % with other units", permanent noise that
-   would mask a real occurrence of that exact error. */
-@source not "./docs/**";
-
 @layer theme {
     :root {
         /* The body face by weight, for the `font-sans-*` utilities below.

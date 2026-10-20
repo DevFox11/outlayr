@@ -60,7 +60,6 @@
 **Anti-persona:** People who want automatic bank-feed syncing.
 
 ## Search Targets
-Full evidence: `docs/marketing/aso-keyword-research-2026-10.md` and `docs/marketing/web-search-research-2026-10.md`.
 | Intent | App Store | Web |
 |---|---|---|
 | Subscription tracker / manager | Name "Subscription Tracker: Outlayr" (winnable: top-10 median 258 ratings) | /guides/subscription-tracker, /compare/rocket-money |

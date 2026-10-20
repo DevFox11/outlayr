@@ -205,7 +205,7 @@ export const transactions = sqliteTable(
         /**
          * When the entry was last lifted from Recently Deleted, or null. Sync reads
          * it to tell a deliberate restore from an edit that raced a delete; see
-         * `docs/convex-sync-design.md` §4.
+         * `docs/internals/convex-sync.md` §4.
          */
         restoredAt: integer("restoredAt", { mode: "timestamp_ms" }),
         /**

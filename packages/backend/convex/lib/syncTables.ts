@@ -324,7 +324,7 @@ function era(version: Versioned): number {
 }
 
 /**
- * R1 then R2 from `docs/convex-sync-design.md` §4, applied to a whole row.
+ * R1 then R2 from `docs/internals/convex-sync.md` §4, applied to a whole row.
  *
  * R1 — a tombstone wins unless the live side was restored after it. Eras are
  * compared first; at the same era a tombstone beats a live row, so an offline

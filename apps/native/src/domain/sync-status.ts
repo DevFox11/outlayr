@@ -65,7 +65,7 @@ export function effectiveCapabilityStatus(probe: CapabilityStatusProbe): Effecti
  * the server has never seen is a lie the user cannot check.
  *
  * The pending count is the only failure signal, deliberately. §8.7 of
- * `docs/convex-sync-design.md` settles the UX as silent-and-retrying — a count
+ * `docs/internals/convex-sync.md` settles the UX as silent-and-retrying — a count
  * that stops falling is honest about what is true without guessing at why.
  */
 export function syncStatusLabel({ enabled, paused, pending, syncedAt }: SyncLabelProbe): SyncLabel {

@@ -37,9 +37,9 @@ const projectIgnores = [
 ];
 
 // `*.md` and `*.html` are formats oxfmt handles and oxlint does not, so they
-// only need excluding on the format side. The design artifacts under
-// docs/design are visual references reviewed as rendered pages, and
-// `proseWrap: "never"` would rejoin every wrapped paragraph in docs/ — both are
+// only need excluding on the format side. The HTML left is generator pages
+// reviewed as rendered output, and `proseWrap: "never"` would rejoin every
+// wrapped paragraph in docs/ — both are
 // churn, not migration. Drop these two entries to opt in.
 const formatOnlyIgnores = ["**/*.html", "**/*.md"];
 

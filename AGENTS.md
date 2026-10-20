@@ -10,7 +10,11 @@ This project enforces strict code quality standards through automated formatting
 - **Show the toolchain**: `pnpm exec vp toolchain`
 - **Run a workspace task**: `pnpm exec vp run -r <task>` (add `--no-cache` to force a real run)
 
-Most issues are automatically fixable. See `docs/linting.md` for which rules are off and why.
+Most issues are automatically fixable. See `docs/internals/linting.md` for which rules are off and why.
+
+## Documentation
+
+`docs/` is markdown only. `docs/internals/` keeps decisions, constraints and traps the source does not explain; `docs/operations/` keeps runbooks. Most changes need neither. Design mocks, screenshots and implementation plans are review material: share them in the PR or a rendered preview, never commit them. List a new doc in `docs/README.md`.
 
 ---
 

@@ -9,7 +9,7 @@ video plus touch, keyboard, and hardware buttons. Verify a visible change there
 rather than describing what it should look like.
 
 Never run `serve-sim --kill` while the dev server is up; it kills Metro. That
-trap and the rest of the limits are in `docs/simulator-preview.md`.
+trap and the rest of the limits are in `docs/operations/simulator-preview.md`.
 
 # How to verify a change
 

@@ -24,7 +24,7 @@ import {
 /**
  * Every replicated row carries the `replicated` envelope from `lib/syncTables`,
  * which is also what `sync.ts` accepts and serves. See
- * `docs/convex-sync-design.md`.
+ * `docs/internals/convex-sync.md`.
  *
  * `localId` is the device-generated UUIDv4 that is already the SQLite primary
  * key (`apps/native/src/domain/ids.ts`); it — not the Convex `_id` — is the
