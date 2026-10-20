@@ -208,6 +208,8 @@ interface OutlinedSelectFieldProps {
     onPress?: () => void;
     /** A control at the start of the box, outside the field's own press target. */
     leading?: ReactNode;
+    /** A control at the end of the box, outside the field's own press target. */
+    trailing?: ReactNode;
     /** Draws the dropdown arrow at the end; off for a field that opens a sheet of its own. */
     dropdown?: boolean;
     focused?: boolean;
@@ -227,6 +229,7 @@ export function OutlinedSelectField({
     accessibilityHint,
     onPress,
     leading,
+    trailing,
     dropdown = true,
     focused = false,
     ground,
@@ -252,6 +255,7 @@ export function OutlinedSelectField({
                     </View>
                     {dropdown ? <HugeiconsIcon color={m3.onSurfaceVariant} icon={ArrowDown01Icon} size={20} /> : null}
                 </Pressable>
+                {trailing}
             </View>
         </FieldFrame>
     );

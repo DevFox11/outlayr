@@ -1,5 +1,7 @@
 import { SegmentedButton, SingleChoiceSegmentedButtonRow, Text as ComposeText } from "@expo/ui/jetpack-compose";
 import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
+import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
+import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Stack } from "expo-router";
 import { memo } from "react";
 import { Pressable, ScrollView, View } from "react-native";
@@ -15,6 +17,7 @@ import { SheetHeaderTextButton } from "@/components/sheet-header";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { Account } from "@/data/accounts-core";
+import { tomorrowLocal } from "@/domain/local-day";
 import { formatAmount } from "@/domain/money";
 import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -158,23 +161,24 @@ export function NewDebt(props: NewDebtProps) {
                         />
                     ) : null}
                     {form.before ? null : (
-                        <>
-                            <OutlinedDateField
-                                ground={m3.surface}
-                                label={t("debts.field.date")}
-                                onChange={form.setDate}
-                                range={{ end: new Date(form.nowMs) }}
-                                value={form.date}
-                            />
-                            <OutlinedTextField
-                                ground={m3.surface}
-                                label={t("debts.field.note")}
-                                onChangeText={form.setNote}
-                                placeholder={t("debts.field.notePlaceholder")}
-                                returnKeyType="done"
-                                value={form.note}
-                            />
-                        </>
+                        <OutlinedDateField
+                            ground={m3.surface}
+                            label={t("debts.field.date")}
+                            onChange={form.setDate}
+                            range={{ end: new Date(form.nowMs) }}
+                            value={form.date}
+                        />
+                    )}
+                    <PayBackByField form={form} />
+                    {form.before ? null : (
+                        <OutlinedTextField
+                            ground={m3.surface}
+                            label={t("debts.field.note")}
+                            onChangeText={form.setNote}
+                            placeholder={t("debts.field.notePlaceholder")}
+                            returnKeyType="done"
+                            value={form.note}
+                        />
                     )}
                     <InlineFailure message={form.failure} />
                 </View>
@@ -182,6 +186,50 @@ export function NewDebt(props: NewDebtProps) {
 
             <NewDebtSheets form={form} />
         </View>
+    );
+}
+
+/** "Pay back by": empty sets no plan; once picked, the day and a clear button at the field's end. */
+function PayBackByField({ form }: { form: ReturnType<typeof useNewDebtForm> }) {
+    const t = useTranslation();
+    const m3 = useMaterialColors();
+    const label = t("debts.plan.payBackBy");
+    if (form.payBackBy === null) {
+        const empty = t("debts.field.notePlaceholder");
+        return (
+            <OutlinedSelectField
+                accessibilityValue={empty}
+                dropdown={false}
+                ground={m3.surface}
+                label={label}
+                onPress={form.openPayBackBy}
+                value={
+                    <Text className="text-body text-m3-on-surface-variant" numberOfLines={1}>
+                        {empty}
+                    </Text>
+                }
+            />
+        );
+    }
+    return (
+        <OutlinedDateField
+            ground={m3.surface}
+            label={label}
+            onChange={form.setPayBackBy}
+            range={{ start: tomorrowLocal(form.nowMs) }}
+            trailing={
+                <Pressable
+                    accessibilityLabel={t("debts.plan.remove")}
+                    accessibilityRole="button"
+                    android_ripple={{ borderless: true, color: withAlpha(m3.onSurface, PRESSED_ALPHA), radius: 20 }}
+                    className="size-12 items-center justify-center"
+                    onPress={() => form.setPayBackBy(null)}
+                >
+                    <HugeiconsIcon color={m3.onSurfaceVariant} icon={Cancel01Icon} size={24} />
+                </Pressable>
+            }
+            value={form.payBackBy}
+        />
     );
 }
 

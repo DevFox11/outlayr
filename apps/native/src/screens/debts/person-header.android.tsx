@@ -8,6 +8,7 @@ import {
 import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
 import { HeroNumber } from "@/components/amount-text";
@@ -28,6 +29,9 @@ import { notifyFailure } from "@/lib/notify";
 import { withAlpha } from "@/theme/shade";
 import { useMaterialColors } from "@/theme/use-material-colors";
 
+import { payoffMenuActions } from "./payoff-menu-actions";
+import type { PayoffPlanControls } from "./use-payoff-plan";
+
 const STANDING_LABEL = {
     owesYou: "debts.person.owesYou",
     settled: "debts.person.settled",
@@ -44,6 +48,8 @@ interface PersonHeroProps {
     account: Account;
     /** The person's balance in their own currency: negative when you owe them. */
     balance: number;
+    /** The payoff plan's line and facts, between the amount and the movements. */
+    plan: ReactNode;
     showCents: boolean;
 }
 
@@ -51,7 +57,7 @@ interface PersonHeroProps {
  * "You owe" / "Owes you" / "Settled" over the amount, and the two movements
  * that standing offers: the first as the M3 filled button, the second tonal.
  */
-export function PersonHero({ account, balance, showCents }: PersonHeroProps) {
+export function PersonHero({ account, balance, plan, showCents }: PersonHeroProps) {
     const router = useRouter();
     const t = useTranslation();
     const m3 = useMaterialColors();
@@ -65,6 +71,7 @@ export function PersonHero({ account, balance, showCents }: PersonHeroProps) {
         <View className="items-center gap-1 pt-6 pb-4">
             <MonoLabel>{t(STANDING_LABEL[standing])}</MonoLabel>
             <HeroNumber amount={Math.abs(balance)} code={account.currency} showCents={showCents} sign="" />
+            {plan}
             <View className="w-full flex-row gap-3 pt-5">
                 <View className="flex-1">
                     <FilledButton label={first.label} onPress={first.onPress} />
@@ -87,11 +94,11 @@ export function PersonHero({ account, balance, showCents }: PersonHeroProps) {
 }
 
 /**
- * Rename and delete for a person, in the app bar's overflow menu. Rename
- * writes the name alone, so the person stays a person, and asks for it in an
- * M3 dialog: Android has no `Alert.prompt`.
+ * Rename, the payoff plan and delete for a person, in the app bar's overflow
+ * menu. Rename writes the name alone, so the person stays a person, and asks
+ * for it in an M3 dialog: Android has no `Alert.prompt`.
  */
-export function PersonToolbar({ account, db }: { account: Account; db: Database }) {
+export function PersonToolbar({ account, db, plan }: { account: Account; db: Database; plan: PayoffPlanControls }) {
     const t = useTranslation();
     const { requestDelete } = useDeferredDelete("account");
     const [renaming, setRenaming] = useState(false);
@@ -114,6 +121,7 @@ export function PersonToolbar({ account, db }: { account: Account; db: Database 
                     <Stack.Toolbar.MenuAction onPress={() => setRenaming(true)}>
                         {t("debts.person.rename")}
                     </Stack.Toolbar.MenuAction>
+                    {payoffMenuActions(plan, t("debts.plan.payBackBy"), t)}
                     <Stack.Toolbar.MenuAction
                         destructive
                         onPress={() => requestDelete(account.id, t("debts.person.deleteBody"))}

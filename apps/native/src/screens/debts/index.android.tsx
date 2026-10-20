@@ -2,11 +2,12 @@ import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon"
 import ArrowUp01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowUp01Icon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Stack, useRouter } from "expo-router";
-import { memo, useCallback, useState } from "react";
+import { memo, use, useCallback, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AccountTile } from "@/components/account-tile";
+import { AmountsHiddenContext } from "@/components/amount-text";
 import { Eyebrow, PARENT_TILE } from "@/components/category-list-chrome";
 import { EmptyState } from "@/components/empty-state";
 import { Tile } from "@/components/empty-state-parts";
@@ -17,6 +18,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useDebtsOverview } from "@/data/debts";
 import type { DebtsScreenOverview } from "@/data/debts";
+import type { PayoffLine } from "@/data/payoff-plans";
 import { useNow } from "@/data/use-now";
 import { formatSignedAmount } from "@/domain/account-display";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -24,8 +26,9 @@ import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 import { useMaterialColors } from "@/theme/use-material-colors";
 
-import { debtSubtitle, dueStripWording } from "./debts-wording";
+import { debtSubtitle, dueStripWording, payoffRowWording } from "./debts-wording";
 import type { DebtSubtitle } from "./debts-wording";
+import { PayoffBar } from "./payoff-line";
 
 type DebtListRow = DebtsScreenOverview["youOwe"][number];
 
@@ -45,6 +48,7 @@ export function Debts() {
     const insets = useSafeAreaInsets();
     const { language } = useLanguage();
     const { showCents } = useDisplaySettings().state;
+    const hidden = use(AmountsHiddenContext);
     const currency = useGlobalCurrency(db);
     const debts = useDebtsOverview(db, useNow());
     const [settledOpen, setSettledOpen] = useState(false);
@@ -77,15 +81,19 @@ export function Debts() {
     const wording = { currency, language, showCents, t };
     const row = (item: DebtListRow) => {
         const subtitle = debtSubtitle(item, debts, wording);
+        const line = debts.payoff.get(item.id);
+        const plan = payoffRowWording(item, line, currency, hidden, wording);
+        const paidOff = subtitle.text === null && plan !== null && "paidOff" in plan ? plan.paidOff : null;
         return (
             <DebtRow
                 currency={currency}
                 format={format}
                 key={item.id}
                 onOpen={open}
+                plan={line && plan && "date" in plan ? { ...plan, line } : null}
                 row={item}
-                subtitle={subtitle.text}
-                tone={subtitle.tone}
+                subtitle={paidOff ?? subtitle.text}
+                tone={paidOff === null ? subtitle.tone : "paidOff"}
             />
         );
     };
@@ -222,27 +230,30 @@ interface DebtRowProps {
     currency: string;
     format: (amount: number) => string;
     onOpen: (id: string) => void;
+    /** A live payoff plan: its line, the date at the line's end, and what the line says. */
+    plan: { a11y: string; date: string; line: PayoffLine } | null;
     row: DebtListRow;
     subtitle: string | null;
-    tone: DebtSubtitle["tone"];
+    tone: DebtSubtitle["tone"] | "paidOff";
 }
 
 const SUBTITLE_TONE = {
     due: "text-m3-primary",
     muted: "text-m3-on-surface-variant",
     overdue: "text-m3-error",
+    paidOff: "text-income",
 } as const;
 
-const DebtRow = memo(({ currency, format, onOpen, row, subtitle, tone }: DebtRowProps) => {
+const DebtRow = memo(({ currency, format, onOpen, plan, row, subtitle, tone }: DebtRowProps) => {
     const m3 = useMaterialColors();
     const { account } = row;
     const amount = format(row.amount);
 
     return (
         <Pressable
-            accessibilityLabel={account.name}
+            accessibilityLabel={[account.name, plan?.a11y, subtitle].filter(Boolean).join(", ")}
             accessibilityRole="button"
-            accessibilityValue={{ text: subtitle === null ? amount : `${subtitle}, ${amount}` }}
+            accessibilityValue={{ text: amount }}
             android_ripple={{ color: withAlpha(m3.onSurface, PRESSED_ALPHA) }}
             className="border-m3-outline-variant bg-m3-surface min-h-18 flex-row items-center gap-4 border-b px-4 py-2"
             onPress={() => onOpen(account.id)}
@@ -252,6 +263,16 @@ const DebtRow = memo(({ currency, format, onOpen, row, subtitle, tone }: DebtRow
                 <Text className="text-body text-m3-on-surface" numberOfLines={1}>
                     {account.name}
                 </Text>
+                {plan === null ? null : (
+                    <View className="flex-row items-center gap-2">
+                        <View className="flex-1">
+                            <PayoffBar line={plan.line} />
+                        </View>
+                        <Text className="text-caption text-m3-on-surface-variant tabular-nums" numberOfLines={1}>
+                            {plan.date}
+                        </Text>
+                    </View>
+                )}
                 {subtitle === null ? null : (
                     <Text className={`text-caption ${SUBTITLE_TONE[tone]}`} numberOfLines={2}>
                         {subtitle}

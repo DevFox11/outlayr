@@ -1,5 +1,6 @@
 import { DatePickerDialog } from "@expo/ui/jetpack-compose";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { Keyboard } from "react-native";
 
 import { MaterialHost } from "@/components/material-host";
@@ -58,6 +59,8 @@ interface OutlinedDateFieldProps extends Omit<DateDialogProps, "onDismiss"> {
     /** The dialog closed without a pick. */
     onDismiss?: () => void;
     ground?: string;
+    /** A control at the end of the field, such as clearing an optional day. */
+    trailing?: ReactNode;
 }
 
 /**
@@ -65,7 +68,15 @@ interface OutlinedDateFieldProps extends Omit<DateDialogProps, "onDismiss"> {
  * stays as it is while the dialog is up, and the dialog closes on a pick or a
  * dismiss.
  */
-export function OutlinedDateField({ label, onChange, onDismiss, range, value, ground }: OutlinedDateFieldProps) {
+export function OutlinedDateField({
+    label,
+    onChange,
+    onDismiss,
+    range,
+    value,
+    ground,
+    trailing,
+}: OutlinedDateFieldProps) {
     const { language } = useLanguage();
     const [open, setOpen] = useState(false);
     const shown = formatTargetDate(value, language);
@@ -80,6 +91,7 @@ export function OutlinedDateField({ label, onChange, onDismiss, range, value, gr
                     Keyboard.dismiss();
                     setOpen(true);
                 }}
+                trailing={trailing}
                 value={
                     <Text className="text-body text-m3-on-surface tabular-nums" numberOfLines={1}>
                         {shown}
