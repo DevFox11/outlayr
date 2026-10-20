@@ -1,6 +1,6 @@
 /**
- * Rasterizes every icon set in `icon-sets.ts`. Run after changing `SETS` and
- * commit the PNGs: `pnpm --filter @outlayr/native gen:icons`. Needs
+ * Writes every icon set in `icon-sets.ts`. Run after changing `SETS` and
+ * commit the PNGs and SVGs: `pnpm --filter @outlayr/native gen:icons`. Needs
  * `brew install librsvg`.
  *
  * Pass a directory name to redo one set only:
@@ -11,6 +11,7 @@
  * was not asked for.
  */
 
+import { writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
 import { loadIcon, rasterize, requireRsvgConvert, resetDirectory, SCALE_COUNT, toSvg } from "./hugeicon-raster";
@@ -19,6 +20,15 @@ import type { IconSet } from "./icon-sets";
 
 const appDir = resolve(dirname(process.argv[1]), "..");
 
+function writeGlyph(svg: string, basePath: string, size: number | undefined): number {
+    if (size === undefined) {
+        writeFileSync(`${basePath}.svg`, svg);
+        return 1;
+    }
+    rasterize(svg, basePath, size);
+    return SCALE_COUNT;
+}
+
 async function writeSet(set: IconSet): Promise<number> {
     const outDir = join(appDir, "assets", set.dir);
     resetDirectory(outDir);
@@ -26,26 +36,28 @@ async function writeSet(set: IconSet): Promise<number> {
     let written = 0;
     for (const entry of set.entries) {
         const weight = entry.weight ?? "stroke";
-        const size = entry.size ?? set.size;
+        const size = set.format === "svg" ? undefined : (entry.size ?? set.size);
 
         // A solid glyph is filled rather than stroked, so a width is meaningless on
         // it. Otherwise the set's stroke is proportional: an entry that renders
         // smaller than the set's size gets a correspondingly lighter line, so every
         // glyph in the set reads at the same weight.
-        const strokeWidth = weight === "solid" || set.stroke === undefined ? undefined : (set.stroke * size) / set.size;
+        const strokeWidth =
+            set.format === "svg" || weight === "solid" || set.stroke === undefined
+                ? undefined
+                : (set.stroke * (entry.size ?? set.size)) / set.size;
 
+        const base = join(outDir, entry.slug);
         // oxlint-disable-next-line no-await-in-loop -- rasterize shells out through execFileSync, which blocks the loop anyway, and each entry prints its progress line under its own set header
-        const elements = await loadIcon(weight, entry.icon);
-        rasterize(toSvg(elements, strokeWidth, entry.ink), join(outDir, entry.slug), size);
-        written += SCALE_COUNT;
+        written += writeGlyph(toSvg(await loadIcon(weight, entry.icon), strokeWidth, entry.ink), base, size);
 
         if (entry.withSelected) {
-            const solid = await loadIcon("solid", entry.icon);
-            rasterize(toSvg(solid), join(outDir, `${entry.slug}-selected`), size);
-            written += SCALE_COUNT;
+            written += writeGlyph(toSvg(await loadIcon("solid", entry.icon)), `${base}-selected`, size);
         }
 
-        console.log(`  ${entry.slug} ← ${entry.icon} (${weight}${entry.withSelected ? " + solid" : ""}, ${size}pt)`);
+        console.log(
+            `  ${entry.slug} ← ${entry.icon} (${weight}${entry.withSelected ? " + solid" : ""}, ${size === undefined ? "svg" : `${size}pt`})`
+        );
     }
 
     return written;
@@ -68,7 +80,7 @@ async function main() {
         total += await writeSet(set);
     }
 
-    console.log(`\nWrote ${total} PNGs across ${sets.length} set${sets.length === 1 ? "" : "s"}`);
+    console.log(`\nWrote ${total} files across ${sets.length} set${sets.length === 1 ? "" : "s"}`);
 }
 
 main().catch((error: unknown) => {

@@ -119,8 +119,16 @@
         "drizzle-kit": "^0.31.11",
         "jest": "~30.5.2",
         "jest-expo": "~58.0.11",
+        "react-native-nano-icons": "1.0.1",
         "serve-sim": "^0.1.48",
         "tsx": "^4.23.15",
         "typescript": "catalog:"
+    },
+    "expo": {
+        "autolinking": {
+            "exclude": [
+                "react-native-nano-icons"
+            ]
+        }
     }
 }

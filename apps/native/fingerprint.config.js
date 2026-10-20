@@ -1,6 +1,9 @@
 module.exports = {
     configPluginSourceType: "files",
-    extraSources: [{ filePath: "app-intents", reasons: ["appIntents"], type: "dir" }],
+    extraSources: [
+        { filePath: "app-intents", reasons: ["appIntents"], type: "dir" },
+        { filePath: "assets/tab-symbols", reasons: ["nanoIconsSymbolSets"], type: "dir" },
+    ],
     // `extra.whatsNew` is set only at publish time (`UPDATE_MESSAGE`), so hashing it
     // gives every update a runtime no binary matches. The rest of `extra` still counts.
     fileHookTransform: (source, chunk) => {

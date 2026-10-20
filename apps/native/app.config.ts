@@ -303,6 +303,7 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
         "./plugins/with-android-capture.ts",
         ["posthog-react-native/expo", { skipOnConflict: true }],
         "./plugins/with-android-material-theme.ts",
+        ["react-native-nano-icons", { symbolSets: [{ inputDir: "./assets/tab-symbols" }] }],
     ],
     // Fingerprint, not appVersion: the custom config plugins and Apple targets
     // change native code without a version bump, and an update served to a

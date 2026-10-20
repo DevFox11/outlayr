@@ -1,11 +1,11 @@
 /**
- * Every Hugeicon that has to ship as a bitmap, and where it goes.
+ * Every Hugeicon that native chrome draws, and where it goes.
  *
  * Native chrome never accepts a React element for an icon — a tab item takes an
  * image source because `Icon.src` only unwraps expo-router's own `VectorIcon`, a
  * toolbar item takes an SF Symbol name or an image source, and a SwiftUI swipe
  * action takes an SF Symbol or a pure-SwiftUI label. Hugeicons is SVG, so any
- * glyph that lands in one of those has to be rasterized first.
+ * glyph that lands in one of those has to be written out first.
  *
  * Adding a glyph is a line in `SETS` and a re-run of `pnpm gen:icons`.
  */
@@ -27,20 +27,27 @@ export interface IconEntry {
     ink?: string;
 }
 
-export interface IconSet {
+export type IconSet = {
     /** Why these have to be bitmaps at all — kept next to the set it explains. */
     because: string;
     /** Output directory, `assets/<dir>`. Also the name `gen:icons` filters on. */
     dir: string;
     entries: IconEntry[];
-    /** Points every entry renders at unless it overrides. */
-    size: number;
-    /**
-     * Stroke width at the set's `size`, scaled proportionally for entries that
-     * render smaller. Omit to keep the 1.5 the package bakes in.
-     */
-    stroke?: number;
-}
+} & (
+    | {
+          format?: "png";
+          /** Points every entry renders at unless it overrides. */
+          size: number;
+          /**
+           * Stroke width at the set's `size`, scaled proportionally for entries that
+           * render smaller. Omit to keep the 1.5 the package bakes in.
+           */
+          stroke?: number;
+      }
+    | {
+          format: "svg";
+      }
+);
 
 /** Points. Swift's `LogView.menuIconSize` for a row inside a menu. */
 const MENU_SIZE = 17;
@@ -48,15 +55,15 @@ const MENU_SIZE = 17;
 export const SETS: IconSet[] = [
     {
         because:
-            "`Icon.src` only unwraps expo-router's `VectorIcon` and `PromiseIcon`; any other React element is dropped with a console warning and the tab renders bare.",
-        dir: "tab-icons",
+            "A tab item takes an asset-catalog symbol on iOS and a drawable on Android, which `react-native-nano-icons` forges from these SVGs at prebuild.",
+        dir: "tab-symbols",
         entries: [
             { icon: "TransactionHistoryIcon", slug: "log", withSelected: true },
             { icon: "Analytics01Icon", slug: "insights", withSelected: true },
             { icon: "ProgressIcon", slug: "budgets", withSelected: true },
             { icon: "Settings01Icon", slug: "settings", withSelected: true },
         ],
-        size: 24,
+        format: "svg",
     },
     {
         because: "A native toolbar item takes an SF Symbol name or an image source, never a React element.",

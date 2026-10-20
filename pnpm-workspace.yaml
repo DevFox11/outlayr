@@ -46,6 +46,7 @@ patchedDependencies:
     expo-widgets@58.0.20: patches/expo-widgets@58.0.20.patch
     number-flow-react-native@0.5.1: patches/number-flow-react-native@0.5.1.patch
     panelui-native@0.112.0: patches/panelui-native@0.112.0.patch
+    react-native-nano-icons@1.0.1: patches/react-native-nano-icons@1.0.1.patch
     uniwind@1.12.2: patches/uniwind@1.12.2.patch
 overrides:
     vite@*: "catalog:"

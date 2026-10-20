@@ -1,0 +1,17 @@
+diff --git a/lib/commonjs/src/core/pipeline/prepareSymbol.js b/lib/commonjs/src/core/pipeline/prepareSymbol.js
+index 30fab86..ef222e9 100644
+--- a/lib/commonjs/src/core/pipeline/prepareSymbol.js
++++ b/lib/commonjs/src/core/pipeline/prepareSymbol.js
+@@ -67,12 +67,10 @@ async function prepareSymbol(task, pathkit) {
+         vdXml: (0, vectorDrawable_1.buildVectorDrawableXml)({
+             layers: [{ d: monochrome, fill: null }],
+             viewBox: prepared.viewBox,
+-            contentBounds: bounds,
+         }),
+         vdOriginalXml: (0, vectorDrawable_1.buildVectorDrawableXml)({
+             layers,
+             viewBox: prepared.viewBox,
+-            contentBounds: bounds,
+         }),
+     };
+     return result;
