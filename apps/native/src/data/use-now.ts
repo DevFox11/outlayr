@@ -2,13 +2,13 @@ import { getTableName } from "drizzle-orm";
 import { useSyncExternalStore } from "react";
 import { AppState } from "react-native";
 
-import { transactions, transfers } from "@/db/schema";
+import { outsidePayments, transactions, transfers } from "@/db/schema";
 import { clockAdvances, nextClockTick } from "@/domain/clock";
 
 import { subscribeToTableChanges } from "./database-changes";
 import { useTabPaused } from "./tab-pause";
 
-const BOUNDED_TABLES: string[] = [getTableName(transactions), getTableName(transfers)];
+const BOUNDED_TABLES: string[] = [getTableName(transactions), getTableName(transfers), getTableName(outsidePayments)];
 const MOUNT_RESTATE_AFTER_MS = 60_000;
 
 let readingMs = Date.now();
@@ -103,10 +103,11 @@ export function readNow(): number {
  * past the ledger's `lte(date, now)` bound and under `useUpcomingTransactions`,
  * since a transaction's date is `new Date()` at *form* mount.
  *
- * It moves on a write to `transactions` or `transfers` — both are date-bounded
- * ledger reads — on returning to the foreground, and at local midnight. A
- * transfer with no fee touches only `transfers`, so leaving it out hid every
- * such row until the next tick. Store state rather than per-hook state so the
+ * It moves on a write to `transactions`, `transfers` or `outsidePayments` —
+ * all date-bounded ledger reads — on returning to the foreground, and at local
+ * midnight. A transfer with no fee touches only `transfers`, and an installment
+ * paid outside Outlayr only `outsidePayments`, so leaving either out hid the row
+ * until the next tick. Store state rather than per-hook state so the
  * listeners are installed once for the app, not once per screen reading it.
  */
 export function useNow(): number {

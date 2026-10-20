@@ -236,6 +236,17 @@ describe("a useLiveQuery bounded by the clock", () => {
         expect(result.current).toHaveLength(1);
     });
 
+    it("moves useNow() on a payment made outside Outlayr", async () => {
+        const { result } = await renderHook(() => useNow());
+        const before = result.current;
+        clockMs += 60_000;
+        jest.spyOn(Date, "now").mockReturnValue(clockMs);
+
+        await fireChange("outsidePayments");
+
+        expect(result.current).toBeGreaterThan(before);
+    });
+
     it("leaves a bound that never followed the clock still when a write keeps its rows", async () => {
         await renderHook(() => useNow());
         await renderHook(() => {
