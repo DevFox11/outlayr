@@ -15,11 +15,9 @@ export default function CategoryReorderScreen() {
             <Stack.Screen.BackButton displayMode="minimal" />
             <ScreenHeader title={t("categories.reorderTitle")} />
             <Stack.Toolbar placement="right">
-                <Stack.Toolbar.Button
-                    {...toolbarIcon("done")}
-                    accessibilityLabel={t("common.done")}
-                    onPress={() => router.back()}
-                />
+                <Stack.Toolbar.Button accessibilityLabel={t("common.done")} onPress={() => router.back()}>
+                    <Stack.Toolbar.Icon {...toolbarIcon("done")} />
+                </Stack.Toolbar.Button>
             </Stack.Toolbar>
 
             <CategoryReorder income={params.income === "1"} />

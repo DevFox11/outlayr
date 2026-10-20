@@ -501,11 +501,9 @@ export function Budgets() {
             </ScrollView>
 
             <Stack.Toolbar placement="right">
-                <Stack.Toolbar.Button
-                    {...toolbarIcon("add")}
-                    accessibilityLabel={t("budgets.rail.another")}
-                    onPress={presentCategoryPicker}
-                />
+                <Stack.Toolbar.Button accessibilityLabel={t("budgets.rail.another")} onPress={presentCategoryPicker}>
+                    <Stack.Toolbar.Icon {...toolbarIcon("add")} />
+                </Stack.Toolbar.Button>
             </Stack.Toolbar>
 
             <BudgetLimitSheet

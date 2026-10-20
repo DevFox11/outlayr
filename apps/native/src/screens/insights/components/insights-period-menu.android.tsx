@@ -15,7 +15,8 @@ export function InsightsPeriodMenu({ period, onSelect }: InsightsPeriodMenuProps
     const t = useTranslation();
     return (
         <Stack.Toolbar placement="right">
-            <Stack.Toolbar.Menu {...toolbarIcon("period")} accessibilityLabel={t("insights.period.change")}>
+            <Stack.Toolbar.Menu accessibilityLabel={t("insights.period.change")}>
+                <Stack.Toolbar.Icon {...toolbarIcon("period")} />
                 {PERIODS.map((option) => (
                     <Stack.Toolbar.MenuAction
                         isOn={option.period === period}

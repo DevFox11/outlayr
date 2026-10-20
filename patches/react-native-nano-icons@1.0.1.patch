@@ -1,8 +1,28 @@
 diff --git a/lib/commonjs/src/core/pipeline/prepareSymbol.js b/lib/commonjs/src/core/pipeline/prepareSymbol.js
-index 30fab86..ef222e9 100644
+index 30fab86..c36810c 100644
 --- a/lib/commonjs/src/core/pipeline/prepareSymbol.js
 +++ b/lib/commonjs/src/core/pipeline/prepareSymbol.js
-@@ -67,12 +67,10 @@ async function prepareSymbol(task, pathkit) {
+@@ -51,7 +51,9 @@ async function prepareSymbol(task, pathkit) {
+     const { layers, monochrome } = (0, layers_1.resolveSymbolLayers)(pathkit, drawable, {
+         onKnockoutLayer: () => logger.info(`    ⊖ Knockout layer: hole in monochrome, own fill in original`),
+     });
+-    const bounds = (0, layers_1.contentBounds)(pathkit, layers.map((l) => l.d)) ?? undefined;
++    const [vx, vy, vw, vh] = prepared.viewBox;
++    const hugeiconsGridMargin = (vw * 1.25) / 24;
++    const hugeiconsLiveArea = [vx + hugeiconsGridMargin, vy + hugeiconsGridMargin, vw - 2 * hugeiconsGridMargin, vh - 2 * hugeiconsGridMargin];
+     result.asset = {
+         assetName,
+         assetDirName: `${assetName}.symbolset`,
+@@ -59,7 +61,7 @@ async function prepareSymbol(task, pathkit) {
+         svg: (0, template_1.buildSymbolTemplate)({
+             layers,
+             viewBox: prepared.viewBox,
+-            contentBounds: bounds,
++            contentBounds: hugeiconsLiveArea,
+             descriptiveName: assetName,
+             logger,
+         }),
+@@ -67,12 +69,10 @@ async function prepareSymbol(task, pathkit) {
          vdXml: (0, vectorDrawable_1.buildVectorDrawableXml)({
              layers: [{ d: monochrome, fill: null }],
              viewBox: prepared.viewBox,

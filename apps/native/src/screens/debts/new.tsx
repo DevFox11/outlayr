@@ -78,11 +78,12 @@ export function NewDebt(props: NewDebtProps) {
         <View style={{ backgroundColor: colors.groupedBackground, flex: 1 }}>
             <Stack.Toolbar placement="right">
                 <Stack.Toolbar.Button
-                    {...toolbarIcon("done")}
                     accessibilityLabel={t("common.save")}
                     disabled={!form.canSave}
                     onPress={form.onSave}
-                />
+                >
+                    <Stack.Toolbar.Icon {...toolbarIcon("done")} />
+                </Stack.Toolbar.Button>
             </Stack.Toolbar>
 
             <View className="items-center gap-4 px-5 pb-2" style={{ paddingTop: headerHeight + 8 }}>

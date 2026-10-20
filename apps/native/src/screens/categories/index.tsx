@@ -226,20 +226,22 @@ export function Categories({ income }: { income: boolean }) {
             <Stack.Screen.BackButton displayMode="minimal" />
             <Stack.Toolbar placement="right">
                 <Stack.Toolbar.Button
-                    {...toolbarIcon(showSuggestions ? "suggestionsOn" : "suggestionsOff")}
                     accessibilityLabel={t(
                         showSuggestions ? "categories.a11y.hideSuggestions" : "categories.a11y.showSuggestions"
                     )}
                     onPress={() => {
                         setBoolSetting(db, "categorySuggestions", !showSuggestions);
                     }}
-                />
+                >
+                    <Stack.Toolbar.Icon {...toolbarIcon(showSuggestions ? "suggestionsOn" : "suggestionsOff")} />
+                </Stack.Toolbar.Button>
                 <Stack.Toolbar.Button
-                    {...toolbarIcon("reorder")}
                     accessibilityLabel={t("categories.a11y.reorder")}
                     hidden={parents.length <= 1}
                     onPress={goToReorder}
-                />
+                >
+                    <Stack.Toolbar.Icon {...toolbarIcon("reorder")} />
+                </Stack.Toolbar.Button>
             </Stack.Toolbar>
             <Host style={{ flex: 1 }} useViewportSizeMeasurement>
                 <List modifiers={groupedList(colors)}>

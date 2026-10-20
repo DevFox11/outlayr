@@ -62,11 +62,12 @@ export function CategoryEditScreen({ id }: { id: string }) {
             <CloseToolbar placement="left" />
             <Stack.Toolbar placement="right">
                 <Stack.Toolbar.Button
-                    {...toolbarIcon("delete")}
                     accessibilityLabel={t("common.delete")}
                     onPress={deleteCategory}
                     tintColor={colors.danger}
-                />
+                >
+                    <Stack.Toolbar.Icon {...toolbarIcon("delete")} />
+                </Stack.Toolbar.Button>
             </Stack.Toolbar>
 
             <CategoryEditor id={id} mode="edit" />

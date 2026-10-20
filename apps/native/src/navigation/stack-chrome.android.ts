@@ -1,7 +1,5 @@
 import { useMemo } from "react";
 
-import closeLightIcon from "@/assets/toolbar-icons/close-light.png";
-import closeIcon from "@/assets/toolbar-icons/close.png";
 import type { MaterialRoleColors } from "@/theme/material-roles";
 import { contrastRatio } from "@/theme/material-scheme";
 import { useMaterialColors } from "@/theme/use-material-colors";
@@ -29,7 +27,9 @@ const WHITE = "#ffffff";
  * image in, so the image is drawn untinted and has to carry its own colour.
  */
 function closeIconOn(surface: string) {
-    return contrastRatio(WHITE, surface) > contrastRatio(BLACK, surface) ? closeLightIcon : closeIcon;
+    return {
+        uri: contrastRatio(WHITE, surface) > contrastRatio(BLACK, surface) ? "nano_close_light_original" : "nano_close",
+    };
 }
 
 export function stackChrome(m3: MaterialRoleColors): StackChrome {

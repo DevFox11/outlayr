@@ -545,14 +545,15 @@ function AccountDeleteToolbar({ account, onDeleted, t, tintColor }: AccountDelet
     return (
         <Stack.Toolbar placement="right">
             <Stack.Toolbar.Button
-                {...toolbarIcon("delete")}
                 accessibilityLabel={t("common.delete")}
                 onPress={() => {
                     requestDelete(account.id, t("accounts.undo.body"));
                     onDeleted();
                 }}
                 tintColor={tintColor}
-            />
+            >
+                <Stack.Toolbar.Icon {...toolbarIcon("delete")} />
+            </Stack.Toolbar.Button>
         </Stack.Toolbar>
     );
 }

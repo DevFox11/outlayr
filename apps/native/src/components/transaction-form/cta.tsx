@@ -41,14 +41,15 @@ function CtaToolbarBody(props: TransactionFormCtaProps) {
         <Stack.Toolbar placement="right">
             {actions.map((action) => (
                 <Stack.Toolbar.Button
-                    {...toolbarIcon(action.icon)}
                     accessibilityLabel={action.accessibilityLabel}
                     disabled={action.disabled}
                     key={action.key}
                     onPress={action.onPress}
                     tintColor={action.tintColor}
                     variant={action.variant}
-                />
+                >
+                    <Stack.Toolbar.Icon {...toolbarIcon(action.icon)} />
+                </Stack.Toolbar.Button>
             ))}
         </Stack.Toolbar>
     );

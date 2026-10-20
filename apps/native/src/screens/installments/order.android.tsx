@@ -63,7 +63,8 @@ function OrderLoaded({ entry, nowMs }: { entry: PlanWithStanding; nowMs: number 
             <ScreenHeader title={orderName(t, purchase)} />
             <Stack.Screen.BackButton displayMode="minimal" />
             <Stack.Toolbar placement="right">
-                <Stack.Toolbar.Menu {...toolbarIcon("more")} accessibilityLabel={t("installments.order")}>
+                <Stack.Toolbar.Menu accessibilityLabel={t("installments.order")}>
+                    <Stack.Toolbar.Icon {...toolbarIcon("more")} />
                     <Stack.Toolbar.MenuAction destructive onPress={deleteOrder}>
                         {t("installments.deleteOrder")}
                     </Stack.Toolbar.MenuAction>

@@ -15,8 +15,6 @@ import type { IconWeight } from "./hugeicon-raster";
 export interface IconEntry {
     /** Export name in `@hugeicons-pro/core-<weight>-rounded`. */
     icon: string;
-    /** Points. Defaults to the set's size. */
-    size?: number;
     /** Output basename, and the key its consumer imports it by. */
     slug: string;
     /** Defaults to the set's weight. */
@@ -25,32 +23,28 @@ export interface IconEntry {
     withSelected?: boolean;
     /** Baked RGB, for a consumer that draws the bitmap untinted. Defaults to black. */
     ink?: string;
+    stroke?: number;
 }
 
-export type IconSet = {
-    /** Why these have to be bitmaps at all — kept next to the set it explains. */
+export interface IconSet {
+    /** Why these have to be written out at all — kept next to the set it explains. */
     because: string;
     /** Output directory, `assets/<dir>`. Also the name `gen:icons` filters on. */
     dir: string;
     entries: IconEntry[];
-} & (
-    | {
-          format?: "png";
-          /** Points every entry renders at unless it overrides. */
-          size: number;
-          /**
-           * Stroke width at the set's `size`, scaled proportionally for entries that
-           * render smaller. Omit to keep the 1.5 the package bakes in.
-           */
-          stroke?: number;
-      }
-    | {
-          format: "svg";
-      }
-);
+    /** Stroke width. Omit to keep the 1.5 the package bakes in. */
+    stroke?: number;
+}
 
 /** Points. Swift's `LogView.menuIconSize` for a row inside a menu. */
 const MENU_SIZE = 17;
+
+// Points. What Swift's `ToolbarIcon` defaults to for a toolbar button.
+const TOOLBAR_SIZE = 22;
+
+const TOOLBAR_STROKE = 2;
+
+const MENU_STROKE = (TOOLBAR_STROKE * MENU_SIZE) / TOOLBAR_SIZE;
 
 export const SETS: IconSet[] = [
     {
@@ -63,11 +57,10 @@ export const SETS: IconSet[] = [
             { icon: "ProgressIcon", slug: "budgets", withSelected: true },
             { icon: "Settings01Icon", slug: "settings", withSelected: true },
         ],
-        format: "svg",
     },
     {
         because: "A native toolbar item takes an SF Symbol name or an image source, never a React element.",
-        dir: "toolbar-icons",
+        dir: "toolbar-symbols",
         entries: [
             { icon: "PlusSignIcon", slug: "add" },
             { icon: "Cancel01Icon", slug: "close" },
@@ -93,34 +86,24 @@ export const SETS: IconSet[] = [
             // month row settled for calendar-04 because the bundled font shipped
             // calendar-03 without a ligature; drawing from SVG has no such gap, so
             // month gets the glyph it was always meant to have.
-            { icon: "Invoice01Icon", size: MENU_SIZE, slug: "show-all" },
-            {
-                icon: "ArrowDataTransferVerticalIcon",
-                size: MENU_SIZE,
-                slug: "show-type",
-            },
-            {
-                icon: "ArrowDataTransferHorizontalIcon",
-                size: MENU_SIZE,
-                slug: "show-transfers",
-            },
-            { icon: "Calendar01Icon", size: MENU_SIZE, slug: "show-day" },
-            { icon: "Calendar02Icon", size: MENU_SIZE, slug: "show-week" },
-            { icon: "Calendar03Icon", size: MENU_SIZE, slug: "show-month" },
-            { icon: "TagsIcon", size: MENU_SIZE, slug: "show-category" },
-            { icon: "RepeatIcon", size: MENU_SIZE, slug: "show-recurring" },
-            { icon: "Clock01Icon", size: MENU_SIZE, slug: "show-upcoming" },
+            { icon: "Invoice01Icon", slug: "show-all", stroke: MENU_STROKE },
+            { icon: "ArrowDataTransferVerticalIcon", slug: "show-type", stroke: MENU_STROKE },
+            { icon: "ArrowDataTransferHorizontalIcon", slug: "show-transfers", stroke: MENU_STROKE },
+            { icon: "Calendar01Icon", slug: "show-day", stroke: MENU_STROKE },
+            { icon: "Calendar02Icon", slug: "show-week", stroke: MENU_STROKE },
+            { icon: "Calendar03Icon", slug: "show-month", stroke: MENU_STROKE },
+            { icon: "TagsIcon", slug: "show-category", stroke: MENU_STROKE },
+            { icon: "RepeatIcon", slug: "show-recurring", stroke: MENU_STROKE },
+            { icon: "Clock01Icon", slug: "show-upcoming", stroke: MENU_STROKE },
         ],
-        // Points. What Swift's `ToolbarIcon` defaults to for a toolbar button.
-        size: 22,
         // A bare 1.5 line looks thin beside the SF Symbols the OS draws in the same
         // bar. Scaled down for menu rows, which are smaller to begin with.
-        stroke: 2,
+        stroke: TOOLBAR_STROKE,
     },
     {
         because:
             "An Android menu row draws a leading icon only from an image source; the SF Symbol names iOS menus take are dropped.",
-        dir: "menu-icons",
+        dir: "menu-symbols",
         // The SF Symbols the scope chips' window menus name: chevron.left,
         // chevron.right and arrow.uturn.backward.
         entries: [
@@ -128,8 +111,6 @@ export const SETS: IconSet[] = [
             { icon: "ArrowRight01Icon", slug: "later" },
             { icon: "ArrowTurnBackwardIcon", slug: "now" },
         ],
-        // Dp. A Material 3 menu item's leading icon.
-        size: 24,
         stroke: 1.75,
     },
 ];

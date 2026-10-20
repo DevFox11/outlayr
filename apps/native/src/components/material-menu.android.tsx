@@ -11,11 +11,7 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import type { ImageSourcePropType } from "react-native";
 
-import earlierIcon from "@/assets/menu-icons/earlier.png";
-import laterIcon from "@/assets/menu-icons/later.png";
-import nowIcon from "@/assets/menu-icons/now.png";
 import { MaterialHost } from "@/components/material-host";
-import { TOOLBAR_ICON_SOURCES } from "@/components/toolbar-icon-sources";
 import { withAlpha } from "@/theme/shade";
 import { useMaterialColors } from "@/theme/use-material-colors";
 
@@ -24,14 +20,14 @@ import type { MaterialMenuProps } from "./material-menu";
 export type { MaterialMenuProps } from "./material-menu";
 
 /**
- * The SF Symbols the app's chip menus name, as the bitmaps an Android menu row
+ * The SF Symbols the app's chip menus name, as the drawables an Android menu row
  * can draw. A row naming anything else, or passing an image source, which no
  * chip menu does, draws no icon.
  */
 const SYMBOL_ICONS = new Map<MenuAction["image"], ImageSourcePropType>([
-    ["arrow.uturn.backward", nowIcon],
-    ["chevron.left", earlierIcon],
-    ["chevron.right", laterIcon],
+    ["arrow.uturn.backward", { uri: "nano_now" }],
+    ["chevron.left", { uri: "nano_earlier" }],
+    ["chevron.right", { uri: "nano_later" }],
 ]);
 
 /** Material 3's menu item label: labelLarge, 14 on 20 in the medium weight. */
@@ -70,7 +66,7 @@ function MenuRow({ action, onChoose }: { action: MenuAction; onChoose: (id: stri
             ) : null}
             {selected ? (
                 <DropdownMenuItem.TrailingIcon>
-                    <Icon size={ICON_SIZE} source={TOOLBAR_ICON_SOURCES.done} />
+                    <Icon size={ICON_SIZE} source={{ uri: "nano_done" }} />
                 </DropdownMenuItem.TrailingIcon>
             ) : null}
         </DropdownMenuItem>

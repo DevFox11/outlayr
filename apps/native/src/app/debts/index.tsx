@@ -13,7 +13,8 @@ export default function DebtsScreen() {
     return (
         <>
             <Stack.Toolbar placement="right">
-                <Stack.Toolbar.Menu {...toolbarIcon("add")} accessibilityLabel={t("debts.a11y.add")}>
+                <Stack.Toolbar.Menu accessibilityLabel={t("debts.a11y.add")}>
+                    <Stack.Toolbar.Icon {...toolbarIcon("add")} />
                     <Stack.Toolbar.MenuAction icon="person" onPress={() => router.push("/debts/new")}>
                         {t("debts.add.person")}
                     </Stack.Toolbar.MenuAction>

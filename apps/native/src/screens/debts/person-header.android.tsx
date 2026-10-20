@@ -109,7 +109,8 @@ export function PersonToolbar({ account, db }: { account: Account; db: Database 
     return (
         <>
             <Stack.Toolbar placement="right">
-                <Stack.Toolbar.Menu {...toolbarIcon("more")} accessibilityLabel={t("debts.a11y.more")}>
+                <Stack.Toolbar.Menu accessibilityLabel={t("debts.a11y.more")}>
+                    <Stack.Toolbar.Icon {...toolbarIcon("more")} />
                     <Stack.Toolbar.MenuAction onPress={() => setRenaming(true)}>
                         {t("debts.person.rename")}
                     </Stack.Toolbar.MenuAction>

@@ -1,9 +1,7 @@
 /**
- * Turns Hugeicons SVG data into the PNGs the native chrome needs. Neither the
- * tab bar nor the toolbar accepts a React element for an icon — both take an
- * image source — so every glyph that sits in OS chrome has to ship as a bitmap.
+ * Turns Hugeicons data into SVG, and SVG into PNGs.
  *
- * Needs `brew install librsvg`.
+ * `rasterize` needs `brew install librsvg`.
  */
 
 import { execFileSync } from "node:child_process";
@@ -100,5 +98,3 @@ export function resetDirectory(directory: string) {
     rmSync(directory, { force: true, recursive: true });
     mkdirSync(directory, { recursive: true });
 }
-
-export const SCALE_COUNT = SCALES.length;

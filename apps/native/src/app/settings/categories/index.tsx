@@ -2,7 +2,7 @@ import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 
 import { CategoryKindToggle } from "@/components/category-kind-toggle";
-import { useToolbarIcon } from "@/components/toolbar-icons";
+import { toolbarIcon } from "@/components/toolbar-icons";
 import { useTranslation } from "@/i18n/context";
 import { Categories } from "@/screens/categories";
 
@@ -10,7 +10,6 @@ export default function CategoriesScreen() {
     const router = useRouter();
     const t = useTranslation();
     const [income, setIncome] = useState(false);
-    const addIcon = useToolbarIcon("add");
 
     const goToNew = () => {
         router.push({
@@ -28,7 +27,9 @@ export default function CategoriesScreen() {
                     <CategoryKindToggle income={income} onChange={setIncome} />
                 </Stack.Toolbar.View>
                 <Stack.Toolbar.Spacer />
-                <Stack.Toolbar.Button {...addIcon} accessibilityLabel={t("categories.a11y.new")} onPress={goToNew} />
+                <Stack.Toolbar.Button accessibilityLabel={t("categories.a11y.new")} onPress={goToNew}>
+                    <Stack.Toolbar.Icon {...toolbarIcon("add")} />
+                </Stack.Toolbar.Button>
             </Stack.Toolbar>
             <Categories income={income} />
         </>

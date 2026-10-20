@@ -15,7 +15,8 @@ export function BudgetDetailToolbar({ onDelete }: BudgetDetailToolbarProps) {
     const t = useTranslation();
     return (
         <Stack.Toolbar placement="right">
-            <Stack.Toolbar.Menu {...toolbarIcon("more")} accessibilityLabel={t("budgets.action.moreA11y")}>
+            <Stack.Toolbar.Menu accessibilityLabel={t("budgets.action.moreA11y")}>
+                <Stack.Toolbar.Icon {...toolbarIcon("more")} />
                 <Stack.Toolbar.MenuAction destructive icon="trash" onPress={onDelete}>
                     {t("common.delete")}
                 </Stack.Toolbar.MenuAction>

@@ -168,12 +168,13 @@ export function OverallBudgetDetail({ db, onDone }: { db: Database; onDone: () =
             <ScreenHeader title={budget.name} />
             <Stack.Toolbar placement="right">
                 <Stack.Toolbar.Button
-                    {...toolbarIcon("delete")}
                     accessibilityLabel={t("budgets.action.delete")}
                     onPress={deleteBudget}
                     // `Color.ios` answers null off iOS, where the brand danger stands in.
                     tintColor={Color.ios.systemRed ?? colors.danger}
-                />
+                >
+                    <Stack.Toolbar.Icon {...toolbarIcon("delete")} />
+                </Stack.Toolbar.Button>
             </Stack.Toolbar>
         </>
     );

@@ -8,11 +8,9 @@ export function CloseToolbar({ placement }: { placement: "left" | "right" }) {
     const t = useTranslation();
     return (
         <Stack.Toolbar placement={placement}>
-            <Stack.Toolbar.Button
-                {...toolbarIcon("close")}
-                accessibilityLabel={t("common.close")}
-                onPress={() => router.back()}
-            />
+            <Stack.Toolbar.Button accessibilityLabel={t("common.close")} onPress={() => router.back()}>
+                <Stack.Toolbar.Icon {...toolbarIcon("close")} />
+            </Stack.Toolbar.Button>
         </Stack.Toolbar>
     );
 }

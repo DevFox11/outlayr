@@ -104,7 +104,6 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
             ) : (
                 <Stack.Toolbar placement="right">
                     <Stack.Toolbar.Button
-                        {...toolbarIcon("more")}
                         accessibilityLabel={t("accounts.a11y.edit")}
                         onPress={() =>
                             router.push({
@@ -112,7 +111,9 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
                                 pathname: "/accounts/[accountId]/edit",
                             })
                         }
-                    />
+                    >
+                        <Stack.Toolbar.Icon {...toolbarIcon("more")} />
+                    </Stack.Toolbar.Button>
                 </Stack.Toolbar>
             )}
             <SectionList

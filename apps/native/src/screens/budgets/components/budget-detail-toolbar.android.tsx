@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 
+import { toolbarDrawable } from "@/components/toolbar-icon-sources";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useTranslation } from "@/i18n/context";
 
@@ -16,8 +17,14 @@ export function BudgetDetailToolbar({ onDelete }: BudgetDetailToolbarProps) {
     const t = useTranslation();
     return (
         <Stack.Toolbar placement="right">
-            <Stack.Toolbar.Menu {...toolbarIcon("more")} accessibilityLabel={t("budgets.action.moreA11y")}>
-                <Stack.Toolbar.MenuAction {...toolbarIcon("delete")} destructive onPress={onDelete}>
+            <Stack.Toolbar.Menu accessibilityLabel={t("budgets.action.moreA11y")}>
+                <Stack.Toolbar.Icon {...toolbarIcon("more")} />
+                <Stack.Toolbar.MenuAction
+                    destructive
+                    icon={toolbarDrawable("delete")}
+                    iconRenderingMode="template"
+                    onPress={onDelete}
+                >
                     {t("common.delete")}
                 </Stack.Toolbar.MenuAction>
             </Stack.Toolbar.Menu>

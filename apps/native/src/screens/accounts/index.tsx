@@ -107,11 +107,12 @@ export function Accounts() {
             <Stack.Screen.BackButton displayMode="minimal" />
             <Stack.Toolbar placement="right">
                 <Stack.Toolbar.Button
-                    {...toolbarIcon("reorder")}
                     accessibilityLabel={t("accounts.a11y.reorder")}
                     hidden={rows.length <= 1}
                     onPress={() => router.push("/accounts/reorder")}
-                />
+                >
+                    <Stack.Toolbar.Icon {...toolbarIcon("reorder")} />
+                </Stack.Toolbar.Button>
             </Stack.Toolbar>
             {rows.length === 0 ? (
                 <EmptyState body={t("accounts.empty")} mark={<AccountsMark />} tier="takeover" />

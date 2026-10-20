@@ -1,0 +1,13 @@
+diff --git a/build/layouts/stack-utils/toolbar/shared.js b/build/layouts/stack-utils/toolbar/shared.js
+index 93581e6..0e57e07 100644
+--- a/build/layouts/stack-utils/toolbar/shared.js
++++ b/build/layouts/stack-utils/toolbar/shared.js
+@@ -83,7 +83,7 @@ function convertStackHeaderSharedPropsToRNSharedHeaderItem(props, isBottomPlacem
+             return undefined;
+         }
+         // Bottom placement xcasset uses native xcasset type
+-        if ('xcasset' in iconComponentProps && isBottomPlacement) {
++        if ('xcasset' in iconComponentProps) {
+             return {
+                 type: 'xcasset',
+                 name: iconComponentProps.xcasset
