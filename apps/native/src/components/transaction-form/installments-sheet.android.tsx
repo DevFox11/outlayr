@@ -10,21 +10,20 @@ import MinusSignIcon from "@hugeicons-pro/core-stroke-rounded/MinusSignIcon";
 import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import type { IconSvgElement } from "@hugeicons/react-native";
-import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChoiceRow } from "@/components/list/list-row";
 import { ListItemText } from "@/components/list/material-list-item";
 import { MaterialHost } from "@/components/material-host";
+import { OutlinedDateField } from "@/components/material/outlined-date-field";
 import { OutlinedDropdownField } from "@/components/material/outlined-dropdown-field";
 import { OutlinedSelectField } from "@/components/material/outlined-field";
-import { formatSentenceDate, formatTargetDate } from "@/domain/dates";
+import { formatSentenceDate } from "@/domain/dates";
 import { EVERY_ORDER, rescheduled } from "@/domain/installment-draft";
 import type { ScheduledInstallment } from "@/domain/installments";
 import { useSheetSurface } from "@/hooks/use-sheet-surface";
 import { useLanguage, useTranslation } from "@/i18n/context";
-import { CompactDatePicker } from "@/screens/budgets/components/compact-date-picker";
 import { withAlpha } from "@/theme/shade";
 import { useMaterialColors } from "@/theme/use-material-colors";
 
@@ -59,14 +58,12 @@ function fieldValue(value: string) {
 export function InstallmentsSheet(props: InstallmentsSheetProps) {
     const { accounts, currency, draft, onChange, purchaseDay, ref, schedule } = props;
     const t = useTranslation();
-    const { language } = useLanguage();
     const insets = useSafeAreaInsets();
     const sheetSurface = useSheetSurface();
     const form = useInstallmentsSheetForm(props);
     const { each, emptyNote, firstDue, from, money, open, openPad, over, paidBefore, setOpen, step, total, upfront } =
         form;
     const noneLabel = `${t("installments.from.none")} · ${t("installments.notFromAccount")}`;
-    const firstDueLabel = firstDue ? formatTargetDate(firstDue, language) : "";
 
     return (
         <BottomSheetModal
@@ -177,25 +174,22 @@ export function InstallmentsSheet(props: InstallmentsSheetProps) {
                                 : null}
                         </View>
 
-                        {open === "firstDue" && firstDue ? (
-                            <CompactDatePicker
+                        {firstDue ? (
+                            <OutlinedDateField
+                                ground={sheetSurface}
                                 label={t("installments.firstDue")}
-                                onChange={(next) => {
-                                    setOpen(null);
-                                    onChange(rescheduled(draft, { firstDue: next }));
-                                }}
-                                onDismiss={() => setOpen(null)}
+                                onChange={(next) => onChange(rescheduled(draft, { firstDue: next }))}
                                 range={{ start: purchaseDay }}
                                 value={firstDue}
                             />
                         ) : (
                             <OutlinedSelectField
-                                accessibilityValue={firstDueLabel}
+                                accessibilityValue=""
                                 dropdown={false}
                                 ground={sheetSurface}
                                 label={t("installments.firstDue")}
                                 onPress={() => setOpen("firstDue")}
-                                value={fieldValue(firstDueLabel)}
+                                value={null}
                             />
                         )}
                     </View>
@@ -211,6 +205,7 @@ export function InstallmentsSheet(props: InstallmentsSheetProps) {
                                     key={row.sequence}
                                     money={money}
                                     onAmount={() => openPad({ sequence: row.sequence }, row.amount)}
+                                    onClose={() => setOpen(null)}
                                     onDate={(next) => form.editDate(row.sequence, next)}
                                     onPress={() =>
                                         row.sequence === 0
@@ -284,6 +279,8 @@ interface ScheduleRowProps {
     editing: boolean;
     money: (value: number) => string;
     onAmount: () => void;
+    /** The date dialog closed without a pick: the row folds, as a pick folds it. */
+    onClose: () => void;
     onDate: (next: Date) => void;
     onPress: () => void;
     onToggle: () => void;
@@ -303,6 +300,7 @@ function ScheduleRow({
     editing,
     money,
     onAmount,
+    onClose,
     onDate,
     onPress,
     onToggle,
@@ -314,10 +312,8 @@ function ScheduleRow({
     const { language } = useLanguage();
     const m3 = useMaterialColors();
     const sheetSurface = useSheetSurface();
-    const [pickingDate, setPickingDate] = useState(false);
     const isUpfront = row.sequence === 0;
     const date = formatSentenceDate(row.dueDate, language);
-    const due = formatTargetDate(row.dueDate, language);
     const amount = money(row.amount);
     return (
         <View className="border-m3-outline-variant border-b">
@@ -357,27 +353,14 @@ function ScheduleRow({
             {editing ? (
                 <View className="flex-row gap-3 pb-4 pl-14">
                     <View className="flex-1">
-                        {pickingDate ? (
-                            <CompactDatePicker
-                                label={t("installments.cuota.due")}
-                                onChange={(next) => {
-                                    setPickingDate(false);
-                                    onDate(next);
-                                }}
-                                onDismiss={() => setPickingDate(false)}
-                                range={{ start: purchaseDay }}
-                                value={row.dueDate}
-                            />
-                        ) : (
-                            <OutlinedSelectField
-                                accessibilityValue={due}
-                                dropdown={false}
-                                ground={sheetSurface}
-                                label={t("installments.cuota.due")}
-                                onPress={() => setPickingDate(true)}
-                                value={fieldValue(due)}
-                            />
-                        )}
+                        <OutlinedDateField
+                            ground={sheetSurface}
+                            label={t("installments.cuota.due")}
+                            onChange={onDate}
+                            onDismiss={onClose}
+                            range={{ start: purchaseDay }}
+                            value={row.dueDate}
+                        />
                     </View>
                     <View className="flex-1">
                         <OutlinedSelectField

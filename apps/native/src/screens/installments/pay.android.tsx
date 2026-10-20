@@ -6,12 +6,11 @@ import { HeroNumber } from "@/components/amount-text";
 import { FilledButton } from "@/components/filled-button";
 import { InlineFailure } from "@/components/form/inline-failure";
 import { ChoiceRow } from "@/components/list/list-row";
+import { OutlinedDateField } from "@/components/material/outlined-date-field";
 import { OutlinedSelectField } from "@/components/material/outlined-field";
 import { SheetHeader } from "@/components/sheet-header";
 import { Text } from "@/components/text";
-import { formatTargetDate } from "@/domain/dates";
-import { useLanguage, useTranslation } from "@/i18n/context";
-import { CompactDatePicker } from "@/screens/budgets/components/compact-date-picker";
+import { useTranslation } from "@/i18n/context";
 import { useMaterialColors } from "@/theme/use-material-colors";
 
 import { SourceChoice, SourceTile, usePayEntry, usePayForm } from "./pay-form";
@@ -44,7 +43,6 @@ function PayForm(props: PayFormProps) {
     const t = useTranslation();
     const m3 = useMaterialColors();
     const insets = useSafeAreaInsets();
-    const { language } = useLanguage();
     const {
         accountName,
         amount,
@@ -61,16 +59,13 @@ function PayForm(props: PayFormProps) {
         padRef,
         padText,
         pickFrom,
-        pickingDate,
         pickingFrom,
         plan,
         setDate,
         setPadText,
-        setPickingDate,
         setPickingFrom,
     } = usePayForm(props);
     const fromLabel = from ? from.name : `${t("installments.from.none")} · ${t("installments.notFromAccount")}`;
-    const dateLabel = formatTargetDate(date, language);
     const payTitle = account ? t("installments.pay.to", { account: account.name }) : undefined;
 
     return (
@@ -130,27 +125,13 @@ function PayForm(props: PayFormProps) {
                             onPress={() => setPickingFrom(true)}
                             value={fieldValue(fromLabel)}
                         />
-                        {pickingDate ? (
-                            <CompactDatePicker
-                                label={t("installments.pay.date")}
-                                onChange={(picked) => {
-                                    setPickingDate(false);
-                                    setDate(picked);
-                                }}
-                                onDismiss={() => setPickingDate(false)}
-                                range={{ end: new Date() }}
-                                value={date}
-                            />
-                        ) : (
-                            <OutlinedSelectField
-                                accessibilityValue={dateLabel}
-                                dropdown={false}
-                                ground={m3.surfaceContainerLow}
-                                label={t("installments.pay.date")}
-                                onPress={() => setPickingDate(true)}
-                                value={fieldValue(dateLabel)}
-                            />
-                        )}
+                        <OutlinedDateField
+                            ground={m3.surfaceContainerLow}
+                            label={t("installments.pay.date")}
+                            onChange={setDate}
+                            range={{ end: new Date() }}
+                            value={date}
+                        />
                         <View className="pt-2">
                             <InlineFailure message={failure} />
                             <FilledButton

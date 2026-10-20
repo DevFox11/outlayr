@@ -1,24 +1,23 @@
 import { SegmentedButton, SingleChoiceSegmentedButtonRow, Text as ComposeText } from "@expo/ui/jetpack-compose";
 import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 import { Stack } from "expo-router";
-import { memo, useState } from "react";
-import { Keyboard, Pressable, ScrollView, View } from "react-native";
+import { memo } from "react";
+import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AccountTile } from "@/components/account-tile";
 import { HeroNumber } from "@/components/amount-text";
 import { InlineFailure } from "@/components/form/inline-failure";
 import { MaterialHost } from "@/components/material-host";
+import { OutlinedDateField } from "@/components/material/outlined-date-field";
 import { OutlinedSelectField, OutlinedTextField } from "@/components/material/outlined-field";
 import { SheetHeaderTextButton } from "@/components/sheet-header";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { Account } from "@/data/accounts-core";
-import { formatTargetDate } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
 import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
 import { useLanguage, useTranslation } from "@/i18n/context";
-import { CompactDatePicker } from "@/screens/budgets/components/compact-date-picker";
 import { withAlpha } from "@/theme/shade";
 import { useMaterialColors } from "@/theme/use-material-colors";
 
@@ -58,8 +57,6 @@ export function NewDebt(props: NewDebtProps) {
     const { showCents } = useDisplaySettings().state;
     const form = useNewDebtForm(props);
     const { choice, currency, soldOnCredit, theirCurrency } = form;
-    const [pickingDate, setPickingDate] = useState(false);
-    const shownDate = formatTargetDate(form.date, language);
 
     return (
         <View className="bg-m3-surface flex-1">
@@ -162,30 +159,13 @@ export function NewDebt(props: NewDebtProps) {
                     ) : null}
                     {form.before ? null : (
                         <>
-                            {pickingDate ? (
-                                <CompactDatePicker
-                                    label={t("debts.field.date")}
-                                    onChange={(picked) => {
-                                        setPickingDate(false);
-                                        form.setDate(picked);
-                                    }}
-                                    onDismiss={() => setPickingDate(false)}
-                                    range={{ end: new Date(form.nowMs) }}
-                                    value={form.date}
-                                />
-                            ) : (
-                                <OutlinedSelectField
-                                    accessibilityValue={shownDate}
-                                    dropdown={false}
-                                    ground={m3.surface}
-                                    label={t("debts.field.date")}
-                                    onPress={() => {
-                                        Keyboard.dismiss();
-                                        setPickingDate(true);
-                                    }}
-                                    value={selectValue(shownDate)}
-                                />
-                            )}
+                            <OutlinedDateField
+                                ground={m3.surface}
+                                label={t("debts.field.date")}
+                                onChange={form.setDate}
+                                range={{ end: new Date(form.nowMs) }}
+                                value={form.date}
+                            />
                             <OutlinedTextField
                                 ground={m3.surface}
                                 label={t("debts.field.note")}

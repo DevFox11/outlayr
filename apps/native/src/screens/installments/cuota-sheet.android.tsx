@@ -1,20 +1,19 @@
 import { BottomSheetModal, BottomSheetView } from "@expo/ui/community/bottom-sheet";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AmountEntrySheet } from "@/components/amount-entry-sheet";
+import { OutlinedDateField } from "@/components/material/outlined-date-field";
 import { OutlinedSelectField } from "@/components/material/outlined-field";
 import { SheetGestureRoot } from "@/components/sheet-gesture-root";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { InstallmentRow } from "@/data/installments-core";
-import { formatTargetDate } from "@/domain/dates";
 import { formatAmount } from "@/domain/money";
 import { useMergedRef } from "@/hooks/use-merged-ref";
 import { useSheetSurface } from "@/hooks/use-sheet-surface";
 import { useLanguage, useTranslation } from "@/i18n/context";
-import { CompactDatePicker } from "@/screens/budgets/components/compact-date-picker";
 import { withAlpha } from "@/theme/shade";
 import { useMaterialColors } from "@/theme/use-material-colors";
 
@@ -84,13 +83,11 @@ function CuotaBody({ count, currency, earliest, onClose, row, sheetSurface }: Cu
     const m3 = useMaterialColors();
     const { language } = useLanguage();
     const { showCents } = useDisplaySettings().state;
-    const [pickingDate, setPickingDate] = useState(false);
     const { amount, commitAmount, dueDate, minorUnits, moveTo, padRef, padText, remove, setPadText } = useCuotaEditor({
         currency,
         onClose,
         row,
     });
-    const due = formatTargetDate(dueDate, language);
     const shownAmount = formatAmount(amount, currency, showCents, language);
 
     return (
@@ -99,27 +96,13 @@ function CuotaBody({ count, currency, earliest, onClose, row, sheetSurface }: Cu
                 {installmentTitle(t, row, count)}
             </Text>
             <View className="gap-4">
-                {pickingDate ? (
-                    <CompactDatePicker
-                        label={t("installments.cuota.due")}
-                        onChange={(next) => {
-                            setPickingDate(false);
-                            moveTo(next);
-                        }}
-                        onDismiss={() => setPickingDate(false)}
-                        range={{ start: earliest }}
-                        value={dueDate}
-                    />
-                ) : (
-                    <OutlinedSelectField
-                        accessibilityValue={due}
-                        dropdown={false}
-                        ground={sheetSurface}
-                        label={t("installments.cuota.due")}
-                        onPress={() => setPickingDate(true)}
-                        value={fieldValue(due)}
-                    />
-                )}
+                <OutlinedDateField
+                    ground={sheetSurface}
+                    label={t("installments.cuota.due")}
+                    onChange={moveTo}
+                    range={{ start: earliest }}
+                    value={dueDate}
+                />
                 <OutlinedSelectField
                     accessibilityValue={shownAmount}
                     dropdown={false}
