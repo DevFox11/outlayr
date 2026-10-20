@@ -53,7 +53,7 @@ export const CHART_DRAW = {
     durationMs: 600,
 } as const;
 
-/** Compact magnitude for an axis label: 950, 1.2k, 15k, 3M. */
+/** Compact magnitude for an axis label: 0.5, 950, 1.2k, 15k, 3M. */
 export function compactMagnitude(value: number, decimal = "."): string {
     const abs = Math.abs(value);
     if (abs >= 1_000_000) {
@@ -61,6 +61,9 @@ export function compactMagnitude(value: number, decimal = "."): string {
     }
     if (abs >= 1000) {
         return `${trim(value / 1000, abs >= 10_000, decimal)}k`;
+    }
+    if (abs < 10) {
+        return String(Math.round(value * 10) / 10 || 0).replace(".", decimal);
     }
     return String(Math.round(value));
 }

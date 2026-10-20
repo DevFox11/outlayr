@@ -188,7 +188,6 @@ export function InstallmentsSheet(props: InstallmentsSheetProps) {
                                 dropdown={false}
                                 ground={sheetSurface}
                                 label={t("installments.firstDue")}
-                                onPress={() => setOpen("firstDue")}
                                 value={null}
                             />
                         )}

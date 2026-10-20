@@ -8,6 +8,11 @@ describe("compactMagnitude", () => {
         expect(compactMagnitude(950)).toBe("950");
     });
 
+    it("keeps a tenth below ten, so a one-dollar axis does not repeat its labels", () => {
+        expect([0.1, -0.5, -1.1].map((value) => compactMagnitude(value, ","))).toStrictEqual(["0,1", "-0,5", "-1,1"]);
+        expect(compactMagnitude(-0.04)).toBe("0");
+    });
+
     it("switches to k at a thousand and M at a million", () => {
         expect(compactMagnitude(1200)).toBe("1.2k");
         expect(compactMagnitude(15_000)).toBe("15k");

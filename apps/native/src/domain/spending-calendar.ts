@@ -2,6 +2,8 @@ import { utcDateString } from "@outlayr/money/dates";
 import { valueDatedRowsIn, valueExactIn } from "@outlayr/money/valuation";
 import type { RateTable } from "@outlayr/money/valuation";
 
+import { localDayKey } from "./local-day";
+
 interface SpendingCalendarValuation {
     displayCurrency: string;
     rates: RateTable;
@@ -23,14 +25,6 @@ export interface SpendingCalendarEntry {
     date: string;
     exact: boolean;
     value: number;
-}
-
-/** Only `now` needs deriving; every row arrives already keyed by the query. */
-function localDayKey(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
 }
 
 function compareStrings(left: string, right: string): number {
@@ -60,7 +54,7 @@ export function spendingCalendarEntries(
     valuation: SpendingCalendarValuation,
     now: Date
 ): SpendingCalendarEntry[] {
-    const today = localDayKey(now);
+    const today = localDayKey(now.getTime());
     const expenses = rows.filter((row) => !row.income && row.plotKey <= today).sort(compareRows);
     const values = valueDatedRowsIn(
         expenses.map((row) => ({ ...row, date: row.valuationDate })),

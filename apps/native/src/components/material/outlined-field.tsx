@@ -204,7 +204,8 @@ interface OutlinedSelectFieldProps {
     value: ReactNode;
     /** Spoken after the label. */
     accessibilityValue: string;
-    onPress: () => void;
+    /** Left out, the field reads but does not press. */
+    onPress?: () => void;
     /** A control at the start of the box, outside the field's own press target. */
     leading?: ReactNode;
     /** Draws the dropdown arrow at the end; off for a field that opens a sheet of its own. */
@@ -242,6 +243,7 @@ export function OutlinedSelectField({
                     accessibilityRole="button"
                     android_ripple={{ color: withAlpha(m3.onSurface, PRESSED_ALPHA) }}
                     className="flex-1 flex-row items-center self-stretch"
+                    disabled={!onPress}
                     onPress={onPress}
                     style={{ paddingLeft: leading ? 0 : outline.paddingHorizontal, paddingRight: 12 }}
                 >
