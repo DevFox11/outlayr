@@ -37,6 +37,13 @@ describe("formatSignedAmount", () => {
         expect(formatSignedAmount(1240.5, "USD")).toBe("$1,240.50");
         expect(formatSignedAmount(0, "USD")).toBe("$0.00");
     });
+
+    it("drops the minus when the balance rounds to zero", () => {
+        // An emptied EUR account summed to -7.1e-15 and read "-$0.00".
+        expect(formatSignedAmount(120.35 - 100.2 - 20.15, "USD")).toBe("$0.00");
+        expect(formatSignedAmount(-0.4, "USD", false)).toBe("$0");
+        expect(formatSignedAmount(-0.6, "USD", false)).toBe("-$1");
+    });
 });
 
 describe("isMultiCurrency", () => {
