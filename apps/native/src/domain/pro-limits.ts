@@ -13,6 +13,8 @@ export const FREE_PEOPLE = 3;
  * Cards and loans are plain accounts.
  */
 export const FREE_INSTALLMENT_APPS = 2;
+/** Live payoff plans: one paid off has ended and no longer counts. */
+export const FREE_PAYOFF_PLANS = 2;
 
 /** What the account caps read off an account: its name and kind tell an installment app. */
 interface CappedAccount {

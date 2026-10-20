@@ -207,6 +207,10 @@ const pro = {
             en: "Installment apps",
             es: "Apps de cuotas",
         }),
+        "pro.row.payoffPlans": t({
+            en: "Payoff plans",
+            es: "Planes de pago",
+        }),
         "pro.row.lookup": t({
             en: "Web merchant lookup",
             es: "Búsqueda web de comercios",

@@ -1,5 +1,6 @@
 import { Stack, useRouter } from "expo-router";
 import { Button } from "panelui-native/components/button";
+import type { ReactNode } from "react";
 import { Alert, View } from "react-native";
 
 import { HeroNumber } from "@/components/amount-text";
@@ -15,6 +16,9 @@ import type { TranslationKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
 import { notifyFailure } from "@/lib/notify";
 
+import { payoffMenuActions } from "./payoff-menu-actions";
+import type { PayoffPlanControls } from "./use-payoff-plan";
+
 const STANDING_LABEL = {
     owesYou: "debts.person.owesYou",
     settled: "debts.person.settled",
@@ -25,11 +29,13 @@ interface PersonHeroProps {
     account: Account;
     /** The person's balance in their own currency: negative when you owe them. */
     balance: number;
+    /** The payoff plan's line and facts, between the amount and the movements. */
+    plan: ReactNode;
     showCents: boolean;
 }
 
 /** "You owe" / "Owes you" / "Settled" over the amount, and the two movements that standing offers. */
-export function PersonHero({ account, balance, showCents }: PersonHeroProps) {
+export function PersonHero({ account, balance, plan, showCents }: PersonHeroProps) {
     const router = useRouter();
     const t = useTranslation();
     const standing = debtStanding(balance, account.currency);
@@ -38,6 +44,7 @@ export function PersonHero({ account, balance, showCents }: PersonHeroProps) {
         <View className="items-center gap-1 pt-6 pb-4">
             <MonoLabel>{t(STANDING_LABEL[standing])}</MonoLabel>
             <HeroNumber amount={Math.abs(balance)} code={account.currency} showCents={showCents} sign="" />
+            {plan}
             <View className="w-full flex-row gap-3 pt-5">
                 {debtChoices(standing).map((choice, index) => (
                     <View className="flex-1" key={choice.verb}>
@@ -63,10 +70,11 @@ export function PersonHero({ account, balance, showCents }: PersonHeroProps) {
 }
 
 /**
- * Rename and delete for a person. Rename writes the name alone, so the person
- * stays a person: the account editor only knows assets and liabilities.
+ * Rename, the payoff plan and delete for a person. Rename writes the name
+ * alone, so the person stays a person: the account editor only knows assets
+ * and liabilities.
  */
-export function PersonToolbar({ account, db }: { account: Account; db: Database }) {
+export function PersonToolbar({ account, db, plan }: { account: Account; db: Database; plan: PayoffPlanControls }) {
     const t = useTranslation();
     const { requestDelete } = useDeferredDelete("account");
 
@@ -99,6 +107,7 @@ export function PersonToolbar({ account, db }: { account: Account; db: Database 
                 <Stack.Toolbar.MenuAction icon="pencil" onPress={rename}>
                     {t("debts.person.rename")}
                 </Stack.Toolbar.MenuAction>
+                {payoffMenuActions(plan, t("debts.plan.payBackBy"), t)}
                 <Stack.Toolbar.MenuAction
                     destructive
                     icon="trash"

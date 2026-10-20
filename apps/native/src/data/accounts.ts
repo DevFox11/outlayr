@@ -17,6 +17,7 @@ import type { NetWorthSeriesPoint } from "@/domain/net-worth-series";
 
 import type { Account } from "./accounts-core";
 import { settledAccountCellQuery, settledAccountsCellQuery, toCurrencyCell } from "./cell-query";
+import type { CellRow } from "./cell-query";
 import { useLiveQuery } from "./live-query";
 import { useDecoratedRows } from "./transactions";
 import type { TransactionWithCategory } from "./transactions";
@@ -98,16 +99,36 @@ export function useSettledAccountCells(db: Database, accountId: string, nowMs: n
         [accountId, settledAt],
         nowMs
     );
-    return useMemo(
-        () => [
-            // `plotDay` says where a row is DRAWN; `dateKey` stays the day it was
-            // valued at, which is the date its rate is looked up under.
-            ...rows.map(({ plotDay, ...row }) => ({ ...toCurrencyCell(row), plotDay })),
-            ...outbound.map(({ plotDay, ...row }) => ({ ...toTransferCell(row, false), plotDay })),
-            ...[...inbound, ...outside].map(({ plotDay, ...row }) => ({ ...toTransferCell(row, true), plotDay })),
-        ],
-        [rows, outbound, inbound, outside]
-    );
+    return useMemo(() => plottedCells(rows, outbound, inbound, outside), [rows, outbound, inbound, outside]);
+}
+
+type PlottedRow = Omit<CellRow, "income"> & { plotDay: string };
+
+/** One account's entries, transfer legs and outside payments as cells, each kept on the local day it is drawn on. */
+function plottedCells(
+    rows: readonly (CellRow & { plotDay: string })[],
+    outbound: readonly PlottedRow[],
+    inbound: readonly PlottedRow[],
+    outside: readonly PlottedRow[]
+): PlottedCell[] {
+    // `plotDay` says where a row is DRAWN; `dateKey` stays the day it was
+    // valued at, which is the date its rate is looked up under.
+    return [
+        ...rows.map(({ plotDay, ...row }) => ({ ...toCurrencyCell(row), plotDay })),
+        ...outbound.map(({ plotDay, ...row }) => ({ ...toTransferCell(row, false), plotDay })),
+        ...[...inbound, ...outside].map(({ plotDay, ...row }) => ({ ...toTransferCell(row, true), plotDay })),
+    ];
+}
+
+/** {@link useSettledAccountCells}, read once at `now`. */
+export async function settledCellsAt(db: Database, accountId: string, now: Date): Promise<PlottedCell[]> {
+    const [rows, outbound, inbound, outside] = await Promise.all([
+        settledAccountCellQuery(db, accountId, now),
+        settledTransferOutboundQuery(db, accountId, now),
+        settledTransferInboundQuery(db, accountId, now),
+        settledOutsidePaymentQuery(db, accountId, now),
+    ]);
+    return plottedCells(rows, outbound, inbound, outside);
 }
 
 /**
@@ -136,7 +157,7 @@ export function useAccountBalance(
 }
 
 /** Every settled entry, transfer leg and outside payment as one list of cells, read once per caller. */
-function useSettledCells(db: Database, settledAt: Date): (AccountCellRow & PlottedCell)[] {
+function useSettledCells(db: Database, settledAt: Date): SettledCell[] {
     const clock = settledAt.getTime();
     const cellRows = useLiveQuery(transactions, () => settledAccountsCellQuery(db, settledAt), [settledAt], clock);
     const outbound = useLiveQuery(transfers, () => settledTransfersOutboundQuery(db, settledAt), [settledAt], clock);
@@ -160,12 +181,16 @@ function useSettledCells(db: Database, settledAt: Date): (AccountCellRow & Plott
     );
 }
 
+/** A cell of any account, with the local day it is drawn on. */
+export type SettledCell = AccountCellRow & PlottedCell;
+
 /**
  * `rows` valued into `displayCurrency`, with the per-account rows. The Log
  * passes every account and splits banks from debts itself, the Debts screen its
  * liabilities and people; both read the same cells, so a figure agrees on the two.
- * Hands back the rates it valued with, which carry every row's currency, so a
- * caller can value more figures on those accounts without reading them again.
+ * Hands back the rates it valued with, which carry every row's currency, and
+ * the cells, so a caller can value more figures on those accounts without
+ * reading them again.
  */
 export function useOverviewOf(db: Database, rows: readonly Account[], displayCurrency: string, nowMs: number) {
     const settledAt = useMemo(() => new Date(nowMs), [nowMs]);
@@ -175,7 +200,7 @@ export function useOverviewOf(db: Database, rows: readonly Account[], displayCur
         () => accountsOverview(rows, cells, displayCurrency, rates, settledAt),
         [rows, cells, displayCurrency, rates, settledAt]
     );
-    return { overview, rates };
+    return { cells, overview, rates };
 }
 
 export interface NetWorth {
@@ -247,18 +272,10 @@ export async function settledBalanceAt(
     valuation: Valuation,
     now: Date
 ): Promise<DisplayedBalance> {
-    const [rows, outbound, inbound, outside, { rates }] = await Promise.all([
-        settledAccountCellQuery(db, account.id, now),
-        settledTransferOutboundQuery(db, account.id, now),
-        settledTransferInboundQuery(db, account.id, now),
-        settledOutsidePaymentQuery(db, account.id, now),
+    const [cells, { rates }] = await Promise.all([
+        settledCellsAt(db, account.id, now),
         loadValuationIn(db, valuation.displayCurrency, [account.currency]),
     ]);
-    const cells = [
-        ...rows.map(toCurrencyCell),
-        ...outbound.map((row) => toTransferCell(row, false)),
-        ...[...inbound, ...outside].map((row) => toTransferCell(row, true)),
-    ];
     const { exact, value } = balanceIn(account, cells, valuation.displayCurrency, rates, utcDateString(now.getTime()));
     return { exact, value };
 }
@@ -270,18 +287,7 @@ export async function openingForBalance(
     currency: string,
     now: Date
 ): Promise<number> {
-    const [rows, outbound, inbound, outside, { rates }] = await Promise.all([
-        settledAccountCellQuery(db, accountId, now),
-        settledTransferOutboundQuery(db, accountId, now),
-        settledTransferInboundQuery(db, accountId, now),
-        settledOutsidePaymentQuery(db, accountId, now),
-        loadValuationIn(db, currency),
-    ]);
-    const cells = [
-        ...rows.map(toCurrencyCell),
-        ...outbound.map((row) => toTransferCell(row, false)),
-        ...[...inbound, ...outside].map((row) => toTransferCell(row, true)),
-    ];
+    const [cells, { rates }] = await Promise.all([settledCellsAt(db, accountId, now), loadValuationIn(db, currency)]);
     const flow = accountBalance({ currency, initialBalance: 0 }, cells, rates).total;
     return roundToMinorUnits(balance - flow, currency);
 }

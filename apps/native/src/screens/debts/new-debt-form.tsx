@@ -10,19 +10,22 @@ import { CategoryPickerSheet } from "@/components/category-picker-sheet";
 import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useAccountBalance, useBankAccounts, usePeople } from "@/data/accounts";
-import { getLastUsedAccount } from "@/data/accounts-core";
+import { accountsRepo, getLastUsedAccount } from "@/data/accounts-core";
 import type { Account } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
 import type { Category } from "@/data/categories-core";
 import { createPerson, recordDebtMovement, recordSoldOnCredit } from "@/data/debts-core";
+import { setPayoffPlan } from "@/data/payoff-plans";
 import { useNow } from "@/data/use-now";
 import type { Database } from "@/db/client";
 import { comesFromPerson, debtChoices, debtStanding } from "@/domain/debt-choices";
 import type { DebtVerb } from "@/domain/debts";
+import { addLocalMonths } from "@/domain/local-day";
 import { minorUnitsFor, roundToMinorUnits } from "@/domain/money";
 import { numpadToNumber } from "@/domain/numpad";
-import { useAccountCreateRoute, usePeopleCapped } from "@/hooks/use-pro-gate";
+import { useAccountCreateRoute, usePayoffPlanGate, usePeopleCapped } from "@/hooks/use-pro-gate";
 import { useTranslation } from "@/i18n/context";
+import { notifyFailure } from "@/lib/notify";
 import { useHaptics } from "@/lib/use-haptics";
 
 const MAX_SUGGESTIONS = 4;
@@ -66,22 +69,22 @@ interface DebtDraft {
  * Creates the person when the name is new, then records the sale on credit or
  * the movement. With no account the debt is from before Outlayr: no money
  * moved, so it becomes the new person's opening balance, negative when you borrowed.
+ * Returns the person's id.
  */
-async function writeDebt(db: Database, draft: DebtDraft): Promise<void> {
+async function writeDebt(db: Database, draft: DebtDraft): Promise<string> {
     const { account, amount, category, currency, person } = draft;
     const note = draft.note === "" ? undefined : draft.note;
     if (category !== null) {
         const buyer = person ?? { currency, id: await createPerson(db, { currency, name: draft.newName }) };
         await recordSoldOnCredit(db, { amount, categoryId: category.id, date: draft.date, note, person: buyer });
-        return;
+        return buyer.id;
     }
     if (account === null) {
-        await createPerson(db, {
+        return await createPerson(db, {
             currency,
             name: draft.newName,
             openingBalance: comesFromPerson(draft.verb) ? -amount : amount,
         });
-        return;
     }
     const target = person ?? { currency, id: await createPerson(db, { currency, name: draft.newName }) };
     const crossCurrency = target.currency !== account.currency;
@@ -93,6 +96,16 @@ async function writeDebt(db: Database, draft: DebtDraft): Promise<void> {
         rateType: crossCurrency ? "custom" : null,
         verb: draft.verb,
     });
+    return target.id;
+}
+
+/** Sets the person's plan once the debt is written; a balance that is not a debt sets none. */
+async function writePayoffPlan(db: Database, personId: string, targetDate: Date): Promise<void> {
+    const people = await accountsRepo.listActive(db);
+    const person = people.find((row) => row.id === personId);
+    if (person) {
+        await setPayoffPlan(db, person, targetDate);
+    }
 }
 
 interface DraftInput {
@@ -157,6 +170,7 @@ export function useNewDebtForm({ onDirtyChange, onDone, personId, verb: initialV
     const banks = useBankAccounts(db);
     const globalCurrency = useGlobalCurrency(db);
     const peopleCapped = usePeopleCapped();
+    const payoffGate = usePayoffPlanGate();
     const nowMs = useNow();
 
     const [name, setName] = useState("");
@@ -172,6 +186,8 @@ export function useNewDebtForm({ onDirtyChange, onDone, personId, verb: initialV
     const [theirText, setTheirText] = useState("");
     const [date, setDate] = useState(() => new Date());
     const [note, setNote] = useState("");
+    /** "Pay back by": null sets no plan. */
+    const [payBackBy, setPayBackBy] = useState<Date | null>(null);
     const [busy, setBusy] = useState(false);
     const [failure, setFailure] = useState<string | null>(null);
 
@@ -193,8 +209,8 @@ export function useNewDebtForm({ onDirtyChange, onDone, personId, verb: initialV
     const draft = readDraft({ account, amountText, category, name, newCurrency, person, soldOnCredit, theirText });
 
     useEffect(() => {
-        onDirtyChange(amountText !== "" || name.trim() !== "" || note.trim() !== "");
-    }, [amountText, name, note, onDirtyChange]);
+        onDirtyChange(amountText !== "" || name.trim() !== "" || note.trim() !== "" || payBackBy !== null);
+    }, [amountText, name, note, payBackBy, onDirtyChange]);
 
     const save = async () => {
         if (person === null && peopleCapped) {
@@ -203,8 +219,9 @@ export function useNewDebtForm({ onDirtyChange, onDone, personId, verb: initialV
         }
         setBusy(true);
         setFailure(null);
+        let debtorId: string;
         try {
-            await writeDebt(db, {
+            debtorId = await writeDebt(db, {
                 account,
                 amount: draft.amount,
                 category: soldOnCredit ? category : null,
@@ -216,14 +233,24 @@ export function useNewDebtForm({ onDirtyChange, onDone, personId, verb: initialV
                 theirAmount: draft.theirAmount,
                 verb: choice.verb,
             });
-            haptics("success");
-            onDone();
         } catch (error) {
             console.error("Failed to save the debt", error);
             haptics("error");
             setFailure(t("debts.error.saveFailed"));
             setBusy(false);
+            return;
         }
+        // The debt stands on its own: a plan that fails is said, and the sheet still closes.
+        if (payBackBy !== null) {
+            try {
+                await writePayoffPlan(db, debtorId, payBackBy);
+            } catch (error) {
+                console.error("Failed to save the payoff plan", error);
+                notifyFailure({ title: t("debts.plan.failed") });
+            }
+        }
+        haptics("success");
+        onDone();
     };
     const handlers = useRef({ save });
     useLayoutEffect(() => {
@@ -256,6 +283,9 @@ export function useNewDebtForm({ onDirtyChange, onDone, personId, verb: initialV
         note,
         nowMs,
         onSave,
+        /** Turns "Pay back by" on a month out, unless the free plan's payoff plans are all taken. */
+        openPayBackBy: () => payoffGate(person?.id ?? null, () => setPayBackBy(addLocalMonths(nowMs, 1))),
+        payBackBy,
         person,
         personLabel: t(incoming ? "debts.field.personFrom" : "debts.field.personTo"),
         setAccountId,
@@ -265,6 +295,7 @@ export function useNewDebtForm({ onDirtyChange, onDone, personId, verb: initialV
         setName,
         setNewCurrency,
         setNote,
+        setPayBackBy,
         setSoldOnCredit,
         setTheirText,
         setVerb,

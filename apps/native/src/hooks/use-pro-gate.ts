@@ -1,10 +1,12 @@
 import { isPerson } from "@outlayr/money/account-kind";
+import { useRouter } from "expo-router";
 
 import { useDatabase } from "@/contexts/local-data-context";
 import { useBankAccounts, usePeople } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
+import { livePayoffPlanCount } from "@/data/payoff-plans";
 import { isInstallmentAppAccount } from "@/domain/institution-map";
-import { blocksNewCurrency, FREE_PEOPLE, fullAccountCaps } from "@/domain/pro-limits";
+import { blocksNewCurrency, FREE_PAYOFF_PLANS, FREE_PEOPLE, fullAccountCaps } from "@/domain/pro-limits";
 import { useProLocked } from "@/hooks/use-pro-locked";
 
 export function useProCapped(count: number, limit: number): boolean {
@@ -70,6 +72,28 @@ export function blocksSavedCurrency(
         !isPerson(before) &&
         !isInstallmentAppAccount(before);
     return !kept && blocksNewCurrency(account, others, locked);
+}
+
+/**
+ * Runs `open`, or opens the paywall when a free ledger already holds
+ * {@link FREE_PAYOFF_PLANS} live plans on accounts other than `accountId`, so
+ * changing a plan is never capped. Counted when asked: only each account's
+ * history says whether its plan has ended.
+ */
+export function usePayoffPlanGate(): (accountId: string | null, open: () => void) => void {
+    const db = useDatabase();
+    const router = useRouter();
+    const locked = useProLocked();
+    return (accountId, open) => {
+        if (!locked) {
+            open();
+            return;
+        }
+        livePayoffPlanCount(db, accountId)
+            .then((count) => (count >= FREE_PAYOFF_PLANS ? router.push("/paywall") : open()))
+            // A count that failed is not a full cap.
+            .catch(open);
+    };
 }
 
 export function useCurrencyBlocked(exceptAccountId: string | null): (account: Priced) => boolean {

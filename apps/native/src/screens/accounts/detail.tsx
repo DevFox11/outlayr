@@ -1,6 +1,7 @@
 import { SectionList } from "@legendapp/list/section-list";
 import { isPerson, toAccountKind } from "@outlayr/money/account-kind";
 import { Stack, useRouter } from "expo-router";
+import type { ReactNode } from "react";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import { View } from "react-native";
 
@@ -18,6 +19,7 @@ import { useDatabase } from "@/contexts/local-data-context";
 import { useAccountTransfers } from "@/data/account-transfers";
 import { useAccountBalanceDetails, useAccounts, useAccountTransactions } from "@/data/accounts";
 import type { Account } from "@/data/accounts-core";
+import { useAccountPayoff } from "@/data/debts";
 import { useOutsidePaymentRows } from "@/data/installment-reads";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
 import { useNow } from "@/data/use-now";
@@ -27,10 +29,14 @@ import { monthAbbrevTitle } from "@/domain/dates";
 import { groupByDay } from "@/domain/day-sections";
 import { mergeByRecency } from "@/domain/transfer-log-rows";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import { GoalTargetSheet } from "@/screens/budgets/components/goal-target-sheet";
+import { PayoffSummary } from "@/screens/debts/payoff-line";
 import { PersonHero, PersonToolbar } from "@/screens/debts/person-header";
+import { usePayoffPlan } from "@/screens/debts/use-payoff-plan";
 
 import { AccountBalanceChart } from "./components/account-balance-chart";
 import { InstallmentSections } from "./components/installment-sections";
+import { LiabilityToolbar } from "./components/liability-toolbar";
 
 export function AccountDetail({ id }: { id: string }) {
     const db = useDatabase();
@@ -54,13 +60,89 @@ export function AccountDetail({ id }: { id: string }) {
     return <AccountDetailLoaded account={account} db={db} />;
 }
 
+interface DetailProps {
+    account: Account;
+    db: Database;
+    details: ReturnType<typeof useAccountBalanceDetails>;
+    nowMs: number;
+}
+
 function AccountDetailLoaded({ account, db }: { account: Account; db: Database }) {
+    const router = useRouter();
+    const t = useTranslation();
+    const nowMs = useNow();
+    const details = useAccountBalanceDetails(db, account, nowMs);
+    if (isPerson(account) || toAccountKind(account.kind) === "liability") {
+        return <DebtDetail account={account} db={db} details={details} nowMs={nowMs} />;
+    }
+    return (
+        <DetailBody
+            account={account}
+            db={db}
+            details={details}
+            nowMs={nowMs}
+            summary={null}
+            toolbar={
+                <Stack.Toolbar placement="right">
+                    <Stack.Toolbar.Button
+                        accessibilityLabel={t("accounts.a11y.edit")}
+                        onPress={() =>
+                            router.push({
+                                params: { accountId: account.id },
+                                pathname: "/accounts/[accountId]/edit",
+                            })
+                        }
+                    >
+                        <Stack.Toolbar.Icon {...toolbarIcon("more")} />
+                    </Stack.Toolbar.Button>
+                </Stack.Toolbar>
+            }
+        />
+    );
+}
+
+/** A person's or a liability's detail: the one that can carry a payoff plan. */
+function DebtDetail({ account, db, details, nowMs }: DetailProps) {
+    const { balance, cells, rates } = details;
+    const payoff = useAccountPayoff(db, account, balance, cells, rates, nowMs);
+    const plan = usePayoffPlan(db, account, balance, payoff);
+    return (
+        <>
+            <DetailBody
+                account={account}
+                db={db}
+                details={details}
+                nowMs={nowMs}
+                summary={
+                    plan.live && payoff ? (
+                        <PayoffSummary currency={account.currency} line={payoff} onPress={plan.open} />
+                    ) : null
+                }
+                toolbar={
+                    isPerson(account) ? (
+                        <PersonToolbar account={account} db={db} plan={plan} />
+                    ) : (
+                        <LiabilityToolbar account={account} plan={plan} />
+                    )
+                }
+            />
+            <GoalTargetSheet {...plan.sheet} />
+        </>
+    );
+}
+
+function DetailBody({
+    account,
+    db,
+    details: { balance, cells, rates },
+    nowMs,
+    summary,
+    toolbar,
+}: DetailProps & { summary: ReactNode; toolbar: ReactNode }) {
     const router = useRouter();
     const t = useTranslation();
     const { language } = useLanguage();
     const { showCents } = useDisplaySettings().state;
-    const nowMs = useNow();
-    const { balance, cells, rates } = useAccountBalanceDetails(db, account, nowMs);
     const transactionRows = useAccountTransactions(db, account.id);
     const transferRows = useAccountTransfers(db, account.id);
     const outsideRows = useOutsidePaymentRows(
@@ -99,23 +181,7 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
         <>
             <ScreenHeader title={account.name} />
             <Stack.Screen.BackButton displayMode="minimal" />
-            {person ? (
-                <PersonToolbar account={account} db={db} />
-            ) : (
-                <Stack.Toolbar placement="right">
-                    <Stack.Toolbar.Button
-                        accessibilityLabel={t("accounts.a11y.edit")}
-                        onPress={() =>
-                            router.push({
-                                params: { accountId: account.id },
-                                pathname: "/accounts/[accountId]/edit",
-                            })
-                        }
-                    >
-                        <Stack.Toolbar.Icon {...toolbarIcon("more")} />
-                    </Stack.Toolbar.Button>
-                </Stack.Toolbar>
-            )}
+            {toolbar}
             <SectionList
                 className="bg-background"
                 contentContainerStyle={{
@@ -135,7 +201,7 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
                 }
                 ListHeaderComponent={
                     person ? (
-                        <PersonHero account={account} balance={balance.total} showCents={showCents} />
+                        <PersonHero account={account} balance={balance.total} plan={summary} showCents={showCents} />
                     ) : (
                         <View className="items-center gap-1 pt-6 pb-4">
                             <View className="flex-row items-center gap-2">
@@ -152,6 +218,7 @@ function AccountDetailLoaded({ account, db }: { account: Account; db: Database }
                                 )}
                             </View>
                             <Text className="font-sans-medium text-muted text-subtitle">{startedAt}</Text>
+                            {summary}
                             <AccountBalanceChart account={account} cells={cells} rates={rates} showCents={showCents} />
                             {toAccountKind(account.kind) === "liability" ? (
                                 <InstallmentSections accountId={account.id} db={db} nowMs={nowMs} />

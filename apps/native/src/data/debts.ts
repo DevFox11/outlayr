@@ -1,14 +1,19 @@
+import type { AccountBalance } from "@outlayr/money/account-balance";
 import { isPerson, toAccountKind } from "@outlayr/money/account-kind";
 import { summarizeOverview } from "@outlayr/money/account-overview";
 import type { AccountsOverview, OverviewRow } from "@outlayr/money/account-overview";
+import type { RateTable } from "@outlayr/money/valuation";
 import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
 import { savingsGoals } from "@/db/schema";
 import { debtsOverview } from "@/domain/debts";
 import type { DebtsOverview } from "@/domain/debts";
+import type { PlottedCell } from "@/domain/goal-balance-series";
+import { isPayoffPlan } from "@/domain/savings-goal";
 
 import { useAccounts, useOverviewOf } from "./accounts";
+import type { SettledCell } from "./accounts";
 import type { Account } from "./accounts-core";
 import { useGlobalCurrency } from "./app-meta";
 import { dueWindow, installmentsByAccount } from "./debts-due";
@@ -16,9 +21,10 @@ import type { AccountInstallments, DueWindow } from "./debts-due";
 import { useInstallmentPlans } from "./installments";
 import type { PlanWithStanding } from "./installments-core";
 import { useLiveQuery } from "./live-query";
-import { payoffLines } from "./payoff-plans";
+import { payoffEndedOn, payoffLines } from "./payoff-plans";
 import type { PayoffLine } from "./payoff-plans";
 import { savingsGoalsQuery } from "./savings-goals-core";
+import type { SavingsGoal } from "./savings-goals-core";
 import { useDeferredDelete } from "./use-deferred-delete";
 import type { Valuation } from "./valuation-source";
 
@@ -77,18 +83,83 @@ export function useDebtsOverview(
         [all, pendingId]
     );
     const displayCurrency = useGlobalCurrency(db);
-    const { overview, rates } = useOverviewOf(db, debts, displayCurrency, nowMs);
+    const { cells, overview, rates } = useOverviewOf(db, debts, displayCurrency, nowMs);
     const plans = useInstallmentPlans(db, nowMs);
     const goals = useLiveQuery(savingsGoals, () => savingsGoalsQuery(db));
     const { pendingId: pendingGoalId } = useDeferredDelete("goal");
     return useMemo(() => {
         const valuation = { displayCurrency, rates };
-        const live = goals.filter((goal) => goal.id !== pendingGoalId);
+        const live = goals.filter((goal) => goal.id !== pendingGoalId && isPayoffPlan(goal));
         return {
             ...debtsIn(debts, overview, plans, valuation, nowMs),
-            payoff: payoffLines(live, overview?.rows ?? [], valuation, nowMs),
+            payoff: payoffLines(live, overview?.rows ?? [], valuation, nowMs, payoffEndings(live, debts, cells, rates)),
         };
-    }, [debts, overview, plans, goals, pendingGoalId, displayCurrency, rates, nowMs]);
+    }, [debts, overview, plans, goals, pendingGoalId, displayCurrency, rates, cells, nowMs]);
+}
+
+/** The day each ended plan in `goals` ended on, by goal id, from its account's cells among `cells`. */
+function payoffEndings(
+    goals: readonly SavingsGoal[],
+    accounts: readonly Account[],
+    cells: readonly SettledCell[],
+    rates: RateTable
+): ReadonlyMap<string, string> {
+    const byAccount = new Map<string, SettledCell[]>(goals.map((goal) => [goal.accountId, []]));
+    for (const cell of cells) {
+        if (cell.accountId !== null) {
+            byAccount.get(cell.accountId)?.push(cell);
+        }
+    }
+    const byId = new Map(accounts.map((account) => [account.id, account]));
+    const endings = new Map<string, string>();
+    for (const goal of goals) {
+        const account = byId.get(goal.accountId);
+        const endedOn = account && payoffEndedOn(goal, account, byAccount.get(goal.accountId) ?? [], rates);
+        if (endedOn) {
+            endings.set(goal.id, endedOn);
+        }
+    }
+    return endings;
+}
+
+/**
+ * `account`'s payoff plan stated in its own currency, for its detail: the first
+ * live plan on it, else the first ended one, as on the Debts row. `balance`,
+ * `cells` and `rates` are the detail's own reads of the account.
+ */
+export function useAccountPayoff(
+    db: Database,
+    account: Account,
+    balance: AccountBalance,
+    cells: readonly PlottedCell[],
+    rates: RateTable,
+    nowMs: number
+): PayoffLine | null {
+    const goals = useLiveQuery(savingsGoals, () => savingsGoalsQuery(db));
+    const { pendingId } = useDeferredDelete("goal");
+    return useMemo(() => {
+        const own = goals.filter(
+            (goal) => goal.accountId === account.id && goal.id !== pendingId && isPayoffPlan(goal)
+        );
+        if (own.length === 0) {
+            return null;
+        }
+        const row = {
+            balance: balance.total,
+            exact: balance.exact,
+            id: account.id,
+            kind: toAccountKind(account.kind),
+            multiCurrency: false,
+        };
+        const endings = payoffEndings(
+            own,
+            [account],
+            cells.map((cell) => ({ ...cell, accountId: account.id })),
+            rates
+        );
+        const valuation = { displayCurrency: account.currency, rates };
+        return payoffLines(own, [row], valuation, nowMs, endings).get(account.id) ?? null;
+    }, [goals, pendingId, account, balance, cells, rates, nowMs]);
 }
 
 export interface LogOverview {

@@ -7,6 +7,7 @@ import {
     accessibilityValue,
     font,
     foregroundStyle,
+    frame,
     lineLimit,
     monospacedDigit,
     onTapGesture,
@@ -21,11 +22,12 @@ import { LABEL, PARENT_NAME } from "@/components/category-list-swift";
 import { EmptyState } from "@/components/empty-state";
 import { Tile } from "@/components/empty-state-parts";
 import { groupedList, groupedRows } from "@/components/native/styles";
-import { useDisplaySettings } from "@/contexts/display-settings-context";
+import { useDisplaySettings, useSettingBool } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useDebtsOverview } from "@/data/debts";
 import type { DebtsScreenOverview } from "@/data/debts";
+import type { PayoffLine } from "@/data/payoff-plans";
 import { useNow } from "@/data/use-now";
 import { formatSignedAmount } from "@/domain/account-display";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -33,7 +35,8 @@ import { hitArea, outline } from "@/lib/swift-ui-geometry";
 import { useColors } from "@/theme/use-colors";
 import type { ThemeColors } from "@/theme/use-colors";
 
-import { debtSubtitle, dueStripWording } from "./debts-wording";
+import { debtSubtitle, dueStripWording, payoffRowWording } from "./debts-wording";
+import { PayoffBar } from "./payoff-line";
 
 type DebtListRow = DebtsScreenOverview["youOwe"][number];
 
@@ -43,6 +46,7 @@ const SUBTITLE = font({ design: "rounded", textStyle: "subheadline" });
 const AMOUNT = font({ design: "rounded", textStyle: "subheadline", weight: "medium" });
 const APPROX = font({ design: "rounded", textStyle: "caption", weight: "semibold" });
 const CHEVRON = font({ design: "rounded", textStyle: "footnote", weight: "semibold" });
+const PLAN_DATE = font({ design: "rounded", textStyle: "footnote" });
 
 /**
  * Everything owed, both ways: what is due in the next 14 days, liability
@@ -57,6 +61,7 @@ export function Debts() {
     const colors = useColors();
     const { language } = useLanguage();
     const { showCents } = useDisplaySettings().state;
+    const hidden = useSettingBool("hideAmounts");
     const currency = useGlobalCurrency(db);
     const debts = useDebtsOverview(db, useNow());
     const [settledOpen, setSettledOpen] = useState(false);
@@ -89,6 +94,9 @@ export function Debts() {
     const tones = { due: colors.tint, muted: colors.muted, overdue: colors.expense };
     const row = (item: DebtListRow) => {
         const subtitle = debtSubtitle(item, debts, wording);
+        const line = debts.payoff.get(item.id);
+        const plan = payoffRowWording(item, line, currency, hidden, wording);
+        const paidOff = subtitle.text === null && plan !== null && "paidOff" in plan ? plan.paidOff : null;
         return (
             <DebtRow
                 colors={colors}
@@ -96,9 +104,10 @@ export function Debts() {
                 format={format}
                 key={item.id}
                 onOpen={open}
+                plan={line && plan && "date" in plan ? { ...plan, line } : null}
                 row={item}
-                subtitle={subtitle.text}
-                subtitleColor={tones[subtitle.tone]}
+                subtitle={paidOff ?? subtitle.text}
+                subtitleColor={paidOff === null ? tones[subtitle.tone] : colors.income}
             />
         );
     };
@@ -240,13 +249,16 @@ interface DebtRowProps {
     currency: string;
     format: (amount: number) => string;
     onOpen: (id: string) => void;
+    /** A live payoff plan: its line, the date at the line's end, and what the line says. */
+    plan: { a11y: string; date: string; line: PayoffLine } | null;
     row: DebtListRow;
     subtitle: string | null;
     subtitleColor: string;
 }
 
-const DebtRow = memo(({ colors, currency, format, onOpen, row, subtitle, subtitleColor }: DebtRowProps) => {
+const DebtRow = memo(({ colors, currency, format, onOpen, plan, row, subtitle, subtitleColor }: DebtRowProps) => {
     const { account } = row;
+    const label = [account.name, plan?.a11y, subtitle].filter(Boolean).join(", ");
 
     return (
         <HStack
@@ -255,7 +267,7 @@ const DebtRow = memo(({ colors, currency, format, onOpen, row, subtitle, subtitl
                 onTapGesture(() => onOpen(account.id)),
                 accessibilityElement("combine"),
                 accessibilityAddTraits(["isButton"]),
-                accessibilityLabel(subtitle === null ? account.name : `${account.name}, ${subtitle}`),
+                accessibilityLabel(label),
                 accessibilityValue(format(row.amount)),
             ]}
             spacing={12}
@@ -267,6 +279,20 @@ const DebtRow = memo(({ colors, currency, format, onOpen, row, subtitle, subtitl
             </RNHostView>
             <VStack alignment="leading" spacing={1}>
                 <SwiftText modifiers={[PARENT_NAME, lineLimit(1), foregroundStyle(LABEL)]}>{account.name}</SwiftText>
+                {plan === null ? null : (
+                    <HStack modifiers={[frame({ maxWidth: Number.POSITIVE_INFINITY })]} spacing={8}>
+                        <RNHostView matchContents={{ vertical: true }}>
+                            <View>
+                                <PayoffBar line={plan.line} />
+                            </View>
+                        </RNHostView>
+                        <SwiftText
+                            modifiers={[PLAN_DATE, monospacedDigit(), lineLimit(1), foregroundStyle(colors.muted)]}
+                        >
+                            {plan.date}
+                        </SwiftText>
+                    </HStack>
+                )}
                 {subtitle === null ? null : (
                     <SwiftText modifiers={[SUBTITLE, lineLimit(2), foregroundStyle(subtitleColor)]}>
                         {subtitle}

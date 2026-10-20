@@ -45,9 +45,11 @@ import { toolbarIcon } from "@/components/toolbar-icons";
 import { BODY, ROW, rowLabel } from "@/components/transaction-form/style";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { Account } from "@/data/accounts-core";
+import { tomorrowLocal } from "@/domain/local-day";
 import { formatAmount } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { hitArea, outline } from "@/lib/swift-ui-geometry";
+import { useDatePickerLocale } from "@/screens/budgets/components/compact-date-picker";
 import { withAlpha } from "@/theme/shade";
 import { useColors } from "@/theme/use-colors";
 
@@ -56,6 +58,8 @@ import type { NewDebtProps } from "./new-debt-form";
 
 const CHEVRON = font({ design: "rounded", textStyle: "footnote", weight: "semibold" });
 const SUGGESTION_TILE = 22;
+/** What a SwiftUI text field paints its placeholder in, for a row that reads like one. */
+const PLACEHOLDER = { style: "tertiary", type: "hierarchical" } as const;
 const SEGMENT_HEIGHT = 32;
 /** The segment past the debt choices: a sale on credit, which is income rather than a transfer. */
 const FIADO = "fiado";
@@ -71,6 +75,7 @@ export function NewDebt(props: NewDebtProps) {
     const { choice, currency, soldOnCredit, theirCurrency } = form;
     const nameState = useNativeState("");
     const noteState = useNativeState("");
+    const dateLocale = useDatePickerLocale();
 
     const hairline = [overlay({ color: withAlpha(colors.foreground, 0.08) })];
 
@@ -183,12 +188,18 @@ export function NewDebt(props: NewDebtProps) {
                                     <Spacer />
                                     <DatePicker
                                         displayedComponents={["date"]}
-                                        modifiers={[datePickerStyle("compact"), labelsHidden()]}
+                                        modifiers={[datePickerStyle("compact"), labelsHidden(), dateLocale]}
                                         onDateChange={form.setDate}
                                         range={{ end: new Date(form.nowMs) }}
                                         selection={form.date}
                                     />
                                 </HStack>
+                            </>
+                        )}
+                        <Divider modifiers={hairline} />
+                        <PayBackByField form={form} />
+                        {form.before ? null : (
+                            <>
                                 <Divider modifiers={hairline} />
                                 <HStack modifiers={ROW}>
                                     <SwiftText modifiers={[BODY, rowLabel]}>{t("debts.field.note")}</SwiftText>
@@ -218,6 +229,47 @@ export function NewDebt(props: NewDebtProps) {
 
             <NewDebtSheets form={form} />
         </View>
+    );
+}
+
+/** "Pay back by": empty sets no plan; once picked, a date and a clear button. */
+function PayBackByField({ form }: { form: ReturnType<typeof useNewDebtForm> }) {
+    const t = useTranslation();
+    const colors = useColors();
+    const dateLocale = useDatePickerLocale();
+    const label = t("debts.plan.payBackBy");
+    if (form.payBackBy === null) {
+        return (
+            <PickerField
+                label={label}
+                onPress={form.openPayBackBy}
+                placeholder
+                value={t("debts.field.notePlaceholder")}
+            />
+        );
+    }
+    return (
+        <HStack modifiers={ROW} spacing={10}>
+            <SwiftText modifiers={[BODY, rowLabel]}>{label}</SwiftText>
+            <Spacer />
+            <DatePicker
+                displayedComponents={["date"]}
+                modifiers={[datePickerStyle("compact"), labelsHidden(), dateLocale]}
+                onDateChange={form.setPayBackBy}
+                range={{ start: tomorrowLocal(form.nowMs) }}
+                selection={form.payBackBy}
+            />
+            <Image
+                color={colors.muted}
+                modifiers={[
+                    hitArea(outline.rectangle()),
+                    onTapGesture(() => form.setPayBackBy(null)),
+                    accessibilityLabel(t("debts.plan.remove")),
+                    accessibilityAddTraits(["isButton"]),
+                ]}
+                systemName="xmark.circle.fill"
+            />
+        </HStack>
     );
 }
 
@@ -252,11 +304,13 @@ interface PickerFieldProps {
     chevron?: boolean;
     label: string;
     onPress: () => void;
+    /** The value is a hint, in the placeholder colour, rather than something picked. */
+    placeholder?: boolean;
     value: string;
 }
 
 /** A row that opens a sheet, read by VoiceOver as one button. */
-function PickerField({ chevron = false, label, onPress, value }: PickerFieldProps) {
+function PickerField({ chevron = false, label, onPress, placeholder = false, value }: PickerFieldProps) {
     const colors = useColors();
     return (
         <HStack
@@ -272,7 +326,9 @@ function PickerField({ chevron = false, label, onPress, value }: PickerFieldProp
         >
             <SwiftText modifiers={[BODY, rowLabel]}>{label}</SwiftText>
             <Spacer />
-            <SwiftText modifiers={[BODY, lineLimit(1), foregroundStyle(colors.foreground)]}>{value}</SwiftText>
+            <SwiftText modifiers={[BODY, lineLimit(1), foregroundStyle(placeholder ? PLACEHOLDER : colors.foreground)]}>
+                {value}
+            </SwiftText>
             {chevron ? <Image color={colors.muted} modifiers={[CHEVRON]} systemName="chevron.up.chevron.down" /> : null}
         </HStack>
     );

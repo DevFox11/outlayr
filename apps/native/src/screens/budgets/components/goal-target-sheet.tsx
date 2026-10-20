@@ -12,14 +12,17 @@ import { revealEntering } from "@/components/sentence/sentence-motion";
 import { SheetGestureRoot } from "@/components/sheet-gesture-root";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
+import { useSettingBool } from "@/contexts/display-settings-context";
 import { useNow } from "@/data/use-now";
-import { formatTargetMonth } from "@/domain/dates";
-import { addLocalMonths, tomorrowLocal } from "@/domain/local-day";
-import { formatAmount, minorUnitsFor } from "@/domain/money";
+import { formatSentenceDate, formatTargetMonth } from "@/domain/dates";
+import { addLocalMonths, daysBetween, startOfLocalDay, tomorrowLocal } from "@/domain/local-day";
+import { formatAmount, maskedAmount, minorUnitsFor } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { goalProgress } from "@/domain/savings-goal";
+import type { GoalProgress } from "@/domain/savings-goal";
 import { useSheetSurface } from "@/hooks/use-sheet-surface";
 import { useLanguage, useTranslation } from "@/i18n/context";
+import type { TranslateFn } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
 
 import { CompactDatePicker } from "./compact-date-picker";
@@ -44,6 +47,12 @@ export interface GoalTarget {
      */
     existing?: { targetAmount: number; targetDate: Date } | null;
     name: string;
+    /**
+     * Set for a payoff plan, as the sentence stating it with `{account}` and
+     * `{date}` slots. The amount is fixed at zero and the date is the only slot;
+     * what the date costs is stated under it.
+     */
+    payoff?: string;
 }
 
 export interface GoalCommit {
@@ -74,6 +83,8 @@ export interface GoalCommit {
 
 interface GoalTargetSheetProps {
     onCommit: (commit: GoalCommit) => Promise<void> | void;
+    /** Offered under the commit, for a payoff plan being changed. */
+    onRemove?: () => void;
     ref?: Ref<BottomSheetModal>;
     /** Null while nothing is being set; the sheet then has nothing to state. */
     target: GoalTarget | null;
@@ -81,6 +92,8 @@ interface GoalTargetSheetProps {
 
 /** Six months out: far enough that the monthly figure is a decision, not a shock. */
 const DEFAULT_HORIZON_MONTHS = 6;
+/** A debt is paid back sooner than a goal is saved for. */
+const PAYOFF_HORIZON_MONTHS = 3;
 
 const STATED = "font-sans-medium text-[19px] leading-[28px] tracking-tight text-grammar";
 
@@ -91,7 +104,7 @@ const STATED = "font-sans-medium text-[19px] leading-[28px] tracking-tight text-
  * the figures it changes are the ones behind it. There is no goal form — every
  * fact after this one commit is edited on the goal's own screen, where it is read.
  */
-export function GoalTargetSheet({ target, onCommit, ref }: GoalTargetSheetProps) {
+export function GoalTargetSheet({ target, onCommit, onRemove, ref }: GoalTargetSheetProps) {
     const sheetSurface = useSheetSurface();
     // Bumped as the sheet closes, so a dismissed draft is never what the next
     // presentation opens on — same contract as the budget limit sheet.
@@ -115,6 +128,7 @@ export function GoalTargetSheet({ target, onCommit, ref }: GoalTargetSheetProps)
                             // one opens on.
                             key={`${target.accountId}:${target.existing?.targetAmount ?? "new"}:${presentation}`}
                             onCommit={onCommit}
+                            onRemove={onRemove}
                             target={target}
                         />
                     ) : null}
@@ -129,15 +143,22 @@ function notBefore(picked: Date, floor: Date): Date {
     return picked < floor ? floor : picked;
 }
 
-function GoalTargetBody({ target, onCommit }: { onCommit: GoalTargetSheetProps["onCommit"]; target: GoalTarget }) {
+function GoalTargetBody({
+    target,
+    onCommit,
+    onRemove,
+}: Pick<GoalTargetSheetProps, "onCommit" | "onRemove"> & { target: GoalTarget }) {
     const t = useTranslation();
     const { language } = useLanguage();
     const haptics = useHaptics();
     const nowMs = useNow();
+    const hidden = useSettingBool("hideAmounts");
     const minorUnits = minorUnitsFor(target.currency);
-    const money = (value: number) => formatAmount(value, target.currency, false, language);
+    const payoff = target.payoff !== undefined;
+    const money = (value: number) =>
+        payoff && hidden ? maskedAmount(target.currency) : formatAmount(value, target.currency, false, language);
 
-    const [mode, setMode] = useState<"amount" | "date">("amount");
+    const [mode, setMode] = useState<"amount" | "date">(payoff ? "date" : "amount");
     const [entry, setEntry] = useState(() => numberToNumpad(target.existing?.targetAmount ?? 0, minorUnits));
     /** Whether the keypad was used at all. A goal being created is always an edit. */
     const [edited, setEdited] = useState(target.existing == null);
@@ -147,7 +168,7 @@ function GoalTargetBody({ target, onCommit }: { onCommit: GoalTargetSheetProps["
         if (target.existing) {
             return target.existing.targetDate;
         }
-        return addLocalMonths(Date.now(), DEFAULT_HORIZON_MONTHS);
+        return addLocalMonths(Date.now(), payoff ? PAYOFF_HORIZON_MONTHS : DEFAULT_HORIZON_MONTHS);
     });
 
     const amount = numpadToNumber(entry);
@@ -176,7 +197,7 @@ function GoalTargetBody({ target, onCommit }: { onCommit: GoalTargetSheetProps["
     const inFlight = useRef(false);
 
     const commit = async () => {
-        if (amount <= 0) {
+        if (amount <= 0 && !payoff) {
             setMode("amount");
             return;
         }
@@ -222,6 +243,9 @@ function GoalTargetBody({ target, onCommit }: { onCommit: GoalTargetSheetProps["
     // What the figure being typed costs, stated before it is committed to. Until
     // there is one, the line explains what a goal is instead.
     const demand = (() => {
+        if (payoff) {
+            return payoffDemand(pace, date, nowMs, money, t);
+        }
         // Without a balance in this currency there is no gap to pace out, so the
         // sheet states what a goal is instead of a figure it cannot stand behind.
         if (target.balance === null || pace == null || amount <= 0) {
@@ -270,34 +294,38 @@ function GoalTargetBody({ target, onCommit }: { onCommit: GoalTargetSheetProps["
                                         mode === "date" ? "text-tint border-tint border-b-[1.5px]" : "text-tint"
                                     )}
                                 >
-                                    {formatTargetMonth(date, language)}
+                                    {payoff ? formatSentenceDate(date, language) : formatTargetMonth(date, language)}
                                 </Text>
                             </Pressable>
                         ),
                     }}
-                    template={t("goals.sheet.stated")}
+                    template={target.payoff ?? t("goals.sheet.stated")}
                     textClassName={STATED}
                 />
 
-                <View className="flex-row items-baseline justify-between pt-3">
-                    <Pressable
-                        accessibilityLabel={t("goals.sheet.editTargetA11y")}
-                        accessibilityRole="button"
-                        onPress={() => setMode("amount")}
-                    >
-                        <HeroNumber
-                            amount={amount}
-                            code={target.currency}
-                            showCents={hasMinorUnits}
-                            sign=""
-                            size={40}
-                            still
-                        />
-                    </Pressable>
-                    {target.balance === null ? null : (
-                        <MonoLabel>{t("goals.sheet.holds", { amount: money(target.balance) }).toUpperCase()}</MonoLabel>
-                    )}
-                </View>
+                {payoff ? null : (
+                    <View className="flex-row items-baseline justify-between pt-3">
+                        <Pressable
+                            accessibilityLabel={t("goals.sheet.editTargetA11y")}
+                            accessibilityRole="button"
+                            onPress={() => setMode("amount")}
+                        >
+                            <HeroNumber
+                                amount={amount}
+                                code={target.currency}
+                                showCents={hasMinorUnits}
+                                sign=""
+                                size={40}
+                                still
+                            />
+                        </Pressable>
+                        {target.balance === null ? null : (
+                            <MonoLabel>
+                                {t("goals.sheet.holds", { amount: money(target.balance) }).toUpperCase()}
+                            </MonoLabel>
+                        )}
+                    </View>
+                )}
             </View>
 
             {mode === "amount" ? (
@@ -340,12 +368,43 @@ function GoalTargetBody({ target, onCommit }: { onCommit: GoalTargetSheetProps["
                 {/* Never inert: a target of nothing is one not typed yet, and the
 				    button that says so is the one being pressed. */}
                 <View className="mt-3">
-                    <SheetCommitButton
-                        label={t(target.existing ? "goals.sheet.save" : "goals.sheet.commit")}
-                        onPress={commit}
-                    />
+                    <SheetCommitButton label={commitLabel(payoff, target.existing != null, t)} onPress={commit} />
                 </View>
+                {onRemove ? (
+                    <Pressable
+                        accessibilityRole="button"
+                        className="items-center pt-3.5 active:opacity-60"
+                        onPress={onRemove}
+                    >
+                        <Text className="text-body text-over-budget">{t("debts.plan.remove")}</Text>
+                    </Pressable>
+                ) : null}
             </View>
         </View>
     );
+}
+
+function commitLabel(payoff: boolean, existing: boolean, t: TranslateFn): string {
+    if (payoff) {
+        return t(existing ? "debts.plan.save" : "debts.plan.commit");
+    }
+    return t(existing ? "goals.sheet.save" : "goals.sheet.commit");
+}
+
+/** What paying off by `date` costs: a month's share, or under a month the whole balance and the days to it. */
+function payoffDemand(
+    pace: GoalProgress["pace"],
+    date: Date,
+    nowMs: number,
+    money: (value: number) => string,
+    t: TranslateFn
+): string | null {
+    if (pace === null) {
+        return null;
+    }
+    if (pace.monthsLeft > 0) {
+        return t("debts.plan.demandMonth", { amount: money(pace.perMonth) });
+    }
+    const count = daysBetween(startOfLocalDay(nowMs), startOfLocalDay(date.getTime()));
+    return t("debts.plan.demandDays", { amount: money(pace.perMonth), count });
 }

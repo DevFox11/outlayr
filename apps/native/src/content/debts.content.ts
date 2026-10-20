@@ -179,6 +179,94 @@ const debts = {
             en: "You owe",
             es: "Le debes",
         }),
+        "debts.plan.behind": t({
+            en: "{amount} behind",
+            es: "{amount} de atraso",
+        }),
+        "debts.plan.by": t({
+            en: "{amount} by {date}",
+            es: "{amount} para el {date}",
+        }),
+        "debts.plan.byDays_one": t({
+            en: "{amount} by {date} · {count} day",
+            es: "{amount} para el {date} · {count} día",
+        }),
+        "debts.plan.byDays_other": t({
+            en: "{amount} by {date} · {count} days",
+            es: "{amount} para el {date} · {count} días",
+        }),
+        "debts.plan.change": t({
+            en: "Change plan",
+            es: "Cambiar plan",
+        }),
+        "debts.plan.commit": t({
+            en: "Set plan",
+            es: "Crear plan",
+        }),
+        "debts.plan.demandDays_one": t({
+            en: "{amount} in {count} day",
+            es: "{amount} en {count} día",
+        }),
+        "debts.plan.demandDays_other": t({
+            en: "{amount} in {count} days",
+            es: "{amount} en {count} días",
+        }),
+        "debts.plan.demandMonth": t({
+            en: "{amount} a month",
+            es: "{amount} al mes",
+        }),
+        "debts.plan.failed": t({
+            en: "Couldn't save this plan. Try again.",
+            es: "No se pudo guardar el plan. Inténtalo de nuevo.",
+        }),
+        "debts.plan.paidBack": t({
+            en: "Paid back {date}",
+            es: "Saldado el {date}",
+        }),
+        "debts.plan.paidOff": t({
+            en: "Paid off {date}",
+            es: "Pagado el {date}",
+        }),
+        "debts.plan.payBackBy": t({
+            en: "Pay back by",
+            es: "Fecha de pago",
+        }),
+        "debts.plan.payOffBy": t({
+            en: "Pay off by",
+            es: "Fecha de pago",
+        }),
+        "debts.plan.perMonth": t({
+            en: "{amount} a month until {date}",
+            es: "{amount} al mes hasta el {date}",
+        }),
+        "debts.plan.remove": t({
+            en: "Remove plan",
+            es: "Quitar plan",
+        }),
+        "debts.plan.row": t({
+            en: "By {date}",
+            es: "Para el {date}",
+        }),
+        "debts.plan.rowBehind": t({
+            en: "By {date}, {amount} behind",
+            es: "Para el {date}, {amount} de atraso",
+        }),
+        "debts.plan.save": t({
+            en: "Save plan",
+            es: "Guardar plan",
+        }),
+        "debts.plan.stated.liability": t({
+            en: "Pay off {account} by {date}",
+            es: "Paga {account} para el {date}",
+        }),
+        "debts.plan.stated.owesYou": t({
+            en: "{account} pays you back by {date}",
+            es: "{account} te paga para el {date}",
+        }),
+        "debts.plan.stated.youOwe": t({
+            en: "You pay {account} back by {date}",
+            es: "Le pagas a {account} para el {date}",
+        }),
         "debts.sale.title": t({
             en: "Sold on credit",
             es: "Venta a crédito",
