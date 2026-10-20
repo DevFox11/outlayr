@@ -16,10 +16,8 @@ export interface GoalBalancePoint {
 /**
  * The account's balance across a goal's own span, one point per LOCAL day.
  *
- * Not `accountBalanceSeries`, which buckets by UTC day. Outside UTC that puts a
- * Friday evening deposit in Saturday's bucket and then draws it at Saturday's
- * midnight — Friday afternoon locally, BEFORE the deposit that caused it. A goal
- * is read on local days throughout, so its history has to be cut on them too.
+ * Not `accountBalanceSeries`, which walks only the last 182 days; a goal's span
+ * can start earlier. Both cut on local days: a goal is read on them throughout.
  *
  * This is a running presentation of `balanceIn`, not a second definition of a
  * balance: each cell is valued into the account's currency by the same

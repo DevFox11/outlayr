@@ -121,7 +121,7 @@ export function settledAccountCellQuery(db: SpendDb, accountId: string, now: Dat
  */
 export function settledAccountsCellQuery(db: SpendDb, now: Date) {
     return db
-        .select({ accountId: transactions.accountId, ...CELL_COLUMNS })
+        .select({ accountId: transactions.accountId, ...CELL_COLUMNS, plotDay: LOCAL_DAY })
         .from(transactions)
         .where(and(isNull(transactions.deletedAt), isNotNull(transactions.accountId), lte(transactions.date, now)))
         .groupBy(transactions.accountId, transactions.currency, transactions.income, UTC_DAY, LOCAL_DAY);

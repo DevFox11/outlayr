@@ -1,13 +1,16 @@
 import { text } from "node:stream/consumers";
 
 import { startOfDay } from "@outlayr/money/calendar";
+import { utcDateString } from "@outlayr/money/dates";
+import { buildRateTable } from "@outlayr/money/valuation";
 
+import { accountBalanceSeries } from "./account-balance-series";
 import { buildBurndown } from "./budget-burndown";
 import { budgetPace, daysLeftInWindow, hoursLeftInDay } from "./budget-math";
 import { nextClockTick } from "./clock";
 import { formatDayHeader } from "./dates";
 import { generateSchedule } from "./installments";
-import { daysBetween } from "./local-day";
+import { daysBetween, localDayKey } from "./local-day";
 import { goalProgress } from "./savings-goal";
 import { reminderFireAt } from "./subscription-reminder";
 
@@ -97,6 +100,23 @@ async function answer(): Promise<string> {
                     spent: perDay.map((amount) => (sum += amount)),
                 },
             });
+        }
+        case "balance-series": {
+            const entry = localDate(5).getTime();
+            const cell = {
+                amount: 30,
+                amountUsd: 30,
+                count: 1,
+                currencyCode: "USD",
+                dateKey: utcDateString(entry),
+                income: false,
+                plotDay: localDayKey(entry),
+                unconvertedAmount: 0,
+                unconvertedCount: 0,
+            };
+            const account = { currency: "USD", initialBalance: 0, initialBalanceDate: localDate(5) };
+            const series = accountBalanceSeries(account, [cell], buildRateTable([]), localDate(0));
+            return JSON.stringify({ last: series.at(-1), length: series.length });
         }
         case "clock": {
             const dateArgs: [number, number, number, number][] = JSON.parse(await text(process.stdin));

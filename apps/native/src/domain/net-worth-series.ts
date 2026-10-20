@@ -1,9 +1,11 @@
 import { restate } from "@outlayr/money/account-overview";
-import type { CurrencyCell } from "@outlayr/money/currency-totals";
+import { utcDateString } from "@outlayr/money/dates";
 import type { RateTable } from "@outlayr/money/valuation";
 
 import { accountBalanceSeries } from "./account-balance-series";
 import type { AccountBalanceSeriesAccount } from "./account-balance-series";
+import type { PlottedCell } from "./goal-balance-series";
+import { localDayKey } from "./local-day";
 
 export interface NetWorthSeriesAccount extends AccountBalanceSeriesAccount {
     id: string;
@@ -33,7 +35,7 @@ export interface NetWorthSeriesPoint {
  */
 export function netWorthSeries(
     accounts: readonly NetWorthSeriesAccount[],
-    cellsByAccount: ReadonlyMap<string, readonly CurrencyCell[]>,
+    cellsByAccount: ReadonlyMap<string, readonly PlottedCell[]>,
     rates: RateTable,
     now: Date,
     displayCurrency: string
@@ -44,13 +46,18 @@ export function netWorthSeries(
 
     // Each day restated into the display currency, or the sum would add bolivares
     // to dollars. Restated as a balance, at that day's rate, the way the accounts
-    // card states today's: the line's last point is the card's total.
+    // card states today's: the line's last point is the card's total. The card
+    // values now at its UTC day, which can be a day off the local one, so today's
+    // point takes that rate too.
+    const today = localDayKey(now.getTime());
+    const todaysRate = utcDateString(now.getTime());
     const perAccount = accounts.map((account) => {
         const series = accountBalanceSeries(account, cellsByAccount.get(account.id) ?? [], rates, now);
         return {
             byDate: new Map(
                 series.map((point) => {
-                    const restated = restate(point.value, account.currency, displayCurrency, point.date, rates);
+                    const rateDate = point.date === today ? todaysRate : point.date;
+                    const restated = restate(point.value, account.currency, displayCurrency, rateDate, rates);
                     return [point.date, { exact: point.exact && restated.exact, value: restated.value }];
                 })
             ),

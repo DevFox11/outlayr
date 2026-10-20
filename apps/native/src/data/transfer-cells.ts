@@ -54,7 +54,7 @@ export function settledTransferInboundQuery(db: SpendDb, accountId: string, now:
 
 export function settledTransfersOutboundQuery(db: SpendDb, now: Date) {
     return db
-        .select({ accountId: transfers.fromAccountId, ...OUTBOUND_COLUMNS })
+        .select({ accountId: transfers.fromAccountId, ...OUTBOUND_COLUMNS, plotDay: TRANSFER_LOCAL_DAY })
         .from(transfers)
         .where(and(isNull(transfers.deletedAt), lte(transfers.date, now)))
         .groupBy(transfers.fromAccountId, transfers.fromCurrency, TRANSFER_UTC_DAY, TRANSFER_LOCAL_DAY);
@@ -62,7 +62,7 @@ export function settledTransfersOutboundQuery(db: SpendDb, now: Date) {
 
 export function settledTransfersInboundQuery(db: SpendDb, now: Date) {
     return db
-        .select({ accountId: transfers.toAccountId, ...INBOUND_COLUMNS })
+        .select({ accountId: transfers.toAccountId, ...INBOUND_COLUMNS, plotDay: TRANSFER_LOCAL_DAY })
         .from(transfers)
         .where(and(isNull(transfers.deletedAt), lte(transfers.date, now)))
         .groupBy(transfers.toAccountId, transfers.toCurrency, TRANSFER_UTC_DAY, TRANSFER_LOCAL_DAY);
@@ -104,7 +104,7 @@ export function settledOutsidePaymentQuery(db: SpendDb, accountId: string, now: 
 
 export function settledOutsidePaymentsQuery(db: SpendDb, now: Date) {
     return db
-        .select({ accountId: installmentPlans.accountId, ...OUTSIDE_COLUMNS })
+        .select({ accountId: installmentPlans.accountId, ...OUTSIDE_COLUMNS, plotDay: OUTSIDE_LOCAL_DAY })
         .from(outsidePayments)
         .innerJoin(installmentPlans, eq(installmentPlans.id, outsidePayments.planId))
         .innerJoin(accounts, eq(accounts.id, installmentPlans.accountId))

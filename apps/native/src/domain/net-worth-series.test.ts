@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
-import type { CurrencyCell } from "@outlayr/money/currency-totals";
 import { buildRateTable } from "@outlayr/money/valuation";
 
+import type { PlottedCell } from "./goal-balance-series";
 import { netWorthSeries } from "./net-worth-series";
 import type { NetWorthSeriesAccount } from "./net-worth-series";
 
@@ -18,8 +18,9 @@ function account(id: string, overrides: Partial<NetWorthSeriesAccount> = {}): Ne
     };
 }
 
-function cell(overrides: Partial<CurrencyCell>): CurrencyCell {
+function cell(overrides: Partial<PlottedCell>): PlottedCell {
     return {
+        plotDay: overrides.dateKey ?? "2026-08-01",
         amount: 0,
         amountUsd: 0,
         count: 1,
@@ -127,5 +128,22 @@ describe("netWorthSeries", () => {
             exact: true,
             value: 25,
         });
+    });
+
+    it("ends on today's local day at the accounts card's rate in a Caracas evening", () => {
+        // 22:12 on 19 Oct in Caracas is 20 Oct in UTC, the day the card values at,
+        // and that day's rate is already out.
+        const rates = buildRateTable([
+            { date: "2026-10-19", quote: "VES", rate: 100 },
+            { date: "2026-10-20", quote: "VES", rate: 200 },
+        ]);
+        const series = netWorthSeries(
+            [account("ves", { currency: "VES", initialBalance: 1000 })],
+            new Map(),
+            rates,
+            new Date("2026-10-19T22:12:00-04:00"),
+            "USD"
+        );
+        expect(series.at(-1)).toStrictEqual({ date: "2026-10-19", exact: true, value: 5 });
     });
 });

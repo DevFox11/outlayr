@@ -4,6 +4,9 @@ import type { CurrencyCell } from "@outlayr/money/currency-totals";
 import { utcDateString } from "@outlayr/money/dates";
 import type { RateTable } from "@outlayr/money/valuation";
 
+import type { PlottedCell } from "./goal-balance-series";
+import { localDayKey } from "./local-day";
+
 const HISTORY_DAYS = 182;
 
 export interface AccountBalanceSeriesAccount {
@@ -18,7 +21,8 @@ export interface AccountBalanceSeriesPoint {
     value: number;
 }
 
-function addUtcDays(dateKey: string, days: number): string {
+/** Calendar arithmetic on a `YYYY-MM-DD` key; going through UTC keeps every day 24 hours long. */
+function addDays(dateKey: string, days: number): string {
     const date = new Date(`${dateKey}T00:00:00.000Z`);
     date.setUTCDate(date.getUTCDate() + days);
     return utcDateString(date.getTime());
@@ -35,19 +39,20 @@ function applyCell(
 }
 
 /**
- * Daily account balance points over the recent historical window. Entries that
- * predate the window become its opening value.
+ * Daily account balance points over the recent historical window, one per LOCAL
+ * day: each cell is drawn on its `plotDay` and valued at its UTC `dateKey`, the
+ * split the Log keeps. Entries that predate the window become its opening value.
  */
 export function accountBalanceSeries(
     account: AccountBalanceSeriesAccount,
-    cells: readonly CurrencyCell[],
+    cells: readonly PlottedCell[],
     rates: RateTable,
     now: Date
 ): AccountBalanceSeriesPoint[] {
     const { currency, initialBalance: opening } = account;
-    const nowKey = utcDateString(now.getTime());
-    const windowStart = addUtcDays(nowKey, -(HISTORY_DAYS - 1));
-    const stampedOpening = utcDateString(account.initialBalanceDate.getTime());
+    const nowKey = localDayKey(now.getTime());
+    const windowStart = addDays(nowKey, -(HISTORY_DAYS - 1));
+    const stampedOpening = localDayKey(account.initialBalanceDate.getTime());
     const openingDate = stampedOpening > nowKey ? nowKey : stampedOpening;
     let startDate = windowStart;
     if (account.initialBalance !== 0 && openingDate > windowStart) {
@@ -61,26 +66,26 @@ export function accountBalanceSeries(
     }
 
     for (const cell of cells) {
-        if (cell.dateKey < windowStart) {
+        if (cell.plotDay < windowStart) {
             applyCell(state, cell, currency, rates);
             continue;
         }
-        const onDate = cellsByDate.get(cell.dateKey);
+        const onDate = cellsByDate.get(cell.plotDay);
         if (onDate) {
             onDate.push(cell);
         } else {
-            cellsByDate.set(cell.dateKey, [cell]);
+            cellsByDate.set(cell.plotDay, [cell]);
         }
     }
 
-    for (let date = windowStart; date < startDate; date = addUtcDays(date, 1)) {
+    for (let date = windowStart; date < startDate; date = addDays(date, 1)) {
         for (const cell of cellsByDate.get(date) ?? []) {
             applyCell(state, cell, currency, rates);
         }
     }
 
     const series: AccountBalanceSeriesPoint[] = [];
-    for (let date = startDate; date <= nowKey; date = addUtcDays(date, 1)) {
+    for (let date = startDate; date <= nowKey; date = addDays(date, 1)) {
         if (date === openingDate) {
             state.value += opening;
         }

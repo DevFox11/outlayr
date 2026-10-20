@@ -16,6 +16,14 @@ export function startOfLocalDay(ms: number): number {
     return date.getTime();
 }
 
+/** The `YYYY-MM-DD` key of the local day `ms` falls on, the day SQLite's `'localtime'` cuts (`LOCAL_DAY`). */
+export function localDayKey(ms: number): string {
+    const date = new Date(ms);
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${date.getFullYear()}-${month}-${day}`;
+}
+
 /** Local midnight tomorrow — the earliest deadline a goal can be given. */
 export function tomorrowLocal(nowMs: number = Date.now()): Date {
     const date = new Date(nowMs);

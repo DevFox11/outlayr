@@ -1,4 +1,3 @@
-import type { CurrencyCell } from "@outlayr/money/currency-totals";
 import type { RateTable } from "@outlayr/money/valuation";
 import { LineChart } from "panelui-native/components/line-chart";
 import { useMemo } from "react";
@@ -11,6 +10,7 @@ import { useNow } from "@/data/use-now";
 import { accountBalanceSeries } from "@/domain/account-balance-series";
 import { formatSignedAmount } from "@/domain/account-display";
 import { formatDayMonth } from "@/domain/dates";
+import type { PlottedCell } from "@/domain/goal-balance-series";
 import { numberLocale } from "@/domain/money";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import { CHART_DRAW, compactMagnitude } from "@/theme/chart";
@@ -22,7 +22,7 @@ interface AccountBalanceChartProps {
         initialBalance: number;
         initialBalanceDate: Date;
     };
-    cells: readonly CurrencyCell[];
+    cells: readonly PlottedCell[];
     now?: Date;
     rates: RateTable;
     showCents: boolean;

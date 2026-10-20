@@ -3,7 +3,6 @@ import type { AccountBalance } from "@outlayr/money/account-balance";
 import { isPerson } from "@outlayr/money/account-kind";
 import { accountsOverview, balanceIn } from "@outlayr/money/account-overview";
 import type { AccountCellRow, DisplayedBalance, AccountsOverview } from "@outlayr/money/account-overview";
-import type { CurrencyCell } from "@outlayr/money/currency-totals";
 import { utcDateString } from "@outlayr/money/dates";
 import type { RateTable } from "@outlayr/money/valuation";
 import { isNull } from "drizzle-orm";
@@ -120,7 +119,7 @@ export function useAccountBalanceDetails(
     db: Database,
     account: Pick<Account, "id" | "currency" | "initialBalance">,
     nowMs: number
-): { balance: AccountBalance; cells: CurrencyCell[]; rates: RateTable } {
+): { balance: AccountBalance; cells: PlottedCell[]; rates: RateTable } {
     const cells = useSettledAccountCells(db, account.id, nowMs);
     const { rates } = useValuationIn(db, account.currency);
     const balance = useMemo(() => accountBalance(account, cells, rates), [account, cells, rates]);
@@ -137,7 +136,7 @@ export function useAccountBalance(
 }
 
 /** Every settled entry, transfer leg and outside payment as one list of cells, read once per caller. */
-function useSettledCells(db: Database, settledAt: Date): AccountCellRow[] {
+function useSettledCells(db: Database, settledAt: Date): (AccountCellRow & PlottedCell)[] {
     const clock = settledAt.getTime();
     const cellRows = useLiveQuery(transactions, () => settledAccountsCellQuery(db, settledAt), [settledAt], clock);
     const outbound = useLiveQuery(transfers, () => settledTransfersOutboundQuery(db, settledAt), [settledAt], clock);
@@ -145,9 +144,17 @@ function useSettledCells(db: Database, settledAt: Date): AccountCellRow[] {
     const outside = useLiveQuery(outsidePayments, () => settledOutsidePaymentsQuery(db, settledAt), [settledAt], clock);
     return useMemo(
         () => [
-            ...cellRows.map((row) => ({ ...toCurrencyCell(row), accountId: row.accountId })),
-            ...outbound.map(({ accountId, ...row }) => ({ ...toTransferCell(row, false), accountId })),
-            ...[...inbound, ...outside].map(({ accountId, ...row }) => ({ ...toTransferCell(row, true), accountId })),
+            ...cellRows.map(({ accountId, plotDay, ...row }) => ({ ...toCurrencyCell(row), accountId, plotDay })),
+            ...outbound.map(({ accountId, plotDay, ...row }) => ({
+                ...toTransferCell(row, false),
+                accountId,
+                plotDay,
+            })),
+            ...[...inbound, ...outside].map(({ accountId, plotDay, ...row }) => ({
+                ...toTransferCell(row, true),
+                accountId,
+                plotDay,
+            })),
         ],
         [cellRows, outbound, inbound, outside]
     );
@@ -190,7 +197,7 @@ function useNetWorthIn(db: Database, valuation: Valuation, nowMs: number): NetWo
     const { displayCurrency } = valuation;
     const rates = useBalanceRates(db, displayCurrency, rows);
     const series = useMemo(() => {
-        const byAccount = new Map<string, CurrencyCell[]>();
+        const byAccount = new Map<string, PlottedCell[]>();
         for (const { accountId, ...cell } of cells) {
             if (accountId == null) {
                 continue;
