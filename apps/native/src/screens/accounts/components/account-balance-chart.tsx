@@ -16,6 +16,8 @@ import { useLanguage, useTranslation } from "@/i18n/context";
 import { CHART_DRAW, compactMagnitude } from "@/theme/chart";
 import { useColors } from "@/theme/use-colors";
 
+const Y_TICKS = 2;
+
 interface AccountBalanceChartProps {
     account: {
         currency: string;
@@ -94,13 +96,15 @@ export function AccountBalanceChart({ account, cells, now, rates, showCents }: A
                     xDataKey="date"
                     yDomain={domain}
                 >
-                    <LineChart.Grid rows={2} />
+                    <LineChart.Grid rows={Y_TICKS} />
                     <LineChart.Area color={colors.tint} dataKey="value" opacity={0.12} />
                     <LineChart.Line color={colors.tint} dataKey="value" strokeWidth={2.5} />
                     <LineChart.XAxis format={tooltipDate} ticks={3} />
                     <LineChart.YAxis
-                        format={(value) => compactMagnitude(value, numberLocale(language).decimal)}
-                        ticks={2}
+                        format={(value) =>
+                            compactMagnitude(value, numberLocale(language).decimal, (domain[1] - domain[0]) / Y_TICKS)
+                        }
+                        ticks={Y_TICKS}
                     />
                     <LineChart.Tooltip
                         formatValue={(value) => formatSignedAmount(value, account.currency, showCents, language)}

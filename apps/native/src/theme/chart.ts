@@ -53,8 +53,12 @@ export const CHART_DRAW = {
     durationMs: 600,
 } as const;
 
-/** Compact magnitude for an axis label: 0.5, 950, 1.2k, 15k, 3M. */
-export function compactMagnitude(value: number, decimal = "."): string {
+/**
+ * Compact magnitude for an axis label: 0.5, 950, 1.2k, 15k, 3M. Below ten it
+ * keeps one decimal, more when `step` (the gap between two labels) is under a
+ * tenth, so a balance under ten cents reads 0.04 and 0.09, not 0 twice.
+ */
+export function compactMagnitude(value: number, decimal = ".", step = 1): string {
     const abs = Math.abs(value);
     if (abs >= 1_000_000) {
         return `${trim(value / 1_000_000, abs >= 10_000_000, decimal)}M`;
@@ -63,7 +67,8 @@ export function compactMagnitude(value: number, decimal = "."): string {
         return `${trim(value / 1000, abs >= 10_000, decimal)}k`;
     }
     if (abs < 10) {
-        return String(Math.round(value * 10) / 10 || 0).replace(".", decimal);
+        const scale = 10 ** Math.max(1, Math.ceil(-Math.log10(step)));
+        return String(Math.round(value * scale) / scale || 0).replace(".", decimal);
     }
     return String(Math.round(value));
 }
