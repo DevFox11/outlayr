@@ -12,10 +12,12 @@ import {
     TextField,
     useNativeState,
     VStack,
+    ZStack,
 } from "@expo/ui/swift-ui";
 import {
     accessibilityAddTraits,
     accessibilityElement,
+    accessibilityHidden,
     accessibilityLabel,
     accessibilityValue,
     datePickerStyle,
@@ -25,6 +27,7 @@ import {
     lineLimit,
     multilineTextAlignment,
     onTapGesture,
+    opacity,
     overlay,
     padding,
     pickerStyle,
@@ -232,43 +235,74 @@ export function NewDebt(props: NewDebtProps) {
     );
 }
 
-/** "Pay back by": empty sets no plan; once picked, a date and a clear button. */
+/**
+ * "Pay back by": empty sets no plan; once picked, a date and a clear button.
+ * The picker stays mounted and fades out while empty: one added later reads "19/11/26".
+ */
 function PayBackByField({ form }: { form: ReturnType<typeof useNewDebtForm> }) {
     const t = useTranslation();
     const colors = useColors();
     const dateLocale = useDatePickerLocale();
     const label = t("debts.plan.payBackBy");
-    if (form.payBackBy === null) {
-        return (
-            <PickerField
-                label={label}
-                onPress={form.openPayBackBy}
-                placeholder
-                value={t("debts.field.notePlaceholder")}
-            />
-        );
-    }
+    const placeholder = t("debts.field.notePlaceholder");
+    const empty = form.payBackBy === null;
     return (
-        <HStack modifiers={ROW} spacing={10}>
-            <SwiftText modifiers={[BODY, rowLabel]}>{label}</SwiftText>
+        <HStack
+            modifiers={[
+                ...ROW,
+                hitArea(outline.rectangle()),
+                onTapGesture(() => {
+                    if (empty) {
+                        form.openPayBackBy();
+                    }
+                }),
+            ]}
+            spacing={10}
+        >
+            <SwiftText modifiers={[BODY, rowLabel, accessibilityHidden(empty)]}>{label}</SwiftText>
             <Spacer />
-            <DatePicker
-                displayedComponents={["date"]}
-                modifiers={[datePickerStyle("compact"), labelsHidden(), dateLocale]}
-                onDateChange={form.setPayBackBy}
-                range={{ start: tomorrowLocal(form.nowMs) }}
-                selection={form.payBackBy}
-            />
-            <Image
-                color={colors.muted}
-                modifiers={[
-                    hitArea(outline.rectangle()),
-                    onTapGesture(() => form.setPayBackBy(null)),
-                    accessibilityLabel(t("debts.plan.remove")),
-                    accessibilityAddTraits(["isButton"]),
-                ]}
-                systemName="xmark.circle.fill"
-            />
+            <ZStack alignment="trailing">
+                <DatePicker
+                    displayedComponents={["date"]}
+                    modifiers={[
+                        datePickerStyle("compact"),
+                        labelsHidden(),
+                        dateLocale,
+                        opacity(empty ? 0 : 1),
+                        accessibilityHidden(empty),
+                    ]}
+                    onDateChange={form.setPayBackBy}
+                    range={{ start: tomorrowLocal(form.nowMs) }}
+                    selection={form.payBackBy ?? tomorrowLocal(form.nowMs)}
+                />
+                <SwiftText
+                    modifiers={[
+                        BODY,
+                        lineLimit(1),
+                        foregroundStyle(PLACEHOLDER),
+                        opacity(empty ? 1 : 0),
+                        onTapGesture(form.openPayBackBy),
+                        accessibilityHidden(!empty),
+                        accessibilityAddTraits(["isButton"]),
+                        accessibilityLabel(label),
+                        accessibilityValue(placeholder),
+                    ]}
+                >
+                    {placeholder}
+                </SwiftText>
+            </ZStack>
+            {empty ? null : (
+                <Image
+                    color={colors.muted}
+                    modifiers={[
+                        hitArea(outline.rectangle()),
+                        onTapGesture(() => form.setPayBackBy(null)),
+                        accessibilityLabel(t("debts.plan.remove")),
+                        accessibilityAddTraits(["isButton"]),
+                    ]}
+                    systemName="xmark.circle.fill"
+                />
+            )}
         </HStack>
     );
 }
@@ -304,13 +338,11 @@ interface PickerFieldProps {
     chevron?: boolean;
     label: string;
     onPress: () => void;
-    /** The value is a hint, in the placeholder colour, rather than something picked. */
-    placeholder?: boolean;
     value: string;
 }
 
 /** A row that opens a sheet, read by VoiceOver as one button. */
-function PickerField({ chevron = false, label, onPress, placeholder = false, value }: PickerFieldProps) {
+function PickerField({ chevron = false, label, onPress, value }: PickerFieldProps) {
     const colors = useColors();
     return (
         <HStack
@@ -326,9 +358,7 @@ function PickerField({ chevron = false, label, onPress, placeholder = false, val
         >
             <SwiftText modifiers={[BODY, rowLabel]}>{label}</SwiftText>
             <Spacer />
-            <SwiftText modifiers={[BODY, lineLimit(1), foregroundStyle(placeholder ? PLACEHOLDER : colors.foreground)]}>
-                {value}
-            </SwiftText>
+            <SwiftText modifiers={[BODY, lineLimit(1), foregroundStyle(colors.foreground)]}>{value}</SwiftText>
             {chevron ? <Image color={colors.muted} modifiers={[CHEVRON]} systemName="chevron.up.chevron.down" /> : null}
         </HStack>
     );
