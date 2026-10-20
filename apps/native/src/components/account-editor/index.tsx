@@ -41,12 +41,11 @@ import type { Account } from "@/data/accounts-core";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { remoteEnrichmentOn } from "@/data/settings-core";
 import { useDeferredDelete } from "@/data/use-deferred-delete";
-import { isInstallmentAppAccount } from "@/domain/institution-map";
 import { formatAmount, minorUnitsFor, roundToMinorUnits } from "@/domain/money";
 import { numberToNumpad, numpadToNumber } from "@/domain/numpad";
 import { useAccountIdentity } from "@/hooks/use-account-identity";
 import { useLocaleTag } from "@/hooks/use-locale-tag";
-import { useAccountCaps, useCurrencyBlocked } from "@/hooks/use-pro-gate";
+import { useAccountSaveCapped, useCurrencyBlocked } from "@/hooks/use-pro-gate";
 import { useRegionCode } from "@/hooks/use-region-code";
 import { useLanguage, useTranslation } from "@/i18n/context";
 import type { TranslateFn } from "@/i18n/context";
@@ -99,7 +98,7 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
     const editId = props.mode === "edit" ? props.id : null;
     const router = useRouter();
     const currencyBlocked = useCurrencyBlocked(editId);
-    const accountCaps = useAccountCaps();
+    const accountCapped = useAccountSaveCapped();
     const navigation = useNavigation();
     const t = useTranslation();
     const { language } = useLanguage();
@@ -182,10 +181,12 @@ function AccountEditorReady(props: AccountEditorProps & { db: import("@/db/clien
                 kind: formKind(person, value.liability),
                 name: value.name.trim(),
             };
-            // Which cap a new account fills is only known once it is named: an
+            // Which cap an account fills is only known once it is named: an
             // installment app has its own.
-            const capped =
-                mode === "create" && accountCaps[isInstallmentAppAccount(input) ? "installmentApps" : "accounts"];
+            if (mode === "edit" && loaded == null) {
+                return;
+            }
+            const capped = accountCapped(input, mode === "create" ? null : loaded);
             // The picker is not the only way a currency gets here: the form opens
             // on the global currency, which is not capped, so an untouched field
             // can still be the second currency in the ledger.
