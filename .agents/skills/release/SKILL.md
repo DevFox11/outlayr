@@ -1,6 +1,6 @@
 ---
 name: release
-description: Release what main has merged since the last release on a channel through this repo's EAS workflows, choosing an OTA update, a new store build (TestFlight or Google Play), or a backend-only deploy.
+description: Release what main has merged since the last release on a channel, choosing an OTA update (EAS workflow), a new store build (rnd on GitHub Actions, then TestFlight or Google Play), or a backend-only deploy.
 argument-hint: preview|production [ios|android]
 arguments: [channel, platform]
 disable-model-invocation: true
@@ -16,7 +16,7 @@ The platform is `$platform`. Empty means `ios`. If it's neither `ios` nor `andro
 
 ## 1. Check out main
 
-The fingerprint hashes the local checkout, and `workflow:run` uploads it, so it has to be a clean `origin/main`:
+The fingerprint hashes the local checkout, `workflow:run` uploads it, and `rnd build` builds `main` on GitHub, so it has to be a clean `origin/main`:
 
 ```sh
 git status --porcelain            # must be empty; never stash other work to get there, stop and ask
@@ -43,8 +43,8 @@ The script is read-only. It prints:
 | `NOTHING TO SHIP` | Report and stop. If the fingerprint differs, say that the next app change will need a build. |
 | `BACKEND ONLY` | Dispatch `deploy-backend.yml`. The app bundle doesn't import `packages/backend`, so there's nothing to publish. |
 | `OTA` | Write the message (step 3), then dispatch `update.yml`. |
-| `BUILD` | Dispatch the build workflow it prints: `testflight.yml` on iOS, `play.yml` on Android. The printed fingerprint diff names the native source that forced it. |
-| `FIRST BUILD` | **Stop and ask.** No store build exists on this channel, so this binary would move testers onto a different backend. Run `npx eas-cli env:list --environment $channel` and name the `EXPO_PUBLIC_CONVEX_URL` the binary would call. On Android, also check the setup below. |
+| `BUILD` | Run the `rnd build` it prints, then ship the binary (step 4). The printed fingerprint diff names the native source that forced it. |
+| `FIRST BUILD` | **Stop and ask.** No GitHub store build exists on this channel, so this binary would move testers onto a different backend, and every earlier EAS build stops receiving OTAs from this one on. Run `npx eas-cli env:list --environment $channel` and name the `EXPO_PUBLIC_CONVEX_URL` the binary would call. Check the setup below. |
 
 Before dispatching, read the commit list against the verdict. The file classification is a heuristic, but the fingerprint check is not. On Android it relies on a patched `@expo/fingerprint` that sees the Expo modules; `decide.sh` exits if the fingerprint lists none, and that is a stop to report, never one to work around. If a commit contradicts the verdict, for example a user-visible change that the path rules missed, stop and explain instead of dispatching.
 
@@ -60,31 +60,43 @@ The in-app What's new sheet shows `message` verbatim, split on `\n`:
 
 ## 4. Dispatch and wait
 
-From `apps/native`, run the command the verdict printed (with the message filled in for an OTA) in a background shell. `--wait` holds it until the run ends:
+From `apps/native`, run the command the verdict printed (with the message filled in for an OTA) in a background shell. `--wait` holds an EAS run until it ends:
 
 ```sh
 npx eas-cli workflow:run .eas/workflows/update.yml --non-interactive --wait -F channel=$channel -F platform=ios -F message=$'First change\nSecond change'
 ```
 
-Rough durations: backend about 3 minutes, OTA about 5, build plus TestFlight submit about 25. Android has no timing yet. If the run fails, read `npx eas-cli workflow:logs <runId>`. Report the failing step and don't retry blindly.
+A `BUILD` dispatches `.github/workflows/eas-build.yml`, which deploys Convex and then builds. `rnd build` waits for the run and prints the build, whose `id` the next steps take. Then ship it:
+
+```sh
+rnd() { npx -y -p @react-native-feel/deploy@0.3.0 rnd "$@"; }
+rnd build:download --build-id <id> -p $platform   # into ./build, as a zip
+(cd build && unzip -o '*.zip')
+# iOS only: upload to App Store Connect and add it to TestFlight's Internal group.
+# The submit profile carries only App Store Connect details, so it serves both channels.
+rnd submit -p ios --profile production --path build/<name>.ipa --groups Internal
+```
+
+Android stops at the `.aab`: rnd can't submit to Play. Report its path; Daniel uploads it to the internal track in Play Console.
+
+Rough durations: backend about 3 minutes, OTA about 5. GitHub builds have no timing yet. If an EAS run fails, read `npx eas-cli workflow:logs <runId>`; if a build fails, `gh run view <runId> --log-failed`, and on iOS the `xcode-logs` artifact. Report the failing step and don't retry blindly.
 
 ## 5. Verify and report
 
 - **OTA**: `npx eas-cli update:list --branch $channel --runtime-version <build runtime> --limit 1 --json` lists the new group. If the update landed on a runtime no build has, it reached nobody. Diff them with `npx eas-cli fingerprint:compare <build runtime> <update runtime>`.
-- **Build**: `npx eas-cli build:list --platform <platform> --channel $channel --limit 1 --json` lists the new build. Its `runtime.version` is what OTAs target from now on. An Android build lands on Play's internal track as a draft; rolling it out in Play Console is Daniel's call.
+- **Build**: the run's `fingerprint` artifact holds the runtime OTAs target from now on; `decide.sh` reads it. On iOS, `rnd submit:status -p ios` lists the new TestFlight build.
 - **Backend**: a `SUCCESS` run is the check.
 
 Report the verdict, the commits it shipped, the run id, the update group or build number, and the runtime.
 
-## Android setup
+## Build setup
 
-Until the first Play upload, Android's verdict is `FIRST BUILD`. `play.yml` stops at the first missing piece, so before asking to dispatch, confirm each exists and name any that don't:
+Before a `FIRST BUILD`, confirm each of these exists and name any that don't:
 
-- The Outlayr app (`com.tryoutlayr.app`) in Play Console.
-- An upload keystore on EAS. Daniel creates it with `npx eas-cli credentials:configure-build -p android -e $channel`; a workflow can't.
-- A Google service account key for EAS Submit, with release permissions in Play Console, added with `npx eas-cli credentials -p android`.
-- `submit.production.android` in `apps/native/eas.json` with `releaseStatus: draft`. Play refuses any other release while the app is a draft.
-- `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` in `env:list`. `play.yml` checks it before it deploys.
+- rnd is logged in on this machine: `EAS_GITHUB_TOKEN=$(gh auth token) rnd login`, then `rnd whoami`.
+- The repository secrets listed at the top of `.github/workflows/eas-build.yml`: `gh secret list`. The signing ones come from EAS once, with `npx eas-cli credentials` (Daniel runs it; it is interactive).
+- `asc auth status` shows an App Store Connect key, for iOS submits.
+- `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` in `env:list`, for Android. The workflow checks it before it deploys.
 
 ## Traps
 
@@ -94,4 +106,4 @@ Until the first Play upload, Android's verdict is `FIRST BUILD`. `play.yml` stop
 - An OTA reaches only builds with the same runtime. Devices on older builds keep their JS.
 - The file lists skip what only the other platform builds from: `.android.` siblings on iOS, `app-intents/` and `targets/` on Android. The fingerprint doesn't, so an App Intents change can make Android's fingerprint differ with nothing to ship.
 - The runtime can change with no native edit: `apps/native/package.json` scripts are hashed, and adding any workspace package can re-hash pnpm peer directories. The fingerprint catches both, the file list doesn't.
-- In `build:list --json`, the fields are `runtime.version` and `updateChannel.name`. There are no flat `runtimeVersion` or `channel` keys, and reading them gives `undefined`. EAS JSON can also embed raw control characters, so parse it with `json.loads(..., strict=False)`, not `jq`.
+- EAS JSON can embed raw control characters, so parse it with `json.loads(..., strict=False)`, not `jq`.

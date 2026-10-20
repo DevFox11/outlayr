@@ -1,27 +1,10 @@
-# Actions is disabled repo-wide, so nothing here runs today. Kept so the checks
-# are ready if it is turned back on; the live gate is `.vite-hooks/pre-push`.
+# Manual only. Actions is on for `eas-build.yml`, and running these on every push
+# would spend the same included minutes the macOS builds need. The live gate is
+# `.vite-hooks/pre-push`.
 name: Native
 
 on:
-    push:
-        branches: [main]
-        paths:
-            - "apps/native/**"
-            - "packages/**"
-            - ".github/workflows/native.yml"
-            - "vite.config.ts"
-            - "package.json"
-            - "pnpm-lock.yaml"
-            - "pnpm-workspace.yaml"
-    pull_request:
-        paths:
-            - "apps/native/**"
-            - "packages/**"
-            - ".github/workflows/native.yml"
-            - "vite.config.ts"
-            - "package.json"
-            - "pnpm-lock.yaml"
-            - "pnpm-workspace.yaml"
+    workflow_dispatch:
 
 concurrency:
     group: native-${{ github.workflow }}-${{ github.ref }}

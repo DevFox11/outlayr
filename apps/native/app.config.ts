@@ -1,7 +1,11 @@
 import "dotenv/config";
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
-const isProduction = process.env.EAS_BUILD_PROFILE === "production";
+const buildProfile = process.env.EAS_BUILD_PROFILE;
+const isProduction = buildProfile === "production";
+
+// Set by `.github/workflows/eas-build.yml`. Local builds fall back to Expo's 1.
+const buildNumber = process.env.BUILD_NUMBER;
 
 const APP_GROUP = "group.com.tryoutlayr.app";
 
@@ -146,6 +150,7 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
             "com.google.android.c2dm.permission.RECEIVE",
         ],
         package: "com.tryoutlayr.app",
+        versionCode: buildNumber ? Number(buildNumber) : undefined,
     },
     experiments: {
         inlineModules: {
@@ -164,6 +169,7 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
     },
     ios: {
         appleTeamId: "8ZB3YXDU7V",
+        buildNumber,
         bundleIdentifier: "com.tryoutlayr.app",
         deploymentTarget: IOS_DEPLOYMENT_TARGET,
         entitlements: {
@@ -319,12 +325,14 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
     scheme: "outlayr",
     slug: "outlayr",
     updates: {
+        // EAS Build used to write the channel into the binary. The GitHub build
+        // doesn't, and a binary without one never receives an update.
+        requestHeaders: buildProfile ? { "expo-channel-name": buildProfile } : undefined,
         url: "https://u.expo.dev/f076a9e9-ec12-464d-85eb-772c4d0efce5",
     },
     userInterfaceStyle: "automatic",
-    // The marketing version users see. The build number beside it is not here:
-    // `eas.json` sets `appVersionSource: "remote"`, so EAS owns and increments
-    // it, and a local `ios.buildNumber` would be ignored.
+    // The marketing version users see. The build number beside it is
+    // `buildNumber` above.
     version: "1.0.0",
 });
 

@@ -31,7 +31,7 @@ defaults:
     image: sdk-58
 
 jobs:
-    # Same stage as testflight.yml, for the same reason: an update can add or
+    # Same stage as .github/workflows/eas-build.yml, for the same reason: an update can add or
     # reshape a Convex function, and `src/lib/convex.ts` calls them by name, so
     # JS must never reach a device before the deployment it talks to.
     deploy_backend:
@@ -74,7 +74,7 @@ jobs:
             - uses: eas/checkout
             - uses: eas/install_node_modules
             # `intlayer build` writes the gitignored `.intlayer/` the bundle imports.
-            # Builds run it from `eas-build-post-install`; an update does not.
+            # The build workflow runs it in its own step; this job has to as well.
             - name: Build the i18n dictionaries
               run: pnpm exec intlayer build
             - name: Publish

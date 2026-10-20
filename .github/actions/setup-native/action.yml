@@ -1,0 +1,75 @@
+name: Set up the native app
+description: Installs the workspace and exports one EAS environment into the job.
+
+inputs:
+    environment:
+        description: EAS environment to export, preview or production.
+        required: true
+    expo-token:
+        description: Expo access token that can read the project's environment variables.
+        required: true
+    hugeicons-token:
+        description: Token for the private @hugeicons-pro registry.
+        required: true
+
+runs:
+    using: composite
+    steps:
+        - uses: pnpm/action-setup@v4
+
+        - uses: actions/setup-node@v4
+          with:
+              node-version: 22
+              cache: pnpm
+
+        # Same reason as native.yml: pnpm won't expand env vars in a project-level
+        # .npmrc auth setting, so the credential goes in the user-level config.
+        - name: Authenticate the private icon registry
+          shell: bash
+          env:
+              HUGEICONS_PRO_TOKEN: ${{ inputs.hugeicons-token }}
+          run: |
+              if [ -z "$HUGEICONS_PRO_TOKEN" ]; then
+                echo "::error::HUGEICONS_PRO_TOKEN is not set. @hugeicons-pro/* will 401."
+                exit 1
+              fi
+              pnpm config set "//npm.hugeicons.com/:_authToken" "$HUGEICONS_PRO_TOKEN" --location user
+
+        - name: Install
+          shell: bash
+          run: pnpm install --frozen-lockfile
+
+        # EAS environments stay the source of truth while OTA updates still publish
+        # from EAS, so a binary and the updates it receives read the same values.
+        # SECRET variables can't be read outside EAS; the workflow passes those
+        # from repository secrets.
+        - name: Export the EAS environment
+          shell: bash
+          working-directory: apps/native
+          env:
+              EXPO_TOKEN: ${{ inputs.expo-token }}
+              EAS_ENVIRONMENT: ${{ inputs.environment }}
+          run: |
+              set -euo pipefail
+              npx -y eas-cli env:pull --environment "$EAS_ENVIRONMENT" --path "$RUNNER_TEMP/eas.env" --non-interactive
+              python3 - <<'PY'
+              import os, secrets
+              # NPM_CONFIG_USERCONFIG points at an .npmrc on EAS's builders, which
+              # doesn't exist here; the registry step above covers it.
+              skip = {"NPM_CONFIG_USERCONFIG"}
+              with open(os.path.join(os.environ["RUNNER_TEMP"], "eas.env")) as fh, open(os.environ["GITHUB_ENV"], "a") as env:
+                  for line in fh.read().splitlines():
+                      if not line or line.startswith("#") or "=" not in line:
+                          continue
+                      name, value = line.split("=", 1)
+                      if name in skip:
+                          continue
+                      # EXPO_PUBLIC_ values ship inside the app anyway, and masking a short
+                      # one would blank that string out of every log line.
+                      if value and not name.startswith("EXPO_PUBLIC_"):
+                          print(f"::add-mask::{value}")
+                      delimiter = f"EOF_{secrets.token_hex(8)}"
+                      env.write(f"{name}<<{delimiter}\n{value}\n{delimiter}\n")
+                      print(f"Exported {name}")
+              PY
+              rm "$RUNNER_TEMP/eas.env"
