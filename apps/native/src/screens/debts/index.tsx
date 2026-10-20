@@ -13,16 +13,17 @@ import {
     onTapGesture,
 } from "@expo/ui/swift-ui/modifiers";
 import { Stack, useRouter } from "expo-router";
-import { memo, useCallback, useState } from "react";
+import { memo, use, useCallback, useState } from "react";
 import { View } from "react-native";
 
 import { AccountTile } from "@/components/account-tile";
+import { AmountsHiddenContext } from "@/components/amount-text";
 import { Eyebrow, PARENT_TILE } from "@/components/category-list-chrome";
 import { LABEL, PARENT_NAME } from "@/components/category-list-swift";
 import { EmptyState } from "@/components/empty-state";
 import { Tile } from "@/components/empty-state-parts";
 import { groupedList, groupedRows } from "@/components/native/styles";
-import { useDisplaySettings, useSettingBool } from "@/contexts/display-settings-context";
+import { useDisplaySettings } from "@/contexts/display-settings-context";
 import { useDatabase } from "@/contexts/local-data-context";
 import { useGlobalCurrency } from "@/data/app-meta";
 import { useDebtsOverview } from "@/data/debts";
@@ -61,7 +62,7 @@ export function Debts() {
     const colors = useColors();
     const { language } = useLanguage();
     const { showCents } = useDisplaySettings().state;
-    const hidden = useSettingBool("hideAmounts");
+    const hidden = use(AmountsHiddenContext);
     const currency = useGlobalCurrency(db);
     const debts = useDebtsOverview(db, useNow());
     const [settledOpen, setSettledOpen] = useState(false);

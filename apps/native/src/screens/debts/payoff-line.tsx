@@ -1,7 +1,8 @@
+import { use } from "react";
 import { Pressable, View } from "react-native";
 
+import { AmountsHiddenContext } from "@/components/amount-text";
 import { Text } from "@/components/text";
-import { useSettingBool } from "@/contexts/display-settings-context";
 import type { PayoffLine } from "@/data/payoff-plans";
 import { useNow } from "@/data/use-now";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -56,7 +57,7 @@ export function PayoffSummary({
 }) {
     const t = useTranslation();
     const { language } = useLanguage();
-    const hidden = useSettingBool("hideAmounts");
+    const hidden = use(AmountsHiddenContext);
     const { behind, plan } = payoffFacts(line, currency, hidden, useNow(), { language, t });
 
     return (

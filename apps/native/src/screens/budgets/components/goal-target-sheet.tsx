@@ -1,18 +1,17 @@
 import { BottomSheetModal, BottomSheetView } from "@expo/ui/community/bottom-sheet";
-import { useMemo, useRef, useState } from "react";
+import { use, useMemo, useRef, useState } from "react";
 import type { Ref } from "react";
 import { Pressable, View } from "react-native";
 import Animated from "react-native-reanimated";
 
 import { AmountNumpad } from "@/components/amount-numpad";
-import { HeroNumber } from "@/components/amount-text";
+import { AmountsHiddenContext, HeroNumber } from "@/components/amount-text";
 import { MonoLabel } from "@/components/mono-label";
 import { Sentence } from "@/components/sentence/sentence";
 import { revealEntering } from "@/components/sentence/sentence-motion";
 import { SheetGestureRoot } from "@/components/sheet-gesture-root";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
-import { useSettingBool } from "@/contexts/display-settings-context";
 import { useNow } from "@/data/use-now";
 import { formatSentenceDate, formatTargetMonth } from "@/domain/dates";
 import { addLocalMonths, daysBetween, startOfLocalDay, tomorrowLocal } from "@/domain/local-day";
@@ -152,7 +151,7 @@ function GoalTargetBody({
     const { language } = useLanguage();
     const haptics = useHaptics();
     const nowMs = useNow();
-    const hidden = useSettingBool("hideAmounts");
+    const hidden = use(AmountsHiddenContext);
     const minorUnits = minorUnitsFor(target.currency);
     const payoff = target.payoff !== undefined;
     const money = (value: number) =>
