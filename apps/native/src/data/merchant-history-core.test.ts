@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 import type { Database } from "@/db/client";
-import { categories, transactions } from "@/db/schema";
+import { accounts, categories, transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
 import { merchantKey } from "@/domain/merchant-resolver";
 
@@ -19,7 +19,7 @@ let clock = 0;
 function log(
     note: string,
     categoryId: string | null,
-    options: { income?: boolean; deleted?: boolean; feeForId?: string; transferId?: string } = {}
+    options: { accountId?: string; income?: boolean; deleted?: boolean; feeForId?: string; transferId?: string } = {}
 ): void {
     clock += 1;
     const date = new Date(clock * 1000);
@@ -32,6 +32,7 @@ function log(
     }
     db.insert(transactions)
         .values({
+            accountId: options.accountId ?? null,
             amount: 10,
             categoryId,
             date,
@@ -45,6 +46,13 @@ function log(
             transferId: options.transferId ?? null,
             updatedAt: date,
         })
+        .run();
+}
+
+function account(id: string, kind: "asset" | "person"): void {
+    const date = new Date(0);
+    db.insert(accounts)
+        .values({ currency: "USD", dateCreated: date, id, initialBalanceDate: date, kind, name: id, updatedAt: date })
         .run();
 }
 
@@ -79,6 +87,18 @@ describe("reading a merchant's category back out of the ledger", () => {
     it("ignores deleted entries", async () => {
         log("Netflix", "entertainment", { deleted: true });
         await expect(remembered("Netflix")).resolves.toBeNull();
+    });
+
+    it("ignores a sale recorded with a person", async () => {
+        account("pedro", "person");
+        log("Sold on credit", "sales", { accountId: "pedro", income: true });
+        await expect(remembered("Sold on credit", true)).resolves.toBeNull();
+    });
+
+    it("remembers what a person paid for", async () => {
+        account("pedro", "person");
+        log("Lunch", "food", { accountId: "pedro" });
+        await expect(remembered("Lunch")).resolves.toBe("food");
     });
 
     it("ignores entries that were never categorised", async () => {
@@ -145,6 +165,16 @@ describe("reading the merchants this ledger already knows", () => {
     it("offers a merchant the user never categorised", async () => {
         log("Netflix", null);
         await expect(recent()).resolves.toStrictEqual(["Netflix"]);
+    });
+
+    it("leaves out a sale recorded with a person, but not what they paid for", async () => {
+        account("checking", "asset");
+        account("pedro", "person");
+        log("Rio Supermercado", "groceries", { accountId: "checking" });
+        log("Lunch", "food", { accountId: "pedro" });
+        log("Sold on credit", "sales", { accountId: "pedro", income: true });
+        await expect(recent()).resolves.toStrictEqual(["Lunch", "Rio Supermercado"]);
+        await expect(recent(6, true)).resolves.toStrictEqual([]);
     });
 
     it("stops at the limit it was given", async () => {

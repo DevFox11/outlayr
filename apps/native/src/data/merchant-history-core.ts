@@ -1,7 +1,7 @@
-import { and, desc, eq, isNotNull, isNull, ne } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull, ne, or } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
-import { transactions } from "@/db/schema";
+import { accounts, transactions } from "@/db/schema";
 import { rememberedCategory } from "@/domain/merchant-history";
 import type { HistoricalEntry } from "@/domain/merchant-history";
 import { merchantKey } from "@/domain/merchant-resolver";
@@ -22,6 +22,14 @@ import { merchantKey } from "@/domain/merchant-resolver";
 export const HISTORY_WINDOW = 500;
 
 /**
+ * An income recorded with a person is a sale on credit, titled "Sold on credit",
+ * not a merchant. An expense on a person ("Pedro paid my lunch") keeps the shop
+ * in its note, so it still counts. Joined on the account so an entry with no
+ * account still counts.
+ */
+const notASale = or(eq(transactions.income, false), isNull(accounts.kind), ne(accounts.kind, "person"));
+
+/**
  * The category this user has filed this merchant under before, or null.
  *
  * Scoped to `income` because a category belongs to one side of the ledger: a
@@ -36,6 +44,7 @@ export async function rememberedCategoryFor(db: Database, key: string, income: b
     const rows = await db
         .select({ categoryId: transactions.categoryId, date: transactions.date, note: transactions.note })
         .from(transactions)
+        .leftJoin(accounts, eq(accounts.id, transactions.accountId))
         .where(
             and(
                 eq(transactions.income, income),
@@ -43,7 +52,8 @@ export async function rememberedCategoryFor(db: Database, key: string, income: b
                 isNull(transactions.deletedAt),
                 isNull(transactions.feeForId),
                 isNull(transactions.transferId),
-                ne(transactions.note, "")
+                ne(transactions.note, ""),
+                notASale
             )
         )
         .orderBy(desc(transactions.date))
@@ -81,13 +91,15 @@ export function recentMerchantNotesQuery(db: Database, income: boolean) {
     return db
         .select({ note: transactions.note })
         .from(transactions)
+        .leftJoin(accounts, eq(accounts.id, transactions.accountId))
         .where(
             and(
                 eq(transactions.income, income),
                 isNull(transactions.deletedAt),
                 isNull(transactions.feeForId),
                 isNull(transactions.transferId),
-                ne(transactions.note, "")
+                ne(transactions.note, ""),
+                notASale
             )
         )
         .orderBy(desc(transactions.date))
