@@ -1,9 +1,10 @@
 import { DEFAULT_ACCOUNT_KIND, isPerson } from "@outlayr/money/account-kind";
 import type { AccountKind } from "@outlayr/money/account-kind";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 import { and, eq, isNull, max } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
-import { accounts, transactions } from "@/db/schema";
+import { accounts, savingsGoals, transactions } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { newId } from "@/domain/ids";
 
@@ -124,11 +125,25 @@ export const accountsRepo = {
      * `transactions.accountId` declares `onDelete: "set null"`, which never fires
      * for a tombstone — so the detach the delete copy promises has to happen here,
      * or every entry keeps pointing at a row only the `deletedAt` filters hide.
+     *
+     * A person is the exception: their entries (a sale on credit, a lunch they
+     * paid) are what the debt is made of, so they go with them, and leave no
+     * schedule behind for the orphan repair to revive.
+     *
+     * Its savings goals go too: a goal on a deleted account is already hidden,
+     * and a deleted person's payoff plan must not keep counting.
      */
     async softDelete(db: Database, id: string, now: Date = new Date()): Promise<void> {
+        // Read past the tombstone: a peer's delete may have landed first.
+        const [account] = db.select({ kind: accounts.kind }).from(accounts).where(eq(accounts.id, id)).limit(1).all();
+        const person = isPerson(account ?? {});
         await withTransaction(db, async () => {
             await tombstoneTransfersTouchingAccount(db, id, now);
             await tombstonePlansOnAccount(db, id, now);
+            await db
+                .update(savingsGoals)
+                .set({ deletedAt: now, updatedAt: now })
+                .where(and(eq(savingsGoals.accountId, id), isNull(savingsGoals.deletedAt)));
             await db
                 .update(accounts)
                 .set({ deletedAt: now, updatedAt: now })
@@ -146,10 +161,17 @@ export const accountsRepo = {
                 attached.map((row) => row.id),
                 now.getTime()
             );
+            if (!person) {
+                await db
+                    .update(transactions)
+                    .set({ accountId: null, updatedAt: now })
+                    .where(eq(transactions.accountId, id));
+                return;
+            }
             await db
                 .update(transactions)
-                .set({ accountId: null, updatedAt: now })
-                .where(eq(transactions.accountId, id));
+                .set({ deletedAt: now, recurringType: RECURRING_TYPE.none, reminderLeadDays: null, updatedAt: now })
+                .where(and(eq(transactions.accountId, id), isNull(transactions.deletedAt)));
         });
     },
 

@@ -1,15 +1,17 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import { accountBalance } from "@outlayr/money/account-balance";
+import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 import { buildRateTable } from "@outlayr/money/valuation";
+import { eq } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
-import { accounts, exchangeRates, transactions } from "@/db/schema";
+import { accounts, exchangeRates, savingsGoals, transactions } from "@/db/schema";
 import { migratedDatabase } from "@/db/test-database";
 
 import { accountsRepo, getAccountById, getLastUsedAccount, rememberLastUsedAccount } from "./accounts-core";
 import { settledAccountCellQuery, toCurrencyCells } from "./cell-query";
 import { candidateLogoIds } from "./logo-backfill-state";
-import { transactionsRepo } from "./transactions-core";
+import { deletedTransactionsQuery, transactionsRepo } from "./transactions-core";
 
 const makeDb = () => migratedDatabase({ foreignKeys: false });
 
@@ -254,6 +256,87 @@ describe("accountsRepo lifecycle", () => {
         expect(byId.get(untouched)?.accountId).toBe(kept);
         // The detached row's logo candidate follows the stamp the detach gave it.
         expect((await candidateLogoIds(db)).get(detached)).toBe(byId.get(detached)?.updatedAt.getTime());
+    });
+
+    it("softDelete takes a person's own entries with them, schedule and all", async () => {
+        const pedro = await accountsRepo.create(db, { currency: "USD", kind: "person", name: "Pedro" });
+        const checking = await accountsRepo.create(db, { currency: "USD", name: "Checking" });
+        const entry = { categoryId: "cat-1", currency: "USD", date: JAN_5, details: null };
+        const sale = await transactionsRepo.create(db, {
+            ...entry,
+            accountId: pedro,
+            amount: 40,
+            income: true,
+            note: "Sold on credit",
+        });
+        const lunch = await transactionsRepo.create(db, {
+            ...entry,
+            accountId: pedro,
+            amount: 12,
+            income: false,
+            note: "Lunch",
+            onceRecurring: true,
+            recurringType: RECURRING_TYPE.monthly,
+        });
+        const coffee = await transactionsRepo.create(db, {
+            ...entry,
+            accountId: checking,
+            amount: 3,
+            income: false,
+            note: "Coffee",
+        });
+
+        await accountsRepo.softDelete(db, pedro);
+
+        const byId = new Map((await db.select().from(transactions)).map((row) => [row.id, row]));
+        expect(byId.get(sale)?.deletedAt).toStrictEqual(expect.any(Date));
+        expect(byId.get(lunch)?.deletedAt).toStrictEqual(expect.any(Date));
+        // A tombstone that still holds its schedule is what the orphan repair revives.
+        expect(byId.get(lunch)?.recurringType).toBe(RECURRING_TYPE.none);
+        expect(byId.get(coffee)?.deletedAt).toBeNull();
+    });
+
+    it("a deleted person's entries are neither offered back nor restorable alone", async () => {
+        const pedro = await accountsRepo.create(db, { currency: "USD", kind: "person", name: "Pedro" });
+        const sale = await transactionsRepo.create(db, {
+            accountId: pedro,
+            amount: 40,
+            categoryId: "cat-1",
+            currency: "USD",
+            date: JAN_5,
+            details: null,
+            income: true,
+            note: "Sold on credit",
+        });
+
+        await accountsRepo.softDelete(db, pedro);
+        await transactionsRepo.restore(db, sale);
+
+        await expect(deletedTransactionsQuery(db)).resolves.toStrictEqual([]);
+        const [row] = await db.select().from(transactions).where(eq(transactions.id, sale));
+        expect(row?.deletedAt).toStrictEqual(expect.any(Date));
+    });
+
+    it("softDelete takes the account's savings goals with it", async () => {
+        const pedro = await accountsRepo.create(db, { currency: "USD", kind: "person", name: "Pedro" });
+        db.insert(savingsGoals)
+            .values({
+                accountId: pedro,
+                currency: "USD",
+                dateCreated: JAN_5,
+                id: "goal-1",
+                name: "Pedro",
+                sortOrder: 0,
+                targetAmount: 0,
+                targetDate: JAN_5,
+                updatedAt: JAN_5,
+            })
+            .run();
+
+        await accountsRepo.softDelete(db, pedro);
+
+        const [goal] = await db.select().from(savingsGoals);
+        expect(goal?.deletedAt).toStrictEqual(expect.any(Date));
     });
 
     it("reorder assigns each id its array index and stamps updatedAt", async () => {

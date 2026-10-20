@@ -7,7 +7,7 @@ import { RECURRING_TYPE } from "@outlayr/money/recurrence";
 import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, sql } from "drizzle-orm";
 
 import type { Database } from "@/db/client";
-import { categories, transactions, transfers } from "@/db/schema";
+import { accounts, categories, transactions, transfers } from "@/db/schema";
 import { withTransaction } from "@/db/transaction";
 import { newId } from "@/domain/ids";
 import { merchantKey } from "@/domain/merchant-resolver";
@@ -136,6 +136,10 @@ export type DeletedTransaction = {
  * alongside its transfer — `transfersRepo.softDelete` from one side, `remove` from
  * the other — and handing it back alone would put a live charge on a transfer that
  * no longer exists, which no surface can then take off again.
+ *
+ * An entry on a deleted account is excluded too: deleting a person takes their
+ * entries with them, and handing one back would leave it with no account while
+ * the person stays deleted.
  */
 export function deletedTransactionsQuery(db: SpendDb) {
     return db
@@ -146,7 +150,8 @@ export function deletedTransactionsQuery(db: SpendDb) {
                 isNotNull(transactions.deletedAt),
                 gt(transactions.date, ERASED_DATE),
                 isNull(transactions.transferId),
-                sql`(${transactions.feeForId} IS NULL OR NOT EXISTS (SELECT 1 FROM ${transactions} AS purchase WHERE purchase.id = ${transactions.feeForId} AND purchase.deletedAt IS NOT NULL))`
+                sql`(${transactions.feeForId} IS NULL OR NOT EXISTS (SELECT 1 FROM ${transactions} AS purchase WHERE purchase.id = ${transactions.feeForId} AND purchase.deletedAt IS NOT NULL))`,
+                sql`NOT EXISTS (SELECT 1 FROM ${accounts} WHERE ${accounts.id} = ${transactions.accountId} AND ${accounts.deletedAt} IS NOT NULL)`
             )
         )
         .orderBy(desc(transactions.deletedAt), desc(transactions.date));
@@ -550,17 +555,26 @@ export const transactionsRepo = {
      *
      * A transfer's fee is out of scope for the same reason
      * {@link deletedTransactionsQuery} hides it, and nothing restores a transfer
-     * today, so lifting one alone would strand a charge with no owner.
+     * today, so lifting one alone would strand a charge with no owner. An entry
+     * on a deleted account is out of scope for the same reason.
      */
     async restore(db: Database, id: string, now: Date = new Date()): Promise<void> {
         await withTransaction(db, async () => {
             const previous = getTransactionById(db, id);
             const purchaseId = previous?.feeForId ?? null;
             const purchase = purchaseId === null ? null : getTransactionById(db, purchaseId);
+            const onDeletedAccount =
+                previous?.accountId != null &&
+                db
+                    .select({ id: accounts.id })
+                    .from(accounts)
+                    .where(and(eq(accounts.id, previous.accountId), isNotNull(accounts.deletedAt)))
+                    .all().length > 0;
             if (
                 previous == null ||
                 previous.deletedAt == null ||
                 previous.transferId != null ||
+                onDeletedAccount ||
                 purchase?.deletedAt != null ||
                 (purchaseId !== null && cardFeeFor(db, purchaseId) !== null)
             ) {

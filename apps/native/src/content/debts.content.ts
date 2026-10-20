@@ -156,8 +156,8 @@ const debts = {
             es: "Personas",
         }),
         "debts.person.deleteBody": t({
-            en: "Loans and paybacks with them are deleted too.",
-            es: "También se borran los préstamos y pagos con esta persona.",
+            en: "Everything recorded with them is deleted too.",
+            es: "También se borra todo lo registrado con esta persona.",
         }),
         "debts.person.empty": t({
             en: "What moves between you two will gather here.",
