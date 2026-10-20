@@ -28,11 +28,11 @@ import { useInstallmentEntry, useOrderActions } from "./use-order";
  * or round one amount.
  */
 export function InstallmentOrder({ planId }: { planId: string }) {
-    const { entry, nowMs } = useInstallmentEntry(planId);
-    return entry == null ? null : <OrderLoaded entry={entry} nowMs={nowMs} />;
+    const { entry, leave, nowMs } = useInstallmentEntry(planId);
+    return entry == null ? null : <OrderLoaded entry={entry} leave={leave} nowMs={nowMs} />;
 }
 
-function OrderLoaded({ entry, nowMs }: { entry: PlanWithStanding; nowMs: number }) {
+function OrderLoaded({ entry, leave, nowMs }: { entry: PlanWithStanding; leave: () => void; nowMs: number }) {
     const db = useDatabase();
     const t = useTranslation();
     const { language } = useLanguage();
@@ -41,20 +41,22 @@ function OrderLoaded({ entry, nowMs }: { entry: PlanWithStanding; nowMs: number 
     const account = useAccounts(db).find((row) => row.id === plan.accountId);
     const money = (value: number) => formatAmount(value, plan.currency, showCents, language);
     const name = orderName(t, purchase);
-    const { cuotaSheetRef, deleteOrder, editing, pay, setEditing } = useOrderActions(entry);
+    const { cuotaSheetRef, deletePending, editing, pay, setEditing } = useOrderActions(entry, leave);
 
     return (
         <>
             <ScreenHeader title={name} />
             <Stack.Screen.BackButton displayMode="minimal" />
-            <Stack.Toolbar placement="right">
-                <Stack.Toolbar.Menu accessibilityLabel={t("installments.order")}>
-                    <Stack.Toolbar.Icon {...toolbarIcon("more")} />
-                    <Stack.Toolbar.MenuAction destructive icon="trash" onPress={deleteOrder}>
-                        {t("installments.deleteOrder")}
-                    </Stack.Toolbar.MenuAction>
-                </Stack.Toolbar.Menu>
-            </Stack.Toolbar>
+            {standing.finished ? null : (
+                <Stack.Toolbar placement="right">
+                    <Stack.Toolbar.Menu accessibilityLabel={t("installments.order")}>
+                        <Stack.Toolbar.Icon {...toolbarIcon("more")} />
+                        <Stack.Toolbar.MenuAction destructive icon="trash" onPress={deletePending}>
+                            {t("installments.deletePending")}
+                        </Stack.Toolbar.MenuAction>
+                    </Stack.Toolbar.Menu>
+                </Stack.Toolbar>
+            )}
             <ScrollView
                 className="bg-background"
                 contentContainerStyle={{ paddingBottom: 40, paddingHorizontal: 20 }}

@@ -1,6 +1,6 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 
 import { useDatabase } from "@/contexts/local-data-context";
@@ -13,24 +13,38 @@ import { rearmInstallmentReminders } from "@/lib/installment-reminder-sync";
 import { notifyFailure } from "@/lib/notify";
 import { useHaptics } from "@/lib/use-haptics";
 
-/** The order behind `planId`, null once it is gone, which also leaves the screen. */
+/**
+ * The order behind `planId`, null once it is gone, which also leaves the
+ * screen. `leave` goes back once, however many times it is asked.
+ */
 export function useInstallmentEntry(planId: string) {
     const db = useDatabase();
     const router = useRouter();
     const nowMs = useNow();
     const entry = useInstallmentPlans(db, nowMs).find(({ plan }) => plan.id === planId) ?? null;
+    const left = useRef(false);
+
+    const leave = useCallback(() => {
+        if (!left.current) {
+            left.current = true;
+            router.back();
+        }
+    }, [router]);
 
     useEffect(() => {
         if (entry == null) {
-            router.back();
+            leave();
         }
-    }, [entry, router]);
+    }, [entry, leave]);
 
-    return { entry, nowMs };
+    return { entry, leave, nowMs };
 }
 
-/** What the order screen does on either platform: pay, delete, and the cuota being edited in its sheet. */
-export function useOrderActions({ plan }: PlanWithStanding) {
+/**
+ * What the order screen does on either platform: pay, delete what is pending
+ * (then `leave`), and the cuota being edited in its sheet.
+ */
+export function useOrderActions({ plan }: PlanWithStanding, leave: () => void) {
     const db = useDatabase();
     const router = useRouter();
     const t = useTranslation();
@@ -47,8 +61,8 @@ export function useOrderActions({ plan }: PlanWithStanding) {
     const pay = (all: boolean) =>
         router.push({ params: { all: all ? "1" : "0", planId: plan.id }, pathname: "/installments/pay" });
 
-    const deleteOrder = () =>
-        Alert.alert(t("installments.deleteOrder"), t("installments.deleteOrder.body"), [
+    const deletePending = () =>
+        Alert.alert(t("installments.deletePending"), t("installments.deletePending.body"), [
             { style: "cancel", text: t("common.cancel") },
             {
                 onPress: async () => {
@@ -56,6 +70,7 @@ export function useOrderActions({ plan }: PlanWithStanding) {
                         await installmentsRepo.deletePlan(db, plan.id);
                         rearmInstallmentReminders(db);
                         haptics("warning");
+                        leave();
                     } catch (error) {
                         console.error("Failed to delete the order", error);
                         notifyFailure({ body: t("installments.failedBody"), title: t("installments.failedTitle") });
@@ -66,5 +81,5 @@ export function useOrderActions({ plan }: PlanWithStanding) {
             },
         ]);
 
-    return { cuotaSheetRef, deleteOrder, editing, pay, setEditing };
+    return { cuotaSheetRef, deletePending, editing, pay, setEditing };
 }

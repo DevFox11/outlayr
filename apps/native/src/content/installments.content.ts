@@ -127,13 +127,13 @@ const installments = {
             en: "Due",
             es: "Vence",
         }),
-        "installments.deleteOrder": t({
-            en: "Delete order",
-            es: "Eliminar orden",
+        "installments.deletePending": t({
+            en: "Delete pending installments",
+            es: "Eliminar cuotas pendientes",
         }),
-        "installments.deleteOrder.body": t({
-            en: "Its schedule goes. The purchase and the payments stay.",
-            es: "Se borra su cronograma. La compra y los pagos se quedan.",
+        "installments.deletePending.body": t({
+            en: "What's already paid stays.",
+            es: "Lo ya pagado se queda.",
         }),
         "installments.each": t({
             en: "Each",

@@ -38,14 +38,15 @@ const STATUS_TONE = {
 /**
  * One order on Android: what is left over Pay (filled) and Pay all (tonal), as
  * the person detail pairs its two movements, then the schedule as M3 list
- * items. Delete order sits in the app bar's overflow menu.
+ * items. Deleting what is pending sits in the app bar's overflow menu,
+ * until the order is paid off.
  */
 export function InstallmentOrder({ planId }: { planId: string }) {
-    const { entry, nowMs } = useInstallmentEntry(planId);
-    return entry == null ? null : <OrderLoaded entry={entry} nowMs={nowMs} />;
+    const { entry, leave, nowMs } = useInstallmentEntry(planId);
+    return entry == null ? null : <OrderLoaded entry={entry} leave={leave} nowMs={nowMs} />;
 }
 
-function OrderLoaded({ entry, nowMs }: { entry: PlanWithStanding; nowMs: number }) {
+function OrderLoaded({ entry, leave, nowMs }: { entry: PlanWithStanding; leave: () => void; nowMs: number }) {
     const db = useDatabase();
     const t = useTranslation();
     const m3 = useMaterialColors();
@@ -56,20 +57,22 @@ function OrderLoaded({ entry, nowMs }: { entry: PlanWithStanding; nowMs: number 
     const { plan, purchase, standing } = entry;
     const account = useAccounts(db).find((row) => row.id === plan.accountId);
     const money = (value: number) => formatAmount(value, plan.currency, showCents, language);
-    const { cuotaSheetRef, deleteOrder, editing, pay, setEditing } = useOrderActions(entry);
+    const { cuotaSheetRef, deletePending, editing, pay, setEditing } = useOrderActions(entry, leave);
 
     return (
         <View className="bg-m3-surface flex-1">
             <ScreenHeader title={orderName(t, purchase)} />
             <Stack.Screen.BackButton displayMode="minimal" />
-            <Stack.Toolbar placement="right">
-                <Stack.Toolbar.Menu accessibilityLabel={t("installments.order")}>
-                    <Stack.Toolbar.Icon {...toolbarIcon("more")} />
-                    <Stack.Toolbar.MenuAction destructive onPress={deleteOrder}>
-                        {t("installments.deleteOrder")}
-                    </Stack.Toolbar.MenuAction>
-                </Stack.Toolbar.Menu>
-            </Stack.Toolbar>
+            {standing.finished ? null : (
+                <Stack.Toolbar placement="right">
+                    <Stack.Toolbar.Menu accessibilityLabel={t("installments.order")}>
+                        <Stack.Toolbar.Icon {...toolbarIcon("more")} />
+                        <Stack.Toolbar.MenuAction destructive onPress={deletePending}>
+                            {t("installments.deletePending")}
+                        </Stack.Toolbar.MenuAction>
+                    </Stack.Toolbar.Menu>
+                </Stack.Toolbar>
+            )}
             <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24, paddingHorizontal: 16 }}>
                 <View className="items-center gap-1 pt-6 pb-4">
                     <MonoLabel>{t("installments.leftToPay")}</MonoLabel>

@@ -225,10 +225,32 @@ export const installmentsRepo = {
             .where(and(eq(outsidePayments.id, id), isNull(outsidePayments.deletedAt)));
     },
 
-    /** Removes an order with its rows and outside payments. Its transfers stay, as plain transfers. */
+    /**
+     * Drops what is still pending on an order. Rows its payments cover stay, a
+     * partly paid one is trimmed to what was paid, and the order with its
+     * payments stays, finished, so its liability's balance doesn't move. An
+     * order with nothing paid goes entirely, its transfers left as plain ones.
+     */
     async deletePlan(db: Database, planId: string, now: Date = new Date()): Promise<void> {
         await withTransaction(db, async () => {
-            await tombstonePlans(db, eq(installmentPlans.id, planId), now, true);
+            const entry = readPlans(db, now).find(({ plan }) => plan.id === planId);
+            if (!entry) {
+                return;
+            }
+            if (entry.standing.paid === 0) {
+                await tombstonePlans(db, eq(installmentPlans.id, planId), now, true);
+                return;
+            }
+            await Promise.all(
+                entry.standing.rows.map(({ covered, row, status }) => {
+                    if (status === "unpaid") {
+                        return installmentsRepo.deleteInstallment(db, row.id, now);
+                    }
+                    return status === "partial"
+                        ? installmentsRepo.updateInstallment(db, row.id, { amount: covered }, now)
+                        : null;
+                })
+            );
         });
     },
 

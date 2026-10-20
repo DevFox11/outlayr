@@ -131,7 +131,7 @@ describe("paying an order", () => {
         expect(standing?.next?.row.sequence).toBe(2);
     });
 
-    it("stops counting a payment once it is deleted, and keeps it as a transfer when the order goes", async () => {
+    it("stops counting a payment once it is deleted", async () => {
         const planId = await order();
         const payment = await installmentsRepo.recordPayment(db, {
             amount: 20,
@@ -141,11 +141,6 @@ describe("paying an order", () => {
         });
         await transfersRepo.softDelete(db, payment);
         expect(readPlans(db, PURCHASE)[0]?.standing.paid).toBe(40);
-
-        await installmentsRepo.deletePlan(db, planId);
-        expect(readPlans(db, PURCHASE)).toStrictEqual([]);
-        const live = await db.select().from(transfers).where(isNull(transfers.deletedAt));
-        expect(live.map((row) => [row.toAmount, row.installmentPlanId])).toStrictEqual([[40, null]]);
     });
 
     it("keeps the link when the transfer editor saves without knowing about it", async () => {
@@ -306,5 +301,49 @@ describe("payments made outside Outlayr", () => {
         await expect(db.select().from(outsidePayments).where(isNull(outsidePayments.deletedAt))).resolves.toStrictEqual(
             []
         );
+    });
+});
+
+describe("deleting an order", () => {
+    const tonight = new Date(2026, 9, 18, 23);
+    const schedule = () => readPlans(db, PURCHASE)[0]?.standing.rows.map((row) => [row.row.sequence, row.row.amount]);
+
+    it("drops the pending cuotas, trims a partly paid one, and keeps the balance its payments made", async () => {
+        const planId = await order();
+        await installmentsRepo.recordPayment(db, { amount: 20, date: PURCHASE, planId, source: null });
+        await installmentsRepo.recordPayment(db, { amount: 5, date: PURCHASE, planId, source: fromBank(5) });
+        await expect(balanceOf(cashea, tonight)).resolves.toBe(-35);
+
+        await installmentsRepo.deletePlan(db, planId);
+
+        expect(schedule()).toStrictEqual([
+            [0, 40],
+            [1, 20],
+            [2, 5],
+        ]);
+        expect(readPlans(db, PURCHASE)[0]?.standing).toMatchObject({ finished: true, paid: 65, remaining: 0 });
+        await expect(balanceOf(cashea, tonight)).resolves.toBe(-35);
+        await expect(balanceOf(bank, tonight)).resolves.toBe(-45);
+    });
+
+    it("removes an order with nothing paid entirely", async () => {
+        const planId = await order();
+        const [upfront] = await db.select().from(transfers);
+        await transfersRepo.softDelete(db, upfront?.id ?? "");
+
+        await installmentsRepo.deletePlan(db, planId);
+
+        expect(readPlans(db, PURCHASE)).toStrictEqual([]);
+        await expect(db.select().from(installments).where(isNull(installments.deletedAt))).resolves.toStrictEqual([]);
+    });
+
+    it("leaves a finished order as it is", async () => {
+        const planId = await startedBefore(3);
+        const before = await db.select().from(installments);
+
+        await installmentsRepo.deletePlan(db, planId);
+
+        await expect(db.select().from(installments)).resolves.toStrictEqual(before);
+        await expect(balanceOf(cashea, tonight)).resolves.toBe(0);
     });
 });
