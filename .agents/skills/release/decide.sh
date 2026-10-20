@@ -23,7 +23,6 @@ esac
 cd "$(git rev-parse --show-toplevel)/apps/native"
 export npm_config_loglevel=error
 
-eas() { npx -y eas-cli "$@"; }
 field() { python3 -c "import json,sys; d=json.loads(sys.stdin.read(),strict=False); print($1)"; }
 run() { echo "npx eas-cli workflow:run .eas/workflows/$1 --non-interactive --wait"; }
 ship="npx -y -p @react-native-feel/deploy@0.3.0 rnd build -p $platform -e $channel --json"
@@ -70,11 +69,14 @@ gh run download "$build_run" -n fingerprint -D "$tmp"
 runtime=$(field 'd["hash"]' <"$tmp/fingerprint.json")
 
 base=$build_sha
-ota=$(eas update:list --branch "$channel" --runtime-version "$runtime" --platform "$platform" --limit 1 --json --non-interactive |
-    field 'd["currentPage"][0]["group"] if d["currentPage"] else ""')
+ota_run='' ota_sha=''
+ota=$(gh run list --workflow update.yml --status success --limit 100 --json databaseId,headSha,displayTitle |
+    field '" ".join(next(((str(r["databaseId"]), r["headSha"]) for r in d if r["displayTitle"] == "'"$platform $channel update"'"), ()))')
 if [ -n "$ota" ]; then
-    ota_sha=$(eas update:view "$ota" --json | field 'd[0]["gitCommitHash"]')
-    if git merge-base --is-ancestor "$ota_sha" HEAD; then base=$ota_sha; fi
+    read -r id sha <<<"$ota"
+    if git merge-base --is-ancestor "$build_sha" "$sha" && git merge-base --is-ancestor "$sha" HEAD; then
+        ota_run=$id ota_sha=$sha base=$sha
+    fi
 fi
 
 changed=$(git diff --name-only "$base" HEAD)
@@ -102,7 +104,7 @@ PY
 )
 
 echo "$platform build run $build_run on $channel: commit ${build_sha:0:8}, runtime ${runtime:0:8}"
-echo "Last OTA on that runtime: ${ota:-none}${ota_sha:+ at ${ota_sha:0:8}}"
+echo "Last OTA on that runtime: ${ota_run:-none}${ota_sha:+ at ${ota_sha:0:8}}"
 echo
 echo "Merged since ${base:0:8}:"
 git log --oneline --no-merges "$base..HEAD"
@@ -125,5 +127,5 @@ elif grep -q 'differs from fingerprint' <<<"$fingerprint"; then
     echo "$ship"
 else
     echo "VERDICT: OTA"
-    echo "$(run update.yml) -F channel=$channel -F platform=$platform -F message=\$'...'"
+    echo "gh workflow run update.yml -f channel=$channel -f platform=$platform -f message=\$'...'"
 fi

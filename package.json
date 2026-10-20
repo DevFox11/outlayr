@@ -15,9 +15,7 @@
         "dev:setup": "vp run --filter @outlayr/backend dev:setup",
         "fix": "vp check --fix",
         "prepare": "[ -n \"$CI$EAS_BUILD\" ] || vp config --no-agent",
-        "test": "vp run -r --cache test",
-        "update:preview": "cd apps/native && EAS_BUILD_PROFILE=preview eas update --branch preview",
-        "update:production": "cd apps/native && EAS_BUILD_PROFILE=production eas update --branch production"
+        "test": "vp run -r --cache test"
     },
     "devDependencies": {
         "@outlayr/config": "workspace:*",

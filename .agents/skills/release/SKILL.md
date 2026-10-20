@@ -1,6 +1,6 @@
 ---
 name: release
-description: Release what main has merged since the last release on a channel, choosing an OTA update (EAS workflow), a new store build (rnd on GitHub Actions, then TestFlight or Google Play), or a backend-only deploy.
+description: Release what main has merged since the last release on a channel, choosing an OTA update (xprem, from GitHub Actions), a new store build (rnd on GitHub Actions, then TestFlight or Google Play), or a backend-only deploy.
 argument-hint: preview|production [ios|android]
 arguments: [channel, platform]
 disable-model-invocation: true
@@ -16,7 +16,7 @@ The platform is `$platform`. Empty means `ios`. If it's neither `ios` nor `andro
 
 ## 1. Check out main
 
-The fingerprint hashes the local checkout, `workflow:run` uploads it, and `rnd build` builds `main` on GitHub, so it has to be a clean `origin/main`:
+The fingerprint hashes the local checkout, the backend `workflow:run` uploads it, and the update and build workflows run `main` on GitHub, so it has to be a clean `origin/main`:
 
 ```sh
 git status --porcelain            # must be empty; never stash other work to get there, stop and ask
@@ -60,10 +60,11 @@ The in-app What's new sheet shows `message` verbatim, split on `\n`:
 
 ## 4. Dispatch and wait
 
-From `apps/native`, run the command the verdict printed (with the message filled in for an OTA) in a background shell. `--wait` holds an EAS run until it ends:
+From `apps/native`, run the command the verdict printed (with the message filled in for an OTA) in a background shell. `--wait` holds an EAS run until it ends. An OTA is a GitHub run, which `gh workflow run` prints the URL of; watch it to the end:
 
 ```sh
-npx eas-cli workflow:run .eas/workflows/update.yml --non-interactive --wait -F channel=$channel -F platform=ios -F message=$'First change\nSecond change'
+gh workflow run update.yml -f channel=$channel -f platform=ios -f message=$'First change\nSecond change'
+gh run watch <run id> --exit-status
 ```
 
 A `BUILD` dispatches `.github/workflows/eas-build.yml`, which deploys Convex and then builds. `rnd build` waits for the run and prints the build, whose `id` the next steps take. Then ship it:
@@ -79,11 +80,18 @@ rnd submit -p ios --profile production --path build/<name>.ipa --groups Internal
 
 Android stops at the `.aab`: rnd can't submit to Play. Report its path; Daniel uploads it to the internal track in Play Console.
 
-Rough durations: backend about 3 minutes, OTA about 5. GitHub builds have no timing yet. If an EAS run fails, read `npx eas-cli workflow:logs <runId>`; if a build fails, `gh run view <runId> --log-failed`, and on iOS the `xcode-logs` artifact. Report the failing step and don't retry blindly.
+Rough durations: backend about 3 minutes, OTA about 5. GitHub builds have no timing yet. If an EAS run fails, read `npx eas-cli workflow:logs <runId>`; if an OTA or a build fails, `gh run view <runId> --log-failed`, and on iOS the `xcode-logs` artifact. Report the failing step and don't retry blindly.
 
 ## 5. Verify and report
 
-- **OTA**: `npx eas-cli update:list --branch $channel --runtime-version <build runtime> --limit 1 --json` lists the new group. If the update landed on a runtime no build has, it reached nobody. Diff them with `npx eas-cli fingerprint:compare <build runtime> <update runtime>`.
+- **OTA**: the Publish step logs the new update's id per platform. Ask xprem what the build gets. `<build runtime>` is the full `hash` in the build run's `fingerprint` artifact, whose first 8 characters `decide.sh` printed:
+
+  ```sh
+  curl -s https://ota.hephaestus.sh/manifest -H 'expo-protocol-version: 1' -H 'expo-app-id: f076a9e9-ec12-464d-85eb-772c4d0efce5' \
+    -H "expo-channel-name: $channel" -H "expo-platform: $platform" -H "expo-runtime-version: <build runtime>" | grep -o '"id":"[^"]*"' | head -1
+  ```
+
+  It must print that id. Anything else means the update landed on a runtime no build has and reached nobody.
 - **Build**: the run's `fingerprint` artifact holds the runtime OTAs target from now on; `decide.sh` reads it. On iOS, `rnd submit:status -p ios` lists the new TestFlight build.
 - **Backend**: a `SUCCESS` run is the check.
 
@@ -100,7 +108,7 @@ Before a `FIRST BUILD`, confirm each of these exists and name any that don't:
 
 ## Traps
 
-- Never run a bare `eas update`. It leaves `EAS_BUILD_PROFILE` unset, publishes under a runtime no binary has, reports success, and reaches nobody.
+- Never run `eoas publish` from the laptop. Only the workflow sets `EAS_BUILD_PROFILE` and exports the EAS environment, so a local publish lands under a runtime no binary has, or bundles the wrong backend URL.
 - Never deploy Convex from the laptop. The workflows take the target from the EAS environment, and a local `.env.local` doesn't.
 - Compare against the last build, never the last OTA. An OTA inherits its build's runtime.
 - An OTA reaches only builds with the same runtime. Devices on older builds keep their JS.

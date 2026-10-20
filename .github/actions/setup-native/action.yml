@@ -39,8 +39,6 @@ runs:
           shell: bash
           run: pnpm install --frozen-lockfile
 
-        # EAS environments stay the source of truth while OTA updates still publish
-        # from EAS, so a binary and the updates it receives read the same values.
         # SECRET variables can't be read outside EAS; the workflow passes those
         # from repository secrets.
         - name: Export the EAS environment

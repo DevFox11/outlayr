@@ -1,0 +1,102 @@
+name: Publish an update
+
+run-name: ${{ inputs.platform }} ${{ inputs.channel }} update
+
+on:
+    workflow_dispatch:
+        inputs:
+            channel:
+                type: choice
+                description: Channel and xprem branch to publish to. Also selects the EAS environment.
+                options:
+                    - production
+                    - preview
+                default: preview
+                required: true
+            message:
+                type: string
+                description: Release notes for the What's new sheet, one per line (-f message=$'First\nSecond').
+                required: true
+            platform:
+                type: choice
+                description: Platform to publish for.
+                options:
+                    - ios
+                    - android
+                default: ios
+                required: true
+
+concurrency:
+    group: update-${{ inputs.platform }}-${{ inputs.channel }}
+    cancel-in-progress: false
+
+jobs:
+    deploy_backend:
+        name: Deploy Convex functions
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: ./.github/actions/setup-native
+              with:
+                  environment: ${{ inputs.channel }}
+                  expo-token: ${{ secrets.EXPO_TOKEN }}
+                  hugeicons-token: ${{ secrets.HUGEICONS_PRO_TOKEN }}
+
+            - name: Resolve the Convex deploy target
+              run: |
+                  if [ -n "${CONVEX_DEPLOY_KEY:-}" ]; then
+                    echo "Convex target: cloud (CONVEX_DEPLOY_KEY)"
+                  elif [ -n "${CONVEX_SELF_HOSTED_URL:-}" ] && [ -n "${CONVEX_SELF_HOSTED_ADMIN_KEY:-}" ]; then
+                    echo "Convex target: self-hosted at $CONVEX_SELF_HOSTED_URL"
+                  else
+                    echo "::error::No Convex deploy credentials on the selected EAS environment. Set CONVEX_DEPLOY_KEY, or both CONVEX_SELF_HOSTED_URL and CONVEX_SELF_HOSTED_ADMIN_KEY."
+                    exit 1
+                  fi
+
+            - name: Deploy functions
+              working-directory: packages/backend
+              run: npx convex deploy -y
+
+    publish:
+        name: Publish ${{ inputs.platform }} JS to ${{ inputs.channel }}
+        needs: [deploy_backend]
+        runs-on: ubuntu-latest
+        env:
+            EAS_BUILD_PROFILE: ${{ inputs.channel }}
+            RELEASE_CHANNEL: ${{ inputs.channel }}
+            UPDATE_MESSAGE: ${{ inputs.message }}
+            UPDATE_PLATFORM: ${{ inputs.platform }}
+            POSTHOG_CLI_API_KEY: ${{ secrets.POSTHOG_CLI_API_KEY }}
+        defaults:
+            run:
+                shell: bash
+                working-directory: apps/native
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: ./.github/actions/setup-native
+              with:
+                  environment: ${{ inputs.channel }}
+                  expo-token: ${{ secrets.EXPO_TOKEN }}
+                  hugeicons-token: ${{ secrets.HUGEICONS_PRO_TOKEN }}
+
+            - name: Build the i18n dictionaries
+              run: pnpm exec intlayer build
+
+            - name: Publish
+              env:
+                  EOO_TOKEN: ${{ secrets.EOO_TOKEN }}
+              run: |
+                  if [ -z "${EOO_TOKEN:-}" ]; then
+                    echo "::error::The EOO_TOKEN secret is not set."
+                    exit 1
+                  fi
+                  npx -y eoas@3.2.6 publish --branch "$RELEASE_CHANNEL" --platform "$UPDATE_PLATFORM" \
+                    --message "$UPDATE_MESSAGE" --emitMetadata --nonInteractive
+                  cat dist/xprem-update-metadata.json
+
+            - name: Upload source maps to PostHog
+              run: |
+                  APP_VERSION=$(npx expo config --type public --json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")
+                  pnpm exec posthog-cli hermes upload --directory dist --release-name com.tryoutlayr.app --release-version "$APP_VERSION"

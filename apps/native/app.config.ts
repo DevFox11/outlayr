@@ -7,6 +7,10 @@ const isProduction = buildProfile === "production";
 // Set by `.github/workflows/eas-build.yml`. Local builds fall back to Expo's 1.
 const buildNumber = process.env.BUILD_NUMBER;
 
+const PROJECT_ID = "f076a9e9-ec12-464d-85eb-772c4d0efce5";
+
+const UPDATES_URL = "https://ota.hephaestus.sh/manifest";
+
 const APP_GROUP = "group.com.tryoutlayr.app";
 
 const IOS_DEPLOYMENT_TARGET = "18.0";
@@ -162,7 +166,7 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
     extra: {
         appGroup: APP_GROUP,
         eas: {
-            projectId: "f076a9e9-ec12-464d-85eb-772c4d0efce5",
+            projectId: PROJECT_ID,
         },
         primaryAppIcon: isProduction ? "Outlayr" : "OutlayrTesting",
         whatsNew: process.env.UPDATE_MESSAGE ?? null,
@@ -186,6 +190,7 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
     },
     name: "Outlayr",
     owner: "danestves-llc",
+    platforms: ["ios", "android"],
     plugins: [
         "expo-router",
         // iOS: CFBundleLocalizations. Android: a localeConfig, which is what gives
@@ -324,12 +329,14 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
     runtimeVersion: { policy: "fingerprint" },
     scheme: "outlayr",
     slug: "outlayr",
-    updates: {
-        // EAS Build used to write the channel into the binary. The GitHub build
-        // doesn't, and a binary without one never receives an update.
-        requestHeaders: buildProfile ? { "expo-channel-name": buildProfile } : undefined,
-        url: "https://u.expo.dev/f076a9e9-ec12-464d-85eb-772c4d0efce5",
-    },
+    updates: buildProfile
+        ? {
+              codeSigningCertificate: "./certs/certificate.pem",
+              codeSigningMetadata: { alg: "rsa-v1_5-sha256", keyid: "main" },
+              requestHeaders: { "expo-app-id": PROJECT_ID, "expo-channel-name": buildProfile },
+              url: UPDATES_URL,
+          }
+        : { url: UPDATES_URL },
     userInterfaceStyle: "automatic",
     // The marketing version users see. The build number beside it is
     // `buildNumber` above.
