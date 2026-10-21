@@ -130,6 +130,7 @@ No render tests for components, screens, navigation, widgets, hooks or contexts 
 - Write assertions inside `it()` or `test()` blocks
 - Avoid done callbacks in async tests - use async/await instead
 - Don't use `.only` or `.skip` in committed code
+- No per-test timeout or retry: the runner's default is the ceiling, so await what the test is waiting for. `outlayr/no-test-timeout-or-retry` enforces it; only `*.live.test.ts` model probes are exempt
 - Keep test suites reasonably flat - avoid excessive `describe` nesting
 
 ## When Oxlint + Oxfmt Can't Help
