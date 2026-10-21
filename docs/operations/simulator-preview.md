@@ -92,7 +92,7 @@ simulator, on macOS arm64:
 - Input reaches the device: a home-button frame sent over `/.sim/helper/<udid>/ws` moved the
   simulator from Settings to the home screen.
 - Metro's own `/hot`, `/message`, and `/inspector/device` upgrades still complete after the shim.
-- `expo export --platform ios` still bundles, so the `bundle` job in `.github/workflows/native.yml` would be unaffected — Actions is disabled, so it does not run today.
+- `expo export --platform ios` still bundles, so the `bundle` job in `.github/workflows/native.yml` would be unaffected.
 
 **Unverified:** LAN and tunnelled access, and multi-device streaming, were not exercised — only
 loopback with a single simulator. Android is out of scope; `serve-sim` is iOS-only.
