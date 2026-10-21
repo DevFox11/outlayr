@@ -267,6 +267,70 @@ const editorCtaBusy = {
     },
 };
 
+const TEST_CALLS = new Set(["describe", "it", "suite", "test"]);
+const HOOKS = new Set(["afterAll", "afterEach", "beforeAll", "beforeEach"]);
+const TEST_OPTIONS = new Set(["repeats", "retry", "timeout"]);
+const CONFIG_OPTIONS = new Set(["hookTimeout", "retry", "testTimeout"]);
+
+const chainRoot = (node) => {
+    switch (node?.type) {
+        case "Identifier": {
+            return node.name;
+        }
+        case "MemberExpression": {
+            return chainRoot(node.object);
+        }
+        case "CallExpression": {
+            return chainRoot(node.callee);
+        }
+        case "TaggedTemplateExpression": {
+            return chainRoot(node.tag);
+        }
+        default: {
+            return null;
+        }
+    }
+};
+
+const hasOption = (node, names) =>
+    node?.type === "ObjectExpression" &&
+    node.properties.some(
+        (property) => property.type === "Property" && names.has(property.key.name ?? property.key.value)
+    );
+
+const isFunction = (node) => node.type === "ArrowFunctionExpression" || node.type === "FunctionExpression";
+
+const isMethodCall = (callee, object, method) =>
+    callee.type === "MemberExpression" && isIdentifier(callee.object, object) && isIdentifier(callee.property, method);
+
+const noTestTimeoutOrRetry = {
+    create(context) {
+        return {
+            CallExpression(node) {
+                const { arguments: args, callee } = node;
+                const overridden =
+                    isMethodCall(callee, "jest", "setTimeout") ||
+                    isMethodCall(callee, "jest", "retryTimes") ||
+                    (isMethodCall(callee, "vi", "setConfig") && hasOption(args[0], CONFIG_OPTIONS)) ||
+                    (callee.type === "Identifier" && HOOKS.has(callee.name) && args.length > 1) ||
+                    (TEST_CALLS.has(chainRoot(callee)) &&
+                        ((args.length > 2 && !isFunction(args[2])) || hasOption(args[1], TEST_OPTIONS)));
+                if (overridden) {
+                    context.report({ messageId: "override", node });
+                }
+            },
+        };
+    },
+    meta: {
+        docs: { description: "Disallow per-test timeouts and retries; the runner's default timeout is the ceiling." },
+        messages: {
+            override:
+                "A per-test timeout or retry hides a wait that should be awaited. Remove it and await what the test is waiting for; only `*.live.test.ts` model probes may take longer.",
+        },
+        type: "problem",
+    },
+};
+
 export default {
     meta: { name: "outlayr" },
     rules: {
@@ -274,6 +338,7 @@ export default {
         "editor-cta-busy": editorCtaBusy,
         "no-drizzle-transaction": noDrizzleTransaction,
         "no-sheet-repaint": noSheetRepaint,
+        "no-test-timeout-or-retry": noTestTimeoutOrRetry,
         "swiftui-list-grounds": swiftuiListGrounds,
         "widget-module-scope": widgetModuleScope,
     },

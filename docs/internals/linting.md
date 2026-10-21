@@ -170,8 +170,9 @@ Both presets claim `**/*.{test,spec}.*`, so extending both reports every asserti
 | `no-sheet-repaint` | Scoped to `components/import-sheet/**`: no `bg-background`, `bg-surface`, `bg-card` or `bg-foreground/N` in any string. |
 | `widget-module-scope` | A file with a `"widget"` directive declares nothing else at module scope; the body is evaluated in a bare `JSContext`. |
 | `editor-cta-busy` | Every `<EditorCta>` passes `busy`, so a save spins rather than only dimming. |
+| `no-test-timeout-or-retry` | On in test files instead, both runners: no timeout argument on a test or hook, no `{ timeout }` or `{ retry }` options, no `jest.setTimeout`, `jest.retryTimes` or `vi.setConfig` override. A test that needs more time is waiting on something it should await. `*.live.test.ts` model probes are exempt. |
 
-The reason for each lives as a comment above the rule in the plugin. To prove a rule still fires, break the invariant in a shipped file and run `vp check`; every rule was verified that way when it landed.
+The reason for each lives in the plugin, as a comment above the rule or in its message. To prove a rule still fires, break the invariant in a shipped file and run `vp check`; every rule was verified that way when it landed.
 
 ## Tailwind
 

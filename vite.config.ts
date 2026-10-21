@@ -408,6 +408,18 @@ export default defineConfig({
                 },
             },
             {
+                files: ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
+                rules: {
+                    "outlayr/no-test-timeout-or-retry": "error",
+                },
+            },
+            {
+                files: ["**/*.live.test.ts"],
+                rules: {
+                    "outlayr/no-test-timeout-or-retry": "off",
+                },
+            },
+            {
                 // The two assertion chains this codebase cannot retire, both against
                 // a type we do not own. React Native's `BodyInit` omits the typed
                 // array its `fetch` actually sends, and drizzle's builders are
