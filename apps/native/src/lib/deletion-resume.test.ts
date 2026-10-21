@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { deleteItemAsync, getItemAsync, setItemAsync } from "expo-secure-store";
 
 import { resumePersistedCloudDeletion } from "./deletion-resume";
@@ -96,19 +96,19 @@ describe("resumePersistedCloudDeletion", () => {
 });
 
 describe("resumePersistedCloudDeletion with no cloud configured", () => {
-    function withoutCloud() {
-        jest.resetModules();
-        jest.doMock<Partial<typeof import("@/lib/convex")>>("@/lib/convex", () => ({ convex: null }));
-        return require("./deletion-resume") as typeof import("./deletion-resume");
-    }
+    beforeEach(() => {
+        jest.replaceProperty(cloudMocks(), "convex", null);
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
 
     it("fails closed when the resume is required", async () => {
-        await expect(withoutCloud().resumePersistedCloudDeletion({ required: true })).rejects.toThrow(
-            "requires reauthentication"
-        );
+        await expect(resumePersistedCloudDeletion({ required: true })).rejects.toThrow("requires reauthentication");
     });
 
     it("reports nothing resumed otherwise", async () => {
-        await expect(withoutCloud().resumePersistedCloudDeletion()).resolves.toBe(false);
+        await expect(resumePersistedCloudDeletion()).resolves.toBe(false);
     });
 });

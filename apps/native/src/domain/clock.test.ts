@@ -88,10 +88,11 @@ describe("next clock tick", () => {
             }
         }
 
-        for (const { tick, arrival } of ticksInNewYork(dateArgs)) {
-            expect(tick > 0).toBeTruthy();
-            expect(arrival).toStrictEqual([0, 0, 0, 0]);
-        }
+        const misses = ticksInNewYork(dateArgs).flatMap(({ tick, arrival }, index) =>
+            tick > 0 && arrival.every((part) => part === 0) ? [] : [dateArgs[index]]
+        );
+
+        expect(misses).toStrictEqual([]);
     });
 });
 
