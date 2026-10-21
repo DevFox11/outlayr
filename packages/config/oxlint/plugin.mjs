@@ -5,6 +5,8 @@
 // line, and fire in the editor and on `vp check` rather than after a full
 // jest run. Registered from the root `vite.config.ts` as `outlayr/*`.
 
+import noLowValueComments from "./t3code/no-low-value-comments.mjs";
+
 const isIdentifier = (node, name) => node?.type === "Identifier" && node.name === name;
 const isJsxName = (node, names) => node?.type === "JSXIdentifier" && names.includes(node.name);
 
@@ -337,6 +339,7 @@ export default {
         "bottom-sheet-background": bottomSheetBackground,
         "editor-cta-busy": editorCtaBusy,
         "no-drizzle-transaction": noDrizzleTransaction,
+        "no-low-value-comments": noLowValueComments,
         "no-sheet-repaint": noSheetRepaint,
         "no-test-timeout-or-retry": noTestTimeoutOrRetry,
         "swiftui-list-grounds": swiftuiListGrounds,

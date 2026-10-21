@@ -27,8 +27,6 @@ const VES_RATE = 807.3862;
 const RECURRING_MONTHLY = 3;
 const RECURRING_YEARLY = 4;
 
-// ---------------------------------------------------------------- containers
-
 function appContainer(kind) {
     return execFileSync("xcrun", ["simctl", "get_app_container", udid, BUNDLE_ID, kind], {
         encoding: "utf-8",
@@ -62,8 +60,6 @@ sqlite(
     "BEGIN; DELETE FROM outbox; DELETE FROM appMeta WHERE key IN ('syncEnabled', 'syncAccountSubject', 'syncCursor', 'syncedAt', 'ledgerAdoption'); COMMIT;"
 );
 
-// ---------------------------------------------------------------------- time
-
 /** Local midnight of a Y/M/D, in ms — the convention `day` and `month` use. */
 const dayMs = (y, m, d) => new Date(y, m - 1, d).getTime();
 /** A timestamp inside a day, so rows inside one date sort by clock time. */
@@ -71,8 +67,6 @@ const atMs = (y, m, d, h, min) => new Date(y, m - 1, d, h, min).getTime();
 const monthMs = (y, m) => new Date(y, m - 1, 1).getTime();
 
 const NOW = Date.now();
-
-// ------------------------------------------------------------------- merchants
 
 // `domain` drives the logo; `null` keeps the category glyph tile, which is what
 // the app shows for a merchant it cannot resolve.
@@ -114,8 +108,6 @@ const ACCOUNT_BRANDS = {
     "acc-savings": "ally.com",
     "acc-zinli": "zinli.com",
 };
-
-// --------------------------------------------------------------------- logos
 
 /** The app's own cache key: `${name}|${domain}` folded to letters and digits. */
 function logoCacheKey(name, domain) {
@@ -250,8 +242,6 @@ function persistBrand(brand) {
     return { imageColor: brand.color, imageUri: `file://${target}` };
 }
 
-// ---------------------------------------------------------------- categories
-
 const catRows = sqlite("SELECT id, name FROM categories WHERE deletedAt IS NULL;")
     .trim()
     .split("\n")
@@ -305,8 +295,6 @@ for (const category of EXTRA_CATEGORIES) {
      VALUES (${q(id)}, ${q(category.name)}, ${q(category.color)}, ${q(category.icon)}, '', 0, ${category.sortOrder}, ${NOW}, NULL, ${NOW}, NULL);`
     );
 }
-
-// ------------------------------------------------------------------ accounts
 
 // Eight, not five. The Accounts screen is a plain list with no empty state to
 // fill it, so five rows left the bottom 40% of the screenshot blank paper.
@@ -368,8 +356,6 @@ const ACCOUNTS = [
     },
     { color: "#C8C2B4", currency: "USD", icon: "Wallet01", id: "acc-cash", kind: "asset", name: "Cash", target: 220 },
 ];
-
-// ------------------------------------------------------------- the September
 
 // Hand-written so the rows the Log actually shows read as one person's real
 // month. Everything older is generated below for chart depth.
@@ -483,8 +469,6 @@ for (const entry of withSchedules ? entries : []) {
     }
 }
 
-// ------------------------------------------------------------------- writing
-
 const balanceDelta = Object.fromEntries(ACCOUNTS.map((a) => [a.id, 0]));
 
 for (const entry of entries) {
@@ -532,8 +516,6 @@ for (const account of ACCOUNTS) {
      VALUES (${q(account.id)}, ${q(account.name)}, ${q(account.currency)}, ${initial}, ${initialUsd}, ${dayMs(2026, 1, 1)}, ${q(account.icon)}, '', ${q(account.color)}, ${q(imageColor)}, ${q(imageUri)}, '', ${ACCOUNTS.indexOf(account)}, ${dayMs(2026, 1, 1)}, ${NOW}, NULL, ${q(account.kind)});`
     );
 }
-
-// -------------------------------------------------------- budgets and goals
 
 // `Budget.type` codes are the Swift ones; 3 is a monthly window.
 const BUDGET_TYPE_MONTH = 3;
@@ -602,8 +584,6 @@ for (const [index, goal] of GOALS.entries()) {
      VALUES (${q(randomUUID())}, ${q(goal.account)}, ${q(goal.currency)}, ${dayMs(2026, 6, 1)}, NULL, ${q(goal.name)}, ${index}, ${goal.start}, ${goal.start}, ${goal.target}, ${goal.target}, ${goal.targetDate}, ${NOW});`
     );
 }
-
-// ------------------------------------------------------------------ execute
 
 const script = [
     "PRAGMA foreign_keys = OFF;",
