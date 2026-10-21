@@ -54,3 +54,38 @@ export function blocksNewCurrency(account: CappedAccount, others: readonly Cappe
     const distinct = new Set(others.filter((other) => !uncapped(other)).map((other) => other.currency));
     return distinct.size >= FREE_CURRENCIES && !distinct.has(account.currency);
 }
+
+/**
+ * Whether saving `account` lands in a full cap: a new one (`before` null), or an
+ * edit that moves it between plain accounts and installment apps, as renaming
+ * "Cashea" to "Visa" does. An edit that stays put is never capped.
+ */
+export function fillsFullCap(
+    caps: ReturnType<typeof fullAccountCaps>,
+    account: Omit<CappedAccount, "currency">,
+    before: Omit<CappedAccount, "currency"> | null
+): boolean {
+    const app = isInstallmentAppAccount(account);
+    return (before === null || isInstallmentAppAccount(before) !== app) && caps[app ? "installmentApps" : "accounts"];
+}
+
+/**
+ * Whether saving `account` brings a second currency onto a free ledger. Keeping
+ * the currency a capped account already holds never does, even on a ledger over
+ * the cap from an earlier Pro run, or a name or balance edit would be gated on a
+ * currency nobody touched. An installment app or a person held no capped
+ * currency, so renaming one into a plain account claims it like creating it would.
+ */
+export function blocksSavedCurrency(
+    account: CappedAccount,
+    before: CappedAccount | null,
+    others: readonly CappedAccount[],
+    locked: boolean
+): boolean {
+    const kept =
+        before !== null &&
+        before.currency === account.currency &&
+        !isPerson(before) &&
+        !isInstallmentAppAccount(before);
+    return !kept && blocksNewCurrency(account, others, locked);
+}
