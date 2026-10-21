@@ -23,3 +23,4 @@ test("every published SKILL.md is indexed with its frontmatter and digest", asyn
         expect(skill.digest).toBe(`sha256:${await sha256(text)}`);
     }
 });
+// probe
