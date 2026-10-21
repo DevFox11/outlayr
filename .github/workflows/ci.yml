@@ -1,0 +1,140 @@
+name: CI
+
+on:
+    pull_request:
+    push:
+        branches:
+            - main
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ci-${{ github.event.pull_request.number || github.sha }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+    changes:
+        name: Changes
+        runs-on: ubuntu-26.04
+        timeout-minutes: 5
+        outputs:
+            typecheck: ${{ steps.detect.outputs.typecheck }}
+            test: ${{ steps.detect.outputs.test }}
+            native: ${{ steps.detect.outputs.native }}
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  fetch-depth: 2
+
+            - uses: voidzero-dev/setup-vp@v1.21.2
+              with:
+                  node-version: 22
+                  run-install: false
+
+            - name: Detect affected packages
+              id: detect
+              shell: bash
+              env:
+                  EVENT_NAME: ${{ github.event_name }}
+              run: |
+                  inert='^(apps|packages)/|^docs/|^\.(agents|claude)/|^[^/]+\.md$|^LICENSE$'
+                  if [ "$EVENT_NAME" != pull_request ] || git diff --name-only --no-renames HEAD^1 HEAD | grep -qvE "$inert"; then
+                    echo "Runs everything"
+                    { echo "typecheck=-r"; echo "test=-r"; echo "native=true"; } >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
+                  dirs=$(vp pm list -r --filter '...[HEAD^1]' --filter '!outlayr' --depth 0 --json | jq -r '.[].path')
+                  filters() {
+                    for dir in $dirs; do
+                      jq -r --arg task "$1" 'select(.scripts[$task]) | "--filter \(.name)"' "$dir/package.json"
+                    done | xargs
+                  }
+                  native=false
+                  grep -qx "$PWD/apps/native" <<<"$dirs" && native=true
+                  { echo "typecheck=$(filters check-types)"; echo "test=$(filters test)"; echo "native=$native"; } | tee -a "$GITHUB_OUTPUT"
+
+    lint:
+        name: Lint
+        runs-on: ubuntu-26.04
+        timeout-minutes: 10
+        steps:
+            - uses: actions/checkout@v7
+
+            - uses: ./.github/actions/setup-native
+              with:
+                  hugeicons-token: ${{ secrets.HUGEICONS_PRO_TOKEN }}
+
+            - name: Lint and format
+              run: vp check
+
+    test:
+        name: types · tests
+        needs: changes
+        if: needs.changes.outputs.typecheck != '' || needs.changes.outputs.test != ''
+        runs-on: ubuntu-26.04
+        timeout-minutes: 15
+        env:
+            TYPECHECK: ${{ needs.changes.outputs.typecheck }}
+            TEST: ${{ needs.changes.outputs.test }}
+        steps:
+            - uses: actions/checkout@v7
+
+            - uses: ./.github/actions/setup-native
+              with:
+                  hugeicons-token: ${{ secrets.HUGEICONS_PRO_TOKEN }}
+
+            - name: Generate uniwind artifacts
+              if: needs.changes.outputs.native == 'true'
+              working-directory: apps/native
+              run: npx uniwind generate-artifacts --css ./global.css --dts ./uniwind-types.d.ts
+
+            - name: Typecheck
+              if: env.TYPECHECK != ''
+              run: vp run $TYPECHECK check-types
+
+            - name: i18n coverage
+              if: needs.changes.outputs.native == 'true'
+              run: vp run --filter @outlayr/native i18n:test
+
+            - name: Tests
+              if: env.TEST != ''
+              run: vp run $TEST test
+
+    bundle:
+        name: expo export (ios)
+        needs: changes
+        if: needs.changes.outputs.native == 'true'
+        runs-on: ubuntu-26.04
+        timeout-minutes: 15
+        steps:
+            - uses: actions/checkout@v7
+
+            - uses: ./.github/actions/setup-native
+              with:
+                  hugeicons-token: ${{ secrets.HUGEICONS_PRO_TOKEN }}
+
+            - name: Build the i18n catalog
+              working-directory: apps/native
+              run: vp run i18n:build
+
+            - name: Bundle
+              working-directory: apps/native
+              run: npx expo export --platform ios --output-dir /tmp/export-ci
+
+    check:
+        name: Check
+        if: always()
+        needs: [changes, lint, test, bundle]
+        runs-on: ubuntu-26.04
+        timeout-minutes: 5
+        steps:
+            - name: Require every job to pass
+              env:
+                  RESULTS: ${{ toJSON(needs) }}
+              run: |
+                  jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<<"$RESULTS"
+                  jq -e '.changes.outputs as $o
+                    | {test: (($o.typecheck // "") == "" and ($o.test // "") == ""), bundle: ($o.native != "true")} as $skippable
+                    | all(to_entries[]; .value.result == "success" or (.value.result == "skipped" and $skippable[.key]))' <<<"$RESULTS" > /dev/null

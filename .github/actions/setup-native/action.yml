@@ -4,7 +4,8 @@ description: Installs the workspace and exports the job's GitHub environment var
 inputs:
     variables:
         description: The job's variables, as toJSON(vars).
-        required: true
+        required: false
+        default: "{}"
     hugeicons-token:
         description: Token for the private @hugeicons-pro registry.
         required: true
@@ -18,8 +19,6 @@ runs:
               cache: true
               run-install: false
 
-        # Same reason as native.yml: pnpm won't expand env vars in a project-level
-        # .npmrc auth setting, so the credential goes in the user-level config.
         - name: Authenticate the private icon registry
           shell: bash
           env:

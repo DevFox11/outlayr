@@ -9,7 +9,7 @@ vp check --fix   # format + autofix
 vp check         # report only
 ```
 
-Pre-commit runs `vp staged`, which applies `vp check --fix` to staged files and re-stages what it rewrites; the Claude Code hook runs `vp check --fix`. Pre-push (`.vite-hooks/pre-push`) runs `vp run -r --cache check-types` and then only the tests related to files changed since `origin/main`. It never runs `vp check`. The Native workflow (`.github/workflows/native.yml`) runs on every pull request: `vp check`, every package's `check-types`, and the full test suite.
+Pre-commit runs `vp staged`, which applies `vp check --fix` to staged files and re-stages what it rewrites; the Claude Code hook runs `vp check --fix`. Pre-push (`.vite-hooks/pre-push`) runs `vp run -r --cache check-types` and then only the tests related to files changed since `origin/main`. It never runs `vp check`. The CI workflow (`.github/workflows/ci.yml`) runs `vp check` on every pull request, plus `check-types` and the tests of each package the diff touches and of the packages that depend on it. Changes outside `apps/` and `packages/` other than docs run every package, and so do pushes to `main`. Its `Check` job fails when any other job fails.
 
 The gate is green: **no errors and 6 warnings**, all extra-dependency findings from React Compiler rules that are `warn` rather than `error` — see "Warnings, not errors" below.
 
