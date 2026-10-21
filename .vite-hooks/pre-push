@@ -1,7 +1,3 @@
-# Kept off pre-commit deliberately: these run on the whole graph, not staged
-# files, so they are too slow to sit between "git commit" and a prompt. Pushing
-# is the right gate — it is the last point before anyone else sees the code.
-#
 # Sequential, not parallel. Both tasks start with `intlayer build`, and two
 # concurrent runs write the same generated dictionaries — that race failed the
 # native suite at push time even when it passed standalone. Run in order and
@@ -10,4 +6,5 @@
 #
 # The dispatcher runs this under `sh -e`, so the first failure stops the push.
 vp run -r --cache check-types
-vp run -r --cache test --maxWorkers=25%
+vp run --filter @outlayr/native --cache test --changedSince=origin/main --maxWorkers=25%
+vp run --filter '@outlayr/*' --filter '!@outlayr/native' --cache test --changed=origin/main --maxWorkers=25%
