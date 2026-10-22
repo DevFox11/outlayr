@@ -194,6 +194,10 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
         [
             "expo-build-properties",
             {
+                android: {
+                    enableMinifyInReleaseBuilds: true,
+                    enableShrinkResourcesInReleaseBuilds: true,
+                },
                 ios: {
                     deploymentTarget: IOS_DEPLOYMENT_TARGET,
                 },
@@ -310,6 +314,7 @@ const getConfig = ({ config }: ConfigContext): ExpoConfig => ({
                 })),
             },
         ],
+        "./plugins/with-android-keep-nano-icons.ts",
     ],
     // Fingerprint, not appVersion: config plugins change native code without a version bump,
     // and an update served to a binary with a different native side crashes at launch.
