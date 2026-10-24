@@ -1,6 +1,7 @@
-import { useIntlayer } from "react-intlayer";
+import { useIntlayer, useLocale } from "react-intlayer";
 
 import { BudgetCard, InsightsCard } from "@/components/app-ui/app-ui";
+import { COFFEE_SHOP } from "@/components/demo/capture-panels";
 import { formatMoney } from "@/components/demo/money";
 import { useNames } from "@/components/demo/use-names";
 import { Icon } from "@/components/icon";
@@ -15,6 +16,8 @@ export function Hero() {
     const story = useIntlayer("story");
     const { day, voiceAt } = useIntlayer("demo");
     const nameOf = useNames();
+    const { locale } = useLocale();
+    const shop = COFFEE_SHOP[locale];
     return (
         <section className="relative" id="top">
             <div className={`${CONTAINER} grid items-center gap-16 pt-24 pb-24 lg:grid-cols-12`}>
@@ -34,7 +37,7 @@ export function Hero() {
                             className="border-foreground flex items-center justify-between gap-4 border-b py-3 text-xl delay-200 sm:min-w-60"
                             data-reveal
                         >
-                            blue bottle 4.50
+                            {`${shop.toLowerCase()} 4.50`}
                             <Icon className="text-muted text-base" name="arrow-elbow-down-left" />
                         </p>
                         <div className="sm:border-border delay-300 sm:border-l sm:pl-8" data-reveal>
@@ -42,7 +45,7 @@ export function Hero() {
                                 {formatMoney(4.5, "USD")}
                             </p>
                             <p className="mt-1 text-lg">
-                                <span className="text-muted">{voiceAt}</span> Blue Bottle
+                                <span className="text-muted">{voiceAt}</span> {shop}
                             </p>
                             <p className="text-muted mt-0.5 text-sm">
                                 {nameOf("Coffee")} · {day.today}
@@ -65,6 +68,10 @@ export function Hero() {
                     <div className="relative mx-auto w-3/5 max-w-80 sm:w-1/2 lg:w-2/3">
                         <Phone className="drop-shadow-[0_32px_48px_rgb(19_18_9/0.3)]">
                             <LoopVideo
+                                av1={{
+                                    dark: videoUrl("log-an-expense-dark.av1.mp4"),
+                                    light: videoUrl("log-an-expense.av1.mp4"),
+                                }}
                                 className="phone-screen bg-app-bg overflow-hidden"
                                 label={hero.videoLabel.value}
                                 poster={HERO_POSTER}
