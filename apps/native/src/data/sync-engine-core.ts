@@ -44,7 +44,8 @@ export const PUSH_BATCH_LIMIT = 500;
 /** Mirrors `PULL_PAGE_LIMIT` in `packages/backend/convex/sync.ts`. */
 export const PULL_PAGE_LIMIT = 1000;
 
-const ID_CHUNK = 300;
+/** Chunked against SQLite's bound-variable limit; `outboxPending`'s lookups share it with `rowsById`. */
+export const ID_CHUNK = 300;
 
 /** No `Date`: `toWireFields` encodes `dates` to epoch ms, and a stray `Date` would come back as text. */
 type WireValue = boolean | number | string | null;
@@ -377,6 +378,25 @@ function groupByTable<T extends { tableName: string; localId: string }>(entries:
 }
 
 /**
+ * Only rows of the pulled page can ask whether this device still owes them a push, so their queue entries are read
+ * back through the `(tableName, localId)` index instead of copying the whole outbox inside every page's batch.
+ */
+async function outboxPending(db: Database, grouped: ReadonlyMap<SyncedTable, PulledRow[]>): Promise<Set<string>> {
+    const batches = await Promise.all(
+        [...grouped].flatMap(([table, rows]) =>
+            chunkRows([...new Set(rows.map((row) => row.localId))], ID_CHUNK).map(async (chunk) => {
+                const entries = await db
+                    .select({ localId: outbox.localId })
+                    .from(outbox)
+                    .where(and(eq(outbox.tableName, table), inArray(outbox.localId, chunk)));
+                return entries.map((entry) => `${table}\0${entry.localId}`);
+            })
+        )
+    );
+    return new Set(batches.flat());
+}
+
+/**
  * Clears queue entries by `seq`, never by `(table, localId)`: an edit that lands mid-push re-queues the row
  * under a new seq, and deleting by identity would drop it.
  */
@@ -534,9 +554,6 @@ async function applyInTransaction(
     let applied = 0;
 
     await withTransaction(db, async () => {
-        const outboxEntries = await db.select({ localId: outbox.localId, tableName: outbox.tableName }).from(outbox);
-        const pending = new Set(outboxEntries.map((entry) => `${entry.tableName}\0${entry.localId}`));
-
         const byTable = new Map<SyncedTable, PulledRow[]>();
         for (const row of page.rows) {
             if (!isReplicated(row)) {
@@ -546,6 +563,7 @@ async function applyInTransaction(
             bucket.push(row);
             byTable.set(row.table, bucket);
         }
+        const pending = await outboxPending(db, byTable);
 
         const existing = new Map<SyncedTable, Map<string, Row>>(
             await Promise.all(

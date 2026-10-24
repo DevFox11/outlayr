@@ -9,7 +9,7 @@ import type { LogFilter } from "@/domain/log-filter";
 import { cursorEnd, cursorStart } from "@/domain/log-period-cursor";
 
 import { useCategoryMeta } from "./categories";
-import { useLiveQuery } from "./live-query";
+import { NO_READ, useLiveQuery } from "./live-query";
 import { useDecoratedRows } from "./transactions";
 import type { TransactionWithCategory } from "./transactions";
 import { LOG_COLUMNS } from "./transactions-core";
@@ -81,7 +81,7 @@ export function useFilteredTransactions(db: Database, nowMs: number, scope: LogF
                       .from(transactions)
                       .where(where)
                       .orderBy(desc(transactions.day), desc(transactions.date), asc(transactions.feeForId))
-                : db.select(LOG_COLUMNS).from(transactions).where(eq(transactions.id, "")),
+                : NO_READ,
         [
             nowMs,
             scope.filter,
@@ -104,12 +104,21 @@ export interface UpcomingTransactions {
 }
 
 // Furthest next landing first, matching Swift's `FutureListView`.
-export function useUpcomingTransactions(db: Database, nowMs: number, limited: boolean): UpcomingTransactions {
+// `enabled` false skips the schedule scan for a viewer that renders none of it; switching it on re-reads at once.
+export function useUpcomingTransactions(
+    db: Database,
+    nowMs: number,
+    limited: boolean,
+    enabled = true
+): UpcomingTransactions {
     const now = new Date(nowMs);
     const rows = useLiveQuery(
         transactions,
-        () =>
-            db
+        () => {
+            if (!enabled) {
+                return NO_READ;
+            }
+            return db
                 .select(LOG_COLUMNS)
                 .from(transactions)
                 .where(
@@ -121,8 +130,9 @@ export function useUpcomingTransactions(db: Database, nowMs: number, limited: bo
                         and(isNull(transactions.deletedAt), gt(transactions.recurringType, 0)),
                         and(isNull(transactions.deletedAt), gt(transactions.date, now))
                     )
-                ),
-        [nowMs],
+                );
+        },
+        [enabled, nowMs],
         nowMs
     );
 

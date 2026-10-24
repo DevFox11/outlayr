@@ -158,45 +158,6 @@ function measureValue(income: boolean, amount: number, measure: InsightsMeasure)
     }
 }
 
-export function bucketSeries(
-    rows: readonly InsightsContribution[],
-    period: InsightsPeriod,
-    measure: InsightsMeasure,
-    now: Date,
-    offset = 0,
-    calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
-    language: Language = runtimeLanguage()
-): InsightsBucket[] {
-    const nowMs = now.getTime();
-    const buckets: InsightsBucket[] = bucketRanges(period, now, offset, calendar, language).map((r) => ({
-        ...r,
-        value: 0,
-    }));
-    const last = buckets.at(-1);
-    if (!last) {
-        return buckets;
-    }
-    const start = buckets[0].start.getTime();
-    const end = last.end.getTime();
-    for (const row of rows) {
-        const t = row.date.getTime();
-        if (t > nowMs || t < start || t >= end) {
-            continue;
-        }
-        const value = measureValue(row.income, row.amount, measure);
-        if (value === 0) {
-            continue;
-        }
-        for (const bucket of buckets) {
-            if (t >= bucket.start.getTime() && t < bucket.end.getTime()) {
-                bucket.value += value;
-                break;
-            }
-        }
-    }
-    return buckets;
-}
-
 export function runningTotals(buckets: readonly InsightsBucket[]): number[] {
     const totals: number[] = [];
     let carried = 0;
@@ -228,21 +189,30 @@ function windowBounds(
     };
 }
 
-/** `income` reads inflows; `spent` and `net` both read the outflow composition. */
-export function categoryBreakdown(
-    rows: readonly InsightsContribution[],
-    categoriesById: ReadonlyMap<string, CategoryMeta>,
-    period: InsightsPeriod,
-    measure: InsightsMeasure,
-    now: Date,
-    offset = 0,
-    calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR
+function breakdownEntries(
+    sums: ReadonlyMap<string, number>,
+    categoriesById: ReadonlyMap<string, CategoryMeta>
 ): CategoryBreakdownEntry[] {
-    const bounds = windowBounds(period, now, offset, calendar);
-    if (!bounds) {
-        return [];
+    let total = 0;
+    for (const amount of sums.values()) {
+        total += amount;
     }
-    return categoryBreakdownWithin(rows, categoriesById, measure, bounds, now);
+    const entries: CategoryBreakdownEntry[] = [];
+    for (const [id, amount] of sums) {
+        const meta = categoriesById.get(id);
+        entries.push({
+            amount,
+            color: meta?.color ?? FALLBACK_CATEGORY_COLOR,
+            delta: null,
+            emoji: meta?.emoji ?? null,
+            fraction: total > 0 ? amount / total : 0,
+            icon: meta?.icon ?? null,
+            id,
+            name: meta?.name ?? "Uncategorized",
+        });
+    }
+    entries.sort((a, b) => b.amount - a.amount);
+    return entries;
 }
 
 export function categoryBreakdownWithin(
@@ -269,26 +239,7 @@ export function categoryBreakdownWithin(
         }
         sums.set(topId, (sums.get(topId) ?? 0) + row.amount);
     }
-    let total = 0;
-    for (const amount of sums.values()) {
-        total += amount;
-    }
-    const entries: CategoryBreakdownEntry[] = [];
-    for (const [id, amount] of sums) {
-        const meta = categoriesById.get(id);
-        entries.push({
-            amount,
-            color: meta?.color ?? FALLBACK_CATEGORY_COLOR,
-            delta: null,
-            emoji: meta?.emoji ?? null,
-            fraction: total > 0 ? amount / total : 0,
-            icon: meta?.icon ?? null,
-            id,
-            name: meta?.name ?? "Uncategorized",
-        });
-    }
-    entries.sort((a, b) => b.amount - a.amount);
-    return entries;
+    return breakdownEntries(sums, categoriesById);
 }
 
 export interface CategoryBreakdownEntry {
@@ -387,32 +338,102 @@ export interface WindowTotals {
     spent: number;
 }
 
-export function windowTotals(
+/**
+ * Both insight windows from one walk. The current window carries `buckets` (the chart's series for `measure`)
+ * and `categories`; the prior one only feeds deltas and the comparison rows, so totals plus its own
+ * composition suffice. Entries leave `delta` to {@link withCategoryDeltas}.
+ */
+export interface InsightsWindowsAggregate {
+    buckets: InsightsBucket[];
+    categories: CategoryBreakdownEntry[];
+    income: number;
+    priorCategories: CategoryBreakdownEntry[];
+    priorIncome: number;
+    priorSpent: number;
+    spent: number;
+}
+
+/** `income` reads inflows; `spent` and `net` both read the outflow composition. */
+export function aggregateInsightsWindows(
     rows: readonly InsightsContribution[],
+    categoriesById: ReadonlyMap<string, CategoryMeta>,
     period: InsightsPeriod,
+    measure: InsightsMeasure,
     now: Date,
     offset = 0,
-    calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR
-): WindowTotals {
-    const bounds = windowBounds(period, now, offset, calendar);
-    if (!bounds) {
-        return { income: 0, spent: 0 };
-    }
+    calendar: InsightsCalendar = DEFAULT_INSIGHTS_CALENDAR,
+    language: Language = runtimeLanguage()
+): InsightsWindowsAggregate {
     const nowMs = now.getTime();
+    const wantIncome = measure === "income";
+    const ranges = bucketRanges(period, now, offset, calendar, language);
+    const priorBounds = windowBounds(period, now, offset - 1, calendar);
+    const buckets: InsightsBucket[] = ranges.map((range) => ({ ...range, value: 0 }));
+    const starts = buckets.map((bucket) => bucket.start.getTime());
+    const ends = buckets.map((bucket) => bucket.end.getTime());
+    const [start] = starts;
+    const end = ends.at(-1) ?? start;
+    // An unset prior window must exclude every row, which `±Infinity` bounds do.
+    const priorStart = priorBounds?.start ?? Number.POSITIVE_INFINITY;
+    const priorEnd = priorBounds?.end ?? Number.NEGATIVE_INFINITY;
+
     let income = 0;
     let spent = 0;
+    let priorIncome = 0;
+    let priorSpent = 0;
+    const currentSums = new Map<string, number>();
+    const priorSums = new Map<string, number>();
+
     for (const row of rows) {
         const t = row.date.getTime();
-        if (t > nowMs || t < bounds.start || t >= bounds.end) {
+        if (t > nowMs) {
             continue;
         }
-        if (row.income) {
-            income += row.amount;
-        } else {
-            spent += row.amount;
+        const inCurrent = t >= start && t < end;
+        if (inCurrent) {
+            const value = measureValue(row.income, row.amount, measure);
+            if (value !== 0) {
+                for (const [index, bucketEnd] of ends.entries()) {
+                    if (t >= starts[index] && t < bucketEnd) {
+                        buckets[index].value += value;
+                        break;
+                    }
+                }
+            }
+            if (row.income) {
+                income += row.amount;
+            } else {
+                spent += row.amount;
+            }
+        }
+        if (t >= priorStart && t < priorEnd) {
+            if (row.income) {
+                priorIncome += row.amount;
+            } else {
+                priorSpent += row.amount;
+            }
+        }
+        const topId = row.parentId ?? row.categoryId;
+        if (topId == null) {
+            continue;
+        }
+        if (inCurrent && row.income === wantIncome) {
+            currentSums.set(topId, (currentSums.get(topId) ?? 0) + row.amount);
+        }
+        if (t >= priorStart && t < priorEnd && row.income === wantIncome) {
+            priorSums.set(topId, (priorSums.get(topId) ?? 0) + row.amount);
         }
     }
-    return { income, spent };
+
+    return {
+        buckets,
+        categories: breakdownEntries(currentSums, categoriesById),
+        income,
+        priorCategories: breakdownEntries(priorSums, categoriesById),
+        priorIncome,
+        priorSpent,
+        spent,
+    };
 }
 
 // Includes a "Direct" entry keyed on `parentId` for rows filed on the parent itself.

@@ -2,7 +2,7 @@ import { firstOfMonth, startOfDay, startOfWeek, startOfYear } from "@outlayr/mon
 import { cellFigures } from "@outlayr/money/currency-totals";
 import { valueDatedRowsIn } from "@outlayr/money/valuation";
 import type { RateTable } from "@outlayr/money/valuation";
-import { and, asc, eq, gte, isNull, lte } from "drizzle-orm";
+import { and, asc, gte, isNull, lte } from "drizzle-orm";
 import { useMemo } from "react";
 
 import type { Database } from "@/db/client";
@@ -10,7 +10,7 @@ import { transactions } from "@/db/schema";
 import type { LogFigures } from "@/domain/log-measure";
 
 import { logCellQuery, toCurrencyCells } from "./cell-query";
-import { useLiveQuery } from "./live-query";
+import { NO_READ, useLiveQuery } from "./live-query";
 
 export type LogPeriod = "day" | "week" | "month" | "year" | "all";
 
@@ -77,7 +77,7 @@ export function useSparklineRows(
         transactions,
         () => {
             if (!enabled) {
-                return db.select(columns).from(transactions).where(eq(transactions.id, ""));
+                return NO_READ;
             }
             return db
                 .select(columns)
