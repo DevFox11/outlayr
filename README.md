@@ -62,6 +62,12 @@ vp run dev:setup
 vp run dev:server
 ```
 
+The AI features (suggestions, voice entry, receipt and plan scans, CSV import, web lookups) need
+`DEEPSEEK_API_KEY` on the deployment, plus `ELEVENLABS_API_KEY` for voice transcription. Set them with
+`npx convex env set DEEPSEEK_API_KEY <key>`; without them those actions answer `notConfigured` and
+everything else keeps working. [docs/internals/ai.md](./docs/internals/ai.md) covers the models, the
+thinking default and the pricing the budget uses.
+
 ## Scripts
 
 - `vp check`: lint and format check (`vp check --fix` applies fixes)
