@@ -3416,8 +3416,8 @@ const answers = {
                             {
                                 label: LABELS.watch,
                                 text: t({
-                                    en: "Voice entry and receipt scans run on Outlayr's servers through Anthropic and ElevenLabs, and need an account. Typing works offline",
-                                    es: "Dictar y escanear recibos pasa por los servidores de Outlayr, con Anthropic y ElevenLabs, y requiere una cuenta. Escribir funciona sin conexión",
+                                    en: "Voice entry and receipt scans run on Outlayr's servers through DeepSeek and ElevenLabs, and need an account. Typing works offline",
+                                    es: "Dictar y escanear recibos pasa por los servidores de Outlayr, con DeepSeek y ElevenLabs, y requiere una cuenta. Escribir funciona sin conexión",
                                 }),
                             },
                         ],
@@ -4858,8 +4858,8 @@ const answers = {
                     },
                     {
                         answer: t({
-                            en: "The photo you scan is read by Anthropic's Claude and isn't stored after the scan. With Outlayr Pro, receipt photo backup keeps the photo with its entry through sync.",
-                            es: "La foto que escaneas la lee Claude, de Anthropic, y no se guarda después del escaneo. Con Outlayr Pro, el respaldo de fotos guarda la foto junto a su registro con la sincronización.",
+                            en: "The photo you scan is read by DeepSeek and isn't stored after the scan. With Outlayr Pro, receipt photo backup keeps the photo with its entry through sync.",
+                            es: "La foto que escaneas la lee DeepSeek, y no se guarda después del escaneo. Con Outlayr Pro, el respaldo de fotos guarda la foto junto a su registro con la sincronización.",
                         }),
                         question: t({
                             en: "Does Outlayr keep my receipt photos?",
@@ -4923,8 +4923,8 @@ const answers = {
                     {
                         body: [
                             t({
-                                en: "Scanning needs an account, a connection, and your OK to send the photo to an AI provider. The photo is read by Anthropic's Claude, and it isn't stored after the scan. Each scan counts as one capture: 20 every 30 days on the free plan, shared with voice entry, and 500 with Outlayr Pro, which also backs up the receipt photo.",
-                                es: "Para escanear necesitas una cuenta, conexión y aceptar que la foto se envíe a un proveedor de IA. La foto la lee Claude, de Anthropic, y no se guarda después del escaneo. Cada escaneo cuenta como una captura: 20 cada 30 días en el plan gratis, compartidas con el registro por voz, y 500 con Outlayr Pro, que además respalda la foto del recibo.",
+                                en: "Scanning needs an account, a connection, and your OK to send the photo to an AI provider. The photo is read by DeepSeek, and it isn't stored after the scan. Each scan counts as one capture: 20 every 30 days on the free plan, shared with voice entry, and 500 with Outlayr Pro, which also backs up the receipt photo.",
+                                es: "Para escanear necesitas una cuenta, conexión y aceptar que la foto se envíe a un proveedor de IA. La foto la lee DeepSeek, y no se guarda después del escaneo. Cada escaneo cuenta como una captura: 20 cada 30 días en el plan gratis, compartidas con el registro por voz, y 500 con Outlayr Pro, que además respalda la foto del recibo.",
                             }),
                             t({
                                 en: "Typing works with no signal, so when you're offline you can type the purchase as one sentence and scan the next receipt later.",
