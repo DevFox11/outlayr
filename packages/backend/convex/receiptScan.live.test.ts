@@ -1,17 +1,17 @@
 /// <reference types="vite/client" />
 
-// Opt-in: RUN_LIVE_MODEL_TESTS=1 plus ANTHROPIC_API_KEY from `npx convex env get`. RECEIPT_PATH is a Spanish
+// Opt-in: RUN_LIVE_MODEL_TESTS=1 plus DEEPSEEK_API_KEY from `npx convex env get`. RECEIPT_PATH is a Spanish
 // supermarket ticket printing "TOTAL (EUR) 20,56", seven lines and a Visa payment line.
 
 import { readFile } from "node:fs/promises";
 
-import { createAnthropic } from "@ai-sdk/anthropic";
 import { describe, expect, it } from "vite-plus/test";
 
-import { CLAUDE_FAST_MODEL_ID } from "./lib/models";
+import { languageModel } from "./lib/aiProvider";
+import { AI_FAST_MODEL_ID } from "./lib/models";
 import { readReceipt } from "./receiptScan";
 
-const live = process.env.RUN_LIVE_MODEL_TESTS === "1" && Boolean(process.env.ANTHROPIC_API_KEY);
+const live = process.env.RUN_LIVE_MODEL_TESTS === "1" && Boolean(process.env.DEEPSEEK_API_KEY);
 const RECEIPT_PATH = process.env.RECEIPT_PATH ?? "/tmp/receipt-eur.jpg";
 
 async function imageBytes(path: string): Promise<ArrayBuffer> {
@@ -21,9 +21,8 @@ async function imageBytes(path: string): Promise<ArrayBuffer> {
 
 describe.skipIf(!live)("receipt scan, live", () => {
     it("a euro supermarket ticket becomes a draft in EUR with its lines", async () => {
-        const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
         const result = await readReceipt(
-            anthropic(process.env.CLAUDE_FAST_MODEL_ID || CLAUDE_FAST_MODEL_ID),
+            languageModel(process.env.AI_FAST_MODEL_ID || AI_FAST_MODEL_ID),
             await imageBytes(RECEIPT_PATH),
             {
                 accounts: ["Visa Sabadell", "Cash"],

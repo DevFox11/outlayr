@@ -290,8 +290,8 @@ describe("voice thread + speak guard ladder", () => {
         });
     });
 
-    it("returns notConfigured when ANTHROPIC_API_KEY is unset, never throws", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "");
+    it("returns notConfigured when DEEPSEEK_API_KEY is unset, never throws", async () => {
+        vi.stubEnv("DEEPSEEK_API_KEY", "");
         const t = harness();
         const identity = await seedAuthUser(t);
         await expect(authenticatedAs(t, identity).action(api.voiceEntry.speak, ACTION_ARGS)).resolves.toMatchObject({
@@ -300,7 +300,7 @@ describe("voice thread + speak guard ladder", () => {
     });
 
     it("never sends a clip from a build that asked about other AI providers", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         vi.stubEnv("ELEVENLABS_API_KEY", "test-elevenlabs-key");
         const t = harness();
         const identity = await seedAuthUser(t);
@@ -312,7 +312,7 @@ describe("voice thread + speak guard ladder", () => {
     });
 
     it("returns invalid for an empty clip, an oversized clip, a malformed today, or a thread that is not the caller's", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         vi.stubEnv("ELEVENLABS_API_KEY", "test-elevenlabs-key");
         const t = harness();
         const identity = await seedAuthUser(t);
@@ -425,7 +425,7 @@ describe("voice thread + speak guard ladder", () => {
     });
 
     it("returns notEntitled once a free user's capture pool is spent", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         vi.stubEnv("ELEVENLABS_API_KEY", "test-elevenlabs-key");
         const t = harness();
         const identity = await seedAuthUser(t);
@@ -450,7 +450,7 @@ describe("voice thread + speak guard ladder", () => {
     });
 
     it("returns rateLimited once the per-user bucket is exhausted", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         vi.stubEnv("ELEVENLABS_API_KEY", "test-elevenlabs-key");
         const t = harness();
         const identity = await seedAuthUser(t);

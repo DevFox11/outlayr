@@ -80,8 +80,8 @@ describe("csvImport guard ladder", () => {
         });
     });
 
-    it("returns notConfigured when ANTHROPIC_API_KEY is unset, never throws", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "");
+    it("returns notConfigured when DEEPSEEK_API_KEY is unset, never throws", async () => {
+        vi.stubEnv("DEEPSEEK_API_KEY", "");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -92,7 +92,7 @@ describe("csvImport guard ladder", () => {
     });
 
     it("never sends labels from a build that asked about other AI providers", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
         const { aiConsent: _consent, ...oldBuild } = BASE_ARGS;
@@ -103,7 +103,7 @@ describe("csvImport guard ladder", () => {
     });
 
     it("returns invalid when there are no labels to classify", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -116,7 +116,7 @@ describe("csvImport guard ladder", () => {
     });
 
     it("returns invalid when labels exceed the 200-label cap", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -129,7 +129,7 @@ describe("csvImport guard ladder", () => {
     });
 
     it("returns notEntitled for a free user before either bucket is spent", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -144,7 +144,7 @@ describe("csvImport guard ladder", () => {
     });
 
     it("returns rateLimited and never throws once the per-user bucket is exhausted", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -171,7 +171,7 @@ describe("csvImport guard ladder", () => {
     });
 
     it("returns rateLimited and never throws once the global window is exhausted", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         revenuecatTest.register(t);
         const identity = await seedAuthUser(t);
@@ -191,7 +191,7 @@ describe("csvImport guard ladder", () => {
     });
 
     it("a revoked session skips the grounded tier and never rejects the action", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -250,7 +250,7 @@ describe(perUserBurst, () => {
     });
 
     it("reaches the per-user limit on every call, not once at module load", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         vi.stubEnv("CSV_IMPORT_CAPACITY", "25");
         const t = convexTest(schema, modules);
         revenuecatTest.register(t);
@@ -409,7 +409,7 @@ describe(scheduleImportGrounded, () => {
 
 describe("merchantKnowledge tier", () => {
     it("answers a known label from merchantKnowledge with its stored domain, without the model", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -448,7 +448,7 @@ describe("merchantKnowledge tier", () => {
     });
 
     it("an unknown label schedules a grounded lookup even when the model tier fails", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         vi.stubGlobal(
             "fetch",
             vi.fn(
@@ -480,7 +480,7 @@ describe("merchantKnowledge tier", () => {
     });
 
     it("keeps knowledge-tier suggestions when the model tier fails on a mixed batch", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         vi.stubGlobal(
             "fetch",
             vi.fn(

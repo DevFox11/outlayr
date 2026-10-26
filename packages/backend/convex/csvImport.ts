@@ -1,6 +1,5 @@
 // oxlint-disable unicorn/filename-case -- the Convex module name is the function path: clients call this action as api.csvImport.csvImport
 
-import { createAnthropic } from "@ai-sdk/anthropic";
 import { HOUR, RateLimiter } from "@convex-dev/rate-limiter";
 import { generateText, NoObjectGeneratedError, Output, TypeValidationError } from "ai";
 import type { LanguageModel } from "ai";
@@ -12,11 +11,12 @@ import { components, internal } from "./_generated/api";
 import { action } from "./_generated/server";
 import { maybeScheduleGrounded, sanitizeRegionCode } from "./enrichment";
 import type { GroundedScheduleCtx } from "./enrichment";
+import { aiApiKey, aiProviderOptions, languageModel } from "./lib/aiProvider";
 import { describeTree } from "./lib/ledgerPrompt";
 import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
 import { knowledgeKeys, merchantKey } from "./lib/merchantKey";
-import { AI_CONSENT_VERSION, CLAUDE_FAST_MODEL_ID } from "./lib/models";
+import { AI_CONSENT_VERSION, fastModelId } from "./lib/models";
 import { isPro } from "./revenuecat";
 
 const MAX_LABELS = 200;
@@ -118,7 +118,7 @@ export async function classify(model: LanguageModel, args: RunClassifyArgs): Pro
             model,
             output: Output.object({ schema: modelOutputSchema }),
             prompt: buildPrompt(args),
-            reasoning: "low",
+            providerOptions: aiProviderOptions(),
         });
 
         const known = new Set(args.categoryTree.flatMap((branch) => [branch.name, ...branch.children]));
@@ -192,7 +192,7 @@ export async function scheduleImportGrounded(
     return scheduled;
 }
 
-/** Read live so `npx convex env set ANTHROPIC_API_KEY=""` takes effect on the next call. */
+/** Read live so `npx convex env set DEEPSEEK_API_KEY=""` takes effect on the next call. */
 export const csvImport = action({
     args: csvImportArgs,
     handler: async (ctx, args): Promise<CsvImportResult> => {
@@ -201,7 +201,7 @@ export const csvImport = action({
             return failure("unauthenticated");
         }
 
-        const apiKey = process.env.ANTHROPIC_API_KEY;
+        const apiKey = aiApiKey();
         if (!apiKey || args.aiConsent !== AI_CONSENT_VERSION) {
             return failure("notConfigured");
         }
@@ -257,8 +257,8 @@ export const csvImport = action({
             return { status: "ok", suggestions: known };
         }
 
-        const modelId = process.env.CLAUDE_FAST_MODEL_ID || CLAUDE_FAST_MODEL_ID;
-        const classified = await classify(createAnthropic({ apiKey })(modelId), {
+        const modelId = fastModelId();
+        const classified = await classify(languageModel(modelId), {
             categoryTree: args.categoryTree,
             labels: remaining,
         });

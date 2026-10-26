@@ -1,4 +1,3 @@
-import { createAnthropic } from "@ai-sdk/anthropic";
 import { DAY, HOUR, RateLimiter } from "@convex-dev/rate-limiter";
 import { generateText, Output } from "ai";
 import type { LanguageModel } from "ai";
@@ -8,13 +7,14 @@ import { z } from "zod";
 import { components, internal } from "./_generated/api";
 import { action, internalQuery } from "./_generated/server";
 import type { ActionCtx } from "./_generated/server";
+import { aiApiKey, aiProviderOptions, languageModel } from "./lib/aiProvider";
 import { optionalUserId } from "./lib/auth";
 import { PICKABLE_CURRENCY_CODES } from "./lib/currencies";
 import { describeTree } from "./lib/ledgerPrompt";
 import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
 import { knowledgeKey, knowledgeKeys } from "./lib/merchantKey";
-import { AI_CONSENT_VERSION, CLAUDE_FAST_MODEL_ID } from "./lib/models";
+import { AI_CONSENT_VERSION, fastModelId } from "./lib/models";
 import { DOMAIN_PATTERN, MAX_DOMAIN_LENGTH, MAX_TAG_LENGTH, MAX_TAGS, PICTOGRAPHIC } from "./lib/sanitizeLimits";
 import { isPro } from "./revenuecat";
 
@@ -302,7 +302,7 @@ export async function runSuggest(model: LanguageModel, args: RunSuggestArgs): Pr
         model,
         output: Output.object({ schema: modelOutputSchema }),
         prompt: buildPrompt(args.name, args.income, args.locale, args.regionCode, args.currency, tree),
-        reasoning: "none",
+        providerOptions: aiProviderOptions(),
     });
 
     return {
@@ -396,7 +396,7 @@ export async function maybeScheduleGrounded(
     return true;
 }
 
-/** Read live so `npx convex env set ANTHROPIC_API_KEY=""` takes effect on the next call. */
+/** Read live so `npx convex env set DEEPSEEK_API_KEY=""` takes effect on the next call. */
 export const suggest = action({
     args: suggestArgs,
     handler: async (ctx, args): Promise<Suggestion> => {
@@ -429,7 +429,7 @@ export const suggest = action({
             return EMPTY;
         }
 
-        const apiKey = process.env.ANTHROPIC_API_KEY;
+        const apiKey = aiApiKey();
         if (!apiKey || args.aiConsent !== AI_CONSENT_VERSION) {
             return EMPTY;
         }
@@ -447,8 +447,8 @@ export const suggest = action({
         }
 
         try {
-            const modelId = process.env.CLAUDE_FAST_MODEL_ID || CLAUDE_FAST_MODEL_ID;
-            const result = await runSuggest(createAnthropic({ apiKey })(modelId), {
+            const modelId = fastModelId();
+            const result = await runSuggest(languageModel(modelId), {
                 categoryTree: args.categoryTree,
                 currency,
                 income: args.income,

@@ -1,4 +1,3 @@
-import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText, NoObjectGeneratedError, Output, TypeValidationError } from "ai";
 import type { LanguageModel } from "ai";
 import { v } from "convex/values";
@@ -6,6 +5,7 @@ import type { Infer } from "convex/values";
 import { z } from "zod";
 
 import { action } from "./_generated/server";
+import { aiApiKey, aiProviderOptions, languageModel } from "./lib/aiProvider";
 import {
     CURRENCY_PATTERN,
     DATE_PATTERN,
@@ -16,7 +16,7 @@ import {
     trimTo,
 } from "./lib/ledgerPrompt";
 import type { LedgerContext } from "./lib/ledgerPrompt";
-import { AI_CONSENT_VERSION, CLAUDE_MODEL_ID } from "./lib/models";
+import { AI_CONSENT_VERSION, mainModelId } from "./lib/models";
 import {
     admitScan,
     KNOWN_CURRENCIES,
@@ -205,7 +205,7 @@ export async function readInstallmentPlan(
             ],
             model,
             output: Output.object({ schema: modelOutputSchema }),
-            reasoning: "low",
+            providerOptions: aiProviderOptions(),
             system: buildPrompt(context),
         });
         const plan = normalizePlan(output, context);
@@ -226,7 +226,7 @@ export const scan = action({
             return failure("unauthenticated");
         }
 
-        const apiKey = process.env.ANTHROPIC_API_KEY;
+        const apiKey = aiApiKey();
         if (!apiKey || args.aiConsent !== AI_CONSENT_VERSION) {
             return failure("notConfigured");
         }
@@ -248,8 +248,8 @@ export const scan = action({
             return failure(admitted);
         }
 
-        const modelId = process.env.CLAUDE_MODEL_ID || CLAUDE_MODEL_ID;
-        return readInstallmentPlan(createAnthropic({ apiKey })(modelId), args.image, {
+        const modelId = mainModelId();
+        return readInstallmentPlan(languageModel(modelId), args.image, {
             accounts: args.accounts,
             currency: args.currency,
             language: args.language,

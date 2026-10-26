@@ -140,18 +140,18 @@ describe("scan guard ladder", () => {
         const asUser = authenticatedAs(t, await seedAuthUser(t));
         const { aiConsent: _consent, ...oldBuild } = BASE_ARGS;
 
-        vi.stubEnv("ANTHROPIC_API_KEY", "");
+        vi.stubEnv("DEEPSEEK_API_KEY", "");
         await expect(asUser.action(api.installmentScan.scan, BASE_ARGS)).resolves.toMatchObject({
             status: "notConfigured",
         });
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         await expect(asUser.action(api.installmentScan.scan, oldBuild)).resolves.toMatchObject({
             status: "notConfigured",
         });
     });
 
     it("returns invalid for an oversized or non-JPEG image and for a malformed date, currency or region", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         const asUser = authenticatedAs(t, await seedAuthUser(t));
         const invalid = { plan: null, status: "invalid" };
@@ -171,7 +171,7 @@ describe("scan guard ladder", () => {
     });
 
     it("spends from the receipt scans' capture pool, before any model call", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);

@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-// Opt-in: RUN_LIVE_MODEL_TESTS=1 plus ANTHROPIC_API_KEY and ELEVENLABS_API_KEY from `npx convex env get`. Record
+// Opt-in: RUN_LIVE_MODEL_TESTS=1 plus DEEPSEEK_API_KEY and ELEVENLABS_API_KEY from `npx convex env get`. Record
 // /tmp/voice-clip.m4a with `say --data-format=aac "Twelve fifty at Starbucks yesterday on the Amex"` and
 // /tmp/voice-fix.m4a with "No, that was today, and put it under groceries".
 
@@ -23,7 +23,7 @@ const modules = import.meta.glob("./**/*.ts");
 
 const live =
     process.env.RUN_LIVE_MODEL_TESTS === "1" &&
-    Boolean(process.env.ANTHROPIC_API_KEY) &&
+    Boolean(process.env.DEEPSEEK_API_KEY) &&
     Boolean(process.env.ELEVENLABS_API_KEY);
 const CLIP_PATH = process.env.VOICE_CLIP_PATH ?? "/tmp/voice-clip.m4a";
 const FIX_PATH = process.env.VOICE_FIX_PATH ?? "/tmp/voice-fix.m4a";

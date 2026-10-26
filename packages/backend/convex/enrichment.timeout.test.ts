@@ -48,7 +48,7 @@ async function scheduledGroundedRuns(t: ReturnType<typeof convexTest>) {
 }
 
 beforeEach(() => {
-    vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+    vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
 });
 
 describe("an inline call that timed out", () => {

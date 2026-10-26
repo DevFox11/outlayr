@@ -1,6 +1,5 @@
 // oxlint-disable unicorn/filename-case -- the Convex module name is the function path: this file is addressed as internal.groundedLookup.run by callers and by jobs already queued in _scheduled_functions
 
-import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText, isStepCount } from "ai";
 import type { LanguageModel, ToolSet } from "ai";
 import { v } from "convex/values";
@@ -20,12 +19,13 @@ import {
     sanitizeMerchantName,
     sanitizeTags,
 } from "./enrichment";
+import { aiConfigured, aiProvider, aiProviderOptions } from "./lib/aiProvider";
 import { describeTree } from "./lib/ledgerPrompt";
 import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { knowledgeKeys } from "./lib/merchantKey";
 import { CANONICAL_CATEGORY_NAMES, KEY_PATTERN, shouldPublish } from "./lib/merchantTrust";
 import type { KnowledgeCandidate } from "./lib/merchantTrust";
-import { CLAUDE_FAST_MODEL_ID } from "./lib/models";
+import { groundedModelId } from "./lib/models";
 import { budgetConfig, estimateMicros, measureMicros, WORST_CASE_SEARCH_CALLS } from "./lib/spend";
 
 const CANONICAL_NAMES_LIST = [...CANONICAL_CATEGORY_NAMES].join(", ");
@@ -157,6 +157,7 @@ export async function runGroundedLookupCall(
         maxRetries: 0,
         model: deps.grounding,
         prompt: buildGroundedPrompt(args),
+        providerOptions: aiProviderOptions(),
         stopWhen: isStepCount(4),
         tools: deps.groundingTools,
     });
@@ -220,14 +221,13 @@ export async function groundedAnswer(
     }
 
     let deps = overrideDeps;
-    let modelId: string = CLAUDE_FAST_MODEL_ID;
+    let modelId: string = groundedModelId();
     if (!deps) {
-        const apiKey = process.env.ANTHROPIC_API_KEY;
-        if (!apiKey) {
+        if (!aiConfigured()) {
             return null;
         }
-        const anthropic = createAnthropic({ apiKey });
-        modelId = process.env.CLAUDE_GROUNDED_MODEL_ID || CLAUDE_FAST_MODEL_ID;
+        const anthropic = aiProvider();
+        modelId = groundedModelId();
         deps = {
             grounding: anthropic(modelId),
             groundingTools: { web_search: anthropic.tools.webSearch_20250305({ maxUses: WORST_CASE_SEARCH_CALLS }) },

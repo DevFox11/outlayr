@@ -221,8 +221,8 @@ describe("scan guard ladder", () => {
         });
     });
 
-    it("returns notConfigured when ANTHROPIC_API_KEY is unset, never throws", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "");
+    it("returns notConfigured when DEEPSEEK_API_KEY is unset, never throws", async () => {
+        vi.stubEnv("DEEPSEEK_API_KEY", "");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -233,7 +233,7 @@ describe("scan guard ladder", () => {
     });
 
     it("never sends a photo from a build that asked about other AI providers", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
         const { aiConsent: _consent, ...oldBuild } = BASE_ARGS;
@@ -244,7 +244,7 @@ describe("scan guard ladder", () => {
     });
 
     it("returns invalid for an oversized, empty or non-JPEG image and for a malformed date, currency or region", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         const asUser = authenticatedAs(t, await seedAuthUser(t));
         const invalid = { receipt: null, status: "invalid" };
@@ -273,7 +273,7 @@ describe("scan guard ladder", () => {
     });
 
     it("a global reject spends none of the caller's captures", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -300,7 +300,7 @@ describe("scan guard ladder", () => {
     });
 
     it("returns notEntitled once a free user's capture pool is spent, before any model call", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -326,7 +326,7 @@ describe("scan guard ladder", () => {
     });
 
     it("returns rateLimited once the per-user bucket is exhausted, before any model call", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);

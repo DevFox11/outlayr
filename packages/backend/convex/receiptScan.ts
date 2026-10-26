@@ -1,6 +1,5 @@
 // oxlint-disable unicorn/filename-case -- the Convex module name is the function path: clients call this action as api.receiptScan.scan
 
-import { createAnthropic } from "@ai-sdk/anthropic";
 import { HOUR, isRateLimitError, RateLimiter } from "@convex-dev/rate-limiter";
 import { generateText, NoObjectGeneratedError, Output, TypeValidationError } from "ai";
 import type { LanguageModel } from "ai";
@@ -12,6 +11,7 @@ import { z } from "zod";
 import { components, internal } from "./_generated/api";
 import { action, internalMutation } from "./_generated/server";
 import type { ActionCtx } from "./_generated/server";
+import { aiApiKey, aiProviderOptions, languageModel } from "./lib/aiProvider";
 import { admitCapture } from "./lib/captures";
 import { PICKABLE_CURRENCY_CODES } from "./lib/currencies";
 import {
@@ -28,7 +28,7 @@ import {
 } from "./lib/ledgerPrompt";
 import type { LedgerContext } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
-import { AI_CONSENT_VERSION, CLAUDE_FAST_MODEL_ID } from "./lib/models";
+import { AI_CONSENT_VERSION, fastModelId } from "./lib/models";
 import { isPro } from "./revenuecat";
 
 // A Convex value tops out at 1MB and the photo travels as one; the client re-encodes to fit.
@@ -297,7 +297,7 @@ export async function readReceipt(
             ],
             model,
             output: Output.object({ schema: modelOutputSchema }),
-            reasoning: "low",
+            providerOptions: aiProviderOptions(),
             system: buildPrompt(context),
         });
         const receipt = normalizeDraft(output, context);
@@ -349,7 +349,7 @@ export const scan = action({
         }
 
         // Read per call, so clearing the key with `npx convex env set` takes effect on the next scan.
-        const apiKey = process.env.ANTHROPIC_API_KEY;
+        const apiKey = aiApiKey();
         if (!apiKey || args.aiConsent !== AI_CONSENT_VERSION) {
             return failure("notConfigured");
         }
@@ -372,8 +372,8 @@ export const scan = action({
             return failure(admitted);
         }
 
-        const modelId = process.env.CLAUDE_FAST_MODEL_ID || CLAUDE_FAST_MODEL_ID;
-        return readReceipt(createAnthropic({ apiKey })(modelId), args.image, {
+        const modelId = fastModelId();
+        return readReceipt(languageModel(modelId), args.image, {
             accounts: args.accounts,
             categoryTree: args.categoryTree,
             currency: args.currency,

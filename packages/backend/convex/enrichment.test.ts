@@ -97,8 +97,8 @@ describe("suggest guard ladder", () => {
         await expect(t.action(api.enrichment.suggest, BASE_ARGS)).resolves.toStrictEqual(EMPTY);
     });
 
-    it("returns EMPTY when ANTHROPIC_API_KEY is unset", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "");
+    it("returns EMPTY when DEEPSEEK_API_KEY is unset", async () => {
+        vi.stubEnv("DEEPSEEK_API_KEY", "");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -108,7 +108,7 @@ describe("suggest guard ladder", () => {
     });
 
     it("never sends a name from a build that asked about other AI providers", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const outbound = vi.fn<typeof fetch>();
         vi.stubGlobal("fetch", outbound);
         const t = convexTest(schema, modules);
@@ -122,7 +122,7 @@ describe("suggest guard ladder", () => {
     });
 
     it("returns EMPTY for a name shorter than 3 trimmed characters", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -135,7 +135,7 @@ describe("suggest guard ladder", () => {
     });
 
     it("returns EMPTY for a name longer than 64 trimmed characters", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -148,7 +148,7 @@ describe("suggest guard ladder", () => {
     });
 
     it("returns EMPTY and never throws once the per-user bucket is exhausted", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         rateLimiterTest.register(t);
         revenuecatTest.register(t);
@@ -170,7 +170,7 @@ describe("suggest guard ladder", () => {
     });
 
     it("returns EMPTY and never throws once the global window is exhausted", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
 
@@ -188,7 +188,7 @@ describe("suggest guard ladder", () => {
     });
 
     it("a background lookup draws its own bucket, not the form's", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
         const limitSpy = vi.spyOn(rateLimiter, "limit").mockResolvedValue({ ok: false, retryAfter: 1000 });
@@ -217,7 +217,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
     }
 
     it("a currency-scoped request reads its own partition, never the bare one", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "");
+        vi.stubEnv("DEEPSEEK_API_KEY", "");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
         await seedKnowledge(t, "Sushi Way");
@@ -253,7 +253,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
     });
 
     it("a new descriptor for a known merchant is answered from the cache, with no model configured", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "");
+        vi.stubEnv("DEEPSEEK_API_KEY", "");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
         await t.run((ctx) =>
@@ -333,7 +333,7 @@ describe("merchantKnowledge cache (Tier 1.5)", () => {
     });
 
     it("a knowledgeOnly miss returns EMPTY without consuming a rate limit or the model", async () => {
-        vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+        vi.stubEnv("DEEPSEEK_API_KEY", "test-deepseek-key");
         const t = convexTest(schema, modules);
         const identity = await seedAuthUser(t);
         const limitSpy = vi.spyOn(rateLimiter, "limit");
