@@ -1,9 +1,9 @@
-import SquareLock02Icon from "@hugeicons-pro/core-solid-rounded/SquareLock02Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import SquareLock02Icon from "lucide-react-native/icons/lock";
 import { createContext, use, useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { AppState, Pressable, View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { Text } from "@/components/text";
 import { useSettingBool } from "@/contexts/display-settings-context";
 import { lockFailureMessage, lockGate, lockIsUnenforceable } from "@/domain/app-lock";
@@ -130,7 +130,7 @@ function SwitcherShield() {
     }
     return (
         <View className="bg-background absolute inset-0 items-center justify-center">
-            <HugeiconsIcon color={colors.subtle} icon={SquareLock02Icon} size={56} />
+            <Icon color={colors.subtle} icon={SquareLock02Icon} size={56} />
         </View>
     );
 }
@@ -141,7 +141,7 @@ function AppLockScreen({ busy, message, onUnlock }: { busy: boolean; message: st
 
     return (
         <View className="bg-background absolute inset-0 items-center justify-center gap-4 px-8">
-            <HugeiconsIcon color={colors.subtle} icon={SquareLock02Icon} size={56} />
+            <Icon color={colors.subtle} icon={SquareLock02Icon} size={56} />
             <Text className="font-sans-semibold text-foreground text-title">{t("transaction.lock.title")}</Text>
 
             <Pressable

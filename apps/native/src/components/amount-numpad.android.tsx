@@ -151,7 +151,7 @@ function NumpadKeyTile({
             onPress={onPress}
         >
             {back ? (
-                // Material's own glyph: Hugeicons has no backspace key. The font it
+                // Material's own glyph: keeping the key on the platform face. The font it
                 // draws from loads on mount, behind the stage body's fade-in.
                 <SymbolView
                     name={{ android: "backspace", ios: "delete.left" }}

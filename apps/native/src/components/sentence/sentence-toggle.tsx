@@ -1,7 +1,7 @@
-import ArrowDataTransferVerticalIcon from "@hugeicons-pro/core-stroke-rounded/ArrowDataTransferVerticalIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import ArrowDataTransferVerticalIcon from "lucide-react-native/icons/arrow-up-down";
 import { Pressable, View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { useColors } from "@/theme/use-colors";
 
 import { Text } from "../text";
@@ -33,7 +33,7 @@ export function SentenceToggle({ accessibilityLabel, onPress, value }: SentenceT
         >
             <View className="flex-row items-baseline gap-1.5">
                 <Text className={cn(textClassName, "text-foreground")}>{value}</Text>
-                <HugeiconsIcon color={colors.tint} icon={ArrowDataTransferVerticalIcon} size={SWAP_GLYPH} />
+                <Icon color={colors.tint} icon={ArrowDataTransferVerticalIcon} size={SWAP_GLYPH} />
             </View>
             <View
                 className="bg-tint absolute right-0 left-0 h-[2px] rounded-full"

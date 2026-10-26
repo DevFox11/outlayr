@@ -1,10 +1,9 @@
-import Camera01Icon from "@hugeicons-pro/core-stroke-rounded/Camera01Icon";
-import Image01Icon from "@hugeicons-pro/core-stroke-rounded/Image01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { addDays, startOfDay } from "@outlayr/money/calendar";
 import type { RateTable } from "@outlayr/money/valuation";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import Camera01Icon from "lucide-react-native/icons/camera";
+import Image01Icon from "lucide-react-native/icons/image";
 import { Button } from "panelui-native/components/button";
 import { Shimmer } from "panelui-native/components/shimmer";
 import { useCallback, useMemo, useState } from "react";
@@ -14,6 +13,7 @@ import Animated, { FadeIn, FadeInDown, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AiConsentGate } from "@/components/ai-consent";
+import { Icon } from "@/components/icon";
 import { LimitToast } from "@/components/limit-toast";
 import { ModalClose } from "@/components/modal-close";
 import { PhotoStage } from "@/components/receipt/photo-stage";
@@ -235,12 +235,7 @@ export function BottomBar({
                             size="md"
                             startContent={
                                 secondary.icon ? (
-                                    <HugeiconsIcon
-                                        color={colors.foreground}
-                                        icon={secondary.icon}
-                                        size={18}
-                                        strokeWidth={1.9}
-                                    />
+                                    <Icon color={colors.foreground} icon={secondary.icon} size={18} strokeWidth={1.9} />
                                 ) : undefined
                             }
                             variant="secondary"
@@ -259,7 +254,7 @@ export function BottomBar({
                             size="md"
                             startContent={
                                 primary.icon ? (
-                                    <HugeiconsIcon
+                                    <Icon
                                         color={colors.accentForeground}
                                         icon={primary.icon}
                                         size={18}

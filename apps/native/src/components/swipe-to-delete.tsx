@@ -1,11 +1,11 @@
-import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import Delete02Icon from "lucide-react-native/icons/trash";
 import { useRef } from "react";
 import type { ReactNode } from "react";
 import { Pressable } from "react-native";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import type { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 
+import { Icon } from "@/components/icon";
 import { Text } from "@/components/text";
 import { useTranslation } from "@/i18n/context";
 import { useMaterialColors } from "@/theme/use-material-colors";
@@ -26,7 +26,7 @@ export function SwipeToDelete({ children, onDelete }: { children: ReactNode; onD
                 onDelete();
             }}
         >
-            <HugeiconsIcon color={m3.onError} icon={Delete02Icon} size={20} />
+            <Icon color={m3.onError} icon={Delete02Icon} size={20} />
             <Text className="font-sans-medium text-subtitle text-m3-on-error">{t("common.delete")}</Text>
         </Pressable>
     );

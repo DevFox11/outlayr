@@ -1,15 +1,15 @@
-import PercentCircleSolidIcon from "@hugeicons-pro/core-solid-rounded/PercentCircleIcon";
-import RefreshIcon from "@hugeicons-pro/core-stroke-rounded/RefreshIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { isFuture } from "@outlayr/money/calendar";
 import { utcDateString } from "@outlayr/money/dates";
 import { isTransactionRateNeeded } from "@outlayr/money/rates";
 import { isExact } from "@outlayr/money/valuation";
 import type { RateTable } from "@outlayr/money/valuation";
+import PercentCircleSolidIcon from "lucide-react-native/icons/circle-percent";
+import RefreshIcon from "lucide-react-native/icons/repeat";
 import { use } from "react";
 import { View } from "react-native";
 import type { AccessibilityActionEvent } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { TransactionWithCategory } from "@/data/transactions";
 import { formatTime, formatUpcomingDate } from "@/domain/dates";
@@ -35,7 +35,7 @@ import { cn } from "./tw";
 const DELETE_ACTION = "delete";
 
 function feeGlyph({ color, size }: { color: string; size: number }) {
-    return <HugeiconsIcon color={color} icon={PercentCircleSolidIcon} size={size} />;
+    return <Icon color={color} icon={PercentCircleSolidIcon} size={size} />;
 }
 
 const FEE_MARK_SIZE = 14;
@@ -155,7 +155,7 @@ function RowMeta({
                     {subtitle}
                 </Text>
                 {fee ? (
-                    <HugeiconsIcon
+                    <Icon
                         color={future ? colors.subtle : colors.muted}
                         icon={PercentCircleSolidIcon}
                         size={FEE_MARK_SIZE}
@@ -347,7 +347,7 @@ export function TransactionRow({
                             className="bg-surface-secondary absolute rounded-md"
                             style={{ bottom: BADGE_OFFSET, padding: 3, right: BADGE_OFFSET }}
                         >
-                            <HugeiconsIcon color={colors.foreground} icon={RefreshIcon} size={12} strokeWidth={2} />
+                            <Icon color={colors.foreground} icon={RefreshIcon} size={12} strokeWidth={2} />
                         </View>
                     ) : null}
                 </View>

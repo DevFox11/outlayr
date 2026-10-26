@@ -6,13 +6,13 @@ import {
     Text as ComposeText,
 } from "@expo/ui/jetpack-compose";
 import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import MinusSignIcon from "@hugeicons-pro/core-stroke-rounded/MinusSignIcon";
-import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
-import type { IconSvgElement } from "@hugeicons/react-native";
+import MinusSignIcon from "lucide-react-native/icons/minus";
+import PlusSignIcon from "lucide-react-native/icons/plus";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Icon } from "@/components/icon";
+import type { IconComponent } from "@/components/icon";
 import { ChoiceRow } from "@/components/list/list-row";
 import { ListItemText } from "@/components/list/material-list-item";
 import { MaterialHost } from "@/components/material-host";
@@ -243,7 +243,7 @@ function StepButton({
     onPress,
 }: {
     disabled: boolean;
-    icon: IconSvgElement;
+    icon: IconComponent;
     label: string;
     onPress: () => void;
 }) {
@@ -263,7 +263,7 @@ function StepButton({
             onPress={onPress}
             style={{ opacity: disabled ? 0.38 : 1 }}
         >
-            <HugeiconsIcon color={m3.onSurfaceVariant} icon={icon} size={20} />
+            <Icon color={m3.onSurfaceVariant} icon={icon} size={20} />
         </Pressable>
     );
 }

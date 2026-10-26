@@ -1,7 +1,6 @@
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Image } from "expo-image";
+import PlusSignIcon from "lucide-react-native/icons/plus";
+import Cancel01Icon from "lucide-react-native/icons/x";
 import { useEffect, useEffectEvent, useId, useRef } from "react";
 import { Pressable, View } from "react-native";
 import Animated, {
@@ -14,6 +13,7 @@ import Animated, {
 import type { SharedValue } from "react-native-reanimated";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 
+import { Icon } from "@/components/icon";
 import { LAUNCH_SPRING, useIdentityFlyUp } from "@/contexts/identity-draft-context";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useTranslation } from "@/i18n/context";
@@ -194,7 +194,7 @@ export function IdentityHero({
                 width: BADGE,
             }}
         >
-            <HugeiconsIcon color={colors.background} icon={PlusSignIcon} size={14} strokeWidth={2.4} />
+            <Icon color={colors.background} icon={PlusSignIcon} size={14} strokeWidth={2.4} />
         </View>
     );
 
@@ -253,7 +253,7 @@ export function IdentityHero({
                                     width: BADGE,
                                 }}
                             >
-                                <HugeiconsIcon color="#FFFFFF" icon={Cancel01Icon} size={13} strokeWidth={2.4} />
+                                <Icon color="#FFFFFF" icon={Cancel01Icon} size={13} strokeWidth={2.4} />
                             </Pressable>
                         )}
                     </View>

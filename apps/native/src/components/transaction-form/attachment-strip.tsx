@@ -1,11 +1,11 @@
-import Image01Icon from "@hugeicons-pro/core-stroke-rounded/Image01Icon";
-import Pdf01Icon from "@hugeicons-pro/core-stroke-rounded/Pdf01Icon";
-import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import Pdf01Icon from "lucide-react-native/icons/file-text";
+import Image01Icon from "lucide-react-native/icons/image";
+import PlusSignIcon from "lucide-react-native/icons/plus";
 import { Pressable, ScrollView, View } from "react-native";
 
 import { ActionMenu } from "@/components/action-menu";
 import type { ActionMenuItem } from "@/components/action-menu";
+import { Icon } from "@/components/icon";
 import { Image } from "@/components/styled";
 import { TapMenu } from "@/components/tap-menu";
 import { Text } from "@/components/text";
@@ -71,7 +71,7 @@ function AttachmentTile({
                     <Image className="size-full" contentFit="cover" source={{ uri }} />
                 ) : (
                     <View className="items-center gap-1 px-1.5">
-                        <HugeiconsIcon color={colors.muted} icon={pdf ? Pdf01Icon : Image01Icon} size={GLYPH} />
+                        <Icon color={colors.muted} icon={pdf ? Pdf01Icon : Image01Icon} size={GLYPH} />
                         {pdf && draft.name !== null ? (
                             <Text className="text-muted text-[10px] leading-[13px]" numberOfLines={1}>
                                 {draft.name}
@@ -112,7 +112,7 @@ export function AttachmentStrip({ attachments, menu, onPreview, onRemove }: Atta
                         className="border-separator items-center justify-center rounded-xl border border-dashed"
                         style={{ height: TILE, width: TILE }}
                     >
-                        <HugeiconsIcon color={colors.muted} icon={PlusSignIcon} size={GLYPH} />
+                        <Icon color={colors.muted} icon={PlusSignIcon} size={GLYPH} />
                     </View>
                 </TapMenu>
             ) : null}

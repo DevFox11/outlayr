@@ -1,15 +1,15 @@
-import CheckSolid from "@hugeicons-pro/core-solid-rounded/CheckmarkCircle02Icon";
-import CircleIcon from "@hugeicons-pro/core-stroke-rounded/CircleIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { SectionList } from "@legendapp/list/section-list";
 import { currencyTotals } from "@outlayr/money/currency-totals";
 import type { CurrencyBucket, CurrencyEntry } from "@outlayr/money/currency-totals";
+import CircleIcon from "lucide-react-native/icons/circle";
+import CheckSolid from "lucide-react-native/icons/circle-check";
 import { memo, useCallback, useMemo, useState } from "react";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DayTotal, MeasureCellAmount, RowAmount } from "@/components/amount-text";
 import { CategoryIconTile } from "@/components/category-icon-tile";
+import { Icon } from "@/components/icon";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
@@ -114,7 +114,7 @@ export const EntryRow = memo(
                 testID={`review-row-${index}`}
             >
                 <View testID={`review-row-checkbox-${index}`}>
-                    <HugeiconsIcon
+                    <Icon
                         color={checked ? colors.foreground : colors.subtle}
                         icon={checked ? CheckSolid : CircleIcon}
                         size={22}

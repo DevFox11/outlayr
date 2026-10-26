@@ -1,11 +1,11 @@
-import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import ArrowLeft01Icon from "lucide-react-native/icons/chevron-left";
 import type { ReactNode } from "react";
 import { createContext, use } from "react";
 import { Pressable, View } from "react-native";
 import Animated, { Keyframe, ReduceMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Icon } from "@/components/icon";
 import { FontScaleCapContext, Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
@@ -161,7 +161,7 @@ export const TransactionStage: typeof TransactionStageBase = ({
                             className="-ml-3 size-12 items-center justify-center"
                             onPress={onBack}
                         >
-                            <HugeiconsIcon color={m3.onSurfaceVariant} icon={ArrowLeft01Icon} size={ICON_SIZE} />
+                            <Icon color={m3.onSurfaceVariant} icon={ArrowLeft01Icon} size={ICON_SIZE} />
                         </Pressable>
                     ) : null}
                     {title == null ? null : (

@@ -1,15 +1,15 @@
-import ClipboardPasteIcon from "@hugeicons-pro/core-stroke-rounded/ClipboardPasteIcon";
-import File01Icon from "@hugeicons-pro/core-stroke-rounded/File01Icon";
-import Image01Icon from "@hugeicons-pro/core-stroke-rounded/Image01Icon";
-import type { IconSvgElement } from "@hugeicons/react-native";
+import ClipboardPasteIcon from "lucide-react-native/icons/clipboard-paste";
+import File01Icon from "lucide-react-native/icons/file";
+import Image01Icon from "lucide-react-native/icons/image";
 
+import type { IconComponent } from "@/components/icon";
 import type { TranslationKey } from "@/i18n/catalog";
 
 export type ImportSourceId = "csv" | "clipboard" | "screenshot";
 
 export interface ImportSource {
     readonly available: boolean;
-    readonly icon: IconSvgElement;
+    readonly icon: IconComponent;
     readonly id: ImportSourceId;
     readonly subtitleKey: TranslationKey;
     readonly titleKey: TranslationKey;

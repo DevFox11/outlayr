@@ -1,14 +1,14 @@
 import type { MenuComponentRef } from "@expo/ui/community/menu";
-import PlusSignCircleIcon from "@hugeicons-pro/core-solid-rounded/PlusSignCircleIcon";
-import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Stack, useRouter } from "expo-router";
+import PlusSignCircleIcon from "lucide-react-native/icons/circle-plus";
+import PlusSignIcon from "lucide-react-native/icons/plus";
 import { useMemo, useRef } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 
 import type { ActionMenuItem } from "@/components/action-menu";
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { CHILD_TILE, Eyebrow, PARENT_TILE } from "@/components/category-list-chrome";
+import { Icon } from "@/components/icon";
 import { useFabClearance } from "@/components/material-fab";
 import { RowMenu } from "@/components/row-menu";
 import { ScreenHeader } from "@/components/screen-header";
@@ -359,7 +359,7 @@ function CategoryRow({
 }
 
 function plusGlyph({ color, size }: { color: string; size: number }) {
-    return <HugeiconsIcon color={color} icon={PlusSignIcon} size={size} strokeWidth={2.4} />;
+    return <Icon color={color} icon={PlusSignIcon} size={size} strokeWidth={2.4} />;
 }
 
 function GhostAddRow({ tint, onPress }: { tint: string; onPress: () => void }) {
@@ -403,7 +403,7 @@ function SuggestedRow({
             <Text className="text-body text-m3-on-surface-variant flex-1" numberOfLines={1}>
                 {preset.name}
             </Text>
-            <HugeiconsIcon color={m3.onSurfaceVariant} icon={PlusSignCircleIcon} size={22} />
+            <Icon color={m3.onSurfaceVariant} icon={PlusSignCircleIcon} size={22} />
         </Pressable>
     );
 }

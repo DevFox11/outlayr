@@ -7,7 +7,6 @@
 #
 # Repository secrets:
 #
-#   HUGEICONS_PRO_TOKEN            the private icon registry
 #   POSTHOG_CLI_API_KEY            source map uploads
 #   EAS_IOS_DIST_P12               base64 .p12 with the distribution certificate and key
 #   EAS_IOS_P12_PASSWORD
@@ -122,7 +121,6 @@ jobs:
             - uses: ./.github/actions/setup-native
               with:
                   variables: ${{ toJSON(vars) }}
-                  hugeicons-token: ${{ secrets.HUGEICONS_PRO_TOKEN }}
 
             # EAS Build's remote counter ended at iOS 54 and Android 7. Starting past
             # both keeps every upload newer than anything either store has seen.

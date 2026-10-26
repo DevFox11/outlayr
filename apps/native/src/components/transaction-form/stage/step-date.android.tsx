@@ -1,9 +1,9 @@
 import { DateTimePicker, TimePickerDialog } from "@expo/ui/jetpack-compose";
-import Clock01Icon from "@hugeicons-pro/core-stroke-rounded/Clock01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import Clock01Icon from "lucide-react-native/icons/clock";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { MaterialHost } from "@/components/material-host";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
@@ -57,7 +57,7 @@ export const StepDate: typeof StepDateBase = ({ date, onChange, withTime = false
                     className="border-m3-outline-variant min-h-14 flex-row items-center gap-4 border-t px-2"
                     onPress={() => setTimeOpen(true)}
                 >
-                    <HugeiconsIcon color={m3.onSurfaceVariant} icon={Clock01Icon} size={24} />
+                    <Icon color={m3.onSurfaceVariant} icon={Clock01Icon} size={24} />
                     <Text className="text-body text-m3-on-surface flex-1">{t("transaction.field.time")}</Text>
                     <Text className="text-body text-m3-primary font-sans-medium">
                         {formatTime(date, use24Hour, language)}

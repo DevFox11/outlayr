@@ -1,8 +1,8 @@
-import ArrowDown01Icon from "@hugeicons-pro/core-solid-rounded/ArrowDown01Icon";
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import ArrowDown01Icon from "lucide-react-native/icons/chevron-down";
+import Cancel01Icon from "lucide-react-native/icons/x";
 import { Pressable, View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { useTranslation } from "@/i18n/context";
 import { withAlpha } from "@/theme/shade";
 import { useMaterialColors } from "@/theme/use-material-colors";
@@ -56,7 +56,7 @@ export const ScopeChip: typeof ScopeChipBase = ({
             >
                 {title}
             </Text>
-            {hasMenu ? <HugeiconsIcon color={ink} icon={ArrowDown01Icon} size={ICON_SIZE} /> : null}
+            {hasMenu ? <Icon color={ink} icon={ArrowDown01Icon} size={ICON_SIZE} /> : null}
         </View>
     );
 
@@ -88,7 +88,7 @@ export const ScopeChip: typeof ScopeChipBase = ({
                     className="-m-2 size-12 items-center justify-center"
                     onPress={onClear}
                 >
-                    <HugeiconsIcon color={ink} icon={Cancel01Icon} size={ICON_SIZE} />
+                    <Icon color={ink} icon={Cancel01Icon} size={ICON_SIZE} />
                 </Pressable>
             ) : null}
         </View>

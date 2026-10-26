@@ -1,7 +1,7 @@
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Chip } from "panelui-native/components/chip";
 import Animated, { LinearTransition } from "react-native-reanimated";
 
+import { Icon } from "@/components/icon";
 import { useColors } from "@/theme/use-colors";
 
 import { TapMenu } from "../../tap-menu";
@@ -46,7 +46,7 @@ export function FactChips({ chips }: { chips: readonly SentenceVerb[] }) {
                         selected={verb.active}
                         size="lg"
                         start={
-                            <HugeiconsIcon
+                            <Icon
                                 color={verb.active ? ON_TINT : colors.muted}
                                 icon={verb.active ? FACT_GLYPHS[verb.key].set : FACT_GLYPHS[verb.key].unset}
                                 size={CHIP_ICON}

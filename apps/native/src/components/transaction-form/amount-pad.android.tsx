@@ -1,7 +1,7 @@
-import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import ArrowDown01Icon from "lucide-react-native/icons/chevron-down";
 import { Pressable } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useTranslation } from "@/i18n/context";
 import { withAlpha } from "@/theme/shade";
@@ -41,7 +41,7 @@ export const TransactionFormAmountPad: typeof TransactionFormAmountPadBase = ({
             onPress={onCodePress}
         >
             <Text className="font-sans-medium text-caption text-m3-on-surface-variant">{code}</Text>
-            <HugeiconsIcon color={m3.onSurfaceVariant} icon={ArrowDown01Icon} size={18} />
+            <Icon color={m3.onSurfaceVariant} icon={ArrowDown01Icon} size={18} />
         </Pressable>
     ) : (
         <Text className="font-sans-medium text-caption text-m3-on-surface-variant">{code}</Text>

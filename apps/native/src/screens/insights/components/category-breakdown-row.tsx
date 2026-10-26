@@ -1,9 +1,9 @@
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import Cancel01Icon from "lucide-react-native/icons/x";
 import { Pressable, View } from "react-native";
 import type { AccessibilityActionEvent } from "react-native";
 
 import { CategoryIconTile } from "@/components/category-icon-tile";
+import { Icon } from "@/components/icon";
 import { ROW_TYPE } from "@/components/row-type";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
@@ -72,7 +72,7 @@ export function CategoryBreakdownRow({
                     importantForAccessibility="no-hide-descendants"
                     onPress={onClear}
                 >
-                    <HugeiconsIcon color={colors.muted} icon={Cancel01Icon} size={13} strokeWidth={2.5} />
+                    <Icon color={colors.muted} icon={Cancel01Icon} size={13} strokeWidth={2.5} />
                 </Pressable>
             ) : (
                 <DeltaCell delta={entry.delta} measure={measure} />

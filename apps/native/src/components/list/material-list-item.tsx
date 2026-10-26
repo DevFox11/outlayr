@@ -1,8 +1,8 @@
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import type { AccessibilityRole, AccessibilityState } from "react-native";
 
+import { Icon } from "@/components/icon";
 import type { SettingsIconName } from "@/components/settings/settings-icons";
 import { settingsIcon } from "@/components/settings/settings-icons";
 import { Text } from "@/components/text";
@@ -76,7 +76,7 @@ export function ListItemFrame({
 export function ListItemIcon({ icon, destructive = false }: { destructive?: boolean; icon: SettingsIconName }) {
     const m3 = useMaterialColors();
     return (
-        <HugeiconsIcon
+        <Icon
             color={destructive ? m3.error : m3.onSurfaceVariant}
             icon={settingsIcon(icon)}
             size={ICON_SIZE}

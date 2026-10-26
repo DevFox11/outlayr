@@ -1,10 +1,10 @@
-import ArrowDown01Icon from "@hugeicons-pro/core-solid-rounded/ArrowDown01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import ArrowDown01Icon from "lucide-react-native/icons/chevron-down";
 import { useEffect, useState } from "react";
 import type { ComponentProps, ReactNode, Ref } from "react";
 import { AccessibilityInfo, Pressable, View } from "react-native";
 import type { TextInput as RNTextInput, TextInputInstance } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { Text, TextInput } from "@/components/text";
 import { withAlpha } from "@/theme/shade";
 import { useMaterialColors } from "@/theme/use-material-colors";
@@ -225,7 +225,7 @@ export function OutlinedSelectField({
                     <View className="flex-1" importantForAccessibility="no-hide-descendants">
                         {value}
                     </View>
-                    {dropdown ? <HugeiconsIcon color={m3.onSurfaceVariant} icon={ArrowDown01Icon} size={20} /> : null}
+                    {dropdown ? <Icon color={m3.onSurfaceVariant} icon={ArrowDown01Icon} size={20} /> : null}
                 </Pressable>
                 {trailing}
             </View>

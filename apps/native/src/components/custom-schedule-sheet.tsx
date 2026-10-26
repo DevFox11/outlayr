@@ -1,10 +1,9 @@
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import CheckIcon from "@hugeicons-pro/core-stroke-rounded/CheckIcon";
-import MinusSignIcon from "@hugeicons-pro/core-stroke-rounded/MinusSignIcon";
-import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { MAX_INTERVAL, RECURRING_TYPE, SELECTABLE_RECURRING_TYPES, schedulePreview } from "@outlayr/money/recurrence";
 import type { ScheduledCharge } from "@outlayr/money/recurrence";
+import CheckIcon from "lucide-react-native/icons/check";
+import MinusSignIcon from "lucide-react-native/icons/minus";
+import PlusSignIcon from "lucide-react-native/icons/plus";
+import Cancel01Icon from "lucide-react-native/icons/x";
 import { BottomSheet } from "panelui-native/components/bottom-sheet";
 import { Button } from "panelui-native/components/button";
 import { Tabs } from "panelui-native/components/tabs";
@@ -13,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, useAnimatedStyle, withTiming } from "react-native-reanimated";
 
+import { Icon } from "@/components/icon";
 import { formatChargeDate } from "@/domain/dates";
 import type { TranslationKey } from "@/i18n/catalog";
 import { useLanguage, useTranslation } from "@/i18n/context";
@@ -244,7 +244,7 @@ export function CustomScheduleSheet({
                         size="icon"
                         variant="secondary"
                     >
-                        <HugeiconsIcon color={colors.foreground} icon={Cancel01Icon} size={22} />
+                        <Icon color={colors.foreground} icon={Cancel01Icon} size={22} />
                     </Button>
 
                     <Text accessibilityRole="header" className="text-foreground text-lg font-medium">
@@ -252,7 +252,7 @@ export function CustomScheduleSheet({
                     </Text>
 
                     <Button accessibilityLabel={t("common.done")} className="rounded-full" onPress={done} size="icon">
-                        <HugeiconsIcon color={colors.accentForeground} icon={CheckIcon} size={22} />
+                        <Icon color={colors.accentForeground} icon={CheckIcon} size={22} />
                     </Button>
                 </View>
 
@@ -393,7 +393,7 @@ function StepButton({ icon, onStep, disabled, accessibilityLabel }: StepButtonPr
             }}
             onPressOut={release}
         >
-            <HugeiconsIcon color={colors.foreground} icon={icon} size={STEP_ICON_SIZE} strokeWidth={2.4} />
+            <Icon color={colors.foreground} icon={icon} size={STEP_ICON_SIZE} strokeWidth={2.4} />
         </Pressable>
     );
 }

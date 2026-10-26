@@ -1,13 +1,11 @@
-import ArrowDataTransferHorizontalIcon from "@hugeicons-pro/core-stroke-rounded/ArrowDataTransferHorizontalIcon";
-import FileImportIcon from "@hugeicons-pro/core-stroke-rounded/FileImportIcon";
-import Mic01Icon from "@hugeicons-pro/core-stroke-rounded/Mic01Icon";
-import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
-import ReceiptDollarIcon from "@hugeicons-pro/core-stroke-rounded/ReceiptDollarIcon";
-import ScanIcon from "@hugeicons-pro/core-stroke-rounded/ScanIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
-import type { IconSvgElement } from "@hugeicons/react-native";
 import { router, useFocusEffect } from "expo-router";
 import type { Href } from "expo-router";
+import ArrowDataTransferHorizontalIcon from "lucide-react-native/icons/arrow-right-left";
+import FileImportIcon from "lucide-react-native/icons/file-input";
+import Mic01Icon from "lucide-react-native/icons/mic";
+import PlusSignIcon from "lucide-react-native/icons/plus";
+import ReceiptDollarIcon from "lucide-react-native/icons/receipt";
+import ScanIcon from "lucide-react-native/icons/scan";
 import { Fab } from "panelui-native/components/fab";
 import { useGlassMaterial } from "panelui-native/primitives/glass";
 import { useCallback, useRef, useState } from "react";
@@ -15,6 +13,8 @@ import { useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScopedVariables, useCSSVariable } from "uniwind";
 
+import { Icon } from "@/components/icon";
+import type { IconComponent } from "@/components/icon";
 import { ImportSheet } from "@/components/import-sheet/import-sheet";
 import type { ImportSheetHandle } from "@/components/import-sheet/import-sheet";
 import { cn } from "@/components/tw";
@@ -109,7 +109,7 @@ function fitDial(actionCount: number, room: number, fontScale: number, width: La
 
 interface AddAction {
     href: Href | null;
-    icon: IconSvgElement;
+    icon: IconComponent;
     key: string;
     label: string;
 }
@@ -130,7 +130,7 @@ function DialAction({
 
     return (
         <Fab.Action
-            icon={<HugeiconsIcon color={foreground} icon={action.icon} size={ACTION_ICON_SIZE} strokeWidth={1.8} />}
+            icon={<Icon color={foreground} icon={action.icon} size={ACTION_ICON_SIZE} strokeWidth={1.8} />}
             label={action.label}
             labelClassName={labelClassName(lines, width)}
             onPress={() => onSelect(action)}
@@ -220,7 +220,7 @@ export function FloatingAddButton() {
                     // them from 44pt to 56pt, which `ACTION_HEIGHT` and `TRIGGER_HEIGHT` budget for.
                     size="lg"
                     icon={
-                        <HugeiconsIcon
+                        <Icon
                             color={glassDrawn ? tint : accentForeground}
                             icon={PlusSignIcon}
                             size={TRIGGER_ICON_SIZE}

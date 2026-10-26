@@ -1,7 +1,7 @@
-import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import ArrowRight01Icon from "lucide-react-native/icons/chevron-right";
 import { Pressable, View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { MonoLabel } from "@/components/mono-label";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
@@ -51,7 +51,7 @@ export function SourceStep() {
                         className="items-center justify-center"
                         style={{ height: ICON_TILE_SIZE, width: ICON_TILE_SIZE }}
                     >
-                        <HugeiconsIcon color={colors.foreground} icon={source.icon} size={20} strokeWidth={1.9} />
+                        <Icon color={colors.foreground} icon={source.icon} size={20} strokeWidth={1.9} />
                     </View>
                     <View className="flex-1 gap-0.5">
                         <Text className="font-sans-medium text-callout text-foreground" numberOfLines={1}>
@@ -62,7 +62,7 @@ export function SourceStep() {
                         </Text>
                     </View>
                     {source.available ? (
-                        <HugeiconsIcon color={colors.muted} icon={ArrowRight01Icon} size={16} strokeWidth={2} />
+                        <Icon color={colors.muted} icon={ArrowRight01Icon} size={16} strokeWidth={2} />
                     ) : null}
                 </Pressable>
             ))}

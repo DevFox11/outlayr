@@ -1,8 +1,8 @@
-import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import ArrowDown01Icon from "lucide-react-native/icons/chevron-down";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { Sentence } from "@/components/sentence/sentence";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
@@ -113,7 +113,7 @@ export function StepFee<Id extends string>({
                         <Text className={cn(CELL_VALUE, "shrink")} numberOfLines={1}>
                             {loggedAs}
                         </Text>
-                        <HugeiconsIcon color={colors.tint} icon={ArrowDown01Icon} size={CHEVRON} />
+                        <Icon color={colors.tint} icon={ArrowDown01Icon} size={CHEVRON} />
                     </View>
                 </Pressable>
                 {total === null ? null : (

@@ -1,9 +1,9 @@
-import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
-import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import Tick02Icon from "lucide-react-native/icons/check";
+import ArrowRight01Icon from "lucide-react-native/icons/chevron-right";
 import type { ReactNode } from "react";
 import { Pressable, Switch, View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { RowShell } from "@/components/list/row-shell";
 import { MonoLabel } from "@/components/mono-label";
 import type { SettingsIconName } from "@/components/settings/settings-icons";
@@ -44,7 +44,7 @@ function Disclosure({ value }: { value?: string }) {
                     {value}
                 </Text>
             ) : null}
-            <HugeiconsIcon color={colors.subtle} icon={ArrowRight01Icon} size={16} strokeWidth={2.2} />
+            <Icon color={colors.subtle} icon={ArrowRight01Icon} size={16} strokeWidth={2.2} />
         </View>
     );
 }
@@ -149,7 +149,7 @@ export function ChoiceRow({
                 {detail ? <Text className="text-muted text-subtitle leading-snug">{detail}</Text> : null}
             </View>
             {value ? <Text className="text-body text-muted tabular-nums">{value}</Text> : null}
-            {selected ? <HugeiconsIcon color={colors.tint} icon={Tick02Icon} size={20} strokeWidth={2.4} /> : null}
+            {selected ? <Icon color={colors.tint} icon={Tick02Icon} size={20} strokeWidth={2.4} /> : null}
         </Pressable>
     );
 }

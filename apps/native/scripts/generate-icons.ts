@@ -4,39 +4,39 @@
 import { writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
-import { loadIcon, resetDirectory, toSvg } from "./hugeicon-raster";
 import { SETS } from "./icon-sets";
 import type { IconSet } from "./icon-sets";
+import { loadIcon, resetDirectory } from "./lucide-raster";
 
 const appDir = resolve(dirname(process.argv[1]), "..");
 
-async function writeSet(set: IconSet): Promise<number> {
+// Lucide draws one glyph per icon; the selected tab reads as the same line drawn heavier.
+const SELECTED_STROKE = 2.5;
+
+function writeSet(set: IconSet): number {
     const outDir = join(appDir, "assets", set.dir);
     resetDirectory(outDir);
 
     let written = 0;
     for (const entry of set.entries) {
-        const weight = entry.weight ?? "stroke";
-
-        const strokeWidth = weight === "solid" ? undefined : (entry.stroke ?? set.stroke);
+        const strokeWidth = entry.stroke ?? set.stroke;
 
         const base = join(outDir, entry.slug);
-        // oxlint-disable-next-line no-await-in-loop -- each entry prints its progress line under its own set header
-        writeFileSync(`${base}.svg`, toSvg(await loadIcon(weight, entry.icon), strokeWidth, entry.ink));
+        writeFileSync(`${base}.svg`, loadIcon(entry.icon, strokeWidth, entry.ink));
         written += 1;
 
         if (entry.withSelected) {
-            writeFileSync(`${base}-selected.svg`, toSvg(await loadIcon("solid", entry.icon)));
+            writeFileSync(`${base}-selected.svg`, loadIcon(entry.icon, SELECTED_STROKE, entry.ink));
             written += 1;
         }
 
-        console.log(`  ${entry.slug} ← ${entry.icon} (${weight}${entry.withSelected ? " + solid" : ""})`);
+        console.log(`  ${entry.slug} ← ${entry.icon}${entry.withSelected ? " + selected" : ""}`);
     }
 
     return written;
 }
 
-async function main() {
+function main() {
     const [only] = process.argv.slice(2);
     const sets = only ? SETS.filter((set) => set.dir === only) : SETS;
 
@@ -47,14 +47,15 @@ async function main() {
     let total = 0;
     for (const set of sets) {
         console.log(`\n${set.dir}`);
-        // oxlint-disable-next-line no-await-in-loop -- writeSet empties its output directory first, so concurrent sets would interleave their progress lines under the wrong header
-        total += await writeSet(set);
+        total += writeSet(set);
     }
 
     console.log(`\nWrote ${total} SVGs across ${sets.length} set${sets.length === 1 ? "" : "s"}`);
 }
 
-main().catch((error: unknown) => {
+try {
+    main();
+} catch (error) {
     console.error(error instanceof Error ? error.message : error);
     process.exit(1);
-});
+}

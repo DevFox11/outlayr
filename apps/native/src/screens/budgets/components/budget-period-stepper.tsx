@@ -1,10 +1,10 @@
-import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
-import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import type { BudgetWindow } from "@outlayr/money/budget-window";
+import ArrowLeft01Icon from "lucide-react-native/icons/chevron-left";
+import ArrowRight01Icon from "lucide-react-native/icons/chevron-right";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { MonoLabel } from "@/components/mono-label";
 import { budgetWindowLabel } from "@/domain/budget-math";
 import { useTranslation } from "@/i18n/context";
@@ -74,11 +74,6 @@ function StepButton({
 function ArrowGlyph({ back = false }: { back?: boolean }) {
     const colors = useColors();
     return (
-        <HugeiconsIcon
-            color={colors.foreground}
-            icon={back ? ArrowLeft01Icon : ArrowRight01Icon}
-            size={18}
-            strokeWidth={2}
-        />
+        <Icon color={colors.foreground} icon={back ? ArrowLeft01Icon : ArrowRight01Icon} size={18} strokeWidth={2} />
     );
 }

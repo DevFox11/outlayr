@@ -1,7 +1,7 @@
-import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import ArrowDown01Icon from "lucide-react-native/icons/chevron-down";
 
 import { GlassButton } from "@/components/glass-button";
+import { Icon } from "@/components/icon";
 import type { NumpadKey, NumpadMode } from "@/domain/numpad";
 import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
 import { useTranslation } from "@/i18n/context";
@@ -57,7 +57,7 @@ export function TransactionFormAmountPad({
             onPress={onCodePress}
         >
             {codeText}
-            <HugeiconsIcon color={colors.muted} icon={ArrowDown01Icon} size={16} />
+            <Icon color={colors.muted} icon={ArrowDown01Icon} size={16} />
         </GlassButton>
     ) : (
         codeText

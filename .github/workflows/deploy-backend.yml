@@ -30,7 +30,6 @@ jobs:
             - uses: ./.github/actions/setup-native
               with:
                   variables: ${{ toJSON(vars) }}
-                  hugeicons-token: ${{ secrets.HUGEICONS_PRO_TOKEN }}
 
             - name: Deploy functions
               working-directory: packages/backend

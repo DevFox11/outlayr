@@ -1,7 +1,6 @@
-import ViewIcon from "@hugeicons-pro/core-stroke-rounded/ViewIcon";
-import ViewOffSlashIcon from "@hugeicons-pro/core-stroke-rounded/ViewOffSlashIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import ViewIcon from "lucide-react-native/icons/eye";
+import ViewOffSlashIcon from "lucide-react-native/icons/eye-off";
 import { useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { KeyboardAvoidingView, Pressable, View } from "react-native";
@@ -10,6 +9,7 @@ import { z } from "zod";
 
 import type { EmailSignInRoute } from "@/components/account/provider-sign-in-buttons";
 import { FirstRun } from "@/components/first-run";
+import { Icon } from "@/components/icon";
 import { MonoLabel } from "@/components/mono-label";
 import { Text, TextInput } from "@/components/text";
 import { cn } from "@/components/tw";
@@ -321,12 +321,7 @@ function Field({ hint, label, secureTextEntry, ...input }: FieldProps) {
                         hitSlop={12}
                         onPress={() => setRevealed(!revealed)}
                     >
-                        <HugeiconsIcon
-                            color={muted}
-                            icon={revealed ? ViewOffSlashIcon : ViewIcon}
-                            size={20}
-                            strokeWidth={1.7}
-                        />
+                        <Icon color={muted} icon={revealed ? ViewOffSlashIcon : ViewIcon} size={20} strokeWidth={1.7} />
                     </Pressable>
                 ) : null}
             </View>

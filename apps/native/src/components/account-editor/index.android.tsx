@@ -1,9 +1,9 @@
 import type { BottomSheetModal } from "@expo/ui/community/bottom-sheet";
-import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
 import { isPerson, toAccountKind } from "@outlayr/money/account-kind";
 import type { AccountKind } from "@outlayr/money/account-kind";
 import { useForm, useSelector } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
+import Delete02Icon from "lucide-react-native/icons/trash";
 import { useEffect, useRef, useState } from "react";
 import { Keyboard, ScrollView, View } from "react-native";
 import type { TextInputInstance } from "react-native";

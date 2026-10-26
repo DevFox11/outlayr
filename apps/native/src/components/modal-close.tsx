@@ -1,9 +1,9 @@
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import Cancel01Icon from "lucide-react-native/icons/x";
 import { Button } from "panelui-native/components/button";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Icon } from "@/components/icon";
 import { useColors } from "@/theme/use-colors";
 
 // The route is a `modal` card that already sits under the status bar, so the window's top inset does not apply
@@ -33,7 +33,7 @@ export function ModalClose({ accessibilityLabel, disabled = false, onPress }: Mo
                 size="icon"
                 variant="secondary"
             >
-                <HugeiconsIcon color={colors.foreground} icon={Cancel01Icon} size={18} strokeWidth={2} />
+                <Icon color={colors.foreground} icon={Cancel01Icon} size={18} strokeWidth={2} />
             </Button>
         </View>
     );

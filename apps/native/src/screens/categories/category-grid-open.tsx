@@ -1,9 +1,9 @@
-import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import PlusSignIcon from "lucide-react-native/icons/plus";
 import { View } from "react-native";
 
 import { MarkInk } from "@/components/empty-state";
 import { Slot, Tile } from "@/components/empty-state-parts";
+import { Icon } from "@/components/icon";
 import { Fade, Settle } from "@/components/mark-motion";
 import { staggerDelay } from "@/theme/mark-motion";
 import type { ThemeColors } from "@/theme/use-colors";
@@ -29,7 +29,7 @@ export function CategoryGridOpen({ colors }: { colors: ThemeColors }) {
                     width={EMPTY_MARK_TILE}
                 >
                     <Settle delay={staggerDelay(3)}>
-                        <HugeiconsIcon color={colors.foreground} icon={PlusSignIcon} size={15} strokeWidth={2.4} />
+                        <Icon color={colors.foreground} icon={PlusSignIcon} size={15} strokeWidth={2.4} />
                     </Settle>
                 </Slot>
                 <Fade delay={staggerDelay(2)} from={0} to={1}>

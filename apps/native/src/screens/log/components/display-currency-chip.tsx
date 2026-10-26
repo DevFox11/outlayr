@@ -1,9 +1,9 @@
 import { MenuView } from "@expo/ui/community/menu";
-import ArrowDown01Icon from "@hugeicons-pro/core-solid-rounded/ArrowDown01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import ArrowDown01Icon from "lucide-react-native/icons/chevron-down";
 import { View } from "react-native";
 
 import { GlassSurface } from "@/components/glass-button";
+import { Icon } from "@/components/icon";
 import { MonoLabel } from "@/components/mono-label";
 import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
@@ -58,7 +58,7 @@ export function DisplayCurrencyChip({
             >
                 <GlassSurface className={`${LOG_CONTROL_SIZE} pr-3.25 pl-3.75`}>
                     <MonoLabel className="text-foreground text-footnote">{code}</MonoLabel>
-                    <HugeiconsIcon color={colors.muted} icon={ArrowDown01Icon} size={12} />
+                    <Icon color={colors.muted} icon={ArrowDown01Icon} size={12} />
                 </GlassSurface>
             </View>
         </MenuView>

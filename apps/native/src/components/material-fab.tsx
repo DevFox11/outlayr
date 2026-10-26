@@ -1,8 +1,8 @@
-import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import PlusSignIcon from "lucide-react-native/icons/plus";
 import { Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Icon } from "@/components/icon";
 import { withAlpha } from "@/theme/shade";
 import { useMaterialColors } from "@/theme/use-material-colors";
 
@@ -37,7 +37,7 @@ export function MaterialFab({ label, onPress }: { label: string; onPress: () => 
                 width: SIZE,
             }}
         >
-            <HugeiconsIcon color={m3.onPrimaryContainer} icon={PlusSignIcon} size={24} strokeWidth={1.8} />
+            <Icon color={m3.onPrimaryContainer} icon={PlusSignIcon} size={24} strokeWidth={1.8} />
         </Pressable>
     );
 }

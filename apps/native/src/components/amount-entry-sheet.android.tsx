@@ -1,9 +1,9 @@
 import { BottomSheetModal, BottomSheetView } from "@expo/ui/community/bottom-sheet";
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import Cancel01Icon from "lucide-react-native/icons/x";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Icon } from "@/components/icon";
 import { currencySymbol } from "@/domain/money";
 import { useSheetSurface } from "@/hooks/use-sheet-surface";
 import { useTranslation } from "@/i18n/context";
@@ -52,7 +52,7 @@ export const AmountEntrySheet: typeof AmountEntrySheetBase = ({
                             className="size-12 items-center justify-center"
                             onPress={onDone}
                         >
-                            <HugeiconsIcon color={m3.onSurfaceVariant} icon={Cancel01Icon} size={24} />
+                            <Icon color={m3.onSurfaceVariant} icon={Cancel01Icon} size={24} />
                         </Pressable>
                     </View>
 

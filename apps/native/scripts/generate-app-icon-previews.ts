@@ -3,7 +3,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
-import { rasterize, requireRsvgConvert, resetDirectory } from "./hugeicon-raster";
+import { rasterize, requireRsvgConvert, resetDirectory } from "./lucide-raster";
 
 const TILE_SIZE = 44;
 

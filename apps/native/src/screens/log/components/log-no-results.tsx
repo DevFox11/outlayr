@@ -1,7 +1,7 @@
-import Archive02Icon from "@hugeicons-pro/core-solid-rounded/Archive02Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import Archive02Icon from "lucide-react-native/icons/archive";
 import { useWindowDimensions, View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { Text } from "@/components/text";
 import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
@@ -13,7 +13,7 @@ export function LogNoResults() {
     const { height } = useWindowDimensions();
     return (
         <View className="items-center justify-center gap-3 opacity-70" style={{ height: height * 0.7 }}>
-            <HugeiconsIcon color={colors.muted} icon={Archive02Icon} size={38} />
+            <Icon color={colors.muted} icon={Archive02Icon} size={38} />
             <Text className="font-sans-medium text-muted text-title">{t("log.noResults")}</Text>
         </View>
     );

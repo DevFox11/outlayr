@@ -1,7 +1,7 @@
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import type { ReactNode } from "react";
 import { View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import type { SettingsIconName } from "@/components/settings/settings-icons";
 import { settingsIcon } from "@/components/settings/settings-icons";
 import { Text } from "@/components/text";
@@ -29,7 +29,7 @@ export function RowShell({ icon, title, destructive, detail, children, below }: 
         <View className="border-border border-b py-3.5">
             <View className="flex-row items-center gap-3">
                 {icon ? (
-                    <HugeiconsIcon
+                    <Icon
                         color={destructive ? colors.danger : colors.foreground}
                         icon={settingsIcon(icon)}
                         size={GLYPH}

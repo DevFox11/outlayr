@@ -57,11 +57,11 @@ shipped in the system face rather than SF Pro Rounded.
 and nothing sets `credentialsSource: "local"`; the rules are there so that turning local credentials
 on later does not quietly put a p12 password in a build tarball.
 
-`.npmrc` is kept for its Hugeicons registry mapping. The auth token is not in it and cannot be: pnpm
-does not expand environment variables in registry credentials from a committed file. On the builder
-the token arrives as the `NPM_CONFIG_USERCONFIG` file variable, which EAS materialises as a complete
-user-level `.npmrc`. This cannot be done from `eas-build-pre-install` — pnpm reinstalls the
-workspace before running any script, so that hook executes only after the install it would fix.
+The repo no longer carries a registry credential: icons are Lucide (ISC) from the public registry, so
+there is no `.npmrc` to keep and no token to materialise on the builder. If a private registry ever
+comes back, the token has to arrive as the `NPM_CONFIG_USERCONFIG` file variable — pnpm does not
+expand environment variables in registry credentials from a committed file — and it cannot be done
+from `eas-build-pre-install`, because pnpm reinstalls the workspace before running any script.
 
 ## Changing it
 

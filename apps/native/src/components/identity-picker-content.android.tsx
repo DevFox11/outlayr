@@ -1,15 +1,15 @@
 import { SegmentedButton, SingleChoiceSegmentedButtonRow, Text as ComposeText } from "@expo/ui/jetpack-compose";
 import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import CancelCircleIcon from "@hugeicons-pro/core-solid-rounded/CancelCircleIcon";
-import Image01Icon from "@hugeicons-pro/core-stroke-rounded/Image01Icon";
-import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Image } from "expo-image";
 import { launchImageLibraryAsync } from "expo-image-picker";
+import CancelCircleIcon from "lucide-react-native/icons/circle-x";
+import Image01Icon from "lucide-react-native/icons/image";
+import Search01Icon from "lucide-react-native/icons/search";
 import { useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import {
     adoptPickedPhoto,
     IDENTITY_TAB_LABEL,
@@ -267,7 +267,7 @@ function SearchField({ query, onChange }: { query: string; onChange: (next: stri
             className="bg-m3-surface-container-high mx-4 mb-3 flex-row items-center rounded-full pl-4"
             style={{ height: SEARCH_HEIGHT }}
         >
-            <HugeiconsIcon color={m3.onSurfaceVariant} icon={Search01Icon} size={20} />
+            <Icon color={m3.onSurfaceVariant} icon={Search01Icon} size={20} />
             <TextInput
                 accessibilityLabel={t("transaction.identity.searchIcons")}
                 autoCapitalize="none"
@@ -289,7 +289,7 @@ function SearchField({ query, onChange }: { query: string; onChange: (next: stri
                     className="size-12 items-center justify-center"
                     onPress={() => onChange("")}
                 >
-                    <HugeiconsIcon color={m3.onSurfaceVariant} icon={CancelCircleIcon} size={20} />
+                    <Icon color={m3.onSurfaceVariant} icon={CancelCircleIcon} size={20} />
                 </Pressable>
             )}
         </View>
@@ -366,7 +366,7 @@ function PhotoPanel({
                     {uri ? (
                         <Image contentFit="cover" source={{ uri }} style={{ height: PHOTO_WELL, width: PHOTO_WELL }} />
                     ) : (
-                        <HugeiconsIcon color={m3.onSurfaceVariant} icon={Image01Icon} size={42} />
+                        <Icon color={m3.onSurfaceVariant} icon={Image01Icon} size={42} />
                     )}
                 </Pressable>
                 <Text

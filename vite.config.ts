@@ -24,6 +24,7 @@ const projectIgnores = [
     "**/Pods",
     "**/*.icon",
     "**/.agents",
+    "**/.dsh",
     "**/.playwright-mcp",
     "**/.claude",
     "skills-lock.json",
@@ -52,11 +53,12 @@ const HAPTICS_IMPORT = {
     message: "A direct call fires whatever the Haptics setting says. Use useHaptics from @/lib/use-haptics.",
     name: "expo-haptics",
 };
-const ICON_BARREL_IMPORTS = ["solid", "stroke"].map((weight) => ({
-    message: `The pack barrel is 6-12MB and Metro ships all of it. Import the icon by path: @hugeicons-pro/core-${weight}-rounded/<Name>Icon.`,
-    name: `@hugeicons-pro/core-${weight}-rounded`,
-}));
-const NATIVE_RESTRICTED_IMPORTS = [LIVE_QUERY_IMPORT, HAPTICS_IMPORT, ...ICON_BARREL_IMPORTS];
+const LUCIDE_BARREL_IMPORT = {
+    allowTypeImports: true,
+    message: "The Lucide root barrel ships every icon to Metro. Import one: lucide-react-native/icons/<name>.",
+    name: "lucide-react-native",
+};
+const NATIVE_RESTRICTED_IMPORTS = [LIVE_QUERY_IMPORT, HAPTICS_IMPORT, LUCIDE_BARREL_IMPORT];
 
 const RUNNER_OPT_OUT = [
     "expect-expect",
@@ -211,13 +213,13 @@ export default defineConfig({
             {
                 files: ["apps/native/src/data/live-query.ts"],
                 rules: {
-                    "no-restricted-imports": ["error", { paths: [HAPTICS_IMPORT, ...ICON_BARREL_IMPORTS] }],
+                    "no-restricted-imports": ["error", { paths: [HAPTICS_IMPORT, LUCIDE_BARREL_IMPORT] }],
                 },
             },
             {
                 files: ["apps/native/src/lib/use-haptics.ts", "apps/native/src/lib/use-haptics.android.ts"],
                 rules: {
-                    "no-restricted-imports": ["error", { paths: [LIVE_QUERY_IMPORT, ...ICON_BARREL_IMPORTS] }],
+                    "no-restricted-imports": ["error", { paths: [LIVE_QUERY_IMPORT, LUCIDE_BARREL_IMPORT] }],
                 },
             },
             {

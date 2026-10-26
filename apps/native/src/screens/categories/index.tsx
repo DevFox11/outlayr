@@ -32,15 +32,15 @@ import {
     opacity,
     padding,
 } from "@expo/ui/swift-ui/modifiers";
-import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Stack, useRouter } from "expo-router";
+import PlusSignIcon from "lucide-react-native/icons/plus";
 import { useMemo } from "react";
 import { PlatformColor, View } from "react-native";
 
 import { CategoryIconTile } from "@/components/category-icon-tile";
 import { CHILD_TILE, Eyebrow, PARENT_TILE } from "@/components/category-list-chrome";
 import { CHILD_NAME, LABEL, PARENT_NAME } from "@/components/category-list-swift";
+import { Icon } from "@/components/icon";
 import { groupedList, groupedRows } from "@/components/native/styles";
 import { toolbarIcon } from "@/components/toolbar-icons";
 import { useAppSettings } from "@/contexts/display-settings-context";
@@ -462,7 +462,7 @@ function CategoryRow({
 }
 
 function plusGlyph({ color, size }: { color: string; size: number }) {
-    return <HugeiconsIcon color={color} icon={PlusSignIcon} size={size} strokeWidth={2.4} />;
+    return <Icon color={color} icon={PlusSignIcon} size={size} strokeWidth={2.4} />;
 }
 
 /** Owns the closing rule: competing hide and show requests on one hairline resolve inside UIKit. */

@@ -1,13 +1,13 @@
 import { BottomSheetModal, BottomSheetScrollView } from "@expo/ui/community/bottom-sheet";
-import MinusSignIcon from "@hugeicons-pro/core-stroke-rounded/MinusSignIcon";
-import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
-import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import Tick02Icon from "lucide-react-native/icons/check";
+import MinusSignIcon from "lucide-react-native/icons/minus";
+import PlusSignIcon from "lucide-react-native/icons/plus";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { SHEET_CARD_GAP, SHEET_TOP_PADDING } from "@/components/currency-picker-sheet";
+import { Icon } from "@/components/icon";
 import { ChoiceRow } from "@/components/list/list-row";
 import { revealEntering } from "@/components/sentence/sentence-motion";
 import { formatSentenceDate, formatTargetDate } from "@/domain/dates";
@@ -100,7 +100,7 @@ export function InstallmentsSheet(props: InstallmentsSheetProps) {
                                 disabled={draft.count <= 1}
                                 onPress={() => step(-1)}
                             >
-                                <HugeiconsIcon color={colors.muted} icon={MinusSignIcon} size={16} strokeWidth={2.2} />
+                                <Icon color={colors.muted} icon={MinusSignIcon} size={16} strokeWidth={2.2} />
                             </Pressable>
                             <Text className="text-body text-foreground tabular-nums">{`${draft.count} ×`}</Text>
                             <Pressable
@@ -110,7 +110,7 @@ export function InstallmentsSheet(props: InstallmentsSheetProps) {
                                 disabled={draft.count >= MAX_INSTALLMENT_COUNT}
                                 onPress={() => step(1)}
                             >
-                                <HugeiconsIcon color={colors.muted} icon={PlusSignIcon} size={16} strokeWidth={2.2} />
+                                <Icon color={colors.muted} icon={PlusSignIcon} size={16} strokeWidth={2.2} />
                             </Pressable>
                             <Pressable
                                 accessibilityLabel={t("installments.each")}
@@ -341,9 +341,7 @@ function CheckCircle({
                 className={`items-center justify-center rounded-full ${checked ? "bg-foreground" : "border-border border-[1.5px]"}`}
                 style={{ height: CIRCLE, width: CIRCLE }}
             >
-                {checked ? (
-                    <HugeiconsIcon color={colors.background} icon={Tick02Icon} size={14} strokeWidth={2.6} />
-                ) : null}
+                {checked ? <Icon color={colors.background} icon={Tick02Icon} size={14} strokeWidth={2.6} /> : null}
             </View>
         </Pressable>
     );

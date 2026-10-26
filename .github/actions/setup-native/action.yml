@@ -6,9 +6,6 @@ inputs:
         description: The job's variables, as toJSON(vars).
         required: false
         default: "{}"
-    hugeicons-token:
-        description: Token for the private @hugeicons-pro registry.
-        required: true
 
 runs:
     using: composite
@@ -18,17 +15,6 @@ runs:
               node-version: 22
               cache: true
               run-install: false
-
-        - name: Authenticate the private icon registry
-          shell: bash
-          env:
-              HUGEICONS_PRO_TOKEN: ${{ inputs.hugeicons-token }}
-          run: |
-              if [ -z "$HUGEICONS_PRO_TOKEN" ]; then
-                echo "::error::HUGEICONS_PRO_TOKEN is not set. @hugeicons-pro/* will 401."
-                exit 1
-              fi
-              vp pm config set "//npm.hugeicons.com/:_authToken" "$HUGEICONS_PRO_TOKEN" --location user
 
         - name: Install
           shell: bash

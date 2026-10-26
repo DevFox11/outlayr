@@ -1,10 +1,10 @@
-import ViewIcon from "@hugeicons-pro/core-stroke-rounded/ViewIcon";
-import ViewOffSlashIcon from "@hugeicons-pro/core-stroke-rounded/ViewOffSlashIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import ViewIcon from "lucide-react-native/icons/eye";
+import ViewOffSlashIcon from "lucide-react-native/icons/eye-off";
 import { use } from "react";
 import { Pressable, View } from "react-native";
 
 import { AmountsHiddenContext } from "@/components/amount-text";
+import { Icon } from "@/components/icon";
 import { useDatabase } from "@/contexts/local-data-context";
 import { setBoolSetting } from "@/data/settings-core";
 import { useTranslation } from "@/i18n/context";
@@ -36,7 +36,7 @@ export const AmountsEyeButton: typeof AmountsEyeButtonBase = () => {
             }}
         >
             <View className="bg-m3-secondary-container size-10 items-center justify-center rounded-full">
-                <HugeiconsIcon
+                <Icon
                     color={hidden ? m3.primary : m3.onSecondaryContainer}
                     icon={hidden ? ViewOffSlashIcon : ViewIcon}
                     size={22}

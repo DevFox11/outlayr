@@ -1,5 +1,4 @@
-import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import ArrowLeft01Icon from "lucide-react-native/icons/chevron-left";
 import type { ReactNode } from "react";
 import { createContext, use } from "react";
 import { Pressable, View } from "react-native";
@@ -7,6 +6,7 @@ import Animated, { Keyframe, ReduceMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GlassButton } from "@/components/glass-button";
+import { Icon } from "@/components/icon";
 import { FontScaleCapContext, Text } from "@/components/text";
 import { cn } from "@/components/tw";
 import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
@@ -176,7 +176,7 @@ export function TransactionStage({
                             className="h-[38px] w-[38px] rounded-full"
                             onPress={onBack}
                         >
-                            <HugeiconsIcon color={colors.foreground} icon={ArrowLeft01Icon} size={BACK_GLYPH} />
+                            <Icon color={colors.foreground} icon={ArrowLeft01Icon} size={BACK_GLYPH} />
                         </GlassButton>
                     ) : null}
                     {title == null ? null : (

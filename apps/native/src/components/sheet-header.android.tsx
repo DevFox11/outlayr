@@ -1,9 +1,9 @@
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
-import type { IconSvgElement } from "@hugeicons/react-native";
 import { useRouter } from "expo-router";
+import Cancel01Icon from "lucide-react-native/icons/x";
 import { Pressable, View } from "react-native";
 
+import { Icon } from "@/components/icon";
+import type { IconComponent } from "@/components/icon";
 import { Text } from "@/components/text";
 import { useTranslation } from "@/i18n/context";
 import { withAlpha } from "@/theme/shade";
@@ -107,7 +107,7 @@ function IconButton({
     onPress,
     disabled = false,
 }: {
-    icon: IconSvgElement;
+    icon: IconComponent;
     color: string;
     accessibilityLabel: string;
     onPress: () => void;
@@ -128,7 +128,7 @@ function IconButton({
             disabled={disabled}
             onPress={onPress}
         >
-            <HugeiconsIcon
+            <Icon
                 color={disabled ? withAlpha(m3.onSurface, DISABLED_ALPHA) : color}
                 icon={icon}
                 size={ICON_SIZE}

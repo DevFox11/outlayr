@@ -1,5 +1,6 @@
-import type { IconSvgElement } from "@hugeicons/react-native";
 import type { ReactNode } from "react";
+
+import type { IconComponent } from "@/components/icon";
 
 export interface SheetHeaderProps {
     title?: string;
@@ -15,7 +16,7 @@ export interface SheetHeaderTextButtonProps {
 }
 
 export interface SheetHeaderIconButtonProps {
-    icon: IconSvgElement;
+    icon: IconComponent;
     accessibilityLabel: string;
     onPress: () => void;
     disabled?: boolean;

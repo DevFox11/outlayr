@@ -1,8 +1,8 @@
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import Cancel01Icon from "lucide-react-native/icons/x";
 import { Pressable, View } from "react-native";
 import Animated, { LinearTransition } from "react-native-reanimated";
 
+import { Icon } from "@/components/icon";
 import { TapMenu } from "@/components/tap-menu";
 import { Text } from "@/components/text";
 import { cn } from "@/components/tw";
@@ -64,7 +64,7 @@ function FactChip({ verb }: { verb: SentenceVerb }) {
                 }}
                 style={{ opacity: disabled ? DISABLED_ALPHA : 1, paddingRight: removable ? 4 : 16 }}
             >
-                <HugeiconsIcon
+                <Icon
                     color={set ? m3.onSecondaryContainer : m3.primary}
                     icon={set ? FACT_GLYPHS[verb.key].set : FACT_GLYPHS[verb.key].unset}
                     size={CHIP_ICON}
@@ -82,7 +82,7 @@ function FactChip({ verb }: { verb: SentenceVerb }) {
                     hitSlop={REMOVE_SLOP}
                     onPress={verb.onRemove}
                 >
-                    <HugeiconsIcon color={ink} icon={Cancel01Icon} size={CHIP_ICON} />
+                    <Icon color={ink} icon={Cancel01Icon} size={CHIP_ICON} />
                 </Pressable>
             ) : null}
         </View>

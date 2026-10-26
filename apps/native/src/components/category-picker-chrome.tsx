@@ -1,12 +1,12 @@
-import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import Tick02Icon from "lucide-react-native/icons/check";
+import ArrowRight01Icon from "lucide-react-native/icons/chevron-right";
+import Cancel01Icon from "lucide-react-native/icons/x";
 import { Button } from "panelui-native/components/button";
 import { memo } from "react";
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import type { Category } from "@/data/categories-core";
 import type { CategoryMatch } from "@/domain/category-search";
 import { useTranslation } from "@/i18n/context";
@@ -36,7 +36,7 @@ export function CategoryPickerHeader({ onClose, title }: { onClose: () => void; 
                     size="icon"
                     variant="secondary"
                 >
-                    <HugeiconsIcon color={colors.foreground} icon={Cancel01Icon} size={22} />
+                    <Icon color={colors.foreground} icon={Cancel01Icon} size={22} />
                 </Button>
             </View>
         </View>
@@ -134,9 +134,7 @@ export const CategoryRow = memo(
                                 </Text>
                             ) : null}
                         </View>
-                        {selected ? (
-                            <HugeiconsIcon color={colors.tint} icon={Tick02Icon} size={18} strokeWidth={2.4} />
-                        ) : null}
+                        {selected ? <Icon color={colors.tint} icon={Tick02Icon} size={18} strokeWidth={2.4} /> : null}
                     </Pressable>
                     {hasChildren ? (
                         <Pressable
@@ -159,12 +157,7 @@ export const CategoryRow = memo(
                                     {String(childCount)}
                                 </Text>
                                 <View className={expanded ? "rotate-90" : "rotate-0"}>
-                                    <HugeiconsIcon
-                                        color={colors.muted}
-                                        icon={ArrowRight01Icon}
-                                        size={18}
-                                        strokeWidth={2}
-                                    />
+                                    <Icon color={colors.muted} icon={ArrowRight01Icon} size={18} strokeWidth={2} />
                                 </View>
                             </View>
                         </Pressable>

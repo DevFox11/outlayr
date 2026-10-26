@@ -1,10 +1,10 @@
 import { MenuView } from "@expo/ui/community/menu";
 import type { MenuAction } from "@expo/ui/community/menu";
-import ArrowDown01Icon from "@hugeicons-pro/core-solid-rounded/ArrowDown01Icon";
-import Cancel01Icon from "@hugeicons-pro/core-solid-rounded/Cancel01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import ArrowDown01Icon from "lucide-react-native/icons/chevron-down";
+import Cancel01Icon from "lucide-react-native/icons/x";
 import { Pressable, View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { useTranslation } from "@/i18n/context";
 import { useColors } from "@/theme/use-colors";
 
@@ -38,7 +38,7 @@ export function ScopeChip({
             <Text className="font-sans-semibold text-foreground text-subtitle" numberOfLines={1}>
                 {title}
             </Text>
-            {hasMenu ? <HugeiconsIcon color={colors.muted} icon={ArrowDown01Icon} size={10} /> : null}
+            {hasMenu ? <Icon color={colors.muted} icon={ArrowDown01Icon} size={10} /> : null}
         </View>
     );
 
@@ -68,7 +68,7 @@ export function ScopeChip({
                     hitSlop={12}
                     onPress={onClear}
                 >
-                    <HugeiconsIcon color={colors.muted} icon={Cancel01Icon} size={11} />
+                    <Icon color={colors.muted} icon={Cancel01Icon} size={11} />
                 </Pressable>
             ) : null}
         </View>

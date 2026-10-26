@@ -1,10 +1,10 @@
-import ArrowLeft01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowLeft01Icon";
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import ArrowLeft01Icon from "lucide-react-native/icons/chevron-left";
+import Cancel01Icon from "lucide-react-native/icons/x";
 import { Button } from "panelui-native/components/button";
 import { View } from "react-native";
 import Animated, { FadeInLeft, FadeInRight, Keyframe, ReduceMotion } from "react-native-reanimated";
 
+import { Icon } from "@/components/icon";
 import { Text } from "@/components/text";
 import { useTranslation } from "@/i18n/context";
 
@@ -55,7 +55,7 @@ export function SheetHeader({ title, forward = true, onBack, onClose }: SheetHea
                         testID="import-sheet-back"
                         variant="secondary"
                     >
-                        <HugeiconsIcon icon={ArrowLeft01Icon} size={22} />
+                        <Icon icon={ArrowLeft01Icon} size={22} />
                     </Button>
                 </Animated.View>
             ) : null}
@@ -74,7 +74,7 @@ export function SheetHeader({ title, forward = true, onBack, onClose }: SheetHea
                     testID="import-sheet-close"
                     variant="secondary"
                 >
-                    <HugeiconsIcon icon={Cancel01Icon} size={22} />
+                    <Icon icon={Cancel01Icon} size={22} />
                 </Button>
             </Animated.View>
         </View>

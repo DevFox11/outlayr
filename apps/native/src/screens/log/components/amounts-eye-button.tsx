@@ -1,11 +1,11 @@
-import ViewIcon from "@hugeicons-pro/core-stroke-rounded/ViewIcon";
-import ViewOffSlashIcon from "@hugeicons-pro/core-stroke-rounded/ViewOffSlashIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import ViewIcon from "lucide-react-native/icons/eye";
+import ViewOffSlashIcon from "lucide-react-native/icons/eye-off";
 import { use } from "react";
 import { View } from "react-native";
 
 import { AmountsHiddenContext } from "@/components/amount-text";
 import { GlassButton } from "@/components/glass-button";
+import { Icon } from "@/components/icon";
 import { useDatabase } from "@/contexts/local-data-context";
 import { setBoolSetting } from "@/data/settings-core";
 import { useTranslation } from "@/i18n/context";
@@ -28,7 +28,7 @@ export function AmountsEyeButton() {
                     setBoolSetting(db, "hideAmounts", !hidden);
                 }}
             >
-                <HugeiconsIcon
+                <Icon
                     color={hidden ? colors.tint : colors.foreground}
                     icon={hidden ? ViewOffSlashIcon : ViewIcon}
                     size={19}

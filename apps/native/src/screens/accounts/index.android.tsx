@@ -1,9 +1,8 @@
 import type { MenuComponentRef } from "@expo/ui/community/menu";
-import ArrowDataTransferHorizontalIcon from "@hugeicons-pro/core-stroke-rounded/ArrowDataTransferHorizontalIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { toAccountKind } from "@outlayr/money/account-kind";
 import { isMultiCurrency } from "@outlayr/money/account-overview";
 import { Stack, useRouter } from "expo-router";
+import ArrowDataTransferHorizontalIcon from "lucide-react-native/icons/arrow-right-left";
 import { memo, useCallback, useMemo, useRef } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,6 +12,7 @@ import { CategoryIconTile } from "@/components/category-icon-tile";
 import { Eyebrow, PARENT_TILE } from "@/components/category-list-chrome";
 import { EmptyState } from "@/components/empty-state";
 import { Tile } from "@/components/empty-state-parts";
+import { Icon } from "@/components/icon";
 import { RowMenu } from "@/components/row-menu";
 import { ScreenHeader } from "@/components/screen-header";
 import { SwipeToDelete } from "@/components/swipe-to-delete";
@@ -152,7 +152,7 @@ function TransfersRow() {
             onPress={() => router.push("/transactions/transfers/create")}
         >
             <View className="items-center" style={{ width: PARENT_TILE }}>
-                <HugeiconsIcon color={m3.primary} icon={ArrowDataTransferHorizontalIcon} size={22} />
+                <Icon color={m3.primary} icon={ArrowDataTransferHorizontalIcon} size={22} />
             </View>
             <Text className="font-sans-medium text-body text-m3-primary">{t("transfers.title")}</Text>
         </Pressable>

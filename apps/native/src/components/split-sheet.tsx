@@ -1,13 +1,13 @@
 import { BottomSheetModal, BottomSheetScrollView } from "@expo/ui/community/bottom-sheet";
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
-import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import Tick02Icon from "lucide-react-native/icons/check";
+import PlusSignIcon from "lucide-react-native/icons/plus";
+import Cancel01Icon from "lucide-react-native/icons/x";
 import { Button } from "panelui-native/components/button";
 import { useMemo, useRef, useState } from "react";
 import type { Ref } from "react";
 import { Pressable, View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { useCategoriesByNamespace } from "@/data/categories";
 import type { Category } from "@/data/categories-core";
 import type { Database } from "@/db/client";
@@ -113,7 +113,7 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
                             size="icon"
                             variant="secondary"
                         >
-                            <HugeiconsIcon color={colors.foreground} icon={Cancel01Icon} size={22} />
+                            <Icon color={colors.foreground} icon={Cancel01Icon} size={22} />
                         </Button>
                     </View>
                 </View>
@@ -160,7 +160,7 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
                                         hitSlop={{ bottom: 13, left: 6, right: 13, top: 13 }}
                                         onPress={() => onChange(removePart(allocations, index, minorUnits))}
                                     >
-                                        <HugeiconsIcon color={colors.muted} icon={Cancel01Icon} size={18} />
+                                        <Icon color={colors.muted} icon={Cancel01Icon} size={18} />
                                     </Pressable>
                                 ) : null}
                             </View>
@@ -188,7 +188,7 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
                         className="border-border flex-row items-center gap-2 border-t px-5 py-3"
                         onPress={() => pickCategory(allocations.length)}
                     >
-                        <HugeiconsIcon color={colors.accent} icon={PlusSignIcon} size={18} />
+                        <Icon color={colors.accent} icon={PlusSignIcon} size={18} />
                         <Text className="text-accent text-body">{t("transaction.split.addCategory")}</Text>
                     </Pressable>
 
@@ -208,7 +208,7 @@ export function SplitSheet({ db, income, total, code, minorUnits, allocations, o
                                 )
                             }
                         >
-                            <HugeiconsIcon color={colors.accent} icon={Tick02Icon} size={18} />
+                            <Icon color={colors.accent} icon={Tick02Icon} size={18} />
                             <Text className="text-accent text-body">{t("transaction.split.fillRest")}</Text>
                         </Pressable>
                     )}

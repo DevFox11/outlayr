@@ -1,8 +1,7 @@
 import { SegmentedButton, SingleChoiceSegmentedButtonRow, Text as ComposeText } from "@expo/ui/jetpack-compose";
 import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Stack } from "expo-router";
+import Cancel01Icon from "lucide-react-native/icons/x";
 import { memo } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AccountTile } from "@/components/account-tile";
 import { HeroNumber } from "@/components/amount-text";
 import { InlineFailure } from "@/components/form/inline-failure";
+import { Icon } from "@/components/icon";
 import { MaterialHost } from "@/components/material-host";
 import { OutlinedDateField } from "@/components/material/outlined-date-field";
 import { OutlinedSelectField, OutlinedTextField } from "@/components/material/outlined-field";
@@ -222,7 +222,7 @@ function PayBackByField({ form }: { form: ReturnType<typeof useNewDebtForm> }) {
                     className="size-12 items-center justify-center"
                     onPress={() => form.setPayBackBy(null)}
                 >
-                    <HugeiconsIcon color={m3.onSurfaceVariant} icon={Cancel01Icon} size={24} />
+                    <Icon color={m3.onSurfaceVariant} icon={Cancel01Icon} size={24} />
                 </Pressable>
             }
             value={form.payBackBy}

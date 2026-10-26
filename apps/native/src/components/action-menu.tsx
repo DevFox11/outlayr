@@ -5,7 +5,7 @@ import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import type { LayoutChangeEvent, StyleProp, ViewStyle } from "react-native";
 
-// SwiftUI menus take only an SF Symbol name and ignore an image source, so the app's Hugeicons cannot reach a row.
+// SwiftUI menus take only an SF Symbol name and ignore an image source, so the app's icons cannot reach a row.
 type ActionMenuSymbol = Extract<MenuAction["image"], string>;
 
 export interface ActionMenuItem {

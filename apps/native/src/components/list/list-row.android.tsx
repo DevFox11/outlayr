@@ -1,9 +1,9 @@
 import { RadioButton, Switch } from "@expo/ui/jetpack-compose";
-import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import ArrowRight01Icon from "lucide-react-native/icons/chevron-right";
 import type { ComponentProps, ReactNode } from "react";
 import { View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { MaterialListItem } from "@/components/list/material-list-item";
 import { MaterialHost } from "@/components/material-host";
 import { MonoLabel } from "@/components/mono-label";
@@ -38,7 +38,7 @@ export function SettingsSection({
 
 function Chevron() {
     const m3 = useMaterialColors();
-    return <HugeiconsIcon color={m3.onSurfaceVariant} icon={ArrowRight01Icon} size={20} strokeWidth={1.8} />;
+    return <Icon color={m3.onSurfaceVariant} icon={ArrowRight01Icon} size={20} strokeWidth={1.8} />;
 }
 
 export function LinkRow({ icon, title, value, detail, destructive, onPress }: ComponentProps<typeof IosLinkRow>) {

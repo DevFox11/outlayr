@@ -1,10 +1,7 @@
 import type { MenuAction, NativeActionEvent } from "@expo/ui/community/menu";
-import StarSolidIcon from "@hugeicons-pro/core-solid-rounded/StarIcon";
-import StarIcon from "@hugeicons-pro/core-stroke-rounded/StarIcon";
-import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
-import type { IconSvgElement } from "@hugeicons/react-native";
 import { CURRENCY_META } from "@outlayr/money/catalog";
+import Tick02Icon from "lucide-react-native/icons/check";
+import StarSolidIcon from "lucide-react-native/icons/star";
 import { useRef } from "react";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
@@ -21,6 +18,8 @@ import Animated, {
 import type { SharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
+import { Icon } from "@/components/icon";
+import type { IconComponent } from "@/components/icon";
 import type { CurrencyCode } from "@/domain/currency-picker-rows";
 import { FAVOURITE_CURRENCY_LIMIT } from "@/domain/favourite-currencies";
 import { useTranslation } from "@/i18n/context";
@@ -79,7 +78,7 @@ function SwipeAction({
     accessibilityHint?: string;
     accessibilityLabel: string;
     fillClassName: string;
-    icon: IconSvgElement;
+    icon: IconComponent;
     iconColor: string;
     label: string;
     labelClassName: string;
@@ -129,7 +128,7 @@ function SwipeAction({
                 onPress={onPress}
             >
                 <Animated.View style={glyph}>
-                    <HugeiconsIcon color={iconColor} icon={icon} size={18} strokeWidth={2} />
+                    <Icon color={iconColor} icon={icon} size={18} strokeWidth={2} />
                 </Animated.View>
                 <Text className={cn("font-sans-semibold text-footnote", labelClassName)}>{label}</Text>
             </Pressable>
@@ -163,7 +162,7 @@ function CurrencyRowFace({
             <View className="w-5 items-center">
                 {selected ? (
                     <Animated.View entering={tickEnters ? TICK_ARRIVES : undefined}>
-                        <HugeiconsIcon color={colors.tint} icon={Tick02Icon} size={20} strokeWidth={2.4} />
+                        <Icon color={colors.tint} icon={Tick02Icon} size={20} strokeWidth={2.4} />
                     </Animated.View>
                 ) : null}
             </View>
@@ -244,7 +243,7 @@ export function CurrencyRow({
                     : t(favourite ? "settings.currency.unfavourite" : "settings.currency.favourite", { code })
             }
             fillClassName={laneFill}
-            icon={favourite || refuses ? StarIcon : StarSolidIcon}
+            icon={favourite || refuses ? StarSolidIcon : StarSolidIcon}
             iconColor={refuses ? colors.muted : "#ffffff"}
             label={
                 refuses

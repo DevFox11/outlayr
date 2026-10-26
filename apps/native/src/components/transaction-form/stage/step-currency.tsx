@@ -1,8 +1,8 @@
-import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import Search01Icon from "lucide-react-native/icons/search";
 import { useState } from "react";
 import { View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { SEARCH_FIELD } from "@/components/search-field-style";
 import { TextInput } from "@/components/text";
 import { useAccessibilityTextSize } from "@/hooks/use-accessibility-text-size";
@@ -38,7 +38,7 @@ export function StepCurrency({
     return (
         <View className="gap-1">
             <View className="border-border flex-row items-center gap-2 border-b pb-2">
-                <HugeiconsIcon color={colors.muted} icon={Search01Icon} size={16} strokeWidth={2} />
+                <Icon color={colors.muted} icon={Search01Icon} size={16} strokeWidth={2} />
                 <TextInput
                     accessibilityLabel={searchPlaceholder}
                     autoCapitalize="characters"

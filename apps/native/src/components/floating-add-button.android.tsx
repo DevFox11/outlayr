@@ -1,14 +1,12 @@
-import ArrowDataTransferHorizontalIcon from "@hugeicons-pro/core-stroke-rounded/ArrowDataTransferHorizontalIcon";
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import FileImportIcon from "@hugeicons-pro/core-stroke-rounded/FileImportIcon";
-import Mic01Icon from "@hugeicons-pro/core-stroke-rounded/Mic01Icon";
-import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
-import ReceiptDollarIcon from "@hugeicons-pro/core-stroke-rounded/ReceiptDollarIcon";
-import ScanIcon from "@hugeicons-pro/core-stroke-rounded/ScanIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
-import type { IconSvgElement } from "@hugeicons/react-native";
 import { router, useFocusEffect } from "expo-router";
 import type { Href } from "expo-router";
+import ArrowDataTransferHorizontalIcon from "lucide-react-native/icons/arrow-right-left";
+import FileImportIcon from "lucide-react-native/icons/file-input";
+import Mic01Icon from "lucide-react-native/icons/mic";
+import PlusSignIcon from "lucide-react-native/icons/plus";
+import ReceiptDollarIcon from "lucide-react-native/icons/receipt";
+import ScanIcon from "lucide-react-native/icons/scan";
+import Cancel01Icon from "lucide-react-native/icons/x";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BackHandler, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import Animated, {
@@ -23,6 +21,8 @@ import Animated, {
     withSpring,
 } from "react-native-reanimated";
 
+import { Icon } from "@/components/icon";
+import type { IconComponent } from "@/components/icon";
 import { ImportSheet } from "@/components/import-sheet/import-sheet";
 import type { ImportSheetHandle } from "@/components/import-sheet/import-sheet";
 import { Text } from "@/components/text";
@@ -55,7 +55,7 @@ const MORPH = { damping: 22, mass: 0.6, stiffness: 320 } as const;
 
 interface AddAction {
     href: Href | null;
-    icon: IconSvgElement;
+    icon: IconComponent;
     key: string;
     label: string;
 }
@@ -206,7 +206,7 @@ export function FloatingAddButton() {
                     style={[{ elevation: FAB_ELEVATION, height: FAB_SIZE, width: FAB_SIZE }, fabStyle]}
                 >
                     <Animated.View className="absolute" style={plusStyle}>
-                        <HugeiconsIcon
+                        <Icon
                             color={m3.onPrimaryContainer}
                             icon={PlusSignIcon}
                             size={ICON_SIZE}
@@ -214,12 +214,7 @@ export function FloatingAddButton() {
                         />
                     </Animated.View>
                     <Animated.View className="absolute" style={closeStyle}>
-                        <HugeiconsIcon
-                            color={m3.onPrimary}
-                            icon={Cancel01Icon}
-                            size={ICON_SIZE}
-                            strokeWidth={ICON_STROKE}
-                        />
+                        <Icon color={m3.onPrimary} icon={Cancel01Icon} size={ICON_SIZE} strokeWidth={ICON_STROKE} />
                     </Animated.View>
                 </AnimatedPressable>
             </View>
@@ -252,12 +247,7 @@ function MenuItem({
                 className="min-h-14 flex-row items-center gap-3 py-2 pr-6 pl-5"
                 onPress={() => onSelect(action)}
             >
-                <HugeiconsIcon
-                    color={m3.onPrimaryContainer}
-                    icon={action.icon}
-                    size={ICON_SIZE}
-                    strokeWidth={ICON_STROKE}
-                />
+                <Icon color={m3.onPrimaryContainer} icon={action.icon} size={ICON_SIZE} strokeWidth={ICON_STROKE} />
                 <Text className="font-sans-medium text-body text-m3-on-primary-container shrink" numberOfLines={2}>
                     {action.label}
                 </Text>

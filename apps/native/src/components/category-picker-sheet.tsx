@@ -1,14 +1,14 @@
 import { BottomSheetModal, BottomSheetScrollView } from "@expo/ui/community/bottom-sheet";
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import PlusSignIcon from "@hugeicons-pro/core-stroke-rounded/PlusSignIcon";
-import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import PlusSignIcon from "lucide-react-native/icons/plus";
+import Search01Icon from "lucide-react-native/icons/search";
+import Cancel01Icon from "lucide-react-native/icons/x";
 import { InputGroup } from "panelui-native/components/input-group";
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { ReactNode, Ref } from "react";
 import { Pressable, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
 
+import { Icon } from "@/components/icon";
 import { SheetGestureRoot } from "@/components/sheet-gesture-root";
 import { useCategoriesByNamespace } from "@/data/categories";
 import type { Category } from "@/data/categories-core";
@@ -155,7 +155,7 @@ export function CategoryPickerSheet({
                         onPress={create}
                         testID="category-create"
                     >
-                        <HugeiconsIcon color={colors.tint} icon={PlusSignIcon} size={15} strokeWidth={2} />
+                        <Icon color={colors.tint} icon={PlusSignIcon} size={15} strokeWidth={2} />
                         <Text className="font-sans-medium text-callout text-foreground">
                             {t("transaction.category.createNamed", { query: trimmed })}
                         </Text>
@@ -197,7 +197,7 @@ export function CategoryPickerSheet({
                 <View className="px-5 pt-3 pb-3">
                     <InputGroup>
                         <InputGroup.Prefix className="px-2.5" isDecorative>
-                            <HugeiconsIcon color={colors.muted} icon={Search01Icon} size={16} strokeWidth={2} />
+                            <Icon color={colors.muted} icon={Search01Icon} size={16} strokeWidth={2} />
                         </InputGroup.Prefix>
                         <InputGroup.Input
                             autoCapitalize="none"
@@ -219,7 +219,7 @@ export function CategoryPickerSheet({
                                     onPress={clearQuery}
                                     testID="category-search-clear"
                                 >
-                                    <HugeiconsIcon color={colors.muted} icon={Cancel01Icon} size={15} strokeWidth={2} />
+                                    <Icon color={colors.muted} icon={Cancel01Icon} size={15} strokeWidth={2} />
                                 </Pressable>
                             </InputGroup.Suffix>
                         ) : null}

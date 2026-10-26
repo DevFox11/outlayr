@@ -1,5 +1,4 @@
-import DragDropVerticalIcon from "@hugeicons-pro/core-stroke-rounded/DragDropVerticalIcon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import DragDropVerticalIcon from "lucide-react-native/icons/grip-vertical";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { View } from "react-native";
@@ -9,6 +8,7 @@ import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withTi
 import type { SharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
+import { Icon } from "@/components/icon";
 import { moveItem, slotAt } from "@/domain/reorder";
 import { useTranslation } from "@/i18n/context";
 import { useHaptics } from "@/lib/use-haptics";
@@ -203,7 +203,7 @@ function ReorderRow({ children, commit, count, drag, id, index, keys, label, onL
                 <View className="flex-1">{children}</View>
                 <GestureDetector gesture={pan}>
                     <View className="h-14 w-14 items-center justify-center" hitSlop={4}>
-                        <HugeiconsIcon color={m3.onSurfaceVariant} icon={DragDropVerticalIcon} size={24} />
+                        <Icon color={m3.onSurfaceVariant} icon={DragDropVerticalIcon} size={24} />
                     </View>
                 </GestureDetector>
             </View>

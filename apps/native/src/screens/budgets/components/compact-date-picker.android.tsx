@@ -1,8 +1,8 @@
-import Calendar03Icon from "@hugeicons-pro/core-stroke-rounded/Calendar03Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import Calendar03Icon from "lucide-react-native/icons/calendar";
 import { useState } from "react";
 import { Pressable } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { DateDialog } from "@/components/material/outlined-date-field";
 import { Text } from "@/components/text";
 import { formatTargetDate } from "@/domain/dates";
@@ -31,7 +31,7 @@ export function CompactDatePicker({ label, onChange, onDismiss, range, value }: 
                 onPress={() => setOpen(true)}
             >
                 <Text className="text-body text-m3-on-surface">{shown}</Text>
-                <HugeiconsIcon color={m3.onSurfaceVariant} icon={Calendar03Icon} size={24} strokeWidth={1.6} />
+                <Icon color={m3.onSurfaceVariant} icon={Calendar03Icon} size={24} strokeWidth={1.6} />
             </Pressable>
             {open ? (
                 <DateDialog

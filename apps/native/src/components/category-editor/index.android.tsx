@@ -1,9 +1,8 @@
-import CheckmarkCircle02Icon from "@hugeicons-pro/core-solid-rounded/CheckmarkCircle02Icon";
-import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useForm, useSelector } from "@tanstack/react-form";
 import { and, eq, isNull } from "drizzle-orm";
 import { useRouter } from "expo-router";
+import CheckmarkCircle02Icon from "lucide-react-native/icons/circle-check";
+import Delete02Icon from "lucide-react-native/icons/trash";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Keyboard, ScrollView, View } from "react-native";
 import type { TextInputInstance } from "react-native";
@@ -11,6 +10,7 @@ import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { holdSubmitting, pressSubmit } from "@/components/form/submit-guard";
+import { Icon } from "@/components/icon";
 import { IdentityHero } from "@/components/identity-hero";
 import { SheetHeader, SheetHeaderIconButton, SheetHeaderTextButton } from "@/components/sheet-header";
 import { Text } from "@/components/text";
@@ -449,7 +449,7 @@ function CategoryEditorReady(props: CategoryEditorProps & { db: Database }) {
                     style={{ bottom: insets.bottom + 16 + keyboardHeight }}
                 >
                     <View className="bg-m3-inverse-surface min-h-12 flex-row items-center gap-3 rounded px-4 py-3">
-                        <HugeiconsIcon color={m3.inverseOnSurface} icon={CheckmarkCircle02Icon} size={18} />
+                        <Icon color={m3.inverseOnSurface} icon={CheckmarkCircle02Icon} size={18} />
                         <Text className="text-caption flex-1 font-sans" style={{ color: m3.inverseOnSurface }}>
                             {t("categories.toast.added")}
                         </Text>

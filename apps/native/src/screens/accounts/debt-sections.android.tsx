@@ -1,13 +1,13 @@
-import ArrowDown01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowDown01Icon";
-import ArrowUp01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowUp01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useRouter } from "expo-router";
+import ArrowDown01Icon from "lucide-react-native/icons/chevron-down";
+import ArrowUp01Icon from "lucide-react-native/icons/chevron-up";
 import { memo, use, useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { AccountTile } from "@/components/account-tile";
 import { AmountsHiddenContext } from "@/components/amount-text";
 import { Eyebrow, PARENT_TILE } from "@/components/category-list-chrome";
+import { Icon } from "@/components/icon";
 import { Text } from "@/components/text";
 import { useDisplaySettings } from "@/contexts/display-settings-context";
 import type { DebtsScreenOverview, useDebtsOverview } from "@/data/debts";
@@ -158,7 +158,7 @@ function SettledToggle({ count, onToggle, open }: { count: number; onToggle: () 
             onPress={onToggle}
         >
             <Text className="text-body text-m3-on-surface-variant flex-1">{t("debts.settled", { count })}</Text>
-            <HugeiconsIcon color={m3.onSurfaceVariant} icon={open ? ArrowUp01Icon : ArrowDown01Icon} size={20} />
+            <Icon color={m3.onSurfaceVariant} icon={open ? ArrowUp01Icon : ArrowDown01Icon} size={20} />
         </Pressable>
     );
 }

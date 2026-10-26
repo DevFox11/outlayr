@@ -1,11 +1,11 @@
-import Search01Icon from "@hugeicons-pro/core-stroke-rounded/Search01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useRouter } from "expo-router";
+import Search01Icon from "lucide-react-native/icons/search";
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 
 import { BusyText } from "@/components/busy-text";
 import { CategoryIconTile } from "@/components/category-icon-tile";
+import { Icon } from "@/components/icon";
 import { ChoiceRow } from "@/components/list/list-row";
 import { MonoLabel } from "@/components/mono-label";
 import { SEARCH_FIELD } from "@/components/search-field-style";
@@ -144,7 +144,7 @@ export function StepAccountInstallments({ accounts, onPick, searchable }: StepAc
         <View className="gap-2 pt-4">
             {searchable ? (
                 <View className="border-border flex-row items-center gap-2 border-b pb-2">
-                    <HugeiconsIcon color={colors.muted} icon={Search01Icon} size={16} strokeWidth={2} />
+                    <Icon color={colors.muted} icon={Search01Icon} size={16} strokeWidth={2} />
                     <TextInput
                         accessibilityLabel={t("installments.apps.search")}
                         autoCorrect={false}

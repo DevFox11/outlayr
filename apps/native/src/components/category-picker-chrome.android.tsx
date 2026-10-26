@@ -1,10 +1,10 @@
-import ArrowRight01Icon from "@hugeicons-pro/core-stroke-rounded/ArrowRight01Icon";
-import Tick02Icon from "@hugeicons-pro/core-stroke-rounded/Tick02Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import Tick02Icon from "lucide-react-native/icons/check";
+import ArrowRight01Icon from "lucide-react-native/icons/chevron-right";
 import { memo } from "react";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { SheetHeader } from "@/components/sheet-header";
 import type { Category } from "@/data/categories-core";
 import { useTranslation } from "@/i18n/context";
@@ -96,9 +96,7 @@ export const CategoryRow = memo(
                                 </Text>
                             ) : null}
                         </View>
-                        {selected ? (
-                            <HugeiconsIcon color={m3.primary} icon={Tick02Icon} size={24} strokeWidth={2} />
-                        ) : null}
+                        {selected ? <Icon color={m3.primary} icon={Tick02Icon} size={24} strokeWidth={2} /> : null}
                     </Pressable>
                     {hasChildren ? (
                         <Pressable
@@ -115,12 +113,7 @@ export const CategoryRow = memo(
                                 {String(childCount)}
                             </Text>
                             <View className={expanded ? "rotate-90" : "rotate-0"}>
-                                <HugeiconsIcon
-                                    color={m3.onSurfaceVariant}
-                                    icon={ArrowRight01Icon}
-                                    size={20}
-                                    strokeWidth={1.8}
-                                />
+                                <Icon color={m3.onSurfaceVariant} icon={ArrowRight01Icon} size={20} strokeWidth={1.8} />
                             </View>
                         </Pressable>
                     ) : null}

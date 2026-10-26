@@ -1,10 +1,10 @@
-import Alert02Icon from "@hugeicons-pro/core-solid-rounded/Alert02Icon";
-import Delete02Icon from "@hugeicons-pro/core-solid-rounded/Delete02Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
-import type { IconSvgElement } from "@hugeicons/react-native";
 import { GlassContainer, GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
+import Delete02Icon from "lucide-react-native/icons/trash";
+import Alert02Icon from "lucide-react-native/icons/triangle-alert";
 import { Pressable, StyleSheet, View } from "react-native";
 
+import { Icon } from "@/components/icon";
+import type { IconComponent } from "@/components/icon";
 import type { TransactionIdentity } from "@/domain/transaction-identity";
 import type { TransferEnd } from "@/domain/transfer-log-rows";
 import { withAlpha } from "@/theme/shade";
@@ -67,10 +67,8 @@ function Ground({ hue }: { hue: string | null }) {
     );
 }
 
-function glyphOf(icon: IconSvgElement) {
-    return ({ color, size }: { color: string; size: number }) => (
-        <HugeiconsIcon color={color} icon={icon} size={size} />
-    );
+function glyphOf(icon: IconComponent) {
+    return ({ color, size }: { color: string; size: number }) => <Icon color={color} icon={icon} size={size} />;
 }
 
 function hueOf(tone: NoticeTone, colors: ReturnType<typeof useColors>): string | null {

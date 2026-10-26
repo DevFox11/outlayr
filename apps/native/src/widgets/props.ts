@@ -593,7 +593,7 @@ async function buildWatchEntries(
             color: row.customColor ?? row.imageColor ?? category?.color ?? "#767676",
             date: formatDateHeader(row.date, now),
             day: formatDayHeader(row.date, now),
-            // The widget runtime does not link Hugeicons, so an icon identity degrades to its colour dot.
+            // The widget runtime does not link the icon set, so an icon identity degrades to its colour dot.
             emoji: row.emoji ?? category?.emoji ?? "",
             id: row.id,
             income: row.income,

@@ -40,12 +40,7 @@ Requires Node 24 and [Vite+](https://viteplus.dev) (`vp`), which manages pnpm an
 curl -fsSL https://vite.plus | bash
 ```
 
-The app icons come from Hugeicons Pro, a paid private registry. With a license, put the token in your user-level config, never in the repo `.npmrc`:
-
-```bash
-vp pm config set --global "//npm.hugeicons.com/:_authToken" "<token>"
-vp install
-```
+The workspace installs with `vp install`. Icons come from [Lucide](https://lucide.dev), ISC-licensed, so there is no private registry and no token to configure. Import them one file at a time (`lucide-react-native/icons/<name>`), never through the package root: the barrel hands every glyph to Metro.
 
 Run the app on the iOS simulator or an Android emulator:
 
@@ -60,18 +55,6 @@ The app runs without a backend. To work on sync, sign-in or exchange rates, star
 vp run dev:setup
 vp run dev:server
 ```
-
-### Without a Hugeicons Pro license
-
-Skip the token. The Pro packages are optional, so pnpm skips them once the flag below keeps its release-age check off their registry. `OUTLAYR_FREE_ICONS=1` then draws every icon from the free Hugeicons set, with a dashed circle for any name the free set lacks:
-
-```bash
-vp install -- '--config.minimum-release-age-exclude=@hugeicons-pro/*'
-OUTLAYR_FREE_ICONS=1 vp run --filter @outlayr/native ios
-OUTLAYR_FREE_ICONS=1 vp run --filter @outlayr/native android
-```
-
-Type-checking, a few test suites and `gen:icons` still need the Pro packages.
 
 ## Scripts
 

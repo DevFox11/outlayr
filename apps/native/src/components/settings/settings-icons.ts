@@ -1,52 +1,54 @@
-import Analytics01Icon from "@hugeicons-pro/core-stroke-rounded/Analytics01Icon";
-import ArchiveRestoreIcon from "@hugeicons-pro/core-stroke-rounded/ArchiveRestoreIcon";
-import BadgeCentIcon from "@hugeicons-pro/core-stroke-rounded/BadgeCentIcon";
-import BankIcon from "@hugeicons-pro/core-stroke-rounded/BankIcon";
-import BiometricAccessIcon from "@hugeicons-pro/core-stroke-rounded/BiometricAccessIcon";
-import Calculator01Icon from "@hugeicons-pro/core-stroke-rounded/Calculator01Icon";
-import Calendar01Icon from "@hugeicons-pro/core-stroke-rounded/Calendar01Icon";
-import CalendarClockIcon from "@hugeicons-pro/core-stroke-rounded/CalendarClockIcon";
-import Camera01Icon from "@hugeicons-pro/core-stroke-rounded/Camera01Icon";
-import ChartBarLineIcon from "@hugeicons-pro/core-stroke-rounded/ChartBarLineIcon";
-import ChartLineData01Icon from "@hugeicons-pro/core-stroke-rounded/ChartLineData01Icon";
-import Clock04Icon from "@hugeicons-pro/core-stroke-rounded/Clock04Icon";
-import CloudIcon from "@hugeicons-pro/core-stroke-rounded/CloudIcon";
-import CreditCardIcon from "@hugeicons-pro/core-stroke-rounded/CreditCardIcon";
-import CurrencyIcon from "@hugeicons-pro/core-stroke-rounded/CurrencyIcon";
-import DarkModeIcon from "@hugeicons-pro/core-stroke-rounded/DarkModeIcon";
-import DashboardSpeed01Icon from "@hugeicons-pro/core-stroke-rounded/DashboardSpeed01Icon";
-import DashboardSquare01Icon from "@hugeicons-pro/core-stroke-rounded/DashboardSquare01Icon";
-import Delete02Icon from "@hugeicons-pro/core-stroke-rounded/Delete02Icon";
-import FavouriteIcon from "@hugeicons-pro/core-stroke-rounded/FavouriteIcon";
-import FileExportIcon from "@hugeicons-pro/core-stroke-rounded/FileExportIcon";
-import FileImportIcon from "@hugeicons-pro/core-stroke-rounded/FileImportIcon";
-import InformationCircleIcon from "@hugeicons-pro/core-stroke-rounded/InformationCircleIcon";
-import LanguageSkillIcon from "@hugeicons-pro/core-stroke-rounded/LanguageSkillIcon";
-import LayoutTable01Icon from "@hugeicons-pro/core-stroke-rounded/LayoutTable01Icon";
-import LegalDocument01Icon from "@hugeicons-pro/core-stroke-rounded/LegalDocument01Icon";
-import LicenseIcon from "@hugeicons-pro/core-stroke-rounded/LicenseIcon";
-import Logout01Icon from "@hugeicons-pro/core-stroke-rounded/Logout01Icon";
-import Mail01Icon from "@hugeicons-pro/core-stroke-rounded/Mail01Icon";
-import Mic01Icon from "@hugeicons-pro/core-stroke-rounded/Mic01Icon";
-import MoneyAdd01Icon from "@hugeicons-pro/core-stroke-rounded/MoneyAdd01Icon";
-import NewTwitterIcon from "@hugeicons-pro/core-stroke-rounded/NewTwitterIcon";
-import Notification03Icon from "@hugeicons-pro/core-stroke-rounded/Notification03Icon";
-import Plug01Icon from "@hugeicons-pro/core-stroke-rounded/Plug01Icon";
-import SecurityCheckIcon from "@hugeicons-pro/core-stroke-rounded/SecurityCheckIcon";
-import Share08Icon from "@hugeicons-pro/core-stroke-rounded/Share08Icon";
-import SmartPhone01Icon from "@hugeicons-pro/core-stroke-rounded/SmartPhone01Icon";
-import SourceCodeIcon from "@hugeicons-pro/core-stroke-rounded/SourceCodeIcon";
-import SparklesIcon from "@hugeicons-pro/core-stroke-rounded/SparklesIcon";
-import StarIcon from "@hugeicons-pro/core-stroke-rounded/StarIcon";
-import SunriseIcon from "@hugeicons-pro/core-stroke-rounded/SunriseIcon";
-import SwatchIcon from "@hugeicons-pro/core-stroke-rounded/SwatchIcon";
-import Tap01Icon from "@hugeicons-pro/core-stroke-rounded/Tap01Icon";
-import TestTubeIcon from "@hugeicons-pro/core-stroke-rounded/TestTubeIcon";
-import TextFontIcon from "@hugeicons-pro/core-stroke-rounded/TextFontIcon";
-import UserCircleIcon from "@hugeicons-pro/core-stroke-rounded/UserCircleIcon";
-import UserRemove01Icon from "@hugeicons-pro/core-stroke-rounded/UserRemove01Icon";
-import Wallet01Icon from "@hugeicons-pro/core-stroke-rounded/Wallet01Icon";
-import type { IconSvgElement } from "@hugeicons/react-native";
+import ArchiveRestoreIcon from "lucide-react-native/icons/archive-restore";
+import BadgeCentIcon from "lucide-react-native/icons/badge-cent";
+import MoneyAdd01Icon from "lucide-react-native/icons/banknote-arrow-up";
+import Notification03Icon from "lucide-react-native/icons/bell";
+import Calculator01Icon from "lucide-react-native/icons/calculator";
+import Calendar01Icon from "lucide-react-native/icons/calendar";
+import CalendarClockIcon from "lucide-react-native/icons/calendar-clock";
+import Camera01Icon from "lucide-react-native/icons/camera";
+import ChartBarLineIcon from "lucide-react-native/icons/chart-column";
+import ChartLineData01Icon from "lucide-react-native/icons/chart-line";
+import Analytics01Icon from "lucide-react-native/icons/chart-spline";
+import CurrencyIcon from "lucide-react-native/icons/circle-dollar-sign";
+import UserCircleIcon from "lucide-react-native/icons/circle-user";
+import Clock04Icon from "lucide-react-native/icons/clock";
+import CloudIcon from "lucide-react-native/icons/cloud";
+import SourceCodeIcon from "lucide-react-native/icons/code";
+import CreditCardIcon from "lucide-react-native/icons/credit-card";
+// Lucide dropped brand glyphs, so the X row borrows the generic outbound-link mark.
+import NewTwitterIcon from "lucide-react-native/icons/external-link";
+import LicenseIcon from "lucide-react-native/icons/file-badge";
+import FileImportIcon from "lucide-react-native/icons/file-input";
+import FileExportIcon from "lucide-react-native/icons/file-output";
+import LegalDocument01Icon from "lucide-react-native/icons/file-text";
+import BiometricAccessIcon from "lucide-react-native/icons/fingerprint-pattern";
+import DashboardSpeed01Icon from "lucide-react-native/icons/gauge";
+import FavouriteIcon from "lucide-react-native/icons/heart";
+import InformationCircleIcon from "lucide-react-native/icons/info";
+import BankIcon from "lucide-react-native/icons/landmark";
+import LanguageSkillIcon from "lucide-react-native/icons/languages";
+import DashboardSquare01Icon from "lucide-react-native/icons/layout-grid";
+import Logout01Icon from "lucide-react-native/icons/log-out";
+import Mail01Icon from "lucide-react-native/icons/mail";
+import Mic01Icon from "lucide-react-native/icons/mic";
+import DarkModeIcon from "lucide-react-native/icons/moon";
+import Plug01Icon from "lucide-react-native/icons/plug";
+import Tap01Icon from "lucide-react-native/icons/pointer";
+import Share08Icon from "lucide-react-native/icons/share";
+import SecurityCheckIcon from "lucide-react-native/icons/shield-check";
+import SmartPhone01Icon from "lucide-react-native/icons/smartphone";
+import SparklesIcon from "lucide-react-native/icons/sparkles";
+import StarIcon from "lucide-react-native/icons/star";
+import SunriseIcon from "lucide-react-native/icons/sunrise";
+import SwatchIcon from "lucide-react-native/icons/swatch-book";
+import LayoutTable01Icon from "lucide-react-native/icons/table";
+import TestTubeIcon from "lucide-react-native/icons/test-tube";
+import Delete02Icon from "lucide-react-native/icons/trash";
+import TextFontIcon from "lucide-react-native/icons/type";
+import UserRemove01Icon from "lucide-react-native/icons/user-round-x";
+import Wallet01Icon from "lucide-react-native/icons/wallet";
+
+import type { IconComponent } from "@/components/icon";
 
 const REGISTRY = {
     Analytics01: Analytics01Icon,
@@ -97,10 +99,10 @@ const REGISTRY = {
     UserCircle: UserCircleIcon,
     UserRemove01: UserRemove01Icon,
     Wallet01: Wallet01Icon,
-} satisfies Record<string, IconSvgElement>;
+} satisfies Record<string, IconComponent>;
 
 export type SettingsIconName = keyof typeof REGISTRY;
 
-export function settingsIcon(name: SettingsIconName): IconSvgElement {
+export function settingsIcon(name: SettingsIconName): IconComponent {
     return REGISTRY[name];
 }

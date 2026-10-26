@@ -1,8 +1,8 @@
 import type { MenuAction } from "@expo/ui/community/menu";
-import ArrowDown01Icon from "@hugeicons-pro/core-solid-rounded/ArrowDown01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import ArrowDown01Icon from "lucide-react-native/icons/chevron-down";
 import { View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { MaterialMenu } from "@/components/material-menu";
 import { Text } from "@/components/text";
 import { useTranslation } from "@/i18n/context";
@@ -51,7 +51,7 @@ export const DisplayCurrencyChip: typeof DisplayCurrencyChipBase = ({ code, opti
                         />
                     ) : null}
                     <Text className="font-sans-medium text-caption text-m3-on-surface-variant leading-5">{code}</Text>
-                    <HugeiconsIcon color={m3.onSurfaceVariant} icon={ArrowDown01Icon} size={18} />
+                    <Icon color={m3.onSurfaceVariant} icon={ArrowDown01Icon} size={18} />
                 </View>
             )}
         />

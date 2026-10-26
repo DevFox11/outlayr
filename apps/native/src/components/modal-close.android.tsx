@@ -1,8 +1,8 @@
-import Cancel01Icon from "@hugeicons-pro/core-stroke-rounded/Cancel01Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import Cancel01Icon from "lucide-react-native/icons/x";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Icon } from "@/components/icon";
 import { withAlpha } from "@/theme/shade";
 import { useMaterialColors } from "@/theme/use-material-colors";
 
@@ -26,7 +26,7 @@ export const ModalClose: typeof ModalCloseBase = ({ accessibilityLabel, disabled
                 disabled={disabled}
                 onPress={onPress}
             >
-                <HugeiconsIcon
+                <Icon
                     color={disabled ? withAlpha(m3.onSurface, DISABLED_ALPHA) : m3.onSurface}
                     icon={Cancel01Icon}
                     size={24}

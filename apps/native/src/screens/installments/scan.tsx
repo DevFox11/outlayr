@@ -1,5 +1,5 @@
-import Image01Icon from "@hugeicons-pro/core-stroke-rounded/Image01Icon";
 import { useRouter } from "expo-router";
+import Image01Icon from "lucide-react-native/icons/image";
 import { Button } from "panelui-native/components/button";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Text } from "react-native";

@@ -13,7 +13,7 @@ export type AppSymbolName =
 
 export type AppSymbolProps = Omit<SymbolViewProps, "name"> & { name: AppSymbolName };
 
-// Android's sibling draws Hugeicons: expo-symbols' Material fallback loads a font on every mount, so lists flash blank.
+// Android's sibling draws Lucide: expo-symbols' Material fallback loads a font on every mount, so lists flash blank.
 export function AppSymbol(props: AppSymbolProps) {
     return <SymbolView {...props} />;
 }

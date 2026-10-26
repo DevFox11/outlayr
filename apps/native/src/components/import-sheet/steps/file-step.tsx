@@ -1,9 +1,9 @@
-import File02Icon from "@hugeicons-pro/core-stroke-rounded/File02Icon";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import File02Icon from "lucide-react-native/icons/file";
 import { Button } from "panelui-native/components/button";
 import { useMemo } from "react";
 import { View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { Text } from "@/components/text";
 import { deduceDateFormat } from "@/domain/transaction-csv";
 import type { TranslationKey } from "@/i18n/catalog";
@@ -110,7 +110,7 @@ export function FileStep({ onChoose, busy = false }: FileStepProps) {
             <View className="flex-1 gap-4 px-5">
                 <View className="flex-row items-center gap-3 py-3">
                     <View className="size-7.5 items-center justify-center">
-                        <HugeiconsIcon color={colors.foreground} icon={File02Icon} size={20} strokeWidth={1.9} />
+                        <Icon color={colors.foreground} icon={File02Icon} size={20} strokeWidth={1.9} />
                     </View>
                     <View className="flex-1 gap-0.5">
                         <Text className="font-sans-medium text-body text-foreground" numberOfLines={1}>
@@ -164,7 +164,7 @@ export function FileStep({ onChoose, busy = false }: FileStepProps) {
         <View className="flex-1 gap-4 px-5" testID="import-file-empty">
             <View className="flex-row items-center gap-3 py-3">
                 <View className="items-center justify-center" style={{ height: DOC_TILE_SIZE, width: DOC_TILE_SIZE }}>
-                    <HugeiconsIcon color={colors.subtle} icon={File02Icon} size={20} strokeWidth={1.9} />
+                    <Icon color={colors.subtle} icon={File02Icon} size={20} strokeWidth={1.9} />
                 </View>
                 <View className="flex-1 gap-0.5">
                     <Text className="font-sans-medium text-body text-muted" numberOfLines={1}>
