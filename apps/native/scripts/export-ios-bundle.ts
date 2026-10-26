@@ -5,16 +5,21 @@ import { join, resolve } from "node:path";
 
 export const nativeRoot = resolve(import.meta.dirname, "..");
 
+/**
+ * Windows resolves `npx` through a `.cmd` shim, which execFile cannot spawn without a shell,
+ * so the whole line goes through one with quoted arguments.
+ */
+function run(command: string, args: string[]): void {
+    const line = [command, ...args.map((arg) => `"${arg}"`)].join(" ");
+    execFileSync(line, { cwd: nativeRoot, shell: true, stdio: ["ignore", "ignore", "inherit"] });
+}
+
 // Builds the intlayer dictionaries first: `.intlayer/` is gitignored, so a fresh checkout's export fails without it.
 export function readIosBundle<T>(read: (bundle: string, map: string) => T): T {
     const outDir = mkdtempSync(join(tmpdir(), "outlayr-bundle-"));
     try {
-        execFileSync("npx", ["intlayer", "build"], { cwd: nativeRoot, stdio: ["ignore", "ignore", "inherit"] });
-        execFileSync(
-            "npx",
-            ["expo", "export", "--platform", "ios", "--output-dir", outDir, "--source-maps", "--no-bytecode"],
-            { cwd: nativeRoot, stdio: ["ignore", "ignore", "inherit"] }
-        );
+        run("npx", ["intlayer", "build"]);
+        run("npx", ["expo", "export", "--platform", "ios", "--output-dir", outDir, "--source-maps", "--no-bytecode"]);
         const jsDir = join(outDir, "_expo", "static", "js", "ios");
         const bundleName = readdirSync(jsDir).find((name) => name.endsWith(".js"));
         if (!bundleName) {

@@ -1,0 +1,18 @@
+# Every text file is stored and checked out with LF. Without this, a Windows checkout
+# (core.autocrlf=true) hands CRLF to oxfmt, which rewrites the whole tree and leaves
+# every file looking modified.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.otf binary
+*.ttf binary
+*.p8 binary
+*.p12 binary
+*.mobileprovision binary
+*.keystore binary
+*.zip binary

@@ -145,10 +145,13 @@ function byCodeUnit(a: string, b: string): number {
 
 function whiteTextSites(): string[] {
     const src = join(nativeRoot, "src");
-    return sourceFiles(src)
-        .filter((file) => /\btext-white\b/.test(readFileSync(file, "utf-8")))
-        .map((file) => relative(src, file))
-        .sort(byCodeUnit);
+    return (
+        sourceFiles(src)
+            .filter((file) => /\btext-white\b/.test(readFileSync(file, "utf-8")))
+            // Relative paths are compared against source literals, which are POSIX on every platform.
+            .map((file) => relative(src, file).replaceAll("\\", "/"))
+            .sort(byCodeUnit)
+    );
 }
 
 function sourceFiles(dir: string): string[] {

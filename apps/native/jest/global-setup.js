@@ -12,7 +12,9 @@ module.exports = function globalSetup() {
 
     const root = join(__dirname, "..");
     if (newestMtime(join(root, ".intlayer", "dictionary")) < newestMtime(join(root, "src", "content"))) {
-        execFileSync(join(root, "node_modules", ".bin", "intlayer"), ["build"], { cwd: root, stdio: "inherit" });
+        // pnpm installs an extensionless shell script plus a `.cmd` shim; Windows needs a shell to run the shim.
+        const bin = join(root, "node_modules", ".bin", process.platform === "win32" ? "intlayer.cmd" : "intlayer");
+        execFileSync(`"${bin}" build`, { cwd: root, shell: true, stdio: "inherit" });
     }
 };
 

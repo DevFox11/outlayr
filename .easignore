@@ -101,6 +101,7 @@ apps/native/.intlayer/
 # Repo tooling that does not run on the builder.
 .github/
 .claude/
+.dsh/
 .vscode/
 .vite-hooks/
 

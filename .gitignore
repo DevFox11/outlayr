@@ -56,3 +56,6 @@ openspec/
 
 .intlayer
 .impeccable/hook.cache.json
+
+# Agent scratch (analysis, mapping tables, one-off scripts)
+.dsh/
