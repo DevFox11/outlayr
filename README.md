@@ -40,7 +40,13 @@ Requires Node 24 and [Vite+](https://viteplus.dev) (`vp`), which manages pnpm an
 curl -fsSL https://vite.plus | bash
 ```
 
-The workspace installs with `vp install`. Icons come from [Lucide](https://lucide.dev), ISC-licensed, so there is no private registry and no token to configure. Import them one file at a time (`lucide-react-native/icons/<name>`), never through the package root: the barrel hands every glyph to Metro.
+Install the workspace dependencies:
+
+```bash
+vp install
+```
+
+Icons come from [Lucide](https://lucide.dev), ISC-licensed, so there is no private registry and no token to configure. Import them one file at a time (`lucide-react-native/icons/<name>`), never through the package root, because the barrel hands every glyph to Metro. The pipeline behind the native symbols is in [docs/internals/icons.md](./docs/internals/icons.md).
 
 Run the app on the iOS simulator or an Android emulator:
 
