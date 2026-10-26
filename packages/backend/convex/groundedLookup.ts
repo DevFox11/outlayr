@@ -25,7 +25,7 @@ import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { knowledgeKeys } from "./lib/merchantKey";
 import { CANONICAL_CATEGORY_NAMES, KEY_PATTERN, shouldPublish } from "./lib/merchantTrust";
 import type { KnowledgeCandidate } from "./lib/merchantTrust";
-import { groundedModelId } from "./lib/models";
+import { AI_MAX_OUTPUT_TOKENS, groundedModelId } from "./lib/models";
 import { budgetConfig, estimateMicros, measureMicros, WORST_CASE_SEARCH_CALLS } from "./lib/spend";
 
 const CANONICAL_NAMES_LIST = [...CANONICAL_CATEGORY_NAMES].join(", ");
@@ -154,6 +154,7 @@ export async function runGroundedLookupCall(
 ): Promise<GroundedCallOutcome> {
     const result = await generateText({
         abortSignal: AbortSignal.timeout(GROUNDED_REQUEST_TIMEOUT_MS),
+        maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
         maxRetries: 0,
         model: deps.grounding,
         prompt: buildGroundedPrompt(args),

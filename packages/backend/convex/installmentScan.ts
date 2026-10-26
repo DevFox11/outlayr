@@ -16,7 +16,7 @@ import {
     trimTo,
 } from "./lib/ledgerPrompt";
 import type { LedgerContext } from "./lib/ledgerPrompt";
-import { AI_CONSENT_VERSION, mainModelId } from "./lib/models";
+import { AI_CONSENT_VERSION, AI_MAX_OUTPUT_TOKENS, mainModelId } from "./lib/models";
 import {
     admitScan,
     KNOWN_CURRENCIES,
@@ -193,6 +193,7 @@ export async function readInstallmentPlan(
     try {
         const { output } = await generateText({
             abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+            maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
             maxRetries: 0,
             messages: [
                 {

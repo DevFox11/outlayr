@@ -28,7 +28,7 @@ import {
 } from "./lib/ledgerPrompt";
 import type { LedgerContext } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
-import { AI_CONSENT_VERSION, fastModelId } from "./lib/models";
+import { AI_CONSENT_VERSION, AI_MAX_OUTPUT_TOKENS, fastModelId } from "./lib/models";
 import { isPro } from "./revenuecat";
 
 // A Convex value tops out at 1MB and the photo travels as one; the client re-encodes to fit.
@@ -285,6 +285,7 @@ export async function readReceipt(
     try {
         const { output } = await generateText({
             abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+            maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
             maxRetries: 0,
             messages: [
                 {

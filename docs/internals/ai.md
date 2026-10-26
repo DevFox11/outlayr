@@ -27,6 +27,13 @@ Overrides are read per call, like the rest of the provider keys: `AI_MODEL_ID`, 
 - `DEEPSEEK_BASE_URL` is optional and only there for a proxy or a self-hosted gateway.
 - `AI_THINKING=enabled` lets a call think on the provider default. Everything else disables thinking.
 
+## The output cap is explicit
+
+The AI SDK does not recognise these model ids, so the provider caps output at 4096 tokens unless the
+call asks for more. A 200-label CSV import measured 188 suggestions, near enough to that ceiling to
+truncate, so every call passes `AI_MAX_OUTPUT_TOKENS` (16 384). The cap only limits, it never charges:
+billing follows the tokens actually generated.
+
 ## Thinking is on by default
 
 DeepSeek runs thinking unless told otherwise. The AI SDK's `reasoning` option cannot express "off": it

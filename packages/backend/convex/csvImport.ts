@@ -16,7 +16,7 @@ import { describeTree } from "./lib/ledgerPrompt";
 import type { CategoryBranch } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
 import { knowledgeKeys, merchantKey } from "./lib/merchantKey";
-import { AI_CONSENT_VERSION, fastModelId } from "./lib/models";
+import { AI_CONSENT_VERSION, AI_MAX_OUTPUT_TOKENS, fastModelId } from "./lib/models";
 import { isPro } from "./revenuecat";
 
 const MAX_LABELS = 200;
@@ -114,6 +114,7 @@ export async function classify(model: LanguageModel, args: RunClassifyArgs): Pro
         const { output } = await generateText({
             abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
             // The SDK's 2 default retries alone would outlast the client's 15s abort.
+            maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
             maxRetries: 0,
             model,
             output: Output.object({ schema: modelOutputSchema }),

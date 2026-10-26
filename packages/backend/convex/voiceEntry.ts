@@ -39,7 +39,7 @@ import {
 } from "./lib/ledgerPrompt";
 import type { LedgerContext } from "./lib/ledgerPrompt";
 import { perUserBurst } from "./lib/limits";
-import { AI_CONSENT_VERSION, ELEVENLABS_TRANSCRIPTION_MODEL_ID, mainModelId } from "./lib/models";
+import { AI_CONSENT_VERSION, AI_MAX_OUTPUT_TOKENS, ELEVENLABS_TRANSCRIPTION_MODEL_ID, mainModelId } from "./lib/models";
 import { isPro } from "./revenuecat";
 
 // A Convex value tops out at 1MB; a minute of AAC at the client's 48kbps mono preset is ~360KB.
@@ -520,6 +520,7 @@ export const speak = action({
                 { threadId: args.threadId, userId },
                 {
                     abortSignal: AbortSignal.timeout(PARSE_TIMEOUT_MS),
+                    maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
                     maxRetries: 0,
                     promptMessageId: messageId,
                     providerOptions: aiProviderOptions(),
