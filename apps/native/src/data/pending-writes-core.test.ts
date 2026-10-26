@@ -115,7 +115,7 @@ describe("applyPendingWrites", () => {
         db = makeDb();
         await seedCategories(db);
         // The baseline is someone who allowed the AI providers, so an unseen merchant waits on the lookup.
-        await setBoolSetting(db, "aiConsentV2", true);
+        await setBoolSetting(db, "aiConsentV3", true);
     });
 
     it("files a bank app's push under its account in the charge's currency", async () => {
@@ -840,7 +840,7 @@ describe("applyPendingWrites", () => {
     });
 
     it("files an unseen merchant under the first category until the AI providers are allowed", async () => {
-        await setBoolSetting(db, "aiConsentV2", false);
+        await setBoolSetting(db, "aiConsentV3", false);
 
         await applyPendingWrites(db, [walletWrite("a")], NOW);
 

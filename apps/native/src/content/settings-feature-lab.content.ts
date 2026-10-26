@@ -72,8 +72,8 @@ const settingsFeatureLab = {
             es: "Filas de transacción",
         }),
         "settings.featureLab.aiProvidersNote": t({
-            en: "Both go to Claude, made by Anthropic, and only while Send data to AI providers is on in Settings.",
-            es: "Ambas van a Claude, de Anthropic, y solo mientras Enviar datos a proveedores de IA esté activado en Configuración.",
+            en: "Both go to DeepSeek, and only while Send data to AI providers is on in Settings.",
+            es: "Ambas van a DeepSeek, y solo mientras Enviar datos a proveedores de IA esté activado en Configuración.",
         }),
     },
     key: "settings-feature-lab" as const,

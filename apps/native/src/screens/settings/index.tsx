@@ -98,7 +98,7 @@ export function Settings() {
     const showNotifications = settings.bool("showNotifications");
     const biometricLock = settings.bool("biometricLock");
     const shareAnalytics = settings.bool("shareAnalytics");
-    const aiConsent = settings.bool("aiConsentV2");
+    const aiConsent = settings.bool("aiConsentV3");
     const incomeTracking = settings.bool("incomeTracking");
     const showUpcoming = settings.bool("showUpcoming");
     const animatedCharts = settings.bool("animatedCharts");
@@ -286,7 +286,7 @@ export function Settings() {
                     icon="Sparkles"
                     onValueChange={(next) => {
                         if (next) {
-                            setBoolSetting(db, "aiConsentV2", true);
+                            setBoolSetting(db, "aiConsentV3", true);
                         } else {
                             saveAiConsent(db, false);
                         }

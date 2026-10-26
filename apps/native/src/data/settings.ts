@@ -52,7 +52,7 @@ export function useBoolSetting(db: Database | null, key: BoolSettingKey): boolea
     );
 }
 
-export function useAiConsent(db: Database | null, key: AiConsentKey = "aiConsentV2"): AiConsent {
+export function useAiConsent(db: Database | null, key: AiConsentKey = "aiConsentV3"): AiConsent {
     return useLiveValue(
         appMeta,
         () => selectSetting(db, key),

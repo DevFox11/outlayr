@@ -18,16 +18,16 @@ const aiConsent = {
             es: "Las sugerencias nunca incluyen montos, fechas ni cuentas. No guardamos grabaciones, fotos ni capturas.",
         }),
         "aiConsent.lead": t({
-            en: "These features need an account and use Claude, made by Anthropic, through our server. ElevenLabs turns recordings into text. Neither gets your name, email, or account ID.",
-            es: "Estas funciones necesitan una cuenta y usan Claude, de Anthropic, a través de nuestro servidor. ElevenLabs convierte las grabaciones en texto. Ninguna recibe tu nombre, tu correo ni el ID de tu cuenta.",
+            en: "These features need an account and use DeepSeek, through our server. ElevenLabs turns recordings into text. Neither gets your name, email, or account ID.",
+            es: "Estas funciones necesitan una cuenta y usan DeepSeek, a través de nuestro servidor. ElevenLabs convierte las grabaciones en texto. Ninguna recibe tu nombre, tu correo ni el ID de tu cuenta.",
         }),
         "aiConsent.lookup": t({
             en: "Web lookup",
             es: "Búsqueda web",
         }),
         "aiConsent.lookupSends": t({
-            en: "Anthropic may search the web for a merchant's name",
-            es: "Anthropic puede buscar en la web el nombre de un comercio",
+            en: "DeepSeek may search the web for a merchant's name",
+            es: "DeepSeek puede buscar en la web el nombre de un comercio",
         }),
         "aiConsent.notNow": t({
             en: "Not now",
@@ -62,8 +62,8 @@ const aiConsent = {
             es: "Nombres de comercios, si es gasto o ingreso, la moneda, el idioma, la región y los nombres de tus categorías. Al importar, las descripciones del CSV sin los números largos.",
         }),
         "aiConsent.title": t({
-            en: "Send data to Anthropic and ElevenLabs?",
-            es: "¿Enviar datos a Anthropic y ElevenLabs?",
+            en: "Send data to DeepSeek and ElevenLabs?",
+            es: "¿Enviar datos a DeepSeek y ElevenLabs?",
         }),
         "aiConsent.voice": t({
             en: "Voice entry",

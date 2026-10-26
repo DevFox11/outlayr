@@ -118,8 +118,8 @@ describe("showCents effect on formatting", () => {
 describe("remoteEnrichmentOn", () => {
     it.each([
         [["aiEnrichment"], false],
-        [["aiConsentV2"], false],
-        [["aiConsentV2", "aiEnrichment"], true],
+        [["aiConsentV3"], false],
+        [["aiConsentV3", "aiEnrichment"], true],
     ] as const)("with %j on, sends merchant names to an AI provider: %p", (keys, allowed) => {
         const on = new Set<BoolSettingKey>(keys);
         expect(remoteEnrichmentOn((key) => on.has(key))).toBe(allowed);

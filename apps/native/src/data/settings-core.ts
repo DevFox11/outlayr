@@ -21,7 +21,7 @@ export type BoolSettingKey =
     | "subscriptionReminders"
     | "installmentReminders"
     | "categorySuggestions"
-    | "aiConsentV2"
+    | "aiConsentV3"
     | "aiConsentPlanScan"
     | "aiEnrichment"
     | "groundedLookup"
@@ -48,7 +48,7 @@ export type NumberSettingKey =
 
 export const SETTING_DEFAULTS = {
     accentColor: DEFAULT_ACCENT_VALUE,
-    aiConsentV2: false,
+    aiConsentV3: false,
     aiConsentPlanScan: false,
     aiEnrichment: true,
     animatedCharts: true,
@@ -124,10 +124,10 @@ export const NUMBER_ENTRY_OPTIONS: readonly ChoiceOption[] = [
 
 /**
  * No stored row is a question not yet asked, which a parsed bool cannot tell apart from Not now. Nothing reaches
- * Anthropic or ElevenLabs until it is `allowed`.
+ * DeepSeek or ElevenLabs until it is `allowed`.
  */
 export type AiConsent = "unanswered" | "allowed" | "declined";
-export type AiConsentKey = Extract<BoolSettingKey, "aiConsentV2" | "aiConsentPlanScan">;
+export type AiConsentKey = Extract<BoolSettingKey, "aiConsentV3" | "aiConsentPlanScan">;
 
 export function parseAiConsent(raw: string | null): AiConsent {
     if (raw == null) {
@@ -137,7 +137,7 @@ export function parseAiConsent(raw: string | null): AiConsent {
 }
 
 export function remoteEnrichmentOn(bool: (key: BoolSettingKey) => boolean): boolean {
-    return bool("aiConsentV2") && bool("aiEnrichment");
+    return bool("aiConsentV3") && bool("aiEnrichment");
 }
 
 export function onOffLabel(value: boolean): TranslationKey {
@@ -173,14 +173,14 @@ export async function readNumberSetting(db: Database, key: NumberSettingKey): Pr
 
 export async function readRemoteEnrichment(db: Database): Promise<boolean> {
     const [consent, enrichment] = await Promise.all([
-        readBoolSetting(db, "aiConsentV2"),
+        readBoolSetting(db, "aiConsentV3"),
         readBoolSetting(db, "aiEnrichment"),
     ]);
     return consent && enrichment;
 }
 
 export async function saveAiConsent(db: Database, allowed: boolean): Promise<void> {
-    await Promise.all([setBoolSetting(db, "aiConsentV2", allowed), setBoolSetting(db, "aiConsentPlanScan", allowed)]);
+    await Promise.all([setBoolSetting(db, "aiConsentV3", allowed), setBoolSetting(db, "aiConsentPlanScan", allowed)]);
 }
 
 export async function setBoolSetting(db: Database, key: BoolSettingKey, value: boolean): Promise<void> {
